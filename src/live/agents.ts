@@ -21,13 +21,17 @@ export interface AgentsAPI {
 export function createAgentsAPI(options: {
   fetch: typeof globalThis.fetch;
   hexUrl?: string;
+  token?: string;
 }): AgentsAPI {
   return {
     async watch(after, signal) {
       const origin = options.hexUrl?.trim().replace(/\/+$/, '');
       if (!origin) throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address.');
       const query = after === undefined ? '' : `?after=${after}`;
-      const response = await options.fetch(`${origin}/activity${query}`, { signal });
+      const response = await options.fetch(`${origin}/activity${query}`, {
+        headers: options.token ? { Authorization: `Bearer ${options.token}` } : {},
+        signal,
+      });
       if (!response.ok) throw new Error(`hex answered HTTP ${response.status}.`);
       return (await response.json()) as AgentActivity;
     },

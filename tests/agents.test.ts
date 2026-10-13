@@ -90,3 +90,18 @@ test('watching asks hex for the activity since the last version it saw', async (
     'https://hex.example:8790/activity?after=7',
   ]);
 });
+
+test('watching carries the hex token when the app has one', async () => {
+  const seen: (string | null)[] = [];
+  const fetch = async (_url: string | URL | Request, init?: RequestInit) => {
+    seen.push(new Headers(init?.headers).get('authorization'));
+    return Response.json({ version: 1, call: null, tasks: [] });
+  };
+  const signal = new AbortController().signal;
+  await createAgentsAPI({ hexUrl: 'https://hex.example:8790', token: 'secret', fetch }).watch(
+    undefined,
+    signal,
+  );
+  await createAgentsAPI({ hexUrl: 'https://hex.example:8790', fetch }).watch(undefined, signal);
+  assert.deepEqual(seen, ['Bearer secret', null]);
+});
