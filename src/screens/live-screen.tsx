@@ -505,6 +505,10 @@ export default function LiveScreen() {
                 ? ending.line
                 : `${ending.line} · ${callLength(session.elapsedSeconds)}`}
             </Text>
+          ) : session.interrupted ? (
+            <Text accessibilityRole="alert" style={styles.ended}>
+              Paused while your phone has the audio
+            </Text>
           ) : (
             session.error && (
               <Text accessibilityRole="alert" style={styles.error}>

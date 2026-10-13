@@ -12,6 +12,7 @@ const initialSnapshot = (): LiveSnapshot => ({
   transcript: [],
   callId: null,
   ending: null,
+  interrupted: false,
 });
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
@@ -181,7 +182,8 @@ export class LiveSession {
           break;
         clearTimeout(this.muteTimer);
         this.muteCommand = null;
-        if (!command.muted && !this.snapshot.muted) this.transport?.setMuted(false);
+        if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted)
+          this.transport?.setMuted(false);
         break;
       }
       case 'session.closed':
@@ -262,6 +264,23 @@ export class LiveSession {
     }
   }
 
+  // A phone call or Siri takes the audio session: the microphone pauses, hex marks the moment and
+  // tells the voice to wait, and it all comes back when iOS returns the audio.
+  interrupt = (began: boolean) => {
+    if (this.snapshot.status !== 'connected' || !this.transport) return;
+    if (began === this.snapshot.interrupted) return;
+    if (!this.snapshot.muted) {
+      this.transport.setMuted(began);
+      this.transport.send({
+        type: began ? 'session.input_audio.mute' : 'session.input_audio.unmute',
+        event_id: `interruption-${++this.nextCommand}`,
+      });
+    }
+    this.update({ interrupted: began, inputLevel: 0 });
+    if (this.sessionId)
+      void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
+  };
+
   toggleMute = () => {
     if (this.snapshot.status !== 'connected' || !this.transport) return;
     clearTimeout(this.muteTimer);
@@ -339,6 +358,7 @@ export class LiveSession {
         status: reason || closeError ? 'error' : 'idle',
         error: reason || closeError,
         muted: false,
+        interrupted: false,
         ending,
       });
       this.closing = null;

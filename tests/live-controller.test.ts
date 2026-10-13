@@ -668,3 +668,36 @@ test('a call remembers how it ended: you, hex, or a dropped connection', async (
     await h.cleanup();
   }
 });
+
+test('a phone call or Siri pauses the microphone, tells hex, and gives it back unless you muted', async () => {
+  const h = harness();
+  const marks: string[] = [];
+  h.api.mark = async (id, kind) => {
+    marks.push(`${id} ${kind}`);
+  };
+  try {
+    await h.session.start();
+    await settle();
+    const transport = h.transports[0];
+    h.session.interrupt(true);
+    h.session.interrupt(true);
+    assert.equal(h.session.getSnapshot().interrupted, true);
+    assert.deepEqual(transport.muteChanges.at(-1), true);
+    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.mute');
+    h.session.interrupt(false);
+    assert.equal(h.session.getSnapshot().interrupted, false);
+    assert.deepEqual(transport.muteChanges.at(-1), false);
+    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
+    assert.deepEqual(marks, ['live_1 paused', 'live_1 resumed']);
+
+    h.session.toggleMute();
+    transport.acknowledge(transport.commands.at(-1)!);
+    const changes = transport.muteChanges.length;
+    h.session.interrupt(true);
+    h.session.interrupt(false);
+    assert.equal(transport.muteChanges.length, changes);
+    assert.equal(h.session.getSnapshot().muted, true);
+  } finally {
+    await h.cleanup();
+  }
+});
