@@ -4,6 +4,7 @@ import type { SessionAPI } from './types';
 type Options = {
   fetch: typeof globalThis.fetch;
   hexUrl?: string;
+  token?: string;
   timeoutMs?: number;
 };
 
@@ -35,7 +36,10 @@ function createHexClient(options: Options) {
     try {
       const response = await options.fetch(`${origin()}${path}`, {
         method,
-        headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+        headers: {
+          ...(options.token && { Authorization: `Bearer ${options.token}` }),
+          ...(body !== undefined && { 'Content-Type': 'application/json' }),
+        },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
@@ -91,6 +95,13 @@ export function createSessionAPI(options: Options): SessionAPI {
     },
     async close(sessionId) {
       await hex.request('/session', { method: 'DELETE', body: { sessionId } });
+    },
+    async mark(sessionId, kind) {
+      await hex.request(`/calls/${encodeURIComponent(sessionId)}/moments`, {
+        method: 'POST',
+        body: { kind },
+        timeoutMs: 10_000,
+      });
     },
   };
 }

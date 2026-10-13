@@ -71,3 +71,27 @@ test('an unreachable hex points at Tailscale', async () => {
   });
   await assert.rejects(api.create('offer'), /Tailscale/);
 });
+
+test('every request carries the hex token when the app has one', async () => {
+  const seen: (string | null)[] = [];
+  const fetch = async (_url: string | URL | Request, init?: RequestInit) => {
+    seen.push(new Headers(init?.headers).get('authorization'));
+    return new Response(null, { status: 204 });
+  };
+  await createSessionAPI({ hexUrl, token: 'secret', fetch }).close('live_1');
+  await createSessionAPI({ hexUrl, fetch }).close('live_1');
+  assert.deepEqual(seen, ['Bearer secret', null]);
+});
+
+test('tells hex when the phone takes the call’s audio and gives it back', async () => {
+  const api = createSessionAPI({
+    hexUrl,
+    fetch: async (url, init) => {
+      assert.equal(url, `${hexUrl}/calls/live_1/moments`);
+      assert.equal(init?.method, 'POST');
+      assert.deepEqual(JSON.parse(String(init?.body)), { kind: 'paused' });
+      return new Response(null, { status: 204 });
+    },
+  });
+  await api.mark?.('live_1', 'paused');
+});
