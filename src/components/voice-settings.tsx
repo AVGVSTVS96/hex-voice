@@ -52,7 +52,7 @@ import { Group, Separator, SettingRow, groupHeight } from '@/components/settings
 import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
-import { motion } from '@/motion';
+import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
 type Props = {
@@ -73,9 +73,18 @@ const voiceOptions = VOICES.map((voice) => ({
   ...voice,
   description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
 }));
-// A short phrase as the microphone hears it: one loudness peak per syllable. Each step is the
-// call's own reaction spring, so the orb moves exactly as it does when you talk.
-const PHRASE = [0.9, 0.35, 0.75, 0.25, 0.6, 0];
+// A short question as the microphone hears it, one step per syllable: how loud, how high and how
+// bright, rising at the end. Each step is the call's own spring, so the orb moves as it does when
+// you talk.
+const PHRASE = [
+  { level: 0.9, pitch: -0.2, tone: 0.2 },
+  { level: 0.35, pitch: -0.35, tone: -0.1 },
+  { level: 0.75, pitch: 0.1, tone: 0.3 },
+  { level: 0.25, pitch: 0.35, tone: 0 },
+  { level: 0.6, pitch: 0.9, tone: 0.5 },
+  { level: 0, pitch: 0, tone: 0 },
+];
+const PREVIEW_ORB = 160;
 
 const SHEET_TOP = 24;
 const SHEET_BOTTOM = 26;
@@ -116,10 +125,17 @@ export function VoiceSettings({
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
   const reducedMotion = useReducedMotion();
   const level = useSharedValue(0);
+  const pitch = useSharedValue(0);
+  const tone = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
   const orbStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + reaction * level.get() }],
+    transform: heard(reaction, PREVIEW_ORB, level.get(), pitch.get(), tone.get()),
   }));
+  const speak = () => {
+    level.set(withSequence(...PHRASE.map((step) => withSpring(step.level, motion.reaction))));
+    pitch.set(withSequence(...PHRASE.map((step) => withSpring(step.pitch, motion.tone))));
+    tone.set(withSequence(...PHRASE.map((step) => withSpring(step.tone, motion.tone))));
+  };
   useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
   const haptic = (enabled = preferences.haptics) => {
@@ -195,7 +211,7 @@ export function VoiceSettings({
                     <Animated.View style={orbStyle}>
                       <Persona
                         variant={persona}
-                        size={160}
+                        size={PREVIEW_ORB}
                         state="idle"
                         color={preferences.personaColor}
                         palette={opalPaletteInput(preferences.opalPalette)}
@@ -227,10 +243,7 @@ export function VoiceSettings({
                     onSelectionChange={(next: Reaction) => {
                       haptic();
                       preferences.setReaction(next);
-                      if (!reducedMotion)
-                        level.set(
-                          withSequence(...PHRASE.map((peak) => withSpring(peak, motion.reaction))),
-                        );
+                      if (!reducedMotion) speak();
                     }}
                     testID="reaction-picker"
                     modifiers={[

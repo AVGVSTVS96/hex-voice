@@ -28,8 +28,9 @@ import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
+import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
-import { motion } from '@/motion';
+import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
 const DOCKED_SIZE = 52;
@@ -89,7 +90,9 @@ export default function LiveScreen() {
   const breath = useSharedValue(0);
   const level = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
-  const heard = connected && !reducedMotion ? Math.max(0, session.inputLevel - 0.06) / 0.94 : 0;
+  const reacting = connected && !reducedMotion && !session.muted && reaction > 0;
+  const loudness = reacting ? Math.max(0, session.inputLevel - 0.06) / 0.94 : 0;
+  const { pitch, tone } = useVoiceTone(reacting);
   useEffect(() => {
     const target = connected ? 1 : asleep ? 0 : 0.5;
     if (reducedMotion) {
@@ -112,8 +115,8 @@ export default function LiveScreen() {
     );
   }, [connected, asleep, reducedMotion, wake, breath]);
   useEffect(() => {
-    level.set(withSpring(heard, motion.reaction));
-  }, [heard, level]);
+    level.set(withSpring(loudness, motion.reaction));
+  }, [loudness, level]);
 
   const bottomInset = Math.max(insets.bottom, 20) + 14;
   const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
@@ -233,7 +236,8 @@ export default function LiveScreen() {
       transform: [
         { translateX: shiftX * arc },
         { translateY: travel * t },
-        { scale: (visual / size) * (1 + reaction * level.get()) },
+        { scale: visual / size },
+        ...heard(reaction, size, level.get(), pitch.get(), tone.get()),
       ],
     };
   });
