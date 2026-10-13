@@ -33,7 +33,7 @@ const DOCKED_SIZE = 52;
 const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
-const EASE = 16;
+const EASE = 18;
 const SNAP = 60;
 const LANDED = 2;
 
