@@ -3,11 +3,13 @@ import test from 'node:test';
 
 import { createSessionAPI, createTasksAPI } from '../src/live/api-client';
 import {
+  activityOf,
   groupTasks,
   idleLine,
   openLabel,
   taskTime,
   tasksSubtitle,
+  type Task,
   type TaskRow,
 } from '../src/live/tasks';
 
@@ -83,6 +85,32 @@ test('idle names read as one line, the rest counted', () => {
     'seqno, antibody, Data kit, x, automode, Theo clips, Voice Memos and 2 more',
   );
   assert.equal(idleLine([row('x', 'idle'), row('x', 'idle')]), 'x');
+});
+
+test("a task's activity is its own session's steps, or one of its agents', marked by whether it still works", () => {
+  const steps = (...texts: string[]) => texts.map((text, i) => ({ at: at(9, 59 - i), text }));
+  const task: Task = {
+    ...row('voiceapp', 'working'),
+    steps: steps('Editing tasks-sheet.tsx', 'Reading live-screen.tsx'),
+    lately: [],
+    agents: [
+      { id: 'a1', label: 'Polish pass', state: 'working', steps: steps('Running tsc') },
+      { id: 'a2', label: 'Check the server', state: 'done', steps: steps('Server is fine') },
+    ],
+  };
+  assert.deepEqual(activityOf(task, null), {
+    title: 'voiceapp',
+    state: 'working',
+    steps: task.steps,
+  });
+  assert.equal(activityOf(task, 'a1')?.title, 'Polish pass');
+  assert.deepEqual(activityOf(task, 'a2'), {
+    title: 'Check the server',
+    state: 'done',
+    steps: steps('Server is fine'),
+  });
+  assert.equal(activityOf({ ...task, state: 'done' }, null)?.state, 'done');
+  assert.equal(activityOf(task, 'gone'), undefined);
 });
 
 test('only a thread hex can link to gets an open button', () => {

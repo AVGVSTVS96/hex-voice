@@ -14,7 +14,6 @@ import Animated, {
   withSpring,
   withTiming,
   FadeIn,
-  FadeOut,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -55,6 +54,7 @@ import {
   type CallSummary,
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
+import { orbRest } from '@/screens/orb-rest';
 import { metrics, theme } from '@/theme';
 
 const DOCKED_SIZE = 52;
@@ -63,7 +63,7 @@ const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
-const LIFTED = 160;
+const TOOLBAR = 48;
 
 export default function LiveScreen() {
   const session = useLiveSession();
@@ -154,23 +154,33 @@ export default function LiveScreen() {
     level.set(withSpring(loudness, motion.reaction));
   }, [loudness, level]);
 
-  // On a call, Tasks opens half height and the orb rises above it, still listening.
-  const lift = useSharedValue(0);
-  const lifted = tasksOpen && voiceLocked;
-  useEffect(() => {
-    lift.set(
-      reducedMotion
-        ? withTiming(lifted ? 1 : 0, motion.reduced)
-        : withSpring(lifted ? 1 : 0, motion.drawer),
-    );
-  }, [lifted, reducedMotion, lift]);
-
   const bottomInset = Math.max(insets.bottom, 20) + 14;
   const agentBottom = Math.max(insets.bottom - 17, 6);
-  // Centered between the toolbar and the half-height sheet's top edge.
-  const liftY = (insets.top + 60 + height / 2) / 2 - height / 2;
+  // The footer (how the call ended, hex's wrap-up, the call buttons) is measured, and what sits
+  // above it (the resting orb, or the transcript) keeps clear of it. On a call Tasks opens half
+  // height over the screen, and the resting orb keeps clear of it too, still listening.
+  const [footer, setFooter] = useState(bottomInset + 64);
+  const rest = orbRest(
+    {
+      top: insets.top + 12 + TOOLBAR,
+      bottom: Math.min(height - footer, tasksOpen && voiceLocked ? height / 2 : height),
+    },
+    height / 2,
+    size,
+  );
+  const restY = useSharedValue(rest.y);
+  const restScale = useSharedValue(rest.scale);
+  const footerHeight = useSharedValue(footer);
+  useEffect(() => {
+    const settle = (to: number) =>
+      reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
+    restY.set(settle(rest.y));
+    restScale.set(settle(rest.scale));
+    footerHeight.set(settle(footer));
+  }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
   const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
-  const travel = height - bottomInset - 32 - height / 2;
+  const dockY = height - bottomInset - 32;
+  const travel = dockY - rest.y;
   const progress = useSharedValue(0);
   const goal = useSharedValue(0);
   const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
@@ -348,16 +358,17 @@ export default function LiveScreen() {
     const arc = t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1;
     const awake = wake.get();
     const resting = size * (0.86 + 0.14 * awake);
-    const visual = (resting + (DOCKED_SIZE - resting) * t) * (1 + 0.025 * breath.get());
-    const l = lift.get();
+    const fitted = resting * restScale.get();
+    const visual = (fitted + (DOCKED_SIZE - fitted) * t) * (1 + 0.025 * breath.get());
+    const y = restY.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1),
       transform: [
-        { translateX: shiftX * arc * (1 - l) },
-        { translateY: travel * t * (1 - l) + liftY * l },
-        { scale: (visual / size) * (1 - l) + (LIFTED / size) * l },
+        { translateX: shiftX * arc },
+        { translateY: y - height / 2 + (dockY - y) * t },
+        { scale: visual / size },
         ...heard(reaction, size, level.get(), pitch.get(), tone.get()),
       ],
     };
@@ -368,7 +379,7 @@ export default function LiveScreen() {
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
     return {
-      bottom: bottomInset + 64 + 18,
+      bottom: footerHeight.get() + 18,
       opacity: shown,
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
@@ -557,7 +568,11 @@ export default function LiveScreen() {
             </>
           )}
         </View>
-        <View pointerEvents="box-none" style={[styles.bottom, { paddingBottom: bottomInset }]}>
+        <View
+          pointerEvents="box-none"
+          onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
+          style={[styles.bottom, { paddingBottom: bottomInset }]}
+        >
           {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
             <Animated.View entering={FadeIn.duration(motion.toolbar)} style={styles.wrapUp}>
               {wrapUp.title && (
