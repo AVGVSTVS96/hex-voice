@@ -27,13 +27,14 @@ import {
   type PresentationDetent,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, View, useWindowDimensions } from 'react-native';
 
-import { Glyph, type GlyphState } from '@/components/agent-line';
+import { Glyph } from '@/components/agent-line';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import {
   STATE_WORDS,
+  activityOf,
   clock,
   groupTasks,
   idleLine,
@@ -41,6 +42,7 @@ import {
   taskTime,
   tasksSubtitle,
   type Task,
+  type TaskAgent,
   type TaskRow,
   type TaskState,
 } from '@/live/tasks';
@@ -59,17 +61,21 @@ type Props = {
   onTalk: (task: TaskRow) => void;
 };
 
-const glyph = (state: TaskState): GlyphState => (state === 'working' ? 'running' : state);
+// The pages pushed over the list: a task's own page, and one agent's steps, which opens from the
+// task's page or straight from its row in the list.
+type Pushed = 'task' | 'activity';
 
 // Every hex task in one sheet: what needs you, what's working with its newest step, what finished
 // today, and the rest folded into one Idle line. Before a call it opens full height; on a call it
-// opens half height so the orb stays in view and the call goes on behind it. A row opens its own
-// page, pushed in like the voice page in Settings.
+// opens half height so the call goes on behind it. Pages push in like the voice page in Settings,
+// and each keeps what it showed while it slides back out.
 export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: Props) {
   const { width } = useWindowDimensions();
   const { tasks, version, offline } = useTasks(isPresented);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const task = useTask(openId, version);
+  const [path, setPath] = useState<Pushed[]>([]);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [agent, setAgent] = useState<string | null>(null);
+  const task = useTask(taskId, version);
   const [detent, setDetent] = useState<PresentationDetent>(onCall ? 'medium' : 'large');
   useEffect(() => {
     if (isPresented) setDetent(onCall ? 'medium' : 'large');
@@ -78,24 +84,33 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
   const tick = () => {
     if (ios && haptics) void Haptics.selectionAsync();
   };
-  const open = (row: TaskRow) => {
+  const openTask = (row: TaskRow) => {
     tick();
-    setOpenId(row.id);
+    setTaskId(row.id);
+    setPath(['task']);
+  };
+  const openActivity = (id: string, who: string | null) => {
+    tick();
+    setTaskId(id);
+    setAgent(who);
+    setPath((now) => (now.at(-1) === 'task' ? ['task', 'activity'] : ['activity']));
   };
   const back = () => {
     tick();
-    setOpenId(null);
+    setPath((now) => now.slice(0, -1));
   };
   const groups = groupTasks(tasks ?? []);
-  const shown = !!openId;
-  const page = (visible: boolean, away: number) => [
+  const front = path.at(-1);
+  const x = (slot: Pushed | 'list') =>
+    slot === (front ?? 'list') ? 0 : slot === 'list' || path.includes(slot) ? -width / 3 : width;
+  const page = (slot: Pushed | 'list') => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
     background(theme.sheet),
-    offset({ x: visible ? 0 : away }),
-    animation(motion.page, shown),
-    accessibilityHidden(!visible),
+    offset({ x: x(slot) }),
+    animation(motion.page, x(slot)),
+    accessibilityHidden(x(slot) !== 0),
   ];
-  const detail = task ?? tasks?.find((row) => row.id === openId);
+  const shown = task ?? tasks?.find((row) => row.id === taskId);
 
   return (
     <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
@@ -104,7 +119,7 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
         onIsPresentedChange={(presented) => {
           if (!presented) onDismiss();
         }}
-        onDismiss={() => setOpenId(null)}
+        onDismiss={() => setPath([])}
         testID="tasks-sheet"
       >
         <SheetContent
@@ -124,7 +139,7 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
             alignment="top"
             modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
           >
-            <Column alignment="center" spacing={6} modifiers={page(!shown, -width / 3)}>
+            <Column alignment="center" spacing={6} modifiers={page('list')}>
               <Header
                 title="Tasks"
                 subtitle={
@@ -135,63 +150,63 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
                       : ' '
                 }
               />
-              <ScrollView
-                showsIndicators={false}
-                modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-              >
-                <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
-                  {groups.map((group) => (
-                    <Column key={group.key} alignment="start" spacing={0}>
-                      <GroupHead title={group.title} count={group.tasks.length} />
-                      {group.key === 'idle' ? (
-                        <Text
-                          textStyle={{ color: theme.tertiary, fontSize: 15, lineHeight: 20 }}
-                          modifiers={[
-                            padding({ leading: INSET, trailing: INSET, top: 6, bottom: 14 }),
-                            frame({ maxWidth: Infinity, alignment: 'leading' }),
-                          ]}
-                        >
-                          {idleLine(group.tasks)}
-                        </Text>
-                      ) : (
-                        group.tasks.map((row) => (
-                          <Column key={row.id} alignment="start" spacing={0}>
-                            <TaskLine row={row} onPress={() => open(row)} />
-                            {row.state === 'working' &&
-                              row.agents.map((agent) => (
-                                <TaskLine
-                                  key={agent.id}
-                                  sub
-                                  row={{
-                                    ...row,
-                                    name: agent.label,
-                                    where: '',
-                                    line: agent.line ?? '',
-                                  }}
-                                  onPress={() => open(row)}
-                                />
-                              ))}
-                          </Column>
-                        ))
-                      )}
-                    </Column>
-                  ))}
-                </Column>
-              </ScrollView>
+              <Scroll>
+                {groups.map((group) => (
+                  <Column key={group.key} alignment="start" spacing={0}>
+                    <GroupHead title={group.title} count={group.tasks.length} />
+                    {group.key === 'idle' ? (
+                      <Text
+                        textStyle={{ color: theme.tertiary, fontSize: 15, lineHeight: 20 }}
+                        modifiers={[
+                          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 14 }),
+                          frame({ maxWidth: Infinity, alignment: 'leading' }),
+                        ]}
+                      >
+                        {idleLine(group.tasks)}
+                      </Text>
+                    ) : (
+                      group.tasks.map((row) => (
+                        <Column key={row.id} alignment="start" spacing={0}>
+                          <Line
+                            state={row.state}
+                            title={row.name}
+                            where={row.where}
+                            time={taskTime(row)}
+                            text={row.line}
+                            onPress={() => openTask(row)}
+                          />
+                          {row.state === 'working' &&
+                            row.agents.map((agent) => (
+                              <AgentRow
+                                key={agent.id}
+                                agent={agent}
+                                onPress={() => openActivity(row.id, agent.id)}
+                              />
+                            ))}
+                        </Column>
+                      ))
+                    )}
+                  </Column>
+                ))}
+              </Scroll>
             </Column>
-            <Column alignment="center" spacing={0} modifiers={page(shown, width)}>
-              {detail ? (
+            <Column alignment="center" spacing={0} modifiers={page('task')}>
+              {shown ? (
                 <Detail
-                  task={detail}
+                  task={shown}
                   onBack={back}
+                  onActivity={(who) => openActivity(shown.id, who)}
                   onTalk={() => {
                     tick();
-                    onTalk(detail);
+                    onTalk(shown);
                   }}
                 />
               ) : (
                 <Spacer />
               )}
+            </Column>
+            <Column alignment="center" spacing={0} modifiers={page('activity')}>
+              {task ? <Steps task={task} agent={agent} onBack={back} /> : <Spacer />}
             </Column>
           </ZStack>
         </SheetContent>
@@ -247,6 +262,19 @@ function Header({
   );
 }
 
+function Scroll({ children }: { children: ReactNode }) {
+  return (
+    <ScrollView
+      showsIndicators={false}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+        {children}
+      </Column>
+    </ScrollView>
+  );
+}
+
 function GroupHead({ title, count }: { title: string; count: number }) {
   return (
     <Row
@@ -264,18 +292,36 @@ function GroupHead({ title, count }: { title: string; count: number }) {
   );
 }
 
-// A row: its mark, the thread's name and app, when, then one line in its own words: the newest
+function Mark({ state, quiet = false }: { state: TaskState; quiet?: boolean }) {
+  return (
+    <RNHostView matchContents>
+      <View>
+        <Glyph state={state === 'working' ? 'running' : state} quiet={quiet} />
+      </View>
+    </RNHostView>
+  );
+}
+
+// A row: its mark, a name and where it lives, when, then one line in its own words: the newest
 // step while it works, what it's waiting on when it needs you, its last status once it's settled.
-function TaskLine({
-  row,
+function Line({
+  state,
+  title,
+  where,
+  time,
+  text,
   sub = false,
   onPress,
 }: {
-  row: TaskRow;
+  state: TaskState;
+  title: string;
+  where?: string;
+  time?: string;
+  text: string;
   sub?: boolean;
   onPress: () => void;
 }) {
-  const live = row.state === 'working' || row.state === 'needs';
+  const live = state === 'working' || state === 'needs';
   return (
     <Row
       alignment="start"
@@ -288,17 +334,13 @@ function TaskLine({
         ...(ios
           ? [
               accessibilityLabel(
-                `${row.name}${row.where ? `, ${row.where}` : ''}, ${STATE_WORDS[row.state]}: ${row.line}`,
+                `${title}${where ? `, ${where}` : ''}, ${STATE_WORDS[state]}${text ? `: ${text}` : ''}`,
               ),
             ]
           : []),
       ]}
     >
-      <RNHostView matchContents>
-        <View>
-          <Glyph state={glyph(row.state)} />
-        </View>
-      </RNHostView>
+      <Mark state={state} />
       <Column
         alignment="start"
         spacing={2}
@@ -309,29 +351,27 @@ function TaskLine({
             numberOfLines={1}
             textStyle={{ color: theme.text, fontSize: 16, fontWeight: sub ? '400' : '500' }}
           >
-            {row.name}
+            {title}
           </Text>
-          {row.where ? (
+          {where ? (
             <Text numberOfLines={1} textStyle={{ color: theme.secondary, fontSize: 14 }}>
-              {row.where}
+              {where}
             </Text>
           ) : null}
           <Spacer flexible />
-          {sub ? null : (
-            <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{taskTime(row)}</Text>
-          )}
+          {time ? <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{time}</Text> : null}
         </Row>
-        {row.line ? (
+        {text ? (
           <Text
             numberOfLines={2}
             textStyle={{
-              color: row.state === 'failed' ? theme.danger : live ? theme.text : theme.secondary,
+              color: state === 'failed' ? theme.danger : live ? theme.text : theme.secondary,
               fontSize: 15,
               lineHeight: 17,
-              fontWeight: row.state === 'working' && !sub ? '500' : '400',
+              fontWeight: state === 'working' && !sub ? '500' : '400',
             }}
           >
-            {row.line}
+            {text}
           </Text>
         ) : null}
       </Column>
@@ -339,14 +379,63 @@ function TaskLine({
   );
 }
 
-// A task's own page: what it's waiting on, what it did lately, and two ways to answer.
+function AgentRow({ agent, onPress }: { agent: TaskAgent; onPress: () => void }) {
+  return (
+    <Line sub state={agent.state} title={agent.label} text={agent.line ?? ''} onPress={onPress} />
+  );
+}
+
+type HistoryEntry = { state: TaskState; newest: boolean; text: string; at: string };
+
+// One entry of a history, newest first: the newest wears its own mark, and everything before it
+// is marked quietly as done, failed or moved on from.
+function Entry({ state, newest, text, at }: HistoryEntry) {
+  return (
+    <Row
+      alignment="start"
+      spacing={12}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+    >
+      <Mark state={state} quiet={!newest} />
+      <Text
+        textStyle={{ color: newest ? theme.text : theme.secondary, fontSize: 15, lineHeight: 17 }}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        {text}
+      </Text>
+      <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{clock(new Date(at))}</Text>
+    </Row>
+  );
+}
+
+function History({ title, entries }: { title?: string; entries: HistoryEntry[] }) {
+  return (
+    <Column
+      alignment="start"
+      spacing={14}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+    >
+      {title ? (
+        <Text textStyle={{ color: theme.secondary, fontSize: 13, fontWeight: '600' }}>{title}</Text>
+      ) : null}
+      {entries.map((entry, i) => (
+        <Entry key={`${entry.at} ${i}`} {...entry} />
+      ))}
+    </Column>
+  );
+}
+
+// A task's own page: what it's waiting on or what's working on it, what it did lately, and two
+// ways to answer. Each line of work opens that agent's steps.
 function Detail({
   task,
   onBack,
+  onActivity,
   onTalk,
 }: {
   task: TaskRow | Task;
   onBack: () => void;
+  onActivity: (agent: string | null) => void;
   onTalk: () => void;
 }) {
   const full = 'lately' in task ? task : undefined;
@@ -368,130 +457,121 @@ function Detail({
         showsIndicators={false}
         modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
       >
-        <Column
-          alignment="start"
-          spacing={22}
-          modifiers={[padding({ leading: INSET, trailing: INSET, top: 22, bottom: 40 })]}
-        >
+        <Column alignment="start" spacing={22} modifiers={[padding({ top: 22, bottom: 40 })]}>
           {needs ? (
-            <Column
-              alignment="start"
-              spacing={8}
-              style={{
-                backgroundColor: theme.group,
-                borderRadius: 22,
-                paddingHorizontal: 18,
-                paddingVertical: 16,
-              }}
-              modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-            >
-              <Row alignment="center" spacing={8}>
-                <RNHostView matchContents>
-                  <View
-                    style={{
-                      width: 16,
-                      height: 16,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: theme.accent,
-                      }}
-                    />
-                  </View>
-                </RNHostView>
-                <Text textStyle={{ color: theme.accent, fontSize: 13, fontWeight: '600' }}>
-                  {`Waiting on you since ${clock(new Date(task.since))}`}
-                </Text>
-              </Row>
-              <Text textStyle={{ color: theme.text, fontSize: 17, lineHeight: 20 }}>{needs}</Text>
-            </Column>
+            <Inset>
+              <Column
+                alignment="start"
+                spacing={8}
+                style={{
+                  backgroundColor: theme.group,
+                  borderRadius: 22,
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                }}
+                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+              >
+                <Row alignment="center" spacing={8}>
+                  <Mark state="needs" />
+                  <Text textStyle={{ color: theme.accent, fontSize: 13, fontWeight: '600' }}>
+                    {`Waiting on you since ${clock(new Date(task.since))}`}
+                  </Text>
+                </Row>
+                <Text textStyle={{ color: theme.text, fontSize: 17, lineHeight: 20 }}>{needs}</Text>
+              </Column>
+            </Inset>
           ) : task.state === 'working' ? (
             <Column
               alignment="start"
-              spacing={10}
+              spacing={0}
               modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
             >
-              <TaskLine row={{ ...task, name: 'Working now', where: '' }} onPress={() => {}} />
+              <Line
+                state="working"
+                title="Working now"
+                text={task.line}
+                onPress={() => onActivity(null)}
+              />
               {task.agents.map((agent) => (
-                <TaskLine
-                  key={agent.id}
-                  sub
-                  row={{ ...task, name: agent.label, where: '', line: agent.line ?? '' }}
-                  onPress={() => {}}
-                />
+                <AgentRow key={agent.id} agent={agent} onPress={() => onActivity(agent.id)} />
               ))}
             </Column>
           ) : null}
           {lately.length ? (
-            <Column
-              alignment="start"
-              spacing={14}
-              modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-            >
-              <Text textStyle={{ color: theme.secondary, fontSize: 13, fontWeight: '600' }}>
-                Lately
-              </Text>
-              {lately.map((moment, i) => (
-                <Row
-                  key={`${moment.at} ${i}`}
-                  alignment="start"
-                  spacing={12}
-                  modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-                >
-                  <RNHostView matchContents>
-                    {i === 0 ? (
-                      <View>
-                        <Glyph state={glyph(moment.state)} />
-                      </View>
-                    ) : (
-                      <View
-                        style={{
-                          width: 22,
-                          height: 20,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: theme.tertiary,
-                          }}
-                        />
-                      </View>
-                    )}
-                  </RNHostView>
-                  <Text
-                    textStyle={{
-                      color: i === 0 ? theme.text : theme.secondary,
-                      fontSize: 15,
-                      lineHeight: 17,
-                    }}
-                    modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-                  >
-                    {moment.text}
-                  </Text>
-                  <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>
-                    {clock(new Date(moment.at))}
-                  </Text>
-                </Row>
-              ))}
-            </Column>
+            <Inset>
+              <History
+                title="Lately"
+                entries={lately.map((moment, i) => ({ ...moment, newest: i === 0 }))}
+              />
+            </Inset>
           ) : null}
-          <Row alignment="center" spacing={10} modifiers={[frame({ maxWidth: Infinity })]}>
-            <Pill label="Talk it through" prominent onPress={onTalk} />
-            {open ? <Pill label={open} onPress={() => void Linking.openURL(task.link!)} /> : null}
-          </Row>
+          <Inset>
+            <Row alignment="center" spacing={10} modifiers={[frame({ maxWidth: Infinity })]}>
+              <Pill label="Talk it through" prominent onPress={onTalk} />
+              {open ? <Pill label={open} onPress={() => void Linking.openURL(task.link!)} /> : null}
+            </Row>
+          </Inset>
         </Column>
       </ScrollView>
+    </Column>
+  );
+}
+
+// One agent's steps, zoomed in from its line: the newest turns while it works, and every step
+// before it is done.
+function Steps({ task, agent, onBack }: { task: Task; agent: string | null; onBack: () => void }) {
+  const activity = activityOf(task, agent);
+  const state: TaskState = activity?.state ?? 'done';
+  return (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      <Header
+        title={activity?.title ?? task.name}
+        subtitle={`${agent === null ? task.where : task.name} · ${STATE_WORDS[state]}`}
+        onBack={onBack}
+      />
+      <ScrollView
+        showsIndicators={false}
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      >
+        <Column
+          alignment="start"
+          spacing={0}
+          modifiers={[padding({ leading: INSET, trailing: INSET, top: 22, bottom: 40 })]}
+        >
+          {activity?.steps.length ? (
+            <History
+              entries={activity.steps.map((step, i) => ({
+                ...step,
+                state: i === 0 ? state : 'done',
+                newest: i === 0,
+              }))}
+            />
+          ) : (
+            <Text textStyle={{ color: theme.tertiary, fontSize: 15, lineHeight: 20 }}>
+              {state === 'working' ? 'No steps yet' : 'Steps show while it works'}
+            </Text>
+          )}
+        </Column>
+      </ScrollView>
+    </Column>
+  );
+}
+
+function Inset({ children }: { children: ReactNode }) {
+  return (
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        padding({ leading: INSET, trailing: INSET }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+      ]}
+    >
+      {children}
     </Column>
   );
 }

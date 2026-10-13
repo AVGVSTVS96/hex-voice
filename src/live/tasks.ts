@@ -1,7 +1,9 @@
 import { timeOfDay } from './calls';
 
 export type TaskState = 'needs' | 'working' | 'done' | 'failed' | 'idle';
-export type TaskAgent = { id: string; label: string; line?: string };
+export type TaskStep = { at: string; text: string };
+export type TaskAgent = { id: string; label: string; state: 'working' | 'done'; line?: string };
+export type AgentTrail = TaskAgent & { steps: TaskStep[] };
 export type TaskMoment = { at: string; state: TaskState; text: string };
 export type TaskRow = {
   id: string;
@@ -15,7 +17,13 @@ export type TaskRow = {
   agents: TaskAgent[];
   link?: string;
 };
-export type Task = TaskRow & { needs?: string; lately: TaskMoment[] };
+export type Task = Omit<TaskRow, 'agents'> & {
+  needs?: string;
+  lately: TaskMoment[];
+  steps: TaskStep[];
+  agents: AgentTrail[];
+};
+export type Activity = { title: string; state: TaskAgent['state']; steps: TaskStep[] };
 export type TaskList = { version: number; tasks: TaskRow[] };
 export type TaskCounts = { version: number; needs: number; working: number };
 
@@ -106,6 +114,19 @@ export const STATE_WORDS: Record<TaskState, string> = {
   failed: 'failed',
   idle: 'idle',
 };
+
+// One agent's steps on a task, newest first: the thread's own session when `agent` is null, or one
+// of the subagents it started in this stretch of work.
+export function activityOf(task: Task, agent: string | null): Activity | undefined {
+  if (agent === null)
+    return {
+      title: task.name,
+      state: task.state === 'working' ? 'working' : 'done',
+      steps: task.steps,
+    };
+  const trail = task.agents.find((candidate) => candidate.id === agent);
+  return trail && { title: trail.label, state: trail.state, steps: trail.steps };
+}
 
 // Open in Telegram, Open in Discord: only threads hex can link to get the button.
 export function openLabel(task: TaskRow) {

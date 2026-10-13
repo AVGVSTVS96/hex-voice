@@ -83,8 +83,25 @@ export function AgentLine({ line }: { line: Line | null }) {
 export type GlyphState = Line['state'] | 'needs' | 'idle';
 
 // One mark, one meaning: the arc turns while something works, a check is done, ! failed, a
-// filled mint dot is your turn, and a hollow ring is idle.
-export function Glyph({ state }: { state: GlyphState }) {
+// filled mint dot is your turn, and a hollow ring is idle. A quiet mark is history, an entry
+// something newer has replaced: a bare check or ! where it finished, a small dot where it moved on.
+export function Glyph({ state, quiet = false }: { state: GlyphState; quiet?: boolean }) {
+  if (quiet)
+    return (
+      <View style={styles.mark}>
+        {state === 'done' || state === 'failed' ? (
+          <Host matchContents>
+            <Icon
+              name={state === 'done' ? 'checkmark' : 'exclamationmark'}
+              size={11}
+              color={state === 'done' ? theme.secondary : theme.danger}
+            />
+          </Host>
+        ) : (
+          <View style={styles.past} />
+        )}
+      </View>
+    );
   if (state === 'needs')
     return (
       <View style={styles.mark}>
@@ -141,6 +158,7 @@ const styles = StyleSheet.create({
   glyphFailed: { backgroundColor: theme.dangerMuted },
   mark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   yourTurn: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.accent },
+  past: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.tertiary },
   idle: {
     width: 10,
     height: 10,
