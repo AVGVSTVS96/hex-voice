@@ -33,6 +33,9 @@ const DOCKED_SIZE = 52;
 const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
+const EASE = 16;
+const SNAP = 60;
+const LANDED = 2;
 
 export default function LiveScreen() {
   const session = useLiveSession();
@@ -112,18 +115,25 @@ export default function LiveScreen() {
   const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
   const landing = useSharedValue(-1);
 
-  const animateTo = (target: number, velocity?: number) => {
+  const animateTo = (target: number, velocity = 0) => {
     'worklet';
     goal.set(target);
     landing.set(target);
+    if (reducedMotion) {
+      progress.set(withTiming(target, { duration: 200 }));
+      return;
+    }
+    const distance = Math.abs(target - progress.get());
+    const direction = Math.sign(target - progress.get());
+    const toward = Math.max(0, direction * velocity);
+    const omega = Math.min(Math.max(EASE, toward / (distance || 1)), SNAP);
     progress.set(
-      reducedMotion
-        ? withTiming(target, { duration: 200 })
-        : withSpring(target, {
-            dampingRatio: 0.7,
-            duration: 450,
-            ...(velocity === undefined ? {} : { velocity }),
-          }),
+      withSpring(target, {
+        mass: 1,
+        stiffness: omega * omega,
+        damping: 2 * omega,
+        velocity: direction * Math.min(toward, omega * distance),
+      }),
     );
   };
 
@@ -183,10 +193,9 @@ export default function LiveScreen() {
 
   useAnimatedReaction(
     () => progress.get(),
-    (now, before) => {
+    (now) => {
       const target = landing.get();
-      if (target < 0 || before === null || now === before) return;
-      if ((before - target) * (now - target) <= 0) {
+      if (target >= 0 && Math.abs(now - target) * travel <= LANDED) {
         landing.set(-1);
         scheduleOnRN(land);
       }
