@@ -47,6 +47,8 @@
       "expo-dev-client",
       "./plugins/with-scene-lifecycle",
       "./plugins/with-call-audio",
+      "./plugins/with-activity-orbs",
+      "expo-widgets",
       "expo-audio"
     ],
     "experiments": {

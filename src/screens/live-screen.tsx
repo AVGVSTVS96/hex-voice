@@ -22,11 +22,13 @@ import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
+import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
+import { activityOrb } from '@/live/activity-orb';
 import { motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
@@ -72,6 +74,10 @@ export default function LiveScreen() {
         : 'Ready to start a conversation';
 
   useCallFeedback(session.status, preferences);
+  useCallActivity({
+    ...session,
+    orb: activityOrb(variant, preferences.personaColor, preferences.opalPalette),
+  });
   const haptic = (feedback: () => Promise<void>) => {
     if (process.env.EXPO_OS === 'ios' && preferences.haptics) void feedback();
   };

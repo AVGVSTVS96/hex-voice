@@ -2,7 +2,7 @@
 
 # hex-voice
 
-An iPhone app for calling [hex](https://github.com/AVGVSTVS96/hex), your personal assistant, by voice. You talk with GPT-Live 1; hex's Claude Code session does the real work behind it and tells the voice what to say. Calls keep running with the screen locked, you can talk over replies, pick any GPT-Live voice, and pull the orb down to read the conversation as it happens.
+An iPhone app for calling [hex](https://github.com/AVGVSTVS96/hex), your personal assistant, by voice. You talk with GPT-Live 1; hex's Claude Code session does the real work behind it and tells the voice what to say. Calls keep running with the screen locked, and your orb stays on the Lock Screen and in the Dynamic Island so one tap brings you back. You can talk over replies, pick any GPT-Live voice, and pull the orb down to read the conversation as it happens.
 
 Built on David Mokos's [expo-gpt-live](https://github.com/davidmokos/expo-gpt-live) template (MIT): Expo SDK 57, native Expo UI controls, and six [AI Elements Persona](https://elements.ai-sdk.dev/components/persona) animations.
 
@@ -39,6 +39,6 @@ Expo handles signing and installation. Expo Go cannot run this app because WebRT
 npm run check
 ```
 
-The screen is in `src/screens/live-screen.tsx`, native controls and Persona renderers in `src/components`, and the call lifecycle in `src/live`. See [dependency notes](docs/dependencies.md) for the Xcode workaround.
+The screen is in `src/screens/live-screen.tsx`, native controls and Persona renderers in `src/components`, and the call lifecycle in `src/live`, along with the call's Live Activity (`call-activity.tsx`, built with `expo-widgets`). Its orb stills are rendered from the Persona files by `npm run activity-orbs`. See [dependency notes](docs/dependencies.md) for the Xcode workaround.
 
 MIT. Persona assets keep their [upstream license and attribution](src/components/persona/assets/README.md).

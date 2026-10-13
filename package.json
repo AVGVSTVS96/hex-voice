@@ -17,6 +17,7 @@
     "expo-router": "~57.0.26",
     "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
+    "expo-widgets": "~57.0.24",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -31,8 +32,10 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@rive-app/webgl2": "^2.44.2",
     "@types/node": "^24.19.2",
     "@types/react": "~19.2.2",
+    "playwright-core": "^1.64.0",
     "prettier": "^3.9.6",
     "tsx": "^4.23.13",
     "typescript": "~6.0.3"
@@ -48,7 +51,8 @@
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
     "check": "npm run typecheck && npm test && npm run format:check",
-    "eas-build-post-install": "python3 scripts/eas-post-install.py"
+    "eas-build-post-install": "python3 scripts/eas-post-install.py",
+    "activity-orbs": "tsx scripts/activity-orbs.mts"
   },
   "private": true,
   "description": "hex's iPhone voice app: call your hex from a real app, on GPT-Live 1.",
