@@ -112,7 +112,16 @@ export function VoiceSettings({
                 onPress={() => openPage('persona')}
               />
               <Separator />
-              <SettingRow icon="waveform" title="Reacts to you" width={contentWidth}>
+              <Column
+                spacing={12}
+                style={{ width: contentWidth, paddingHorizontal: 18, paddingVertical: 16 }}
+              >
+                <Row alignment="center" spacing={14}>
+                  <RowIcon name="waveform" />
+                  <Text textStyle={{ color: '#FFFFFF', fontSize: 17 }}>
+                    Orb reacts to your voice
+                  </Text>
+                </Row>
                 <Picker
                   selection={preferences.reaction}
                   onSelectionChange={(next: Reaction) => {
@@ -122,7 +131,7 @@ export function VoiceSettings({
                   testID="reaction-picker"
                   modifiers={[
                     pickerStyle('segmented'),
-                    frame({ width: 186 }),
+                    frame({ width: contentWidth - 36 }),
                     accessibilityLabel('How much the orb reacts to your voice'),
                   ]}
                 >
@@ -132,7 +141,7 @@ export function VoiceSettings({
                     </NativeText>
                   ))}
                 </Picker>
-              </SettingRow>
+              </Column>
               <Separator />
               <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
                 <Toggle
