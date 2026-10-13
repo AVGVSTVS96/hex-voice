@@ -12,6 +12,8 @@ export const REACTIONS = [
   { id: 'lively', label: 'Lively', amount: 0.16 },
 ] as const;
 
+export const REACTION_SPRING = { dampingRatio: 0.55, duration: 220 };
+
 export type Reaction = (typeof REACTIONS)[number]['id'];
 
 function isReaction(value: unknown): value is Reaction {

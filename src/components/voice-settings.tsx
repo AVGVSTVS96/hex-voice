@@ -2,7 +2,6 @@ import { BottomSheet, Button, Column, Host, Icon, RNHostView, Row, Spacer, Text 
 import { ColorPicker, Divider, Picker, Text as NativeText, Toggle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
-  frame,
   labelsHidden,
   padding,
   pickerStyle,
@@ -12,6 +11,13 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useState, type ReactNode } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Persona } from '@/components/persona';
@@ -26,7 +32,13 @@ import {
   type PersonaVariant,
 } from '@/components/persona/variants';
 import { SelectionCarousel } from '@/components/selection-carousel';
-import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
+import {
+  REACTIONS,
+  REACTION_SPRING,
+  type CallPreferences,
+  type Reaction,
+} from '@/hooks/use-call-preferences';
+import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 
 type Props = {
@@ -42,8 +54,16 @@ type Props = {
   preferences: CallPreferences;
 };
 
+type Page = 'appearance' | 'voice';
+
 const ios = process.env.EXPO_OS === 'ios';
-const voiceOptions = VOICES.map((voice) => ({ ...voice, description: 'Swipe to choose a voice' }));
+const voiceOptions = VOICES.map((voice) => ({
+  ...voice,
+  description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
+}));
+// A short phrase as the microphone hears it: one loudness peak per syllable. Each step is one
+// REACTION_SPRING, so the orb moves exactly as it does when you talk during a call.
+const PHRASE = [0.9, 0.35, 0.75, 0.25, 0.6, 0];
 const GROUP = '#000000';
 const SWITCH_ON = '#30D158';
 const ORIGINAL_OPAL = 'linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)';
@@ -63,18 +83,27 @@ export function VoiceSettings({
 }: Props) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 48, 480);
-  const [page, setPage] = useState<'voice' | 'persona'>('voice');
+  const [page, setPage] = useState<Page>('appearance');
+  const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
   const selectedPersona = PERSONA_VARIANTS.find((option) => option.id === persona)!;
   const colorable = PERSONA_MODELS[persona].dynamicColor;
+  const reducedMotion = useReducedMotion();
+  const level = useSharedValue(0);
+  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
+  const orbStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + reaction * level.get() }],
+  }));
+  useVoicePreview(voice, isPresented && page === 'voice' && voiceEnabled, take);
+
   const dismiss = () => {
     onDismiss();
-    setPage('voice');
+    setPage('appearance');
   };
   const haptic = (enabled = preferences.haptics) => {
     if (ios && enabled) void Haptics.selectionAsync();
   };
-  const openPage = (next: 'voice' | 'persona') => {
+  const openPage = (next: Page) => {
     haptic();
     setPage(next);
   };
@@ -88,97 +117,7 @@ export function VoiceSettings({
         contentPadding={{ top: 24, left: 24, right: 24, bottom: 26 }}
         testID="voice-settings-sheet"
       >
-        {page === 'voice' ? (
-          <Column alignment="center" spacing={18} style={{ width: contentWidth }}>
-            <SelectionCarousel
-              key="voice"
-              options={voiceOptions}
-              value={voice}
-              width={contentWidth}
-              enabled={voiceEnabled}
-              disabledHint={
-                voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
-              }
-              label="Voice"
-              testID="voice-carousel"
-              onChange={(next) => {
-                if (!voiceEnabled || !isLiveVoice(next)) return;
-                haptic();
-                onVoiceChange(next);
-              }}
-            />
-            <Group width={contentWidth}>
-              <LinkRow
-                icon="circle"
-                title="Persona"
-                value={selectedPersona.label}
-                label={`Persona, ${selectedPersona.label}. Change appearance`}
-                testID="persona-settings-button"
-                width={contentWidth}
-                onPress={() => openPage('persona')}
-              />
-              <Separator />
-              <Column
-                spacing={12}
-                style={{ width: contentWidth, paddingHorizontal: 18, paddingVertical: 16 }}
-              >
-                <Row alignment="center" spacing={14}>
-                  <RowIcon name="waveform" />
-                  <Text textStyle={{ color: '#FFFFFF', fontSize: 17 }}>
-                    Orb reacts to your voice
-                  </Text>
-                </Row>
-                <Picker
-                  selection={preferences.reaction}
-                  onSelectionChange={(next: Reaction) => {
-                    haptic();
-                    preferences.setReaction(next);
-                  }}
-                  testID="reaction-picker"
-                  modifiers={[
-                    pickerStyle('segmented'),
-                    frame({ width: contentWidth - 36 }),
-                    accessibilityLabel('How much the orb reacts to your voice'),
-                  ]}
-                >
-                  {REACTIONS.map((reaction) => (
-                    <NativeText key={reaction.id} modifiers={[tag(reaction.id)]}>
-                      {reaction.label}
-                    </NativeText>
-                  ))}
-                </Picker>
-              </Column>
-              <Separator />
-              <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
-                <Toggle
-                  isOn={preferences.sounds}
-                  onIsOnChange={(on) => {
-                    haptic();
-                    preferences.setSounds(on);
-                  }}
-                  testID="sounds-toggle"
-                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Call sounds')]}
-                />
-              </SettingRow>
-              <Separator />
-              <SettingRow
-                icon="iphone.radiowaves.left.and.right"
-                title="Haptics"
-                width={contentWidth}
-              >
-                <Toggle
-                  isOn={preferences.haptics}
-                  onIsOnChange={(on) => {
-                    haptic(on);
-                    preferences.setHaptics(on);
-                  }}
-                  testID="haptics-toggle"
-                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Haptics')]}
-                />
-              </SettingRow>
-            </Group>
-          </Column>
-        ) : (
+        {page === 'appearance' ? (
           <Column alignment="center" spacing={18} style={{ width: contentWidth }}>
             <SelectionCarousel
               key="persona"
@@ -188,13 +127,15 @@ export function VoiceSettings({
               height={138}
               preview={
                 isPresented ? (
-                  <Persona
-                    variant={persona}
-                    size={160}
-                    state="idle"
-                    color={preferences.personaColor}
-                    palette={opalPaletteInput(preferences.opalPalette)}
-                  />
+                  <Animated.View style={orbStyle}>
+                    <Persona
+                      variant={persona}
+                      size={160}
+                      state="idle"
+                      color={preferences.personaColor}
+                      palette={opalPaletteInput(preferences.opalPalette)}
+                    />
+                  </Animated.View>
                 ) : undefined
               }
               previewHeight={190}
@@ -234,14 +175,102 @@ export function VoiceSettings({
                 </SettingRow>
               )}
               <Separator />
+              <SettingRow icon="mic" title="Reacts to you" width={contentWidth}>
+                <Picker
+                  selection={preferences.reaction}
+                  onSelectionChange={(next: Reaction) => {
+                    haptic();
+                    preferences.setReaction(next);
+                    if (!reducedMotion)
+                      level.set(
+                        withSequence(...PHRASE.map((peak) => withSpring(peak, REACTION_SPRING))),
+                      );
+                  }}
+                  testID="reaction-picker"
+                  modifiers={[
+                    pickerStyle('menu'),
+                    labelsHidden(),
+                    tint(SECONDARY),
+                    accessibilityLabel('How much the orb reacts to your voice'),
+                  ]}
+                >
+                  {REACTIONS.map((option) => (
+                    <NativeText key={option.id} modifiers={[tag(option.id)]}>
+                      {option.label}
+                    </NativeText>
+                  ))}
+                </Picker>
+              </SettingRow>
+            </Group>
+            <Group width={contentWidth}>
               <LinkRow
                 icon="waveform"
                 title="Voice"
                 value={selectedVoice.label}
-                label={`Voice, ${selectedVoice.label}. Back to voices`}
-                testID="voice-settings-back"
+                label={`Voice, ${selectedVoice.label}. Hear and change voices`}
+                testID="voice-row"
                 width={contentWidth}
                 onPress={() => openPage('voice')}
+              />
+              <Separator />
+              <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
+                <Toggle
+                  isOn={preferences.sounds}
+                  onIsOnChange={(on) => {
+                    haptic();
+                    preferences.setSounds(on);
+                  }}
+                  testID="sounds-toggle"
+                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Call sounds')]}
+                />
+              </SettingRow>
+              <Separator />
+              <SettingRow
+                icon="iphone.radiowaves.left.and.right"
+                title="Haptics"
+                width={contentWidth}
+              >
+                <Toggle
+                  isOn={preferences.haptics}
+                  onIsOnChange={(on) => {
+                    haptic(on);
+                    preferences.setHaptics(on);
+                  }}
+                  testID="haptics-toggle"
+                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Haptics')]}
+                />
+              </SettingRow>
+            </Group>
+          </Column>
+        ) : (
+          <Column alignment="center" spacing={18} style={{ width: contentWidth }}>
+            <SelectionCarousel
+              key="voice"
+              options={voiceOptions}
+              value={voice}
+              width={contentWidth}
+              enabled={voiceEnabled}
+              disabledHint={
+                voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
+              }
+              label="Voice"
+              testID="voice-carousel"
+              onPress={() => setTake((count) => count + 1)}
+              onChange={(next) => {
+                if (!voiceEnabled || !isLiveVoice(next)) return;
+                haptic();
+                onVoiceChange(next);
+              }}
+            />
+            <Group width={contentWidth}>
+              <LinkRow
+                icon="circle"
+                title="Persona"
+                value={selectedPersona.label}
+                label={`Persona, ${selectedPersona.label}. Back to appearance`}
+                testID="persona-row"
+                width={contentWidth}
+                onPress={() => openPage('appearance')}
               />
             </Group>
           </Column>

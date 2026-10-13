@@ -6,6 +6,7 @@ export type SelectionCarouselProps = {
   options: readonly SelectionOption[];
   value: string;
   onChange: (value: string) => void;
+  onPress?: () => void;
   width: number;
   height?: number;
   preview?: ReactElement;

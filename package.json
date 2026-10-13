@@ -44,6 +44,7 @@
     "android": "expo run:android --port 8088",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
+    "voice-previews": "tsx scripts/voice-previews.mts",
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
     "check": "npm run typecheck && npm test && npm run format:check",

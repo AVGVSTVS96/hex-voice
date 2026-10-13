@@ -23,7 +23,7 @@ import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
-import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
+import { REACTIONS, REACTION_SPRING, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
@@ -105,7 +105,7 @@ export default function LiveScreen() {
     );
   }, [connected, asleep, reducedMotion, wake, breath]);
   useEffect(() => {
-    level.set(withSpring(heard, { dampingRatio: 0.55, duration: 220 }));
+    level.set(withSpring(heard, REACTION_SPRING));
   }, [heard, level]);
 
   const bottomInset = Math.max(insets.bottom, 20) + 14;

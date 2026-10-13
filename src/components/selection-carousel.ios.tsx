@@ -2,8 +2,11 @@ import { Column, RNHostView, Spacer, Text } from '@expo/ui';
 import { TabView, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
+  contentShape,
   frame,
   indexViewStyle,
+  onTapGesture,
+  shapes,
   tabViewStyle,
 } from '@expo/ui/swift-ui/modifiers';
 import { View } from 'react-native';
@@ -14,6 +17,7 @@ export function SelectionCarousel({
   options,
   value,
   onChange,
+  onPress,
   width,
   height = 180,
   preview,
@@ -59,6 +63,7 @@ export function SelectionCarousel({
             width={width}
             height={totalHeight}
             previewHeight={previewHeight}
+            onPress={onPress}
             testID={`${testID}-${option.id}`}
           />
         </TabView.Tab>
@@ -88,12 +93,14 @@ function SelectionPage({
   width,
   height,
   previewHeight = 0,
+  onPress,
   testID,
 }: {
   option: SelectionOption;
   width: number;
   height: number;
   previewHeight?: number;
+  onPress?: () => void;
   testID: string;
 }) {
   return (
@@ -101,6 +108,7 @@ function SelectionPage({
       alignment="center"
       spacing={8}
       style={{ width, height, paddingHorizontal: 16, paddingTop: previewHeight, paddingBottom: 38 }}
+      modifiers={onPress && [contentShape(shapes.rectangle()), onTapGesture(onPress)]}
       testID={testID}
     >
       <Spacer flexible />
