@@ -33,7 +33,7 @@ export function VoiceControl({
   prominent = false,
   loading = false,
 }: Props) {
-  const color = prominent ? '#080808' : theme.text;
+  const color = prominent ? theme.onProminent : theme.text;
   return (
     <Host
       colorScheme="dark"
@@ -60,7 +60,11 @@ export function VoiceControl({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: prominent ? '#F9F9F9' : selected ? '#363636' : theme.surface,
+            backgroundColor: prominent
+              ? theme.prominent
+              : selected
+                ? theme.surfaceSelected
+                : theme.surface,
           }}
           modifiers={process.env.EXPO_OS === 'ios' ? [contentShape(shapes.circle())] : undefined}
         >

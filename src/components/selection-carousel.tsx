@@ -2,6 +2,8 @@ import { RNHostView } from '@expo/ui';
 import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { theme } from '@/theme';
+
 import type { SelectionCarouselProps } from './selection-carousel.types';
 
 // iOS uses Expo UI's SwiftUI page control. This is the web/Android fallback.
@@ -81,7 +83,7 @@ export function SelectionCarousel({
                 key={option.id}
                 style={[
                   styles.dot,
-                  { backgroundColor: option.id === value ? '#FFFFFF' : '#626262' },
+                  { backgroundColor: option.id === value ? theme.text : theme.tertiary },
                 ]}
               />
             ))}
@@ -100,8 +102,8 @@ const styles = StyleSheet.create({
     paddingBottom: 38,
     gap: 8,
   },
-  name: { color: '#FFFFFF', fontSize: 32, fontWeight: '600', textAlign: 'center' },
-  description: { color: '#929292', fontSize: 16, textAlign: 'center' },
+  name: { color: theme.text, fontSize: 32, fontWeight: '600', textAlign: 'center' },
+  description: { color: theme.secondary, fontSize: 16, textAlign: 'center' },
   dots: {
     position: 'absolute',
     bottom: 15,

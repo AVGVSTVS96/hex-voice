@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
   Extrapolation,
   cancelAnimation,
   interpolate,
@@ -23,19 +22,18 @@ import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
-import { REACTIONS, REACTION_SPRING, useCallPreferences } from '@/hooks/use-call-preferences';
+import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
-import { theme } from '@/theme';
+import { motion } from '@/motion';
+import { metrics, theme } from '@/theme';
 
 const DOCKED_SIZE = 52;
 const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
-const EASE = 18;
-const SNAP = 60;
 const LANDED = 2;
 
 export default function LiveScreen() {
@@ -95,21 +93,24 @@ export default function LiveScreen() {
     }
     wake.set(
       connected
-        ? withSpring(1, { dampingRatio: 0.45, duration: 700 })
-        : withTiming(target, { duration: asleep ? 900 : 450, easing: Easing.inOut(Easing.quad) }),
+        ? withSpring(1, motion.wake)
+        : withTiming(target, {
+            duration: asleep ? motion.settle.asleep : motion.settle.connecting,
+            easing: motion.settle.easing,
+          }),
     );
     breath.set(
       asleep
-        ? withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true)
-        : withTiming(0, { duration: 400 }),
+        ? withRepeat(withTiming(1, motion.breath), -1, true)
+        : withTiming(0, { duration: motion.breath.out }),
     );
   }, [connected, asleep, reducedMotion, wake, breath]);
   useEffect(() => {
-    level.set(withSpring(heard, REACTION_SPRING));
+    level.set(withSpring(heard, motion.reaction));
   }, [heard, level]);
 
   const bottomInset = Math.max(insets.bottom, 20) + 14;
-  const shiftX = 24 + DOCKED_SIZE / 2 - width / 2;
+  const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
   const travel = height - bottomInset - 32 - height / 2;
   const progress = useSharedValue(0);
   const goal = useSharedValue(0);
@@ -121,13 +122,16 @@ export default function LiveScreen() {
     goal.set(target);
     landing.set(target);
     if (reducedMotion) {
-      progress.set(withTiming(target, { duration: 200 }));
+      progress.set(withTiming(target, motion.reduced));
       return;
     }
     const distance = Math.abs(target - progress.get());
     const direction = Math.sign(target - progress.get());
     const toward = Math.max(0, direction * velocity);
-    const omega = Math.min(Math.max(EASE, toward / (distance || 1)), SNAP);
+    const omega = Math.min(
+      Math.max(motion.glide.ease, toward / (distance || 1)),
+      motion.glide.snap,
+    );
     progress.set(
       withSpring(target, {
         mass: 1,
@@ -357,7 +361,7 @@ export default function LiveScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.background },
   fill: { ...StyleSheet.absoluteFill },
-  transcript: { position: 'absolute', left: 24, right: 24 },
+  transcript: { position: 'absolute', left: metrics.gutter, right: metrics.gutter },
   fade: {
     position: 'absolute',
     top: 0,
@@ -369,12 +373,18 @@ const styles = StyleSheet.create({
   orb: { position: 'absolute' },
   toolbar: {
     position: 'absolute',
-    left: 22,
-    right: 22,
+    left: metrics.gutter,
+    right: metrics.gutter,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  bottom: { position: 'absolute', bottom: 0, left: 24, right: 24, gap: 22 },
+  bottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: metrics.gutter,
+    right: metrics.gutter,
+    gap: 22,
+  },
   controls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

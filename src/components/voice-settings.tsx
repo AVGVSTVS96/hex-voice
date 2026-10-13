@@ -1,10 +1,34 @@
-import { BottomSheet, Button, Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
-import { ColorPicker, Divider, Picker, Text as NativeText, Toggle } from '@expo/ui/swift-ui';
+import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
 import {
+  BottomSheet,
+  Button as NativeButton,
+  ColorPicker,
+  Divider,
+  Group as SheetContent,
+  Picker,
+  Text as NativeText,
+  Toggle,
+  ZStack,
+} from '@expo/ui/swift-ui';
+import {
+  accessibilityHidden,
   accessibilityLabel,
+  animation,
+  background,
+  buttonBorderShape,
+  buttonStyle,
+  contentShape,
+  controlSize,
+  frame,
+  labelStyle,
   labelsHidden,
+  offset,
   padding,
   pickerStyle,
+  presentationBackground,
+  presentationDetents,
+  presentationDragIndicator,
+  shapes,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -28,18 +52,14 @@ import {
   PERSONA_VARIANTS,
   isPersonaVariant,
   opalPaletteInput,
-  type OpalPalette,
   type PersonaVariant,
 } from '@/components/persona/variants';
 import { SelectionCarousel } from '@/components/selection-carousel';
-import {
-  REACTIONS,
-  REACTION_SPRING,
-  type CallPreferences,
-  type Reaction,
-} from '@/hooks/use-call-preferences';
+import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
+import { motion } from '@/motion';
+import { metrics, theme } from '@/theme';
 
 type Props = {
   isPresented: boolean;
@@ -54,20 +74,39 @@ type Props = {
   preferences: CallPreferences;
 };
 
-type Page = 'appearance' | 'voice';
-
 const ios = process.env.EXPO_OS === 'ios';
 const voiceOptions = VOICES.map((voice) => ({
   ...voice,
   description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
 }));
-// A short phrase as the microphone hears it: one loudness peak per syllable. Each step is one
-// REACTION_SPRING, so the orb moves exactly as it does when you talk during a call.
+// A short phrase as the microphone hears it: one loudness peak per syllable. Each step is the
+// call's own reaction spring, so the orb moves exactly as it does when you talk.
 const PHRASE = [0.9, 0.35, 0.75, 0.25, 0.6, 0];
-const GROUP = '#000000';
-const SWITCH_ON = '#30D158';
 const ORIGINAL_OPAL = 'linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)';
-const SECONDARY = '#929292';
+
+const SHEET_TOP = 24;
+const SHEET_BOTTOM = 26;
+const PERSONA_PAGE = 138;
+const ORB = 190;
+const VOICE_CAROUSEL = 180;
+const HEADER_TOP = 14;
+const HEADER = 44;
+const DIVIDER = 1 / 3;
+const SWATCH_GAP = 4;
+const SWATCH_SLOTS = Math.max(OPAL_PALETTES.length, PERSONA_COLORS.length + 1);
+
+const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * DIVIDER;
+const APPEARANCE_HEIGHT =
+  SHEET_TOP +
+  PERSONA_PAGE +
+  ORB +
+  metrics.groupSpacing +
+  groupHeight(2) +
+  metrics.groupSpacing +
+  groupHeight(3) +
+  SHEET_BOTTOM;
+const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
+const DETENTS = [{ height: APPEARANCE_HEIGHT }, { height: VOICE_HEIGHT }];
 
 export function VoiceSettings({
   isPresented,
@@ -82,199 +121,287 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - 48, 480);
-  const [page, setPage] = useState<Page>('appearance');
+  const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
+  const swatch = Math.min(
+    36,
+    Math.floor(
+      (contentWidth - 2 * metrics.rowInset - SWATCH_GAP * (SWATCH_SLOTS - 1)) / SWATCH_SLOTS,
+    ),
+  );
+  const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
   const selectedPersona = PERSONA_VARIANTS.find((option) => option.id === persona)!;
-  const colorable = PERSONA_MODELS[persona].dynamicColor;
   const reducedMotion = useReducedMotion();
   const level = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
   const orbStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + reaction * level.get() }],
   }));
-  useVoicePreview(voice, isPresented && page === 'voice' && voiceEnabled, take);
+  useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
-  const dismiss = () => {
-    onDismiss();
-    setPage('appearance');
-  };
   const haptic = (enabled = preferences.haptics) => {
     if (ios && enabled) void Haptics.selectionAsync();
   };
-  const openPage = (next: Page) => {
+  const showVoices = (show: boolean) => {
     haptic();
-    setPage(next);
+    setOnVoicePage(show);
   };
+  // The voice page slides in from the right edge while the first page drifts a third of the way
+  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
+  // put while the sheet changes height, so nothing on them jumps as it resizes.
+  const page = (shown: boolean, away: number, height: number) => [
+    frame({ maxWidth: Infinity, height, alignment: 'top' }),
+    background(theme.sheet),
+    offset({ x: shown ? 0 : away }),
+    animation(motion.page, onVoicePage),
+    accessibilityHidden(!shown),
+  ];
 
   return (
     <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={isPresented}
-        onDismiss={dismiss}
-        containerColor="#1C1C1C"
-        contentPadding={{ top: 24, left: 24, right: 24, bottom: 26 }}
+        onIsPresentedChange={(presented) => {
+          if (!presented) onDismiss();
+        }}
+        onDismiss={() => setOnVoicePage(false)}
         testID="voice-settings-sheet"
       >
-        {page === 'appearance' ? (
-          <Column alignment="center" spacing={18} style={{ width: contentWidth }}>
-            <SelectionCarousel
-              key="persona"
-              options={PERSONA_VARIANTS}
-              value={persona}
-              width={contentWidth}
-              height={138}
-              preview={
-                isPresented ? (
-                  <Animated.View style={orbStyle}>
-                    <Persona
-                      variant={persona}
-                      size={160}
-                      state="idle"
-                      color={preferences.personaColor}
-                      palette={opalPaletteInput(preferences.opalPalette)}
-                    />
-                  </Animated.View>
-                ) : undefined
-              }
-              previewHeight={190}
-              enabled={personaEnabled}
-              label="Persona appearance"
-              testID="persona-carousel"
-              onChange={(next) => {
-                if (!personaEnabled || !isPersonaVariant(next)) return;
-                haptic();
-                onPersonaChange(next);
-              }}
-            />
-            <Group width={contentWidth}>
-              {persona === 'opal' ? (
-                <OpalRow
-                  palette={preferences.opalPalette}
-                  width={contentWidth}
-                  onChange={(next) => {
-                    haptic();
-                    preferences.setOpalPalette(next);
-                  }}
-                />
-              ) : colorable ? (
-                <ColorRow
-                  color={preferences.personaColor}
-                  width={contentWidth}
-                  onChange={(next, fromPreset) => {
-                    if (fromPreset) haptic();
-                    preferences.setPersonaColor(next);
-                  }}
-                />
-              ) : (
-                <SettingRow icon="paintpalette" title="Color" width={contentWidth}>
-                  <Text textStyle={{ color: SECONDARY, fontSize: 17 }}>
-                    {`${selectedPersona.label} keeps its own`}
-                  </Text>
+        <SheetContent
+          modifiers={[
+            presentationDragIndicator('visible'),
+            presentationDetents(DETENTS, {
+              selection: DETENTS[onVoicePage ? 1 : 0],
+              // Dragging the sheet to the other height reads as leaving the page you're on: up from
+              // the voices goes back to settings, down from settings closes the sheet.
+              onSelectionChange: (detent) => {
+                const voiceSized =
+                  typeof detent === 'object' &&
+                  'height' in detent &&
+                  detent.height === VOICE_HEIGHT;
+                if (voiceSized === onVoicePage) return;
+                if (onVoicePage) showVoices(false);
+                else onDismiss();
+              },
+            }),
+            presentationBackground(theme.sheet),
+          ]}
+        >
+          <ZStack
+            alignment="bottom"
+            modifiers={[
+              frame({ maxWidth: Infinity, minHeight: 0, maxHeight: Infinity, alignment: 'bottom' }),
+            ]}
+          >
+            <Column
+              alignment="center"
+              spacing={metrics.groupSpacing}
+              style={{ paddingTop: SHEET_TOP }}
+              modifiers={page(!onVoicePage, -width / 3, APPEARANCE_HEIGHT)}
+            >
+              <SelectionCarousel
+                options={PERSONA_VARIANTS}
+                value={persona}
+                width={contentWidth}
+                height={PERSONA_PAGE}
+                preview={
+                  isPresented ? (
+                    <Animated.View style={orbStyle}>
+                      <Persona
+                        variant={persona}
+                        size={160}
+                        state="idle"
+                        color={preferences.personaColor}
+                        palette={opalPaletteInput(preferences.opalPalette)}
+                      />
+                    </Animated.View>
+                  ) : undefined
+                }
+                previewHeight={ORB}
+                enabled={personaEnabled}
+                label="Persona appearance"
+                testID="persona-carousel"
+                onChange={(next) => {
+                  if (!personaEnabled || !isPersonaVariant(next)) return;
+                  haptic();
+                  onPersonaChange(next);
+                }}
+              />
+              <Group width={contentWidth}>
+                {persona === 'opal' ? (
+                  <SwatchRow width={contentWidth} label="Opal colors">
+                    {OPAL_PALETTES.map((option) => (
+                      <Swatch
+                        key={option.id}
+                        color={option.swatch ?? undefined}
+                        label={option.label}
+                        size={swatch}
+                        selected={option.id === preferences.opalPalette}
+                        onPress={() => {
+                          haptic();
+                          preferences.setOpalPalette(option.id);
+                        }}
+                      />
+                    ))}
+                  </SwatchRow>
+                ) : PERSONA_MODELS[persona].dynamicColor ? (
+                  <ColorRow
+                    color={preferences.personaColor}
+                    width={contentWidth}
+                    size={swatch}
+                    onChange={(next, fromPreset) => {
+                      if (fromPreset) haptic();
+                      preferences.setPersonaColor(next);
+                    }}
+                  />
+                ) : (
+                  <SwatchRow
+                    width={contentWidth}
+                    label={`${selectedPersona.label} keeps its own color`}
+                    inert
+                    trailing={
+                      <RNHostView matchContents>
+                        <SkeletonSwatch size={swatch} />
+                      </RNHostView>
+                    }
+                  >
+                    {PERSONA_COLORS.map((preset) => (
+                      <SkeletonSwatch key={preset.id} size={swatch} />
+                    ))}
+                  </SwatchRow>
+                )}
+                <Separator />
+                <SettingRow icon="mic" title="Reacts to you" width={contentWidth}>
+                  <Picker
+                    selection={preferences.reaction}
+                    onSelectionChange={(next: Reaction) => {
+                      haptic();
+                      preferences.setReaction(next);
+                      if (!reducedMotion)
+                        level.set(
+                          withSequence(...PHRASE.map((peak) => withSpring(peak, motion.reaction))),
+                        );
+                    }}
+                    testID="reaction-picker"
+                    modifiers={[
+                      pickerStyle('menu'),
+                      labelsHidden(),
+                      tint(theme.secondary),
+                      accessibilityLabel('How much the orb reacts to your voice'),
+                    ]}
+                  >
+                    {REACTIONS.map((option) => (
+                      <NativeText key={option.id} modifiers={[tag(option.id)]}>
+                        {option.label}
+                      </NativeText>
+                    ))}
+                  </Picker>
                 </SettingRow>
-              )}
-              <Separator />
-              <SettingRow icon="mic" title="Reacts to you" width={contentWidth}>
-                <Picker
-                  selection={preferences.reaction}
-                  onSelectionChange={(next: Reaction) => {
-                    haptic();
-                    preferences.setReaction(next);
-                    if (!reducedMotion)
-                      level.set(
-                        withSequence(...PHRASE.map((peak) => withSpring(peak, REACTION_SPRING))),
-                      );
-                  }}
-                  testID="reaction-picker"
-                  modifiers={[
-                    pickerStyle('menu'),
-                    labelsHidden(),
-                    tint(SECONDARY),
-                    accessibilityLabel('How much the orb reacts to your voice'),
-                  ]}
+              </Group>
+              <Group width={contentWidth}>
+                <SettingRow
+                  icon="waveform"
+                  title="Voice"
+                  width={contentWidth}
+                  label={`Voice, ${selectedVoice.label}. Hear and change voices`}
+                  onPress={() => showVoices(true)}
+                  testID="voice-row"
                 >
-                  {REACTIONS.map((option) => (
-                    <NativeText key={option.id} modifiers={[tag(option.id)]}>
-                      {option.label}
-                    </NativeText>
-                  ))}
-                </Picker>
-              </SettingRow>
-            </Group>
-            <Group width={contentWidth}>
-              <LinkRow
-                icon="waveform"
-                title="Voice"
-                value={selectedVoice.label}
-                label={`Voice, ${selectedVoice.label}. Hear and change voices`}
-                testID="voice-row"
-                width={contentWidth}
-                onPress={() => openPage('voice')}
-              />
-              <Separator />
-              <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
-                <Toggle
-                  isOn={preferences.sounds}
-                  onIsOnChange={(on) => {
-                    haptic();
-                    preferences.setSounds(on);
-                  }}
-                  testID="sounds-toggle"
-                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Call sounds')]}
-                />
-              </SettingRow>
-              <Separator />
-              <SettingRow
-                icon="iphone.radiowaves.left.and.right"
-                title="Haptics"
-                width={contentWidth}
+                  <Text textStyle={{ color: theme.secondary, fontSize: metrics.body }}>
+                    {selectedVoice.label}
+                  </Text>
+                  {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
+                </SettingRow>
+                <Separator />
+                <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
+                  <Toggle
+                    isOn={preferences.sounds}
+                    onIsOnChange={(on) => {
+                      haptic();
+                      preferences.setSounds(on);
+                    }}
+                    testID="sounds-toggle"
+                    modifiers={[
+                      labelsHidden(),
+                      tint(theme.switchOn),
+                      accessibilityLabel('Call sounds'),
+                    ]}
+                  />
+                </SettingRow>
+                <Separator />
+                <SettingRow
+                  icon="iphone.radiowaves.left.and.right"
+                  title="Haptics"
+                  width={contentWidth}
+                >
+                  <Toggle
+                    isOn={preferences.haptics}
+                    onIsOnChange={(on) => {
+                      haptic(on);
+                      preferences.setHaptics(on);
+                    }}
+                    testID="haptics-toggle"
+                    modifiers={[
+                      labelsHidden(),
+                      tint(theme.switchOn),
+                      accessibilityLabel('Haptics'),
+                    ]}
+                  />
+                </SettingRow>
+              </Group>
+            </Column>
+            <Column
+              alignment="center"
+              spacing={0}
+              modifiers={page(onVoicePage, width, VOICE_HEIGHT)}
+            >
+              <Row
+                alignment="center"
+                spacing={0}
+                style={{ width: contentWidth, height: HEADER }}
+                modifiers={[padding({ top: HEADER_TOP })]}
               >
-                <Toggle
-                  isOn={preferences.haptics}
-                  onIsOnChange={(on) => {
-                    haptic(on);
-                    preferences.setHaptics(on);
-                  }}
-                  testID="haptics-toggle"
-                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Haptics')]}
+                <NativeButton
+                  label="Back"
+                  systemImage="chevron.left"
+                  onPress={() => showVoices(false)}
+                  testID="voice-back"
+                  modifiers={[
+                    labelStyle('iconOnly'),
+                    buttonStyle('glass'),
+                    buttonBorderShape('circle'),
+                    controlSize('large'),
+                  ]}
                 />
-              </SettingRow>
-            </Group>
-          </Column>
-        ) : (
-          <Column alignment="center" spacing={18} style={{ width: contentWidth }}>
-            <SelectionCarousel
-              key="voice"
-              options={voiceOptions}
-              value={voice}
-              width={contentWidth}
-              enabled={voiceEnabled}
-              disabledHint={
-                voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
-              }
-              label="Voice"
-              testID="voice-carousel"
-              onPress={() => setTake((count) => count + 1)}
-              onChange={(next) => {
-                if (!voiceEnabled || !isLiveVoice(next)) return;
-                haptic();
-                onVoiceChange(next);
-              }}
-            />
-            <Group width={contentWidth}>
-              <LinkRow
-                icon="circle"
-                title="Persona"
-                value={selectedPersona.label}
-                label={`Persona, ${selectedPersona.label}. Back to appearance`}
-                testID="persona-row"
+                <Spacer flexible />
+                <Text textStyle={{ color: theme.text, fontSize: metrics.body, fontWeight: '600' }}>
+                  Voice
+                </Text>
+                <Spacer flexible />
+                <Spacer style={{ width: HEADER }} />
+              </Row>
+              <SelectionCarousel
+                options={voiceOptions}
+                value={voice}
                 width={contentWidth}
-                onPress={() => openPage('appearance')}
+                height={VOICE_CAROUSEL}
+                enabled={voiceEnabled}
+                disabledHint={
+                  voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
+                }
+                label="Voice"
+                testID="voice-carousel"
+                onPress={() => setTake((count) => count + 1)}
+                onChange={(next) => {
+                  if (!voiceEnabled || !isLiveVoice(next)) return;
+                  haptic();
+                  onVoiceChange(next);
+                }}
               />
-            </Group>
-          </Column>
-        )}
+            </Column>
+          </ZStack>
+        </SheetContent>
       </BottomSheet>
     </Host>
   );
@@ -282,21 +409,20 @@ export function VoiceSettings({
 
 function Group({ width, children }: { width: number; children: ReactNode }) {
   return (
-    <Column spacing={0} style={{ width, borderRadius: 26, backgroundColor: GROUP }}>
+    <Column
+      spacing={0}
+      style={{ width, borderRadius: metrics.groupRadius, backgroundColor: theme.group }}
+    >
       {children}
     </Column>
   );
 }
 
 function Separator() {
-  return <Divider modifiers={[padding({ leading: 58 })]} />;
-}
-
-function RowIcon({ name }: { name: SFSymbol }) {
-  return ios ? (
-    <Icon name={name} size={20} color="#FFFFFF" style={{ width: 26 }} />
-  ) : (
-    <Spacer style={{ width: 26 }} />
+  return (
+    <Divider
+      modifiers={[padding({ leading: metrics.rowInset + metrics.rowIcon + metrics.rowSpacing })]}
+    />
   );
 }
 
@@ -304,133 +430,122 @@ function SettingRow({
   icon,
   title,
   width,
+  label,
+  onPress,
+  testID,
   children,
 }: {
   icon: SFSymbol;
   title: string;
   width: number;
+  label?: string;
+  onPress?: () => void;
+  testID?: string;
   children: ReactNode;
 }) {
   return (
-    <Row alignment="center" spacing={14} style={{ width, height: 58, paddingHorizontal: 18 }}>
-      <RowIcon name={icon} />
-      <Text textStyle={{ color: '#FFFFFF', fontSize: 17 }}>{title}</Text>
+    <Row
+      alignment="center"
+      spacing={metrics.rowSpacing}
+      style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
+      onPress={onPress}
+      testID={testID}
+      modifiers={[
+        contentShape(shapes.rectangle()),
+        ...(label && ios ? [accessibilityLabel(label)] : []),
+      ]}
+    >
+      {ios ? (
+        <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
+      ) : (
+        <Spacer style={{ width: metrics.rowIcon }} />
+      )}
+      <Text textStyle={{ color: theme.text, fontSize: metrics.body }}>{title}</Text>
       <Spacer flexible />
       {children}
     </Row>
   );
 }
 
-function LinkRow({
-  icon,
-  title,
-  value,
-  label,
-  testID,
+// Every persona's color row shares this footprint, so swiping between personas never moves the
+// rows below it.
+function SwatchRow({
   width,
-  onPress,
+  label,
+  inert = false,
+  trailing,
+  children,
 }: {
-  icon: SFSymbol;
-  title: string;
-  value: string;
-  label: string;
-  testID: string;
   width: number;
-  onPress: () => void;
+  label: string;
+  inert?: boolean;
+  trailing?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <Button
-      variant="text"
-      onPress={onPress}
-      testID={testID}
-      style={{ padding: 0, width, height: 58 }}
-      modifiers={ios ? [accessibilityLabel(label)] : undefined}
+    <Row
+      alignment="center"
+      spacing={0}
+      style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
     >
-      <Row alignment="center" spacing={14} style={{ width, height: 58, paddingHorizontal: 18 }}>
-        <RowIcon name={icon} />
-        <Text textStyle={{ color: '#FFFFFF', fontSize: 17 }}>{title}</Text>
-        <Spacer flexible />
-        <Text textStyle={{ color: SECONDARY, fontSize: 17 }}>{value}</Text>
-        {ios ? (
-          <Icon name="chevron.right" size={13} color={SECONDARY} />
-        ) : (
-          <Text textStyle={{ color: SECONDARY, fontSize: 21 }}>›</Text>
-        )}
-      </Row>
-    </Button>
+      <RNHostView matchContents>
+        <View
+          accessible={inert}
+          accessibilityRole={inert ? undefined : 'radiogroup'}
+          accessibilityLabel={label}
+          style={{ flexDirection: 'row', gap: SWATCH_GAP }}
+        >
+          {children}
+        </View>
+      </RNHostView>
+      <Spacer flexible />
+      {trailing}
+    </Row>
   );
 }
 
 function ColorRow({
   color,
   width,
+  size,
   onChange,
 }: {
   color: string;
   width: number;
+  size: number;
   onChange: (color: string, fromPreset: boolean) => void;
 }) {
   const custom = !PERSONA_COLORS.some((preset) => preset.id === color);
   return (
-    <Row alignment="center" spacing={0} style={{ width, height: 66, paddingHorizontal: 14 }}>
-      <RNHostView matchContents>
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6 }}>
-          {PERSONA_COLORS.map((preset) => (
-            <Swatch
-              key={preset.id}
-              color={preset.id}
-              label={preset.label}
-              selected={preset.id === color}
-              onPress={() => onChange(preset.id, true)}
-            />
-          ))}
-        </View>
-      </RNHostView>
-      <Spacer flexible />
-      {ios && (
-        <ColorPicker
-          selection={color}
-          supportsOpacity={false}
-          onSelectionChange={(next) => onChange(next.slice(0, 7).toUpperCase(), false)}
-          modifiers={[
-            labelsHidden(),
-            accessibilityLabel(custom ? 'Custom color, selected' : 'Custom color'),
-          ]}
+    <SwatchRow
+      width={width}
+      label="Persona color"
+      trailing={
+        ios && (
+          <ColorPicker
+            selection={color}
+            supportsOpacity={false}
+            onSelectionChange={(next) => onChange(next.slice(0, 7).toUpperCase(), false)}
+            modifiers={[
+              labelsHidden(),
+              frame({ width: size, height: size }),
+              accessibilityLabel(custom ? 'Custom color, selected' : 'Custom color'),
+            ]}
+          />
+        )
+      }
+    >
+      {PERSONA_COLORS.map((preset) => (
+        <Swatch
+          key={preset.id}
+          color={preset.id}
+          label={preset.label}
+          size={size}
+          selected={preset.id === color}
+          onPress={() => onChange(preset.id, true)}
         />
-      )}
-    </Row>
-  );
-}
-
-function OpalRow({
-  palette,
-  width,
-  onChange,
-}: {
-  palette: OpalPalette;
-  width: number;
-  onChange: (palette: OpalPalette) => void;
-}) {
-  const gap = 4;
-  const count = OPAL_PALETTES.length;
-  const size = Math.min(38, Math.floor((width - 28 - gap * (count - 1)) / count));
-  return (
-    <Row alignment="center" spacing={0} style={{ width, height: 66, paddingHorizontal: 14 }}>
-      <RNHostView matchContents>
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap }}>
-          {OPAL_PALETTES.map((option) => (
-            <Swatch
-              key={option.id}
-              color={option.swatch ?? undefined}
-              label={option.label}
-              size={size}
-              selected={option.id === palette}
-              onPress={() => onChange(option.id)}
-            />
-          ))}
-        </View>
-      </RNHostView>
-    </Row>
+      ))}
+    </SwatchRow>
   );
 }
 
@@ -439,13 +554,13 @@ function Swatch({
   label,
   selected,
   onPress,
-  size = 38,
+  size,
 }: {
   color?: string;
   label: string;
   selected: boolean;
   onPress: () => void;
-  size?: number;
+  size: number;
 }) {
   const inner = size - 10;
   return (
@@ -454,13 +569,13 @@ function Swatch({
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      hitSlop={4}
+      hitSlop={SWATCH_GAP / 2}
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
         borderWidth: 2,
-        borderColor: selected ? '#FFFFFF' : 'transparent',
+        borderColor: selected ? theme.text : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -475,5 +590,21 @@ function Swatch({
         }}
       />
     </Pressable>
+  );
+}
+
+function SkeletonSwatch({ size }: { size: number }) {
+  const inner = size - 10;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: inner,
+          height: inner,
+          borderRadius: inner / 2,
+          backgroundColor: theme.skeleton,
+        }}
+      />
+    </View>
   );
 }

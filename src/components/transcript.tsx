@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import type { TranscriptEntry } from '@/live/types';
+import { motion } from '@/motion';
 import { theme } from '@/theme';
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
@@ -80,8 +81,8 @@ function useSettledLength(length: number) {
   const [warm, setWarm] = useState(0);
   const [settled, setSettled] = useState(0);
   useEffect(() => {
-    setTimeout(() => setWarm((current) => Math.max(current, length)), 120);
-    setTimeout(() => setSettled((current) => Math.max(current, length)), 240);
+    setTimeout(() => setWarm((current) => Math.max(current, length)), motion.caption.warm);
+    setTimeout(() => setSettled((current) => Math.max(current, length)), motion.caption.settled);
   }, [length]);
   return [Math.min(warm, length), Math.min(settled, length)] as const;
 }
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   user: {
     alignSelf: 'flex-end',
     maxWidth: '86%',
-    backgroundColor: '#303032',
+    backgroundColor: theme.bubble,
     borderRadius: 20,
     borderCurve: 'continuous',
     paddingHorizontal: 15,
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   assistant: { alignSelf: 'flex-start', maxWidth: '96%' },
   text: { color: theme.text, fontSize: 17, lineHeight: 25 },
   warm: { color: theme.secondary },
-  fresh: { color: '#5E5E62' },
+  fresh: { color: theme.tertiary },
   empty: {
     color: theme.secondary,
     fontSize: 16,

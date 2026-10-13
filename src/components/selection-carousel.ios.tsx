@@ -11,6 +11,8 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { View } from 'react-native';
 
+import { theme } from '@/theme';
+
 import type { SelectionCarouselProps, SelectionOption } from './selection-carousel.types';
 
 export function SelectionCarousel({
@@ -112,10 +114,10 @@ function SelectionPage({
       testID={testID}
     >
       <Spacer flexible />
-      <Text textStyle={{ color: '#FFFFFF', fontSize: 32, fontWeight: '600', textAlign: 'center' }}>
+      <Text textStyle={{ color: theme.text, fontSize: 32, fontWeight: '600', textAlign: 'center' }}>
         {option.label}
       </Text>
-      <Text textStyle={{ color: '#929292', fontSize: 16, textAlign: 'center' }}>
+      <Text textStyle={{ color: theme.secondary, fontSize: 16, textAlign: 'center' }}>
         {option.description}
       </Text>
       <Spacer flexible />
