@@ -21,7 +21,7 @@ export default function RootLayout() {
       <Stack
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}
       >
-        <Stack.Screen name="index" options={{ title: 'Live' }} />
+        <Stack.Screen name="index" options={{ title: 'hex' }} />
       </Stack>
     </ThemeProvider>
   );

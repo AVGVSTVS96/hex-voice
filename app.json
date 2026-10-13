@@ -1,26 +1,24 @@
 {
   "expo": {
-    "name": "Live",
-    "slug": "gpt-live",
+    "name": "hex",
+    "slug": "hex-voice",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/live-icon.png",
-    "scheme": "gptlive",
+    "icon": "./assets/images/icon.png",
+    "scheme": "hexvoice",
     "userInterfaceStyle": "dark",
     "ios": {
-      "bundleIdentifier": "com.example.gptlive",
+      "bundleIdentifier": "com.shahidy.hexvoice",
       "supportsTablet": false,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Live uses your microphone for a conversation with GPT-Live 1.",
+        "NSMicrophoneUsageDescription": "hex listens through your microphone while you talk with it.",
         "UIBackgroundModes": ["audio"],
-        "NSLocalNetworkUsageDescription": "Live connects to the development server on your Mac.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "icon": "./assets/LiveIcon.icon"
+      }
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.gptlive",
+      "package": "com.shahidy.hexvoice",
       "permissions": [
         "RECORD_AUDIO",
         "MODIFY_AUDIO_SETTINGS",
@@ -30,10 +28,6 @@
         "BLUETOOTH"
       ],
       "blockedPermissions": ["android.permission.CAMERA"]
-    },
-    "web": {
-      "output": "server",
-      "favicon": "./assets/images/live-icon.png"
     },
     "plugins": [
       "expo-router",
@@ -46,7 +40,7 @@
       [
         "@config-plugins/react-native-webrtc",
         {
-          "microphonePermission": "Live uses your microphone for a conversation with GPT-Live 1.",
+          "microphonePermission": "hex listens through your microphone while you talk with it.",
           "cameraPermission": false
         }
       ],

@@ -36,7 +36,7 @@ export function useSavedPreference<T extends string>(
       writes.current = writes.current
         .then(() => AsyncStorage.setItem(key, next))
         .catch(() => {
-          console.warn(`[Live] Could not save preference: ${key}`);
+          console.warn(`[hex] Could not save preference: ${key}`);
         });
     },
     [key, isValid],

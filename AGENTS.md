@@ -2,20 +2,20 @@
 
 Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
 
+## How it works
+
+The app is a phone for hex. It sends its WebRTC offer to hex's voice plugin (`EXPO_PUBLIC_HEX_URL`, reached over Tailscale), which starts the GPT-Live 1 session with hex's instructions and hands every request to hex's Claude Code session. The app holds the audio, the data channel for mute and End, and the captions; it has no server or API key of its own.
+
 ## Voice implementation
 
-- Use GPT-Live 1 and the Live API event protocol at `/v1/live/sessions`.
 - Keep microphone audio active during replies and while iOS is backgrounded or locked.
-- Preserve mute acknowledgments, explicit End, unmount cleanup, and the ten-minute call limit.
+- Preserve mute acknowledgments, explicit End, and unmount cleanup.
 - Lock voice selection while connecting, connected, or ending. The voice is fixed at session creation.
-- Keep the OpenAI key in the server environment. Never put it in an `EXPO_PUBLIC_` variable.
 
 ## Checks
 
 Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
 
-## Commit and PR conventions
+## Commits
 
-- Commit messages must be one line, begin lowercase, and describe the change plainly without conventional commit prefixes.
-- Never add AI or Codex co-author credits.
-- PR titles use the user's area format, for example `[web] ...` or `[be] ...`.
+One line, lowercase, plain words, no conventional commit prefixes.

@@ -1,11 +1,4 @@
-import type {
-  LiveEvent,
-  LiveSnapshot,
-  LiveTransport,
-  SessionAPI,
-  ToolConnection,
-  TransportFactory,
-} from './types';
+import type { LiveEvent, LiveSnapshot, LiveTransport, SessionAPI, TransportFactory } from './types';
 import { DEFAULT_VOICE, type LiveVoice } from './voices';
 
 const initialSnapshot = (): LiveSnapshot => ({
@@ -17,9 +10,6 @@ const initialSnapshot = (): LiveSnapshot => ({
   elapsedSeconds: 0,
   transcript: [],
 });
-const MAX_SESSION_SECONDS = 10 * 60;
-const SESSION_LIMIT_MESSAGE =
-  'This conversation reached the 10-minute limit. You can start another.';
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
 
@@ -28,11 +18,9 @@ export class LiveSession {
   private listeners = new Set<() => void>();
   private transport: LiveTransport | null = null;
   private sessionId: string | null = null;
-  private tools: ToolConnection | null = null;
   private generation = 0;
   private statsTimer?: ReturnType<typeof setInterval>;
   private startupTimer?: ReturnType<typeof setTimeout>;
-  private durationTimer?: ReturnType<typeof setTimeout>;
   private muteTimer?: ReturnType<typeof setTimeout>;
   private startedAt = 0;
   private statsPending: LiveTransport | null = null;
@@ -110,23 +98,12 @@ export class LiveSession {
             await this.closing;
             if (this.generation === generation + 1)
               this.update({ status: 'error', error: message });
-            else console.warn('[Live] A cancelled session could not be confirmed closed.');
-          } else console.warn('[Live] A cancelled session could not be confirmed closed.');
+            else console.warn('[hex] A cancelled session could not be confirmed closed.');
+          } else console.warn('[hex] A cancelled session could not be confirmed closed.');
         }
         return;
       }
       this.sessionId = session.sessionId;
-      if (session.tools) {
-        if (!this.api.connectTools)
-          throw new Error('The tool service is unavailable. Please try again.');
-        const tools = this.api.connectTools(session.sessionId, (message) => {
-          if (isCurrent() && !this.closing) void this.stop(message);
-        });
-        this.tools = tools;
-        tools.setAppActive(this.appActive);
-        await tools.ready;
-        if (!isCurrent()) return;
-      }
       this.startupTimer = setTimeout(() => {
         void this.stop('The voice session did not start. Please try again.');
       }, 25000);
@@ -156,7 +133,6 @@ export class LiveSession {
         this.reportedDuplex = false;
         this.lastSentPackets = 0;
         this.update({ status: 'connected' });
-        this.scheduleDurationLimit();
         this.startStats();
         break;
       case 'session.input_transcript.delta':
@@ -218,7 +194,6 @@ export class LiveSession {
 
   setAppActive = (active: boolean) => {
     this.appActive = active;
-    this.tools?.setAppActive(active);
     clearInterval(this.statsTimer);
     if (!this.refreshElapsed()) return;
     if (active) {
@@ -240,26 +215,8 @@ export class LiveSession {
   private refreshElapsed() {
     if (this.snapshot.status !== 'connected') return false;
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
-    if (elapsedSeconds >= MAX_SESSION_SECONDS) {
-      void this.stop(SESSION_LIMIT_MESSAGE);
-      return false;
-    }
     if (elapsedSeconds !== this.snapshot.elapsedSeconds) this.update({ elapsedSeconds });
     return true;
-  }
-
-  private scheduleDurationLimit() {
-    clearTimeout(this.durationTimer);
-    // This deadline remains scheduled when visual stats are paused. Native RN
-    // timers run during an active iOS background audio session; foreground and
-    // data events also reconcile wall time if iOS delayed JavaScript execution.
-    const remaining = MAX_SESSION_SECONDS * 1000 - (Date.now() - this.startedAt);
-    this.durationTimer = setTimeout(
-      () => {
-        if (this.refreshElapsed()) this.scheduleDurationLimit();
-      },
-      Math.max(1, remaining),
-    );
   }
 
   private async poll() {
@@ -283,7 +240,7 @@ export class LiveSession {
         stats.sentPackets > this.lastSentPackets
       ) {
         console.info(
-          '[Live] Duplex transport verified: microphone RTP continues during assistant audio.',
+          '[hex] Duplex transport verified: microphone RTP continues during assistant audio.',
           { sentPackets: stats.sentPackets, receivedPackets: stats.receivedPackets },
         );
         this.reportedDuplex = true;
@@ -323,11 +280,8 @@ export class LiveSession {
       return Promise.resolve();
     }
     ++this.generation;
-    this.tools?.close();
-    this.tools = null;
     clearInterval(this.statsTimer);
     clearTimeout(this.startupTimer);
-    clearTimeout(this.durationTimer);
     clearTimeout(this.muteTimer);
     this.muteCommand = null;
     this.statsPending = null;
