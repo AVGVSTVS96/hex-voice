@@ -12,6 +12,10 @@ export type CallSummary = {
   from: CallSource;
   voice?: string;
   title?: string;
+  reason?: string;
+  why?: string;
+  summary?: string;
+  waiting?: string[];
   seconds: number;
   tasks: number;
   preview: string;
@@ -24,9 +28,16 @@ export type CallTask = {
   at: number;
   text: string;
 };
+// hex's exact words to the voice (say, note) and things that happened to the call itself.
+export type CallMark = {
+  at: number;
+  kind: 'say' | 'note' | 'paused' | 'resumed' | 'warned';
+  text: string;
+};
 export type CallRecord = Omit<CallSummary, 'seconds' | 'tasks' | 'preview'> & {
   turns: CallTurn[];
   tasks: CallTask[];
+  moments?: CallMark[];
 };
 export type CallList = { version: number; live?: string; calls: CallSummary[] };
 
@@ -74,13 +85,18 @@ export function callWhen(call: CallSummary, live: boolean) {
 }
 
 export function transcriptText(call: CallRecord) {
-  return timeline(call)
-    .map((moment) =>
-      moment.kind === 'turn'
-        ? `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`
-        : `[${moment.task.text}]`,
-    )
-    .join('\n\n');
+  const wrapUp = [
+    call.summary,
+    ...(call.waiting?.length
+      ? ['Waiting on you:', ...call.waiting.map((item) => `- ${item}`)]
+      : []),
+  ].filter(Boolean);
+  const moments = timeline(call).map((moment) =>
+    moment.kind === 'turn'
+      ? `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`
+      : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
+  );
+  return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
 }
 
 export function callLength(seconds: number) {
@@ -131,10 +147,18 @@ export function byDay(calls: CallSummary[], now = new Date()) {
 
 export type Moment =
   | { kind: 'turn'; key: string; at: number; turn: CallTurn }
-  | { kind: 'task'; key: string; at: number; task: CallTask };
+  | { kind: 'task'; key: string; at: number; task: CallTask }
+  | { kind: 'mark'; key: string; at: number; mark: CallMark };
+
+// What happened to the call shows in it; hex's say and note text is the voice's own words already.
+const SHOWN: CallMark['kind'][] = ['paused', 'resumed', 'warned'];
 
 // One marker per task, where hex started it, showing how it ended up.
-export function timeline({ turns, tasks }: Pick<CallRecord, 'turns' | 'tasks'>): Moment[] {
+export function timeline({
+  turns,
+  tasks,
+  moments = [],
+}: Pick<CallRecord, 'turns' | 'tasks' | 'moments'>): Moment[] {
   const markers = new Map<string, CallTask>();
   for (const task of tasks)
     markers.set(task.id, { ...task, at: markers.get(task.id)?.at ?? task.at });
@@ -146,5 +170,8 @@ export function timeline({ turns, tasks }: Pick<CallRecord, 'turns' | 'tasks'>):
       at: task.at,
       task,
     })),
+    ...moments
+      .filter((mark) => SHOWN.includes(mark.kind))
+      .map((mark, i) => ({ kind: 'mark' as const, key: `mark-${i}`, at: mark.at, mark })),
   ].sort((a, b) => a.at - b.at);
 }

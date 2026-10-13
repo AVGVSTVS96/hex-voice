@@ -2,7 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createCallsAPI } from '../src/live/api-client';
-import { byDay, callLength, callName, clock, timeline, type CallSummary } from '../src/live/calls';
+import {
+  byDay,
+  callLength,
+  callName,
+  clock,
+  timeline,
+  transcriptText,
+  type CallSummary,
+} from '../src/live/calls';
 
 const hexUrl = 'https://hex.example:8790';
 
@@ -100,5 +108,30 @@ test('each of hex’s tasks is one marker where it started, showing how it ended
   assert.deepEqual(
     moments.map((moment) => (moment.kind === 'task' ? moment.task : moment.kind)),
     ['turn', { id: 'plan', state: 'done', at: 4000, text: 'plan page ready' }, 'turn'],
+  );
+});
+
+test('a call shows when the phone took its audio and the time-limit warning, and its copy leads with hex’s wrap-up', () => {
+  const call = {
+    id: 'live_1',
+    started: '2026-10-13T10:00:00.000Z',
+    from: 'app' as const,
+    summary: 'Checked CI and sent the PR to Telegram.',
+    waiting: ['Merge the PR'],
+    turns: [{ who: 'you' as const, at: 1000, text: 'Is CI green?' }],
+    tasks: [],
+    moments: [
+      { at: 2000, kind: 'say' as const, text: 'CI is green.' },
+      { at: 3000, kind: 'paused' as const, text: 'Your phone took over the audio' },
+      { at: 9000, kind: 'resumed' as const, text: 'Back on the call' },
+    ],
+  };
+  assert.deepEqual(
+    timeline(call).map((moment) => moment.kind),
+    ['turn', 'mark', 'mark'],
+  );
+  assert.equal(
+    transcriptText(call),
+    'Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]',
   );
 });

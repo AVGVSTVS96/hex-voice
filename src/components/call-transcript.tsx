@@ -2,17 +2,27 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/glyph';
+import { WrapUp } from '@/components/wrap-up';
 import {
   ENDINGS,
   SOURCES,
   clock,
   timeOfDay,
   timeline,
+  type CallMark,
   type CallRecord,
   type CallSummary,
   type CallTask,
 } from '@/live/calls';
 import { theme } from '@/theme';
+
+const MARKS: Record<CallMark['kind'], SFSymbol> = {
+  say: 'text.bubble',
+  note: 'note.text',
+  paused: 'pause.circle',
+  resumed: 'play.circle',
+  warned: 'timer',
+};
 
 const MARKERS: Record<CallTask['state'], { symbol: SFSymbol; color: string; fill: string }> = {
   running: { symbol: 'circle.dotted', color: theme.accent, fill: theme.accentMuted },
@@ -29,10 +39,19 @@ export function CallTranscript({ summary, call, failed, live }: Props) {
       <Line symbol={SOURCES[summary.from].symbol}>
         {`${SOURCES[summary.from].started} · ${timeOfDay(summary.started)}`}
       </Line>
+      <WrapUp
+        why={summary.why ?? call?.why}
+        summary={summary.summary ?? call?.summary}
+        waiting={summary.waiting ?? call?.waiting}
+      />
       {call ? (
         timeline(call).map((moment) =>
           moment.kind === 'task' ? (
             <Marker key={moment.key} task={moment.task} />
+          ) : moment.kind === 'mark' ? (
+            <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
+              {`${moment.mark.text} · ${clock(moment.at)}`}
+            </Line>
           ) : moment.turn.who === 'you' ? (
             <View key={moment.key} style={styles.you}>
               <Text selectable style={styles.text}>

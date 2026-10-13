@@ -28,6 +28,7 @@ import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
+import { WrapUp } from '@/components/wrap-up';
 import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
@@ -35,6 +36,7 @@ import { useAgentLine } from '@/hooks/use-agent-line';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePhoneCall } from '@/hooks/use-phone-call';
+import { useWrapUp } from '@/hooks/use-wrap-up';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
@@ -376,6 +378,7 @@ export default function LiveScreen() {
   };
 
   const ending = session.ending && !voiceLocked && !viewing ? ENDINGS[session.ending] : undefined;
+  const wrapUp = useWrapUp(session.callId, !!ending && session.ending !== 'no-connect');
 
   return (
     <View style={styles.root}>
@@ -509,6 +512,16 @@ export default function LiveScreen() {
           )}
         </View>
         <View pointerEvents="box-none" style={[styles.bottom, { paddingBottom: bottomInset }]}>
+          {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
+            <Animated.View entering={FadeIn.duration(motion.toolbar)} style={styles.wrapUp}>
+              {wrapUp.title && (
+                <Text numberOfLines={1} style={styles.wrapTitle}>
+                  {wrapUp.title}
+                </Text>
+              )}
+              <WrapUp center summary={wrapUp.summary} waiting={wrapUp.waiting?.slice(0, 3)} />
+            </Animated.View>
+          ) : null}
           {ending ? (
             <Text
               accessibilityRole="alert"
@@ -640,6 +653,8 @@ const styles = StyleSheet.create({
   pastName: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   pastWhen: { color: theme.secondary, fontSize: 13, lineHeight: 18 },
   ended: { color: theme.secondary, textAlign: 'center', fontSize: 15, lineHeight: 20 },
+  wrapUp: { gap: 10, alignItems: 'center' },
+  wrapTitle: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   fill: { ...StyleSheet.absoluteFill },
   transcript: { position: 'absolute', left: metrics.gutter, right: metrics.gutter },
   fade: {
