@@ -4,20 +4,20 @@ These are the original Rive assets distributed by [AI Elements Persona](https://
 
 Source component: [6a9d5b1822ff](https://raw.githubusercontent.com/vercel/ai-elements/6a9d5b1822ffb10bba4bd97175f01edd7d8651cd/packages/elements/src/persona.tsx). `manifest.json` records each original URL, byte size, and SHA-256 digest. The asset filenames are shortened locally; `opal.riv` is the upstream `orb-1.2.riv`.
 
-AI Elements is Copyright 2023 Vercel, Inc., Apache License 2.0. The upstream notice is retained in `LICENSE.ai-elements` and the full license is in `LICENSE-2.0.txt`. The native and web renderers are adaptations: local asset loading, native Rive bindings, fixed dark-theme colors, reduced motion, paused previews, and the existing Opal default.
+AI Elements is Copyright 2023 Vercel, Inc., Apache License 2.0. The upstream notice is retained in `LICENSE.ai-elements` and the full license is in `LICENSE-2.0.txt`. The native and web renderers are adaptations: local asset loading, native Rive bindings, colors chosen in settings, reduced motion, paused previews, and the existing Opal default.
 
 ## Runtime details
 
 All six files were decoded in the Rive WebGL2 runtime. Every file has a state machine named `default` and boolean inputs `listening`, `thinking`, `speaking`, and `asleep`. Idle clears these four inputs. Other inputs are left untouched.
 
-| Variant  | Upstream file    | View model | Dark-theme color    |
-| -------- | ---------------- | ---------- | ------------------- |
-| Obsidian | obsidian-2.0.riv | `color`    | White               |
-| Mana     | mana-2.0.riv     | `color`    | Original blue       |
-| Opal     | orb-1.2.riv      | None       | Original multicolor |
-| Halo     | halo-2.0.riv     | `color`    | White               |
-| Glint    | glint-2.0.riv    | `color`    | White               |
-| Command  | command-2.0.riv  | `color`    | White               |
+| Variant  | Upstream file    | View model | Color                     |
+| -------- | ---------------- | ---------- | ------------------------- |
+| Obsidian | obsidian-2.0.riv | `color`    | Chosen in settings, white |
+| Mana     | mana-2.0.riv     | `color`    | Original blue             |
+| Opal     | orb-1.2.riv      | None       | Original multicolor       |
+| Halo     | halo-2.0.riv     | `color`    | Chosen in settings, white |
+| Glint    | glint-2.0.riv    | `color`    | Chosen in settings, white |
+| Command  | command-2.0.riv  | `color`    | Chosen in settings, white |
 
 The 2.0 view model only controls color. Conversation states use the four state-machine booleans, as in the upstream component. Opal also has a numeric `color` input; it is left at its original value. Web uses `@rive-app/react-webgl2`, since Canvas does not render all blur effects in these assets.
 

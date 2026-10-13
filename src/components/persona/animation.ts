@@ -6,6 +6,7 @@ export interface PersonaProps {
   variant?: PersonaVariant;
   state?: PersonaState;
   size?: number;
+  color?: string;
 }
 
 // All six assets use these state-machine inputs. Color is a view-model property.

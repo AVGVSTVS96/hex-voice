@@ -13,3 +13,18 @@ export const DEFAULT_PERSONA: PersonaVariant = 'opal';
 export function isPersonaVariant(value: unknown): value is PersonaVariant {
   return PERSONA_VARIANTS.some((variant) => variant.id === value);
 }
+
+export const PERSONA_COLORS = [
+  { id: '#FFFFFF', label: 'White' },
+  { id: '#C4F3E5', label: 'Mint' },
+  { id: '#A9CCFF', label: 'Sky' },
+  { id: '#CDB8FF', label: 'Lilac' },
+  { id: '#FFCDA8', label: 'Peach' },
+  { id: '#FFB3C7', label: 'Rose' },
+] as const;
+
+export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
+
+export function isPersonaColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value);
+}

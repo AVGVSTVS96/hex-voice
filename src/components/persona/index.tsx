@@ -23,13 +23,12 @@ import {
   type PersonaProps,
 } from './animation';
 import { PERSONA_ASSETS } from './assets';
-import { DEFAULT_PERSONA, type PersonaVariant } from './variants';
+import { DEFAULT_PERSONA, DEFAULT_PERSONA_COLOR, type PersonaVariant } from './variants';
 
 export type { PersonaState, PersonaProps } from './animation';
 
 // Cache the six decoded files. Each rendered view keeps its own animation state.
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
-const WHITE = RiveColor.fromHexString('#FFFFFF').toInt();
 
 function loadFile(variant: PersonaVariant) {
   let promise = fileCache.get(variant);
@@ -54,6 +53,7 @@ function PersonaRenderer({
   variant,
   state = 'idle',
   size = 320,
+  color = DEFAULT_PERSONA_COLOR,
 }: PersonaProps & { variant: PersonaVariant }) {
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
@@ -100,7 +100,7 @@ function PersonaRenderer({
         for (const { name, value } of personaInputValues(state)) {
           riveViewRef.setBooleanInputValue(name, value);
         }
-        colorModel?.colorProperty('color')?.set(WHITE);
+        colorModel?.colorProperty('color')?.set(RiveColor.fromHexString(color).toInt());
         riveViewRef.playIfNeeded();
         initialized.current = true;
         if (reducedMotion) {
@@ -118,7 +118,7 @@ function PersonaRenderer({
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [riveViewRef, state, variant, colorModel, reducedMotion]);
+  }, [riveViewRef, state, variant, colorModel, color, reducedMotion]);
 
   return (
     <View

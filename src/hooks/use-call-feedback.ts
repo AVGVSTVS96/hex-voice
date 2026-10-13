@@ -8,7 +8,10 @@ import type { LiveStatus } from '@/live/types';
 // active after they finish instead of deactivating it under the call.
 const options = { keepAudioSessionActive: true };
 
-export function useCallFeedback(status: LiveStatus) {
+export function useCallFeedback(
+  status: LiveStatus,
+  { sounds, haptics }: { sounds: boolean; haptics: boolean },
+) {
   const connect = useAudioPlayer(require('@/assets/sounds/connect.wav'), options);
   const end = useAudioPlayer(require('@/assets/sounds/end.wav'), options);
   const previous = useRef(status);
@@ -18,11 +21,11 @@ export function useCallFeedback(status: LiveStatus) {
     previous.current = status;
     if (process.env.EXPO_OS !== 'ios') return;
     if (status === 'connected' && was !== 'connected') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      void connect.seekTo(0).then(() => connect.play());
+      if (haptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (sounds) void connect.seekTo(0).then(() => connect.play());
     } else if (was === 'connected' && status !== 'connected') {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-      void end.seekTo(0).then(() => end.play());
+      if (haptics) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+      if (sounds) void end.seekTo(0).then(() => end.play());
     }
-  }, [status, connect, end]);
+  }, [status, connect, end, sounds, haptics]);
 }

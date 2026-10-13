@@ -1,28 +1,34 @@
 import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { theme } from '@/theme';
 
 export default function RootLayout() {
   return (
-    <ThemeProvider
-      value={{
-        ...DarkTheme,
-        colors: {
-          ...DarkTheme.colors,
-          background: theme.background,
-          card: theme.surface,
-          primary: theme.accent,
-        },
-      }}
-    >
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
+      <ThemeProvider
+        value={{
+          ...DarkTheme,
+          colors: {
+            ...DarkTheme.colors,
+            background: theme.background,
+            card: theme.surface,
+            primary: theme.accent,
+          },
+        }}
       >
-        <Stack.Screen name="index" options={{ title: 'hex' }} />
-      </Stack>
-    </ThemeProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.background },
+          }}
+        >
+          <Stack.Screen name="index" options={{ title: 'hex' }} />
+        </Stack>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
