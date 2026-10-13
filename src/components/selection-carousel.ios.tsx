@@ -43,12 +43,13 @@ export function SelectionCarousel({
     );
   }
 
+  // The pager owns its page and reports each change, which lands halfway through a swipe, so the
+  // swipe never waits on JavaScript to confirm the page it's already on.
   const pager = (
     <TabView
-      selection={value}
+      defaultSelection={value}
       onSelectionChange={(next) => {
-        if (enabled && next !== value && options.some((option) => option.id === next))
-          onChange(next);
+        if (next !== value && options.some((option) => option.id === next)) onChange(next);
       }}
       testID={testID}
       modifiers={[
