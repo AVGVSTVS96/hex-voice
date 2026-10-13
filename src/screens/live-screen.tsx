@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -34,6 +34,7 @@ import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useLiveSession } from '@/hooks/use-live-session';
+import { usePhoneCall } from '@/hooks/use-phone-call';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
@@ -65,6 +66,7 @@ export default function LiveScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const calls = useCalls(drawerOpen);
+  const phoneCall = usePhoneCall(calls.live, calls.calls);
   const [viewing, setViewing] = useState<string | null>(null);
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = useCall(shown);
@@ -354,11 +356,22 @@ export default function LiveScreen() {
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (connected || connecting) void session.stop();
     else {
-      if (viewing) {
-        animateTo(0);
-        setReading(false);
-      }
-      void session.start(voice);
+      const start = () => {
+        if (viewing) {
+          animateTo(0);
+          setReading(false);
+        }
+        void session.start(voice);
+      };
+      if (!phoneCall) return start();
+      Alert.alert(
+        'You’re on a phone call with hex',
+        'Starting a call here hangs up the phone call.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Move it here', onPress: start },
+        ],
+      );
     }
   };
 
