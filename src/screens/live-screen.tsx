@@ -1,12 +1,19 @@
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Persona, type PersonaState } from '@/components/persona';
 import { TranscriptSheet } from '@/components/transcript-sheet';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
+import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
@@ -32,7 +39,9 @@ export default function LiveScreen() {
         ? 'speaking'
         : connected && !session.muted
           ? 'listening'
-          : 'idle';
+          : connected
+            ? 'idle'
+            : 'asleep';
   const status = connecting
     ? 'Connecting'
     : disconnecting
@@ -42,6 +51,19 @@ export default function LiveScreen() {
           ? 'Microphone muted'
           : 'Conversation active'
         : 'Ready to start a conversation';
+
+  useCallFeedback(session.status);
+  const reducedMotion = useReducedMotion();
+  const awake = connected || connecting;
+  const scale = useSharedValue(0.86);
+  useEffect(() => {
+    scale.value = reducedMotion
+      ? connected
+        ? 1
+        : 0.86
+      : withSpring(connected ? 1 : awake ? 0.92 : 0.86, { dampingRatio: 0.45, duration: 700 });
+  }, [connected, awake, reducedMotion, scale]);
+  const personaStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const onPrimaryPress = () => {
     if (disconnecting || !voiceLoaded) return;
@@ -53,7 +75,9 @@ export default function LiveScreen() {
   return (
     <View style={styles.screen}>
       <View accessible accessibilityLabel={status} style={styles.center}>
-        <Persona variant={variant} state={personaState} size={personaSize} />
+        <Animated.View style={personaStyle}>
+          <Persona variant={variant} state={personaState} size={personaSize} />
+        </Animated.View>
       </View>
       <View style={[styles.toolbar, { top: insets.top + 12 }]}>
         <VoiceControl

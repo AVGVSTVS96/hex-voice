@@ -8,6 +8,7 @@ import {
   Spacer,
   Text as NativeText,
 } from '@expo/ui';
+import { useRef } from 'react';
 import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
 
 import type { TranscriptEntry } from '@/live/types';
@@ -24,6 +25,8 @@ export function TranscriptSheet({
 }) {
   const { width, height } = useWindowDimensions();
   const visibleEntries = entries.filter((entry) => entry.text.trim());
+  const scroll = useRef<ScrollView>(null);
+  const following = useRef(true);
   return (
     <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
       <BottomSheet
@@ -52,6 +55,15 @@ export function TranscriptSheet({
           </Row>
           <RNHostView matchContents>
             <ScrollView
+              ref={scroll}
+              scrollEventThrottle={32}
+              onScroll={({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
+                following.current =
+                  contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+              }}
+              onContentSizeChange={() => {
+                if (following.current) scroll.current?.scrollToEnd({ animated: true });
+              }}
               style={{ width: width - 48, height: Math.min(height * 0.5, 450) }}
               contentContainerStyle={{ paddingBottom: 24, gap: 24 }}
             >

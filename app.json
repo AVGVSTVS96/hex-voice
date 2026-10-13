@@ -12,7 +12,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "hex listens through your microphone while you talk with it.",
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -27,7 +29,9 @@
         "WAKE_LOCK",
         "BLUETOOTH"
       ],
-      "blockedPermissions": ["android.permission.CAMERA"]
+      "blockedPermissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -45,7 +49,8 @@
         }
       ],
       "expo-dev-client",
-      "./plugins/with-scene-lifecycle"
+      "./plugins/with-scene-lifecycle",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
