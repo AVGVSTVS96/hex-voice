@@ -2,6 +2,9 @@ import { mediaDevices, RTCPeerConnection, RTCSessionDescription } from 'react-na
 import InCallManager from 'react-native-incall-manager';
 import type { AudioStats, LiveEvent, TransportFactory } from './types';
 
+// On iOS, WebRTC owns the audio session, set up by plugins/with-call-audio.js.
+const callManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
+
 // Native WebRTC uses iOS voice processing for acoustic echo cancellation.
 // Both RTP directions stay open throughout the call, including assistant speech.
 export const createTransport: TransportFactory = async ({ onEvent, onFailure }) => {
@@ -11,8 +14,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   try {
     peer = new RTCPeerConnection({ iceServers: [] });
     // VideoChat means speaker by default with voice processing; no camera is used.
-    InCallManager.start({ media: 'video', auto: true });
-    if (process.env.EXPO_OS === 'ios') InCallManager.setKeepScreenOn(false);
+    callManager?.start({ media: 'video', auto: true });
     for (const track of stream.getAudioTracks()) peer.addTrack(track, stream);
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
@@ -20,7 +22,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     stream.getTracks().forEach((track) => track.stop());
     peer?.close();
     stream.release();
-    InCallManager.stop();
+    callManager?.stop();
     throw error;
   }
   const pc = peer;
@@ -147,7 +149,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       channel.close();
       pc.close();
       stream.release();
-      InCallManager.stop();
+      callManager?.stop();
     },
   };
 };
