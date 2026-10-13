@@ -640,3 +640,31 @@ test('old transport events cannot alter a later conversation', async () => {
     await h.cleanup();
   }
 });
+
+test('a call remembers how it ended: you, hex, or a dropped connection', async () => {
+  const h = harness();
+  try {
+    await h.session.start();
+    await settle();
+    await h.session.stop();
+    assert.equal(h.session.getSnapshot().ending, 'you');
+    assert.equal(h.transports[0].commands.at(-1)?.event_id, 'close-you-app');
+
+    await h.session.start();
+    await settle();
+    h.transports[1].emit({ type: 'session.closed', reason: 'expired' });
+    await settle();
+    assert.equal(h.session.getSnapshot().ending, 'expired');
+
+    await h.session.start();
+    await settle();
+    h.transports[2].callbacks.onFailure('The audio connection failed.');
+    await settle();
+    assert.equal(h.session.getSnapshot().ending, 'dropped');
+
+    await h.session.start();
+    assert.equal(h.session.getSnapshot().ending, null);
+  } finally {
+    await h.cleanup();
+  }
+});
