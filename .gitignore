@@ -45,3 +45,4 @@ credentials.json
 
 # Python build helper
 __pycache__/
+/build
