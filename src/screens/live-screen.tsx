@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -13,25 +13,39 @@ import Animated, {
   withRepeat,
   withSpring,
   withTiming,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { AgentLine } from '@/components/agent-line';
+import { CallMenu } from '@/components/call-menu';
+import { CallTranscript } from '@/components/call-transcript';
+import { CallsSidebar, SIDEBAR } from '@/components/calls-sidebar';
 import { Persona, type PersonaState } from '@/components/persona';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
-import { useAgentLine } from '@/hooks/use-agent-line';
 import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
+import { useAgentLine } from '@/hooks/use-agent-line';
+import { useCall, useCalls } from '@/hooks/use-calls';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
+import {
+  ENDINGS,
+  callLength,
+  callName,
+  callWhen,
+  transcriptText,
+  type CallSummary,
+} from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
@@ -49,6 +63,11 @@ export default function LiveScreen() {
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const calls = useCalls(drawerOpen);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
+  const past = useCall(shown);
   const [reading, setReading] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(false);
   const insets = useSafeAreaInsets();
@@ -80,6 +99,7 @@ export default function LiveScreen() {
 
   useCallFeedback(session.status, preferences);
   const agent = useAgentLine(connected, preferences.haptics);
+  useEndedCall(session, voice, calls.add);
   useCallActivity({
     ...session,
     orb: activityOrb(variant, preferences.personaColor, preferences.opalPalette),
@@ -122,6 +142,13 @@ export default function LiveScreen() {
   useEffect(() => {
     level.set(withSpring(loudness, motion.reaction));
   }, [loudness, level]);
+
+  const agentRow = useSharedValue(0);
+  const working = agent !== null;
+  useEffect(() => {
+    const target = working ? AGENT_ROW : 0;
+    agentRow.set(reducedMotion ? target : withTiming(target, { duration: motion.agent.step }));
+  }, [working, reducedMotion, agentRow]);
 
   const bottomInset = Math.max(insets.bottom, 20) + 14;
   const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
@@ -204,6 +231,70 @@ export default function LiveScreen() {
       }),
   );
 
+  useEffect(() => {
+    if (!reading) setViewing(null);
+  }, [reading]);
+
+  const drawer = useSharedValue(0);
+  const drawerFrom = useSharedValue(0);
+  const settleDrawer = (open: boolean, velocity = 0) => {
+    'worklet';
+    drawer.set(
+      reducedMotion
+        ? withTiming(open ? 1 : 0, motion.reduced)
+        : withSpring(open ? 1 : 0, { ...motion.drawer, velocity: velocity / SIDEBAR }),
+    );
+    scheduleOnRN(setDrawerOpen, open);
+  };
+  const drawerPan = (offset: number | [number, number]) =>
+    Gesture.Pan()
+      .activeOffsetX(offset)
+      .failOffsetY([-14, 14])
+      .onStart(() => {
+        'worklet';
+        cancelAnimation(drawer);
+        drawerFrom.set(drawer.get());
+      })
+      .onUpdate(({ translationX }) => {
+        'worklet';
+        drawer.set(Math.min(1, Math.max(0, drawerFrom.get() + translationX / SIDEBAR)));
+      })
+      .onEnd(({ velocityX }) => {
+        'worklet';
+        const open = velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5);
+        settleDrawer(open, velocityX);
+      });
+  const edgeOpen = drawerPan(12);
+  const sidebarClose = drawerPan(-16);
+  const peekClose = Gesture.Race(
+    drawerPan([-10, 10]),
+    Gesture.Tap().onEnd(() => {
+      'worklet';
+      settleDrawer(false);
+    }),
+  );
+  const openDrawer = () => {
+    tick();
+    settleDrawer(true);
+  };
+  const openCall = (call: CallSummary) => {
+    setViewing(call.id);
+    settleDrawer(false);
+    animateTo(1);
+    setReading(true);
+  };
+  const screenStyle = useAnimatedStyle(() => {
+    const d = drawer.get();
+    return {
+      transform: [{ translateX: d * SIDEBAR }],
+      borderRadius: 44 * Math.min(1, d * 4),
+      borderWidth: d > 0 ? StyleSheet.hairlineWidth : 0,
+    };
+  });
+  const sidebarStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: (drawer.get() - 1) * 48 }],
+  }));
+
   const toggleReading = () => {
     const target = goal.get() === 0 ? 1 : 0;
     animateTo(target);
@@ -246,12 +337,6 @@ export default function LiveScreen() {
       ],
     };
   });
-  const agentRow = useSharedValue(0);
-  const working = agent !== null;
-  useEffect(() => {
-    const target = working ? AGENT_ROW : 0;
-    agentRow.set(reducedMotion ? target : withTiming(target, { duration: motion.agent.step }));
-  }, [working, reducedMotion, agentRow]);
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const shown = reducedMotion
@@ -268,122 +353,276 @@ export default function LiveScreen() {
     if (disconnecting || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (connected || connecting) void session.stop();
-    else void session.start(voice);
+    else {
+      if (viewing) {
+        animateTo(0);
+        setReading(false);
+      }
+      void session.start(voice);
+    }
   };
 
+  const ending = session.ending && !voiceLocked && !viewing ? ENDINGS[session.ending] : undefined;
+
   return (
-    <View style={styles.screen}>
-      <GestureDetector gesture={screenDrag}>
-        <View style={styles.fill}>
-          <Animated.View
-            pointerEvents={reading ? 'auto' : 'none'}
-            accessibilityElementsHidden={!reading}
-            importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
-            style={[styles.transcript, { top: insets.top + 72 }, transcriptStyle]}
-          >
-            <Transcript entries={session.transcript} active={reading} />
-            <View pointerEvents="none" style={styles.fade} />
-          </Animated.View>
-          <GestureDetector gesture={orbGesture}>
-            <Animated.View
-              accessible
-              accessibilityLabel={status}
-              style={[
-                styles.orb,
-                { width: size, height: size, left: (width - size) / 2, top: (height - size) / 2 },
-                orbStyle,
-              ]}
-            >
-              <Persona
-                variant={variant}
-                state={personaState}
-                size={size}
-                color={preferences.personaColor}
-                palette={opalPaletteInput(preferences.opalPalette)}
-              />
-            </Animated.View>
-          </GestureDetector>
-        </View>
+    <View style={styles.root}>
+      <GestureDetector gesture={sidebarClose}>
+        <Animated.View style={[styles.sidebar, sidebarStyle]}>
+          <CallsSidebar
+            top={insets.top}
+            calls={calls.calls}
+            live={calls.live}
+            viewing={viewing}
+            offline={calls.offline}
+            haptics={preferences.haptics}
+            onOpen={openCall}
+            onDelete={(id) => {
+              if (id === viewing) setReading(false);
+              calls.remove(id);
+            }}
+          />
+        </Animated.View>
       </GestureDetector>
-      <View pointerEvents="box-none" style={[styles.toolbar, { top: insets.top + 12 }]}>
-        <VoiceControl
-          icon="captions"
-          label={captionsOn ? 'Show orb' : 'Show transcript'}
-          testID="transcript-button"
-          selected={captionsOn}
-          onPress={toggleReading}
-          size={48}
-        />
-        <VoiceControl
-          icon="settings"
-          label="Voice and appearance settings"
-          testID="voice-settings-button"
-          onPress={() => setSettingsOpen(true)}
-          size={48}
-        />
-      </View>
-      <View pointerEvents="box-none" style={[styles.bottom, { paddingBottom: bottomInset }]}>
-        {session.error && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {session.error}
-          </Text>
-        )}
-        <View pointerEvents="box-none" style={styles.dock}>
-          <AgentLine line={agent} />
-          <View pointerEvents="box-none" style={styles.controls}>
-            <VoiceControl
-              icon={session.muted ? 'mic-off' : 'mic'}
-              label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
-              testID="session-mute-button"
-              disabled={!connected}
-              selected={session.muted}
-              size={60}
-              onPress={() => {
-                haptic(Haptics.selectionAsync);
-                session.toggleMute();
-              }}
-            />
-            <VoiceControl
-              icon={connected || connecting ? 'close' : 'waveform'}
-              label={
-                disconnecting
-                  ? 'Ending conversation'
-                  : connecting
-                    ? 'Cancel connection'
-                    : connected
-                      ? 'End conversation'
-                      : session.error
-                        ? 'Retry conversation'
-                        : 'Start conversation'
-              }
-              testID="session-primary-button"
-              prominent
-              size={64}
-              loading={connecting || disconnecting}
-              disabled={disconnecting || !voiceLoaded}
-              onPress={onPrimaryPress}
-            />
+      <Animated.View style={[styles.screen, screenStyle]}>
+        <GestureDetector gesture={screenDrag}>
+          <View style={styles.fill}>
+            <Animated.View
+              pointerEvents={reading ? 'auto' : 'none'}
+              accessibilityElementsHidden={!reading}
+              importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
+              style={[styles.transcript, { top: insets.top + 72 }, transcriptStyle]}
+            >
+              {shown ? (
+                <CallTranscript
+                  summary={shown}
+                  call={past.call}
+                  failed={past.failed}
+                  live={shown.id === calls.live}
+                />
+              ) : (
+                <Transcript entries={session.transcript} active={reading} />
+              )}
+              <View pointerEvents="none" style={styles.fade} />
+            </Animated.View>
+            <GestureDetector gesture={orbGesture}>
+              <Animated.View
+                accessible
+                accessibilityLabel={status}
+                style={[
+                  styles.orb,
+                  { width: size, height: size, left: (width - size) / 2, top: (height - size) / 2 },
+                  orbStyle,
+                ]}
+              >
+                <Persona
+                  variant={variant}
+                  state={personaState}
+                  size={size}
+                  color={preferences.personaColor}
+                  palette={opalPaletteInput(preferences.opalPalette)}
+                />
+              </Animated.View>
+            </GestureDetector>
+          </View>
+        </GestureDetector>
+        <View pointerEvents="box-none" style={[styles.toolbar, { top: insets.top + 12 }]}>
+          {shown ? (
+            <>
+              <VoiceControl
+                icon="calls"
+                label="Calls"
+                testID="calls-button"
+                selected={drawerOpen}
+                onPress={openDrawer}
+                size={48}
+              />
+              <View pointerEvents="none" style={styles.pastTitle}>
+                <Text numberOfLines={1} style={styles.pastName}>
+                  {callName(shown)}
+                </Text>
+                <Text numberOfLines={1} style={styles.pastWhen}>
+                  {callWhen(shown, shown.id === calls.live)}
+                </Text>
+              </View>
+              <CallMenu
+                transcript={past.call && transcriptText(past.call)}
+                title={callName(shown)}
+                onDelete={
+                  shown.id === calls.live
+                    ? undefined
+                    : () => {
+                        setReading(false);
+                        animateTo(0);
+                        calls.remove(shown.id);
+                      }
+                }
+              />
+            </>
+          ) : (
+            <>
+              <View style={styles.toolbarStart}>
+                <VoiceControl
+                  icon="captions"
+                  label={captionsOn ? 'Show orb' : 'Show transcript'}
+                  testID="transcript-button"
+                  selected={captionsOn}
+                  onPress={toggleReading}
+                  size={48}
+                />
+                {!voiceLocked && (
+                  <Animated.View
+                    entering={FadeIn.duration(motion.toolbar)}
+                    exiting={FadeOut.duration(motion.toolbar)}
+                  >
+                    <VoiceControl
+                      icon="calls"
+                      label="Calls"
+                      testID="calls-button"
+                      selected={drawerOpen}
+                      onPress={openDrawer}
+                      size={48}
+                    />
+                  </Animated.View>
+                )}
+              </View>
+              <VoiceControl
+                icon="settings"
+                label="Voice and appearance settings"
+                testID="voice-settings-button"
+                onPress={() => setSettingsOpen(true)}
+                size={48}
+              />
+            </>
+          )}
+        </View>
+        <View pointerEvents="box-none" style={[styles.bottom, { paddingBottom: bottomInset }]}>
+          {ending ? (
+            <Text
+              accessibilityRole="alert"
+              style={[styles.ended, ending.bad && { color: theme.danger }]}
+            >
+              {session.ending === 'no-connect'
+                ? ending.line
+                : `${ending.line} · ${callLength(session.elapsedSeconds)}`}
+            </Text>
+          ) : (
+            session.error && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {session.error}
+              </Text>
+            )
+          )}
+          <View pointerEvents="box-none" style={styles.dock}>
+            <AgentLine line={agent} />
+            <View pointerEvents="box-none" style={styles.controls}>
+              <VoiceControl
+                icon={session.muted ? 'mic-off' : 'mic'}
+                label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
+                testID="session-mute-button"
+                disabled={!connected}
+                selected={session.muted}
+                size={60}
+                onPress={() => {
+                  haptic(Haptics.selectionAsync);
+                  session.toggleMute();
+                }}
+              />
+              <VoiceControl
+                icon={connected || connecting ? 'close' : 'waveform'}
+                label={
+                  disconnecting
+                    ? 'Ending conversation'
+                    : connecting
+                      ? 'Cancel connection'
+                      : connected
+                        ? 'End conversation'
+                        : session.error
+                          ? 'Retry conversation'
+                          : 'Start conversation'
+                }
+                testID="session-primary-button"
+                prominent
+                size={64}
+                loading={connecting || disconnecting}
+                disabled={disconnecting || !voiceLoaded}
+                onPress={onPrimaryPress}
+              />
+            </View>
           </View>
         </View>
-      </View>
-      <VoiceSettings
-        isPresented={settingsOpen}
-        onDismiss={() => setSettingsOpen(false)}
-        voice={voice}
-        onVoiceChange={setVoice}
-        voiceEnabled={voiceLoaded && !voiceLocked}
-        voiceLocked={voiceLocked}
-        persona={variant}
-        onPersonaChange={setVariant}
-        personaEnabled={personaLoaded}
-        preferences={preferences}
-      />
+        <VoiceSettings
+          isPresented={settingsOpen}
+          onDismiss={() => setSettingsOpen(false)}
+          voice={voice}
+          onVoiceChange={setVoice}
+          voiceEnabled={voiceLoaded && !voiceLocked}
+          voiceLocked={voiceLocked}
+          persona={variant}
+          onPersonaChange={setVariant}
+          personaEnabled={personaLoaded}
+          preferences={preferences}
+        />
+        {!voiceLocked && !drawerOpen && (
+          <GestureDetector gesture={edgeOpen}>
+            <View style={styles.edge} />
+          </GestureDetector>
+        )}
+        {drawerOpen && (
+          <GestureDetector gesture={peekClose}>
+            <View accessibilityLabel="Close calls" style={StyleSheet.absoluteFill} />
+          </GestureDetector>
+        )}
+      </Animated.View>
     </View>
   );
 }
 
+// The call you just hung up on is at the top of Calls before hex's copy arrives.
+function useEndedCall(
+  session: ReturnType<typeof useLiveSession>,
+  voice: string,
+  add: (call: CallSummary) => void,
+) {
+  const started = useRef<string | null>(null);
+  const { status, callId, transcript, elapsedSeconds } = session;
+  useEffect(() => {
+    if (status === 'connected') started.current ??= new Date().toISOString();
+    if ((status !== 'idle' && status !== 'error') || !callId || !started.current) return;
+    add({
+      id: callId,
+      started: started.current,
+      ended: new Date().toISOString(),
+      end: session.ending ?? undefined,
+      from: 'app',
+      voice,
+      seconds: elapsedSeconds,
+      tasks: 0,
+      preview:
+        transcript
+          .find((entry) => entry.role === 'user')
+          ?.text.trim()
+          .slice(0, 160) ?? '',
+    });
+    started.current = null;
+  }, [status]);
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.background },
+  root: { flex: 1, backgroundColor: theme.sheet },
+  screen: {
+    flex: 1,
+    backgroundColor: theme.background,
+    overflow: 'hidden',
+    borderColor: '#262628',
+    borderCurve: 'continuous',
+  },
+  sidebar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR },
+  edge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 20 },
+  toolbarStart: { flexDirection: 'row', gap: 12 },
+  pastTitle: { position: 'absolute', left: 60, right: 60, top: 3, alignItems: 'center' },
+  pastName: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
+  pastWhen: { color: theme.secondary, fontSize: 13, lineHeight: 18 },
+  ended: { color: theme.secondary, textAlign: 'center', fontSize: 15, lineHeight: 20 },
   fill: { ...StyleSheet.absoluteFill },
   transcript: { position: 'absolute', left: metrics.gutter, right: metrics.gutter },
   fade: {

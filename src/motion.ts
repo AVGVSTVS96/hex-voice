@@ -20,6 +20,11 @@ export const motion = {
   // An agent's line: each step rises in over the last, and a finished task holds its line
   // long enough to read before it fades.
   agent: { step: ms(250), turn: 900, hold: 2400, rise: 6 },
+  toolbar: ms(220),
+  // The sidebar and a row's swipe settle with critically damped springs: no overshoot.
+  drawer: { mass: 1, stiffness: 380, damping: 39 },
+  row: { mass: 1, stiffness: 420, damping: 41 },
+  rowOut: ms(220),
   page: Animation.smooth({ duration: ms(400) / 1000 }),
 } as const;
 

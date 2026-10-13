@@ -1,3 +1,4 @@
+import type { CallRecord, CallsAPI, CallSummary } from './calls';
 import type { SessionAPI } from './types';
 
 type Options = {
@@ -6,27 +7,36 @@ type Options = {
   timeoutMs?: number;
 };
 
+type Request = {
+  method: 'GET' | 'POST' | 'DELETE';
+  body?: unknown;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function createSessionAPI(options: Options): SessionAPI {
-  function endpoint() {
+function createHexClient(options: Options) {
+  function origin() {
     const origin = options.hexUrl?.trim().replace(/\/+$/, '');
     if (!origin) {
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
     }
-    return `${origin}/session`;
+    return origin;
   }
 
-  async function request(method: 'POST' | 'DELETE', body: unknown) {
+  async function request(path: string, { method, body, signal, timeoutMs }: Request) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 35_000);
+    const abort = () => controller.abort();
+    signal?.addEventListener('abort', abort);
+    const timeout = setTimeout(abort, timeoutMs ?? options.timeoutMs ?? 35_000);
     try {
-      const response = await options.fetch(endpoint(), {
+      const response = await options.fetch(`${origin()}${path}`, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
       if (response.status === 204) return null;
@@ -42,6 +52,7 @@ export function createSessionAPI(options: Options): SessionAPI {
       }
       return JSON.parse(text) as unknown;
     } catch (error) {
+      if (signal?.aborted) throw error;
       if (
         controller.signal.aborted ||
         (error instanceof Error && ['AbortError', 'NetworkError'].includes(error.name)) ||
@@ -53,15 +64,24 @@ export function createSessionAPI(options: Options): SessionAPI {
       throw error;
     } finally {
       clearTimeout(timeout);
+      signal?.removeEventListener('abort', abort);
     }
   }
 
+  return { origin, request };
+}
+
+export function createSessionAPI(options: Options): SessionAPI {
+  const hex = createHexClient(options);
   return {
     prepare() {
-      endpoint();
+      hex.origin();
     },
     async create(sdp, voice) {
-      const result = await request('POST', { sdp, voice });
+      const result = await hex.request('/session', {
+        method: 'POST',
+        body: { sdp, voice, from: 'app' },
+      });
       const session = isRecord(result) && isRecord(result.session) ? result.session : {};
       const transport = isRecord(result) && isRecord(result.transport) ? result.transport : {};
       if (typeof session.id !== 'string' || typeof transport.sdp !== 'string') {
@@ -70,7 +90,35 @@ export function createSessionAPI(options: Options): SessionAPI {
       return { sdp: transport.sdp, sessionId: session.id };
     },
     async close(sessionId) {
-      await request('DELETE', { sessionId });
+      await hex.request('/session', { method: 'DELETE', body: { sessionId } });
+    },
+  };
+}
+
+export function createCallsAPI(options: Options): CallsAPI {
+  const hex = createHexClient(options);
+  return {
+    async list(after, signal) {
+      const result = await hex.request(after === undefined ? '/calls' : `/calls?after=${after}`, {
+        method: 'GET',
+        signal,
+        timeoutMs: after === undefined ? undefined : 40_000,
+      });
+      if (!isRecord(result) || typeof result.version !== 'number' || !Array.isArray(result.calls))
+        throw new Error('hex sent a call list this app can’t read.');
+      return {
+        version: result.version,
+        live: typeof result.live === 'string' ? result.live : undefined,
+        calls: result.calls as CallSummary[],
+      };
+    },
+    async get(id) {
+      return (await hex.request(`/calls/${encodeURIComponent(id)}`, {
+        method: 'GET',
+      })) as CallRecord;
+    },
+    async remove(id) {
+      await hex.request(`/calls/${encodeURIComponent(id)}`, { method: 'DELETE' });
     },
   };
 }

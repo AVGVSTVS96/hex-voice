@@ -1,3 +1,4 @@
+import type { CallEnding } from './calls';
 import type { LiveEvent, LiveSnapshot, LiveTransport, SessionAPI, TransportFactory } from './types';
 import { DEFAULT_VOICE, type LiveVoice } from './voices';
 
@@ -9,6 +10,8 @@ const initialSnapshot = (): LiveSnapshot => ({
   outputLevel: 0,
   elapsedSeconds: 0,
   transcript: [],
+  callId: null,
+  ending: null,
 });
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
@@ -25,6 +28,7 @@ export class LiveSession {
   private startedAt = 0;
   private statsPending: LiveTransport | null = null;
   private serverClosed = false;
+  private serverEnding: CallEnding | null = null;
   private muteCommand: { id: string; muted: boolean } | null = null;
   private nextCommand = 0;
   private closing: Promise<void> | null = null;
@@ -59,6 +63,7 @@ export class LiveSession {
     const generation = ++this.generation;
     this.snapshot = initialSnapshot();
     this.serverClosed = false;
+    this.serverEnding = null;
     this.statsPending = null;
     this.update({ status: 'connecting' });
     const isCurrent = () => generation === this.generation;
@@ -104,6 +109,7 @@ export class LiveSession {
         return;
       }
       this.sessionId = session.sessionId;
+      this.update({ callId: session.sessionId });
       this.startupTimer = setTimeout(() => {
         void this.stop('The voice session did not start. Please try again.');
       }, 25000);
@@ -181,7 +187,10 @@ export class LiveSession {
       case 'session.closed':
         this.serverClosed = true;
         this.confirmClosed?.();
-        if (!this.closing) void this.stop();
+        if (!this.closing) {
+          this.serverEnding = event.reason === 'expired' ? 'expired' : 'hex';
+          void this.stop();
+        }
         break;
       case 'error':
       case 'session.error':
@@ -279,6 +288,12 @@ export class LiveSession {
       if (reason) this.update({ status: 'error', error: reason });
       return Promise.resolve();
     }
+    const was = this.snapshot.status;
+    const ending: CallEnding | null = reason
+      ? was === 'connected'
+        ? 'dropped'
+        : 'no-connect'
+      : (this.serverEnding ?? (was === 'connected' ? 'you' : null));
     ++this.generation;
     clearInterval(this.statsTimer);
     clearTimeout(this.startupTimer);
@@ -302,7 +317,7 @@ export class LiveSession {
             clearTimeout(timeout);
             resolve(true);
           };
-          if (!transport.send({ type: 'session.close' })) {
+          if (!transport.send({ type: 'session.close', event_id: 'close-you-app' })) {
             clearTimeout(timeout);
             resolve(false);
           }
@@ -324,6 +339,7 @@ export class LiveSession {
         status: reason || closeError ? 'error' : 'idle',
         error: reason || closeError,
         muted: false,
+        ending,
       });
       this.closing = null;
     });

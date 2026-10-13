@@ -18,7 +18,11 @@ test('sends the offer and voice to hex and reads OpenAI’s session back', async
     fetch: async (url, init) => {
       assert.equal(url, `${hexUrl}/session`);
       assert.equal(init?.method, 'POST');
-      assert.deepEqual(JSON.parse(String(init?.body)), { sdp: 'offer', voice: 'cedar' });
+      assert.deepEqual(JSON.parse(String(init?.body)), {
+        sdp: 'offer',
+        voice: 'cedar',
+        from: 'app',
+      });
       return Response.json({
         session: { id: 'live_1', model: 'gpt-live-1' },
         transport: { sdp: 'answer' },

@@ -1,3 +1,4 @@
+import type { CallEnding } from './calls';
 import type { LiveVoice } from './voices';
 
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
@@ -16,6 +17,8 @@ export type LiveSnapshot = {
   outputLevel: number;
   elapsedSeconds: number;
   transcript: TranscriptEntry[];
+  callId: string | null;
+  ending: CallEnding | null;
 };
 export type LiveEvent = {
   type: string;
@@ -23,6 +26,7 @@ export type LiveEvent = {
   delta?: string;
   start_ms?: number;
   end_ms?: number;
+  reason?: string;
   error?: { message?: string; code?: string };
   usage?: { seconds?: number };
 };
