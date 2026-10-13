@@ -44,6 +44,10 @@ function loadFile(variant: PersonaVariant) {
   return promise;
 }
 
+function sameColor(a: number, b: number) {
+  return [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
+}
+
 export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
   // Give the new file a fresh native view and discard any previous visual error.
   return <PersonaRenderer key={variant} variant={variant} {...props} />;
@@ -54,16 +58,17 @@ function PersonaRenderer({
   state = 'idle',
   size = 320,
   color = DEFAULT_PERSONA_COLOR,
+  palette,
 }: PersonaProps & { variant: PersonaVariant }) {
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
   const { riveViewRef, setHybridRef } = useRive();
-  // Auto-binding can finish after view readiness. Wait for the color model.
-  const { instance: colorModel } = useViewModelInstance(
-    PERSONA_MODELS[variant].dynamicColor ? riveViewRef : null,
-    { async: true },
-  );
+  const dynamicColor = PERSONA_MODELS[variant].dynamicColor;
+  const { instance: colorModel } = useViewModelInstance(dynamicColor ? file : null, {
+    async: true,
+  });
   const initialized = useRef(false);
+  const originalPalette = useRef<number>(undefined);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -82,7 +87,7 @@ function PersonaRenderer({
 
   useEffect(() => {
     if (!riveViewRef) return;
-    if (PERSONA_MODELS[variant].dynamicColor && !colorModel) return;
+    if (dynamicColor && !colorModel) return;
     let cancelled = false;
     let frame = 0;
     const pause = () => {
@@ -100,7 +105,10 @@ function PersonaRenderer({
         for (const { name, value } of personaInputValues(state)) {
           riveViewRef.setBooleanInputValue(name, value);
         }
-        colorModel?.colorProperty('color')?.set(RiveColor.fromHexString(color).toInt());
+        if (variant === 'opal') {
+          originalPalette.current ??= riveViewRef.getNumberInputValue('color');
+          riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
+        }
         riveViewRef.playIfNeeded();
         initialized.current = true;
         if (reducedMotion) {
@@ -118,7 +126,18 @@ function PersonaRenderer({
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [riveViewRef, state, variant, colorModel, color, reducedMotion]);
+  }, [riveViewRef, state, variant, palette, dynamicColor, colorModel, reducedMotion]);
+
+  useEffect(() => {
+    const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
+    if (!property) return;
+    const wanted = RiveColor.fromHexString(color).toInt();
+    property.set(wanted);
+    // The first advance after binding writes the file's own color back into the model.
+    return property.addListener((value) => {
+      if (!sameColor(value, wanted)) property.set(wanted);
+    });
+  }, [riveViewRef, colorModel, color]);
 
   return (
     <View
@@ -127,11 +146,12 @@ function PersonaRenderer({
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
-      {file && !failed ? (
+      {file && !failed && (!dynamicColor || colorModel) ? (
         <RiveView
           hybridRef={setHybridRef}
           file={file}
           stateMachineName={PERSONA_STATE_MACHINE}
+          dataBind={colorModel ?? undefined}
           fit={Fit.Contain}
           autoPlay
           onError={() => setFailed(true)}

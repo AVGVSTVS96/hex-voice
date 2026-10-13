@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Persona, type PersonaState } from '@/components/persona';
+import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
@@ -273,6 +274,7 @@ export default function LiveScreen() {
                 state={personaState}
                 size={size}
                 color={preferences.personaColor}
+                palette={opalPaletteInput(preferences.opalPalette)}
               />
             </Animated.View>
           </GestureDetector>

@@ -1,4 +1,9 @@
-import { DEFAULT_PERSONA_COLOR, isPersonaColor } from '@/components/persona/variants';
+import {
+  DEFAULT_PERSONA_COLOR,
+  isOpalPalette,
+  isPersonaColor,
+  type OpalPalette,
+} from '@/components/persona/variants';
 import { useSavedPreference } from '@/hooks/use-saved-preference';
 
 export const REACTIONS = [
@@ -19,12 +24,15 @@ function isSwitch(value: unknown): value is 'on' | 'off' {
 
 export function useCallPreferences() {
   const color = useSavedPreference('live.personaColor', DEFAULT_PERSONA_COLOR, isPersonaColor);
+  const opal = useSavedPreference<OpalPalette>('live.opalPalette', 'original', isOpalPalette);
   const reaction = useSavedPreference<Reaction>('live.reaction', 'subtle', isReaction);
   const sounds = useSavedPreference<'on' | 'off'>('live.sounds', 'on', isSwitch);
   const haptics = useSavedPreference<'on' | 'off'>('live.haptics', 'on', isSwitch);
   return {
     personaColor: color.value,
     setPersonaColor: color.setValue,
+    opalPalette: opal.value,
+    setOpalPalette: opal.setValue,
     reaction: reaction.value,
     setReaction: reaction.setValue,
     sounds: sounds.value === 'on',

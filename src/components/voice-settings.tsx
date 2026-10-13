@@ -7,6 +7,7 @@ import {
   padding,
   pickerStyle,
   tag,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useState, type ReactNode } from 'react';
@@ -16,9 +17,12 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 import { Persona } from '@/components/persona';
 import { PERSONA_MODELS } from '@/components/persona/animation';
 import {
+  OPAL_PALETTES,
   PERSONA_COLORS,
   PERSONA_VARIANTS,
   isPersonaVariant,
+  opalPaletteInput,
+  type OpalPalette,
   type PersonaVariant,
 } from '@/components/persona/variants';
 import { SelectionCarousel } from '@/components/selection-carousel';
@@ -41,6 +45,8 @@ type Props = {
 const ios = process.env.EXPO_OS === 'ios';
 const voiceOptions = VOICES.map((voice) => ({ ...voice, description: 'Swipe to choose a voice' }));
 const GROUP = '#000000';
+const SWITCH_ON = '#30D158';
+const ORIGINAL_OPAL = 'linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)';
 const SECONDARY = '#929292';
 
 export function VoiceSettings({
@@ -151,7 +157,7 @@ export function VoiceSettings({
                     preferences.setSounds(on);
                   }}
                   testID="sounds-toggle"
-                  modifiers={[labelsHidden(), accessibilityLabel('Call sounds')]}
+                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Call sounds')]}
                 />
               </SettingRow>
               <Separator />
@@ -167,7 +173,7 @@ export function VoiceSettings({
                     preferences.setHaptics(on);
                   }}
                   testID="haptics-toggle"
-                  modifiers={[labelsHidden(), accessibilityLabel('Haptics')]}
+                  modifiers={[labelsHidden(), tint(SWITCH_ON), accessibilityLabel('Haptics')]}
                 />
               </SettingRow>
             </Group>
@@ -187,6 +193,7 @@ export function VoiceSettings({
                     size={160}
                     state="idle"
                     color={preferences.personaColor}
+                    palette={opalPaletteInput(preferences.opalPalette)}
                   />
                 ) : undefined
               }
@@ -201,7 +208,16 @@ export function VoiceSettings({
               }}
             />
             <Group width={contentWidth}>
-              {colorable ? (
+              {persona === 'opal' ? (
+                <OpalRow
+                  palette={preferences.opalPalette}
+                  width={contentWidth}
+                  onChange={(next) => {
+                    haptic();
+                    preferences.setOpalPalette(next);
+                  }}
+                />
+              ) : colorable ? (
                 <ColorRow
                   color={preferences.personaColor}
                   width={contentWidth}
@@ -357,17 +373,52 @@ function ColorRow({
   );
 }
 
+function OpalRow({
+  palette,
+  width,
+  onChange,
+}: {
+  palette: OpalPalette;
+  width: number;
+  onChange: (palette: OpalPalette) => void;
+}) {
+  const gap = 4;
+  const count = OPAL_PALETTES.length;
+  const size = Math.min(38, Math.floor((width - 28 - gap * (count - 1)) / count));
+  return (
+    <Row alignment="center" spacing={0} style={{ width, height: 66, paddingHorizontal: 14 }}>
+      <RNHostView matchContents>
+        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap }}>
+          {OPAL_PALETTES.map((option) => (
+            <Swatch
+              key={option.id}
+              color={option.swatch ?? undefined}
+              label={option.label}
+              size={size}
+              selected={option.id === palette}
+              onPress={() => onChange(option.id)}
+            />
+          ))}
+        </View>
+      </RNHostView>
+    </Row>
+  );
+}
+
 function Swatch({
   color,
   label,
   selected,
   onPress,
+  size = 38,
 }: {
-  color: string;
+  color?: string;
   label: string;
   selected: boolean;
   onPress: () => void;
+  size?: number;
 }) {
+  const inner = size - 10;
   return (
     <Pressable
       accessibilityRole="radio"
@@ -376,16 +427,24 @@ function Swatch({
       onPress={onPress}
       hitSlop={4}
       style={{
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
         borderWidth: 2,
         borderColor: selected ? '#FFFFFF' : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: color }} />
+      <View
+        style={{
+          width: inner,
+          height: inner,
+          borderRadius: inner / 2,
+          backgroundColor: color,
+          experimental_backgroundImage: color ? undefined : ORIGINAL_OPAL,
+        }}
+      />
     </Pressable>
   );
 }
