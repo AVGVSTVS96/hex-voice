@@ -52,7 +52,11 @@ export type TransportCallbacks = {
 export type TransportFactory = (callbacks: TransportCallbacks) => Promise<LiveTransport>;
 export interface SessionAPI {
   prepare?(): void;
-  create(sdp: string, voice?: LiveVoice): Promise<{ sdp: string; sessionId: string }>;
+  create(
+    sdp: string,
+    voice?: LiveVoice,
+    about?: string,
+  ): Promise<{ sdp: string; sessionId: string }>;
   close(sessionId: string): Promise<void>;
   mark?(sessionId: string, kind: 'paused' | 'resumed'): Promise<void>;
 }

@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -24,6 +24,8 @@ import { CallMenu } from '@/components/call-menu';
 import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar, SIDEBAR } from '@/components/calls-sidebar';
 import { Persona, type PersonaState } from '@/components/persona';
+import { TasksButton } from '@/components/tasks-button';
+import { TasksSheet } from '@/components/tasks-sheet';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
@@ -34,6 +36,7 @@ import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
 import { useCall, useCalls } from '@/hooks/use-calls';
+import { useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePhoneCall } from '@/hooks/use-phone-call';
 import { useWrapUp } from '@/hooks/use-wrap-up';
@@ -41,6 +44,8 @@ import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
+import { tasksAPI } from '@/live/api';
+import type { TaskRow } from '@/live/tasks';
 import {
   ENDINGS,
   callLength,
@@ -57,8 +62,8 @@ const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
-const AGENT_GAP = 14;
-const AGENT_ROW = 22 + AGENT_GAP;
+const AGENT_ROW = 22;
+const LIFTED = 160;
 
 export default function LiveScreen() {
   const session = useLiveSession();
@@ -67,6 +72,8 @@ export default function LiveScreen() {
   const preferences = useCallPreferences();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const counts = useTaskCounts();
   const calls = useCalls(drawerOpen);
   const phoneCall = usePhoneCall(calls.live, calls.calls);
   const [viewing, setViewing] = useState<string | null>(null);
@@ -147,14 +154,21 @@ export default function LiveScreen() {
     level.set(withSpring(loudness, motion.reaction));
   }, [loudness, level]);
 
-  const agentRow = useSharedValue(0);
-  const working = agent !== null;
+  // On a call, Tasks opens half height and the orb rises above it, still listening.
+  const lift = useSharedValue(0);
+  const lifted = tasksOpen && voiceLocked;
   useEffect(() => {
-    const target = working ? AGENT_ROW : 0;
-    agentRow.set(reducedMotion ? target : withTiming(target, { duration: motion.agent.step }));
-  }, [working, reducedMotion, agentRow]);
+    lift.set(
+      reducedMotion
+        ? withTiming(lifted ? 1 : 0, motion.reduced)
+        : withSpring(lifted ? 1 : 0, motion.drawer),
+    );
+  }, [lifted, reducedMotion, lift]);
 
   const bottomInset = Math.max(insets.bottom, 20) + 14;
+  const agentBottom = Math.max(insets.bottom - 17, 6);
+  // Centered between the toolbar and the half-height sheet's top edge.
+  const liftY = (insets.top + 60 + height / 2) / 2 - height / 2;
   const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
   const travel = height - bottomInset - 32 - height / 2;
   const progress = useSharedValue(0);
@@ -282,10 +296,16 @@ export default function LiveScreen() {
     settleDrawer(true);
   };
   const openCall = (call: CallSummary) => {
-    setViewing(call.id);
     settleDrawer(false);
+    if (call.id === calls.live && voiceLocked) return backToCall();
+    setViewing(call.id);
     animateTo(1);
     setReading(true);
+  };
+  // A past call opened mid-call only changes what's on screen; the live call goes on underneath.
+  const backToCall = () => {
+    tick();
+    setViewing(null);
   };
   const screenStyle = useAnimatedStyle(() => {
     const d = drawer.get();
@@ -329,14 +349,15 @@ export default function LiveScreen() {
     const awake = wake.get();
     const resting = size * (0.86 + 0.14 * awake);
     const visual = (resting + (DOCKED_SIZE - resting) * t) * (1 + 0.025 * breath.get());
+    const l = lift.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1),
       transform: [
-        { translateX: shiftX * arc },
-        { translateY: travel * t },
-        { scale: visual / size },
+        { translateX: shiftX * arc * (1 - l) },
+        { translateY: travel * t * (1 - l) + liftY * l },
+        { scale: (visual / size) * (1 - l) + (LIFTED / size) * l },
         ...heard(reaction, size, level.get(), pitch.get(), tone.get()),
       ],
     };
@@ -347,34 +368,45 @@ export default function LiveScreen() {
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
     return {
-      bottom: bottomInset + 64 + 18 + agentRow.get(),
+      bottom: bottomInset + 64 + 18,
       opacity: shown,
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });
 
+  const startCall = (about?: string) => {
+    const start = () => {
+      if (viewing) {
+        animateTo(0);
+        setReading(false);
+      }
+      void session.start(voice, about);
+    };
+    if (!phoneCall) return start();
+    Alert.alert(
+      'You’re on a phone call with hex',
+      'Starting a call here hangs up the phone call.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Move it here', onPress: start },
+      ],
+    );
+  };
   const onPrimaryPress = () => {
     if (disconnecting || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (connected || connecting) void session.stop();
-    else {
-      const start = () => {
-        if (viewing) {
-          animateTo(0);
-          setReading(false);
-        }
-        void session.start(voice);
-      };
-      if (!phoneCall) return start();
-      Alert.alert(
-        'You’re on a phone call with hex',
-        'Starting a call here hangs up the phone call.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Move it here', onPress: start },
-        ],
-      );
-    }
+    else startCall();
+  };
+  const openTasks = () => {
+    tick();
+    setTasksOpen(true);
+  };
+  // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
+  const talkAbout = (task: TaskRow) => {
+    setTasksOpen(false);
+    if (voiceLocked) void tasksAPI.talk(task.id).catch(() => {});
+    else if (voiceLoaded) startCall(task.id);
   };
 
   const ending = session.ending && !voiceLocked && !viewing ? ENDINGS[session.ending] : undefined;
@@ -419,6 +451,7 @@ export default function LiveScreen() {
                 <Transcript entries={session.transcript} active={reading} />
               )}
               <View pointerEvents="none" style={styles.fade} />
+              <View pointerEvents="none" style={styles.fadeBottom} />
             </Animated.View>
             <GestureDetector gesture={orbGesture}>
               <Animated.View
@@ -452,13 +485,25 @@ export default function LiveScreen() {
                 onPress={openDrawer}
                 size={48}
               />
-              <View pointerEvents="none" style={styles.pastTitle}>
+              <View pointerEvents="box-none" style={styles.pastTitle}>
                 <Text numberOfLines={1} style={styles.pastName}>
                   {callName(shown)}
                 </Text>
-                <Text numberOfLines={1} style={styles.pastWhen}>
-                  {callWhen(shown, shown.id === calls.live)}
-                </Text>
+                {voiceLocked ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={backToCall}
+                    hitSlop={10}
+                    style={styles.backToCall}
+                  >
+                    <View style={styles.liveDot} />
+                    <Text style={styles.backText}>Back to your call</Text>
+                  </Pressable>
+                ) : (
+                  <Text numberOfLines={1} style={styles.pastWhen}>
+                    {callWhen(shown, shown.id === calls.live)}
+                  </Text>
+                )}
               </View>
               <CallMenu
                 transcript={past.call && transcriptText(past.call)}
@@ -485,29 +530,30 @@ export default function LiveScreen() {
                   onPress={toggleReading}
                   size={48}
                 />
-                {!voiceLocked && (
-                  <Animated.View
-                    entering={FadeIn.duration(motion.toolbar)}
-                    exiting={FadeOut.duration(motion.toolbar)}
-                  >
-                    <VoiceControl
-                      icon="calls"
-                      label="Calls"
-                      testID="calls-button"
-                      selected={drawerOpen}
-                      onPress={openDrawer}
-                      size={48}
-                    />
-                  </Animated.View>
-                )}
+                <VoiceControl
+                  icon="calls"
+                  label="Calls"
+                  testID="calls-button"
+                  selected={drawerOpen}
+                  onPress={openDrawer}
+                  size={48}
+                />
               </View>
-              <VoiceControl
-                icon="settings"
-                label="Voice and appearance settings"
-                testID="voice-settings-button"
-                onPress={() => setSettingsOpen(true)}
-                size={48}
-              />
+              <View style={styles.toolbarStart}>
+                <TasksButton
+                  needs={counts.needs}
+                  working={counts.working}
+                  selected={tasksOpen}
+                  onPress={openTasks}
+                />
+                <VoiceControl
+                  icon="settings"
+                  label="Voice and appearance settings"
+                  testID="voice-settings-button"
+                  onPress={() => setSettingsOpen(true)}
+                  size={48}
+                />
+              </View>
             </>
           )}
         </View>
@@ -542,44 +588,58 @@ export default function LiveScreen() {
               </Text>
             )
           )}
-          <View pointerEvents="box-none" style={styles.dock}>
-            <AgentLine line={agent} />
-            <View pointerEvents="box-none" style={styles.controls}>
-              <VoiceControl
-                icon={session.muted ? 'mic-off' : 'mic'}
-                label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
-                testID="session-mute-button"
-                disabled={!connected}
-                selected={session.muted}
-                size={60}
-                onPress={() => {
-                  haptic(Haptics.selectionAsync);
-                  session.toggleMute();
-                }}
-              />
-              <VoiceControl
-                icon={connected || connecting ? 'close' : 'waveform'}
-                label={
-                  disconnecting
-                    ? 'Ending conversation'
-                    : connecting
-                      ? 'Cancel connection'
-                      : connected
-                        ? 'End conversation'
-                        : session.error
-                          ? 'Retry conversation'
-                          : 'Start conversation'
-                }
-                testID="session-primary-button"
-                prominent
-                size={64}
-                loading={connecting || disconnecting}
-                disabled={disconnecting || !voiceLoaded}
-                onPress={onPrimaryPress}
-              />
-            </View>
+          <View pointerEvents="box-none" style={styles.controls}>
+            <VoiceControl
+              icon={session.muted ? 'mic-off' : 'mic'}
+              label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
+              testID="session-mute-button"
+              disabled={!connected}
+              selected={session.muted}
+              size={60}
+              onPress={() => {
+                haptic(Haptics.selectionAsync);
+                session.toggleMute();
+              }}
+            />
+            <VoiceControl
+              icon={connected || connecting ? 'close' : 'waveform'}
+              label={
+                disconnecting
+                  ? 'Ending conversation'
+                  : connecting
+                    ? 'Cancel connection'
+                    : connected
+                      ? 'End conversation'
+                      : session.error
+                        ? 'Retry conversation'
+                        : 'Start conversation'
+              }
+              testID="session-primary-button"
+              prominent
+              size={64}
+              loading={connecting || disconnecting}
+              disabled={disconnecting || !voiceLoaded}
+              onPress={onPrimaryPress}
+            />
           </View>
         </View>
+        <Pressable
+          pointerEvents={agent ? 'auto' : 'none'}
+          onPress={openTasks}
+          accessibilityRole="button"
+          accessibilityHint="Opens Tasks"
+          hitSlop={{ top: 8, bottom: 12 }}
+          style={[styles.agent, { bottom: agentBottom }]}
+        >
+          <AgentLine line={agent} />
+        </Pressable>
+        <TasksSheet
+          isPresented={tasksOpen}
+          onDismiss={() => setTasksOpen(false)}
+          onCall={voiceLocked}
+          haptics={preferences.haptics}
+          onTalk={talkAbout}
+        />
         <VoiceSettings
           isPresented={settingsOpen}
           onDismiss={() => setSettingsOpen(false)}
@@ -592,7 +652,7 @@ export default function LiveScreen() {
           personaEnabled={personaLoaded}
           preferences={preferences}
         />
-        {!voiceLocked && !drawerOpen && (
+        {!drawerOpen && (
           <GestureDetector gesture={edgeOpen}>
             <View style={styles.edge} />
           </GestureDetector>
@@ -665,6 +725,14 @@ const styles = StyleSheet.create({
     height: 36,
     experimental_backgroundImage: `linear-gradient(${theme.background}, transparent)`,
   },
+  fadeBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 36,
+    experimental_backgroundImage: `linear-gradient(transparent, ${theme.background})`,
+  },
   orb: { position: 'absolute' },
   toolbar: {
     position: 'absolute',
@@ -680,7 +748,10 @@ const styles = StyleSheet.create({
     right: metrics.gutter,
     gap: 22,
   },
-  dock: { gap: AGENT_GAP },
+  agent: { position: 'absolute', left: metrics.gutter, right: metrics.gutter, height: AGENT_ROW },
+  backToCall: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: theme.switchOn },
+  backText: { color: theme.switchOn, fontSize: 13, lineHeight: 18, fontWeight: '500' },
   controls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

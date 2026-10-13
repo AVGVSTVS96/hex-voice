@@ -54,7 +54,7 @@ export class LiveSession {
     this.listeners.forEach((listener) => listener());
   }
 
-  start = async (voice: LiveVoice = DEFAULT_VOICE) => {
+  start = async (voice: LiveVoice = DEFAULT_VOICE, about?: string) => {
     if (
       this.closing ||
       this.snapshot.status === 'connecting' ||
@@ -91,7 +91,7 @@ export class LiveSession {
       this.transport = transport;
       const sdp = await transport.offer();
       if (!isCurrent()) return;
-      const session = await this.api.create(sdp, voice);
+      const session = await this.api.create(sdp, voice, about);
       // A cancelled create can still finish on the server. Close its returned session.
       if (!isCurrent()) {
         try {
