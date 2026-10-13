@@ -1,18 +1,32 @@
-import { addUserInteractionListener, type LiveActivity } from 'expo-widgets';
+import { addUserInteractionListener, after, type LiveActivity } from 'expo-widgets';
 import { useEffect, useEffectEvent, useRef } from 'react';
 
 import CallActivity, { type CallActivityProps } from '@/live/call-activity';
+import { ENDINGS, clock, type CallEnding } from '@/live/calls';
 import type { LiveStatus } from '@/live/types';
 
 type Call = {
   status: LiveStatus;
   muted: boolean;
+  ending: CallEnding | null;
+  elapsedSeconds: number;
   orb: string;
   toggleMute: () => void;
   stop: () => Promise<void>;
 };
 
-export function useCallActivity({ status, muted, orb, toggleMute, stop }: Call) {
+// An ended call stays on the lock screen with how it ended, long enough to glance at.
+const LINGER = 2 * 60_000;
+
+export function useCallActivity({
+  status,
+  muted,
+  ending,
+  elapsedSeconds,
+  orb,
+  toggleMute,
+  stop,
+}: Call) {
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
   const live = status === 'connecting' || status === 'connected';
@@ -34,10 +48,28 @@ export function useCallActivity({ status, muted, orb, toggleMute, stop }: Call) 
   }, []);
 
   useEffect(() => {
+    if (status === 'disconnecting') return;
     if (!live) {
-      since.current = 0;
-      void activity.current?.end('immediate');
+      const current = activity.current;
       activity.current = null;
+      if (current) {
+        const outcome = ending && ENDINGS[ending];
+        const line = !outcome
+          ? 'Call ended'
+          : since.current && ending !== 'no-connect'
+            ? `${outcome.line} · ${clock(elapsedSeconds * 1000)}`
+            : outcome.line;
+        void current
+          .end(after(new Date(Date.now() + LINGER)), {
+            orb,
+            since: since.current,
+            state: 'ended',
+            outcome: line,
+            bad: outcome?.bad,
+          })
+          .catch(() => {});
+      }
+      since.current = 0;
       return;
     }
     if (status === 'connected' && !since.current) since.current = Date.now();
@@ -55,5 +87,5 @@ export function useCallActivity({ status, muted, orb, toggleMute, stop }: Call) 
     } catch (error) {
       console.warn('[hex] The call could not show a Live Activity.', error);
     }
-  }, [live, status, muted, orb]);
+  }, [live, status, muted, orb, ending]);
 }
