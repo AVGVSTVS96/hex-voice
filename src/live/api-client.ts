@@ -1,4 +1,5 @@
 import type { CallRecord, CallsAPI, CallSummary } from './calls';
+import type { Task, TaskCounts, TaskList, TasksAPI } from './tasks';
 import type { SessionAPI } from './types';
 
 type Options = {
@@ -81,10 +82,10 @@ export function createSessionAPI(options: Options): SessionAPI {
     prepare() {
       hex.origin();
     },
-    async create(sdp, voice) {
+    async create(sdp, voice, about) {
       const result = await hex.request('/session', {
         method: 'POST',
-        body: { sdp, voice, from: 'app' },
+        body: { sdp, voice, from: 'app', ...(about && { about }) },
       });
       const session = isRecord(result) && isRecord(result.session) ? result.session : {};
       const transport = isRecord(result) && isRecord(result.transport) ? result.transport : {};
@@ -130,6 +131,39 @@ export function createCallsAPI(options: Options): CallsAPI {
     },
     async remove(id) {
       await hex.request(`/calls/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+  };
+}
+
+export function createTasksAPI(options: Options): TasksAPI {
+  const hex = createHexClient(options);
+  const watch = async (path: string, after?: number, signal?: AbortSignal) => {
+    const result = await hex.request(after === undefined ? path : `${path}?after=${after}`, {
+      method: 'GET',
+      signal,
+      timeoutMs: after === undefined ? undefined : 40_000,
+    });
+    if (!isRecord(result) || typeof result.version !== 'number')
+      throw new Error('hex sent tasks this app can’t read.');
+    return result;
+  };
+  return {
+    async list(after, signal) {
+      const result = await watch('/tasks', after, signal);
+      if (!Array.isArray(result.tasks)) throw new Error('hex sent tasks this app can’t read.');
+      return result as TaskList;
+    },
+    async counts(after, signal) {
+      return (await watch('/tasks/summary', after, signal)) as TaskCounts;
+    },
+    async get(id) {
+      return (await hex.request(`/tasks/${encodeURIComponent(id)}`, { method: 'GET' })) as Task;
+    },
+    async talk(id) {
+      await hex.request(`/tasks/${encodeURIComponent(id)}/talk`, {
+        method: 'POST',
+        timeoutMs: 10_000,
+      });
     },
   };
 }

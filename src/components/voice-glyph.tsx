@@ -7,6 +7,7 @@ const symbols = {
   settings: 'slider.horizontal.3',
   captions: 'text.alignleft',
   calls: 'clock.arrow.circlepath',
+  tasks: 'list.bullet',
   mic: 'mic',
   'mic-off': 'mic.slash',
   close: 'xmark',
@@ -21,7 +22,7 @@ export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
         ? '×'
         : name === 'calls'
           ? '◷'
-          : name === 'settings' || name === 'captions'
+          : name === 'settings' || name === 'captions' || name === 'tasks'
             ? '☰'
             : name === 'mic-off'
               ? '⊘'

@@ -1,7 +1,7 @@
 import { fetch } from 'expo/fetch';
 
 import { createAgentsAPI } from './agents';
-import { createCallsAPI, createSessionAPI } from './api-client';
+import { createCallsAPI, createSessionAPI, createTasksAPI } from './api-client';
 
 const options = {
   fetch,
@@ -11,3 +11,4 @@ const options = {
 export const sessionAPI = createSessionAPI(options);
 export const callsAPI = createCallsAPI(options);
 export const agentsAPI = createAgentsAPI(options);
+export const tasksAPI = createTasksAPI(options);
