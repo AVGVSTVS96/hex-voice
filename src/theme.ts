@@ -14,7 +14,9 @@ export const theme = {
   switchOn: '#30D158',
   accent: '#C4F3E5',
   accentMuted: '#1B3534',
+  accentTrack: '#2F5552',
   danger: '#F0A5A8',
+  dangerMuted: '#3A2224',
 } as const;
 
 export const metrics = {
