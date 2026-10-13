@@ -16,8 +16,10 @@ import { createLiveActivity } from 'expo-widgets';
 
 export type CallActivityProps = {
   orb: string;
-  state: 'connecting' | 'live' | 'muted';
+  state: 'connecting' | 'live' | 'muted' | 'ended';
   since: number;
+  outcome?: string;
+  bad?: boolean;
 };
 
 const CallActivity = (props: CallActivityProps) => {
@@ -39,7 +41,11 @@ const CallActivity = (props: CallActivityProps) => {
       ]}
     />
   );
-  const subtitle = props.since ? (
+  const subtitle = props.outcome ? (
+    <Text modifiers={[font({ size: 15 }), foregroundStyle(props.bad ? '#F0A5A8' : '#A1A1A6')]}>
+      {props.outcome}
+    </Text>
+  ) : props.since ? (
     timer(15, 64, 'leading')
   ) : (
     <Text modifiers={[font({ size: 15 }), foregroundStyle('#A1A1A6')]}>Connecting</Text>
@@ -70,8 +76,8 @@ const CallActivity = (props: CallActivityProps) => {
   };
   const controls = (size: number) => (
     <HStack spacing={10}>
-      {props.state === 'connecting' ? null : control('mute', size)}
-      {control('end', size)}
+      {props.state === 'connecting' || props.state === 'ended' ? null : control('mute', size)}
+      {props.state === 'ended' ? null : control('end', size)}
     </HStack>
   );
 
@@ -85,7 +91,7 @@ const CallActivity = (props: CallActivityProps) => {
       </HStack>
     ),
     compactLeading: orb(24),
-    compactTrailing: muted ? (
+    compactTrailing: props.outcome ? null : muted ? (
       <Image systemName="mic.slash.fill" color="#F5F5F5" size={14} />
     ) : props.since ? (
       timer(15, 44, 'trailing')
