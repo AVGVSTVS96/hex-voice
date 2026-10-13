@@ -19,6 +19,7 @@ export type LiveSnapshot = {
   transcript: TranscriptEntry[];
   callId: string | null;
   ending: CallEnding | null;
+  interrupted: boolean;
 };
 export type LiveEvent = {
   type: string;
@@ -53,4 +54,5 @@ export interface SessionAPI {
   prepare?(): void;
   create(sdp: string, voice?: LiveVoice): Promise<{ sdp: string; sessionId: string }>;
   close(sessionId: string): Promise<void>;
+  mark?(sessionId: string, kind: 'paused' | 'resumed'): Promise<void>;
 }

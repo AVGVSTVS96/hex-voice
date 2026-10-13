@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
 import { sessionAPI } from '@/live/api';
+import { CallInterruptions } from '../../modules/call-interruptions';
 
 export function useLiveSession() {
   const [session] = useState(() => new LiveSession(createTransport, sessionAPI));
@@ -20,8 +21,12 @@ export function useLiveSession() {
     };
     onAppStateChange(AppState.currentState);
     const listener = AppState.addEventListener('change', onAppStateChange);
+    const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) =>
+      session.interrupt(began),
+    );
     return () => {
       listener.remove();
+      interruptions?.remove();
       void session.stop();
     };
   }, [session]);
