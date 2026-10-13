@@ -14,13 +14,17 @@ export function isPersonaVariant(value: unknown): value is PersonaVariant {
   return PERSONA_VARIANTS.some((variant) => variant.id === value);
 }
 
+// Pastel twins of Opal's palettes, in the same order, so each color sits in the same spot on every
+// persona. With the custom color picker they fill as many spots as Opal's palettes.
 export const PERSONA_COLORS = [
   { id: '#FFFFFF', label: 'White' },
+  { id: '#FFB3C7', label: 'Rose' },
+  { id: '#FFCDA8', label: 'Peach' },
+  { id: '#FFEDA6', label: 'Lemon' },
+  { id: '#D5F2B6', label: 'Lime' },
   { id: '#C4F3E5', label: 'Mint' },
   { id: '#A9CCFF', label: 'Sky' },
   { id: '#CDB8FF', label: 'Lilac' },
-  { id: '#FFCDA8', label: 'Peach' },
-  { id: '#FFB3C7', label: 'Rose' },
 ] as const;
 
 export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
