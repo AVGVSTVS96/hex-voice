@@ -17,6 +17,9 @@ export const motion = {
   reaction: { dampingRatio: 0.55, duration: ms(220) },
   tone: { dampingRatio: 1, duration: ms(220) },
   caption: { warm: ms(120), settled: ms(240) },
+  // An agent's line: each step rises in over the last, and a finished task holds its line
+  // long enough to read before it fades.
+  agent: { step: ms(250), turn: 900, hold: 2400, rise: 6 },
   page: Animation.smooth({ duration: ms(400) / 1000 }),
 } as const;
 

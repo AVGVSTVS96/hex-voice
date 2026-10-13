@@ -17,11 +17,13 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { AgentLine } from '@/components/agent-line';
 import { Persona, type PersonaState } from '@/components/persona';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
+import { useAgentLine } from '@/hooks/use-agent-line';
 import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
@@ -38,6 +40,8 @@ const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
+const AGENT_GAP = 14;
+const AGENT_ROW = 22 + AGENT_GAP;
 
 export default function LiveScreen() {
   const session = useLiveSession();
@@ -75,6 +79,7 @@ export default function LiveScreen() {
         : 'Ready to start a conversation';
 
   useCallFeedback(session.status, preferences);
+  const agent = useAgentLine(connected, preferences.haptics);
   useCallActivity({
     ...session,
     orb: activityOrb(variant, preferences.personaColor, preferences.opalPalette),
@@ -241,12 +246,22 @@ export default function LiveScreen() {
       ],
     };
   });
+  const agentRow = useSharedValue(0);
+  const working = agent !== null;
+  useEffect(() => {
+    const target = working ? AGENT_ROW : 0;
+    agentRow.set(reducedMotion ? target : withTiming(target, { duration: motion.agent.step }));
+  }, [working, reducedMotion, agentRow]);
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const shown = reducedMotion
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
-    return { opacity: shown, transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }] };
+    return {
+      bottom: bottomInset + 64 + 18 + agentRow.get(),
+      opacity: shown,
+      transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
+    };
   });
 
   const onPrimaryPress = () => {
@@ -264,11 +279,7 @@ export default function LiveScreen() {
             pointerEvents={reading ? 'auto' : 'none'}
             accessibilityElementsHidden={!reading}
             importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
-            style={[
-              styles.transcript,
-              { top: insets.top + 72, bottom: bottomInset + 64 + 18 },
-              transcriptStyle,
-            ]}
+            style={[styles.transcript, { top: insets.top + 72 }, transcriptStyle]}
           >
             <Transcript entries={session.transcript} active={reading} />
             <View pointerEvents="none" style={styles.fade} />
@@ -317,39 +328,42 @@ export default function LiveScreen() {
             {session.error}
           </Text>
         )}
-        <View pointerEvents="box-none" style={styles.controls}>
-          <VoiceControl
-            icon={session.muted ? 'mic-off' : 'mic'}
-            label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
-            testID="session-mute-button"
-            disabled={!connected}
-            selected={session.muted}
-            size={60}
-            onPress={() => {
-              haptic(Haptics.selectionAsync);
-              session.toggleMute();
-            }}
-          />
-          <VoiceControl
-            icon={connected || connecting ? 'close' : 'waveform'}
-            label={
-              disconnecting
-                ? 'Ending conversation'
-                : connecting
-                  ? 'Cancel connection'
-                  : connected
-                    ? 'End conversation'
-                    : session.error
-                      ? 'Retry conversation'
-                      : 'Start conversation'
-            }
-            testID="session-primary-button"
-            prominent
-            size={64}
-            loading={connecting || disconnecting}
-            disabled={disconnecting || !voiceLoaded}
-            onPress={onPrimaryPress}
-          />
+        <View pointerEvents="box-none" style={styles.dock}>
+          <AgentLine line={agent} />
+          <View pointerEvents="box-none" style={styles.controls}>
+            <VoiceControl
+              icon={session.muted ? 'mic-off' : 'mic'}
+              label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
+              testID="session-mute-button"
+              disabled={!connected}
+              selected={session.muted}
+              size={60}
+              onPress={() => {
+                haptic(Haptics.selectionAsync);
+                session.toggleMute();
+              }}
+            />
+            <VoiceControl
+              icon={connected || connecting ? 'close' : 'waveform'}
+              label={
+                disconnecting
+                  ? 'Ending conversation'
+                  : connecting
+                    ? 'Cancel connection'
+                    : connected
+                      ? 'End conversation'
+                      : session.error
+                        ? 'Retry conversation'
+                        : 'Start conversation'
+              }
+              testID="session-primary-button"
+              prominent
+              size={64}
+              loading={connecting || disconnecting}
+              disabled={disconnecting || !voiceLoaded}
+              onPress={onPrimaryPress}
+            />
+          </View>
         </View>
       </View>
       <VoiceSettings
@@ -395,6 +409,7 @@ const styles = StyleSheet.create({
     right: metrics.gutter,
     gap: 22,
   },
+  dock: { gap: AGENT_GAP },
   controls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
