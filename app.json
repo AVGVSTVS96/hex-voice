@@ -44,7 +44,8 @@
           "cameraPermission": false
         }
       ],
-      "expo-dev-client"
+      "expo-dev-client",
+      "./plugins/with-scene-lifecycle"
     ],
     "experiments": {
       "typedRoutes": true,
