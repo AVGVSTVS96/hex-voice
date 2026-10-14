@@ -3,13 +3,13 @@
     "name": "hex",
     "slug": "hex-voice",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "hexvoice",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.shahidy.hexvoice",
-      "supportsTablet": false,
+      "supportsTablet": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "hex listens through your microphone while you talk with it.",
         "UIBackgroundModes": ["audio"],

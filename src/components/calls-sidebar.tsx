@@ -25,12 +25,12 @@ import {
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 
-export const SIDEBAR = 330;
 const ACTION = 64;
 const DELETE_AT = 180;
 
 type Props = {
   top: number;
+  width: number;
   calls?: CallSummary[];
   live?: string;
   viewing: string | null;
@@ -42,6 +42,7 @@ type Props = {
 
 export function CallsSidebar({
   top,
+  width,
   calls,
   live,
   viewing,
@@ -51,7 +52,7 @@ export function CallsSidebar({
   onDelete,
 }: Props) {
   return (
-    <View style={[styles.sidebar, { paddingTop: top }]}>
+    <View style={[styles.sidebar, { width, paddingTop: top }]}>
       <Text accessibilityRole="header" style={styles.title}>
         Calls
       </Text>
@@ -69,6 +70,7 @@ export function CallsSidebar({
                 <Row
                   key={call.id}
                   call={call}
+                  width={width}
                   live={call.id === live}
                   selected={call.id === viewing}
                   haptics={haptics}
@@ -86,6 +88,7 @@ export function CallsSidebar({
 
 function Row({
   call,
+  width,
   live,
   selected,
   haptics,
@@ -93,6 +96,7 @@ function Row({
   onDelete,
 }: {
   call: CallSummary;
+  width: number;
   live: boolean;
   selected: boolean;
   haptics: boolean;
@@ -123,7 +127,7 @@ function Row({
     .onEnd(({ translationX, velocityX }) => {
       const at = from.get() + translationX;
       if (at < -DELETE_AT) {
-        x.set(withTiming(-SIDEBAR, { duration: motion.rowOut }));
+        x.set(withTiming(-width, { duration: motion.rowOut }));
         scheduleOnRN(remove);
       } else settle(at < -ACTION / 2 || velocityX < -400 ? -ACTION : 0, velocityX);
     });
@@ -206,7 +210,6 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: SIDEBAR,
     backgroundColor: theme.sheet,
   },
   title: {

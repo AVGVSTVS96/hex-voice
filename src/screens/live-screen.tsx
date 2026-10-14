@@ -19,11 +19,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { AgentLine } from '@/components/agent-line';
-import { CallMenu } from '@/components/call-menu';
+import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
-import { CallsSidebar, SIDEBAR } from '@/components/calls-sidebar';
+import { CallsSidebar } from '@/components/calls-sidebar';
+import { PastCallBar } from '@/components/past-call-bar';
 import { Persona, type PersonaState } from '@/components/persona';
-import { TasksButton } from '@/components/tasks-button';
+import { ScreenToolbar } from '@/components/screen-toolbar';
 import { TasksSheet } from '@/components/tasks-sheet';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
@@ -45,27 +46,38 @@ import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
 import { tasksAPI } from '@/live/api';
 import type { TaskRow } from '@/live/tasks';
-import {
-  ENDINGS,
-  callLength,
-  callName,
-  callWhen,
-  transcriptText,
-  type CallSummary,
-} from '@/live/calls';
+import { ENDINGS, callLength, transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
+import { CONTROLS, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
-import { metrics, theme } from '@/theme';
+import { theme } from '@/theme';
+import { PoseView, type Pose } from '../../modules/pose';
 
-const DOCKED_SIZE = 52;
 const COMMIT = 0.35;
 const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
-const TOOLBAR = 48;
 
+// The screen lays itself out for the device's pose, so it waits for the first one.
 export default function LiveScreen() {
+  const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
+  return (
+    <View style={styles.root}>
+      {PoseView && (
+        <PoseView
+          style={StyleSheet.absoluteFill}
+          onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) =>
+            setPose({ regular, bar, fold, occlusions })
+          }
+        />
+      )}
+      {pose && <CallScreen pose={pose} />}
+    </View>
+  );
+}
+
+function CallScreen({ pose }: { pose: Pose }) {
   const session = useLiveSession();
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
@@ -79,10 +91,13 @@ export default function LiveScreen() {
   const [viewing, setViewing] = useState<string | null>(null);
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = useCall(shown);
-  const [reading, setReading] = useState(false);
-  const [captionsOn, setCaptionsOn] = useState(false);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const layout = screenLayout({ width, height }, insets, pose);
+  const { orb, words, besideList, calls: list } = layout;
+  const split = layout.kind === 'split';
+  const [reading, setReading] = useState(layout.reading);
+  const [captionsOn, setCaptionsOn] = useState(layout.reading);
   const reducedMotion = useReducedMotion();
   const connected = session.status === 'connected';
   const connecting = session.status === 'connecting';
@@ -121,7 +136,7 @@ export default function LiveScreen() {
   const tick = () => haptic(Haptics.selectionAsync);
   const land = () => haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
 
-  const size = Math.min(width * 0.62, height * 0.34, 280);
+  const size = orb.size;
   const wake = useSharedValue(0);
   const breath = useSharedValue(0);
   const level = useSharedValue(0);
@@ -154,18 +169,22 @@ export default function LiveScreen() {
     level.set(withSpring(loudness, motion.reaction));
   }, [loudness, level]);
 
-  const bottomInset = Math.max(insets.bottom, 20) + 14;
-  const agentBottom = Math.max(insets.bottom - 17, 6);
-  // The footer (how the call ended, hex's wrap-up, the call buttons) is measured, and what sits
-  // above it (the resting orb, or the transcript) keeps clear of it. On a call Tasks opens half
-  // height over the screen, and the resting orb keeps clear of it too, still listening.
-  const [footer, setFooter] = useState(bottomInset + 64);
+  // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
+  // and what sits above it (the resting orb, or the words) keeps clear of it. On a call Tasks opens
+  // half height over a compact screen, and the resting orb keeps clear of it too, still listening.
+  // Where the words have a page of their own, the footer sits on that page, away from the orb.
+  const [footer, setFooter] = useState(
+    layout.footer.bottom + (layout.controls === 'inline' ? CONTROLS : 0),
+  );
   const rest = orbRest(
     {
-      top: insets.top + 12 + TOOLBAR,
-      bottom: Math.min(height - footer, tasksOpen && voiceLocked ? height / 2 : height),
+      top: orb.room.top,
+      bottom: Math.min(
+        split ? orb.room.bottom : height - footer,
+        tasksOpen && voiceLocked && !pose.regular ? height / 2 : height,
+      ),
     },
-    height / 2,
+    orb.rest.y,
     size,
   );
   const restY = useSharedValue(rest.y);
@@ -178,11 +197,10 @@ export default function LiveScreen() {
     restScale.set(settle(rest.scale));
     footerHeight.set(settle(footer));
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
-  const shiftX = metrics.gutter + DOCKED_SIZE / 2 - width / 2;
-  const dockY = height - bottomInset - 32;
-  const travel = dockY - rest.y;
-  const progress = useSharedValue(0);
-  const goal = useSharedValue(0);
+  const travel = orb.read.y - rest.y;
+  const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
+  const progress = useSharedValue(layout.reading ? 1 : 0);
+  const goal = useSharedValue(layout.reading ? 1 : 0);
   const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
   const landing = useSharedValue(-1);
 
@@ -211,6 +229,19 @@ export default function LiveScreen() {
     );
   };
 
+  // Turning the device into another arrangement shows the words where that arrangement starts
+  // them: on their own page, or behind the orb's pull-down on the phone.
+  const kind = useRef(layout.kind);
+  useEffect(() => {
+    if (kind.current === layout.kind) return;
+    kind.current = layout.kind;
+    goal.set(layout.reading ? 1 : 0);
+    progress.set(withTiming(layout.reading ? 1 : 0, motion.reduced));
+    setReading(layout.reading);
+  }, [layout.kind, layout.reading, goal, progress]);
+
+  // Only the phone's arrangement pulls the words down over the orb; elsewhere they have a page.
+  const pulls = layout.kind === 'single';
   const drag = () =>
     Gesture.Pan()
       .activeOffsetY([-12, 12])
@@ -247,11 +278,13 @@ export default function LiveScreen() {
         animateTo(target, velocityY / travel);
         scheduleOnRN(setReading, target === 1);
       });
-  const screenDrag = drag().enabled(!reading).failOffsetX([-20, 20]);
+  const screenDrag = drag()
+    .enabled(pulls && !reading)
+    .failOffsetX([-20, 20]);
   const orbGesture = Gesture.Race(
-    drag().enabled(reading),
+    drag().enabled(pulls && reading),
     Gesture.Tap()
-      .enabled(reading)
+      .enabled(pulls && reading)
       .onEnd(() => {
         'worklet';
         animateTo(0);
@@ -270,7 +303,7 @@ export default function LiveScreen() {
     drawer.set(
       reducedMotion
         ? withTiming(open ? 1 : 0, motion.reduced)
-        : withSpring(open ? 1 : 0, { ...motion.drawer, velocity: velocity / SIDEBAR }),
+        : withSpring(open ? 1 : 0, { ...motion.drawer, velocity: velocity / list.width }),
     );
     scheduleOnRN(setDrawerOpen, open);
   };
@@ -285,7 +318,7 @@ export default function LiveScreen() {
       })
       .onUpdate(({ translationX }) => {
         'worklet';
-        drawer.set(Math.min(1, Math.max(0, drawerFrom.get() + translationX / SIDEBAR)));
+        drawer.set(Math.min(1, Math.max(0, drawerFrom.get() + translationX / list.width)));
       })
       .onEnd(({ velocityX }) => {
         'worklet';
@@ -301,12 +334,13 @@ export default function LiveScreen() {
       settleDrawer(false);
     }),
   );
-  const openDrawer = () => {
+  const toggleDrawer = () => {
     tick();
-    settleDrawer(true);
+    settleDrawer(!drawerOpen);
   };
+  // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
   const openCall = (call: CallSummary) => {
-    settleDrawer(false);
+    if (!split) settleDrawer(false);
     if (call.id === calls.live && voiceLocked) return backToCall();
     setViewing(call.id);
     animateTo(1);
@@ -318,16 +352,29 @@ export default function LiveScreen() {
     setViewing(null);
   };
   const screenStyle = useAnimatedStyle(() => {
-    const d = drawer.get();
+    const d = list.over ? 0 : drawer.get();
     return {
-      transform: [{ translateX: d * SIDEBAR }],
+      transform: [{ translateX: d * list.width }],
       borderRadius: 44 * Math.min(1, d * 4),
       borderWidth: d > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });
   const sidebarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (drawer.get() - 1) * 48 }],
+    transform: [{ translateX: (drawer.get() - 1) * (list.over ? list.width : 48) }],
   }));
+  const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
+  // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
+  const makesWay = list.over && layout.toolbar.axis === 'row';
+  const toolbarStyle = useAnimatedStyle(() => ({
+    left: layout.toolbar.x + (makesWay ? drawer.get() * list.width : 0),
+  }));
+  const besideStyle = useAnimatedStyle(() => {
+    const d = list.over ? drawer.get() : 0;
+    return {
+      left: words.x + (besideList.x - words.x) * d,
+      width: words.width + (besideList.width - words.width) * d,
+    };
+  });
 
   const toggleReading = () => {
     const target = goal.get() === 0 ? 1 : 0;
@@ -339,7 +386,7 @@ export default function LiveScreen() {
     () => progress.get(),
     (now) => {
       const target = landing.get();
-      if (target >= 0 && Math.abs(now - target) * travel <= LANDED) {
+      if (target >= 0 && Math.abs(now - target) * reach <= LANDED) {
         landing.set(-1);
         scheduleOnRN(land);
       }
@@ -352,6 +399,8 @@ export default function LiveScreen() {
     },
   );
 
+  // The orb glides from where it rests to where it reads: docked small in the corner on the phone,
+  // at full size on its own page beside the words. Side by side, the list covers it.
   const orbStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
@@ -359,15 +408,16 @@ export default function LiveScreen() {
     const awake = wake.get();
     const resting = size * (0.86 + 0.14 * awake);
     const fitted = resting * restScale.get();
-    const visual = (fitted + (DOCKED_SIZE - fitted) * t) * (1 + 0.025 * breath.get());
+    const visual = (fitted + ((orb.read.size ?? fitted) - fitted) * t) * (1 + 0.025 * breath.get());
     const y = restY.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
-        (reducedMotion ? Math.abs(2 * p - 1) : 1),
+        (reducedMotion ? Math.abs(2 * p - 1) : 1) *
+        (split ? 1 - drawer.get() : 1),
       transform: [
-        { translateX: shiftX * arc },
-        { translateY: y - height / 2 + (dockY - y) * t },
+        { translateX: orb.rest.x - size / 2 + (orb.read.x - orb.rest.x) * arc },
+        { translateY: y - size / 2 + (orb.read.y - y) * t },
         { scale: visual / size },
         ...heard(reaction, size, level.get(), pitch.get(), tone.get()),
       ],
@@ -388,8 +438,9 @@ export default function LiveScreen() {
   const startCall = (about?: string) => {
     const start = () => {
       if (viewing) {
-        animateTo(0);
-        setReading(false);
+        animateTo(layout.reading ? 1 : 0);
+        setReading(layout.reading);
+        setViewing(null);
       }
       void session.start(voice, about);
     };
@@ -409,6 +460,10 @@ export default function LiveScreen() {
     if (connected || connecting) void session.stop();
     else startCall();
   };
+  const onMute = () => {
+    haptic(Haptics.selectionAsync);
+    session.toggleMute();
+  };
   const openTasks = () => {
     tick();
     setTasksOpen(true);
@@ -419,29 +474,64 @@ export default function LiveScreen() {
     if (voiceLocked) void tasksAPI.talk(task.id).catch(() => {});
     else if (voiceLoaded) startCall(task.id);
   };
+  const removeShown =
+    shown && shown.id !== calls.live
+      ? () => {
+          setReading(layout.reading);
+          animateTo(layout.reading ? 1 : 0);
+          setViewing(null);
+          calls.remove(shown.id);
+        }
+      : undefined;
 
   const ending = session.ending && !voiceLocked && !viewing ? ENDINGS[session.ending] : undefined;
   const wrapUp = useWrapUp(session.callId, !!ending && session.ending !== 'no-connect');
+  const controls = (
+    <CallControls
+      status={session.status}
+      muted={session.muted}
+      failed={!!session.error}
+      ready={voiceLoaded}
+      axis={layout.controls === 'inline' ? 'row' : layout.controls.axis}
+      style={
+        layout.controls === 'inline'
+          ? undefined
+          : { position: 'absolute', right: layout.controls.right, bottom: layout.controls.bottom }
+      }
+      onMute={onMute}
+      onPrimary={onPrimaryPress}
+    />
+  );
+  const toolbarPlace = {
+    top: layout.toolbar.y,
+    right: width - layout.toolbar.x - layout.toolbar.width,
+  };
+  const sidebar = (
+    <GestureDetector gesture={sidebarClose}>
+      <Animated.View
+        style={[styles.sidebar, { left: layout.content.x, width: list.width }, sidebarStyle]}
+      >
+        <CallsSidebar
+          top={insets.top}
+          width={list.width}
+          calls={calls.calls}
+          live={calls.live}
+          viewing={viewing}
+          offline={calls.offline}
+          haptics={preferences.haptics}
+          onOpen={openCall}
+          onDelete={(id) => {
+            if (id === viewing) setReading(layout.reading);
+            calls.remove(id);
+          }}
+        />
+      </Animated.View>
+    </GestureDetector>
+  );
 
   return (
-    <View style={styles.root}>
-      <GestureDetector gesture={sidebarClose}>
-        <Animated.View style={[styles.sidebar, sidebarStyle]}>
-          <CallsSidebar
-            top={insets.top}
-            calls={calls.calls}
-            live={calls.live}
-            viewing={viewing}
-            offline={calls.offline}
-            haptics={preferences.haptics}
-            onOpen={openCall}
-            onDelete={(id) => {
-              if (id === viewing) setReading(false);
-              calls.remove(id);
-            }}
-          />
-        </Animated.View>
-      </GestureDetector>
+    <>
+      {!list.over && sidebar}
       <Animated.View style={[styles.screen, screenStyle]}>
         <GestureDetector gesture={screenDrag}>
           <View style={styles.fill}>
@@ -449,7 +539,7 @@ export default function LiveScreen() {
               pointerEvents={reading ? 'auto' : 'none'}
               accessibilityElementsHidden={!reading}
               importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
-              style={[styles.transcript, { top: insets.top + 72 }, transcriptStyle]}
+              style={[styles.transcript, { top: words.top }, besideStyle, transcriptStyle]}
             >
               {shown ? (
                 <CallTranscript
@@ -468,11 +558,7 @@ export default function LiveScreen() {
               <Animated.View
                 accessible
                 accessibilityLabel={status}
-                style={[
-                  styles.orb,
-                  { width: size, height: size, left: (width - size) / 2, top: (height - size) / 2 },
-                  orbStyle,
-                ]}
+                style={[styles.orb, { width: size, height: size }, orbStyle]}
               >
                 <Persona
                   variant={variant}
@@ -485,166 +571,111 @@ export default function LiveScreen() {
             </GestureDetector>
           </View>
         </GestureDetector>
-        <View pointerEvents="box-none" style={[styles.toolbar, { top: insets.top + 12 }]}>
-          {shown ? (
-            <>
+        {shown && layout.toolbar.axis === 'row' ? (
+          <PastCallBar
+            call={shown}
+            live={shown.id === calls.live}
+            onCall={voiceLocked}
+            transcript={past.call && transcriptText(past.call)}
+            leading={
               <VoiceControl
                 icon="calls"
                 label="Calls"
                 testID="calls-button"
                 selected={drawerOpen}
-                onPress={openDrawer}
-                size={48}
+                onPress={toggleDrawer}
               />
-              <View pointerEvents="box-none" style={styles.pastTitle}>
-                <Text numberOfLines={1} style={styles.pastName}>
-                  {callName(shown)}
-                </Text>
-                {voiceLocked ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={backToCall}
-                    hitSlop={10}
-                    style={styles.backToCall}
-                  >
-                    <View style={styles.liveDot} />
-                    <Text style={styles.backText}>Back to your call</Text>
-                  </Pressable>
-                ) : (
-                  <Text numberOfLines={1} style={styles.pastWhen}>
-                    {callWhen(shown, shown.id === calls.live)}
-                  </Text>
-                )}
-              </View>
-              <CallMenu
-                transcript={past.call && transcriptText(past.call)}
-                title={callName(shown)}
-                onDelete={
-                  shown.id === calls.live
-                    ? undefined
-                    : () => {
-                        setReading(false);
-                        animateTo(0);
-                        calls.remove(shown.id);
-                      }
-                }
-              />
-            </>
-          ) : (
-            <>
-              <View style={styles.toolbarStart}>
-                <VoiceControl
-                  icon="captions"
-                  label={captionsOn ? 'Show orb' : 'Show transcript'}
-                  testID="transcript-button"
-                  selected={captionsOn}
-                  onPress={toggleReading}
-                  size={48}
-                />
-                <VoiceControl
-                  icon="calls"
-                  label="Calls"
-                  testID="calls-button"
-                  selected={drawerOpen}
-                  onPress={openDrawer}
-                  size={48}
-                />
-              </View>
-              <View style={styles.toolbarStart}>
-                <TasksButton
-                  needs={counts.needs}
-                  working={counts.working}
-                  selected={tasksOpen}
-                  onPress={openTasks}
-                />
-                <VoiceControl
-                  icon="settings"
-                  label="Voice and appearance settings"
-                  testID="voice-settings-button"
-                  onPress={() => setSettingsOpen(true)}
-                  size={48}
-                />
-              </View>
-            </>
-          )}
-        </View>
+            }
+            style={[toolbarPlace, toolbarStyle]}
+            onBack={backToCall}
+            onDelete={removeShown}
+          />
+        ) : (
+          <ScreenToolbar
+            axis={layout.toolbar.axis}
+            style={[toolbarPlace, toolbarStyle]}
+            reading={captionsOn}
+            callsOpen={drawerOpen}
+            tasks={{ ...counts, open: tasksOpen }}
+            onReading={toggleReading}
+            onCalls={toggleDrawer}
+            onTasks={openTasks}
+            onSettings={() => setSettingsOpen(true)}
+          />
+        )}
+        {shown && layout.toolbar.axis === 'column' && (
+          <PastCallBar
+            call={shown}
+            live={shown.id === calls.live}
+            onCall={voiceLocked}
+            transcript={past.call && transcriptText(past.call)}
+            style={[{ top: insets.top + 8 }, besideStyle]}
+            onBack={backToCall}
+            onDelete={removeShown}
+          />
+        )}
         <View
           pointerEvents="box-none"
           onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
-          style={[styles.bottom, { paddingBottom: bottomInset }]}
+          style={[
+            styles.footer,
+            {
+              left: layout.footer.x,
+              width: layout.footer.width,
+              paddingBottom: layout.footer.bottom,
+            },
+          ]}
         >
           {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
-            <Animated.View entering={FadeIn.duration(motion.toolbar)} style={styles.wrapUp}>
+            <Animated.View
+              entering={FadeIn.duration(motion.toolbar)}
+              style={[styles.wrapUp, split && styles.leading]}
+            >
               {wrapUp.title && (
                 <Text numberOfLines={1} style={styles.wrapTitle}>
                   {wrapUp.title}
                 </Text>
               )}
-              <WrapUp center summary={wrapUp.summary} waiting={wrapUp.waiting?.slice(0, 3)} />
+              <WrapUp
+                center={!split}
+                summary={wrapUp.summary}
+                waiting={wrapUp.waiting?.slice(0, 3)}
+              />
             </Animated.View>
           ) : null}
           {ending ? (
             <Text
               accessibilityRole="alert"
-              style={[styles.ended, ending.bad && { color: theme.danger }]}
+              style={[styles.ended, split && styles.leadingText, ending.bad && styles.bad]}
             >
               {session.ending === 'no-connect'
                 ? ending.line
                 : `${ending.line} · ${callLength(session.elapsedSeconds)}`}
             </Text>
           ) : session.interrupted ? (
-            <Text accessibilityRole="alert" style={styles.ended}>
+            <Text accessibilityRole="alert" style={[styles.ended, split && styles.leadingText]}>
               Paused while your phone has the audio
             </Text>
           ) : (
             session.error && (
-              <Text accessibilityRole="alert" style={styles.error}>
+              <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
                 {session.error}
               </Text>
             )
           )}
-          <View pointerEvents="box-none" style={styles.controls}>
-            <VoiceControl
-              icon={session.muted ? 'mic-off' : 'mic'}
-              label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
-              testID="session-mute-button"
-              disabled={!connected}
-              selected={session.muted}
-              size={60}
-              onPress={() => {
-                haptic(Haptics.selectionAsync);
-                session.toggleMute();
-              }}
-            />
-            <VoiceControl
-              icon={connected || connecting ? 'close' : 'waveform'}
-              label={
-                disconnecting
-                  ? 'Ending conversation'
-                  : connecting
-                    ? 'Cancel connection'
-                    : connected
-                      ? 'End conversation'
-                      : session.error
-                        ? 'Retry conversation'
-                        : 'Start conversation'
-              }
-              testID="session-primary-button"
-              prominent
-              size={64}
-              loading={connecting || disconnecting}
-              disabled={disconnecting || !voiceLoaded}
-              onPress={onPrimaryPress}
-            />
-          </View>
+          {layout.controls === 'inline' && controls}
         </View>
+        {layout.controls !== 'inline' && controls}
         <Pressable
           pointerEvents={agent ? 'auto' : 'none'}
           onPress={openTasks}
           accessibilityRole="button"
           accessibilityHint="Opens Tasks"
           hitSlop={{ top: 8, bottom: 12 }}
-          style={[styles.agent, { bottom: agentBottom }]}
+          style={[
+            styles.agent,
+            { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
+          ]}
         >
           <AgentLine line={agent} />
         </Pressable>
@@ -669,16 +700,26 @@ export default function LiveScreen() {
         />
         {!drawerOpen && (
           <GestureDetector gesture={edgeOpen}>
-            <View style={styles.edge} />
+            <View style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
-        {drawerOpen && (
+        {list.over && !split && (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.dim, { left: layout.content.x, width: layout.content.width }, dimStyle]}
+          />
+        )}
+        {drawerOpen && !split && (
           <GestureDetector gesture={peekClose}>
-            <View accessibilityLabel="Close calls" style={StyleSheet.absoluteFill} />
+            <View
+              accessibilityLabel="Close calls"
+              style={[styles.fill, { left: layout.content.x, width: layout.content.width }]}
+            />
           </GestureDetector>
         )}
       </Animated.View>
-    </View>
+      {list.over && sidebar}
+    </>
   );
 }
 
@@ -723,17 +764,17 @@ const styles = StyleSheet.create({
     borderColor: theme.edge,
     borderCurve: 'continuous',
   },
-  sidebar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR },
-  edge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 20 },
-  toolbarStart: { flexDirection: 'row', gap: 12 },
-  pastTitle: { position: 'absolute', left: 60, right: 60, top: 3, alignItems: 'center' },
-  pastName: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
-  pastWhen: { color: theme.secondary, fontSize: 13, lineHeight: 18 },
+  sidebar: { position: 'absolute', top: 0, bottom: 0 },
+  edge: { position: 'absolute', top: 0, bottom: 0, width: 20 },
+  dim: { position: 'absolute', top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
   ended: { color: theme.secondary, textAlign: 'center', fontSize: 15, lineHeight: 20 },
+  bad: { color: theme.danger },
   wrapUp: { gap: 10, alignItems: 'center' },
+  leading: { alignItems: 'flex-start' },
+  leadingText: { textAlign: 'left', paddingHorizontal: 0 },
   wrapTitle: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   fill: { ...StyleSheet.absoluteFill },
-  transcript: { position: 'absolute', left: metrics.gutter, right: metrics.gutter },
+  transcript: { position: 'absolute' },
   fade: {
     position: 'absolute',
     top: 0,
@@ -752,32 +793,9 @@ const styles = StyleSheet.create({
       { type: 'linear-gradient', direction: 'to top', colorStops: FADE },
     ],
   },
-  orb: { position: 'absolute' },
-  toolbar: {
-    position: 'absolute',
-    left: metrics.gutter,
-    right: metrics.gutter,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  bottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: metrics.gutter,
-    right: metrics.gutter,
-    gap: 22,
-  },
-  agent: { position: 'absolute', left: metrics.gutter, right: metrics.gutter, height: AGENT_ROW },
-  backToCall: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: theme.switchOn },
-  backText: { color: theme.switchOn, fontSize: 13, lineHeight: 18, fontWeight: '500' },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 12,
-    height: 64,
-  },
+  orb: { position: 'absolute', left: 0, top: 0 },
+  footer: { position: 'absolute', bottom: 0, gap: 22 },
+  agent: { position: 'absolute', height: AGENT_ROW },
   error: {
     color: theme.danger,
     textAlign: 'center',
