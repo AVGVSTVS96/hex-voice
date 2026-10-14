@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Ships main's JS to the app over the air: the iPhone and iPad pick it up the next time the app
+# comes to the front with no call live. Native changes need scripts/ship-native instead.
+. "$(dirname "$0")/release.sh"
+
+mkdir -p "$home"
+exec 9>"$home/release.lock"
+flock 9
+refresh_release
+runtime=$(runtime_version)
+[ -d "$updates/ios/$runtime" ] ||
+  die "main changed native code (runtime $runtime has no native build): run npm run ship:native"
+
+cd "$release"
+rm -rf dist
+npx expo export --platform ios --output-dir dist >/dev/null
+npx expo config --type public --json >dist/expo-config.json
+HEX_UPDATES_DIR=$updates node updates/store.mts publish dist ios "$runtime" dist/expo-config.json
+echo "shipped $(git log --oneline -1 | cut -c1-80)"
