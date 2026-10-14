@@ -2,7 +2,8 @@
 # Builds main once on the Mac, in one warm build folder so Xcode only rebuilds what changed, and
 # installs that build on the iPhone and iPad as soon as no call is live (installing ends a call).
 # Signing over ssh needs the Mac's login keychain unlocked in the same session, so the build gets
-# its password on stdin from KEYCHAIN_PASSWORD_COMMAND.
+# its password on stdin from KEYCHAIN_PASSWORD_COMMAND. Hex is asked about calls from the Mac,
+# since the server can't reach its own tailnet name.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
@@ -35,9 +36,11 @@ keychain_password() {
 
 wait_for_no_call() {
   local calls after=
-  while calls=$(curl -sf -H "Authorization: Bearer $EXPO_PUBLIC_HEX_TOKEN" \
-    "$EXPO_PUBLIC_HEX_URL/calls${after:+?after=$after}") &&
-    [ -n "$(jq -r '.live // empty' <<<"$calls")" ]; do
+  while true; do
+    calls=$(ssh "$mac" curl -sf -m 60 -H "'Authorization: Bearer $EXPO_PUBLIC_HEX_TOKEN'" \
+      "'$EXPO_PUBLIC_HEX_URL/calls${after:+?after=$after}'") ||
+      die "couldn't ask hex whether a call is live, so nothing was installed"
+    [ -n "$(jq -r '.live // empty' <<<"$calls")" ] || return 0
     [ -n "$after" ] || echo "waiting for the live call to end before installing"
     after=$(jq -r .version <<<"$calls")
   done
