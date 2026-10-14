@@ -58,7 +58,7 @@ import { asksAPI, tasksAPI } from '@/live/api';
 import type { TaskRow } from '@/live/tasks';
 import { ENDINGS, callLength, transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { CONTROLS, screenLayout } from '@/screens/layout';
+import { CONTROLS, DOCKED, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -117,7 +117,6 @@ function CallScreen({ pose }: { pose: Pose }) {
   const { orb, words, besideList, calls: list } = layout;
   const split = layout.kind === 'split';
   const [reading, setReading] = useState(layout.reading);
-  const [captionsOn, setCaptionsOn] = useState(layout.reading);
   const reducedMotion = useReducedMotion();
   const connected = session.status === 'connected';
   const connecting = session.status === 'connecting';
@@ -302,7 +301,13 @@ function CallScreen({ pose }: { pose: Pose }) {
   const screenDrag = drag()
     .enabled(pulls && !reading)
     .failOffsetX([-20, 20]);
-  // Tapping the orb comes back to it: from the words on the phone, from a past call beside it.
+  // On the phone the transcript button waits where the orb docks, and tapping it sends the orb down
+  // into its place. Tapping the orb comes back to it: from the words on the phone, from a past call
+  // beside it.
+  const showWords = () => {
+    animateTo(1);
+    setReading(true);
+  };
   const orbGesture = Gesture.Race(
     drag().enabled(pulls && reading),
     Gesture.Tap()
@@ -402,12 +407,6 @@ function CallScreen({ pose }: { pose: Pose }) {
     };
   });
 
-  const toggleReading = () => {
-    const target = goal.get() === 0 ? 1 : 0;
-    animateTo(target);
-    setReading(target === 1);
-  };
-
   useAnimatedReaction(
     () => progress.get(),
     (now) => {
@@ -416,12 +415,6 @@ function CallScreen({ pose }: { pose: Pose }) {
         landing.set(-1);
         scheduleOnRN(land);
       }
-    },
-  );
-  useAnimatedReaction(
-    () => progress.get() >= 0.5,
-    (on, was) => {
-      if (was !== null && on !== was) scheduleOnRN(setCaptionsOn, on);
     },
   );
 
@@ -449,6 +442,9 @@ function CallScreen({ pose }: { pose: Pose }) {
       ],
     };
   });
+  const dockStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP),
+  }));
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const shown = reducedMotion
@@ -596,6 +592,26 @@ function CallScreen({ pose }: { pose: Pose }) {
               <View pointerEvents="none" style={styles.fade} />
               <View pointerEvents="none" style={styles.fadeBottom} />
             </Animated.View>
+            {pulls && (
+              <Animated.View
+                pointerEvents={reading ? 'none' : 'auto'}
+                accessibilityElementsHidden={reading}
+                importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
+                style={[
+                  styles.dock,
+                  { left: orb.read.x - DOCKED / 2, top: orb.read.y - DOCKED / 2 },
+                  dockStyle,
+                ]}
+              >
+                <VoiceControl
+                  icon="transcript"
+                  label="Show transcript"
+                  testID="transcript-button"
+                  size={DOCKED}
+                  onPress={showWords}
+                />
+              </Animated.View>
+            )}
             <GestureDetector gesture={orbGesture}>
               <Animated.View
                 accessible
@@ -636,10 +652,8 @@ function CallScreen({ pose }: { pose: Pose }) {
           <ScreenToolbar
             axis={layout.toolbar.axis}
             style={[toolbarPlace, toolbarStyle]}
-            reading={captionsOn}
             callsOpen={drawerOpen}
             tasks={{ ...counts, open: tasksOpen }}
-            onReading={toggleReading}
             onCalls={toggleDrawer}
             onTasks={() => openTasks()}
             onSettings={() => setSettingsOpen(true)}
@@ -839,6 +853,7 @@ const styles = StyleSheet.create({
     ],
   },
   orb: { position: 'absolute', left: 0, top: 0 },
+  dock: { position: 'absolute' },
   footer: { position: 'absolute', bottom: 0, gap: 22 },
   agent: { position: 'absolute', height: AGENT_ROW },
   error: {
