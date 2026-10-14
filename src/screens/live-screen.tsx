@@ -705,6 +705,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           onTalk={talkAbout}
         />
         <VoiceSettings
+          fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
           isPresented={settingsOpen}
           onDismiss={() => setSettingsOpen(false)}
           voice={voice}

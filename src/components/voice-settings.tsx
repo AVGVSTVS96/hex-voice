@@ -26,6 +26,7 @@ import {
   presentationBackground,
   presentationDetents,
   presentationDragIndicator,
+  presentationSizing,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -56,7 +57,13 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
+// On the phone the sheet hangs from the bottom edge, full width. Where the width is regular it's a
+// centered sheet, and beside the words (iPad landscape, iPhone Duo open) it lays the carousel
+// beside the rows.
+export type SettingsFit = 'phone' | 'centered' | 'beside';
+
 type Props = {
+  fit: SettingsFit;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -86,6 +93,8 @@ const PHRASE = [
   { level: 0, pitch: 0, tone: 0 },
 ];
 const PREVIEW_ORB = 160;
+const CENTERED = 560;
+const BESIDE = { width: 760, height: 520, carousel: 300, preview: 260, orb: 180 };
 
 const SHEET_TOP = 24;
 const SHEET_BOTTOM = 26;
@@ -108,6 +117,7 @@ const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 const DETENTS = [{ height: APPEARANCE_HEIGHT }, { height: VOICE_HEIGHT }];
 
 export function VoiceSettings({
+  fit,
   isPresented,
   onDismiss,
   voice,
@@ -119,8 +129,12 @@ export function VoiceSettings({
   personaEnabled,
   preferences,
 }: Props) {
-  const { width } = useWindowDimensions();
+  const window = useWindowDimensions();
+  const width = fit === 'phone' ? window.width : fit === 'centered' ? CENTERED : BESIDE.width;
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
+  const rowsWidth = fit === 'beside' ? width - BESIDE.carousel - 3 * metrics.gutter : contentWidth;
+  const appearanceHeight = fit === 'beside' ? BESIDE.height : APPEARANCE_HEIGHT;
+  const orbSize = fit === 'beside' ? BESIDE.orb : PREVIEW_ORB;
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
@@ -130,7 +144,7 @@ export function VoiceSettings({
   const tone = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
   const orbStyle = useAnimatedStyle(() => ({
-    transform: heard(reaction, PREVIEW_ORB, level.get(), pitch.get(), tone.get()),
+    transform: heard(reaction, orbSize, level.get(), pitch.get(), tone.get()),
   }));
   const speak = () => {
     level.set(withSequence(...PHRASE.map((step) => withSpring(step.level, motion.reaction))));
@@ -160,6 +174,115 @@ export function VoiceSettings({
     accessibilityHidden(!shown),
   ];
 
+  const carousel = (
+    <SelectionCarousel
+      options={PERSONA_VARIANTS}
+      value={persona}
+      width={fit === 'beside' ? BESIDE.carousel : contentWidth}
+      height={PERSONA_PAGE}
+      preview={
+        isPresented ? (
+          <Animated.View style={orbStyle}>
+            <Persona
+              variant={persona}
+              size={orbSize}
+              state="idle"
+              color={preferences.personaColor}
+              palette={opalPaletteInput(preferences.opalPalette)}
+            />
+          </Animated.View>
+        ) : undefined
+      }
+      previewHeight={fit === 'beside' ? BESIDE.preview : ORB}
+      enabled={personaEnabled}
+      label="Persona appearance"
+      testID="persona-carousel"
+      onChange={(next) => {
+        if (!personaEnabled || !isPersonaVariant(next)) return;
+        haptic();
+        onPersonaChange(next);
+      }}
+    />
+  );
+  const rows = (
+    <>
+      <Group width={rowsWidth}>
+        <PersonaColors
+          persona={persona}
+          preferences={preferences}
+          width={rowsWidth}
+          onSelect={() => haptic()}
+        />
+        <Separator />
+        <SettingRow icon="mic" title="Reacts to you" width={rowsWidth}>
+          <Picker
+            selection={preferences.reaction}
+            onSelectionChange={(next: Reaction) => {
+              haptic();
+              preferences.setReaction(next);
+              if (!reducedMotion) speak();
+            }}
+            testID="reaction-picker"
+            modifiers={[
+              pickerStyle('menu'),
+              labelsHidden(),
+              tint(theme.secondary),
+              accessibilityLabel('How much the orb reacts to your voice'),
+            ]}
+          >
+            {REACTIONS.map((option) => (
+              <NativeText key={option.id} modifiers={[tag(option.id)]}>
+                {option.label}
+              </NativeText>
+            ))}
+          </Picker>
+        </SettingRow>
+      </Group>
+      <Group width={rowsWidth}>
+        <SettingRow
+          icon="waveform"
+          title="Voice"
+          width={rowsWidth}
+          label={`Voice, ${selectedVoice.label}. Hear and change voices`}
+          onPress={() => showVoices(true)}
+          testID="voice-row"
+        >
+          <Text
+            textStyle={{ fontSize: metrics.body }}
+            modifiers={[foregroundStyle(theme.secondary)]}
+          >
+            {selectedVoice.label}
+          </Text>
+          {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
+        </SettingRow>
+        <Separator />
+        <SettingRow icon="speaker.wave.2" title="Call sounds" width={rowsWidth}>
+          <Toggle
+            isOn={preferences.sounds}
+            onIsOnChange={(on) => {
+              haptic();
+              preferences.setSounds(on);
+            }}
+            testID="sounds-toggle"
+            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel('Call sounds')]}
+          />
+        </SettingRow>
+        <Separator />
+        <SettingRow icon="iphone.radiowaves.left.and.right" title="Haptics" width={rowsWidth}>
+          <Toggle
+            isOn={preferences.haptics}
+            onIsOnChange={(on) => {
+              haptic(on);
+              preferences.setHaptics(on);
+            }}
+            testID="haptics-toggle"
+            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel('Haptics')]}
+          />
+        </SettingRow>
+      </Group>
+    </>
+  );
+
   return (
     <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
       <BottomSheet
@@ -173,150 +296,64 @@ export function VoiceSettings({
         <SheetContent
           modifiers={[
             presentationDragIndicator('visible'),
-            presentationDetents(DETENTS, {
-              selection: DETENTS[onVoicePage ? 1 : 0],
-              // Dragging the sheet to the other height reads as leaving the page you're on: up from
-              // the voices goes back to settings, down from settings closes the sheet.
-              onSelectionChange: (detent) => {
-                const voiceSized =
-                  typeof detent === 'object' &&
-                  'height' in detent &&
-                  detent.height === VOICE_HEIGHT;
-                if (voiceSized === onVoicePage) return;
-                if (onVoicePage) showVoices(false);
-                else onDismiss();
-              },
-            }),
+            fit === 'phone'
+              ? presentationDetents(DETENTS, {
+                  selection: DETENTS[onVoicePage ? 1 : 0],
+                  // Dragging the sheet to the other height reads as leaving the page you're on: up
+                  // from the voices goes back to settings, down from settings closes the sheet.
+                  onSelectionChange: (detent) => {
+                    const voiceSized =
+                      typeof detent === 'object' &&
+                      'height' in detent &&
+                      detent.height === VOICE_HEIGHT;
+                    if (voiceSized === onVoicePage) return;
+                    if (onVoicePage) showVoices(false);
+                    else onDismiss();
+                  },
+                })
+              : presentationSizing('fitted'),
             presentationBackground(theme.sheet),
           ]}
         >
           <ZStack
             alignment="bottom"
-            modifiers={[
-              frame({ maxWidth: Infinity, minHeight: 0, maxHeight: Infinity, alignment: 'bottom' }),
-            ]}
+            modifiers={
+              fit === 'phone'
+                ? [
+                    frame({
+                      maxWidth: Infinity,
+                      minHeight: 0,
+                      maxHeight: Infinity,
+                      alignment: 'bottom',
+                    }),
+                  ]
+                : [
+                    frame({ width, height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    animation(motion.page, onVoicePage),
+                  ]
+            }
           >
-            <Column
-              alignment="center"
-              spacing={metrics.groupSpacing}
-              style={{ paddingTop: SHEET_TOP }}
-              modifiers={page(!onVoicePage, -width / 3, APPEARANCE_HEIGHT)}
-            >
-              <SelectionCarousel
-                options={PERSONA_VARIANTS}
-                value={persona}
-                width={contentWidth}
-                height={PERSONA_PAGE}
-                preview={
-                  isPresented ? (
-                    <Animated.View style={orbStyle}>
-                      <Persona
-                        variant={persona}
-                        size={PREVIEW_ORB}
-                        state="idle"
-                        color={preferences.personaColor}
-                        palette={opalPaletteInput(preferences.opalPalette)}
-                      />
-                    </Animated.View>
-                  ) : undefined
-                }
-                previewHeight={ORB}
-                enabled={personaEnabled}
-                label="Persona appearance"
-                testID="persona-carousel"
-                onChange={(next) => {
-                  if (!personaEnabled || !isPersonaVariant(next)) return;
-                  haptic();
-                  onPersonaChange(next);
-                }}
-              />
-              <Group width={contentWidth}>
-                <PersonaColors
-                  persona={persona}
-                  preferences={preferences}
-                  width={contentWidth}
-                  onSelect={() => haptic()}
-                />
-                <Separator />
-                <SettingRow icon="mic" title="Reacts to you" width={contentWidth}>
-                  <Picker
-                    selection={preferences.reaction}
-                    onSelectionChange={(next: Reaction) => {
-                      haptic();
-                      preferences.setReaction(next);
-                      if (!reducedMotion) speak();
-                    }}
-                    testID="reaction-picker"
-                    modifiers={[
-                      pickerStyle('menu'),
-                      labelsHidden(),
-                      tint(theme.secondary),
-                      accessibilityLabel('How much the orb reacts to your voice'),
-                    ]}
-                  >
-                    {REACTIONS.map((option) => (
-                      <NativeText key={option.id} modifiers={[tag(option.id)]}>
-                        {option.label}
-                      </NativeText>
-                    ))}
-                  </Picker>
-                </SettingRow>
-              </Group>
-              <Group width={contentWidth}>
-                <SettingRow
-                  icon="waveform"
-                  title="Voice"
-                  width={contentWidth}
-                  label={`Voice, ${selectedVoice.label}. Hear and change voices`}
-                  onPress={() => showVoices(true)}
-                  testID="voice-row"
-                >
-                  <Text
-                    textStyle={{ fontSize: metrics.body }}
-                    modifiers={[foregroundStyle(theme.secondary)]}
-                  >
-                    {selectedVoice.label}
-                  </Text>
-                  {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
-                </SettingRow>
-                <Separator />
-                <SettingRow icon="speaker.wave.2" title="Call sounds" width={contentWidth}>
-                  <Toggle
-                    isOn={preferences.sounds}
-                    onIsOnChange={(on) => {
-                      haptic();
-                      preferences.setSounds(on);
-                    }}
-                    testID="sounds-toggle"
-                    modifiers={[
-                      labelsHidden(),
-                      tint(theme.switchOn),
-                      accessibilityLabel('Call sounds'),
-                    ]}
-                  />
-                </SettingRow>
-                <Separator />
-                <SettingRow
-                  icon="iphone.radiowaves.left.and.right"
-                  title="Haptics"
-                  width={contentWidth}
-                >
-                  <Toggle
-                    isOn={preferences.haptics}
-                    onIsOnChange={(on) => {
-                      haptic(on);
-                      preferences.setHaptics(on);
-                    }}
-                    testID="haptics-toggle"
-                    modifiers={[
-                      labelsHidden(),
-                      tint(theme.switchOn),
-                      accessibilityLabel('Haptics'),
-                    ]}
-                  />
-                </SettingRow>
-              </Group>
-            </Column>
+            {fit === 'beside' ? (
+              <Row
+                alignment="center"
+                spacing={metrics.gutter}
+                style={{ paddingHorizontal: metrics.gutter }}
+                modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+              >
+                {carousel}
+                <Column spacing={metrics.groupSpacing}>{rows}</Column>
+              </Row>
+            ) : (
+              <Column
+                alignment="center"
+                spacing={metrics.groupSpacing}
+                style={{ paddingTop: SHEET_TOP }}
+                modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+              >
+                {carousel}
+                {rows}
+              </Column>
+            )}
             <Column
               alignment="center"
               spacing={0}
