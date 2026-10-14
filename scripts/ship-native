@@ -30,7 +30,7 @@ build() {
   export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=/opt/homebrew/bin:$PATH
   set -a && . ./.env.local && set +a
   install_modules
-  CI=1 npx expo prebuild --platform ios --no-install >/dev/null
+  CI=1 npx expo prebuild --platform ios --no-install --no-clean >/dev/null
   install_pods
   mkdir -p build
   xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
