@@ -299,12 +299,17 @@ function CallScreen({ pose }: { pose: Pose }) {
   const screenDrag = drag()
     .enabled(pulls && !reading)
     .failOffsetX([-20, 20]);
+  // Tapping the orb comes back to it: from the words on the phone, from a past call beside it.
   const orbGesture = Gesture.Race(
     drag().enabled(pulls && reading),
     Gesture.Tap()
-      .enabled(pulls && reading)
+      .enabled(pulls ? reading : viewing !== null)
       .onEnd(() => {
         'worklet';
+        if (!pulls) {
+          scheduleOnRN(setViewing, null);
+          return;
+        }
         animateTo(0);
         scheduleOnRN(setReading, false);
       }),
