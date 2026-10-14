@@ -35,7 +35,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "dark": { "backgroundColor": "#000000" }
+          "dark": {
+            "backgroundColor": "#000000"
+          }
         }
       ],
       [
@@ -49,6 +51,7 @@
       "./plugins/with-scene-lifecycle",
       "./plugins/with-call-audio",
       "./plugins/with-activity-orbs",
+      "./plugins/without-push",
       "expo-widgets",
       "expo-audio"
     ],
