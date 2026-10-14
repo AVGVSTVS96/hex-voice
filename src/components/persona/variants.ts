@@ -15,17 +15,23 @@ export function isPersonaVariant(value: unknown): value is PersonaVariant {
 }
 
 // Pastel twins of Opal's palettes, in the same order, so each color sits in the same spot on every
-// persona. With the custom color picker they fill as many spots as Opal's palettes.
+// persona. With the custom color picker they fill as many spots as Opal's palettes. On a light screen
+// each deepens so its hue holds on white, and White becomes Ink.
 export const PERSONA_COLORS = [
-  { id: '#FFFFFF', label: 'White' },
-  { id: '#FFB3C7', label: 'Rose' },
-  { id: '#FFCDA8', label: 'Peach' },
-  { id: '#FFEDA6', label: 'Lemon' },
-  { id: '#D5F2B6', label: 'Lime' },
-  { id: '#C4F3E5', label: 'Mint' },
-  { id: '#A9CCFF', label: 'Sky' },
-  { id: '#CDB8FF', label: 'Lilac' },
+  { id: '#FFFFFF', label: 'White', light: '#1C1C1E', lightLabel: 'Ink' },
+  { id: '#FFB3C7', label: 'Rose', light: '#D9487A' },
+  { id: '#FFCDA8', label: 'Peach', light: '#E07A3C' },
+  { id: '#FFEDA6', label: 'Lemon', light: '#C29A1A' },
+  { id: '#D5F2B6', label: 'Lime', light: '#5E9E2E' },
+  { id: '#C4F3E5', label: 'Mint', light: '#2FA585' },
+  { id: '#A9CCFF', label: 'Sky', light: '#2F6FD8' },
+  { id: '#CDB8FF', label: 'Lilac', light: '#7B5BD6' },
 ] as const;
+
+// A preset shows its light partner on a light screen; a custom color stays as picked.
+export function personaColorOnLight(color: string) {
+  return PERSONA_COLORS.find(({ id }) => id === color)?.light ?? color;
+}
 
 export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
 

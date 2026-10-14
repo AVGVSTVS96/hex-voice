@@ -12,7 +12,7 @@ import {
   type RiveFile,
 } from '@rive-app/react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, useColorScheme } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { theme } from '@/theme';
@@ -23,7 +23,12 @@ import {
   type PersonaProps,
 } from './animation';
 import { PERSONA_ASSETS } from './assets';
-import { DEFAULT_PERSONA, DEFAULT_PERSONA_COLOR, type PersonaVariant } from './variants';
+import {
+  DEFAULT_PERSONA,
+  DEFAULT_PERSONA_COLOR,
+  personaColorOnLight,
+  type PersonaVariant,
+} from './variants';
 
 export type { PersonaState, PersonaProps } from './animation';
 
@@ -70,6 +75,7 @@ function PersonaRenderer({
   const initialized = useRef(false);
   const originalPalette = useRef<number>(undefined);
   const reducedMotion = useReducedMotion();
+  const shown = useColorScheme() === 'light' ? personaColorOnLight(color) : color;
 
   useEffect(() => {
     let active = true;
@@ -131,13 +137,13 @@ function PersonaRenderer({
   useEffect(() => {
     const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
     if (!property) return;
-    const wanted = RiveColor.fromHexString(color).toInt();
+    const wanted = RiveColor.fromHexString(shown).toInt();
     property.set(wanted);
     // The first advance after binding writes the file's own color back into the model.
     return property.addListener((value) => {
       if (!sameColor(value, wanted)) property.set(wanted);
     });
-  }, [riveViewRef, colorModel, color]);
+  }, [riveViewRef, colorModel, shown]);
 
   return (
     <View

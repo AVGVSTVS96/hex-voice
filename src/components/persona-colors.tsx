@@ -2,7 +2,7 @@ import { RNHostView, Row } from '@expo/ui';
 import { ColorPicker } from '@expo/ui/swift-ui';
 import { accessibilityLabel, frame, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, useColorScheme } from 'react-native';
 
 import { PERSONA_MODELS } from '@/components/persona/animation';
 import {
@@ -35,6 +35,7 @@ export function PersonaColors({
   width: number;
   onSelect: () => void;
 }) {
+  const light = useColorScheme() === 'light';
   const inner = width - 2 * metrics.rowInset;
   const size = Math.min(MAX_SWATCH, Math.floor((inner - MIN_GAP * (SLOTS - 1)) / SLOTS));
   const layout = { width, size, gap: (inner - SLOTS * size) / (SLOTS - 1) };
@@ -104,8 +105,8 @@ export function PersonaColors({
       {PERSONA_COLORS.map((preset) => (
         <Swatch
           key={preset.id}
-          color={preset.id}
-          label={preset.label}
+          color={light ? preset.light : preset.id}
+          label={light && 'lightLabel' in preset ? preset.lightLabel : preset.label}
           layout={layout}
           selected={preset.id === color}
           onPress={() => {
