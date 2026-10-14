@@ -8,17 +8,31 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import { CallAsk } from '@/components/call-ask';
+import type { CallCard } from '@/live/agents';
+import type { AskOption } from '@/live/asks';
 import type { TranscriptEntry } from '@/live/types';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
-export function Transcript({ entries, active }: { entries: TranscriptEntry[]; active: boolean }) {
+export function Transcript({
+  entries,
+  active,
+  cards = [],
+  onAnswer,
+}: {
+  entries: TranscriptEntry[];
+  active: boolean;
+  cards?: CallCard[];
+  onAnswer?: (card: CallCard, option: AskOption) => void;
+}) {
   const scroll = useRef<ScrollView>(null);
   const following = useRef(true);
   const touching = useRef(false);
   const visible = entries.filter((entry) => entry.text.trim());
+  const moments = interleave(visible, cards);
 
   useEffect(() => {
     if (!active) return;
@@ -53,13 +67,33 @@ export function Transcript({ entries, active }: { entries: TranscriptEntry[]; ac
       }}
       contentContainerStyle={styles.content}
     >
-      {visible.length ? (
-        visible.map((entry) => <Line key={entry.id} entry={entry} />)
+      {moments.length ? (
+        moments.map((moment) =>
+          'ask' in moment ? (
+            <CallAsk
+              key={`ask ${moment.ask.id}`}
+              card={moment}
+              onAnswer={(option) => onAnswer?.(moment, option)}
+            />
+          ) : (
+            <Line key={moment.id} entry={moment} />
+          ),
+        )
       ) : (
         <Text style={styles.empty}>Your conversation will appear here.</Text>
       )}
     </ScrollView>
   );
+}
+
+// Each card sits where hex brought it up: before the first words said after it.
+function interleave(entries: TranscriptEntry[], cards: CallCard[]) {
+  const moments: (TranscriptEntry | CallCard)[] = [...entries];
+  for (const card of [...cards].sort((a, b) => a.at - b.at)) {
+    const after = moments.findIndex((moment) => !('ask' in moment) && moment.startMs > card.at);
+    moments.splice(after < 0 ? moments.length : after, 0, card);
+  }
+  return moments;
 }
 
 function Line({ entry }: { entry: TranscriptEntry }) {

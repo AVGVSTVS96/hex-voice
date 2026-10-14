@@ -1,3 +1,5 @@
+import type { Ask } from './asks';
+
 export type AgentTask = {
   id: string;
   state: 'running' | 'done' | 'failed';
@@ -5,7 +7,14 @@ export type AgentTask = {
   to?: string;
   line?: string;
 };
-export type AgentActivity = { version: number; call: string | null; tasks: AgentTask[] };
+// An ask hex put on screen during the call, with the answer once it has one.
+export type CallCard = { at: number; ask: Ask; answer?: string };
+export type AgentActivity = {
+  version: number;
+  call: string | null;
+  tasks: AgentTask[];
+  asks?: CallCard[];
+};
 export type AgentLine = {
   id: string;
   state: AgentTask['state'];
