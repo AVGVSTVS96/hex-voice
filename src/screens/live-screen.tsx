@@ -34,7 +34,9 @@ import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
 import { Persona, type PersonaState } from '@/components/persona';
 import { ScreenToolbar } from '@/components/screen-toolbar';
+import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
+import type { TasksAt } from '@/components/tasks/tasks-view';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceControl } from '@/components/voice-control';
@@ -55,7 +57,6 @@ import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
 import { asksAPI, tasksAPI } from '@/live/api';
-import type { Tab } from '@/live/tabs';
 import type { TaskRow } from '@/live/tasks';
 import { ENDINGS, callLength, transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
@@ -70,6 +71,7 @@ const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
 const PAD = Platform.OS === 'ios' && Platform.isPad;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
 // upright as it always has; iPad and iPhone Duo turn to fit however they're held.
@@ -105,19 +107,32 @@ function CallScreen({ pose }: { pose: Pose }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
-  const [tasksAt, setTasksAt] = useState<{ task?: string; tab?: Tab }>({});
+  const [tasksAt, setTasksAt] = useState<TasksAt>({});
   const counts = useTaskCounts();
   const calls = useCalls(drawerOpen);
   const phoneCall = usePhoneCall(calls.live, calls.calls);
-  const [viewing, setViewing] = useState<string | null>(null);
-  const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
-  const past = useCall(shown);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const layout = screenLayout({ width, height }, insets, pose);
-  const { orb, words, besideList, calls: list } = layout;
+  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side } = layout;
   const split = layout.kind === 'split';
-  const [reading, setReading] = useState(layout.reading);
+  // What the words show, in one place. Where the layout pulls the words down over the orb, they
+  // show once pulled; everywhere else they always show. Opening a past call pulls them, and letting
+  // them go goes back to the live call, so the two never disagree.
+  const [showing, setShowing] = useState<{ pulled: boolean; call: string | null }>({
+    pulled: false,
+    call: null,
+  });
+  const reading = !layout.pulls || showing.pulled;
+  const viewing = showing.call;
+  const pullWords = (pulled: boolean) =>
+    setShowing((now) => (pulled ? { ...now, pulled } : { pulled, call: null }));
+  const showCall = (call: string | null) =>
+    setShowing((now) => ({ pulled: now.pulled || call !== null, call }));
+  const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
+  const past = useCall(shown);
+  // On iPad, Tasks is a pane like Calls, and one of the two is open at a time.
+  const panes = side.place !== 'sheet';
   const reducedMotion = useReducedMotion();
   const connected = session.status === 'connected';
   const connecting = session.status === 'connecting';
@@ -220,8 +235,8 @@ function CallScreen({ pose }: { pose: Pose }) {
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
-  const progress = useSharedValue(layout.reading ? 1 : 0);
-  const goal = useSharedValue(layout.reading ? 1 : 0);
+  const progress = useSharedValue(reading ? 1 : 0);
+  const goal = useSharedValue(reading ? 1 : 0);
   const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
   const landing = useSharedValue(-1);
 
@@ -250,19 +265,14 @@ function CallScreen({ pose }: { pose: Pose }) {
     );
   };
 
-  // Turning the device into another arrangement shows the words where that arrangement starts
-  // them: on their own page, or behind the orb's pull-down on the phone.
-  const kind = useRef(layout.kind);
+  // The orb and the words follow what shows: a drag or a tap has already sent them on their way, so
+  // this only moves them when something else changed it, like turning the device or opening a call.
   useEffect(() => {
-    if (kind.current === layout.kind) return;
-    kind.current = layout.kind;
-    goal.set(layout.reading ? 1 : 0);
-    progress.set(withTiming(layout.reading ? 1 : 0, motion.reduced));
-    setReading(layout.reading);
-  }, [layout.kind, layout.reading, goal, progress]);
+    const target = reading ? 1 : 0;
+    if (goal.get() !== target) animateTo(target);
+  }, [reading]);
 
-  // Only the phone's arrangement pulls the words down over the orb; elsewhere they have a page.
-  const pulls = layout.kind === 'single';
+  const pulls = layout.pulls;
   const transcriptButton = pulls && !PAD;
   const drag = () =>
     Gesture.Pan()
@@ -298,7 +308,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         const target =
           velocityY > FLICK ? 1 : velocityY < -FLICK ? 0 : grab.get().crossed ? 1 - from : from;
         animateTo(target, velocityY / travel);
-        scheduleOnRN(setReading, target === 1);
+        scheduleOnRN(pullWords, target === 1);
       });
   const screenDrag = drag()
     .enabled(pulls && !reading)
@@ -306,10 +316,6 @@ function CallScreen({ pose }: { pose: Pose }) {
   // On the phone the transcript button waits where the orb docks, and tapping it sends the orb down
   // into its place. Tapping the orb comes back to it: from the words on the phone, from a past call
   // beside it.
-  const showWords = () => {
-    animateTo(1);
-    setReading(true);
-  };
   const orbGesture = Gesture.Race(
     drag().enabled(pulls && reading),
     Gesture.Tap()
@@ -317,20 +323,20 @@ function CallScreen({ pose }: { pose: Pose }) {
       .onEnd(() => {
         'worklet';
         if (!pulls) {
-          scheduleOnRN(setViewing, null);
+          scheduleOnRN(showCall, null);
           return;
         }
         animateTo(0);
-        scheduleOnRN(setReading, false);
+        scheduleOnRN(pullWords, false);
       }),
   );
 
-  useEffect(() => {
-    if (!reading) setViewing(null);
-  }, [reading]);
-
   const drawer = useSharedValue(0);
   const drawerFrom = useSharedValue(0);
+  const onDrawer = (open: boolean) => {
+    setDrawerOpen(open);
+    if (open && panes) setTasksOpen(false);
+  };
   const settleDrawer = (open: boolean, velocity = 0) => {
     'worklet';
     drawer.set(
@@ -338,7 +344,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         ? withTiming(open ? 1 : 0, motion.reduced)
         : withSpring(open ? 1 : 0, { ...motion.drawer, velocity: velocity / list.width }),
     );
-    scheduleOnRN(setDrawerOpen, open);
+    scheduleOnRN(onDrawer, open);
   };
   const drawerPan = (offset: number | [number, number]) =>
     Gesture.Pan()
@@ -375,37 +381,64 @@ function CallScreen({ pose }: { pose: Pose }) {
   const openCall = (call: CallSummary) => {
     if (!split) settleDrawer(false);
     if (call.id === calls.live && voiceLocked) return backToCall();
-    setViewing(call.id);
-    animateTo(1);
-    setReading(true);
+    showCall(call.id);
   };
   // A past call opened mid-call only changes what's on screen; the live call goes on underneath.
   const backToCall = () => {
     tick();
-    setViewing(null);
+    showCall(null);
   };
-  const screenStyle = useAnimatedStyle(() => {
-    const d = list.over ? 0 : drawer.get();
+  const leaveCall = () => setShowing({ pulled: false, call: null });
+
+  const pane = useSharedValue(0);
+  useEffect(() => {
+    if (!panes) return;
+    const to = tasksOpen ? 1 : 0;
+    pane.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
+  }, [tasksOpen, panes, reducedMotion, pane]);
+  // The call is a card. Calls and Tasks either slide it aside or take an edge of it, and while
+  // either is open its corners round off against them. Where they take an edge, what's on the call
+  // stays put in the window, so only the words move over into what's left.
+  const cardStyle = useAnimatedStyle(() => {
+    const d = drawer.get();
+    const t = pane.get();
+    const open = Math.max(list.place === 'over' ? 0 : d, side.place === 'sheet' ? 0 : t);
     return {
-      transform: [{ translateX: d * list.width }],
-      borderRadius: 44 * Math.min(1, d * 4),
-      borderWidth: d > 0 ? StyleSheet.hairlineWidth : 0,
+      left: list.place === 'beside' ? d * list.width : 0,
+      right: side.place === 'beside' ? t * side.width : 0,
+      transform: [
+        {
+          translateX:
+            (list.place === 'slide' ? d * list.width : 0) -
+            (side.place === 'slide' ? t * side.width : 0),
+        },
+      ],
+      borderRadius: 44 * Math.min(1, open * 4),
+      borderWidth: open > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });
+  const stageStyle = useAnimatedStyle(() => ({
+    left: list.place === 'beside' ? -drawer.get() * list.width : 0,
+  }));
   const sidebarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (drawer.get() - 1) * (list.over ? list.width : 48) }],
+    transform: [{ translateX: (drawer.get() - 1) * (list.place === 'over' ? list.width : 48) }],
+  }));
+  const paneStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: (1 - pane.get()) * 48 }],
   }));
   const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
   // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
-  const makesWay = list.over && layout.toolbar.axis === 'row';
+  const makesWay = list.place === 'over' && layout.toolbar.axis === 'row';
   const toolbarStyle = useAnimatedStyle(() => ({
     left: layout.toolbar.x + (makesWay ? drawer.get() * list.width : 0),
   }));
   const besideStyle = useAnimatedStyle(() => {
-    const d = list.over ? drawer.get() : 0;
+    const d = list.place === 'slide' ? 0 : drawer.get();
+    const t = side.place === 'beside' ? pane.get() : 0;
     return {
-      left: words.x + (besideList.x - words.x) * d,
-      width: words.width + (besideList.width - words.width) * d,
+      left: words.x + (besideCalls.x - words.x) * d + (besideTasks.x - words.x) * t,
+      width:
+        words.width + (besideCalls.width - words.width) * d + (besideTasks.width - words.width) * t,
     };
   });
 
@@ -435,7 +468,7 @@ function CallScreen({ pose }: { pose: Pose }) {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
-        (split ? 1 - drawer.get() : 1),
+        (split ? 1 - Math.max(drawer.get(), pane.get()) : 1),
       transform: [
         { translateX: orb.rest.x - size / 2 + (orb.read.x - orb.rest.x) * arc },
         { translateY: y - size / 2 + (orb.read.y - y) * t },
@@ -461,11 +494,7 @@ function CallScreen({ pose }: { pose: Pose }) {
 
   const startCall = (about?: string) => {
     const start = () => {
-      if (viewing) {
-        animateTo(layout.reading ? 1 : 0);
-        setReading(layout.reading);
-        setViewing(null);
-      }
+      if (viewing) leaveCall();
       void session.start(voice, about);
     };
     if (!phoneCall) return start();
@@ -488,30 +517,38 @@ function CallScreen({ pose }: { pose: Pose }) {
     haptic(Haptics.selectionAsync);
     session.toggleMute();
   };
-  const openTasks = (at: { task?: string; tab?: Tab } = {}) => {
+  const openTasks = (at: TasksAt = {}) => {
     tick();
     setTasksAt(at);
     setTasksOpen(true);
+    if (panes && drawerOpen) settleDrawer(false);
+  };
+  const toggleTasks = () => {
+    if (!tasksOpen) return openTasks();
+    tick();
+    setTasksOpen(false);
+  };
+  // A sheet steps aside for the call it starts; a pane stays open beside it.
+  const stepAside = () => {
+    if (!panes) setTasksOpen(false);
   };
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
-    setTasksOpen(false);
+    stepAside();
     if (voiceLocked) void tasksAPI.talk(task.id).catch(() => {});
     else if (voiceLoaded) startCall(task.id);
   };
   const removeShown =
     shown && shown.id !== calls.live
       ? () => {
-          setReading(layout.reading);
-          animateTo(layout.reading ? 1 : 0);
-          setViewing(null);
+          leaveCall();
           calls.remove(shown.id);
         }
       : undefined;
 
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
-    setTasksOpen(false);
+    stepAside();
     if (voiceLocked) void asksAPI.talk().catch(() => {});
     else if (voiceLoaded) startCall('asks');
   };
@@ -553,7 +590,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           haptics={preferences.haptics}
           onOpen={openCall}
           onDelete={(id) => {
-            if (id === viewing) setReading(layout.reading);
+            if (id === viewing) leaveCall();
             calls.remove(id);
           }}
         />
@@ -561,192 +598,175 @@ function CallScreen({ pose }: { pose: Pose }) {
     </GestureDetector>
   );
 
+  const tasks = {
+    open: tasksOpen,
+    at: tasksAt,
+    haptics: preferences.haptics,
+    onTalk: talkAbout,
+    onGoThrough: goThrough,
+  };
+
   return (
     <>
-      {!list.over && sidebar}
-      <Animated.View style={[styles.screen, screenStyle]}>
-        <GestureDetector gesture={screenDrag}>
-          <View style={styles.fill}>
-            <Animated.View
-              pointerEvents={reading ? 'auto' : 'none'}
-              accessibilityElementsHidden={!reading}
-              importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
-              style={[styles.transcript, { top: words.top }, besideStyle, transcriptStyle]}
-            >
-              {shown ? (
-                <CallTranscript
-                  summary={shown}
-                  call={past.call}
-                  failed={past.failed}
-                  live={shown.id === calls.live}
-                />
-              ) : (
-                <Transcript
-                  entries={session.transcript}
-                  active={reading}
-                  cards={cards}
-                  onAnswer={(card, option) =>
-                    void asksAPI.answer(card.ask.id, option.label).catch(() => {})
-                  }
-                  onOpenTask={(task) => openTasks({ task })}
-                />
-              )}
-              <View pointerEvents="none" style={styles.fade} />
-              <View pointerEvents="none" style={styles.fadeBottom} />
-            </Animated.View>
-            {transcriptButton && (
+      {list.place !== 'over' && sidebar}
+      {panes && <TasksPane {...tasks} top={insets.top} width={side.width} style={paneStyle} />}
+      <Animated.View style={[styles.card, cardStyle]}>
+        <Animated.View style={[styles.stage, { width }, stageStyle]}>
+          <GestureDetector gesture={screenDrag}>
+            <View style={styles.fill}>
               <Animated.View
-                pointerEvents={reading ? 'none' : 'auto'}
-                accessibilityElementsHidden={reading}
-                importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
-                style={[
-                  styles.dock,
-                  { left: orb.read.x - DOCKED / 2, top: orb.read.y - DOCKED / 2 },
-                  dockStyle,
-                ]}
+                pointerEvents={reading ? 'auto' : 'none'}
+                accessibilityElementsHidden={!reading}
+                importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
+                style={[styles.transcript, { top: words.top }, besideStyle, transcriptStyle]}
               >
-                <VoiceControl
-                  icon="transcript"
-                  label="Show transcript"
-                  testID="transcript-button"
-                  size={DOCKED}
-                  onPress={showWords}
+                {shown && (
+                  <PastCallBar
+                    call={shown}
+                    live={shown.id === calls.live}
+                    onCall={voiceLocked}
+                    transcript={past.call && transcriptText(past.call)}
+                    onBack={backToCall}
+                    onDelete={removeShown}
+                  />
+                )}
+                <View style={styles.words}>
+                  {shown ? (
+                    <CallTranscript
+                      summary={shown}
+                      call={past.call}
+                      failed={past.failed}
+                      live={shown.id === calls.live}
+                    />
+                  ) : (
+                    <Transcript
+                      entries={session.transcript}
+                      active={reading}
+                      cards={cards}
+                      onAnswer={(card, option) =>
+                        void asksAPI.answer(card.ask.id, option.label).catch(() => {})
+                      }
+                      onOpenTask={(task) => openTasks({ task })}
+                    />
+                  )}
+                  <View pointerEvents="none" style={styles.fade} />
+                  <View pointerEvents="none" style={styles.fadeBottom} />
+                </View>
+              </Animated.View>
+              {transcriptButton && (
+                <Animated.View
+                  pointerEvents={reading ? 'none' : 'auto'}
+                  accessibilityElementsHidden={reading}
+                  importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
+                  style={[
+                    styles.dock,
+                    { left: orb.read.x - DOCKED / 2, top: orb.read.y - DOCKED / 2 },
+                    dockStyle,
+                  ]}
+                >
+                  <VoiceControl
+                    icon="transcript"
+                    label="Show transcript"
+                    testID="transcript-button"
+                    size={DOCKED}
+                    onPress={() => pullWords(true)}
+                  />
+                </Animated.View>
+              )}
+              <GestureDetector gesture={orbGesture}>
+                <Animated.View
+                  accessible
+                  accessibilityLabel={status}
+                  style={[styles.orb, { width: size, height: size }, orbStyle]}
+                >
+                  <Persona
+                    variant={variant}
+                    state={personaState}
+                    size={size}
+                    color={preferences.personaColor}
+                    palette={opalPaletteInput(preferences.opalPalette)}
+                  />
+                </Animated.View>
+              </GestureDetector>
+            </View>
+          </GestureDetector>
+          <Animated.View
+            pointerEvents="box-none"
+            onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
+            style={[
+              styles.footer,
+              { left: layout.footer.x, width: layout.footer.width },
+              split && besideStyle,
+              { paddingBottom: layout.footer.bottom },
+            ]}
+          >
+            {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
+              <Animated.View
+                entering={FadeIn.duration(motion.toolbar)}
+                style={[styles.wrapUp, split && styles.leading]}
+              >
+                {wrapUp.title && (
+                  <Text numberOfLines={1} style={styles.wrapTitle}>
+                    {wrapUp.title}
+                  </Text>
+                )}
+                <WrapUp
+                  center={!split}
+                  summary={wrapUp.summary}
+                  waiting={wrapUp.waiting?.slice(0, 3)}
                 />
               </Animated.View>
-            )}
-            <GestureDetector gesture={orbGesture}>
-              <Animated.View
-                accessible
-                accessibilityLabel={status}
-                style={[styles.orb, { width: size, height: size }, orbStyle]}
+            ) : null}
+            {ending ? (
+              <Text
+                accessibilityRole="alert"
+                style={[styles.ended, split && styles.leadingText, ending.bad && styles.bad]}
               >
-                <Persona
-                  variant={variant}
-                  state={personaState}
-                  size={size}
-                  color={preferences.personaColor}
-                  palette={opalPaletteInput(preferences.opalPalette)}
-                />
-              </Animated.View>
-            </GestureDetector>
-          </View>
-        </GestureDetector>
-        {shown && layout.toolbar.axis === 'row' ? (
-          <PastCallBar
-            call={shown}
-            live={shown.id === calls.live}
-            onCall={voiceLocked}
-            transcript={past.call && transcriptText(past.call)}
-            leading={
-              <VoiceControl
-                icon="calls"
-                label="Calls"
-                testID="calls-button"
-                selected={drawerOpen}
-                onPress={toggleDrawer}
-              />
-            }
-            style={[toolbarPlace, toolbarStyle]}
-            onBack={backToCall}
-            onDelete={removeShown}
-          />
-        ) : (
-          <ScreenToolbar
-            axis={layout.toolbar.axis}
-            style={[toolbarPlace, toolbarStyle]}
-            callsOpen={drawerOpen}
-            tasks={{ ...counts, open: tasksOpen }}
-            onCalls={toggleDrawer}
-            onTasks={() => openTasks()}
-            onSettings={() => setSettingsOpen(true)}
-          />
-        )}
-        {shown && layout.toolbar.axis === 'column' && (
-          <PastCallBar
-            call={shown}
-            live={shown.id === calls.live}
-            onCall={voiceLocked}
-            transcript={past.call && transcriptText(past.call)}
-            style={[{ top: insets.top + 8 }, besideStyle]}
-            onBack={backToCall}
-            onDelete={removeShown}
-          />
-        )}
-        <View
-          pointerEvents="box-none"
-          onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
-          style={[
-            styles.footer,
-            {
-              left: layout.footer.x,
-              width: layout.footer.width,
-              paddingBottom: layout.footer.bottom,
-            },
-          ]}
-        >
-          {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
-            <Animated.View
-              entering={FadeIn.duration(motion.toolbar)}
-              style={[styles.wrapUp, split && styles.leading]}
-            >
-              {wrapUp.title && (
-                <Text numberOfLines={1} style={styles.wrapTitle}>
-                  {wrapUp.title}
-                </Text>
-              )}
-              <WrapUp
-                center={!split}
-                summary={wrapUp.summary}
-                waiting={wrapUp.waiting?.slice(0, 3)}
-              />
-            </Animated.View>
-          ) : null}
-          {ending ? (
-            <Text
-              accessibilityRole="alert"
-              style={[styles.ended, split && styles.leadingText, ending.bad && styles.bad]}
-            >
-              {session.ending === 'no-connect'
-                ? ending.line
-                : `${ending.line} · ${callLength(session.elapsedSeconds)}`}
-            </Text>
-          ) : session.interrupted ? (
-            <Text accessibilityRole="alert" style={[styles.ended, split && styles.leadingText]}>
-              Paused while your phone has the audio
-            </Text>
-          ) : (
-            session.error && (
-              <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                {session.error}
+                {session.ending === 'no-connect'
+                  ? ending.line
+                  : `${ending.line} · ${callLength(session.elapsedSeconds)}`}
               </Text>
-            )
-          )}
-          {layout.controls === 'inline' && controls}
-        </View>
-        {layout.controls !== 'inline' && controls}
-        <Pressable
-          pointerEvents={agent ? 'auto' : 'none'}
-          onPress={() => openTasks({ tab: 'working' })}
-          accessibilityRole="button"
-          accessibilityHint="Opens what hex is working on"
-          hitSlop={{ top: 8, bottom: 12 }}
-          style={[
-            styles.agent,
-            { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
-          ]}
-        >
-          <AgentLine line={agent} />
-        </Pressable>
-        <TasksSheet
-          isPresented={tasksOpen}
-          onDismiss={() => setTasksOpen(false)}
-          onCall={voiceLocked}
-          haptics={preferences.haptics}
-          onTalk={talkAbout}
-          onGoThrough={goThrough}
-          task={tasksAt.task}
-          tab={tasksAt.tab}
+            ) : session.interrupted ? (
+              <Text accessibilityRole="alert" style={[styles.ended, split && styles.leadingText]}>
+                Paused while your phone has the audio
+              </Text>
+            ) : (
+              session.error && (
+                <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
+                  {session.error}
+                </Text>
+              )
+            )}
+            {layout.controls === 'inline' && controls}
+          </Animated.View>
+          <AnimatedPressable
+            pointerEvents={agent ? 'auto' : 'none'}
+            onPress={() => openTasks({ tab: 'working' })}
+            accessibilityRole="button"
+            accessibilityHint="Opens what hex is working on"
+            hitSlop={{ top: 8, bottom: 12 }}
+            style={[
+              styles.agent,
+              { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
+              split && besideStyle,
+            ]}
+          >
+            <AgentLine line={agent} />
+          </AnimatedPressable>
+        </Animated.View>
+        <ScreenToolbar
+          axis={layout.toolbar.axis}
+          style={[toolbarPlace, toolbarStyle]}
+          callsOpen={drawerOpen}
+          tasks={{ ...counts, open: tasksOpen }}
+          onCalls={toggleDrawer}
+          onTasks={toggleTasks}
+          onSettings={() => setSettingsOpen(true)}
         />
+        {layout.controls !== 'inline' && controls}
+        {!panes && (
+          <TasksSheet {...tasks} onCall={voiceLocked} onDismiss={() => setTasksOpen(false)} />
+        )}
         <VoiceSettings
           fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
           isPresented={settingsOpen}
@@ -765,7 +785,7 @@ function CallScreen({ pose }: { pose: Pose }) {
             <View style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
-        {list.over && !split && (
+        {list.place === 'over' && !split && (
           <Animated.View
             pointerEvents="none"
             style={[styles.dim, { left: layout.content.x, width: layout.content.width }, dimStyle]}
@@ -779,8 +799,16 @@ function CallScreen({ pose }: { pose: Pose }) {
             />
           </GestureDetector>
         )}
+        {tasksOpen && side.place === 'slide' && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close tasks"
+            onPress={toggleTasks}
+            style={styles.fill}
+          />
+        )}
       </Animated.View>
-      {list.over && sidebar}
+      {list.place === 'over' && sidebar}
     </>
   );
 }
@@ -819,8 +847,8 @@ const FADE = [{ color: theme.background }, { color: 'transparent' }];
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.sheet },
-  screen: {
-    flex: 1,
+  card: {
+    ...StyleSheet.absoluteFill,
     backgroundColor: theme.background,
     overflow: 'hidden',
     borderColor: theme.edge,
@@ -836,7 +864,9 @@ const styles = StyleSheet.create({
   leadingText: { textAlign: 'left', paddingHorizontal: 0 },
   wrapTitle: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   fill: { ...StyleSheet.absoluteFill },
+  stage: { position: 'absolute', top: 0, bottom: 0 },
   transcript: { position: 'absolute' },
+  words: { flex: 1 },
   fade: {
     position: 'absolute',
     top: 0,

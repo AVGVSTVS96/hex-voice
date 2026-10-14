@@ -1,6 +1,4 @@
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { type AnimatedStyle } from 'react-native-reanimated';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CallMenu } from '@/components/call-menu';
 import { callName, callWhen, type CallSummary } from '@/live/calls';
@@ -11,27 +9,15 @@ type Props = {
   live: boolean;
   onCall: boolean;
   transcript?: string;
-  leading?: ReactNode;
-  style?: StyleProp<AnimatedStyle<ViewStyle>>;
   onBack: () => void;
   onDelete?: () => void;
 };
 
-// A past call's title, small, with its menu: in the toolbar's place on the phone, over the words
-// where the toolbar lives in a side column.
-export function PastCallBar({
-  call,
-  live,
-  onCall,
-  transcript,
-  leading = <View style={styles.spacer} />,
-  style,
-  onBack,
-  onDelete,
-}: Props) {
+// A past call's title, small, with its menu, heading its words.
+export function PastCallBar({ call, live, onCall, transcript, onBack, onDelete }: Props) {
   return (
-    <Animated.View pointerEvents="box-none" style={[styles.bar, style]}>
-      {leading}
+    <View pointerEvents="box-none" style={styles.bar}>
+      <View style={styles.spacer} />
       <View pointerEvents="box-none" style={styles.title}>
         <Text numberOfLines={1} style={styles.name}>
           {callName(call)}
@@ -48,12 +34,12 @@ export function PastCallBar({
         )}
       </View>
       <CallMenu transcript={transcript} title={callName(call)} onDelete={onDelete} />
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { position: 'absolute', flexDirection: 'row', gap: 12 },
+  bar: { flexDirection: 'row', gap: 12 },
   spacer: { width: 48 },
   title: { flex: 1, alignItems: 'center', paddingTop: 3 },
   name: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },

@@ -11,6 +11,7 @@ const WORDS_BESIDE = 520;
 const CALL_BESIDE = 680;
 const LIST = 360;
 const SIDEBAR = 330;
+const TASKS = 380;
 
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -25,6 +26,19 @@ type Span = { x: number; width: number };
 // - stacked: the orb above the fold and the words below it (iPhone Duo set down on a table)
 // Where the system puts its bars down the side (iPhone Duo), the toolbar and call buttons move
 // into that side column, and the content is the rest of the screen.
+//
+// Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
+// (single), and everywhere else they have a place of their own and always show.
+//
+// Calls and Tasks come in from the sides in one of these ways:
+// - slide: the call slides aside as a card, showing the pane beneath (the phone's Calls, iPad
+//   portrait)
+// - beside: the call's card gives up that edge to the pane and its words move into what's left
+//   (iPad landscape)
+// - over: the pane comes in over the call (iPhone Duo)
+// - sheet: Tasks rises as a sheet (phone and iPhone Duo)
+export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' };
+
 export type Layout = {
   kind: 'single' | 'split' | 'stacked';
   content: Rect;
@@ -35,20 +49,36 @@ export type Layout = {
   // when the words show: docked small in the corner, or at full size on its own page.
   orb: { size: number; rest: Spot; room: { top: number; bottom: number }; read: Spot };
   words: Span & { top: number };
-  // Where the words move while Calls lists beside them.
-  besideList: Span;
+  // Where the words move while Calls or Tasks sit beside them.
+  besideCalls: Span;
+  besideTasks: Span;
   footer: Span & { bottom: number };
   agent: Span & { bottom: number };
-  // The list either slides the whole screen aside (phone) or comes in over the content.
-  calls: { width: number; over: boolean };
-  reading: boolean;
+  calls: Pane;
+  tasks: Pane;
+  pulls: boolean;
 };
 
 export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   const frame = frameFor(window, insets, pose);
   if (pose.regular && window.width > window.height) return split(frame, pose);
-  if (pose.fold?.active && pose.fold.width > pose.fold.height) return stacked(frame, pose.fold);
-  return single(frame);
+  if (pose.fold?.active && pose.fold.width > pose.fold.height)
+    return stacked(frame, pose, pose.fold);
+  return single(frame, pose);
+}
+
+// iPad keeps Tasks open as a pane of its own; iPhone and iPhone Duo raise it as a sheet.
+function tasksPane(pose: Pose, place: 'slide' | 'beside'): Pane {
+  return pose.regular && !pose.fold && !pose.bar
+    ? { width: TASKS, place }
+    : { width: TASKS, place: 'sheet' };
+}
+
+// The words' span centered in what the card keeps between `from` and `to`.
+function centered(from: number, to: number): Span {
+  const room = to - from - 80;
+  const width = Math.min(room - 60, CALL_BESIDE);
+  return { x: from + 40 + (room - width) / 2, width };
 }
 
 type Frame = ReturnType<typeof frameFor>;
@@ -92,7 +122,8 @@ function frameFor(window: Size, insets: Insets, pose: Pose) {
   };
 }
 
-function single({ window, insets, bottomInset, content, toolbar, controls, top }: Frame): Layout {
+function single(frame: Frame, pose: Pose): Layout {
+  const { window, insets, bottomInset, content, toolbar, controls, top } = frame;
   const center = content.x + content.width / 2;
   const width = Math.min(content.width - 2 * GUTTER, WORDS);
   const words = { x: center - width / 2, width };
@@ -116,11 +147,13 @@ function single({ window, insets, bottomInset, content, toolbar, controls, top }
         },
       },
       words: { ...words, top: top + 12 },
-      besideList: words,
+      besideCalls: words,
+      besideTasks: words,
       footer: { ...inset, bottom: bottomInset },
       agent,
-      calls: { width: SIDEBAR, over: false },
-      reading: false,
+      calls: { width: SIDEBAR, place: 'slide' },
+      tasks: tasksPane(pose, 'slide'),
+      pulls: true,
     };
   }
   // With the buttons in the side column, the docked orb takes the content's bottom corner and the
@@ -138,11 +171,13 @@ function single({ window, insets, bottomInset, content, toolbar, controls, top }
       read: { x: content.x + GUTTER + DOCKED / 2, y: dock, size: DOCKED },
     },
     words: { ...words, top: insets.top + 72 },
-    besideList: words,
+    besideCalls: words,
+    besideTasks: words,
     footer: { ...inset, bottom: window.height - dock + DOCKED / 2 + 18 },
     agent,
-    calls: { width: Math.min(content.width - 72, LIST), over: true },
-    reading: false,
+    calls: { width: Math.min(content.width - 72, LIST), place: 'over' },
+    tasks: tasksPane(pose, 'slide'),
+    pulls: true,
   };
 }
 
@@ -155,14 +190,8 @@ function split(frame: Frame, pose: Pose): Layout {
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? insets.bottom : bottomInset + CONTROLS + 14;
   const list = fold ? pane : LIST;
-  const from = content.x + list + 40;
-  const room = content.x + content.width - 40 - from;
-  const besideList = fold
-    ? { x: page, width: right - page }
-    : {
-        x: from + (room - Math.min(room - 60, CALL_BESIDE)) / 2,
-        width: Math.min(room - 60, CALL_BESIDE),
-      };
+  const tasks = tasksPane(pose, 'beside');
+  const end = content.x + content.width;
   return {
     kind: 'split',
     content,
@@ -175,22 +204,24 @@ function split(frame: Frame, pose: Pose): Layout {
       read: { x: content.x + pane / 2, y: window.height / 2 },
     },
     words: { ...words, top: controls ? insets.top + 72 : toolbar.y + 64 },
-    besideList,
+    besideCalls: fold ? { x: page, width: right - page } : centered(content.x + list, end),
+    besideTasks: centered(content.x, end - tasks.width),
     footer: { ...words, bottom: agentBottom + AGENT },
     agent: { ...words, bottom: agentBottom },
-    calls: { width: list, over: true },
-    reading: true,
+    calls: { width: list, place: fold ? 'over' : 'beside' },
+    tasks,
+    pulls: false,
   };
 }
 
-function stacked(frame: Frame, fold: Rect): Layout {
-  const base = single(frame);
+function stacked(frame: Frame, pose: Pose, fold: Rect): Layout {
+  const base = single(frame, pose);
   const size = Math.min(base.orb.size, (fold.y - frame.top) * 0.78);
   return {
     ...base,
     kind: 'stacked',
     orb: { ...base.orb, size, read: { x: base.orb.rest.x, y: (frame.top + fold.y) / 2 } },
     words: { ...base.words, top: fold.y + fold.height + 8 },
-    reading: true,
+    pulls: false,
   };
 }
