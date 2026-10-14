@@ -1,6 +1,12 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 import { Divider } from '@expo/ui/swift-ui';
-import { accessibilityLabel, contentShape, padding, shapes } from '@expo/ui/swift-ui/modifiers';
+import {
+  accessibilityLabel,
+  contentShape,
+  foregroundStyle,
+  padding,
+  shapes,
+} from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
@@ -65,7 +71,9 @@ export function SettingRow({
       ) : (
         <Spacer style={{ width: metrics.rowIcon }} />
       )}
-      <Text textStyle={{ color: theme.text, fontSize: metrics.body }}>{title}</Text>
+      <Text textStyle={{ fontSize: metrics.body }} modifiers={[foregroundStyle(theme.text)]}>
+        {title}
+      </Text>
       <Spacer flexible />
       {children}
     </Row>

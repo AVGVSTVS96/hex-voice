@@ -8,7 +8,7 @@ type Props = { transcript?: string; title: string; onDelete?: () => void; size?:
 
 export function CallMenu({ transcript, title, onDelete, size = 48 }: Props) {
   return (
-    <Host colorScheme="dark" matchContents style={{ width: size, height: size }}>
+    <Host matchContents style={{ width: size, height: size }}>
       <Menu
         label={
           <Column

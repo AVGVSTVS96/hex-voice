@@ -712,13 +712,15 @@ function useEndedCall(
   }, [status]);
 }
 
+const FADE = [{ color: theme.background }, { color: 'transparent' }];
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.sheet },
   screen: {
     flex: 1,
     backgroundColor: theme.background,
     overflow: 'hidden',
-    borderColor: '#262628',
+    borderColor: theme.edge,
     borderCurve: 'continuous',
   },
   sidebar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR },
@@ -738,7 +740,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 36,
-    experimental_backgroundImage: `linear-gradient(${theme.background}, transparent)`,
+    experimental_backgroundImage: [{ type: 'linear-gradient', colorStops: FADE }],
   },
   fadeBottom: {
     position: 'absolute',
@@ -746,7 +748,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 36,
-    experimental_backgroundImage: `linear-gradient(transparent, ${theme.background})`,
+    experimental_backgroundImage: [
+      { type: 'linear-gradient', direction: 'to top', colorStops: FADE },
+    ],
   },
   orb: { position: 'absolute' },
   toolbar: {

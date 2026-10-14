@@ -1,4 +1,11 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ColorValue,
+} from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/glyph';
@@ -24,7 +31,10 @@ const MARKS: Record<CallMark['kind'], SFSymbol> = {
   warned: 'timer',
 };
 
-const MARKERS: Record<CallTask['state'], { symbol: SFSymbol; color: string; fill: string }> = {
+const MARKERS: Record<
+  CallTask['state'],
+  { symbol: SFSymbol; color: ColorValue; fill: ColorValue }
+> = {
   running: { symbol: 'circle.dotted', color: theme.accent, fill: theme.accentMuted },
   done: { symbol: 'checkmark', color: theme.accent, fill: theme.accentMuted },
   failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerMuted },

@@ -1,4 +1,5 @@
-import { Icon, Text } from '@expo/ui';
+import { Icon } from '@expo/ui';
+import { Text } from 'react-native';
 
 import type { VoiceGlyphProps } from './voice-glyph.types';
 
@@ -17,7 +18,7 @@ const symbols = {
 export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
   if (process.env.EXPO_OS === 'ios') return <Icon name={symbols[name]} size={size} color={color} />;
   return (
-    <Text textStyle={{ color, fontSize: size }}>
+    <Text style={{ color, fontSize: size }}>
       {name === 'close'
         ? '×'
         : name === 'calls'

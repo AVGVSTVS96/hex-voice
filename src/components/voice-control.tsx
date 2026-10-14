@@ -36,7 +36,6 @@ export function VoiceControl({
   const color = prominent ? theme.onProminent : theme.text;
   return (
     <Host
-      colorScheme="dark"
       matchContents
       style={{ width: size, height: size }}
       accessibilityLabel={process.env.EXPO_OS === 'web' ? label : undefined}

@@ -15,6 +15,7 @@ import {
   clipShape,
   contentShape,
   controlSize,
+  foregroundStyle,
   frame,
   labelStyle,
   offset,
@@ -113,7 +114,7 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
   const shown = task ?? tasks?.find((row) => row.id === taskId);
 
   return (
-    <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={isPresented}
         onIsPresentedChange={(presented) => {
@@ -156,8 +157,9 @@ export function TasksSheet({ isPresented, onDismiss, onCall, haptics, onTalk }: 
                     <GroupHead title={group.title} count={group.tasks.length} />
                     {group.key === 'idle' ? (
                       <Text
-                        textStyle={{ color: theme.tertiary, fontSize: 15, lineHeight: 20 }}
+                        textStyle={{ fontSize: 15, lineHeight: 20 }}
                         modifiers={[
+                          foregroundStyle(theme.tertiary),
                           padding({ leading: INSET, trailing: INSET, top: 6, bottom: 14 }),
                           frame({ maxWidth: Infinity, alignment: 'leading' }),
                         ]}
@@ -249,10 +251,18 @@ function Header({
       )}
       <Spacer flexible />
       <Column alignment="center" spacing={1}>
-        <Text numberOfLines={1} textStyle={{ color: theme.text, fontSize: 17, fontWeight: '600' }}>
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 17, fontWeight: '600' }}
+          modifiers={[foregroundStyle(theme.text)]}
+        >
           {title}
         </Text>
-        <Text numberOfLines={1} textStyle={{ color: theme.secondary, fontSize: 13 }}>
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 13 }}
+          modifiers={[foregroundStyle(theme.secondary)]}
+        >
           {subtitle}
         </Text>
       </Column>
@@ -285,9 +295,16 @@ function GroupHead({ title, count }: { title: string; count: number }) {
         frame({ maxWidth: Infinity }),
       ]}
     >
-      <Text textStyle={{ color: theme.secondary, fontSize: 13, fontWeight: '600' }}>{title}</Text>
+      <Text
+        textStyle={{ fontSize: 13, fontWeight: '600' }}
+        modifiers={[foregroundStyle(theme.secondary)]}
+      >
+        {title}
+      </Text>
       <Spacer flexible />
-      <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{String(count)}</Text>
+      <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        {String(count)}
+      </Text>
     </Row>
   );
 }
@@ -349,27 +366,40 @@ function Line({
         <Row alignment="center" spacing={6} modifiers={[frame({ maxWidth: Infinity })]}>
           <Text
             numberOfLines={1}
-            textStyle={{ color: theme.text, fontSize: 16, fontWeight: sub ? '400' : '500' }}
+            textStyle={{ fontSize: 16, fontWeight: sub ? '400' : '500' }}
+            modifiers={[foregroundStyle(theme.text)]}
           >
             {title}
           </Text>
           {where ? (
-            <Text numberOfLines={1} textStyle={{ color: theme.secondary, fontSize: 14 }}>
+            <Text
+              numberOfLines={1}
+              textStyle={{ fontSize: 14 }}
+              modifiers={[foregroundStyle(theme.secondary)]}
+            >
               {where}
             </Text>
           ) : null}
           <Spacer flexible />
-          {time ? <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{time}</Text> : null}
+          {time ? (
+            <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+              {time}
+            </Text>
+          ) : null}
         </Row>
         {text ? (
           <Text
             numberOfLines={2}
             textStyle={{
-              color: state === 'failed' ? theme.danger : live ? theme.text : theme.secondary,
               fontSize: 15,
               lineHeight: 17,
               fontWeight: state === 'working' && !sub ? '500' : '400',
             }}
+            modifiers={[
+              foregroundStyle(
+                state === 'failed' ? theme.danger : live ? theme.text : theme.secondary,
+              ),
+            ]}
           >
             {text}
           </Text>
@@ -398,12 +428,17 @@ function Entry({ state, newest, text, at }: HistoryEntry) {
     >
       <Mark state={state} quiet={!newest} />
       <Text
-        textStyle={{ color: newest ? theme.text : theme.secondary, fontSize: 15, lineHeight: 17 }}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        textStyle={{ fontSize: 15, lineHeight: 17 }}
+        modifiers={[
+          foregroundStyle(newest ? theme.text : theme.secondary),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ]}
       >
         {text}
       </Text>
-      <Text textStyle={{ color: theme.tertiary, fontSize: 13 }}>{clock(new Date(at))}</Text>
+      <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        {clock(new Date(at))}
+      </Text>
     </Row>
   );
 }
@@ -416,7 +451,12 @@ function History({ title, entries }: { title?: string; entries: HistoryEntry[] }
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     >
       {title ? (
-        <Text textStyle={{ color: theme.secondary, fontSize: 13, fontWeight: '600' }}>{title}</Text>
+        <Text
+          textStyle={{ fontSize: 13, fontWeight: '600' }}
+          modifiers={[foregroundStyle(theme.secondary)]}
+        >
+          {title}
+        </Text>
       ) : null}
       {entries.map((entry, i) => (
         <Entry key={`${entry.at} ${i}`} {...entry} />
@@ -473,11 +513,19 @@ function Detail({
               >
                 <Row alignment="center" spacing={8}>
                   <Mark state="needs" />
-                  <Text textStyle={{ color: theme.accent, fontSize: 13, fontWeight: '600' }}>
+                  <Text
+                    textStyle={{ fontSize: 13, fontWeight: '600' }}
+                    modifiers={[foregroundStyle(theme.accent)]}
+                  >
                     {`Waiting on you since ${clock(new Date(task.since))}`}
                   </Text>
                 </Row>
-                <Text textStyle={{ color: theme.text, fontSize: 17, lineHeight: 20 }}>{needs}</Text>
+                <Text
+                  textStyle={{ fontSize: 17, lineHeight: 20 }}
+                  modifiers={[foregroundStyle(theme.text)]}
+                >
+                  {needs}
+                </Text>
               </Column>
             </Inset>
           ) : task.state === 'working' ? (
@@ -551,7 +599,10 @@ function Steps({ task, agent, onBack }: { task: Task; agent: string | null; onBa
               }))}
             />
           ) : (
-            <Text textStyle={{ color: theme.tertiary, fontSize: 15, lineHeight: 20 }}>
+            <Text
+              textStyle={{ fontSize: 15, lineHeight: 20 }}
+              modifiers={[foregroundStyle(theme.tertiary)]}
+            >
               {state === 'working' ? 'No steps yet' : 'Steps show while it works'}
             </Text>
           )}
@@ -601,11 +652,8 @@ function Pill({
     >
       <Spacer flexible />
       <Text
-        textStyle={{
-          color: prominent ? theme.onProminent : theme.text,
-          fontSize: 17,
-          fontWeight: prominent ? '600' : '500',
-        }}
+        textStyle={{ fontSize: 17, fontWeight: prominent ? '600' : '500' }}
+        modifiers={[foregroundStyle(prominent ? theme.onProminent : theme.text)]}
       >
         {label}
       </Text>
