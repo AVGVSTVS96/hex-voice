@@ -1,4 +1,4 @@
-import { Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
 import {
   BottomSheet,
   Button as NativeButton,
@@ -32,7 +32,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -114,7 +114,6 @@ const APPEARANCE_HEIGHT =
   groupHeight(3) +
   SHEET_BOTTOM;
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
-const DETENTS = [{ height: APPEARANCE_HEIGHT }, { height: VOICE_HEIGHT }];
 
 export function VoiceSettings({
   fit,
@@ -130,10 +129,16 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const window = useWindowDimensions();
-  const width = fit === 'phone' ? window.width : fit === 'centered' ? CENTERED : BESIDE.width;
+  // Where the width is regular the system picks the sheet's width (a form sheet on iPad, an
+  // edge-attached sheet on iPhone Duo's inner screen), so the pages fit the width it gives.
+  const [given, setGiven] = useState<number>();
+  const width =
+    fit === 'phone' ? window.width : (given ?? (fit === 'centered' ? CENTERED : BESIDE.width));
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-  const rowsWidth = fit === 'beside' ? width - BESIDE.carousel - 3 * metrics.gutter : contentWidth;
+  const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
+  const rowsWidth = fit === 'beside' ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
   const appearanceHeight = fit === 'beside' ? BESIDE.height : APPEARANCE_HEIGHT;
+  const detents = [{ height: appearanceHeight }, { height: VOICE_HEIGHT }];
   const orbSize = fit === 'beside' ? BESIDE.orb : PREVIEW_ORB;
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
@@ -178,7 +183,7 @@ export function VoiceSettings({
     <SelectionCarousel
       options={PERSONA_VARIANTS}
       value={persona}
-      width={fit === 'beside' ? BESIDE.carousel : contentWidth}
+      width={fit === 'beside' ? carouselWidth : contentWidth}
       height={PERSONA_PAGE}
       preview={
         isPresented ? (
@@ -296,22 +301,23 @@ export function VoiceSettings({
         <SheetContent
           modifiers={[
             presentationDragIndicator('visible'),
-            fit === 'phone'
-              ? presentationDetents(DETENTS, {
-                  selection: DETENTS[onVoicePage ? 1 : 0],
-                  // Dragging the sheet to the other height reads as leaving the page you're on: up
-                  // from the voices goes back to settings, down from settings closes the sheet.
-                  onSelectionChange: (detent) => {
-                    const voiceSized =
-                      typeof detent === 'object' &&
-                      'height' in detent &&
-                      detent.height === VOICE_HEIGHT;
-                    if (voiceSized === onVoicePage) return;
-                    if (onVoicePage) showVoices(false);
-                    else onDismiss();
-                  },
-                })
-              : presentationSizing('fitted'),
+            presentationDetents(detents, {
+              selection: detents[onVoicePage ? 1 : 0],
+              // Dragging the sheet to the other height reads as leaving the page you're on: up from
+              // the voices goes back to settings, down from settings closes the sheet.
+              onSelectionChange: (detent) => {
+                const voiceSized =
+                  typeof detent === 'object' &&
+                  'height' in detent &&
+                  detent.height === VOICE_HEIGHT;
+                if (voiceSized === onVoicePage) return;
+                if (onVoicePage) showVoices(false);
+                else onDismiss();
+              },
+            }),
+            ...(fit === 'phone'
+              ? []
+              : [presentationSizing('fitted', { fitted: { horizontal: false, vertical: true } })]),
             presentationBackground(theme.sheet),
           ]}
         >
@@ -328,11 +334,21 @@ export function VoiceSettings({
                     }),
                   ]
                 : [
-                    frame({ width, height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    frame({ height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    frame({ maxWidth: Infinity }),
                     animation(motion.page, onVoicePage),
                   ]
             }
           >
+            {fit !== 'phone' && (
+              <RNHostView>
+                <View
+                  pointerEvents="none"
+                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
+                  style={StyleSheet.absoluteFill}
+                />
+              </RNHostView>
+            )}
             {fit === 'beside' ? (
               <Row
                 alignment="center"
