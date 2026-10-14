@@ -3,6 +3,7 @@ import { TabView, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
+  foregroundStyle,
   frame,
   indexViewStyle,
   onTapGesture,
@@ -115,10 +116,16 @@ function SelectionPage({
       testID={testID}
     >
       <Spacer flexible />
-      <Text textStyle={{ color: theme.text, fontSize: 32, fontWeight: '600', textAlign: 'center' }}>
+      <Text
+        textStyle={{ fontSize: 32, fontWeight: '600', textAlign: 'center' }}
+        modifiers={[foregroundStyle(theme.text)]}
+      >
         {option.label}
       </Text>
-      <Text textStyle={{ color: theme.secondary, fontSize: 16, textAlign: 'center' }}>
+      <Text
+        textStyle={{ fontSize: 16, textAlign: 'center' }}
+        modifiers={[foregroundStyle(theme.secondary)]}
+      >
         {option.description}
       </Text>
       <Spacer flexible />

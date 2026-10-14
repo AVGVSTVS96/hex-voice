@@ -16,9 +16,10 @@ import {
   buttonBorderShape,
   buttonStyle,
   controlSize,
+  foregroundStyle,
   frame,
-  labelStyle,
   labelsHidden,
+  labelStyle,
   offset,
   padding,
   pickerStyle,
@@ -160,7 +161,7 @@ export function VoiceSettings({
   ];
 
   return (
-    <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={isPresented}
         onIsPresentedChange={(presented) => {
@@ -270,7 +271,10 @@ export function VoiceSettings({
                   onPress={() => showVoices(true)}
                   testID="voice-row"
                 >
-                  <Text textStyle={{ color: theme.secondary, fontSize: metrics.body }}>
+                  <Text
+                    textStyle={{ fontSize: metrics.body }}
+                    modifiers={[foregroundStyle(theme.secondary)]}
+                  >
                     {selectedVoice.label}
                   </Text>
                   {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
@@ -337,7 +341,10 @@ export function VoiceSettings({
                   ]}
                 />
                 <Spacer flexible />
-                <Text textStyle={{ color: theme.text, fontSize: metrics.body, fontWeight: '600' }}>
+                <Text
+                  textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
+                  modifiers={[foregroundStyle(theme.text)]}
+                >
                   Voice
                 </Text>
                 <Spacer flexible />
