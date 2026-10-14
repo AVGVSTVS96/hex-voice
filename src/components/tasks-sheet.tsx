@@ -37,6 +37,7 @@ type Props = {
   haptics: boolean;
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
+  task?: string;
 };
 
 // The pages pushed over the list: a task's own page, one agent's steps (from the task's page or
@@ -56,6 +57,7 @@ export function TasksSheet({
   haptics,
   onTalk,
   onGoThrough,
+  task: opening,
 }: Props) {
   const { width } = useWindowDimensions();
   const { tasks, version, offline } = useTasks(isPresented);
@@ -92,6 +94,11 @@ export function TasksSheet({
     tick();
     setPath(['check']);
   };
+  useEffect(() => {
+    if (!isPresented || !opening) return;
+    setTaskId(opening);
+    setPath(['task']);
+  }, [isPresented, opening]);
   const back = () => {
     tick();
     setPath((now) => now.slice(0, -1));
@@ -200,6 +207,7 @@ export function TasksSheet({
                         tap();
                         yours.answer(asked, option);
                       }}
+                      onOpenTask={openTask}
                     />
                   ))}
                 </Cards>

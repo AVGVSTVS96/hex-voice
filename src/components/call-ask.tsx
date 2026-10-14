@@ -5,13 +5,15 @@ import type { AskOption } from '@/live/asks';
 import { theme } from '@/theme';
 
 // An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it.
-// Once answered, it folds to what was sent where.
+// Its topic opens the task it belongs to. Once answered, it folds to what was sent where.
 export function CallAsk({
   card,
   onAnswer,
+  onOpenTask,
 }: {
   card: CallCard;
   onAnswer: (option: AskOption) => void;
+  onOpenTask: () => void;
 }) {
   const { ask, answer } = card;
   if (answer)
@@ -29,7 +31,9 @@ export function CallAsk({
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.topic}>{ask.topic}</Text>
+        <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
+          <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
+        </Pressable>
         <Text numberOfLines={1} style={styles.question}>
           {ask.question}
         </Text>

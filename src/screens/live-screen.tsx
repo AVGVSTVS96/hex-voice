@@ -104,6 +104,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [tasksAt, setTasksAt] = useState<string>();
   const counts = useTaskCounts();
   const calls = useCalls(drawerOpen);
   const phoneCall = usePhoneCall(calls.live, calls.calls);
@@ -489,8 +490,9 @@ function CallScreen({ pose }: { pose: Pose }) {
     haptic(Haptics.selectionAsync);
     session.toggleMute();
   };
-  const openTasks = () => {
+  const openTasks = (task?: string) => {
     tick();
+    setTasksAt(task);
     setTasksOpen(true);
   };
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
@@ -588,6 +590,7 @@ function CallScreen({ pose }: { pose: Pose }) {
                   onAnswer={(card, option) =>
                     void asksAPI.answer(card.ask.id, option.label).catch(() => {})
                   }
+                  onOpenTask={openTasks}
                 />
               )}
               <View pointerEvents="none" style={styles.fade} />
@@ -638,7 +641,7 @@ function CallScreen({ pose }: { pose: Pose }) {
             tasks={{ ...counts, open: tasksOpen }}
             onReading={toggleReading}
             onCalls={toggleDrawer}
-            onTasks={openTasks}
+            onTasks={() => openTasks()}
             onSettings={() => setSettingsOpen(true)}
           />
         )}
@@ -707,7 +710,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         {layout.controls !== 'inline' && controls}
         <Pressable
           pointerEvents={agent ? 'auto' : 'none'}
-          onPress={openTasks}
+          onPress={() => openTasks()}
           accessibilityRole="button"
           accessibilityHint="Opens Tasks"
           hitSlop={{ top: 8, bottom: 12 }}
@@ -725,6 +728,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           haptics={preferences.haptics}
           onTalk={talkAbout}
           onGoThrough={goThrough}
+          task={tasksAt}
         />
         <VoiceSettings
           fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
