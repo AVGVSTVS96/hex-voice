@@ -26,6 +26,10 @@ push main ─┬─ npm run ship:js      JS only: over the air, on both devices 
 - Both ship what's on origin/main, from the release checkout `~/.local/share/hex-voice/release` and its `.env.local` (see `.env.example`), and both wait their turn, so any agent can run them at any time.
 - The free Apple team's profile stops the app opening 7 days after a native install. Over-the-air updates don't renew it; `ship:native` does.
 
+## Code
+
+Keep the architecture and code clean, and bring each part you touch a step closer to pstack's principles (https://github.com/cursor/plugins/tree/main/pstack): clean organization and compartmentalization, clean call stacks, no indirection, workarounds or band-aids.
+
 ## Checks
 
 Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
