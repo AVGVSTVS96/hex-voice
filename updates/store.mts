@@ -122,6 +122,7 @@ async function sendManifest(dir: string, request: IncomingMessage, response: Ser
   const runtime = request.headers['expo-runtime-version'];
   if (typeof platform !== 'string' || !NAME.test(platform)) return response.writeHead(400).end();
   if (typeof runtime !== 'string' || !NAME.test(runtime)) return response.writeHead(400).end();
+  console.log(`${platform} ${runtime} runs ${request.headers['expo-current-update-id']}`);
   const manifest = await readFile(join(dir, platform, runtime, 'manifest.json')).catch(() => null);
   if (!manifest) return response.writeHead(204, headers).end();
   response.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(manifest);
