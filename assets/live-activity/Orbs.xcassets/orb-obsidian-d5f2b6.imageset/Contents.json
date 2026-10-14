@@ -3,6 +3,16 @@
     {
       "filename": "orb.png",
       "idiom": "universal"
+    },
+    {
+      "filename": "orb-light.png",
+      "idiom": "universal",
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "light"
+        }
+      ]
     }
   ],
   "info": {

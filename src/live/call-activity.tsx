@@ -13,6 +13,7 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { createLiveActivity } from 'expo-widgets';
+import type { ColorValue } from 'react-native';
 
 export type CallActivityProps = {
   orb: string;
@@ -24,6 +25,13 @@ export type CallActivityProps = {
 
 const CallActivity = (props: CallActivityProps) => {
   'widget';
+  // This layout runs as a string in the widget extension, where neither the theme nor
+  // DynamicColorIOS exist, so each color is the object DynamicColorIOS would make. The Lock Screen
+  // follows the system; the island is always dark.
+  const color = (dark: string, light: string) =>
+    ({ dynamic: { dark, light } }) as unknown as ColorValue;
+  const text = color('#F5F5F5', '#0A0A0A');
+  const secondary = color('#A1A1A6', '#6E6E73');
   const muted = props.state === 'muted';
   const orb = (size: number) => (
     <Image assetName={props.orb} modifiers={[resizable(), frame({ width: size, height: size })]} />
@@ -36,25 +44,28 @@ const CallActivity = (props: CallActivityProps) => {
         font({ size }),
         monospacedDigit(),
         multilineTextAlignment(alignment),
-        foregroundStyle(alignment === 'trailing' ? '#F5F5F5' : '#A1A1A6'),
+        foregroundStyle(alignment === 'trailing' ? text : secondary),
         frame({ width, alignment }),
       ]}
     />
   );
   const subtitle = props.outcome ? (
-    <Text modifiers={[font({ size: 15 }), foregroundStyle(props.bad ? '#F0A5A8' : '#A1A1A6')]}>
+    <Text
+      modifiers={[
+        font({ size: 15 }),
+        foregroundStyle(props.bad ? color('#F0A5A8', '#D93A42') : secondary),
+      ]}
+    >
       {props.outcome}
     </Text>
   ) : props.since ? (
     timer(15, 64, 'leading')
   ) : (
-    <Text modifiers={[font({ size: 15 }), foregroundStyle('#A1A1A6')]}>Connecting</Text>
+    <Text modifiers={[font({ size: 15 }), foregroundStyle(secondary)]}>Connecting</Text>
   );
   const title = (
     <VStack alignment="leading" spacing={2}>
-      <Text modifiers={[font({ size: 17, weight: 'semibold' }), foregroundStyle('#F5F5F5')]}>
-        hex
-      </Text>
+      <Text modifiers={[font({ size: 17, weight: 'semibold' }), foregroundStyle(text)]}>hex</Text>
       {subtitle}
     </VStack>
   );
@@ -65,10 +76,17 @@ const CallActivity = (props: CallActivityProps) => {
         <Image
           systemName={end ? 'xmark' : muted ? 'mic.slash.fill' : 'mic.fill'}
           size={size * 0.38}
-          color={end ? '#080808' : '#F5F5F5'}
+          color={end ? color('#080808', '#FAFAFA') : text}
           modifiers={[
             frame({ width: size, height: size }),
-            background(end ? '#F9F9F9' : muted ? '#363636' : '#202020', shapes.circle()),
+            background(
+              end
+                ? color('#F9F9F9', '#0A0A0A')
+                : muted
+                  ? color('#363636', '#D9D9DE')
+                  : color('#202020', '#EEEEF0'),
+              shapes.circle(),
+            ),
           ]}
         />
       </Button>
@@ -83,7 +101,10 @@ const CallActivity = (props: CallActivityProps) => {
 
   return {
     banner: (
-      <HStack spacing={14} modifiers={[padding({ all: 16 }), activityBackgroundTint('#000000')]}>
+      <HStack
+        spacing={14}
+        modifiers={[padding({ all: 16 }), activityBackgroundTint(color('#000000', '#FFFFFF'))]}
+      >
         {orb(48)}
         {title}
         <Spacer />
@@ -92,7 +113,7 @@ const CallActivity = (props: CallActivityProps) => {
     ),
     compactLeading: orb(24),
     compactTrailing: props.outcome ? null : muted ? (
-      <Image systemName="mic.slash.fill" color="#F5F5F5" size={14} />
+      <Image systemName="mic.slash.fill" color={text} size={14} />
     ) : props.since ? (
       timer(15, 44, 'trailing')
     ) : null,

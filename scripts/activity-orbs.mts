@@ -22,7 +22,11 @@ const files: Record<string, [string, string]> = {
 const page = `<body style="margin:0;background:transparent">
 <canvas id="orb" width="${CANVAS}" height="${CANVAS}"></canvas><script src="/rive.js"></script><script src="/page.js"></script>`;
 
-async function render(browser: import('playwright-core').Browser, orb: ActivityOrb) {
+async function render(
+  browser: import('playwright-core').Browser,
+  orb: ActivityOrb,
+  color = orb.color,
+) {
   const tab = await browser.newPage({ viewport: { width: CANVAS, height: CANVAS } });
   await tab.route('http://orbs.local/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -35,10 +39,7 @@ async function render(browser: import('playwright-core').Browser, orb: ActivityO
     return route.fulfill({ contentType, body: readFileSync(file) });
   });
   await tab.goto('http://orbs.local/');
-  await tab.evaluate((orb) => (window as any).loadOrb(orb), {
-    color: orb.color,
-    palette: orb.palette,
-  });
+  await tab.evaluate((orb) => (window as any).loadOrb(orb), { color, palette: orb.palette });
   await tab.waitForTimeout(SETTLE_MS);
   const shot = await tab.locator('#orb').screenshot({ omitBackground: true });
   const png: string = await tab.evaluate((args) => (window as any).cropOrb(args), {
@@ -60,11 +61,17 @@ const browser = await chromium.launch({
 for (const orb of ACTIVITY_ORBS) {
   const set = join(OUT, `${orb.name}.imageset`);
   mkdirSync(set);
+  const images: object[] = [{ filename: 'orb.png', idiom: 'universal' }];
   writeFileSync(join(set, 'orb.png'), await render(browser, orb));
-  writeFileSync(
-    join(set, 'Contents.json'),
-    JSON.stringify({ images: [{ filename: 'orb.png', idiom: 'universal' }], info }, null, 2) + '\n',
-  );
+  if (orb.light) {
+    writeFileSync(join(set, 'orb-light.png'), await render(browser, orb, orb.light));
+    images.push({
+      filename: 'orb-light.png',
+      idiom: 'universal',
+      appearances: [{ appearance: 'luminosity', value: 'light' }],
+    });
+  }
+  writeFileSync(join(set, 'Contents.json'), JSON.stringify({ images, info }, null, 2) + '\n');
   console.log(orb.name);
 }
 await browser.close();

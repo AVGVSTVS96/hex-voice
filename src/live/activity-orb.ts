@@ -2,6 +2,7 @@ import {
   OPAL_PALETTES,
   PERSONA_COLORS,
   PERSONA_VARIANTS,
+  personaColorOnLight,
   type OpalPalette,
   type PersonaVariant,
 } from '@/components/persona/variants';
@@ -11,6 +12,7 @@ export type ActivityOrb = {
   name: string;
   variant: PersonaVariant;
   color?: string;
+  light?: string;
   palette?: number;
 };
 
@@ -29,6 +31,7 @@ export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: varian
     name: named(variant, color.slice(1)),
     variant,
     color,
+    light: personaColorOnLight(color),
   }));
 });
 
