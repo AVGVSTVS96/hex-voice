@@ -16,8 +16,9 @@ test('the phone keeps its layout: toolbar on top, buttons under the footer, word
   assert.deepEqual(layout.words, { x: 24, width: 392, top: 134 });
   assert.deepEqual(layout.footer, { x: 24, width: 392, bottom: 48 });
   assert.deepEqual(layout.agent, { x: 24, width: 392, bottom: 17 });
-  assert.deepEqual(layout.calls, { width: 330, over: false });
-  assert.equal(layout.reading, false);
+  assert.deepEqual(layout.calls, { width: 330, place: 'slide' });
+  assert.deepEqual(layout.tasks, { width: 380, place: 'sheet' });
+  assert.equal(layout.pulls, true);
 });
 
 test('iPhone Duo closed moves the toolbar and buttons into the side column, below its camera', () => {
@@ -38,7 +39,8 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
   assert.deepEqual(layout.toolbar, { x: 400, y: 170, width: 48, axis: 'column' });
   assert.deepEqual(layout.controls, { right: 10, bottom: 34, axis: 'column' });
   assert.equal(layout.orb.rest.x, 191);
-  assert.deepEqual(layout.calls, { width: 310, over: true });
+  assert.deepEqual(layout.calls, { width: 310, place: 'over' });
+  assert.equal(layout.tasks.place, 'sheet');
 });
 
 test('iPad landscape splits the orb and the words, with the buttons bottom right', () => {
@@ -52,9 +54,19 @@ test('iPad landscape splits the orb and the words, with the buttons bottom right
   assert.equal(layout.orb.size, 300);
   assert.deepEqual(layout.words, { x: 590, width: 520, top: 104 });
   assert.deepEqual(layout.controls, { right: 24, bottom: 34, axis: 'row' });
-  assert.deepEqual(layout.calls, { width: 360, over: true });
-  assert.deepEqual(layout.besideList, { x: 430, width: 680 });
-  assert.equal(layout.reading, true);
+  assert.deepEqual(layout.calls, { width: 360, place: 'beside' });
+  assert.deepEqual(layout.besideCalls, { x: 430, width: 680 });
+  assert.equal(layout.pulls, false);
+});
+
+test('iPad landscape keeps Tasks open beside the call, the words centered in what is left', () => {
+  const layout = screenLayout(
+    { width: 1180, height: 820 },
+    { top: 24, right: 0, bottom: 20, left: 0 },
+    { regular: true },
+  );
+  assert.deepEqual(layout.tasks, { width: 380, place: 'beside' });
+  assert.deepEqual(layout.besideTasks, { x: 70, width: 660 });
 });
 
 test('iPad portrait is the phone layout with the words kept to a readable width', () => {
@@ -65,6 +77,8 @@ test('iPad portrait is the phone layout with the words kept to a readable width'
   );
   assert.equal(layout.kind, 'single');
   assert.deepEqual(layout.words, { x: 110, width: 600, top: 24 + 16 + 48 + 12 });
+  assert.deepEqual(layout.calls, { width: 330, place: 'slide' });
+  assert.deepEqual(layout.tasks, { width: 380, place: 'slide' });
 });
 
 test('iPhone Duo open splits at the fold, with its bars down the side', () => {
@@ -76,8 +90,9 @@ test('iPhone Duo open splits at the fold, with its bars down the side', () => {
   assert.equal(layout.kind, 'split');
   assert.deepEqual(layout.orb.read, { x: 227.5, y: 334.5 });
   assert.equal(layout.words.x, 503);
-  assert.deepEqual(layout.calls, { width: 455, over: true });
-  assert.deepEqual(layout.besideList, { x: 503, width: 951 - 84 - 24 - 503 });
+  assert.deepEqual(layout.calls, { width: 455, place: 'over' });
+  assert.deepEqual(layout.besideCalls, { x: 503, width: 951 - 84 - 24 - 503 });
+  assert.equal(layout.tasks.place, 'sheet');
 });
 
 test('iPhone Duo on a table puts the orb above the fold and the words below it', () => {
@@ -89,5 +104,6 @@ test('iPhone Duo on a table puts the orb above the fold and the words below it',
   assert.equal(layout.kind, 'stacked');
   assert.equal(layout.words.top, 503);
   assert.ok(layout.orb.read.y < 455);
-  assert.equal(layout.reading, true);
+  assert.equal(layout.pulls, false);
+  assert.equal(layout.tasks.place, 'sheet');
 });
