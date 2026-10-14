@@ -68,13 +68,13 @@ const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
+const PAD = Platform.OS === 'ios' && Platform.isPad;
 
 // The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
 // upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export default function LiveScreen() {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
-  const pad = Platform.OS === 'ios' && Platform.isPad;
-  const upright = pose && !pad && !pose.bar && !pose.fold;
+  const upright = pose && !PAD && !pose.bar && !pose.fold;
   useEffect(() => {
     if (upright === undefined) return;
     void (upright
@@ -262,6 +262,7 @@ function CallScreen({ pose }: { pose: Pose }) {
 
   // Only the phone's arrangement pulls the words down over the orb; elsewhere they have a page.
   const pulls = layout.kind === 'single';
+  const transcriptButton = pulls && !PAD;
   const drag = () =>
     Gesture.Pan()
       .activeOffsetY([-12, 12])
@@ -592,7 +593,7 @@ function CallScreen({ pose }: { pose: Pose }) {
               <View pointerEvents="none" style={styles.fade} />
               <View pointerEvents="none" style={styles.fadeBottom} />
             </Animated.View>
-            {pulls && (
+            {transcriptButton && (
               <Animated.View
                 pointerEvents={reading ? 'none' : 'auto'}
                 accessibilityElementsHidden={reading}
