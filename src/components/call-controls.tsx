@@ -5,6 +5,7 @@ import type { LiveStatus } from '@/live/types';
 
 type Props = {
   status: LiveStatus;
+  canMute: boolean;
   muted: boolean;
   failed: boolean;
   ready: boolean;
@@ -15,9 +16,10 @@ type Props = {
 };
 
 // Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
-// column with mute above.
+// column with mute above. A call held elsewhere, like a phone call, mutes there, not here.
 export function CallControls({
   status,
+  canMute,
   muted,
   failed,
   ready,
@@ -35,7 +37,7 @@ export function CallControls({
         icon={muted ? 'mic-off' : 'mic'}
         label={muted ? 'Unmute microphone' : 'Mute microphone'}
         testID="session-mute-button"
-        disabled={!connected}
+        disabled={!connected || !canMute}
         selected={muted}
         size={60}
         onPress={onMute}

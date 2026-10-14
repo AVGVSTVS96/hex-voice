@@ -7,6 +7,8 @@ import {
   callLength,
   callName,
   clock,
+  endedSeconds,
+  liveEntries,
   timeline,
   transcriptText,
   type CallSummary,
@@ -40,6 +42,41 @@ test('closing the list stops its waiting request as it is', async () => {
   const waiting = api.list(7, controller.signal);
   controller.abort();
   await assert.rejects(waiting, { name: 'AbortError' });
+});
+
+test('a live call is asked for whole, then waited on for its next word', async () => {
+  const urls: string[] = [];
+  const api = createCallsAPI({
+    hexUrl,
+    fetch: async (url) => {
+      urls.push(String(url));
+      return Response.json({ id: 'sess_1', version: 8, turns: [] });
+    },
+  });
+  assert.equal((await api.get('sess_1')).version, 8);
+  await api.get('sess_1', 8);
+  assert.deepEqual(urls, [`${hexUrl}/calls/sess_1`, `${hexUrl}/calls/sess_1?after=8`]);
+});
+
+test('a phone call’s turns read as the live transcript, each keeping its place as it grows', () => {
+  const turns = [
+    { who: 'you' as const, at: 1000, text: 'is the build' },
+    { who: 'voice' as const, at: 2500, text: 'One sec.' },
+  ];
+  const before = liveEntries(turns);
+  const after = liveEntries([{ ...turns[0], text: 'is the build green?' }, turns[1]]);
+  assert.deepEqual(before, [
+    { id: 'you 1000', role: 'user', text: 'is the build', startMs: 1000 },
+    { id: 'voice 2500', role: 'assistant', text: 'One sec.', startMs: 2500 },
+  ]);
+  assert.deepEqual(
+    after.map((entry) => entry.id),
+    before.map((entry) => entry.id),
+  );
+  assert.equal(
+    endedSeconds({ started: '2026-10-14T06:00:00.000Z', ended: '2026-10-14T06:03:05.400Z' }),
+    185,
+  );
 });
 
 test('deletes one call by id', async () => {

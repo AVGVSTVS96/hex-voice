@@ -125,9 +125,12 @@ export function createCallsAPI(options: Options): CallsAPI {
         calls: result.calls as CallSummary[],
       };
     },
-    async get(id) {
-      return (await hex.request(`/calls/${encodeURIComponent(id)}`, {
+    async get(id, after, signal) {
+      const path = `/calls/${encodeURIComponent(id)}`;
+      return (await hex.request(after === undefined ? path : `${path}?after=${after}`, {
         method: 'GET',
+        signal,
+        timeoutMs: after === undefined ? undefined : 40_000,
       })) as CallRecord;
     },
     async remove(id) {

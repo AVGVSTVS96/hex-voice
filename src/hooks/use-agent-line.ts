@@ -3,52 +3,33 @@ import { useEffect, useRef, useState } from 'react';
 
 import { agentLine, justFinished, type AgentTask, type CallCard } from '@/live/agents';
 import { agentsAPI } from '@/live/api';
+import { useWatch } from '@/hooks/use-watch';
 import { motion } from '@/motion';
 
-const RETRY = 2000;
+type Live = { call: string | null; tasks: AgentTask[]; cards: CallCard[] };
 
-// What hex's agents are doing on this call, from the voice plugin's /activity long poll: it
-// answers the moment a task or an agent's step changes, so the line moves with the agent. The
-// same answer carries the asks hex put on screen, for the transcript.
-export function useAgentLine(live: boolean, haptics: boolean) {
-  const [tasks, setTasks] = useState<AgentTask[]>([]);
-  const [cards, setCards] = useState<CallCard[]>([]);
+// The call hex holds right now, wherever it is (this app, a phone call, the web page), and what
+// its agents are doing, from the voice plugin's /activity long poll: it answers the moment a call
+// starts or ends, or a task or an agent's step changes, so the line moves with the agent. The same
+// answer carries the asks hex put on screen, for the transcript.
+export function useAgentLine(haptics: boolean) {
+  const [live, setLive] = useState<Live>({ call: null, tasks: [], cards: [] });
   const [finished, setFinished] = useState<AgentTask>();
+  const seen = useRef<AgentTask[]>([]);
   const feel = useRef(haptics);
   feel.current = haptics;
 
-  useEffect(() => {
-    if (!live) {
-      setTasks([]);
-      setCards([]);
-      setFinished(undefined);
-      return;
-    }
-    const controller = new AbortController();
-    let version: number | undefined;
-    let seen: AgentTask[] = [];
-    void (async () => {
-      while (!controller.signal.aborted) {
-        try {
-          const activity = await agentsAPI.watch(version, controller.signal);
-          const current = activity.call ? activity.tasks : [];
-          const done = justFinished(seen, current);
-          version = activity.version;
-          seen = current;
-          setTasks(current);
-          setCards(activity.call ? (activity.asks ?? []) : []);
-          if (!done) continue;
-          setFinished(done);
-          if (feel.current && process.env.EXPO_OS === 'ios')
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-        } catch {
-          if (controller.signal.aborted) return;
-          await new Promise((resolve) => setTimeout(resolve, RETRY));
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [live]);
+  useWatch(true, agentsAPI.watch, (activity) => {
+    const tasks = activity.call ? activity.tasks : [];
+    const done = justFinished(seen.current, tasks);
+    seen.current = tasks;
+    setLive({ call: activity.call, tasks, cards: activity.call ? (activity.asks ?? []) : [] });
+    if (!activity.call) setFinished(undefined);
+    if (!done) return;
+    setFinished(done);
+    if (feel.current && process.env.EXPO_OS === 'ios')
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+  });
 
   useEffect(() => {
     if (!finished) return;
@@ -56,5 +37,5 @@ export function useAgentLine(live: boolean, haptics: boolean) {
     return () => clearTimeout(timer);
   }, [finished]);
 
-  return { line: agentLine(tasks, finished), cards };
+  return { call: live.call, line: agentLine(live.tasks, finished), cards: live.cards };
 }
