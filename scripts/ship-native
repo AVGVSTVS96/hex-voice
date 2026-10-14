@@ -27,7 +27,7 @@ build() {
     grep -E 'error:' build/xcodebuild.log | sort -u >&2
     die "xcodebuild failed, see $PWD/build/xcodebuild.log on the Mac"
   }
-  plutil -extract EXUpdatesRuntimeVersion raw "$app/Expo.plist"
+  cat "$app/EXUpdates.bundle/fingerprint"
 }
 
 keychain_password() {
