@@ -54,6 +54,11 @@ test('several choices stack, two sit side by side, and repeats name where else t
   );
   assert.equal(stacked(ask('y', 'yesno')), false);
   assert.equal(
+    stacked(ask('l', 'yesno', { options: [{ label: 'Keep the Fly app' }, { label: 'No' }] })),
+    true,
+  );
+  assert.equal(stacked(ask('o', 'do', { options: [{ label: 'Open the sign-in page' }] })), false);
+  assert.equal(
     placesLine(['calls', 'autofork', 'General']),
     'Asked in calls, autofork and General',
   );
