@@ -22,11 +22,13 @@ export function Transcript({
   active,
   cards = [],
   onAnswer,
+  onOpenTask,
 }: {
   entries: TranscriptEntry[];
   active: boolean;
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => void;
+  onOpenTask?: (task: string) => void;
 }) {
   const scroll = useRef<ScrollView>(null);
   const following = useRef(true);
@@ -74,6 +76,7 @@ export function Transcript({
               key={`ask ${moment.ask.id}`}
               card={moment}
               onAnswer={(option) => onAnswer?.(moment, option)}
+              onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : (
             <Line key={moment.id} entry={moment} />

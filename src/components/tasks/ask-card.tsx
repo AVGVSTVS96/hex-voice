@@ -11,6 +11,7 @@ import {
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
+import { Linking } from 'react-native';
 
 import { Mark, ios } from '@/components/tasks/parts';
 import { foldNote, placesLine, stacked, type Ask, type AskOption } from '@/live/asks';
@@ -22,14 +23,18 @@ const OPTION = 52;
 
 // One thing waiting on you, answered in place: where it came from and since when, the question,
 // what it unblocks or costs, and its choices. hex's pick wears the mint ring, or the bright pill
-// when the choices sit side by side.
+// when the choices sit side by side. Its topic opens the task it belongs to, and the paper plane
+// opens the question itself in Telegram.
 export function AskCard({
   ask,
   onAnswer,
+  onOpenTask,
 }: {
   ask: Ask;
   onAnswer: (ask: Ask, option: AskOption) => void;
+  onOpenTask: (task: string) => void;
 }) {
+  const link = ask.link;
   const places = placesLine(ask.places);
   return (
     <Column
@@ -43,18 +48,43 @@ export function AskCard({
       ]}
     >
       <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 14, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.secondary)]}
+        <Row
+          alignment="center"
+          spacing={6}
+          onPress={() => onOpenTask(ask.task)}
+          modifiers={[
+            frame({ minHeight: 32 }),
+            contentShape(shapes.rectangle()),
+            ...(ios ? [accessibilityLabel(`Open ${ask.topic}`)] : []),
+          ]}
         >
-          {ask.topic}
-        </Text>
-        <Text textStyle={{ fontSize: 14 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-          {since(ask.at)}
-        </Text>
+          <Text
+            numberOfLines={1}
+            textStyle={{ fontSize: 14, fontWeight: '600' }}
+            modifiers={[foregroundStyle(theme.secondary)]}
+          >
+            {ask.topic}
+          </Text>
+          <Icon name="chevron.right" size={11} color={theme.tertiary} />
+          <Text textStyle={{ fontSize: 14 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+            {since(ask.at)}
+          </Text>
+        </Row>
         <Spacer flexible />
         {ask.tag ? <Tag text={ask.tag} /> : null}
+        {link ? (
+          <Icon
+            name="paperplane"
+            size={15}
+            color={theme.secondary}
+            onPress={() => void Linking.openURL(link)}
+            modifiers={[
+              frame({ width: 32, height: 32 }),
+              contentShape(shapes.rectangle()),
+              ...(ios ? [accessibilityLabel('Open in Telegram')] : []),
+            ]}
+          />
+        ) : null}
       </Row>
       <Column
         alignment="start"
