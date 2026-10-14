@@ -1,4 +1,3 @@
-import type { Ask } from './asks';
 import { timeOfDay } from './calls';
 
 export type TaskState = 'needs' | 'working' | 'done' | 'failed' | 'idle';
@@ -20,7 +19,6 @@ export type TaskRow = {
 };
 export type Task = Omit<TaskRow, 'agents'> & {
   needs?: string;
-  asks?: Ask[];
   pin?: string;
   lately: TaskMoment[];
   steps: TaskStep[];

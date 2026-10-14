@@ -7,11 +7,16 @@ import {
   filterAsks,
   filterCounts,
   foldNote,
+  keepInPlace,
+  openAsks,
   placesLine,
   stacked,
-  yoursSubtitle,
+  yours,
   type Ask,
+  type AskList,
+  type Yours,
 } from '../src/live/asks';
+import { firstTab, tabCounts } from '../src/live/tabs';
 import { pinSections } from '../src/live/pinned';
 
 const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
@@ -27,7 +32,7 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
 
 test('the filters split asks into decisions, things only your hands can do, and things to look at', () => {
   const asks = [ask('a', 'pick'), ask('b', 'yesno'), ask('c', 'do'), ask('d', 'look')];
-  assert.deepEqual(filterCounts(asks), { all: 4, decide: 2, do: 1, look: 1 });
+  assert.deepEqual(filterCounts(asks, 0), { all: 4, decide: 2, do: 1, look: 1, stuck: 0 });
   assert.deepEqual(
     filterAsks(asks, 'decide').map((one) => one.id),
     ['a', 'b'],
@@ -35,9 +40,7 @@ test('the filters split asks into decisions, things only your hands can do, and 
   assert.deepEqual(filterAsks(asks, 'all'), asks);
 });
 
-test('the sheet says what is yours, stuck and working, and what the check did', () => {
-  assert.equal(yoursSubtitle(43, 6, 4), '43 yours · 6 stuck · 4 working');
-  assert.equal(yoursSubtitle(0, 0, 0), 'Nothing waits on you');
+test('the check strip says what the check did', () => {
   const { did } = checkLine({
     at: new Date().toISOString(),
     why: 'a call ended',
@@ -133,4 +136,80 @@ test('an answer, an undo and a stuck item’s action each go to hex with the app
   );
   assert.equal(calls[0]!.init?.body, JSON.stringify({ label: 'Deep' }));
   assert.equal((calls[0]!.init?.headers as Record<string, string>).Authorization, 'Bearer secret');
+});
+
+const list = (...ids: string[]): AskList => ({
+  version: 1,
+  asks: ids.map((id) => ask(id, 'yesno')),
+  stuck: [],
+  fresh: [],
+  check: null,
+});
+const ids = (state: Yours) => state.list?.asks.map((one) => one.id);
+
+test('an answered ask stays where it sat after hex drops it, folded, until the sheet closes', () => {
+  let state = yours({ answered: {} }, { type: 'list', list: list('a', 'b', 'c') });
+  state = yours(state, { type: 'answer', id: 'b', label: 'Done' });
+  assert.deepEqual(
+    openAsks(state).map((one) => one.id),
+    ['a', 'c'],
+  );
+  state = yours(state, { type: 'list', list: list('a', 'c', 'd') });
+  assert.deepEqual(ids(state), ['a', 'b', 'c', 'd']);
+  assert.equal(state.answered.b, 'Done');
+  state = yours(state, { type: 'close' });
+  assert.deepEqual(ids(state), ['a', 'c', 'd']);
+  assert.deepEqual(state.answered, {});
+});
+
+test('undo opens the card in its place and holds it there until hex lists it again', () => {
+  let state = yours({ answered: {} }, { type: 'list', list: list('a', 'b') });
+  state = yours(state, { type: 'answer', id: 'a', label: 'Yes' });
+  state = yours(state, { type: 'list', list: list('b') });
+  state = yours(state, { type: 'undo', id: 'a' });
+  assert.deepEqual(
+    openAsks(state).map((one) => one.id),
+    ['a', 'b'],
+  );
+  state = yours(state, { type: 'list', list: list('b') });
+  assert.deepEqual(ids(state), ['a', 'b']);
+  state = yours(state, { type: 'list', list: list('b', 'a') });
+  assert.deepEqual(ids(state), ['b', 'a']);
+  assert.deepEqual(state.answered, {});
+});
+
+test('an answer hex could not take opens its card again', () => {
+  let state = yours({ answered: {} }, { type: 'list', list: list('a') });
+  state = yours(state, { type: 'answer', id: 'a', label: 'Yes' });
+  state = yours(state, { type: 'failed', id: 'a' });
+  assert.deepEqual(
+    openAsks(state).map((one) => one.id),
+    ['a'],
+  );
+});
+
+test('held asks go back after the ask they followed, or first when none of those is left', () => {
+  const before = ['x', 'a', 'y', 'b'].map((id) => ask(id, 'do'));
+  const after = ['b', 'c'].map((id) => ask(id, 'do'));
+  const held = (id: string) => id === 'x' || id === 'y';
+  assert.deepEqual(
+    keepInPlace(before, after, held).map((one) => one.id),
+    ['x', 'y', 'b', 'c'],
+  );
+});
+
+test('the tabs count what is yours, working and newly done, and open on the first with any', () => {
+  const groups = [
+    { key: 'needs' as const, title: 'Needs you', tasks: [{} as never] },
+    { key: 'working' as const, title: 'Working', tasks: [{} as never, {} as never] },
+  ];
+  const fresh = [
+    { id: 'f', title: 'pigeon', where: 'T3', line: 'shipped', at: '', read: false },
+    { id: 'g', title: 'seqno', where: 'T3', line: 'shipped', at: '', read: true },
+  ];
+  const counts = tabCounts(3, 1, groups, fresh);
+  assert.deepEqual(counts, { yours: 5, working: 2, done: 1 });
+  assert.equal(firstTab(counts), 'yours');
+  assert.equal(firstTab({ yours: 0, working: 0, done: 4 }), 'done');
+  assert.equal(firstTab({ yours: 0, working: 0, done: 0 }), 'yours');
 });

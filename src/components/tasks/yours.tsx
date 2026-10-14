@@ -1,6 +1,7 @@
 import { Column, Icon, Row, ScrollView, Spacer, Text } from '@expo/ui';
 import {
   accessibilityLabel,
+  animation,
   background,
   clipShape,
   contentShape,
@@ -9,15 +10,19 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
+import { AskCard, FoldedAsk } from '@/components/tasks/ask-card';
 import { GroupHead, INSET, Mark, ios } from '@/components/tasks/parts';
 import {
   FILTERS,
   checkLine,
+  type Ask,
   type AskFilter,
+  type AskOption,
   type CheckSummary,
   type Fresh,
   type Stuck,
 } from '@/live/asks';
+import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
 // "Checked 6:31pm · fixed 4 · flagged 3", opening what the check read, fixed and flagged.
@@ -148,6 +153,44 @@ export function Filters({
   );
 }
 
+// The asks as cards. One you answer folds where it sits to what you said, with Undo, and the cards
+// under it close up; Undo opens it again in the same place.
+export function AskList({
+  asks,
+  answered,
+  onAnswer,
+  onUndo,
+  onOpenTask,
+}: {
+  asks: Ask[];
+  answered: Record<string, string | null>;
+  onAnswer: (ask: Ask, option: AskOption) => void;
+  onUndo: (ask: Ask) => void;
+  onOpenTask: (task: string) => void;
+}) {
+  const label = (ask: Ask) => answered[ask.id];
+  return (
+    <Column
+      alignment="start"
+      spacing={12}
+      modifiers={[
+        padding({ leading: 16, trailing: 16, top: 8, bottom: 8 }),
+        frame({ maxWidth: Infinity }),
+        animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${label(ask) ?? ''}`))),
+      ]}
+    >
+      {asks.map((ask) => {
+        const said = label(ask);
+        return said ? (
+          <FoldedAsk key={ask.id} ask={ask} label={said} onUndo={() => onUndo(ask)} />
+        ) : (
+          <AskCard key={ask.id} ask={ask} onAnswer={onAnswer} onOpenTask={onOpenTask} />
+        );
+      })}
+    </Column>
+  );
+}
+
 // A row with its mark, a title and one line under it, and one action at its end.
 function ActionRow({
   mark,
@@ -218,7 +261,13 @@ function ActionRow({
 export function StuckList({ stuck, onAct }: { stuck: Stuck[]; onAct: (item: Stuck) => void }) {
   if (!stuck.length) return null;
   return (
-    <Column alignment="start" spacing={0}>
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        animation(motion.list, rowsKey(stuck.map((item) => `${item.id}${item.sent ? '>' : ''}`))),
+      ]}
+    >
       <GroupHead title="Stuck" count={stuck.length} />
       {stuck.map((item) => (
         <ActionRow
@@ -238,7 +287,13 @@ export function StuckList({ stuck, onAct }: { stuck: Stuck[]; onAct: (item: Stuc
 export function FreshList({ fresh, onRead }: { fresh: Fresh[]; onRead: (item: Fresh) => void }) {
   if (!fresh.length) return null;
   return (
-    <Column alignment="start" spacing={0}>
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        animation(motion.list, rowsKey(fresh.map((item) => `${item.id}${item.read ? '.' : ''}`))),
+      ]}
+    >
       <GroupHead title="New since you looked" count={fresh.filter((item) => !item.read).length} />
       {fresh.map((item) => (
         <ActionRow

@@ -1,5 +1,7 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 import {
+  accessibilityLabel,
+  animation,
   background,
   clipShape,
   contentShape,
@@ -14,9 +16,10 @@ import { useState } from 'react';
 import { Linking } from 'react-native';
 
 import { Choices } from '@/components/tasks/ask-card';
-import { GroupHead, INSET, Mark } from '@/components/tasks/parts';
+import { GroupHead, INSET, Mark, ios } from '@/components/tasks/parts';
 import type { Ask, AskOption } from '@/live/asks';
 import { pinSections, type PinLine, type PinMark, type PinSection } from '@/live/pinned';
+import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
 const MARKS: Record<PinMark, 'needs' | 'working' | 'done' | 'failed' | 'idle'> = {
@@ -27,44 +30,84 @@ const MARKS: Record<PinMark, 'needs' | 'working' | 'done' | 'failed' | 'idle'> =
   idle: 'idle',
 };
 
-// The thread's own asks, answered right here: its question and its choices under it.
+// The thread's own asks, answered right here: its question and its choices under it. One you
+// answer folds where it sits to what you said, with Undo.
 export function YourCall({
   asks,
+  answered,
   onAnswer,
+  onUndo,
 }: {
   asks: Ask[];
+  answered: Record<string, string | null>;
   onAnswer: (ask: Ask, option: AskOption) => void;
+  onUndo: (ask: Ask) => void;
 }) {
   if (!asks.length) return null;
+  const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
-    <Column alignment="start" spacing={0}>
-      <GroupHead title="Your call" count={asks.length} />
-      {asks.map((ask) => (
-        <Row
-          key={ask.id}
-          alignment="start"
-          spacing={12}
-          modifiers={[
-            padding({ leading: INSET, trailing: INSET, top: 10, bottom: 12 }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
-        >
-          <Mark state="needs" />
-          <Column
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
+      ]}
+    >
+      <GroupHead title="Your call" count={open} />
+      {asks.map((ask) => {
+        const said = answered[ask.id];
+        return (
+          <Row
+            key={ask.id}
             alignment="start"
-            spacing={10}
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+            spacing={12}
+            modifiers={[
+              padding({ leading: INSET, trailing: INSET, top: 10, bottom: 12 }),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+            ]}
           >
-            <Text
-              textStyle={{ fontSize: 17, lineHeight: 21, fontWeight: '600' }}
-              modifiers={[foregroundStyle(theme.text)]}
+            <Mark state={said ? 'done' : 'needs'} />
+            <Column
+              alignment="start"
+              spacing={said ? 3 : 10}
+              modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
             >
-              {ask.question}
-            </Text>
-            <Choices ask={ask} onAnswer={onAnswer} />
-          </Column>
-        </Row>
-      ))}
+              <Text
+                textStyle={{
+                  fontSize: said ? 15 : 17,
+                  lineHeight: said ? 19 : 21,
+                  fontWeight: said ? '400' : '600',
+                }}
+                modifiers={[foregroundStyle(said ? theme.secondary : theme.text)]}
+              >
+                {ask.question}
+              </Text>
+              {said ? (
+                <Text
+                  textStyle={{ fontSize: 17, fontWeight: '600' }}
+                  modifiers={[foregroundStyle(theme.text)]}
+                >
+                  {said}
+                </Text>
+              ) : (
+                <Choices ask={ask} onAnswer={onAnswer} />
+              )}
+            </Column>
+            {said ? (
+              <Text
+                textStyle={{ fontSize: 17, fontWeight: '600' }}
+                onPress={() => onUndo(ask)}
+                modifiers={[
+                  foregroundStyle(theme.accent),
+                  ...(ios ? [accessibilityLabel(`Undo ${said}`)] : []),
+                ]}
+              >
+                Undo
+              </Text>
+            ) : null}
+          </Row>
+        );
+      })}
     </Column>
   );
 }

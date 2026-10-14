@@ -1,40 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { Linking } from 'react-native';
 
 import { useWatch } from '@/hooks/use-watch';
 import { asksAPI } from '@/live/api';
-import type { Answered, Ask, AskList, AskOption } from '@/live/asks';
+import { openAsks, yours, type Ask, type AskOption } from '@/live/asks';
 
-// Everything waiting on you, live while the sheet is open. An answer folds its card at once and
-// goes to hex; the card stays folded with Undo until the sheet closes, and comes back if hex
-// couldn't take the answer.
+// Everything waiting on you, live while the sheet is open. An answer folds its card where it sits
+// and goes to hex; the card stays folded there with Undo until the sheet closes, and opens again if
+// hex couldn't take the answer.
 export function useAsks(open: boolean) {
-  const [list, setList] = useState<AskList>();
+  const [state, dispatch] = useReducer(yours, { answered: {} });
   const [offline, setOffline] = useState(false);
-  const [answered, setAnswered] = useState<Answered[]>([]);
-  useWatch(open, asksAPI.list, setList, setOffline);
+  useWatch(open, asksAPI.list, (list) => dispatch({ type: 'list', list }), setOffline);
   useEffect(() => {
-    if (!open) setAnswered([]);
+    if (!open) dispatch({ type: 'close' });
   }, [open]);
 
-  const drop = (id: string) => setAnswered((now) => now.filter((entry) => entry.ask.id !== id));
   const answer = (ask: Ask, option: AskOption) => {
     if (option.url) return void Linking.openURL(option.url);
-    setAnswered((now) => [
-      { ask, label: option.label },
-      ...now.filter((entry) => entry.ask.id !== ask.id),
-    ]);
-    asksAPI.answer(ask.id, option.label).catch(() => drop(ask.id));
+    dispatch({ type: 'answer', id: ask.id, label: option.label });
+    asksAPI.answer(ask.id, option.label).catch(() => dispatch({ type: 'failed', id: ask.id }));
   };
   const undo = (id: string) => {
-    drop(id);
+    dispatch({ type: 'undo', id });
     void asksAPI.undo(id).catch(() => {});
   };
-  const folded = new Set(answered.map((entry) => entry.ask.id));
   return {
-    list,
-    asks: list?.asks.filter((ask) => !folded.has(ask.id)),
-    answered,
+    list: state.list,
+    shown: state.list?.asks ?? [],
+    answered: state.answered,
+    open: openAsks(state),
     offline,
     answer,
     undo,

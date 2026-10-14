@@ -71,19 +71,24 @@ function History({ title, entries }: { title?: string; entries: HistoryEntry[] }
 // steps. Without asks or a pinned post, what it waits on shows as it said it.
 export function Detail({
   task,
+  asks,
+  answered,
   onBack,
   onActivity,
   onAnswer,
+  onUndo,
   onTalk,
 }: {
   task: TaskRow | Task;
+  asks: Ask[];
+  answered: Record<string, string | null>;
   onBack: () => void;
   onActivity: (agent: string | null) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
+  onUndo: (ask: Ask) => void;
   onTalk: () => void;
 }) {
   const full = 'lately' in task ? task : undefined;
-  const asks = full?.asks ?? [];
   const pinned = !!(asks.length || full?.pin);
   const needs = task.state === 'needs' && !pinned ? (full?.needs ?? task.line) : undefined;
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
@@ -151,7 +156,7 @@ export function Detail({
               ))}
             </Column>
           ) : null}
-          <YourCall asks={asks} onAnswer={onAnswer} />
+          <YourCall asks={asks} answered={answered} onAnswer={onAnswer} onUndo={onUndo} />
           {full?.pin ? <Pinned text={full.pin} /> : null}
           {lately.length ? (
             <Inset>
