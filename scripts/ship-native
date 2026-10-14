@@ -66,6 +66,7 @@ open_sockets() {
   netmuxd=UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock
   on_wifi=$(USBMUXD_SOCKET_ADDRESS=$netmuxd xtool devices 2>/dev/null || true)
   mac_usb=$home/mac-usbmuxd.sock
+  rm -f "$mac_usb"
   ssh -NT -o ExitOnForwardFailure=yes -o StreamLocalBindUnlink=yes \
     -L "$mac_usb:/var/run/usbmuxd" "$mac" &
   trap "kill $!" EXIT
@@ -118,12 +119,12 @@ open_sockets
 failed=
 for device in "${devices[@]}"; do
   socket=$(socket_for "$device")
-  if USBMUXD_SOCKET_ADDRESS=$socket XTL_KEEP_IDENTIFIERS=1 xtool install --udid "$device" \
-    "$home/hex.ipa" >"$home/install-$device.log" 2>&1; then
+  if USBMUXD_SOCKET_ADDRESS=$socket XTL_KEEP_IDENTIFIERS=1 timeout 5m xtool install \
+    --udid "$device" "$home/hex.ipa" >"$home/install-$device.log" 2>&1; then
     echo "$commit" >"$home/installed/$device"
     echo "installed $title on $device"
-    USBMUXD_SOCKET_ADDRESS=$socket xtool launch --udid "$device" "$bundle" >/dev/null 2>&1 ||
-      echo "couldn't open it on $device"
+    ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
+      "$bundle" >/dev/null 2>&1 || echo "couldn't open it on $device"
   else
     failed+=" $device"
   fi
