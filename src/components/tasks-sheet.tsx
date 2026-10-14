@@ -97,7 +97,12 @@ export function TasksSheet({
     setPath((now) => now.slice(0, -1));
   };
   const asks = yours.asks ?? [];
-  const groups = groupTasks((tasks ?? []).filter((row) => row.state !== 'needs'));
+  // A thread that needs you shows as its asks; one whose need isn't an ask keeps its own row.
+  const groups = groupTasks(
+    (tasks ?? []).filter(
+      (row) => row.state !== 'needs' || !asks.some((ask) => ask.task === row.id),
+    ),
+  );
   const working = groups.find((group) => group.key === 'working')?.tasks.length ?? 0;
   const stuck = yours.list?.stuck ?? [];
   const front = path.at(-1);
