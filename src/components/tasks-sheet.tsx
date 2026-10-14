@@ -46,6 +46,7 @@ type Props = {
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
   task?: string;
+  tab?: Tab;
 };
 
 // The pages pushed over the list: a task's own page, one agent's steps (from the task's page or
@@ -67,6 +68,7 @@ export function TasksSheet({
   onTalk,
   onGoThrough,
   task: opening,
+  tab: start,
 }: Props) {
   const { width } = useWindowDimensions();
   const { tasks, version, offline } = useTasks(isPresented);
@@ -126,9 +128,9 @@ export function TasksSheet({
   const counts = tabCounts(asks.length, stuck.length, groups, fresh);
   const loaded = yours.list && tasks;
   useEffect(() => {
-    if (isPresented && loaded && !chosen) setChosen(firstTab(counts));
+    if (isPresented && loaded && !chosen) setChosen(start ?? firstTab(counts));
   }, [isPresented, loaded, chosen]);
-  const tab = chosen ?? 'yours';
+  const tab = chosen ?? start ?? 'yours';
   const front = path.at(-1);
   const x = (slot: Pushed | 'list') =>
     slot === (front ?? 'list') ? 0 : slot === 'list' || path.includes(slot) ? -width / 3 : width;
