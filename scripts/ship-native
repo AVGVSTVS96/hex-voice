@@ -10,6 +10,20 @@ mac=${HEX_VOICE_MAC:-mac}
 folder=Developer/hex-voice-release
 app=build/Build/Products/Release-iphoneos/hex.app
 
+# pod install re-extracts React Native's prebuilt frameworks, which makes Xcode recompile every
+# pod, so it only runs when what it reads has changed.
+install_pods() {
+  local inputs
+  inputs=$({
+    cat ios/Podfile ios/Podfile.properties.json package-lock.json
+    find modules -type f | sort
+    find modules -name '*.podspec' -exec cat {} +
+  } | git hash-object --stdin)
+  [ "$(cat ios/Pods/.inputs 2>/dev/null)" = "$inputs" ] && return
+  (cd ios && pod install >/dev/null)
+  echo "$inputs" >ios/Pods/.inputs
+}
+
 build() {
   export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=/opt/homebrew/bin:$PATH
   set -a && . ./.env.local && set +a
@@ -18,7 +32,7 @@ build() {
   [ -z "$password" ] || security unlock-keychain -p "$password" login.keychain-db
   install_modules
   CI=1 npx expo prebuild --platform ios --no-install >/dev/null
-  (cd ios && pod install >/dev/null)
+  install_pods
   mkdir -p build
   xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
     -destination generic/platform=iOS -derivedDataPath build \
