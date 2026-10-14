@@ -6,7 +6,7 @@ import type { VoiceGlyphProps } from './voice-glyph.types';
 export type { VoiceGlyphName } from './voice-glyph.types';
 const symbols = {
   settings: 'slider.horizontal.3',
-  captions: 'text.alignleft',
+  transcript: 'text.bubble',
   calls: 'clock.arrow.circlepath',
   tasks: 'list.bullet',
   mic: 'mic',
@@ -23,7 +23,7 @@ export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
         ? '×'
         : name === 'calls'
           ? '◷'
-          : name === 'settings' || name === 'captions' || name === 'tasks'
+          : name === 'settings' || name === 'transcript' || name === 'tasks'
             ? '☰'
             : name === 'mic-off'
               ? '⊘'
