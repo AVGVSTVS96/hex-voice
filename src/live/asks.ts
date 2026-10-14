@@ -49,8 +49,63 @@ export type AskList = {
   fresh: Fresh[];
   check: CheckSummary | null;
 };
-// An ask answered on this phone, folded to one line until the sheet closes, so Undo stays in reach.
-export type Answered = { ask: Ask; label: string };
+
+// What's yours as this phone shows it: hex's list, with each ask answered here held in its place,
+// folded to what you said, until the sheet closes, so Undo stays in reach. An undone ask (null)
+// stays put until hex lists it as open again.
+export type Yours = { list?: AskList; answered: Record<string, string | null> };
+export type YoursAction =
+  | { type: 'list'; list: AskList }
+  | { type: 'answer'; id: string; label: string }
+  | { type: 'undo'; id: string }
+  | { type: 'failed'; id: string }
+  | { type: 'close' };
+
+export function yours(state: Yours, action: YoursAction): Yours {
+  const { list, answered } = state;
+  switch (action.type) {
+    case 'list': {
+      const held = (id: string) => id in answered;
+      const back = action.list.asks.map((ask) => ask.id).filter((id) => answered[id] === null);
+      return {
+        list: { ...action.list, asks: keepInPlace(list?.asks ?? [], action.list.asks, held) },
+        answered: back.length ? without(answered, back) : answered,
+      };
+    }
+    case 'answer':
+      return { list, answered: { ...answered, [action.id]: action.label } };
+    case 'undo':
+      return { list, answered: { ...answered, [action.id]: null } };
+    case 'failed':
+      return { list, answered: without(answered, [action.id]) };
+    case 'close':
+      return {
+        list: list && { ...list, asks: list.asks.filter((ask) => !answered[ask.id]) },
+        answered: {},
+      };
+  }
+}
+
+// The asks still open, for the counts: the folded ones are already off your plate.
+export function openAsks({ list, answered }: Yours) {
+  return (list?.asks ?? []).filter((ask) => !answered[ask.id]);
+}
+
+// hex's new list, with every held ask it dropped put back right after the ask it followed.
+export function keepInPlace(before: Ask[], after: Ask[], held: (id: string) => boolean) {
+  const shown = [...after];
+  const at = (id: string) => shown.findIndex((ask) => ask.id === id);
+  before.forEach((ask, i) => {
+    if (!held(ask.id) || at(ask.id) !== -1) return;
+    const prior = before.slice(0, i).findLast((one) => at(one.id) !== -1);
+    shown.splice(prior ? at(prior.id) + 1 : 0, 0, ask);
+  });
+  return shown;
+}
+
+function without<T>(record: Record<string, T>, ids: string[]) {
+  return Object.fromEntries(Object.entries(record).filter(([id]) => !ids.includes(id)));
+}
 
 export interface AsksAPI {
   list(after?: number, signal?: AbortSignal): Promise<AskList>;
@@ -62,37 +117,32 @@ export interface AsksAPI {
   talk(): Promise<void>;
 }
 
-export type AskFilter = 'all' | 'decide' | 'do' | 'look';
+export type AskFilter = 'all' | 'decide' | 'do' | 'look' | 'stuck';
 export const FILTERS: { key: AskFilter; title: string }[] = [
   { key: 'all', title: 'All' },
   { key: 'decide', title: 'Decide' },
   { key: 'do', title: 'Do' },
   { key: 'look', title: 'Look' },
+  { key: 'stuck', title: 'Stuck' },
 ];
 
+// Stuck isn't an ask: under its filter the asks step aside for what stopped.
 export function filterAsks(asks: Ask[], filter: AskFilter) {
   if (filter === 'all') return asks;
+  if (filter === 'stuck') return [];
   if (filter === 'decide') return asks.filter((ask) => ask.kind === 'pick' || ask.kind === 'yesno');
   return asks.filter((ask) => ask.kind === filter);
 }
 
-export function filterCounts(asks: Ask[]): Record<AskFilter, number> {
+// All counts everything yours: the asks, what's stuck, and threads waiting on you some other way.
+export function filterCounts(asks: Ask[], stuck: number, waiting = 0): Record<AskFilter, number> {
   return {
-    all: asks.length,
+    all: asks.length + stuck + waiting,
     decide: filterAsks(asks, 'decide').length,
     do: filterAsks(asks, 'do').length,
     look: filterAsks(asks, 'look').length,
+    stuck,
   };
-}
-
-// The list's line under "Tasks": what's yours, what's stuck, what's working.
-export function yoursSubtitle(yours: number, stuck: number, working: number) {
-  const parts = [
-    yours && `${yours} yours`,
-    stuck && `${stuck} stuck`,
-    working && `${working} working`,
-  ].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'Nothing waits on you';
 }
 
 // "Checked 6:31pm" with what it did: "fixed 4 · flagged 3".

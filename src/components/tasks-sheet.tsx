@@ -4,7 +4,6 @@ import {
   accessibilityHidden,
   animation,
   background,
-  foregroundStyle,
   frame,
   offset,
   padding,
@@ -18,15 +17,24 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { AskCard, FoldedAsk } from '@/components/tasks/ask-card';
 import { LastCheck } from '@/components/tasks/last-check';
-import { AgentRow, GroupHead, Header, INSET, Line, Scroll, ios } from '@/components/tasks/parts';
+import { Empty, Header, ios } from '@/components/tasks/parts';
+import { TabBar, TabPane } from '@/components/tasks/tabs';
 import { Detail, Steps } from '@/components/tasks/task-page';
-import { CheckStrip, Filters, FreshList, GoThrough, StuckList } from '@/components/tasks/yours';
+import { ThreadGroup } from '@/components/tasks/threads';
+import {
+  AskList,
+  CheckStrip,
+  Filters,
+  FreshList,
+  GoThrough,
+  StuckList,
+} from '@/components/tasks/yours';
 import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useTask, useTasks } from '@/hooks/use-tasks';
-import { filterAsks, filterCounts, yoursSubtitle, type AskFilter } from '@/live/asks';
-import { groupTasks, idleLine, taskTime, type TaskRow } from '@/live/tasks';
+import { filterAsks, filterCounts, type Ask, type AskFilter, type AskOption } from '@/live/asks';
+import { firstTab, tabCounts, type Tab } from '@/live/tabs';
+import { groupTasks, type TaskGroup, type TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 
@@ -44,12 +52,13 @@ type Props = {
 // straight from its row in the list), and what the last check did.
 type Pushed = 'task' | 'activity' | 'check';
 
-// Everything waiting on you and every hex task, in one sheet. It opens on your asks, each answered
-// in place, most unblocking first, with what hex's last check did and a way to go through them on
-// a call; then what's stuck, what finished since you looked, and the threads themselves: working,
-// done today, the rest folded into one Idle line. Before a call it opens full height; on a call it
-// opens half height so the call goes on behind it. Pages push in like the voice page in Settings,
-// and each keeps what it showed while it slides back out.
+// Everything waiting on you and every hex task, in one sheet, in three tabs. Yours: your asks,
+// each answered in place, most unblocking first, with what hex's last check did, a way to go
+// through them on a call, and what's stuck. Working: the threads at work, each with its agents.
+// Done: what finished since you looked, what finished today, the rest folded into one Idle line.
+// Before a call it opens full height; on a call it opens half height so the call goes on behind
+// it. Pages push in like the voice page in Settings, and each keeps what it showed while it slides
+// back out.
 export function TasksSheet({
   isPresented,
   onDismiss,
@@ -63,6 +72,7 @@ export function TasksSheet({
   const { tasks, version, offline } = useTasks(isPresented);
   const yours = useAsks(isPresented);
   const [filter, setFilter] = useState<AskFilter>('all');
+  const [chosen, setChosen] = useState<Tab | null>(null);
   const [path, setPath] = useState<Pushed[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [agent, setAgent] = useState<string | null>(null);
@@ -103,15 +113,22 @@ export function TasksSheet({
     tick();
     setPath((now) => now.slice(0, -1));
   };
-  const asks = yours.asks ?? [];
+  const asks = yours.open;
   // A thread that needs you shows as its asks; one whose need isn't an ask keeps its own row.
   const groups = groupTasks(
     (tasks ?? []).filter(
-      (row) => row.state !== 'needs' || !asks.some((ask) => ask.task === row.id),
+      (row) => row.state !== 'needs' || !yours.shown.some((ask) => ask.task === row.id),
     ),
   );
-  const working = groups.find((group) => group.key === 'working')?.tasks.length ?? 0;
+  const group = (key: TaskGroup['key']) => groups.find((one) => one.key === key);
   const stuck = yours.list?.stuck ?? [];
+  const fresh = yours.list?.fresh ?? [];
+  const counts = tabCounts(asks.length, stuck.length, groups, fresh);
+  const loaded = yours.list && tasks;
+  useEffect(() => {
+    if (isPresented && loaded && !chosen) setChosen(firstTab(counts));
+  }, [isPresented, loaded, chosen]);
+  const tab = chosen ?? 'yours';
   const front = path.at(-1);
   const x = (slot: Pushed | 'list') =>
     slot === (front ?? 'list') ? 0 : slot === 'list' || path.includes(slot) ? -width / 3 : width;
@@ -123,7 +140,24 @@ export function TasksSheet({
     accessibilityHidden(x(slot) !== 0),
   ];
   const shown = task ?? tasks?.find((row) => row.id === taskId);
-  const loaded = yours.list && tasks;
+  const answer = (ask: Ask, option: AskOption) => {
+    tap();
+    yours.answer(ask, option);
+  };
+  const undo = (ask: Ask) => {
+    tick();
+    yours.undo(ask.id);
+  };
+  const threads = (key: TaskGroup['key']) => {
+    const found = group(key);
+    return found ? (
+      <ThreadGroup
+        group={found}
+        onOpen={(row) => openTask(row.id)}
+        onAgent={(row, who) => openActivity(row.id, who)}
+      />
+    ) : null;
+  };
 
   return (
     <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
@@ -132,7 +166,11 @@ export function TasksSheet({
         onIsPresentedChange={(presented) => {
           if (!presented) onDismiss();
         }}
-        onDismiss={() => setPath([])}
+        onDismiss={() => {
+          setPath([]);
+          setChosen(null);
+          setFilter('all');
+        }}
         testID="tasks-sheet"
       >
         <SheetContent
@@ -155,126 +193,95 @@ export function TasksSheet({
             <Column alignment="center" spacing={6} modifiers={page('list')}>
               <Header
                 title="Tasks"
-                subtitle={
-                  (offline || yours.offline) && !loaded
-                    ? 'Can’t reach hex'
-                    : loaded
-                      ? yoursSubtitle(asks.length, stuck.length, working)
-                      : ' '
-                }
+                subtitle={(offline || yours.offline) && !loaded ? 'Can’t reach hex' : ''}
               />
-              <Scroll>
-                <Cards>
-                  {yours.list?.check ? (
-                    <CheckStrip check={yours.list.check} onPress={openCheck} />
-                  ) : null}
+              <TabBar
+                tab={tab}
+                counts={counts}
+                onChange={(next) => {
+                  tick();
+                  setChosen(next);
+                }}
+              />
+              <ZStack
+                alignment="top"
+                modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+              >
+                <TabPane shown={tab === 'yours'}>
+                  <Cards>
+                    {yours.list?.check ? (
+                      <CheckStrip check={yours.list.check} onPress={openCheck} />
+                    ) : null}
+                    {asks.length ? (
+                      <GoThrough
+                        onPress={() => {
+                          tick();
+                          onGoThrough();
+                        }}
+                      />
+                    ) : null}
+                  </Cards>
                   {asks.length ? (
-                    <GoThrough
-                      onPress={() => {
+                    <Filters
+                      filter={filter}
+                      counts={filterCounts(asks, stuck.length, group('needs')?.tasks.length)}
+                      onChange={(next) => {
                         tick();
-                        onGoThrough();
+                        setFilter(next);
                       }}
                     />
                   ) : null}
-                </Cards>
-                {asks.length ? (
-                  <Filters
-                    filter={filter}
-                    counts={filterCounts(asks)}
-                    onChange={(next) => {
+                  <AskList
+                    asks={filterAsks(yours.shown, filter)}
+                    answered={yours.answered}
+                    onAnswer={answer}
+                    onUndo={undo}
+                    onOpenTask={openTask}
+                  />
+                  {filter === 'all' || filter === 'stuck' ? (
+                    <StuckList
+                      stuck={stuck}
+                      onAct={(item) => {
+                        tap();
+                        void yours.act(item.id);
+                      }}
+                    />
+                  ) : null}
+                  {filter === 'all' ? threads('needs') : null}
+                  {loaded && !counts.yours && !yours.shown.length ? (
+                    <Empty text="Nothing waits on you" />
+                  ) : null}
+                </TabPane>
+                <TabPane shown={tab === 'working'}>
+                  {threads('working')}
+                  {loaded && !counts.working ? <Empty text="Nothing running" /> : null}
+                </TabPane>
+                <TabPane shown={tab === 'done'}>
+                  <FreshList
+                    fresh={fresh}
+                    onRead={(item) => {
                       tick();
-                      setFilter(next);
+                      void yours.read(item.id);
                     }}
                   />
-                ) : null}
-                <Cards>
-                  {yours.answered.map(({ ask, label }) => (
-                    <FoldedAsk
-                      key={ask.id}
-                      ask={ask}
-                      label={label}
-                      onUndo={() => {
-                        tick();
-                        yours.undo(ask.id);
-                      }}
-                    />
-                  ))}
-                  {filterAsks(asks, filter).map((ask) => (
-                    <AskCard
-                      key={ask.id}
-                      ask={ask}
-                      onAnswer={(asked, option) => {
-                        tap();
-                        yours.answer(asked, option);
-                      }}
-                      onOpenTask={openTask}
-                    />
-                  ))}
-                </Cards>
-                <StuckList
-                  stuck={stuck}
-                  onAct={(item) => {
-                    tap();
-                    void yours.act(item.id);
-                  }}
-                />
-                <FreshList
-                  fresh={yours.list?.fresh ?? []}
-                  onRead={(item) => {
-                    tick();
-                    void yours.read(item.id);
-                  }}
-                />
-                {groups.map((group) => (
-                  <Column key={group.key} alignment="start" spacing={0}>
-                    <GroupHead title={group.title} count={group.tasks.length} />
-                    {group.key === 'idle' ? (
-                      <Text
-                        textStyle={{ fontSize: 15, lineHeight: 20 }}
-                        modifiers={[
-                          foregroundStyle(theme.tertiary),
-                          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 14 }),
-                          frame({ maxWidth: Infinity, alignment: 'leading' }),
-                        ]}
-                      >
-                        {idleLine(group.tasks)}
-                      </Text>
-                    ) : (
-                      group.tasks.map((row) => (
-                        <Column key={row.id} alignment="start" spacing={0}>
-                          <Line
-                            state={row.state}
-                            title={row.name}
-                            where={row.where}
-                            time={taskTime(row)}
-                            text={row.line}
-                            onPress={() => openTask(row.id)}
-                          />
-                          {row.state === 'working' &&
-                            row.agents.map((agent) => (
-                              <AgentRow
-                                key={agent.id}
-                                agent={agent}
-                                onPress={() => openActivity(row.id, agent.id)}
-                              />
-                            ))}
-                        </Column>
-                      ))
-                    )}
-                  </Column>
-                ))}
-              </Scroll>
+                  {threads('done')}
+                  {threads('idle')}
+                  {loaded && !fresh.length && !group('done') && !group('idle') ? (
+                    <Empty text="Nothing finished yet" />
+                  ) : null}
+                </TabPane>
+              </ZStack>
             </Column>
             <Column alignment="center" spacing={0} modifiers={page('task')}>
               {shown ? (
                 <Detail
                   task={shown}
+                  asks={yours.shown.filter((ask) => ask.task === shown.id)}
+                  answered={yours.answered}
                   onBack={back}
                   onActivity={(who) => openActivity(shown.id, who)}
-                  onAnswer={(asked, option) => {
-                    tap();
-                    yours.answer(asked, option);
-                  }}
+                  onAnswer={answer}
+                  onUndo={undo}
                   onTalk={() => {
                     tick();
                     onTalk(shown);

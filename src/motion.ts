@@ -26,6 +26,10 @@ export const motion = {
   row: { mass: 1, stiffness: 420, damping: 41 },
   rowOut: ms(220),
   page: Animation.smooth({ duration: ms(400) / 1000 }),
+  // The Tasks sheet's lists settle over every change: an answered card folds where it sits, an item
+  // that leaves fades as the rest close up, and the tabs cross-fade.
+  list: Animation.smooth({ duration: ms(380) / 1000 }),
+  tab: Animation.easeInOut({ duration: ms(220) / 1000 }),
 } as const;
 
 // How the orb answers your voice at the reaction setting's `amount`: louder swells it, a higher
@@ -38,4 +42,12 @@ export function heard(amount: number, size: number, level: number, pitch: number
     { scaleX: 1 - 0.3 * amount * tone },
     { scaleY: 1 + 0.3 * amount * tone },
   ];
+}
+
+// SwiftUI's `animation` modifier animates when the number it watches changes: a list's rows as one
+// number, so a row arriving, leaving or changing settles with the list's animation.
+export function rowsKey(rows: string[]) {
+  let key = 0;
+  for (const char of rows.join('\n')) key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
+  return key;
 }

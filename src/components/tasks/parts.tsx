@@ -13,6 +13,7 @@ import {
   labelStyle,
   padding,
   shapes,
+  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
@@ -66,13 +67,15 @@ export function Header({
         >
           {title}
         </Text>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 13 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
-          {subtitle}
-        </Text>
+        {subtitle ? (
+          <Text
+            numberOfLines={1}
+            textStyle={{ fontSize: 13 }}
+            modifiers={[foregroundStyle(theme.secondary)]}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
       </Column>
       <Spacer flexible />
       <Spacer style={{ width: HEADER }} />
@@ -80,11 +83,20 @@ export function Header({
   );
 }
 
-export function Scroll({ children }: { children: ReactNode }) {
+export function Scroll({
+  children,
+  modifiers = [],
+}: {
+  children: ReactNode;
+  modifiers?: ModifierConfig[];
+}) {
   return (
     <ScrollView
       showsIndicators={false}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      modifiers={[
+        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+        ...modifiers,
+      ]}
     >
       <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
         {children}
@@ -270,5 +282,21 @@ export function Pill({
       </Text>
       <Spacer flexible />
     </Row>
+  );
+}
+
+// A tab with nothing in it says so, quietly.
+export function Empty({ text }: { text: string }) {
+  return (
+    <Text
+      textStyle={{ fontSize: 15 }}
+      modifiers={[
+        foregroundStyle(theme.tertiary),
+        padding({ top: 48 }),
+        frame({ maxWidth: Infinity }),
+      ]}
+    >
+      {text}
+    </Text>
   );
 }
