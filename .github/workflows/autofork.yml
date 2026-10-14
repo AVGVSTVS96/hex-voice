@@ -26,3 +26,7 @@ jobs:
       - uses: AVGVSTVS96/autofork@v1
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+      - name: Capture Claude accounting
+        if: always()
+        uses: AVGVSTVS96/autofork/.github/actions/usage@0fb1e96705913302e556e71c9909966e8da44331
