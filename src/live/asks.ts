@@ -103,9 +103,13 @@ export function checkLine(check: CheckSummary) {
   return { title: `Checked ${timeOfDay(check.at)}`, did };
 }
 
-// Two short choices sit side by side; a pick among several stacks, one per row.
+// How many characters fit on a pill: one alone spans the card, two share it.
+const PILL_FITS = [0, 28, 13];
+
+// Two short choices sit side by side; several, or any too long for its pill, stack one per row.
 export function stacked(ask: Ask) {
-  return ask.kind === 'pick' && ask.options.length > 2;
+  const fits = PILL_FITS[ask.options.length];
+  return !fits || ask.options.some((option) => option.label.length > fits);
 }
 
 // Where else it was asked, as one line: "Asked in calls, autofork and General".
