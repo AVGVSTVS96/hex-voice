@@ -37,6 +37,7 @@ export function VoiceControl({
   return (
     <Host
       matchContents
+      ignoreSafeArea="all"
       style={{ width: size, height: size }}
       accessibilityLabel={process.env.EXPO_OS === 'web' ? label : undefined}
     >

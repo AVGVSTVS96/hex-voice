@@ -1,6 +1,15 @@
 import * as Haptics from 'expo-haptics';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -59,9 +68,18 @@ const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
 
-// The screen lays itself out for the device's pose, so it waits for the first one.
+// The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
+// upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export default function LiveScreen() {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
+  const pad = Platform.OS === 'ios' && Platform.isPad;
+  const upright = pose && !pad && !pose.bar && !pose.fold;
+  useEffect(() => {
+    if (upright === undefined) return;
+    void (upright
+      ? ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
+      : ScreenOrientation.unlockAsync());
+  }, [upright]);
   return (
     <View style={styles.root}>
       {PoseView && (
