@@ -44,6 +44,7 @@ import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
+import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
@@ -142,6 +143,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         : 'Ready to start a conversation';
 
   useCallFeedback(session.status, preferences);
+  useAppUpdates(!asleep);
   const { line: agent, cards } = useAgentLine(connected, preferences.haptics);
   useEndedCall(session, voice, calls.add);
   useCallActivity({
