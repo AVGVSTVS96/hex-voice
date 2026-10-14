@@ -67,15 +67,15 @@ export async function publish({ dir, dist, platform, runtimeVersion, expoConfig 
     };
   };
 
-  const id = createHash('sha256').update(runtimeVersion).update(metadata).digest('hex');
+  const hash = createHash('sha256').update(runtimeVersion).update(metadata).digest('hex');
+  const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+  const latest = join(runtime, 'manifest.json');
+  if (JSON.parse(await readFile(latest, 'utf8').catch(() => '{}')).id === id) {
+    return { id, published: false };
+  }
+
   const manifest = {
-    id: [
-      id.slice(0, 8),
-      id.slice(8, 12),
-      id.slice(12, 16),
-      id.slice(16, 20),
-      id.slice(20, 32),
-    ].join('-'),
+    id,
     createdAt: new Date().toISOString(),
     runtimeVersion,
     launchAsset: await add(bundle, 'hbc'),
@@ -88,8 +88,8 @@ export async function publish({ dir, dist, platform, runtimeVersion, expoConfig 
     metadata: {},
     extra: { expoClient: expoConfig },
   };
-  await replace(join(runtime, 'manifest.json'), JSON.stringify(manifest));
-  return manifest;
+  await replace(latest, JSON.stringify(manifest));
+  return { id, published: true };
 }
 
 async function replace(path: string, data: string | Buffer) {
@@ -157,8 +157,8 @@ async function main() {
   } else if (command === 'publish') {
     const [dist, platform, runtimeVersion, configPath] = args;
     const expoConfig = JSON.parse(await readFile(configPath, 'utf8'));
-    const { id, launchAsset } = await publish({ dir, dist, platform, runtimeVersion, expoConfig });
-    console.log(`published update ${id} (${launchAsset.url})`);
+    const { id, published } = await publish({ dir, dist, platform, runtimeVersion, expoConfig });
+    console.log(published ? `published update ${id}` : `update ${id} was already published`);
   } else {
     throw new Error('usage: store.mts serve | publish <dist> <platform> <runtime> <config.json>');
   }
