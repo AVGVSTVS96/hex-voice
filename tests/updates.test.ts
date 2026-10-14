@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -91,4 +91,16 @@ test('refuses to publish for a runtime no native build has', async (t) => {
     publish({ dir, dist: await exported(), platform: 'ios', runtimeVersion: 'new', expoConfig }),
     /no native build has runtime new/,
   );
+});
+
+test('publishing the same export again leaves the update as it was', async (t) => {
+  const { dir, server, expoConfig } = await store();
+  t.after(() => server.close());
+  await mkdir(join(dir, 'ios/abc123'), { recursive: true });
+  const dist = await exported();
+  const update = { dir, dist, platform: 'ios', runtimeVersion: 'abc123', expoConfig };
+  assert.equal((await publish(update)).published, true);
+  const first = await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf8');
+  assert.equal((await publish(update)).published, false);
+  assert.equal(await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf8'), first);
 });
