@@ -53,7 +53,7 @@ import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
-import { tasksAPI } from '@/live/api';
+import { asksAPI, tasksAPI } from '@/live/api';
 import type { TaskRow } from '@/live/tasks';
 import { ENDINGS, callLength, transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
@@ -502,6 +502,13 @@ function CallScreen({ pose }: { pose: Pose }) {
         }
       : undefined;
 
+  // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
+  const goThrough = () => {
+    setTasksOpen(false);
+    if (voiceLocked) void asksAPI.talk().catch(() => {});
+    else if (voiceLoaded) startCall('asks');
+  };
+
   const ending = session.ending && !voiceLocked && !viewing ? ENDINGS[session.ending] : undefined;
   const wrapUp = useWrapUp(session.callId, !!ending && session.ending !== 'no-connect');
   const controls = (
@@ -703,6 +710,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           onCall={voiceLocked}
           haptics={preferences.haptics}
           onTalk={talkAbout}
+          onGoThrough={goThrough}
         />
         <VoiceSettings
           fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
