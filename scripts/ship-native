@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Builds main once on the Mac, in one warm build folder so Xcode only rebuilds what changed, and
-# installs that build on the iPhone and iPad as soon as no call is live (installing ends a call).
-# Signing over ssh needs the Mac's login keychain unlocked in the same session, so the build gets
-# its password on stdin from KEYCHAIN_PASSWORD_COMMAND. Hex is asked about calls from the Mac,
-# since the server can't reach its own tailnet name.
+# Builds main once and installs it on the iPhone and iPad. The Mac builds it unsigned in one warm
+# folder, so Xcode only rebuilds what changed, and xtool on the server signs and installs it: the
+# free Apple team has one development certificate, and it lives with xtool on the server.
+# Runs queue up: one that waited behind another builds the newest main, or nothing when the
+# devices already run it. Installing ends a live call, so installs wait for the call to end.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
@@ -24,28 +24,28 @@ install_pods() {
   echo "$inputs" >ios/Pods/.inputs
 }
 
+# Runs on the Mac: builds build/ipa/hex.ipa, ad-hoc signed with the app's and the Live Activity
+# extension's entitlements for xtool to read, and prints its runtime version.
 build() {
   export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=/opt/homebrew/bin:$PATH
   set -a && . ./.env.local && set +a
-  local password
-  password=$(cat)
-  [ -z "$password" ] || security unlock-keychain -p "$password" login.keychain-db
   install_modules
   CI=1 npx expo prebuild --platform ios --no-install >/dev/null
   install_pods
   mkdir -p build
   xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
-    -destination generic/platform=iOS -derivedDataPath build \
-    -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
-    DEVELOPMENT_TEAM="$APPLE_TEAM_ID" build >build/xcodebuild.log 2>&1 || {
+    -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
+    build >build/xcodebuild.log 2>&1 || {
     grep -E 'error:' build/xcodebuild.log | sort -u >&2
     die "xcodebuild failed, see $PWD/build/xcodebuild.log on the Mac"
   }
+  for framework in "$app"/Frameworks/*; do codesign -f -s - "$framework" 2>/dev/null; done
+  codesign -f -s - --entitlements ios/ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements \
+    "$app/PlugIns/ExpoWidgetsTarget.appex" 2>/dev/null
+  codesign -f -s - --entitlements ios/hex/hex.entitlements "$app" 2>/dev/null
+  rm -rf build/ipa && mkdir -p build/ipa/Payload && cp -R "$app" build/ipa/Payload/
+  (cd build/ipa && zip -qry hex.ipa Payload)
   cat "$app/EXUpdates.bundle/fingerprint"
-}
-
-keychain_password() {
-  [ -z "${KEYCHAIN_PASSWORD_COMMAND:-}" ] || eval "$KEYCHAIN_PASSWORD_COMMAND"
 }
 
 wait_for_no_call() {
@@ -60,38 +60,72 @@ wait_for_no_call() {
   done
 }
 
+# xtool reaches a device over Wi-Fi through netmuxd, or plugged into the Mac through the Mac's
+# usbmuxd, forwarded here over ssh.
+open_sockets() {
+  netmuxd=UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock
+  on_wifi=$(USBMUXD_SOCKET_ADDRESS=$netmuxd xtool devices 2>/dev/null || true)
+  mac_usb=$home/mac-usbmuxd.sock
+  ssh -NT -o ExitOnForwardFailure=yes -o StreamLocalBindUnlink=yes \
+    -L "$mac_usb:/var/run/usbmuxd" "$mac" &
+  trap "kill $!" EXIT
+  while [ ! -S "$mac_usb" ]; do sleep 0.2; done
+}
+
+socket_for() {
+  if grep -q "$1" <<<"$on_wifi"; then echo "$netmuxd"; else echo "UNIX:$mac_usb"; fi
+}
+
 if [ "${1:-}" = build ]; then
   cd "$(dirname "$0")/.."
   build
   exit
 fi
 
-mkdir -p "$home"
+mkdir -p "$home/installed"
 exec 8>"$home/native.lock"
-flock 8
+flock -n 8 || {
+  echo "another native ship is running; this one ships the newest main after it"
+  flock 8
+}
 exec 9>"$home/release.lock"
 flock 9
 refresh_release
-runtime=$(runtime_version)
-commit=$(git -C "$release" log --oneline -1 | cut -c1-80)
+commit=$(git -C "$release" rev-parse HEAD)
+title=$(git -C "$release" log --oneline -1 | cut -c1-80)
 bundle=$(jq -r .expo.ios.bundleIdentifier "$release/app.json")
 set -a && . "$release/.env.local" && set +a
+devices=()
+for device in $IOS_DEVICES; do
+  [ "$(cat "$home/installed/$device" 2>/dev/null)" = "$commit" ] || devices+=("$device")
+done
+[ ${#devices[@]} -gt 0 ] || {
+  echo "the iPhone and iPad already run $title"
+  exit
+}
+runtime=$(runtime_version)
 rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$release/" "$mac:$folder/"
 flock -u 9
 
-echo "building $commit on the Mac"
-built=$(keychain_password | ssh "$mac" "$folder/scripts/ship-native build")
+echo "building $title on the Mac"
+built=$(ssh "$mac" "$folder/scripts/ship-native build" </dev/null)
 [ "$built" = "$runtime" ] || die "the Mac built runtime $built, but main's runtime is $runtime"
 mkdir -p "$updates/ios/$runtime"
+scp -q "$mac:$folder/build/ipa/hex.ipa" "$home/hex.ipa"
 
 wait_for_no_call
+open_sockets
 failed=
-for device in $IOS_DEVICES; do
-  if ssh "$mac" "xcrun devicectl device install app --device $device $folder/$app >/dev/null &&
-    xcrun devicectl device process launch --device $device --terminate-existing $bundle >/dev/null"; then
-    echo "installed $commit on $device"
+for device in "${devices[@]}"; do
+  socket=$(socket_for "$device")
+  if USBMUXD_SOCKET_ADDRESS=$socket XTL_KEEP_IDENTIFIERS=1 xtool install --udid "$device" \
+    "$home/hex.ipa" >"$home/install-$device.log" 2>&1; then
+    echo "$commit" >"$home/installed/$device"
+    echo "installed $title on $device"
+    USBMUXD_SOCKET_ADDRESS=$socket xtool launch --udid "$device" "$bundle" >/dev/null 2>&1 ||
+      echo "couldn't open it on $device"
   else
     failed+=" $device"
   fi
 done
-[ -z "$failed" ] || die "couldn't install on$failed"
+[ -z "$failed" ] || die "couldn't install on$failed, see $home/install-<udid>.log"

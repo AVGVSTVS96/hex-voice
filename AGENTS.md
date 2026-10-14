@@ -22,7 +22,8 @@ push main ─┬─ npm run ship:js      JS only: over the air, on both devices 
 ```
 
 - After you push main, run `npm run ship:js`. It publishes main's JS to the update server (`updates/store.mts`, the `hex-voice-updates` service on the server), and the app restarts into it the next time it comes to the front with no call live.
-- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/` or `modules/` changed. Then run `npm run ship:native`: it builds main in the Mac's one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, waits for any live call to end, and installs that build on the iPhone and iPad.
+- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/` or `modules/` changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, and xtool on the server signs it and installs it on the iPhone (over Wi-Fi) and the iPad (plugged into the Mac) once no call is live. A run that waited behind another ships the newest main, or nothing when both devices already run it.
+- Sign for devices only with xtool on the server. The free Apple team holds one development certificate at a time, so Xcode signing for a device on the Mac revokes xtool's and breaks every app it signed, hex keyboard too. Simulator builds on the Mac are fine.
 - Both ship what's on origin/main, from the release checkout `~/.local/share/hex-voice/release` and its `.env.local` (see `.env.example`), and both wait their turn, so any agent can run them at any time.
 - The free Apple team's profile stops the app opening 7 days after a native install. Over-the-air updates don't renew it; `ship:native` does.
 
