@@ -34,7 +34,7 @@ export function useWatch<T extends { version: number }>(
   }, [on, active]);
 }
 
-function useActive() {
+export function useActive() {
   const [active, setActive] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const listener = AppState.addEventListener('change', (state) => setActive(state === 'active'));

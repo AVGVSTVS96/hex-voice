@@ -1,5 +1,7 @@
 import type { SFSymbol } from 'sf-symbols-typescript';
 
+import type { TranscriptEntry } from './types';
+
 export type CallSource = 'app' | 'web' | 'phone-in' | 'phone-out';
 export type CallEnding =
   'you' | 'hex' | 'dropped' | 'expired' | 'no-connect' | 'no-answer' | 'busy';
@@ -34,24 +36,35 @@ export type CallMark = {
   kind: 'say' | 'note' | 'paused' | 'resumed' | 'warned';
   text: string;
 };
+// A live call's record carries a version, and asking with it waits for the next word.
 export type CallRecord = Omit<CallSummary, 'seconds' | 'tasks' | 'preview'> & {
   turns: CallTurn[];
   tasks: CallTask[];
   moments?: CallMark[];
+  version?: number;
 };
 export type CallList = { version: number; live?: string; calls: CallSummary[] };
 
 export interface CallsAPI {
   list(after?: number, signal?: AbortSignal): Promise<CallList>;
-  get(id: string): Promise<CallRecord>;
+  get(id: string, after?: number, signal?: AbortSignal): Promise<CallRecord>;
   remove(id: string): Promise<void>;
 }
 
-export const SOURCES: Record<CallSource, { started: string; symbol: SFSymbol }> = {
-  app: { started: 'You called from the app', symbol: 'iphone' },
-  web: { started: 'You called from the web page', symbol: 'globe' },
-  'phone-in': { started: 'You called hex', symbol: 'phone.arrow.down.left' },
-  'phone-out': { started: 'hex called you', symbol: 'phone.arrow.up.right' },
+// `where` is what the call screen says while it shows a call held somewhere other than this app.
+export const SOURCES: Record<CallSource, { started: string; where: string; symbol: SFSymbol }> = {
+  app: { started: 'You called from the app', where: 'In the app', symbol: 'iphone' },
+  web: { started: 'You called from the web page', where: 'On the web page', symbol: 'globe' },
+  'phone-in': {
+    started: 'You called hex',
+    where: 'On your phone',
+    symbol: 'phone.arrow.down.left',
+  },
+  'phone-out': {
+    started: 'hex called you',
+    where: 'On your phone',
+    symbol: 'phone.arrow.up.right',
+  },
 };
 
 // `line` closes the call on screen; `short` joins a list row, which only mentions the ending when
@@ -97,6 +110,21 @@ export function transcriptText(call: CallRecord) {
       : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
   );
   return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
+}
+
+// A call's turns as the live transcript shows them, each keyed by where it starts so it keeps its
+// place as its words grow.
+export function liveEntries(turns: CallTurn[]): TranscriptEntry[] {
+  return turns.map(({ who, at, text }) => ({
+    id: `${who} ${at}`,
+    role: who === 'you' ? 'user' : 'assistant',
+    text,
+    startMs: at,
+  }));
+}
+
+export function endedSeconds({ started, ended }: Pick<CallSummary, 'started' | 'ended'>) {
+  return ended ? Math.round((Date.parse(ended) - Date.parse(started)) / 1000) : 0;
 }
 
 export function callLength(seconds: number) {
