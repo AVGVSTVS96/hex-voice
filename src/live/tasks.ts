@@ -1,3 +1,4 @@
+import type { Ask } from './asks';
 import { timeOfDay } from './calls';
 
 export type TaskState = 'needs' | 'working' | 'done' | 'failed' | 'idle';
@@ -19,13 +20,15 @@ export type TaskRow = {
 };
 export type Task = Omit<TaskRow, 'agents'> & {
   needs?: string;
+  asks?: Ask[];
+  pin?: string;
   lately: TaskMoment[];
   steps: TaskStep[];
   agents: AgentTrail[];
 };
 export type Activity = { title: string; state: TaskAgent['state']; steps: TaskStep[] };
 export type TaskList = { version: number; tasks: TaskRow[] };
-export type TaskCounts = { version: number; needs: number; working: number };
+export type TaskCounts = { version: number; needs: number; working: number; yours?: number };
 
 export interface TasksAPI {
   list(after?: number, signal?: AbortSignal): Promise<TaskList>;

@@ -80,7 +80,7 @@ export function AgentLine({ line }: { line: Line | null }) {
   );
 }
 
-export type GlyphState = Line['state'] | 'needs' | 'idle';
+export type GlyphState = Line['state'] | 'needs' | 'idle' | 'paused';
 
 // One mark, one meaning: the arc turns while something works, a check is done, ! failed, a
 // filled mint dot is your turn, and a hollow ring is idle. A quiet mark is history, an entry
@@ -112,6 +112,14 @@ export function Glyph({ state, quiet = false }: { state: GlyphState; quiet?: boo
     return (
       <View style={styles.mark}>
         <View style={styles.idle} />
+      </View>
+    );
+  if (state === 'paused')
+    return (
+      <View style={[styles.glyph, styles.glyphPaused]}>
+        <Host matchContents>
+          <Icon name="pause.fill" size={9} color={theme.secondary} />
+        </Host>
       </View>
     );
   return (
@@ -156,6 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glyphFailed: { backgroundColor: theme.dangerMuted },
+  glyphPaused: { backgroundColor: theme.surfaceSelected },
   mark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   yourTurn: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.accent },
   past: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.tertiary },

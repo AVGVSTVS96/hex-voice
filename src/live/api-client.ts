@@ -1,3 +1,4 @@
+import type { AskList, AsksAPI, Check } from './asks';
 import type { CallRecord, CallsAPI, CallSummary } from './calls';
 import type { Task, TaskCounts, TaskList, TasksAPI } from './tasks';
 import type { SessionAPI } from './types';
@@ -165,5 +166,32 @@ export function createTasksAPI(options: Options): TasksAPI {
         timeoutMs: 10_000,
       });
     },
+  };
+}
+
+export function createAsksAPI(options: Options): AsksAPI {
+  const hex = createHexClient(options);
+  const post = async (path: string, body?: unknown) => {
+    await hex.request(path, { method: 'POST', body, timeoutMs: 10_000 });
+  };
+  return {
+    async list(after, signal) {
+      const result = await hex.request(after === undefined ? '/asks' : `/asks?after=${after}`, {
+        method: 'GET',
+        signal,
+        timeoutMs: after === undefined ? undefined : 40_000,
+      });
+      if (!isRecord(result) || typeof result.version !== 'number' || !Array.isArray(result.asks))
+        throw new Error('hex sent asks this app can’t read.');
+      return result as AskList;
+    },
+    async check() {
+      return (await hex.request('/asks/check', { method: 'GET' })) as Check;
+    },
+    answer: (id, label) => post(`/asks/${encodeURIComponent(id)}/answer`, { label }),
+    undo: (id) => post(`/asks/${encodeURIComponent(id)}/undo`),
+    act: (id) => post(`/stuck/${encodeURIComponent(id)}/act`),
+    read: (id) => post(`/fresh/${encodeURIComponent(id)}/read`),
+    talk: () => post('/asks/talk'),
   };
 }
