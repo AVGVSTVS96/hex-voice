@@ -142,7 +142,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         : 'Ready to start a conversation';
 
   useCallFeedback(session.status, preferences);
-  const agent = useAgentLine(connected, preferences.haptics);
+  const { line: agent, cards } = useAgentLine(connected, preferences.haptics);
   useEndedCall(session, voice, calls.add);
   useCallActivity({
     ...session,
@@ -574,7 +574,14 @@ function CallScreen({ pose }: { pose: Pose }) {
                   live={shown.id === calls.live}
                 />
               ) : (
-                <Transcript entries={session.transcript} active={reading} />
+                <Transcript
+                  entries={session.transcript}
+                  active={reading}
+                  cards={cards}
+                  onAnswer={(card, option) =>
+                    void asksAPI.answer(card.ask.id, option.label).catch(() => {})
+                  }
+                />
               )}
               <View pointerEvents="none" style={styles.fade} />
               <View pointerEvents="none" style={styles.fadeBottom} />

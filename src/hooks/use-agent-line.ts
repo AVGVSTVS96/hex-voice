@@ -1,16 +1,18 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 
-import { agentLine, justFinished, type AgentTask } from '@/live/agents';
+import { agentLine, justFinished, type AgentTask, type CallCard } from '@/live/agents';
 import { agentsAPI } from '@/live/api';
 import { motion } from '@/motion';
 
 const RETRY = 2000;
 
 // What hex's agents are doing on this call, from the voice plugin's /activity long poll: it
-// answers the moment a task or an agent's step changes, so the line moves with the agent.
+// answers the moment a task or an agent's step changes, so the line moves with the agent. The
+// same answer carries the asks hex put on screen, for the transcript.
 export function useAgentLine(live: boolean, haptics: boolean) {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [cards, setCards] = useState<CallCard[]>([]);
   const [finished, setFinished] = useState<AgentTask>();
   const feel = useRef(haptics);
   feel.current = haptics;
@@ -18,6 +20,7 @@ export function useAgentLine(live: boolean, haptics: boolean) {
   useEffect(() => {
     if (!live) {
       setTasks([]);
+      setCards([]);
       setFinished(undefined);
       return;
     }
@@ -33,6 +36,7 @@ export function useAgentLine(live: boolean, haptics: boolean) {
           version = activity.version;
           seen = current;
           setTasks(current);
+          setCards(activity.call ? (activity.asks ?? []) : []);
           if (!done) continue;
           setFinished(done);
           if (feel.current && process.env.EXPO_OS === 'ios')
@@ -52,5 +56,5 @@ export function useAgentLine(live: boolean, haptics: boolean) {
     return () => clearTimeout(timer);
   }, [finished]);
 
-  return agentLine(tasks, finished);
+  return { line: agentLine(tasks, finished), cards };
 }
