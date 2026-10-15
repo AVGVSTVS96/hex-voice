@@ -10,6 +10,7 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
+import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { GroupHead, Inset, ios } from '@/components/tasks/parts';
@@ -26,6 +27,7 @@ const GLYPH: Record<Place, SFSymbol> = {
   server: 'terminal.fill',
 };
 const SHOWN = 5;
+const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 const TILE: Record<Place, string> = {
   telegram: '#2AABEE',
   t3: '#2C2C2E',
@@ -112,7 +114,7 @@ export function Places({
           {all.slice(0, SHOWN).map((thread) => {
             const place = placeOf(thread.app);
             const note = missing.has(place)
-              ? `${PLACES[place]} isn’t on this iPhone`
+              ? `${PLACES[place]} isn’t on this ${DEVICE}`
               : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
             return (
               <Row

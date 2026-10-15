@@ -1,5 +1,11 @@
 import { Column, Row, ScrollView, Text } from '@expo/ui';
-import { foregroundStyle, frame, padding } from '@expo/ui/swift-ui/modifiers';
+import {
+  background,
+  clipShape,
+  foregroundStyle,
+  frame,
+  padding,
+} from '@expo/ui/swift-ui/modifiers';
 
 import { AgentRow, Header, INSET, Inset, Line, Mark, Pill } from '@/components/tasks/parts';
 import { Pinned, YourCall } from '@/components/tasks/pinned';
@@ -130,13 +136,12 @@ export function Detail({
               <Column
                 alignment="start"
                 spacing={8}
-                style={{
-                  backgroundColor: theme.group,
-                  borderRadius: 22,
-                  paddingHorizontal: 18,
-                  paddingVertical: 16,
-                }}
-                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+                modifiers={[
+                  padding({ horizontal: 18, vertical: 16 }),
+                  frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  background(theme.group),
+                  clipShape('roundedRectangle', 22),
+                ]}
               >
                 <Row alignment="center" spacing={8}>
                   <Mark state="needs" />
