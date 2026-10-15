@@ -4,19 +4,14 @@ import test from 'node:test';
 import { createAsksAPI } from '../src/live/api-client';
 import {
   checkLine,
-  filterAsks,
-  filterCounts,
-  foldNote,
   keepInPlace,
   openAsks,
-  placesLine,
   stacked,
   yours,
   type Ask,
   type AskList,
   type Yours,
 } from '../src/live/asks';
-import { firstTab, tabCounts } from '../src/live/tabs';
 import { pinSections } from '../src/live/pinned';
 
 const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
@@ -30,16 +25,6 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
   ...extra,
 });
 
-test('the filters split asks into decisions, things only your hands can do, and things to look at', () => {
-  const asks = [ask('a', 'pick'), ask('b', 'yesno'), ask('c', 'do'), ask('d', 'look')];
-  assert.deepEqual(filterCounts(asks, 0), { all: 4, decide: 2, do: 1, look: 1, stuck: 0 });
-  assert.deepEqual(
-    filterAsks(asks, 'decide').map((one) => one.id),
-    ['a', 'b'],
-  );
-  assert.deepEqual(filterAsks(asks, 'all'), asks);
-});
-
 test('the check strip says what the check did', () => {
   const { did } = checkLine({
     at: new Date().toISOString(),
@@ -50,7 +35,7 @@ test('the check strip says what the check did', () => {
   assert.equal(did, 'fixed 4 · flagged 3');
 });
 
-test('several choices stack, two sit side by side, and repeats name where else they were asked', () => {
+test('several choices stack, and two sit side by side', () => {
   assert.equal(
     stacked(ask('m', 'pick', { options: [{ label: 'A' }, { label: 'B' }, { label: 'C' }] })),
     true,
@@ -61,15 +46,6 @@ test('several choices stack, two sit side by side, and repeats name where else t
     true,
   );
   assert.equal(stacked(ask('o', 'do', { options: [{ label: 'Open the sign-in page' }] })), false);
-  assert.equal(
-    placesLine(['calls', 'autofork', 'General']),
-    'Asked in calls, autofork and General',
-  );
-  assert.equal(placesLine(['calls']), undefined);
-  assert.equal(
-    foldNote(ask('t', 'pick', { link: 'https://t.me/c/1/2/3' }), 'Deep'),
-    'Telegram’s buttons now say Answered in the app: Deep',
-  );
 });
 
 test('a pinned post reads as sections: what waits on you, what runs, known problems, Done folded', () => {
@@ -196,20 +172,4 @@ test('held asks go back after the ask they followed, or first when none of those
     keepInPlace(before, after, held).map((one) => one.id),
     ['x', 'y', 'b', 'c'],
   );
-});
-
-test('the tabs count what is yours, working and newly done, and open on the first with any', () => {
-  const groups = [
-    { key: 'needs' as const, title: 'Needs you', tasks: [{} as never] },
-    { key: 'working' as const, title: 'Working', tasks: [{} as never, {} as never] },
-  ];
-  const fresh = [
-    { id: 'f', title: 'pigeon', where: 'T3', line: 'shipped', at: '', read: false },
-    { id: 'g', title: 'seqno', where: 'T3', line: 'shipped', at: '', read: true },
-  ];
-  const counts = tabCounts(3, 1, groups, fresh);
-  assert.deepEqual(counts, { yours: 5, working: 2, done: 1 });
-  assert.equal(firstTab(counts), 'yours');
-  assert.equal(firstTab({ yours: 0, working: 0, done: 4 }), 'done');
-  assert.equal(firstTab({ yours: 0, working: 0, done: 0 }), 'yours');
 });

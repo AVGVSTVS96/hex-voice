@@ -117,34 +117,6 @@ export interface AsksAPI {
   talk(): Promise<void>;
 }
 
-export type AskFilter = 'all' | 'decide' | 'do' | 'look' | 'stuck';
-export const FILTERS: { key: AskFilter; title: string }[] = [
-  { key: 'all', title: 'All' },
-  { key: 'decide', title: 'Decide' },
-  { key: 'do', title: 'Do' },
-  { key: 'look', title: 'Look' },
-  { key: 'stuck', title: 'Stuck' },
-];
-
-// Stuck isn't an ask: under its filter the asks step aside for what stopped.
-export function filterAsks(asks: Ask[], filter: AskFilter) {
-  if (filter === 'all') return asks;
-  if (filter === 'stuck') return [];
-  if (filter === 'decide') return asks.filter((ask) => ask.kind === 'pick' || ask.kind === 'yesno');
-  return asks.filter((ask) => ask.kind === filter);
-}
-
-// All counts everything yours: the asks, what's stuck, and threads waiting on you some other way.
-export function filterCounts(asks: Ask[], stuck: number, waiting = 0): Record<AskFilter, number> {
-  return {
-    all: asks.length + stuck + waiting,
-    decide: filterAsks(asks, 'decide').length,
-    do: filterAsks(asks, 'do').length,
-    look: filterAsks(asks, 'look').length,
-    stuck,
-  };
-}
-
 // "Checked 6:31pm" with what it did: "fixed 4 · flagged 3".
 export function checkLine(check: CheckSummary) {
   const did = [check.fixed && `fixed ${check.fixed}`, check.flagged && `flagged ${check.flagged}`]
@@ -160,17 +132,4 @@ const PILL_FITS = [0, 28, 13];
 export function stacked(ask: Ask) {
   const fits = PILL_FITS[ask.options.length];
   return !fits || ask.options.some((option) => option.label.length > fits);
-}
-
-// Where else it was asked, as one line: "Asked in calls, autofork and General".
-export function placesLine(places: string[] = []) {
-  if (places.length < 2) return undefined;
-  const last = places.at(-1)!;
-  return `Asked in ${places.slice(0, -1).join(', ')} and ${last}`;
-}
-
-// What the folded line says happened to its Telegram message.
-export function foldNote(ask: Ask, label: string) {
-  if (!ask.link) return `Sent to ${ask.topic}`;
-  return `Telegram’s buttons now say Answered in the app: ${label}`;
 }

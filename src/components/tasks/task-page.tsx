@@ -1,15 +1,15 @@
 import { Column, Row, ScrollView, Text } from '@expo/ui';
 import { foregroundStyle, frame, padding } from '@expo/ui/swift-ui/modifiers';
-import { Linking } from 'react-native';
 
 import { AgentRow, Header, INSET, Inset, Line, Mark, Pill } from '@/components/tasks/parts';
 import { Pinned, YourCall } from '@/components/tasks/pinned';
+import { OpenIn, Places } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
+import { PLACES, placeOf, topicLine, type Place, type Topic } from '@/live/inbox';
 import {
   STATE_WORDS,
   activityOf,
   clock,
-  openLabel,
   type Task,
   type TaskRow,
   type TaskState,
@@ -67,32 +67,44 @@ function History({ title, entries }: { title?: string; entries: HistoryEntry[] }
 }
 
 // A task's own page: what's working on it, its asks answered right here, its pinned status post
-// drawn natively, what it did lately, and two ways to talk. Each line of work opens that agent's
-// steps. Without asks or a pinned post, what it waits on shows as it said it.
+// drawn natively, every place its topic lives, what it did lately, and two ways on: talk it
+// through, or open it where it lives. Each line of work opens that agent's steps. Without asks or
+// a pinned post, what it waits on shows as it said it.
 export function Detail({
   task,
   asks,
   answered,
+  topic,
+  threads,
+  missing,
   onBack,
   onActivity,
   onAnswer,
   onUndo,
   onTalk,
+  onOpen,
+  onOpenTask,
+  foot = 0,
 }: {
   task: TaskRow | Task;
   asks: Ask[];
   answered: Record<string, string | null>;
-  onBack: () => void;
+  topic?: Topic;
+  threads: TaskRow[];
+  missing: Set<Place>;
+  onBack?: () => void;
   onActivity: (agent: string | null) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onTalk: () => void;
+  onOpen: (thread: TaskRow) => void;
+  onOpenTask: (id: string) => void;
+  foot?: number;
 }) {
   const full = 'lately' in task ? task : undefined;
   const pinned = !!(asks.length || full?.pin);
   const needs = task.state === 'needs' && !pinned ? (full?.needs ?? task.line) : undefined;
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
-  const open = openLabel(task);
   return (
     <Column
       alignment="center"
@@ -101,7 +113,11 @@ export function Detail({
     >
       <Header
         title={task.name}
-        subtitle={`${task.where} · ${STATE_WORDS[task.state]}`}
+        subtitle={
+          topic && topic.threads > 1
+            ? topicLine(topic)
+            : `${PLACES[placeOf(task.app)]} · ${STATE_WORDS[task.state]}`
+        }
         onBack={onBack}
       />
       <ScrollView
@@ -158,6 +174,13 @@ export function Detail({
           ) : null}
           <YourCall asks={asks} answered={answered} onAnswer={onAnswer} onUndo={onUndo} />
           {full?.pin ? <Pinned text={full.pin} /> : null}
+          <Places
+            task={task}
+            threads={threads}
+            missing={missing}
+            onOpen={onOpen}
+            onOpenTask={onOpenTask}
+          />
           {lately.length ? (
             <Inset>
               <History
@@ -166,14 +189,19 @@ export function Detail({
               />
             </Inset>
           ) : null}
-          <Inset>
-            <Row alignment="center" spacing={10} modifiers={[frame({ maxWidth: Infinity })]}>
-              <Pill label="Talk it through" prominent onPress={onTalk} />
-              {open ? <Pill label={open} onPress={() => void Linking.openURL(task.link!)} /> : null}
-            </Row>
-          </Inset>
         </Column>
       </ScrollView>
+      <Row
+        alignment="center"
+        spacing={10}
+        modifiers={[
+          padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(14, foot) }),
+          frame({ maxWidth: Infinity }),
+        ]}
+      >
+        <Pill label="Talk it through" prominent onPress={onTalk} />
+        <OpenIn task={task} threads={threads} onOpen={onOpen} />
+      </Row>
     </Column>
   );
 }

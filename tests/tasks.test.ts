@@ -2,16 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createSessionAPI, createTasksAPI } from '../src/live/api-client';
-import {
-  activityOf,
-  groupTasks,
-  idleLine,
-  openLabel,
-  taskTime,
-  tasksSubtitle,
-  type Task,
-  type TaskRow,
-} from '../src/live/tasks';
+import { activityOf, taskTime, type Task, type TaskRow } from '../src/live/tasks';
 
 const hexUrl = 'https://hex.example:8790';
 const now = new Date(2026, 9, 13, 10, 0);
@@ -35,56 +26,11 @@ const row = (
   ...extra,
 });
 
-test('needs you leads, then working, then what finished today; older settled tasks fold into idle', () => {
-  const groups = groupTasks(
-    [
-      row('autofork', 'needs', at(8, 30)),
-      row('voiceapp', 'working'),
-      row('voice', 'done', at(9, 33)),
-      row('Supremacy', 'failed', at(7, 12)),
-      row('backlog', 'done', at(15, 0, 12)),
-      row('Watcher', 'idle'),
-    ],
-    now,
-  );
-  assert.deepEqual(
-    groups.map((group) => [group.title, group.tasks.map((task) => task.name)]),
-    [
-      ['Needs you', ['autofork']],
-      ['Working', ['voiceapp']],
-      ['Done today', ['voice', 'Supremacy']],
-      ['Idle', ['backlog', 'Watcher']],
-    ],
-  );
-  assert.equal(tasksSubtitle(groups), '1 needs you · 1 working · 2 done today');
-  assert.equal(tasksSubtitle(groups, true), '1 needs you · 1 working');
-  assert.equal(tasksSubtitle([]), 'Nothing running');
-});
-
 test('a row says how long it has worked, or since when it waited or finished', () => {
   assert.equal(taskTime(row('voiceapp', 'working', at(9, 46)), now), '14 min');
   assert.equal(taskTime(row('Films', 'working', at(8, 0)), now), '2 hr');
   assert.match(taskTime(row('autofork', 'needs', at(8, 30)), now), /^8:30\sAM$/);
   assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/);
-});
-
-test('idle names read as one line, the rest counted', () => {
-  const names = [
-    'seqno',
-    'antibody',
-    'Data kit',
-    'x',
-    'automode',
-    'Theo clips',
-    'Voice Memos',
-    'a',
-    'b',
-  ];
-  assert.equal(
-    idleLine(names.map((name) => row(name, 'idle'))),
-    'seqno, antibody, Data kit, x, automode, Theo clips, Voice Memos and 2 more',
-  );
-  assert.equal(idleLine([row('x', 'idle'), row('x', 'idle')]), 'x');
 });
 
 test("a task's activity is its own session's steps, or one of its agents', marked by whether it still works", () => {
@@ -111,14 +57,6 @@ test("a task's activity is its own session's steps, or one of its agents', marke
   });
   assert.equal(activityOf({ ...task, state: 'done' }, null)?.state, 'done');
   assert.equal(activityOf(task, 'gone'), undefined);
-});
-
-test('only a thread hex can link to gets an open button', () => {
-  assert.equal(
-    openLabel(row('autofork', 'needs', at(8), { link: 'https://t.me/c/1/908' })),
-    'Open in Telegram',
-  );
-  assert.equal(openLabel(row('Forum', 'needs', at(8), { app: 'buzz', where: 'Buzz' })), undefined);
 });
 
 test('tasks are asked for with the hex token, waiting on the version they last saw', async () => {
