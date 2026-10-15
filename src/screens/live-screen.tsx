@@ -60,7 +60,7 @@ import {
   type CallSummary,
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { CONTROLS, DOCKED, screenLayout } from '@/screens/layout';
+import { CONTROLS, DOCK, DOCKED, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -70,6 +70,7 @@ const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
+const CONTROLS_BOX = 200;
 const PAD = Platform.OS === 'ios' && Platform.isPad;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -113,8 +114,11 @@ function CallScreen({ pose }: { pose: Pose }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const layout = screenLayout({ width, height }, insets, pose);
-  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side } = layout;
+  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
   const split = layout.kind === 'split';
+  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
+  // footer and agent line follow the words there instead of spanning the screen.
+  const moves = split || !!orb.dock;
   // What the words show, in one place. Where the layout pulls the words down over the orb, they
   // show once pulled; everywhere else they always show. Opening a past call pulls them, and letting
   // them go goes back to the live call, so the two never disagree.
@@ -147,6 +151,10 @@ function CallScreen({ pose }: { pose: Pose }) {
   const away = elsewhere.call;
   const onCall = voiceLocked || elsewhere.live;
   const awake = connected || (elsewhere.live && !elsewhere.leaving);
+  // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
+  // in a rail; once a call starts, Tasks narrows to its pane beside it.
+  const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
+  const inboxShown = !!inbox && tasksOpen;
   const asleep = !awake && !connecting && !disconnecting && !elsewhere.leaving;
   const speaking = connected && session.outputLevel > 0.035;
   const personaState: PersonaState =
@@ -226,7 +234,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     {
       top: orb.room.top,
       bottom: Math.min(
-        split ? orb.room.bottom : height - footer,
+        moves ? orb.room.bottom : height - footer,
         tasksOpen && onCall && !pose.regular ? height / 2 : height,
       ),
     },
@@ -283,7 +291,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   }, [reading]);
 
   const pulls = layout.pulls;
-  const transcriptButton = pulls && !PAD;
+  const transcriptButton = pulls;
   const drag = () =>
     Gesture.Pan()
       .activeOffsetY([-12, 12])
@@ -389,7 +397,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   };
   // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
   const openCall = (call: CallSummary) => {
-    if (!split) settleDrawer(false);
+    if (list.place !== 'beside') settleDrawer(false);
     if (call.id === calls.live && onCall) return backToCall();
     showCall(call.id);
   };
@@ -401,11 +409,21 @@ function CallScreen({ pose }: { pose: Pose }) {
   const leaveCall = () => setShowing({ pulled: false, call: null });
 
   const pane = useSharedValue(0);
+  const paneWidth = inbox ? inbox.width : side.width;
+  const paneW = useSharedValue(paneWidth);
+  const wide = useSharedValue(inbox ? 1 : 0);
   useEffect(() => {
     if (!panes) return;
-    const to = tasksOpen ? 1 : 0;
-    pane.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
-  }, [tasksOpen, panes, reducedMotion, pane]);
+    const settle = (to: number) =>
+      reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
+    // A pane that opens from closed takes its width at once; one already open moves to it.
+    if (tasksOpen) {
+      const closed = pane.get() < 0.01;
+      paneW.set(closed ? paneWidth : settle(paneWidth));
+      wide.set(closed ? (inbox ? 1 : 0) : settle(inbox ? 1 : 0));
+    }
+    pane.set(settle(tasksOpen ? 1 : 0));
+  }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
   // The call is a card. Calls and Tasks either slide it aside or take an edge of it, and while
   // either is open its corners round off against them. Where they take an edge, what's on the call
   // stays put in the window, so only the words move over into what's left.
@@ -415,7 +433,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     const open = Math.max(list.place === 'over' ? 0 : d, side.place === 'sheet' ? 0 : t);
     return {
       left: list.place === 'beside' ? d * list.width : 0,
-      right: side.place === 'beside' ? t * side.width : 0,
+      right: side.place === 'beside' ? t * paneW.get() : 0,
       transform: [
         {
           translateX:
@@ -433,22 +451,64 @@ function CallScreen({ pose }: { pose: Pose }) {
   const sidebarStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: (drawer.get() - 1) * (list.place === 'over' ? list.width : 48) }],
   }));
+  // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, pane.get() * 4),
     transform: [{ translateX: (1 - pane.get()) * 48 }],
   }));
   const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
   // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
   const makesWay = list.place === 'over' && layout.toolbar.axis === 'row';
+  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
   const toolbarStyle = useAnimatedStyle(() => ({
-    left: layout.toolbar.x + (makesWay ? drawer.get() * list.width : 0),
+    left: toolbar.x + (makesWay ? drawer.get() * list.width : 0),
   }));
-  const besideStyle = useAnimatedStyle(() => {
-    const d = list.place === 'slide' ? 0 : drawer.get();
-    const t = side.place === 'beside' ? pane.get() : 0;
+  // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
+  // way for the rail.
+  const besideness = () => {
+    'worklet';
     return {
-      left: words.x + (besideCalls.x - words.x) * d + (besideTasks.x - words.x) * t,
-      width:
-        words.width + (besideCalls.width - words.width) * d + (besideTasks.width - words.width) * t,
+      d: list.place === 'slide' ? 0 : drawer.get(),
+      t: side.place === 'beside' ? pane.get() : 0,
+    };
+  };
+  const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
+    'worklet';
+    return open + (calls - open) * d + (tasks - open) * t;
+  };
+  const columnStyle = useAnimatedStyle(() => {
+    const { d, t } = besideness();
+    return {
+      left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
+      width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
+      opacity: 1 - wide.get() * t,
+      transform: [{ translateY: -(lift.calls * d + lift.tasks * t) }],
+    };
+  });
+  const wordsStyle = useAnimatedStyle(() => {
+    const { d, t } = besideness();
+    return {
+      top: toward(words.top, besideCalls.top, besideTasks.top, d, t),
+      left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
+      width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
+    };
+  });
+  const controlsAt =
+    layout.controls !== 'inline' && 'center' in layout.controls
+      ? layout.controls.center
+      : undefined;
+  const controlsColumn =
+    layout.controls !== 'inline' && 'axis' in layout.controls ? layout.controls : undefined;
+  const rail = layout.inbox;
+  const controlsStyle = useAnimatedStyle(() => {
+    if (!controlsAt) return {};
+    const { d, t } = besideness();
+    const w = rail ? wide.get() : 0;
+    const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
+    const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
+    return {
+      left: toward(controlsAt.open.x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
+      top: toward(controlsAt.open.y, controlsAt.calls.y, tasksY, d, t) - CONTROLS / 2,
     };
   });
 
@@ -472,16 +532,31 @@ function CallScreen({ pose }: { pose: Pose }) {
     const awake = wake.get();
     const resting = size * (0.86 + 0.14 * awake);
     const fitted = resting * restScale.get();
-    const visual = (fitted + ((orb.read.size ?? fitted) - fitted) * t) * (1 + 0.025 * breath.get());
     const y = restY.get();
+    let visual = fitted + ((orb.read.size ?? fitted) - fitted) * t;
+    let x = orb.rest.x + (orb.read.x - orb.rest.x) * arc;
+    let at = y + (orb.read.y - y) * t;
+    if (orb.dock) {
+      const beside = besideness();
+      const w = rail ? wide.get() : 0;
+      const tasks = {
+        x: orb.dock.tasks.x + ((rail?.orb.x ?? 0) - orb.dock.tasks.x) * w,
+        y: orb.dock.tasks.y + ((rail?.orb.y ?? 0) - orb.dock.tasks.y) * w,
+        size: DOCK + ((rail?.orb.size ?? DOCK) - DOCK) * w,
+      };
+      x = toward(x, orb.dock.calls.x, tasks.x, beside.d, beside.t);
+      at = toward(at, orb.dock.calls.y, tasks.y, beside.d, beside.t);
+      visual = toward(visual, DOCK, tasks.size, beside.d, beside.t);
+    }
+    visual *= 1 + 0.025 * breath.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
-        (split ? 1 - Math.max(drawer.get(), pane.get()) : 1),
+        (split && !orb.dock ? 1 - Math.max(drawer.get(), pane.get()) : 1),
       transform: [
-        { translateX: orb.rest.x - size / 2 + (orb.read.x - orb.rest.x) * arc },
-        { translateY: y - size / 2 + (orb.read.y - y) * t },
+        { translateX: x - size / 2 },
+        { translateY: at - size / 2 },
         { scale: visual / size },
         ...heard(reaction, size, level.get(), pitch.get(), tone.get()),
       ],
@@ -495,9 +570,10 @@ function CallScreen({ pose }: { pose: Pose }) {
     const shown = reducedMotion
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
+    const { d, t } = besideness();
     return {
-      bottom: footerHeight.get() + 18,
-      opacity: shown,
+      bottom: footerHeight.get() + 18 + lift.calls * d + lift.tasks * t,
+      opacity: shown * (1 - wide.get() * t),
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });
@@ -566,20 +642,23 @@ function CallScreen({ pose }: { pose: Pose }) {
       muted={session.muted}
       failed={!!session.error}
       ready={voiceLoaded}
-      axis={layout.controls === 'inline' ? 'row' : layout.controls.axis}
+      axis={controlsColumn?.axis ?? 'row'}
+      mute={!inboxShown}
       style={
-        layout.controls === 'inline'
-          ? undefined
-          : { position: 'absolute', right: layout.controls.right, bottom: layout.controls.bottom }
+        controlsColumn && {
+          position: 'absolute',
+          right: controlsColumn.right,
+          bottom: controlsColumn.bottom,
+        }
       }
       onMute={onMute}
       onPrimary={onPrimaryPress}
     />
   );
-  const toolbarPlace = {
-    top: layout.toolbar.y,
-    right: width - layout.toolbar.x - layout.toolbar.width,
-  };
+  const toolbarPlace =
+    toolbar.axis === 'row'
+      ? { top: toolbar.y, right: width - toolbar.x - toolbar.width }
+      : { top: toolbar.y };
   const sidebar = (
     <GestureDetector gesture={sidebarClose}>
       <Animated.View
@@ -614,7 +693,15 @@ function CallScreen({ pose }: { pose: Pose }) {
   return (
     <>
       {list.place !== 'over' && sidebar}
-      {panes && <TasksPane {...tasks} top={insets.top} width={side.width} style={paneStyle} />}
+      {panes && (
+        <TasksPane
+          {...tasks}
+          top={insets.top}
+          toolbar={layout.toolbar.y + TOOL / 2}
+          width={paneWidth}
+          style={paneStyle}
+        />
+      )}
       <Animated.View style={[styles.card, cardStyle]}>
         <Animated.View style={[styles.stage, { width }, stageStyle]}>
           <GestureDetector gesture={screenDrag}>
@@ -623,7 +710,7 @@ function CallScreen({ pose }: { pose: Pose }) {
                 pointerEvents={reading ? 'auto' : 'none'}
                 accessibilityElementsHidden={!reading}
                 importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
-                style={[styles.transcript, { top: words.top }, besideStyle, transcriptStyle]}
+                style={[styles.transcript, wordsStyle, transcriptStyle]}
               >
                 {shown && (
                   <PastCallBar
@@ -647,6 +734,8 @@ function CallScreen({ pose }: { pose: Pose }) {
                     <Transcript
                       entries={away ? liveEntries(away.turns) : session.transcript}
                       active={reading}
+                      size={layout.text}
+                      emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
                       onAnswer={(card, option) =>
                         void asksAPI.answer(card.ask.id, option.label).catch(() => {})
@@ -701,7 +790,7 @@ function CallScreen({ pose }: { pose: Pose }) {
             style={[
               styles.footer,
               { left: layout.footer.x, width: layout.footer.width },
-              split && besideStyle,
+              moves && columnStyle,
               { paddingBottom: layout.footer.bottom },
             ]}
           >
@@ -757,14 +846,19 @@ function CallScreen({ pose }: { pose: Pose }) {
             style={[
               styles.agent,
               { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
-              split && besideStyle,
+              moves && columnStyle,
             ]}
           >
             <AgentLine line={agent} />
           </AnimatedPressable>
+          {controlsAt && (
+            <Animated.View pointerEvents="box-none" style={[styles.controls, controlsStyle]}>
+              {controls}
+            </Animated.View>
+          )}
         </Animated.View>
         <ScreenToolbar
-          axis={layout.toolbar.axis}
+          axis={toolbar.axis}
           style={[toolbarPlace, toolbarStyle]}
           callsOpen={drawerOpen}
           tasks={{ ...counts, open: tasksOpen }}
@@ -772,7 +866,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           onTasks={toggleTasks}
           onSettings={() => setSettingsOpen(true)}
         />
-        {layout.controls !== 'inline' && controls}
+        {controlsColumn && controls}
         {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
         <VoiceSettings
           fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
@@ -798,7 +892,7 @@ function CallScreen({ pose }: { pose: Pose }) {
             style={[styles.dim, { left: layout.content.x, width: layout.content.width }, dimStyle]}
           />
         )}
-        {drawerOpen && !split && (
+        {drawerOpen && list.place !== 'beside' && (
           <GestureDetector gesture={peekClose}>
             <View
               accessibilityLabel="Close calls"
@@ -896,6 +990,13 @@ const styles = StyleSheet.create({
   dock: { position: 'absolute' },
   footer: { position: 'absolute', bottom: 0, gap: 22 },
   agent: { position: 'absolute', height: AGENT_ROW },
+  controls: {
+    position: 'absolute',
+    width: CONTROLS_BOX,
+    height: CONTROLS,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   error: {
     color: theme.danger,
     textAlign: 'center',

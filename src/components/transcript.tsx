@@ -17,15 +17,21 @@ import { theme } from '@/theme';
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
+// The call's words, newest at the foot. Where they have a page of their own (iPad), they read a
+// size up, and before any are said the hint sits in the page's middle, level with the orb.
 export function Transcript({
   entries,
   active,
+  size = 17,
+  emptyAt = 'end',
   cards = [],
   onAnswer,
   onOpenTask,
 }: {
   entries: TranscriptEntry[];
   active: boolean;
+  size?: number;
+  emptyAt?: 'end' | 'center';
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => void;
   onOpenTask?: (task: string) => void;
@@ -67,7 +73,10 @@ export function Transcript({
       onContentSizeChange={() => {
         if (following.current) scroll.current?.scrollToEnd({ animated: active });
       }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        !moments.length && emptyAt === 'center' && styles.centered,
+      ]}
     >
       {moments.length ? (
         moments.map((moment) =>
@@ -79,7 +88,7 @@ export function Transcript({
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : (
-            <Line key={moment.id} entry={moment} />
+            <Line key={moment.id} entry={moment} size={size} />
           ),
         )
       ) : (
@@ -99,13 +108,17 @@ function interleave(entries: TranscriptEntry[], cards: CallCard[]) {
   return moments;
 }
 
-function Line({ entry }: { entry: TranscriptEntry }) {
+function Line({ entry, size }: { entry: TranscriptEntry; size: number }) {
   const text = entry.text.trim();
   const [warm, settled] = useSettledLength(text.length);
   const user = entry.role === 'user';
   return (
     <View style={user ? styles.user : styles.assistant}>
-      <Text accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`} selectable style={styles.text}>
+      <Text
+        accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`}
+        selectable
+        style={[styles.text, { fontSize: size, lineHeight: Math.round(size * 1.47) }]}
+      >
         {text.slice(0, settled)}
         <Text style={styles.warm}>{text.slice(settled, warm)}</Text>
         <Text style={styles.fresh}>{text.slice(warm)}</Text>
@@ -126,6 +139,7 @@ function useSettledLength(length: number) {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'flex-end', gap: 24, paddingTop: 36, paddingBottom: 4 },
+  centered: { justifyContent: 'center' },
   user: {
     alignSelf: 'flex-end',
     maxWidth: '86%',
