@@ -61,7 +61,7 @@ export function TasksView({
   haptics,
   onTalk,
   onGoThrough,
-}: TasksProps & { width: number }) {
+}: TasksProps & { width: number; line?: number }) {
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
   const [filter, setFilter] = useState<AskFilter>('all');
