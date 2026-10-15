@@ -464,12 +464,13 @@ function CallScreen({ pose }: { pose: Pose }) {
     left: toolbar.x + (makesWay ? drawer.get() * list.width : 0),
   }));
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
-  // way for the rail.
-  const besideness = () => {
+  // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
+  // style only for the shared values it reads directly, not ones a helper worklet reads for it.
+  const besideness = (drawn: number, paned: number) => {
     'worklet';
     return {
-      d: list.place === 'slide' ? 0 : drawer.get(),
-      t: side.place === 'beside' ? pane.get() : 0,
+      d: list.place === 'slide' ? 0 : drawn,
+      t: side.place === 'beside' ? paned : 0,
     };
   };
   const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
@@ -477,7 +478,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     return open + (calls - open) * d + (tasks - open) * t;
   };
   const columnStyle = useAnimatedStyle(() => {
-    const { d, t } = besideness();
+    const { d, t } = besideness(drawer.get(), pane.get());
     return {
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
       width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
@@ -486,7 +487,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     };
   });
   const wordsStyle = useAnimatedStyle(() => {
-    const { d, t } = besideness();
+    const { d, t } = besideness(drawer.get(), pane.get());
     return {
       top: toward(words.top, besideCalls.top, besideTasks.top, d, t),
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
@@ -502,7 +503,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   const rail = layout.inbox;
   const controlsStyle = useAnimatedStyle(() => {
     if (!controlsAt) return {};
-    const { d, t } = besideness();
+    const { d, t } = besideness(drawer.get(), pane.get());
     const w = rail ? wide.get() : 0;
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
     const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
@@ -537,7 +538,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     let x = orb.rest.x + (orb.read.x - orb.rest.x) * arc;
     let at = y + (orb.read.y - y) * t;
     if (orb.dock) {
-      const beside = besideness();
+      const beside = besideness(drawer.get(), pane.get());
       const w = rail ? wide.get() : 0;
       const tasks = {
         x: orb.dock.tasks.x + ((rail?.orb.x ?? 0) - orb.dock.tasks.x) * w,
@@ -570,7 +571,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     const shown = reducedMotion
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
-    const { d, t } = besideness();
+    const { d, t } = besideness(drawer.get(), pane.get());
     return {
       bottom: footerHeight.get() + 18 + lift.calls * d + lift.tasks * t,
       opacity: shown * (1 - wide.get() * t),
