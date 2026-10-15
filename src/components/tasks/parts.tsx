@@ -1,5 +1,5 @@
-import { Column, RNHostView, Row, ScrollView, Spacer, Text } from '@expo/ui';
-import { Button as NativeButton } from '@expo/ui/swift-ui';
+import { Column, Icon, RNHostView, Row, ScrollView, Spacer, Text } from '@expo/ui';
+import { Circle, Button as NativeButton, ZStack, useNativeState } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   background,
@@ -12,11 +12,15 @@ import {
   frame,
   labelStyle,
   padding,
+  scrollPosition,
+  scrollTargetLayout,
   shapes,
+  strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { View, type ColorValue } from 'react-native';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/agent-line';
 import { STATE_WORDS, type TaskAgent, type TaskState } from '@/live/tasks';
@@ -83,11 +87,15 @@ export function Header({
   );
 }
 
+// A page's scrolling list. Given a `target`, writing a child's id to it scrolls that child to the
+// top.
 export function Scroll({
   children,
+  target,
   modifiers = [],
 }: {
   children: ReactNode;
+  target?: ReturnType<typeof useNativeState<string | null>>;
   modifiers?: ModifierConfig[];
 }) {
   return (
@@ -95,10 +103,15 @@ export function Scroll({
       showsIndicators={false}
       modifiers={[
         frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+        ...(target ? [scrollPosition(target, { anchor: 'top' })] : []),
         ...modifiers,
       ]}
     >
-      <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+      <Column
+        alignment="start"
+        spacing={0}
+        modifiers={[padding({ bottom: 40 }), ...(target ? [scrollTargetLayout()] : [])]}
+      >
         {children}
       </Column>
     </ScrollView>
@@ -129,14 +142,62 @@ export function GroupHead({ title, count }: { title: string; count: number }) {
   );
 }
 
+// A row's mark, drawn natively so a long list stays cheap. Only the arc of something working
+// turns, so only it is the animated glyph. The marks mean what the agent line's do.
 export function Mark({ state, quiet = false }: { state: TaskState | 'paused'; quiet?: boolean }) {
+  if (state === 'working' && !quiet)
+    return (
+      <RNHostView matchContents>
+        <View>
+          <Glyph state="running" />
+        </View>
+      </RNHostView>
+    );
   return (
-    <RNHostView matchContents>
-      <View>
-        <Glyph state={state === 'working' ? 'running' : state} quiet={quiet} />
-      </View>
-    </RNHostView>
+    <ZStack alignment="center" modifiers={[frame({ width: 22, height: 22 })]}>
+      <Face state={state} quiet={quiet} />
+    </ZStack>
   );
+}
+
+function Face({ state, quiet }: { state: TaskState | 'paused'; quiet: boolean }) {
+  const dot = (size: number, color: ColorValue) => (
+    <Circle modifiers={[frame({ width: size, height: size }), foregroundStyle(color)]} />
+  );
+  const disc = (color: ColorValue, icon: SFSymbol, tint: ColorValue, size = 11) => (
+    <>
+      {dot(22, color)}
+      <Icon name={icon} size={size} color={tint} />
+    </>
+  );
+  if (quiet && (state === 'done' || state === 'failed'))
+    return (
+      <Icon
+        name={state === 'done' ? 'checkmark' : 'exclamationmark'}
+        size={11}
+        color={state === 'done' ? theme.secondary : theme.danger}
+      />
+    );
+  if (quiet) return dot(6, theme.tertiary);
+  switch (state) {
+    case 'needs':
+      return dot(12, theme.accent);
+    case 'idle':
+      return (
+        <Spacer
+          modifiers={[
+            frame({ width: 10, height: 10 }),
+            strokeBorder({ content: theme.tertiary, style: { lineWidth: 1.5 }, shape: 'circle' }),
+          ]}
+        />
+      );
+    case 'done':
+      return disc(theme.accentMuted, 'checkmark', theme.accent);
+    case 'failed':
+      return disc(theme.dangerMuted, 'exclamationmark', theme.danger);
+    default:
+      return disc(theme.surfaceSelected, 'pause.fill', theme.secondary, 9);
+  }
 }
 
 // A row: its mark, a name and where it lives, when, then one line in its own words: the newest

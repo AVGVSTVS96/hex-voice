@@ -699,6 +699,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           {...tasks}
           top={insets.top}
           toolbar={layout.toolbar.y + TOOL / 2}
+          foot={insets.bottom}
           width={paneWidth}
           style={paneStyle}
         />
@@ -840,7 +841,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           </Animated.View>
           <AnimatedPressable
             pointerEvents={agent ? 'auto' : 'none'}
-            onPress={() => openTasks({ tab: 'working' })}
+            onPress={() => openTasks({ stage: 'working' })}
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
             hitSlop={{ top: 8, bottom: 12 }}
