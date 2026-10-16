@@ -199,7 +199,7 @@ function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => v
         <Icon name="chevron.right" size={11} color={theme.tertiary} />
       </Row>
       {steps.length ? (
-        <Steps steps={steps} working />
+        <Steps steps={steps} working opens={false} />
       ) : (
         <TraceLine lead={<Mark state="working" />} text={thread.line} />
       )}

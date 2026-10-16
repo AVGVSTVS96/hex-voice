@@ -34,7 +34,7 @@ test('a row says how long it has worked, or since when it waited or finished', (
   assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/);
 });
 
-test('each step lasts until the next began, and the newest, while it works, so far', () => {
+test('each step lasts until the next began, the newest while it works so far, and a reply says when it was said', () => {
   const step = (minute: number, second: number, kind: TaskStep['kind'] = 'run'): TaskStep => ({
     at: new Date(2026, 9, 13, 9, minute, second).toISOString(),
     kind,
@@ -45,6 +45,9 @@ test('each step lasts until the next began, and the newest, while it works, so f
   assert.deepEqual(stepTimes(steps, false, now), ['', '8s', '3 min', '22s']);
   assert.deepEqual(stepTimes([step(40, 0)], true, now), ['20 min']);
   assert.deepEqual(stepTimes([], true, now), []);
+  const said = stepTimes([step(59, 30, 'run'), step(20, 0, 'say')], true, now);
+  assert.equal(said[0], 'now');
+  assert.match(said[1]!, /^9:20\sAM$/);
 });
 
 test('tasks are asked for with the hex token, waiting on the version they last saw', async () => {

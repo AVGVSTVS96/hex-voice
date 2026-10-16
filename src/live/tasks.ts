@@ -67,9 +67,11 @@ function duration(ms: number) {
 }
 
 // How long each step took, newest first: until the next one began, and the newest, while it
-// works, so far. "8s", "2 min", "now".
+// works, so far: "8s", "2 min", "now". A reply ends its turn, and what follows it is the wait for
+// the next one, so a reply says when it was said instead.
 export function stepTimes(steps: TaskStep[], working: boolean, now = new Date()) {
   return steps.map((step, i) => {
+    if (step.kind === 'say') return timeOfDay(step.at);
     if (i === 0 && !working) return '';
     const end = i === 0 ? now.getTime() : Date.parse(steps[i - 1]!.at);
     const seconds = Math.max(0, Math.round((end - Date.parse(step.at)) / 1000));
