@@ -20,3 +20,10 @@ test('a room shorter than the orb shrinks it and centers it there', () => {
   assert.equal(y, 247);
   assert.equal(scale, (250 - 48) / 250);
 });
+
+test('held to a smaller size, it draws that size and rests where that size fits', () => {
+  assert.deepEqual(orbRest({ top: 122, bottom: 437 }, center, size, 96), {
+    y: 365,
+    scale: 96 / 250,
+  });
+});

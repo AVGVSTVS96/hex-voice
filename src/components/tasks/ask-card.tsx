@@ -12,14 +12,14 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 
-import { ios } from '@/components/tasks/parts';
-import { stacked, type Ask, type AskOption } from '@/live/asks';
+import { Hairline, INSET, ios } from '@/components/tasks/parts';
+import type { Ask, AskOption } from '@/live/asks';
 import { theme } from '@/theme';
 
-const OPTION = 52;
+const ROW = 50;
 
-// An ask's choices: stacked one per row when there are several or they're too long for a pill,
-// side by side when it's one way or the other, and always a way to write your own.
+// An ask's choices, one row each with a hairline between: hex's pick says so in mint, one that
+// opens a page has its arrow, and the last row writes your own.
 export function Choices({
   ask,
   onAnswer,
@@ -28,20 +28,66 @@ export function Choices({
   onAnswer: (ask: Ask, option: AskOption) => void;
 }) {
   return (
-    <Column alignment="start" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
-      {stacked(ask) ? (
-        ask.options.map((option) => (
-          <Choice key={option.label} option={option} onPress={() => onAnswer(ask, option)} />
-        ))
-      ) : (
-        <Row alignment="center" spacing={10} modifiers={[frame({ maxWidth: Infinity })]}>
-          {ask.options.map((option) => (
-            <Choice key={option.label} side option={option} onPress={() => onAnswer(ask, option)} />
-          ))}
-        </Row>
-      )}
+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Hairline />
+      {ask.options.map((option) => (
+        <Column
+          key={option.label}
+          alignment="start"
+          spacing={0}
+          modifiers={[frame({ maxWidth: Infinity })]}
+        >
+          <Choice option={option} onPress={() => onAnswer(ask, option)} />
+          <Hairline />
+        </Column>
+      ))}
       <WriteOwn topic={ask.topic} onSend={(label) => onAnswer(ask, { label })} />
+      <Hairline />
     </Column>
+  );
+}
+
+function Choice({ option, onPress }: { option: AskOption; onPress: () => void }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={12}
+      onPress={onPress}
+      modifiers={[
+        padding({ leading: INSET, trailing: INSET, top: 8, bottom: 8 }),
+        frame({ minHeight: ROW }),
+        frame({ maxWidth: Infinity }),
+        contentShape(shapes.rectangle()),
+        ...(ios
+          ? [accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label)]
+          : []),
+      ]}
+    >
+      {option.pick ? (
+        <Icon name="checkmark" size={15} color={theme.accent} />
+      ) : (
+        <Spacer style={{ width: 15 }} />
+      )}
+      <Text
+        numberOfLines={3}
+        textStyle={{ fontSize: 17, lineHeight: 22, fontWeight: option.pick ? '500' : '400' }}
+        modifiers={[
+          foregroundStyle(option.pick ? theme.accent : theme.text),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ]}
+      >
+        {option.label}
+      </Text>
+      {option.pick ? (
+        <Text
+          textStyle={{ fontSize: 13, fontWeight: '500' }}
+          modifiers={[foregroundStyle(theme.accent)]}
+        >
+          hex’s pick
+        </Text>
+      ) : null}
+      {option.url ? <Icon name="arrow.up.right" size={13} color={theme.secondary} /> : null}
+    </Row>
   );
 }
 
@@ -54,11 +100,11 @@ function WriteOwn({ topic, onSend }: { topic: string; onSend: (text: string) => 
     return (
       <Row
         alignment="center"
-        spacing={10}
+        spacing={12}
         onPress={() => setOpen(true)}
         modifiers={[
-          padding({ leading: 18, trailing: 18 }),
-          frame({ height: OPTION }),
+          padding({ leading: INSET, trailing: INSET }),
+          frame({ height: ROW }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
           ...(ios ? [accessibilityLabel('Write your own answer')] : []),
@@ -75,17 +121,18 @@ function WriteOwn({ topic, onSend }: { topic: string; onSend: (text: string) => 
       alignment="end"
       spacing={10}
       modifiers={[
-        padding({ leading: 18, trailing: 8, top: 8, bottom: 8 }),
-        frame({ minHeight: OPTION }),
+        padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
+        frame({ minHeight: ROW - 8 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         background(theme.surface),
-        clipShape('roundedRectangle', 16),
+        clipShape('roundedRectangle', 14),
         strokeBorder({
           content: theme.edge,
           style: { lineWidth: 1 },
           shape: 'roundedRectangle',
-          cornerRadius: 16,
+          cornerRadius: 14,
         }),
+        padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
       ]}
     >
       <TextInput
@@ -109,69 +156,6 @@ function WriteOwn({ topic, onSend }: { topic: string; onSend: (text: string) => 
         onPress={note ? () => onSend(note) : undefined}
         modifiers={ios ? [accessibilityLabel(`Send to ${topic}`)] : []}
       />
-    </Row>
-  );
-}
-
-// A choice: a row with "hex's pick" at its end when they stack, a pill when they sit side by side.
-// A choice that opens a page says so with its arrow.
-function Choice({
-  option,
-  side = false,
-  onPress,
-}: {
-  option: AskOption;
-  side?: boolean;
-  onPress: () => void;
-}) {
-  const bright = side && option.pick;
-  return (
-    <Row
-      alignment="center"
-      spacing={8}
-      onPress={onPress}
-      modifiers={[
-        padding({ leading: side ? 14 : 18, trailing: side ? 14 : 18, top: 8, bottom: 8 }),
-        frame({ minHeight: OPTION }),
-        frame({ maxWidth: Infinity }),
-        background(bright ? theme.prominent : theme.surface),
-        clipShape(side ? 'capsule' : 'roundedRectangle', 16),
-        ...(option.pick && !side
-          ? [
-              strokeBorder({
-                content: theme.accent,
-                style: { lineWidth: 1.5 },
-                shape: 'roundedRectangle',
-                cornerRadius: 16,
-              }),
-            ]
-          : []),
-        contentShape(side ? shapes.capsule() : shapes.rectangle()),
-        ...(ios
-          ? [accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label)]
-          : []),
-      ]}
-    >
-      {side ? <Spacer flexible /> : null}
-      <Text
-        numberOfLines={side ? 1 : 3}
-        textStyle={{ fontSize: 17, lineHeight: 22, fontWeight: side ? '600' : '400' }}
-        modifiers={[foregroundStyle(bright ? theme.onProminent : theme.text)]}
-      >
-        {option.label}
-      </Text>
-      {option.url ? (
-        <Icon name="arrow.up.right" size={13} color={bright ? theme.onProminent : theme.text} />
-      ) : null}
-      <Spacer flexible />
-      {option.pick && !side ? (
-        <Text
-          textStyle={{ fontSize: 14, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.accent)]}
-        >
-          hex’s pick
-        </Text>
-      ) : null}
     </Row>
   );
 }

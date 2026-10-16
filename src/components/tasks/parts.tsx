@@ -1,7 +1,8 @@
-import { Column, Icon, RNHostView, Row, ScrollView, Spacer, Text } from '@expo/ui';
-import { Circle, Button as NativeButton, ZStack, useNativeState } from '@expo/ui/swift-ui';
+import { Column, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Button as NativeButton, Capsule, Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
+  alignmentGuide,
   background,
   buttonBorderShape,
   buttonStyle,
@@ -11,24 +12,45 @@ import {
   foregroundStyle,
   frame,
   labelStyle,
+  listRowBackground,
+  listRowInsets,
+  listRowSeparator,
+  listRowSeparatorTint,
+  offset,
+  opacity,
   padding,
-  scrollPosition,
-  scrollTargetLayout,
   shapes,
   strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
-import { View, type ColorValue } from 'react-native';
-import type { SFSymbol } from 'sf-symbols-typescript';
+import { PixelRatio, View, type ColorValue } from 'react-native';
 
-import { Glyph } from '@/components/agent-line';
-import { STATE_WORDS, type TaskAgent, type TaskState } from '@/live/tasks';
+import { Arc } from '@/components/agent-line';
+import type { TaskState, Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
 export const ios = process.env.EXPO_OS === 'ios';
-export const INSET = 22;
-const HEADER = 44;
+export const INSET = 20;
+// A row's mark sits in a slot this wide, and its words start after it and the gap.
+export const MARK = 16;
+export const GAP = 10;
+const HEADER = 36;
+const HAIRLINE = 1 / PixelRatio.get();
+
+// What every row of a list `width` wide wears: no inset of its own, the sheet behind it, and a
+// separator that runs edge to edge.
+export function listRow(width: number, { top = true, bottom = true } = {}): ModifierConfig[] {
+  return [
+    listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
+    listRowBackground(theme.sheet),
+    listRowSeparatorTint(theme.edge),
+    alignmentGuide('listRowSeparatorLeading', 0),
+    alignmentGuide('listRowSeparatorTrailing', width),
+    ...(top ? [] : [listRowSeparator('hidden', 'top')]),
+    ...(bottom ? [] : [listRowSeparator('hidden', 'bottom')]),
+  ];
+}
 
 export function Header({
   title,
@@ -43,7 +65,7 @@ export function Header({
     <Row
       alignment="center"
       spacing={12}
-      style={{ height: HEADER }}
+      style={{ height: HEADER + 14 }}
       modifiers={[padding({ top: 14, leading: 16, trailing: 16 }), frame({ maxWidth: Infinity })]}
     >
       {onBack ? (
@@ -56,7 +78,7 @@ export function Header({
             labelStyle('iconOnly'),
             buttonStyle('glass'),
             buttonBorderShape('circle'),
-            controlSize('large'),
+            controlSize('regular'),
           ]}
         />
       ) : (
@@ -87,44 +109,14 @@ export function Header({
   );
 }
 
-// A page's scrolling list. Given a `target`, writing a child's id to it scrolls that child to the
-// top.
-export function Scroll({
-  children,
-  target,
-  modifiers = [],
-}: {
-  children: ReactNode;
-  target?: ReturnType<typeof useNativeState<string | null>>;
-  modifiers?: ModifierConfig[];
-}) {
-  return (
-    <ScrollView
-      showsIndicators={false}
-      modifiers={[
-        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-        ...(target ? [scrollPosition(target, { anchor: 'top' })] : []),
-        ...modifiers,
-      ]}
-    >
-      <Column
-        alignment="start"
-        spacing={0}
-        modifiers={[padding({ bottom: 40 }), ...(target ? [scrollTargetLayout()] : [])]}
-      >
-        {children}
-      </Column>
-    </ScrollView>
-  );
-}
-
-export function GroupHead({ title, count }: { title: string; count: number }) {
+// A section's name over its rows, with how many on the right.
+export function SectionHead({ title, count }: { title: string; count?: string | number }) {
   return (
     <Row
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 16, bottom: 4 }),
+        padding({ leading: INSET, trailing: INSET, top: 22, bottom: 6 }),
         frame({ maxWidth: Infinity }),
       ]}
     >
@@ -135,198 +127,193 @@ export function GroupHead({ title, count }: { title: string; count: number }) {
         {title}
       </Text>
       <Spacer flexible />
-      <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-        {String(count)}
-      </Text>
+      {count !== undefined ? (
+        <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+          {String(count)}
+        </Text>
+      ) : null}
     </Row>
   );
 }
 
-// A row's mark, drawn natively so a long list stays cheap. Only the arc of something working
-// turns, so only it is the animated glyph. The marks mean what the agent line's do.
-export function Mark({ state, quiet = false }: { state: TaskState | 'paused'; quiet?: boolean }) {
-  if (state === 'working' && !quiet)
+export function Hairline() {
+  return (
+    <Rectangle
+      modifiers={[
+        frame({ height: HAIRLINE }),
+        frame({ maxWidth: Infinity }),
+        foregroundStyle(theme.edge),
+      ]}
+    />
+  );
+}
+
+export type MarkState = TaskState | 'paused' | 'read' | 'pending';
+
+// A row's state, small, drawn natively so a long list stays cheap: a mint dot needs you, the arc
+// turns while it works, a check is done (plain once read), ! failed, a ring is idle, a dashed ring
+// hasn't started. Only the arc moves, so only it is the animated one.
+export function Mark({ state }: { state: MarkState }) {
+  if (state === 'working')
     return (
       <RNHostView matchContents>
-        <View>
-          <Glyph state="running" />
+        <View style={{ width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' }}>
+          <Arc size={13} />
         </View>
       </RNHostView>
     );
   return (
-    <ZStack alignment="center" modifiers={[frame({ width: 22, height: 22 })]}>
-      <Face state={state} quiet={quiet} />
+    <ZStack alignment="center" modifiers={[frame({ width: MARK, height: MARK })]}>
+      <Face state={state} />
     </ZStack>
   );
 }
 
-function Face({ state, quiet }: { state: TaskState | 'paused'; quiet: boolean }) {
-  const dot = (size: number, color: ColorValue) => (
-    <Circle modifiers={[frame({ width: size, height: size }), foregroundStyle(color)]} />
-  );
-  const disc = (color: ColorValue, icon: SFSymbol, tint: ColorValue, size = 11) => (
+function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
+  const disc = (color: ColorValue, children: ReactNode) => (
     <>
-      {dot(22, color)}
-      <Icon name={icon} size={size} color={tint} />
+      <Circle modifiers={[frame({ width: 14, height: 14 }), foregroundStyle(color)]} />
+      {children}
     </>
   );
-  if (quiet && (state === 'done' || state === 'failed'))
-    return (
-      <Icon
-        name={state === 'done' ? 'checkmark' : 'exclamationmark'}
-        size={11}
-        color={state === 'done' ? theme.secondary : theme.danger}
-      />
-    );
-  if (quiet) return dot(6, theme.tertiary);
   switch (state) {
     case 'needs':
-      return dot(12, theme.accent);
-    case 'idle':
+      return <Circle modifiers={[frame({ width: 8, height: 8 }), foregroundStyle(theme.accent)]} />;
+    case 'done':
+      return disc(theme.accentMuted, <Icon name="checkmark" size={8} color={theme.accent} />);
+    case 'read':
+      return <Icon name="checkmark" size={10} color={theme.tertiary} />;
+    case 'failed':
+      return disc(theme.dangerMuted, <Icon name="exclamationmark" size={8} color={theme.danger} />);
+    case 'paused':
+      return disc(
+        theme.surfaceSelected,
+        <Icon name="pause.fill" size={7} color={theme.secondary} />,
+      );
+    case 'pending':
       return (
         <Spacer
           modifiers={[
             frame({ width: 10, height: 10 }),
+            strokeBorder({
+              content: theme.tertiary,
+              style: { lineWidth: 1.5, dash: [2, 2] },
+              shape: 'circle',
+            }),
+          ]}
+        />
+      );
+    case 'idle':
+      return (
+        <Spacer
+          modifiers={[
+            frame({ width: 8, height: 8 }),
             strokeBorder({ content: theme.tertiary, style: { lineWidth: 1.5 }, shape: 'circle' }),
           ]}
         />
       );
-    case 'done':
-      return disc(theme.accentMuted, 'checkmark', theme.accent);
-    case 'failed':
-      return disc(theme.dangerMuted, 'exclamationmark', theme.danger);
-    default:
-      return disc(theme.surfaceSelected, 'pause.fill', theme.secondary, 9);
   }
 }
 
-// A row: its mark, a name and where it lives, when, then one line in its own words: the newest
-// step while it works, what it's waiting on when it needs you, its last status once it's settled.
-export function Line({
-  state,
-  title,
-  where,
-  time,
-  text,
-  sub = false,
-  onPress,
+const WINDOW = 12 * 3_600_000;
+const LANE = 10;
+
+// C's lane: the last 12 hours, left to right. A bar while it worked, each step a hair apart; a
+// thin line while it waited on you, a ring where it asked; a dot where it finished, red where it failed.
+// Every thread of a topic draws on the same lane.
+export function Lane({
+  tracks,
+  width,
+  now = Date.now(),
 }: {
-  state: TaskState;
-  title: string;
-  where?: string;
-  time?: string;
-  text: string;
-  sub?: boolean;
-  onPress: () => void;
+  tracks: Turn[][];
+  width: number;
+  now?: number;
 }) {
-  const live = state === 'working' || state === 'needs';
-  return (
-    <Row
-      alignment="start"
-      spacing={12}
-      onPress={onPress}
-      modifiers={[
-        padding({ leading: sub ? INSET + 32 : INSET, trailing: INSET, top: 10, bottom: 10 }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        ...(ios
-          ? [
-              accessibilityLabel(
-                `${title}${where ? `, ${where}` : ''}, ${STATE_WORDS[state]}${text ? `: ${text}` : ''}`,
-              ),
-            ]
-          : []),
-      ]}
-    >
-      <Mark state={state} />
-      <Column
-        alignment="start"
-        spacing={2}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        <Row alignment="center" spacing={6} modifiers={[frame({ maxWidth: Infinity })]}>
-          <Text
-            numberOfLines={1}
-            textStyle={{ fontSize: 16, fontWeight: sub ? '400' : '500' }}
-            modifiers={[foregroundStyle(theme.text)]}
-          >
-            {title}
-          </Text>
-          {where ? (
-            <Text
-              numberOfLines={1}
-              textStyle={{ fontSize: 14 }}
-              modifiers={[foregroundStyle(theme.secondary)]}
-            >
-              {where}
-            </Text>
-          ) : null}
-          <Spacer flexible />
-          {time ? (
-            <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-              {time}
-            </Text>
-          ) : null}
-        </Row>
-        {text ? (
-          <Text
-            numberOfLines={2}
-            textStyle={{
-              fontSize: 15,
-              lineHeight: 17,
-              fontWeight: state === 'working' && !sub ? '500' : '400',
-            }}
+  const start = now - WINDOW;
+  const x = (at: string) => Math.max(0, Math.min(1, (Date.parse(at) - start) / WINDOW)) * width;
+  const marks: ReactNode[] = [];
+  tracks.forEach((track, t) =>
+    track.forEach((turn, i) => {
+      const from = x(turn.at);
+      const to = i + 1 < track.length ? x(track[i + 1]!.at) : width;
+      const key = `${t}:${i}`;
+      const asked = turn.state === 'needs' && track[i - 1]?.state !== 'needs';
+      if (turn.state === 'working' && to - from >= 1)
+        marks.push(
+          <Capsule
+            key={key}
             modifiers={[
-              foregroundStyle(
-                state === 'failed' ? theme.danger : live ? theme.text : theme.secondary,
-              ),
+              frame({ width: Math.max(2, to - from - 1), height: 5 }),
+              foregroundStyle(theme.accent),
+              offset({ x: from }),
             ]}
-          >
-            {text}
-          </Text>
-        ) : null}
-      </Column>
-    </Row>
+          />,
+        );
+      if (turn.state === 'needs' && to - from >= 2)
+        marks.push(
+          <Capsule
+            key={key}
+            modifiers={[
+              frame({ width: to - from, height: 1.5 }),
+              foregroundStyle(theme.accent),
+              opacity(0.5),
+              offset({ x: from }),
+            ]}
+          />,
+        );
+      if (asked || turn.state === 'done' || turn.state === 'failed')
+        marks.push(
+          asked ? (
+            <Spacer
+              key={`${key}:at`}
+              modifiers={[
+                frame({ width: 7, height: 7 }),
+                background(theme.sheet),
+                clipShape('circle'),
+                strokeBorder({ content: theme.accent, style: { lineWidth: 1.6 }, shape: 'circle' }),
+                offset({ x: from - 3.5 }),
+              ]}
+            />
+          ) : (
+            <Circle
+              key={`${key}:at`}
+              modifiers={[
+                frame({ width: 5, height: 5 }),
+                foregroundStyle(turn.state === 'failed' ? theme.danger : theme.secondary),
+                offset({ x: from - 2.5 }),
+              ]}
+            />
+          ),
+        );
+    }),
   );
-}
-
-export function AgentRow({ agent, onPress }: { agent: TaskAgent; onPress: () => void }) {
   return (
-    <Line sub state={agent.state} title={agent.label} text={agent.line ?? ''} onPress={onPress} />
-  );
-}
-
-export function Inset({ children }: { children: ReactNode }) {
-  return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[
-        padding({ leading: INSET, trailing: INSET }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-      ]}
-    >
-      {children}
-    </Column>
+    <ZStack alignment="leading" modifiers={[frame({ width, height: LANE })]}>
+      <Rectangle modifiers={[frame({ width, height: 1 }), foregroundStyle(theme.edge)]} />
+      {marks}
+    </ZStack>
   );
 }
 
 export function Pill({
   label,
+  icon,
   prominent = false,
   onPress,
 }: {
   label: string;
+  icon?: 'waveform';
   prominent?: boolean;
   onPress: () => void;
 }) {
   return (
     <Row
       alignment="center"
-      spacing={0}
+      spacing={8}
       onPress={onPress}
       modifiers={[
-        frame({ height: 52 }),
+        frame({ height: 50 }),
         frame({ maxWidth: Infinity }),
         background(prominent ? theme.prominent : theme.surface),
         clipShape('capsule'),
@@ -335,8 +322,11 @@ export function Pill({
       ]}
     >
       <Spacer flexible />
+      {icon ? (
+        <Icon name={icon} size={16} color={prominent ? theme.onProminent : theme.text} />
+      ) : null}
       <Text
-        textStyle={{ fontSize: 17, fontWeight: prominent ? '600' : '500' }}
+        textStyle={{ fontSize: 16, fontWeight: '600' }}
         modifiers={[foregroundStyle(prominent ? theme.onProminent : theme.text)]}
       >
         {label}
@@ -346,15 +336,21 @@ export function Pill({
   );
 }
 
+// A lane takes a quarter of the row it sits in, within reason.
+export function laneWidth(width: number) {
+  return Math.round(Math.min(240, Math.max(84, width * 0.25)));
+}
+
 // A tab with nothing in it says so, quietly.
-export function Empty({ text }: { text: string }) {
+export function Empty({ text, width }: { text: string; width: number }) {
   return (
     <Text
       textStyle={{ fontSize: 15 }}
       modifiers={[
         foregroundStyle(theme.tertiary),
-        padding({ top: 48 }),
+        padding({ top: 48, bottom: 48 }),
         frame({ maxWidth: Infinity }),
+        ...listRow(width, { top: false, bottom: false }),
       ]}
     >
       {text}

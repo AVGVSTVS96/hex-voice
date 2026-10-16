@@ -26,10 +26,9 @@ export const motion = {
   row: { mass: 1, stiffness: 420, damping: 41 },
   rowOut: ms(220),
   page: Animation.smooth({ duration: ms(400) / 1000 }),
-  // The Tasks sheet's lists settle over every change: an answered card folds where it sits, an item
-  // that leaves fades as the rest close up, and the tabs cross-fade.
+  // Tasks' lists settle over every change: an answered ask folds where it sits, and a row that
+  // leaves fades as the rest close up.
   list: Animation.smooth({ duration: ms(380) / 1000 }),
-  tab: Animation.easeInOut({ duration: ms(220) / 1000 }),
 } as const;
 
 // How the orb answers your voice at the reaction setting's `amount`: louder swells it, a higher

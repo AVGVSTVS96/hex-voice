@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createSessionAPI, createTasksAPI } from '../src/live/api-client';
-import { activityOf, taskTime, type Task, type TaskRow } from '../src/live/tasks';
+import { stepTimes, taskTime, type TaskRow, type TaskStep } from '../src/live/tasks';
 
 const hexUrl = 'https://hex.example:8790';
 const now = new Date(2026, 9, 13, 10, 0);
@@ -17,12 +17,13 @@ const row = (
   id: `telegram:${name}`,
   app: 'telegram',
   name,
-  where: 'Telegram',
+  place: name,
   state,
   line: `${name} line`,
   since: when,
   at: when,
   agents: [],
+  track: [],
   ...extra,
 });
 
@@ -33,30 +34,17 @@ test('a row says how long it has worked, or since when it waited or finished', (
   assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/);
 });
 
-test("a task's activity is its own session's steps, or one of its agents', marked by whether it still works", () => {
-  const steps = (...texts: string[]) => texts.map((text, i) => ({ at: at(9, 59 - i), text }));
-  const task: Task = {
-    ...row('voiceapp', 'working'),
-    steps: steps('Editing tasks-sheet.tsx', 'Reading live-screen.tsx'),
-    lately: [],
-    agents: [
-      { id: 'a1', label: 'Polish pass', state: 'working', steps: steps('Running tsc') },
-      { id: 'a2', label: 'Check the server', state: 'done', steps: steps('Server is fine') },
-    ],
-  };
-  assert.deepEqual(activityOf(task, null), {
-    title: 'voiceapp',
-    state: 'working',
-    steps: task.steps,
+test('each step lasts until the next began, and the newest, while it works, so far', () => {
+  const step = (minute: number, second: number, kind: TaskStep['kind'] = 'run'): TaskStep => ({
+    at: new Date(2026, 9, 13, 9, minute, second).toISOString(),
+    kind,
+    text: 'step',
   });
-  assert.equal(activityOf(task, 'a1')?.title, 'Polish pass');
-  assert.deepEqual(activityOf(task, 'a2'), {
-    title: 'Check the server',
-    state: 'done',
-    steps: steps('Server is fine'),
-  });
-  assert.equal(activityOf({ ...task, state: 'done' }, null)?.state, 'done');
-  assert.equal(activityOf(task, 'gone'), undefined);
+  const steps = [step(59, 20), step(59, 12, 'think'), step(56, 12), step(55, 50)];
+  assert.deepEqual(stepTimes(steps, true, now), ['now', '8s', '3 min', '22s']);
+  assert.deepEqual(stepTimes(steps, false, now), ['', '8s', '3 min', '22s']);
+  assert.deepEqual(stepTimes([step(40, 0)], true, now), ['20 min']);
+  assert.deepEqual(stepTimes([], true, now), []);
 });
 
 test('tasks are asked for with the hex token, waiting on the version they last saw', async () => {

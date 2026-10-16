@@ -1,55 +1,52 @@
 import { Column, Row, Spacer } from '@expo/ui';
-import { ZStack, useNativeState } from '@expo/ui/swift-ui';
+import { List, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityHidden,
   animation,
   background,
   clipped,
   frame,
+  listStyle,
   offset,
-  padding,
+  scrollContentBackground,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking } from 'react-native';
 
 import {
-  CheckStrip,
-  Chips,
+  CheckRow,
   GoThrough,
-  GroupBlock,
-  GroupBy,
   ListHead,
-  PicksStrip,
+  PicksRow,
   Search,
+  Tabs,
+  TopicHead,
 } from '@/components/tasks/inbox';
 import { LastCheck } from '@/components/tasks/last-check';
-import { Empty, Scroll, ios } from '@/components/tasks/parts';
-import { Detail, Steps } from '@/components/tasks/task-page';
+import { Empty, ios, laneWidth, listRow } from '@/components/tasks/parts';
+import { EntryRow, QuietRow } from '@/components/tasks/rows';
+import { Detail } from '@/components/tasks/task-page';
+import { Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
-  countsLine,
-  groupEntries,
   inboxEntries,
   picksOf,
   placeOf,
   search,
   stageCounts,
   taskOf,
-  topicLine,
   topicsOf,
-  type Grouping,
   type Place,
   type Stage,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
-import { motion } from '@/motion';
+import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
-// Where Tasks opens: on a task's own page, or on the stream scrolled to a stage. Every opening
-// brings a new one.
+// Where Tasks opens: on a task's own page, or on a stage's tab. Every opening brings a new one.
 export type TasksAt = { task?: string; stage?: Stage };
 
 export type TasksProps = {
@@ -60,18 +57,25 @@ export type TasksProps = {
   onGoThrough: () => void;
 };
 
-// The pages pushed beside or over the list: a task's own page, one agent's steps (from the task's
+// The pages pushed beside or over the list: a topic's page, a thread's steps (from the topic's
 // page), and what the last check did.
-type Pushed = 'task' | 'activity' | 'check';
+type Pushed = 'task' | 'trace' | 'check';
 
-// Wide enough for the list and a task's page side by side, like Mail.
-const COLUMNS = 760;
+// Wide enough for the list and a topic's page side by side, as C has it on a big iPad: Tasks on
+// a 13-inch beside a call, or anywhere before one. An 11-inch keeps one wide list beside a call.
+const COLUMNS = 900;
+const EMPTY: Record<Stage, string> = {
+  needs: 'Nothing waits on you',
+  working: 'Nothing is working',
+  done: 'Nothing finished today',
+  quiet: 'Nothing is quiet',
+};
 
-// Everything hex has going, as one inbox: what needs you, answered right in its row, then what's
-// working, what finished today, and the rest folded quiet. Group it by state, topic or app; a
-// topic chip narrows it to that topic in every app it lives in; search finds anything. A row
-// opens its task's page, which pushes in over the list, or fills the column beside it when
-// there's room. The phone holds it in a sheet and iPad in a pane; each opening starts fresh.
+// Everything hex has going, a stage at a time: tabs for what needs you, what's working, what's done
+// and what's quiet, each cut into its topics with their lanes. An ask answers in its row when its
+// choices fit one line; anything else steps down to its topic's page, and a thread there down to
+// its steps and thinking. The phone holds it in a sheet and iPad in a pane; each opening starts
+// fresh.
 export function TasksView({
   open,
   at,
@@ -84,48 +88,46 @@ export function TasksView({
 }: TasksProps & { width: number; line?: number; foot?: number }) {
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
-  const [by, setBy] = useState<Grouping>('state');
-  const [topic, setTopic] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
   const [path, setPath] = useState<Pushed[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [traceId, setTraceId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [agent, setAgent] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const task = useTask(taskId, version);
-  const scrollTo = useNativeState<string | null>(null);
+  const traced = useTask(traceId, version);
   const check = useCheck(path.includes('check') ? yours.list?.check?.at : undefined);
   const columns = width >= COLUMNS;
-  const listWidth = columns ? Math.round(Math.min(440, Math.max(360, width * 0.38))) : width;
-  const pageWidth = columns ? width - listWidth : width;
-
-  useEffect(() => {
-    if (!open) return;
-    setTaskId(at.task ?? null);
-    setPath(at.task ? ['task'] : []);
-    setTopic(null);
-    setQuery(null);
-  }, [open, at]);
+  const listWidth = columns ? Math.round(Math.min(440, Math.max(360, width * 0.42))) : width;
+  const pageWidth = columns ? width - listWidth - 1 : width;
 
   const entries = useMemo(
     () => inboxEntries(tasks ?? [], yours.list, yours.shown),
     [tasks, yours.list, yours.shown],
   );
-  const topics = useMemo(() => topicsOf(entries), [entries]);
-  const shown = useMemo(() => {
-    if (query !== null) return search(entries, query);
-    return topic ? entries.filter((entry) => entry.topic === topic) : entries;
-  }, [entries, topic, query]);
-  const grouping = topic || query ? 'state' : by;
-  const groups = useMemo(() => groupEntries(shown, grouping), [shown, grouping]);
   const counts = stageCounts(entries, yours.answered);
-  const picks = picksOf(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   useEffect(() => {
-    if (open && loaded && at.stage) scrollTo.set(at.stage);
-  }, [open, loaded, at, scrollTo]);
+    if (!open) return;
+    setTaskId(at.task ?? null);
+    setPath(at.task ? ['task'] : []);
+    setQuery(null);
+  }, [open, at]);
+  // A tab opens where it was sent, or on what needs you while anything does.
+  useEffect(() => {
+    if (open && loaded) setStage(at.stage ?? (counts.needs ? 'needs' : 'working'));
+  }, [open, loaded, at]);
 
-  // With room for both, a task's page is always up beside the list: the first one there is,
+  const shown = useMemo(
+    () =>
+      query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
+    [entries, stage, query],
+  );
+  const topics = useMemo(() => topicsOf(shown, entries, tasks ?? []), [shown, entries, tasks]);
+  const picks = picksOf(entries, yours.answered);
+
+  // With room for both, a topic's page is always up beside the list: the first one there is,
   // until you open another. Its row is the one you tapped, or its first.
   const first = shown.map(taskOf).find((id) => id && tasks?.some((row) => row.id === id));
   useEffect(() => {
@@ -150,11 +152,10 @@ export function TasksView({
     setPicked(entry ?? null);
     setPath(['task']);
   };
-  const openActivity = (id: string, who: string | null) => {
+  const openTrace = (id: string) => {
     tick();
-    setTaskId(id);
-    setAgent(who);
-    setPath(['task', 'activity']);
+    setTraceId(id);
+    setPath(['task', 'trace']);
   };
   const openCheck = () => {
     tick();
@@ -176,18 +177,17 @@ export function TasksView({
     tap();
     for (const { ask, option } of picks) yours.answer(ask, option);
   };
-  // A link to an app that isn't installed fails without a word from iOS, so the place says so.
-  const openPlace = (thread: TaskRow) => {
+  // A link to an app that isn't installed fails without a word from iOS, so its place says so.
+  const openLink = (link: string, place: Place) => {
     tap();
-    const place = placeOf(thread.app);
-    Linking.openURL(thread.link!).then(
+    Linking.openURL(link).then(
       () => missing.has(place) && setMissing(new Set([...missing].filter((one) => one !== place))),
       () => setMissing(new Set([...missing, place])),
     );
   };
-  const chooseTopic = (next: string | null) => {
+  const chooseStage = (next: Stage) => {
     tick();
-    setTopic(next);
+    setStage(next);
     if (columns) setTaskId(null);
   };
 
@@ -207,11 +207,12 @@ export function TasksView({
   ];
   const opened = task ?? tasks?.find((row) => row.id === taskId);
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
-  const chosen = topic ? topics.find((one) => one.name === topic) : undefined;
   const actions = {
+    width: listWidth,
     selected,
     answered: yours.answered,
     onOpen: openTask,
+    onOpenLink: openLink,
     onAnswer: answer,
     onUndo: undo,
     onAct: (id: string) => {
@@ -223,6 +224,8 @@ export function TasksView({
       void yours.read(id);
     },
   };
+  const unreachable = (offline || yours.offline) && !loaded;
+  const goThrough = query === null && stage === 'needs' && yours.open.length > 0;
 
   const list = (
     <ZStack alignment="bottom" modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
@@ -241,62 +244,68 @@ export function TasksView({
             }}
           />
         ) : (
-          <ListHead
-            title={chosen ? chosen.name : 'Tasks'}
-            subtitle={
-              chosen
-                ? topicLine(chosen)
-                : (offline || yours.offline) && !loaded
-                  ? 'Can’t reach hex'
-                  : countsLine(counts)
-            }
-            marks={chosen?.marks}
-            line={line}
-            onSearch={() => {
-              tick();
-              setTopic(null);
-              setQuery('');
-            }}
-          />
-        )}
-        {query === null && !topic ? (
-          <GroupBy
-            by={by}
-            onChange={(next) => {
-              tick();
-              setBy(next);
-            }}
-          />
-        ) : null}
-        {query === null ? (
-          <Chips total={entries.length} topics={topics} topic={topic} onChange={chooseTopic} />
-        ) : null}
-        <Scroll target={scrollTo}>
-          {query === null && !topic && (yours.list?.check || picks.length > 1) ? (
-            <Strips>
-              {yours.list?.check ? (
-                <CheckStrip check={yours.list.check} onPress={openCheck} />
-              ) : null}
-              {picks.length > 1 ? <PicksStrip picks={picks} onTake={takePicks} /> : null}
-            </Strips>
-          ) : null}
-          {groups.map((group) => (
-            <GroupBlock
-              key={`${grouping}:${topic ?? ''}:${group.key}`}
-              group={group}
-              by={grouping}
-              open={!!topic || !!query}
-              onTopic={chooseTopic}
-              {...actions}
+          <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+            <ListHead
+              line={line}
+              onSearch={() => {
+                tick();
+                setQuery('');
+              }}
             />
-          ))}
-          {loaded && !groups.length ? (
-            <Empty text={query ? 'Nothing matches' : 'Nothing waits on you'} />
+            <Tabs counts={counts} stage={stage} offline={unreachable} onChange={chooseStage} />
+          </Column>
+        )}
+        <List
+          modifiers={[
+            listStyle('plain'),
+            scrollContentBackground('hidden'),
+            background(theme.sheet),
+            frame({ maxWidth: Infinity, maxHeight: Infinity }),
+            animation(
+              motion.list,
+              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
+            ),
+          ]}
+        >
+          {query === null && stage === 'needs' && picks.length > 1 ? (
+            <PicksRow picks={picks} width={listWidth} onTake={takePicks} />
           ) : null}
-          {counts.needs ? <Spacer style={{ height: 72 }} /> : null}
-        </Scroll>
+          {topics.flatMap((topic) => {
+            if (query === null && stage === 'quiet')
+              return [
+                <QuietRow key={topic.name} topic={topic} width={listWidth} onOpen={openTask} />,
+              ];
+            const lead = topic.entries.map(taskOf).find(Boolean);
+            return [
+              <TopicHead
+                key={`${topic.name}:head`}
+                topic={topic}
+                width={listWidth}
+                onPress={lead ? () => openTask(lead) : undefined}
+              />,
+              ...topic.entries.map((entry, i) => (
+                <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
+              )),
+            ];
+          })}
+          {query === null && stage === 'needs' && yours.list?.check ? (
+            <CheckRow check={yours.list.check} width={listWidth} onPress={openCheck} />
+          ) : null}
+          {loaded && !topics.length ? (
+            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={listWidth} />
+          ) : null}
+          {unreachable ? <Empty text="Can’t reach hex" width={listWidth} /> : null}
+          {goThrough ? (
+            <Spacer
+              modifiers={[
+                frame({ height: 72 }),
+                ...listRow(listWidth, { top: false, bottom: false }),
+              ]}
+            />
+          ) : null}
+        </List>
       </Column>
-      {counts.needs && yours.open.length ? (
+      {goThrough ? (
         <GoThrough
           count={yours.open.length}
           foot={foot}
@@ -315,20 +324,20 @@ export function TasksView({
         {opened ? (
           <Detail
             task={opened}
-            asks={yours.shown.filter((ask) => ask.task === opened.id)}
+            asks={yours.shown.filter((ask) => ask.topic === opened.name)}
             answered={yours.answered}
-            topic={topics.find((one) => one.name === opened.name)}
             threads={threads}
             missing={missing}
+            lane={laneWidth(pageWidth)}
             onBack={columns ? undefined : back}
-            onActivity={(who) => openActivity(opened.id, who)}
+            onTrace={openTrace}
             onAnswer={answer}
             onUndo={undo}
             onTalk={() => {
               tick();
               onTalk(opened);
             }}
-            onOpen={openPlace}
+            onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
             onOpenTask={openTask}
             foot={foot}
           />
@@ -336,8 +345,8 @@ export function TasksView({
           <Spacer />
         )}
       </Column>
-      <Column alignment="center" spacing={0} modifiers={page('activity')}>
-        {task ? <Steps task={task} agent={agent} onBack={back} /> : <Spacer />}
+      <Column alignment="center" spacing={0} modifiers={page('trace')}>
+        {traced ? <Trace task={traced} onBack={back} /> : <Spacer />}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('check')}>
         <LastCheck check={check} onBack={back} />
@@ -378,21 +387,5 @@ export function TasksView({
       </Column>
       {pages}
     </ZStack>
-  );
-}
-
-// The strips over the stream sit inset as cards, a little apart.
-function Strips({ children }: { children: ReactNode }) {
-  return (
-    <Column
-      alignment="start"
-      spacing={10}
-      modifiers={[
-        padding({ leading: 16, trailing: 16, top: 12, bottom: 2 }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      {children}
-    </Column>
   );
 }

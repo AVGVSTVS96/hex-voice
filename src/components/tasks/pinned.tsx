@@ -16,22 +16,14 @@ import { useState } from 'react';
 import { Linking } from 'react-native';
 
 import { Choices } from '@/components/tasks/ask-card';
-import { GroupHead, INSET, Mark, ios } from '@/components/tasks/parts';
+import { GAP, INSET, MARK, Mark, SectionHead, ios } from '@/components/tasks/parts';
 import type { Ask, AskOption } from '@/live/asks';
 import { pinSections, type PinLine, type PinMark, type PinSection } from '@/live/pinned';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
-const MARKS: Record<PinMark, 'needs' | 'working' | 'done' | 'failed' | 'idle'> = {
-  needs: 'needs',
-  working: 'working',
-  done: 'done',
-  failed: 'failed',
-  idle: 'idle',
-};
-
-// The thread's own asks, answered right here: its question and its choices under it. One you
-// answer folds where it sits to what you said, with Undo.
+// The topic's asks, answered right here: each question with what it unblocks under it, then its
+// choices as rows. One you answer folds where it sits to what you said, with Undo.
 export function YourCall({
   asks,
   answered,
@@ -53,49 +45,35 @@ export function YourCall({
         animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
       ]}
     >
-      <GroupHead title="Your call" count={open} />
-      {asks.map((ask) => {
+      <SectionHead title="Your call" count={open} />
+      {asks.map((ask, i) => {
         const said = answered[ask.id];
-        return (
-          <Row
-            key={ask.id}
-            alignment="start"
-            spacing={12}
-            modifiers={[
-              padding({ leading: INSET, trailing: INSET, top: 10, bottom: 12 }),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
-            ]}
-          >
-            <Mark state={said ? 'done' : 'needs'} />
-            <Column
-              alignment="start"
-              spacing={said ? 3 : 10}
-              modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        if (said)
+          return (
+            <Row
+              key={ask.id}
+              alignment="center"
+              spacing={GAP}
+              modifiers={[
+                padding({ leading: INSET - 2, trailing: INSET, top: 10, bottom: 14 }),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+              ]}
             >
-              <Text
-                textStyle={{
-                  fontSize: said ? 15 : 17,
-                  lineHeight: said ? 19 : 21,
-                  fontWeight: said ? '400' : '600',
-                }}
-                modifiers={[foregroundStyle(said ? theme.secondary : theme.text)]}
+              <Mark state="done" />
+              <Column
+                alignment="start"
+                spacing={1}
+                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                {ask.question}
-              </Text>
-              {said ? (
-                <Text
-                  textStyle={{ fontSize: 17, fontWeight: '600' }}
-                  modifiers={[foregroundStyle(theme.text)]}
-                >
+                <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.secondary)]}>
+                  {ask.question}
+                </Text>
+                <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.text)]}>
                   {said}
                 </Text>
-              ) : (
-                <Choices ask={ask} onAnswer={onAnswer} />
-              )}
-            </Column>
-            {said ? (
+              </Column>
               <Text
-                textStyle={{ fontSize: 17, fontWeight: '600' }}
+                textStyle={{ fontSize: 15, fontWeight: '600' }}
                 onPress={() => onUndo(ask)}
                 modifiers={[
                   foregroundStyle(theme.accent),
@@ -104,8 +82,40 @@ export function YourCall({
               >
                 Undo
               </Text>
-            ) : null}
-          </Row>
+            </Row>
+          );
+        return (
+          <Column
+            key={ask.id}
+            alignment="start"
+            spacing={0}
+            modifiers={[frame({ maxWidth: Infinity })]}
+          >
+            <Column
+              alignment="start"
+              spacing={4}
+              modifiers={[
+                padding({ leading: INSET, trailing: INSET, top: i ? 22 : 2, bottom: 12 }),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+              ]}
+            >
+              <Text
+                textStyle={{ fontSize: 17, lineHeight: 22, fontWeight: '600' }}
+                modifiers={[foregroundStyle(theme.text)]}
+              >
+                {ask.question}
+              </Text>
+              {ask.context ? (
+                <Text
+                  textStyle={{ fontSize: 15, lineHeight: 20 }}
+                  modifiers={[foregroundStyle(theme.secondary)]}
+                >
+                  {ask.context}
+                </Text>
+              ) : null}
+            </Column>
+            <Choices ask={ask} onAnswer={onAnswer} />
+          </Column>
         );
       })}
     </Column>
@@ -131,19 +141,16 @@ function Section({ section }: { section: PinSection }) {
     return (
       <Row
         alignment="center"
-        spacing={12}
+        spacing={GAP}
         onPress={() => setOpen(true)}
         modifiers={[
-          padding({ leading: INSET, trailing: INSET, top: 12, bottom: 12 }),
+          padding({ leading: INSET - 2, trailing: INSET, top: 12, bottom: 12 }),
           frame({ maxWidth: Infinity }),
           contentShape(shapes.rectangle()),
         ]}
       >
-        <Mark state={MARKS[section.mark]} />
-        <Text
-          textStyle={{ fontSize: 17, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
+        <Mark state={section.mark} />
+        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.secondary)]}>
           {`${section.title} · ${section.lines.length}`}
         </Text>
         <Spacer flexible />
@@ -152,7 +159,7 @@ function Section({ section }: { section: PinSection }) {
     );
   return (
     <Column alignment="start" spacing={0}>
-      {section.title ? <GroupHead title={section.title} count={section.lines.length} /> : null}
+      {section.title ? <SectionHead title={section.title} count={section.lines.length} /> : null}
       {section.lines.map((line, i) => (
         <Line key={i} line={line} />
       ))}
@@ -173,7 +180,7 @@ function Line({ line }: { line: PinLine }) {
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
           clipShape('roundedRectangle', 14),
-          padding({ leading: INSET + 34, trailing: INSET, top: 4, bottom: 8 }),
+          padding({ leading: INSET - 2 + MARK + GAP, trailing: INSET, top: 4, bottom: 8 }),
         ]}
       >
         {line.text}
@@ -197,17 +204,17 @@ function Line({ line }: { line: PinLine }) {
   return (
     <Row
       alignment="start"
-      spacing={12}
+      spacing={GAP}
       onPress={url ? () => void Linking.openURL(url) : undefined}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 8, bottom: 8 }),
+        padding({ leading: INSET - 2, trailing: INSET, top: 8, bottom: 8 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
       ]}
     >
-      <Mark state={MARKS[line.mark]} quiet={line.mark === 'done'} />
+      <Mark state={line.mark === 'done' ? 'read' : line.mark} />
       <Text
-        textStyle={{ fontSize: 16, lineHeight: 21 }}
+        textStyle={{ fontSize: 15, lineHeight: 20 }}
         modifiers={[
           foregroundStyle(line.mark === 'done' ? theme.secondary : theme.text),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
