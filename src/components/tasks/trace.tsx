@@ -94,34 +94,45 @@ export function Trace({ task, onBack }: { task: Task; onBack?: () => void }) {
   );
 }
 
+// Each step newest first. A thought or a reply shows three lines, and where it `opens`, a tap shows
+// it whole.
 export function Steps({
   steps,
   working,
   indent = 0,
+  opens = true,
 }: {
   steps: TaskStep[];
   working: boolean;
   indent?: number;
+  opens?: boolean;
 }) {
+  const [whole, setWhole] = useState<string | null>(null);
   const times = stepTimes(steps, working);
   return (
     <Column alignment="start" spacing={0}>
-      {steps.map((step, i) => (
-        <TraceLine
-          key={`${step.at} ${i}`}
-          lead={
-            i === 0 && working ? (
-              <Mark state="working" />
-            ) : (
-              <Icon name={KIND[step.kind]} size={13} color={theme.secondary} />
-            )
-          }
-          text={step.text}
-          lines={step.kind === 'think' || step.kind === 'say' ? 3 : 1}
-          time={times[i]}
-          indent={indent}
-        />
-      ))}
+      {steps.map((step, i) => {
+        const key = `${step.at} ${step.text}`;
+        const words = step.kind === 'think' || step.kind === 'say';
+        const toggle = words && opens;
+        return (
+          <TraceLine
+            key={key}
+            lead={
+              i === 0 && working ? (
+                <Mark state="working" />
+              ) : (
+                <Icon name={KIND[step.kind]} size={13} color={theme.secondary} />
+              )
+            }
+            text={step.text}
+            lines={words ? (whole === key ? 0 : 3) : 1}
+            time={times[i]}
+            indent={indent}
+            onPress={toggle ? () => setWhole(whole === key ? null : key) : undefined}
+          />
+        );
+      })}
     </Column>
   );
 }
@@ -190,7 +201,7 @@ export function TraceLine({
         {lead}
       </Row>
       <Text
-        numberOfLines={lines}
+        numberOfLines={lines || undefined}
         textStyle={{ fontSize: 15, lineHeight: 20 }}
         modifiers={[
           foregroundStyle(quiet ? theme.secondary : theme.text),
