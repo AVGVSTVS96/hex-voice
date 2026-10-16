@@ -60,7 +60,7 @@ test('iPad landscape puts the orb with its buttons under it on the leading half,
   const buttons = layout.controls.center.open;
   assert.equal(buttons.x, 295);
   assert.ok(buttons.y - 32 > layout.orb.read.y + layout.orb.size / 2, 'buttons sit under the orb');
-  assert.deepEqual(layout.words, { x: 590 + 48, width: 590 - 96, top: 24 + 16 + 48 + 16 });
+  assert.deepEqual(layout.words, { x: 590 + 24, width: 590 - 48, top: 24 + 16 + 48 + 16 });
   assert.equal(layout.text, 19);
   assert.equal(layout.pulls, false);
 });
@@ -72,31 +72,29 @@ test('iPad portrait stacks the orb over the words, always shown, with no pull-do
   assert.equal(layout.orb.read.x, 834 / 2);
   assert.ok(layout.words.top > layout.orb.read.y + layout.orb.size / 2);
   assert.deepEqual(layout.calls, { width: 360, place: 'beside' });
-  assert.deepEqual(layout.tasks, { width: 380, place: 'beside' });
+  assert.deepEqual(layout.tasks, { width: 834 - 368, place: 'beside' });
   assert.equal(layout.inbox, undefined);
 });
 
-test('Tasks takes 30% of an iPad, between 380 and 460', () => {
+test('Tasks takes two thirds of a landscape iPad, and standing up leaves the call 368', () => {
   const width = (size: { width: number; height: number }) =>
     screenLayout(size, pad, { regular: true }).tasks.width;
-  assert.equal(width(iPads['11-inch portrait']), 380);
-  assert.equal(width(iPads['11-inch landscape']), 380);
-  assert.equal(width(iPads['13-inch landscape']), 413);
+  assert.equal(width(iPads['11-inch landscape']), 796);
+  assert.equal(width(iPads['13-inch landscape']), 917);
+  assert.equal(width(iPads['11-inch portrait']), 834 - 368);
+  assert.equal(width(iPads['13-inch portrait']), 1032 - 368);
 });
 
-test('with Tasks open on 11-inch portrait the call keeps the 454 left: the orb docks over 358 of words', () => {
-  const layout = screenLayout(iPads['11-inch portrait'], pad, { regular: true });
-  assert.deepEqual(
-    { x: layout.besideTasks.x, width: layout.besideTasks.width },
-    { x: 48, width: 358 },
-  );
-  assert.equal(layout.orb.dock?.tasks.x, 227);
-  assert.equal(layout.orb.dock?.tasks.size, 88);
+test('with Tasks open the orb shrinks into the call’s header row and the words start under it', () => {
+  const layout = screenLayout(iPads['11-inch landscape'], pad, { regular: true });
+  const room = 1194 - 796;
+  assert.deepEqual(layout.orb.dock?.tasks, { x: room / 2, y: 24 + 16 + 24, size: 40 });
+  assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
 });
 
-test('on 13-inch portrait the words keep a 556 measure beside Tasks', () => {
-  const layout = screenLayout(iPads['13-inch portrait'], pad, { regular: true });
-  assert.equal(layout.besideTasks.width, 556);
+test('standing up, the words keep a readable 320 beside Tasks', () => {
+  for (const size of [iPads['11-inch portrait'], iPads['13-inch portrait']])
+    assert.equal(screenLayout(size, pad, { regular: true }).besideTasks.width, 320);
 });
 
 test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in the room left', () => {

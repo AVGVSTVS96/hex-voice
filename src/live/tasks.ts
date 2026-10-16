@@ -1,20 +1,31 @@
 import { timeOfDay } from './calls';
 
 export type TaskState = 'needs' | 'working' | 'done' | 'failed' | 'idle';
-export type TaskStep = { at: string; text: string };
+// What a step did: a thought, something it said, a step of its plan, a command, a read, an edit, a
+// search of the code or the web, an agent it started, or another tool.
+export type StepKind =
+  'think' | 'say' | 'plan' | 'run' | 'read' | 'edit' | 'search' | 'web' | 'agent' | 'tool';
+export type TaskStep = { at: string; kind: StepKind; text: string };
 export type TaskAgent = { id: string; label: string; state: 'working' | 'done'; line?: string };
 export type AgentTrail = TaskAgent & { steps: TaskStep[] };
 export type TaskMoment = { at: string; state: TaskState; text: string };
+// The plan as Claude Code's todo list stands.
+export type Planned = { text: string; state: 'done' | 'running' | 'pending' };
+// One entry of the job's last 12 hours: the state it was in then, a change or a step within one.
+export type Turn = { at: string; state: TaskState };
+// `place` is what the thread is called where it lives: a Telegram topic's name, General or DM, or
+// T3 Code's own title for its thread.
 export type TaskRow = {
   id: string;
   app: string;
   name: string;
-  where: string;
+  place: string;
   state: TaskState;
   line: string;
   since: string;
   at: string;
   agents: TaskAgent[];
+  track: Turn[];
   link?: string;
 };
 export type Task = Omit<TaskRow, 'agents'> & {
@@ -22,9 +33,9 @@ export type Task = Omit<TaskRow, 'agents'> & {
   pin?: string;
   lately: TaskMoment[];
   steps: TaskStep[];
+  plan: Planned[];
   agents: AgentTrail[];
 };
-export type Activity = { title: string; state: TaskAgent['state']; steps: TaskStep[] };
 export type TaskList = { version: number; tasks: TaskRow[] };
 export type TaskCounts = { version: number; needs: number; working: number; yours?: number };
 
@@ -55,6 +66,18 @@ function duration(ms: number) {
   return hours < 24 ? `${hours} hr` : `${Math.round(hours / 24)} d`;
 }
 
+// How long each step took, newest first: until the next one began, and the newest, while it
+// works, so far. "8s", "2 min", "now".
+export function stepTimes(steps: TaskStep[], working: boolean, now = new Date()) {
+  return steps.map((step, i) => {
+    if (i === 0 && !working) return '';
+    const end = i === 0 ? now.getTime() : Date.parse(steps[i - 1]!.at);
+    const seconds = Math.max(0, Math.round((end - Date.parse(step.at)) / 1000));
+    if (seconds >= 60) return duration(seconds * 1000);
+    return i === 0 ? 'now' : `${seconds}s`;
+  });
+}
+
 export function startOfDay(now: Date) {
   const day = new Date(now);
   day.setHours(0, 0, 0, 0);
@@ -68,16 +91,3 @@ export const STATE_WORDS: Record<TaskState, string> = {
   failed: 'failed',
   idle: 'idle',
 };
-
-// One agent's steps on a task, newest first: the thread's own session when `agent` is null, or one
-// of the subagents it started in this stretch of work.
-export function activityOf(task: Task, agent: string | null): Activity | undefined {
-  if (agent === null)
-    return {
-      title: task.name,
-      state: task.state === 'working' ? 'working' : 'done',
-      steps: task.steps,
-    };
-  const trail = task.agents.find((candidate) => candidate.id === agent);
-  return trail && { title: trail.label, state: trail.state, steps: trail.steps };
-}

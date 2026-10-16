@@ -6,7 +6,6 @@ import {
   checkLine,
   keepInPlace,
   openAsks,
-  stacked,
   yours,
   type Ask,
   type AskList,
@@ -18,6 +17,7 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
   id,
   kind,
   task: 'telegram:-100:1',
+  app: 'telegram',
   topic: 'autofork',
   at: new Date(2026, 9, 13, 7, 32).toISOString(),
   question: `${id}?`,
@@ -33,19 +33,6 @@ test('the check strip says what the check did', () => {
     flagged: 3,
   });
   assert.equal(did, 'fixed 4 · flagged 3');
-});
-
-test('several choices stack, and two sit side by side', () => {
-  assert.equal(
-    stacked(ask('m', 'pick', { options: [{ label: 'A' }, { label: 'B' }, { label: 'C' }] })),
-    true,
-  );
-  assert.equal(stacked(ask('y', 'yesno')), false);
-  assert.equal(
-    stacked(ask('l', 'yesno', { options: [{ label: 'Keep the Fly app' }, { label: 'No' }] })),
-    true,
-  );
-  assert.equal(stacked(ask('o', 'do', { options: [{ label: 'Open the sign-in page' }] })), false);
 });
 
 test('a pinned post reads as sections: what waits on you, what runs, known problems, Done folded', () => {

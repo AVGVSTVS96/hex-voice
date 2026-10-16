@@ -2,10 +2,12 @@ import { timeOfDay } from './calls';
 
 export type AskKind = 'pick' | 'yesno' | 'do' | 'look';
 export type AskOption = { label: string; value?: string; pick?: boolean; url?: string };
+// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`).
 export type Ask = {
   id: string;
   kind: AskKind;
   task: string;
+  app: string;
   topic: string;
   at: string;
   question: string;
@@ -17,6 +19,7 @@ export type Ask = {
 };
 export type Stuck = {
   id: string;
+  app: string;
   title: string;
   why: string;
   action: string;
@@ -27,8 +30,9 @@ export type Stuck = {
 };
 export type Fresh = {
   id: string;
+  app: string;
+  topic: string;
   title: string;
-  where: string;
   line: string;
   at: string;
   read: boolean;
@@ -123,13 +127,4 @@ export function checkLine(check: CheckSummary) {
     .filter(Boolean)
     .join(' · ');
   return { title: `Checked ${timeOfDay(check.at)}`, did };
-}
-
-// How many characters fit on a pill: one alone spans the card, two share it.
-const PILL_FITS = [0, 28, 13];
-
-// Two short choices sit side by side; several, or any too long for its pill, stack one per row.
-export function stacked(ask: Ask) {
-  const fits = PILL_FITS[ask.options.length];
-  return !fits || ask.options.some((option) => option.label.length > fits);
 }

@@ -7,7 +7,7 @@ import {
   padding,
 } from '@expo/ui/swift-ui/modifiers';
 
-import { GroupHead, Header, INSET, Mark } from '@/components/tasks/parts';
+import { GAP, Header, INSET, Mark, SectionHead } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import { theme } from '@/theme';
@@ -34,7 +34,7 @@ export function LastCheck({ check, onBack }: { check?: Check; onBack: () => void
             <Read read={check.read} />
             {check.fixed.length ? (
               <Column alignment="start" spacing={0}>
-                <GroupHead title="Fixed on its own" count={check.fixed.length} />
+                <SectionHead title="Fixed on its own" count={check.fixed.length} />
                 {check.fixed.map((note, i) => (
                   <NoteRow key={i} note={note} fixed />
                 ))}
@@ -42,7 +42,7 @@ export function LastCheck({ check, onBack }: { check?: Check; onBack: () => void
             ) : null}
             {check.flagged.length ? (
               <Column alignment="start" spacing={0}>
-                <GroupHead title="For you to look at" count={check.flagged.length} />
+                <SectionHead title="For you to look at" count={check.flagged.length} />
                 {check.flagged.map((note, i) => (
                   <NoteRow key={i} note={note} />
                 ))}
@@ -98,9 +98,9 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
   return (
     <Row
       alignment="start"
-      spacing={12}
+      spacing={GAP}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 10, bottom: 10 }),
+        padding({ leading: INSET - 2, trailing: INSET, top: 10, bottom: 10 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
     >
@@ -111,20 +111,20 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         <Text
-          textStyle={{ fontSize: 17, lineHeight: 21, fontWeight: '500' }}
+          textStyle={{ fontSize: 15, lineHeight: 20, fontWeight: '500' }}
           modifiers={[foregroundStyle(theme.text)]}
         >
           {note.title}
         </Text>
         <Text
-          textStyle={{ fontSize: 15, lineHeight: 19 }}
+          textStyle={{ fontSize: 15, lineHeight: 20 }}
           modifiers={[foregroundStyle(theme.secondary)]}
         >
           {note.text}
         </Text>
         {note.did ? (
           <Text
-            textStyle={{ fontSize: 15, lineHeight: 19, fontWeight: '500' }}
+            textStyle={{ fontSize: 15, lineHeight: 20, fontWeight: '500' }}
             modifiers={[foregroundStyle(theme.accent)]}
           >
             {note.did}

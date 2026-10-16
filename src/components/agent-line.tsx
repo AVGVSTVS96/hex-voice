@@ -141,7 +141,8 @@ export function Glyph({ state, quiet = false }: { state: GlyphState; quiet?: boo
   );
 }
 
-function Arc() {
+// The turning arc of something at work, `size` across.
+export function Arc({ size = 12 }: { size?: number }) {
   const spin = useSharedValue(0);
   const still = useReducedMotion();
   useEffect(() => {
@@ -150,7 +151,11 @@ function Arc() {
     return () => cancelAnimation(spin);
   }, [spin, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  return <Animated.View style={[styles.arc, style]} />;
+  return (
+    <Animated.View
+      style={[styles.arc, { width: size, height: size, borderRadius: size / 2 }, style]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
@@ -176,9 +181,6 @@ const styles = StyleSheet.create({
     borderColor: theme.tertiary,
   },
   arc: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     borderWidth: 2,
     borderColor: theme.accentTrack,
     borderTopColor: theme.accent,

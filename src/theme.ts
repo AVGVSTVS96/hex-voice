@@ -20,6 +20,8 @@ const tokens = {
   accent: { dark: '#C4F3E5', light: '#1F8A6D' },
   accentMuted: { dark: '#1B3534', light: '#D7F2EA' },
   accentTrack: { dark: '#2F5552', light: '#A8DCCB' },
+  // The mint that holds white words, for a swipe's button in either appearance.
+  accentSolid: { dark: '#1F8A6D', light: '#1F8A6D' },
   danger: { dark: '#F0A5A8', light: '#D93A42' },
   dangerMuted: { dark: '#3A2224', light: '#FBE3E4' },
 } as const;

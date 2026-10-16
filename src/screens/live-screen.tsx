@@ -71,6 +71,8 @@ const RUBBER_BAND = 44;
 const LANDED = 2;
 const AGENT_ROW = 22;
 const CONTROLS_BOX = 200;
+// The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
+const OVER_SHEET = 96;
 const PAD = Platform.OS === 'ios' && Platform.isPad;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -225,21 +227,21 @@ function CallScreen({ pose }: { pose: Pose }) {
 
   // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
   // and what sits above it (the resting orb, or the words) keeps clear of it. On a call Tasks opens
-  // half height over a compact screen, and the resting orb keeps clear of it too, still listening.
+  // half height over a compact screen, and the resting orb keeps clear of it too, small, still
+  // listening.
   // Where the words have a page of their own, the footer sits on that page, away from the orb.
   const [footer, setFooter] = useState(
     layout.footer.bottom + (layout.controls === 'inline' ? CONTROLS : 0),
   );
+  const overSheet = tasksOpen && onCall && !pose.regular;
   const rest = orbRest(
     {
       top: orb.room.top,
-      bottom: Math.min(
-        moves ? orb.room.bottom : height - footer,
-        tasksOpen && onCall && !pose.regular ? height / 2 : height,
-      ),
+      bottom: Math.min(moves ? orb.room.bottom : height - footer, overSheet ? height / 2 : height),
     },
     orb.rest.y,
     size,
+    overSheet ? OVER_SHEET : size,
   );
   const restY = useSharedValue(rest.y);
   const restScale = useSharedValue(rest.scale);
@@ -426,11 +428,13 @@ function CallScreen({ pose }: { pose: Pose }) {
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
   // The call is a card. Calls and Tasks either slide it aside or take an edge of it, and while
   // either is open its corners round off against them. Where they take an edge, what's on the call
-  // stays put in the window, so only the words move over into what's left.
+  // stays put in the window, so only the words move over into what's left. Only a card that slides
+  // away wears a hairline: one that spans the screen's height would draw it along its top and foot.
   const cardStyle = useAnimatedStyle(() => {
     const d = drawer.get();
     const t = pane.get();
     const open = Math.max(list.place === 'over' ? 0 : d, side.place === 'sheet' ? 0 : t);
+    const slid = list.place === 'slide' ? d : 0;
     return {
       left: list.place === 'beside' ? d * list.width : 0,
       right: side.place === 'beside' ? t * paneW.get() : 0,
@@ -442,7 +446,7 @@ function CallScreen({ pose }: { pose: Pose }) {
         },
       ],
       borderRadius: 44 * Math.min(1, open * 4),
-      borderWidth: open > 0 ? StyleSheet.hairlineWidth : 0,
+      borderWidth: slid > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });
   const stageStyle = useAnimatedStyle(() => ({

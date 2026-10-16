@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Text } from '@expo/ui';
 import { Button, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -13,7 +13,7 @@ import {
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { GroupHead, Inset, ios } from '@/components/tasks/parts';
+import { Hairline, INSET, Lane, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place } from '@/live/inbox';
 import { clock, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
@@ -26,31 +26,15 @@ const GLYPH: Record<Place, SFSymbol> = {
   discord: 'bubble.left.and.bubble.right.fill',
   server: 'terminal.fill',
 };
-const SHOWN = 5;
-const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
-const TILE: Record<Place, string> = {
+export const PLACE_COLOR: Record<Place, string> = {
   telegram: '#2AABEE',
-  t3: '#2C2C2E',
+  t3: '#3A3A3C',
   buzz: '#E9A23B',
   discord: '#5865F2',
   server: '#636366',
 };
-
-// "◂ Telegram" after a row's name.
-export function PlaceTag({ place }: { place: Place }) {
-  return (
-    <Row alignment="center" spacing={4}>
-      <Icon name={GLYPH[place]} size={10} color={theme.tertiary} />
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 13 }}
-        modifiers={[foregroundStyle(theme.tertiary)]}
-      >
-        {PLACES[place]}
-      </Text>
-    </Row>
-  );
-}
+const SHOWN = 5;
+const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
 export function PlaceTile({ place, size = 28 }: { place: Place; size?: number }) {
   return (
@@ -59,35 +43,30 @@ export function PlaceTile({ place, size = 28 }: { place: Place; size?: number })
       spacing={0}
       modifiers={[
         frame({ width: size, height: size }),
-        background(TILE[place]),
+        background(PLACE_COLOR[place]),
         clipShape('roundedRectangle', size * 0.27),
       ]}
     >
-      <Icon name={GLYPH[place]} size={size * 0.46} color="#FFFFFF" />
+      <Icon name={GLYPH[place]} size={size * 0.5} color="#FFFFFF" />
     </Row>
   );
 }
 
-// What a thread is called where it lives: a Telegram topic by its name, a T3 thread by what it
-// did last, since hex knows it by its project.
-function placeTitle(task: TaskRow) {
-  if (task.app === 'telegram') return task.where === 'Telegram' ? `${task.name} topic` : task.where;
-  if (task.app === 't3') return task.line || 'T3 Code thread';
-  return task.name;
-}
-
-// The topic's threads, each a door into its own app: the open thread first, then those with a
-// link, newest first. One without a link opens its page here instead.
+// The topic's threads, each a door into its own app with its own lane: the open thread first, then
+// those with a link, newest first. One without a link opens its page here instead. An app missing
+// from this device says so in its row.
 export function Places({
   task,
   threads,
   missing,
+  lane,
   onOpen,
   onOpenTask,
 }: {
   task: TaskRow;
   threads: TaskRow[];
   missing: Set<Place>;
+  lane: number;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: string) => void;
 }) {
@@ -99,91 +78,83 @@ export function Places({
   const rest = all.length - SHOWN;
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <GroupHead title="Places" count={all.length} />
-      <Inset>
-        <Column
-          alignment="start"
-          spacing={0}
-          modifiers={[
-            padding({ top: 6 }),
-            frame({ maxWidth: Infinity }),
-            background(theme.group),
-            clipShape('roundedRectangle', 18),
-          ]}
-        >
-          {all.slice(0, SHOWN).map((thread) => {
-            const place = placeOf(thread.app);
-            const note = missing.has(place)
-              ? `${PLACES[place]} isn’t on this ${DEVICE}`
-              : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
-            return (
-              <Row
-                key={thread.id}
-                alignment="center"
-                spacing={12}
-                onPress={() =>
-                  thread.link ? onOpen(thread) : thread.id !== task.id && onOpenTask(thread.id)
-                }
-                modifiers={[
-                  padding({ leading: 14, trailing: 16, top: 9, bottom: 9 }),
-                  frame({ maxWidth: Infinity, alignment: 'leading' }),
-                  contentShape(shapes.rectangle()),
-                  ...(ios ? [accessibilityLabel(`${placeTitle(thread)}, ${note}`)] : []),
-                ]}
-              >
-                <PlaceTile place={place} />
-                <Column
-                  alignment="start"
-                  spacing={1}
-                  modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-                >
-                  <Text
-                    numberOfLines={1}
-                    textStyle={{ fontSize: 15, fontWeight: '500' }}
-                    modifiers={[foregroundStyle(theme.text)]}
-                  >
-                    {placeTitle(thread)}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    textStyle={{ fontSize: 13 }}
-                    modifiers={[
-                      foregroundStyle(missing.has(place) ? theme.danger : theme.tertiary),
-                    ]}
-                  >
-                    {note}
-                  </Text>
-                </Column>
-                <Icon
-                  name={thread.link ? 'arrow.up.right' : 'chevron.right'}
-                  size={12}
-                  color={theme.tertiary}
-                />
-              </Row>
-            );
-          })}
-          {rest > 0 ? (
-            <Text
-              textStyle={{ fontSize: 13 }}
+      <SectionHead title="Places" count={all.length} />
+      {all.slice(0, SHOWN).map((thread) => {
+        const place = placeOf(thread.app);
+        const gone = missing.has(place);
+        const note = gone
+          ? `${PLACES[place]} isn’t on this ${DEVICE}`
+          : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
+        return (
+          <Column
+            key={thread.id}
+            alignment="start"
+            spacing={0}
+            modifiers={[frame({ maxWidth: Infinity })]}
+          >
+            <Row
+              alignment="center"
+              spacing={12}
+              onPress={() =>
+                thread.link ? onOpen(thread) : thread.id !== task.id && onOpenTask(thread.id)
+              }
               modifiers={[
-                foregroundStyle(theme.tertiary),
-                padding({ leading: 54, top: 4, bottom: 12 }),
+                padding({ leading: INSET, trailing: INSET - 4, top: 11, bottom: 11 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
+                contentShape(shapes.rectangle()),
+                ...(ios ? [accessibilityLabel(`${thread.place}, ${note}`)] : []),
               ]}
             >
-              {`${rest} more thread${rest === 1 ? '' : 's'} in ${task.name}`}
-            </Text>
-          ) : (
-            <Spacer style={{ height: 6 }} />
-          )}
-        </Column>
-      </Inset>
+              <PlaceTile place={place} />
+              <Column
+                alignment="start"
+                spacing={1}
+                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+              >
+                <Text
+                  numberOfLines={1}
+                  textStyle={{ fontSize: 15, fontWeight: '500' }}
+                  modifiers={[foregroundStyle(theme.text)]}
+                >
+                  {thread.place}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  textStyle={{ fontSize: 13 }}
+                  modifiers={[foregroundStyle(gone ? theme.danger : theme.secondary)]}
+                >
+                  {note}
+                </Text>
+              </Column>
+              {thread.track.length ? <Lane tracks={[thread.track]} width={lane} /> : null}
+              <Icon
+                name={thread.link ? 'arrow.up.right' : 'chevron.right'}
+                size={12}
+                color={theme.tertiary}
+              />
+            </Row>
+            <Hairline />
+          </Column>
+        );
+      })}
+      {rest > 0 ? (
+        <Text
+          textStyle={{ fontSize: 13 }}
+          modifiers={[
+            foregroundStyle(theme.tertiary),
+            padding({ leading: INSET + 40, top: 10, bottom: 4 }),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {`${rest} more thread${rest === 1 ? '' : 's'} in ${task.name}`}
+        </Text>
+      ) : null}
     </Column>
   );
 }
 
 // The split button: its app's mark and name open the thread where it lives, and its arrow lists
-// every other place the topic has a link, and sharing the link.
+// every place the topic has a link, each in its own app's mark, and sharing the link.
 export function OpenIn({
   task,
   threads,
@@ -202,7 +173,8 @@ export function OpenIn({
       alignment="center"
       spacing={0}
       modifiers={[
-        frame({ height: 52 }),
+        frame({ height: 50 }),
+        frame({ maxWidth: Infinity }),
         background(theme.surface),
         clipShape('capsule'),
         ...(ios ? [accessibilityLabel(`Open in ${PLACES[place]}`)] : []),
@@ -214,14 +186,15 @@ export function OpenIn({
         onPress={() => onOpen(first)}
         modifiers={[
           padding({ leading: 14, trailing: 6 }),
-          frame({ height: 52 }),
+          frame({ height: 50 }),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
         ]}
       >
-        <PlaceTile place={place} size={24} />
+        <PlaceTile place={place} size={22} />
         <Text
           numberOfLines={1}
-          textStyle={{ fontSize: 17, fontWeight: '500' }}
+          textStyle={{ fontSize: 16, fontWeight: '500' }}
           modifiers={[foregroundStyle(theme.text)]}
         >
           {PLACES[place]}
@@ -233,7 +206,7 @@ export function OpenIn({
             alignment="center"
             spacing={0}
             modifiers={[
-              frame({ width: 40, height: 52 }),
+              frame({ width: 40, height: 50 }),
               contentShape(shapes.rectangle()),
               ...(ios ? [accessibilityLabel('Other places')] : []),
             ]}
@@ -245,7 +218,7 @@ export function OpenIn({
         {linked.map((thread) => (
           <Button
             key={thread.id}
-            label={`${PLACES[placeOf(thread.app)]} · ${placeTitle(thread)}`}
+            label={`${PLACES[placeOf(thread.app)]} · ${thread.place}`}
             systemImage={GLYPH[placeOf(thread.app)]}
             onPress={() => onOpen(thread)}
           />

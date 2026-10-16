@@ -4,18 +4,18 @@ export const GUTTER = 24;
 export const TOOL = 48;
 export const CONTROLS = 64;
 export const DOCKED = 52;
-export const DOCK = 88;
+export const DOCK = 40;
 export const RAIL = 96;
 const AGENT = 22;
 const COLUMN = 84;
 const WORDS = 600;
 const WORDS_BESIDE = 520;
 const MEASURE = 680;
-const MARGIN = 48;
 const LIST = 360;
 const SIDEBAR = 330;
 const TASKS = 380;
-const TASKS_MAX = 460;
+const CALL = 368;
+const RAIL_ORB = 44;
 
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -59,7 +59,7 @@ export type Layout = {
     | { center: Beside<Place> };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-  // docks at the top of the room a pane leaves (`dock`), never covered or faded.
+  // docks into the header row of the room a pane leaves (`dock`), never covered or faded.
   orb: {
     size: number;
     rest: Spot;
@@ -204,23 +204,24 @@ function single(frame: Frame): Layout {
 // iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
 // the whole screen when none is. With nothing open the orb is a third of the short side, beside
 // the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
-// open it docks at the top of the room, over the words, with the buttons at the room's foot.
+// open it shrinks into the header row of the room, between the toolbar's buttons, so the words
+// keep their height, with the buttons at the room's foot. Tasks takes two thirds of a landscape
+// iPad; standing up, a third is too narrow to read, so the call keeps CALL.
 function pad(frame: Frame): Layout {
-  const { window, insets, bottomInset, content, toolbar } = frame;
+  const { window, bottomInset, content, toolbar } = frame;
   const { width, height } = window;
   const landscape = width > height;
   const size = Math.round(Math.min(width, height) * 0.32);
-  const tasks = Math.round(Math.min(Math.max(width * 0.3, TASKS), TASKS_MAX));
+  const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
   const below = toolbar.y + TOOL;
   const foot = height - bottomInset - CONTROLS / 2;
   const agentLow = bottomInset;
   const agentHigh = bottomInset + CONTROLS + 14;
-  const dockY = Math.max(toolbar.y + TOOL / 2, insets.top + DOCK / 2 + 4);
   const docked = (from: number, to: number) => {
     const room = measure(from, to);
     return {
-      orb: { x: from + (to - from) / 2, y: dockY, size: DOCK },
-      words: { ...room, top: dockY + DOCK / 2 + 16 },
+      orb: { x: from + (to - from) / 2, y: toolbar.y + TOOL / 2, size: DOCK },
+      words: { ...room, top: below + 16 },
       controls: { x: from + (to - from) / 2, y: foot },
     };
   };
@@ -229,7 +230,7 @@ function pad(frame: Frame): Layout {
   const rail = {
     width: width - RAIL,
     toolbar: { x: (RAIL - TOOL) / 2, y: toolbar.y, width: TOOL, axis: 'column' as const },
-    orb: { x: RAIL / 2, y: foot - CONTROLS / 2 - 20 - 32, size: 64 },
+    orb: { x: RAIL / 2, y: foot - CONTROLS / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
     controls: { x: RAIL / 2, y: foot },
   };
 
@@ -305,7 +306,7 @@ function pad(frame: Frame): Layout {
 
 // The words' measure, centered in the room between `from` and `to`.
 function measure(from: number, to: number): Span {
-  const width = Math.min(to - from - 2 * MARGIN, MEASURE);
+  const width = Math.min(to - from - 2 * GUTTER, MEASURE);
   return { x: from + (to - from - width) / 2, width };
 }
 
