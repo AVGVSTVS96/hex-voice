@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useState } from 'react';
-import { Linking } from 'react-native';
 
 import { useWatch } from '@/hooks/use-watch';
 import { asksAPI } from '@/live/api';
@@ -17,7 +16,6 @@ export function useAsks(open: boolean) {
   }, [open]);
 
   const answer = (ask: Ask, option: AskOption) => {
-    if (option.url) return void Linking.openURL(option.url);
     dispatch({ type: 'answer', id: ask.id, label: option.label });
     asksAPI.answer(ask.id, option.label).catch(() => dispatch({ type: 'failed', id: ask.id }));
   };

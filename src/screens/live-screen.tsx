@@ -112,7 +112,6 @@ function CallScreen({ pose }: { pose: Pose }) {
   const [tasksOpen, setTasksOpen] = useState(false);
   const [tasksAt, setTasksAt] = useState<TasksAt>({});
   const counts = useTaskCounts();
-  const calls = useCalls(drawerOpen);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const layout = screenLayout({ width, height }, insets, pose);
@@ -130,6 +129,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   });
   const reading = !layout.pulls || showing.pulled;
   const viewing = showing.call;
+  const calls = useCalls(drawerOpen || viewing !== null);
   const pullWords = (pulled: boolean) =>
     setShowing((now) => (pulled ? { ...now, pulled } : { pulled, call: null }));
   const showCall = (call: string | null) =>
@@ -398,10 +398,10 @@ function CallScreen({ pose }: { pose: Pose }) {
     settleDrawer(!drawerOpen);
   };
   // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
-  const openCall = (call: CallSummary) => {
+  const openCall = (id: string) => {
     if (list.place !== 'beside') settleDrawer(false);
-    if (call.id === calls.live && onCall) return backToCall();
-    showCall(call.id);
+    if (id === calls.live && onCall) return backToCall();
+    showCall(id);
   };
   // A past call opened mid-call only changes what's on screen; the live call goes on underneath.
   const backToCall = () => {
@@ -619,6 +619,12 @@ function CallScreen({ pose }: { pose: Pose }) {
     if (onCall) void tasksAPI.talk(task.id).catch(() => {});
     else if (voiceLoaded) startCall(task.id);
   };
+  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
+  const openCallFromTasks = (id: string) => {
+    stepAside();
+    if (list.place === 'beside') settleDrawer(true);
+    openCall(id);
+  };
   const removeShown =
     shown && shown.id !== calls.live
       ? () => {
@@ -677,7 +683,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           viewing={viewing}
           offline={calls.offline}
           haptics={preferences.haptics}
-          onOpen={openCall}
+          onOpen={(call) => openCall(call.id)}
           onDelete={(id) => {
             if (id === viewing) leaveCall();
             calls.remove(id);
@@ -693,6 +699,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     haptics: preferences.haptics,
     onTalk: talkAbout,
     onGoThrough: goThrough,
+    onOpenCall: openCallFromTasks,
   };
 
   return (
