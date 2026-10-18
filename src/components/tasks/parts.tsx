@@ -17,7 +17,6 @@ import {
   listRowSeparator,
   listRowSeparatorTint,
   offset,
-  opacity,
   padding,
   shapes,
   strokeBorder,
@@ -278,8 +277,7 @@ export function Lane({
             key={key}
             modifiers={[
               frame({ width: to - from, height: 1.5 }),
-              foregroundStyle(theme.accent),
-              opacity(0.5),
+              foregroundStyle(theme.accentTrack),
               offset({ x: from }),
             ]}
           />,
