@@ -11,7 +11,7 @@ export type AgentTrail = TaskAgent & { steps: TaskStep[] };
 export type TaskMoment = { at: string; state: TaskState; text: string };
 // The plan as Claude Code's todo list stands.
 export type Planned = { text: string; state: 'done' | 'running' | 'pending' };
-// One entry of the job's last 12 hours: the state it was in then, a change or a step within one.
+// One entry of the job's last week: the state it was in then, a change or a step within one.
 export type Turn = { at: string; state: TaskState };
 // `place` is what the thread is called where it lives: a Telegram topic's name, General or DM, or
 // T3 Code's own title for its thread.
@@ -78,6 +78,19 @@ export function stepTimes(steps: TaskStep[], working: boolean, now = new Date())
     if (seconds >= 60) return duration(seconds * 1000);
     return i === 0 ? 'now' : `${seconds}s`;
   });
+}
+
+// Where a moment falls on a lane `width` wide: the last week on a log scale, now at the right edge.
+// It's about linear for the last few minutes, then each step left covers more time, so the last
+// hour takes the right 40% and the last day 77%. Tuned to hex's real sessions: TAU is about twice
+// the median working stretch (61s), and a week is as long as Tasks keeps a finished thread.
+const TAU = 2 * 60_000;
+const WEEK = 7 * 24 * 3_600_000;
+const FULL = Math.log1p(WEEK / TAU);
+export const LANE_TICKS = [3_600_000, 24 * 3_600_000];
+
+export function laneX(at: number, now: number, width: number) {
+  return width * (1 - Math.min(1, Math.log1p(Math.max(0, now - at) / TAU) / FULL));
 }
 
 export function startOfDay(now: Date) {

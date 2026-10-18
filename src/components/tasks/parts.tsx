@@ -27,7 +27,7 @@ import type { ReactNode } from 'react';
 import { PixelRatio, View, type ColorValue } from 'react-native';
 
 import { Arc } from '@/components/agent-line';
-import type { TaskState, Turn } from '@/live/tasks';
+import { LANE_TICKS, laneX, type TaskState, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
 export const ios = process.env.EXPO_OS === 'ios';
@@ -215,11 +215,12 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
   }
 }
 
-const WINDOW = 12 * 3_600_000;
 const LANE = 10;
 
-// C's lane: the last 12 hours, left to right. A bar while it worked, each step a hair apart; a
-// thin line while it waited on you, a ring where it asked; a dot where it finished, red where it failed.
+// C's lane: the last week on a log scale (`laneX`), now at the right, with faint ticks an hour and a
+// day back. A bar wherever it worked, at least 2pt however short, joined to the next where they
+// touch, each step a hair apart only where there's room to see it (the last few minutes); a thin
+// line while it waited on you, a ring where it asked; a dot where it finished, red where it failed.
 // Every thread of a topic draws on the same lane.
 export function Lane({
   tracks,
@@ -230,26 +231,47 @@ export function Lane({
   width: number;
   now?: number;
 }) {
-  const start = now - WINDOW;
-  const x = (at: string) => Math.max(0, Math.min(1, (Date.parse(at) - start) / WINDOW)) * width;
-  const marks: ReactNode[] = [];
-  tracks.forEach((track, t) =>
+  const x = (at: string) => laneX(Date.parse(at), now, width);
+  const marks: ReactNode[] = LANE_TICKS.map((age) => (
+    <Rectangle
+      key={`tick:${age}`}
+      modifiers={[
+        frame({ width: 1, height: 5 }),
+        foregroundStyle(theme.edge),
+        offset({ x: laneX(now - age, now, width) - 0.5 }),
+      ]}
+    />
+  ));
+  tracks.forEach((track, t) => {
+    let bar: { from: number; to: number } | undefined;
+    const flush = (key: string) => {
+      if (!bar) return;
+      marks.push(
+        <Capsule
+          key={key}
+          modifiers={[
+            frame({ width: Math.max(2, bar.to - bar.from), height: 5 }),
+            foregroundStyle(theme.accent),
+            offset({ x: Math.min(bar.from, width - 2) }),
+          ]}
+        />,
+      );
+      bar = undefined;
+    };
     track.forEach((turn, i) => {
       const from = x(turn.at);
       const to = i + 1 < track.length ? x(track[i + 1]!.at) : width;
       const key = `${t}:${i}`;
+      if (turn.state === 'working') {
+        if (bar && from - bar.to < 1.5 && to - from < 3) bar.to = to;
+        else {
+          flush(`${key}:bar`);
+          bar = { from, to: to - from >= 3 ? to - 1 : to };
+        }
+        return;
+      }
+      flush(`${key}:bar`);
       const asked = turn.state === 'needs' && track[i - 1]?.state !== 'needs';
-      if (turn.state === 'working' && to - from >= 1)
-        marks.push(
-          <Capsule
-            key={key}
-            modifiers={[
-              frame({ width: Math.max(2, to - from - 1), height: 5 }),
-              foregroundStyle(theme.accent),
-              offset({ x: from }),
-            ]}
-          />,
-        );
       if (turn.state === 'needs' && to - from >= 2)
         marks.push(
           <Capsule
@@ -286,8 +308,9 @@ export function Lane({
             />
           ),
         );
-    }),
-  );
+    });
+    flush(`${t}:end`);
+  });
   return (
     <ZStack alignment="leading" modifiers={[frame({ width, height: LANE })]}>
       <Rectangle modifiers={[frame({ width, height: 1 }), foregroundStyle(theme.edge)]} />

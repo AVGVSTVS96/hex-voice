@@ -1,7 +1,14 @@
 import { timeOfDay } from './calls';
 
 export type AskKind = 'pick' | 'yesno' | 'do' | 'look';
-export type AskOption = { label: string; value?: string; pick?: boolean; url?: string };
+// An answer: each tells hex something. A page an ask points to is a link, and opening it answers
+// nothing.
+export type AskOption = { label: string; value?: string; pick?: boolean };
+export type AskLink = { label: string; url: string };
+// Each place an ask was asked: a thread in its app (`task` is its id among the tasks) or a call
+// (`app: 'voice'`, opened in Calls by `call`). Without a link we know it's from there but can't open
+// it. hex sends the ones that open first, then the rest, each newest first.
+export type AskPlace = { app: string; place: string; task?: string; call?: string; link?: string };
 // Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`).
 export type Ask = {
   id: string;
@@ -13,9 +20,9 @@ export type Ask = {
   question: string;
   context?: string;
   options: AskOption[];
+  links?: AskLink[];
+  places: AskPlace[];
   tag?: string;
-  places?: string[];
-  link?: string;
 };
 export type Stuck = {
   id: string;

@@ -7,7 +7,14 @@ import { startOfDay, type TaskRow, type Turn } from './tasks';
 export type Stage = 'needs' | 'working' | 'done' | 'quiet';
 export type Place = 'telegram' | 't3' | 'buzz' | 'discord' | 'server';
 
-type Base = { id: string; topic: string; place: Place; stage: Stage; at: string };
+// Where a row's item lives, as a tile beside it: a thread in its app, which opens there when it
+// has a link, a call, which opens in Calls, or a page. `label` names its button in the row's swipe.
+export type Tile =
+  | { kind: 'app'; place: Place; label: string; link?: string }
+  | { kind: 'call'; label: string; call: string }
+  | { kind: 'link'; label: string; url: string };
+
+type Base = { id: string; topic: string; place: Place; tiles: Tile[]; stage: Stage; at: string };
 export type Entry = Base &
   (
     | { kind: 'ask'; ask: Ask }
@@ -17,7 +24,7 @@ export type Entry = Base &
   );
 
 // A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
-// last 12 hours for its lane.
+// last week for its lane.
 export type Topic = { name: string; entries: Entry[]; marks: Stage[]; tracks: Turn[][] };
 
 export const STAGES: { key: Stage; title: string }[] = [
@@ -44,6 +51,45 @@ export function placeOf(app: string): Place {
   return app === 'telegram' || app === 't3' || app === 'buzz' || app === 'discord' ? app : 'server';
 }
 
+export const opens = (tile: Tile) => tile.kind !== 'app' || !!tile.link;
+const kindOf = (tile: Tile) => (tile.kind === 'app' ? tile.place : tile.kind);
+
+const TILES = 3;
+
+// Where an ask was asked, as its row shows it: the places that open first, then the ones that
+// can't, each newest first as hex sends them, and its first page last, three tiles at most. Each
+// that opens is a button in the row's swipe, named by its app, or by its thread or call when two
+// there share one.
+export function tilesOf(ask: Ask): Tile[] {
+  const places = ask.places.map((one): Tile =>
+    one.app === 'voice' && one.call
+      ? { kind: 'call', label: one.place, call: one.call }
+      : { kind: 'app', place: placeOf(one.app), label: one.place, link: one.link },
+  );
+  const [page] = ask.links ?? [];
+  const shown = [...places.filter(opens), ...places.filter((tile) => !opens(tile))].slice(
+    0,
+    page ? TILES - 1 : TILES,
+  );
+  const twins = (tile: Tile) =>
+    shown.filter((one) => opens(one) && kindOf(one) === kindOf(tile)).length > 1;
+  return [
+    ...shown.map((tile) =>
+      opens(tile) && twins(tile)
+        ? tile
+        : { ...tile, label: tile.kind === 'app' ? PLACES[tile.place] : 'Call' },
+    ),
+    ...(page ? [{ kind: 'link' as const, ...page }] : []),
+  ];
+}
+
+const threadTile = (place: Place, link?: string): Tile => ({
+  kind: 'app',
+  place,
+  label: PLACES[place],
+  link,
+});
+
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 
 // The stream, in its order. An ask stands in for the thread that asked it; a thread that needs
@@ -67,6 +113,7 @@ export function inboxEntries(
       id: ask.id,
       topic: ask.topic,
       place: placeOf(ask.app),
+      tiles: tilesOf(ask),
       stage: 'needs',
       at: ask.at,
       ask,
@@ -78,6 +125,7 @@ export function inboxEntries(
         id: task.id,
         topic: task.name,
         place: placeOf(task.app),
+        tiles: [threadTile(placeOf(task.app), task.link)],
         stage: stageOf(task),
         at: task.state === 'needs' ? task.since : task.at,
         task,
@@ -87,6 +135,7 @@ export function inboxEntries(
       id: stuck.id,
       topic: STUCK,
       place: placeOf(stuck.app),
+      tiles: [threadTile(placeOf(stuck.app))],
       stage: 'needs',
       at: stuck.at,
       stuck,
@@ -98,6 +147,7 @@ export function inboxEntries(
         id: fresh.id,
         topic: fresh.topic,
         place: placeOf(fresh.app),
+        tiles: [threadTile(placeOf(fresh.app))],
         stage: 'done',
         at: fresh.at,
         fresh,
@@ -172,28 +222,29 @@ function textOf(entry: Entry) {
   }
 }
 
-// The asks hex already has a pick for, to take in one go. Money stays a call you make one by one,
-// and a pick that opens a page isn't an answer.
+// The asks hex already has a pick for, to take in one go. Money stays a call you make one by one.
 export function picksOf(entries: Entry[], answered: Record<string, string | null> = {}) {
   return entries.flatMap((entry) => {
     if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') return [];
-    const option = entry.ask.options.find((one) => one.pick && !one.url);
+    const option = entry.ask.options.find((one) => one.pick);
     return option ? [{ ask: entry.ask, option }] : [];
   });
 }
 
-// An ask's choices answer in its row only when every one fits on a single line of `width` points:
-// their words at the row's size, hex's pick with its check, a gap and a rule between each.
+// An ask's answers sit on one line only when every one fits in `width` points: their words at
+// `size` (the list's 15 or a topic page's 17), hex's pick with its check, a gap and a rule between
+// each. Measured at 15; the words, the check and the gaps all scale with the size.
+const SIZE = 15;
 const CHARACTER = 8.4;
 const CHECK = 18;
 const BETWEEN = 29;
 
-export function fitsOneLine(options: AskOption[], width: number) {
+export function fitsOneLine(options: AskOption[], width: number, size = SIZE) {
   const words = options.reduce(
     (sum, option) => sum + option.label.length * CHARACTER + (option.pick ? CHECK : 0),
     0,
   );
-  return words + BETWEEN * (options.length - 1) <= width;
+  return ((words + BETWEEN * (options.length - 1)) * size) / SIZE <= width;
 }
 
 // The task a row opens, when it has one.

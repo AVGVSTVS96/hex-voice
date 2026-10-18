@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Text } from '@expo/ui';
-import { Button, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Button, Label, Menu, ShareLink, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   background,
@@ -7,14 +7,16 @@ import {
   contentShape,
   foregroundStyle,
   frame,
+  opacity,
   padding,
   shapes,
+  strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, INSET, Lane, SectionHead, ios } from '@/components/tasks/parts';
-import { PLACES, placeOf, type Place } from '@/live/inbox';
+import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
@@ -26,29 +28,92 @@ const GLYPH: Record<Place, SFSymbol> = {
   discord: 'bubble.left.and.bubble.right.fill',
   server: 'terminal.fill',
 };
-export const PLACE_COLOR: Record<Place, string> = {
+const PLACE_COLOR: Record<Place, string> = {
   telegram: '#2AABEE',
   t3: '#3A3A3C',
   buzz: '#E9A23B',
   discord: '#5865F2',
   server: '#636366',
 };
+// Too dark to show as a ring and a symbol on the sheet, so a ghost of theirs is drawn quieter.
+const DARK: Place[] = ['t3', 'server'];
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
+// How a tile looks, filled: an app's own mark, a call in this app's own mint on dark, a page's
+// arrow in gray.
+function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
+  switch (tile.kind) {
+    case 'app':
+      return { color: PLACE_COLOR[tile.place], glyph: GLYPH[tile.place], ink: '#FFFFFF' };
+    case 'call':
+      return { color: '#1B3534', glyph: 'waveform', ink: '#C4F3E5' };
+    case 'link':
+      return { color: '#8E8E93', glyph: 'arrow.up.right', ink: '#FFFFFF' };
+  }
+}
+
+// A tile's button in a row's swipe wears its color, a call's in the mint that holds white words.
+export function swipeLook(tile: Tile) {
+  const { color, glyph } = look(tile);
+  return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
+}
+
+// A tile, filled when tapping goes somewhere; a thread without a link is a ghost, its app's ring
+// and symbol with nothing behind them: we know it's from there, but there's no door.
+export function TileIcon({ tile, size }: { tile: Tile; size: number }) {
+  if (tile.kind === 'app' && !tile.link) return <Ghost place={tile.place} size={size} />;
+  return <Solid {...look(tile)} size={size} />;
+}
+
 export function PlaceTile({ place, size = 28 }: { place: Place; size?: number }) {
+  return <Solid color={PLACE_COLOR[place]} glyph={GLYPH[place]} ink="#FFFFFF" size={size} />;
+}
+
+function Solid({
+  color,
+  glyph,
+  ink,
+  size,
+}: {
+  color: string;
+  glyph: SFSymbol;
+  ink: string;
+  size: number;
+}) {
   return (
     <Row
       alignment="center"
       spacing={0}
       modifiers={[
         frame({ width: size, height: size }),
-        background(PLACE_COLOR[place]),
+        background(color),
         clipShape('roundedRectangle', size * 0.27),
       ]}
     >
-      <Icon name={GLYPH[place]} size={size * 0.5} color="#FFFFFF" />
+      <Icon name={glyph} size={size * 0.5} color={ink} />
     </Row>
+  );
+}
+
+function Ghost({ place, size }: { place: Place; size: number }) {
+  const ink = DARK.includes(place) ? theme.secondary : PLACE_COLOR[place];
+  return (
+    <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
+      <Spacer
+        modifiers={[
+          frame({ width: size, height: size }),
+          strokeBorder({
+            content: ink,
+            style: { lineWidth: 1 },
+            shape: 'roundedRectangle',
+            cornerRadius: size * 0.27,
+          }),
+          opacity(0.35),
+        ]}
+      />
+      <Icon name={GLYPH[place]} size={size * 0.5} color={ink} />
+    </ZStack>
   );
 }
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createSessionAPI, createTasksAPI } from '../src/live/api-client';
-import { stepTimes, taskTime, type TaskRow, type TaskStep } from '../src/live/tasks';
+import { laneX, stepTimes, taskTime, type TaskRow, type TaskStep } from '../src/live/tasks';
 
 const hexUrl = 'https://hex.example:8790';
 const now = new Date(2026, 9, 13, 10, 0);
@@ -90,4 +90,18 @@ test('a call started from a task tells hex which one', async () => {
     },
   });
   await api.create('offer', 'cedar', 'telegram:-100:908');
+});
+
+test('a lane shows the last week on a log scale, now at the right edge', () => {
+  const now = Date.parse(at(10));
+  const hour = 3_600_000;
+  const x = (age: number, width = 84) => laneX(now - age, now, width);
+  assert.equal(x(0), 84);
+  assert.equal(x(-hour), 84);
+  assert.equal(x(7 * 24 * hour), 0);
+  assert.equal(x(30 * 24 * hour), 0);
+  assert.ok(Math.abs(x(hour, 1) - 0.5973) < 0.001);
+  assert.ok(Math.abs(x(24 * hour, 1) - 0.228) < 0.001);
+  assert.ok(Math.abs(x(60_000, 1) - 0.952) < 0.001);
+  assert.ok(x(15 * 60_000) > x(hour) && x(hour) > x(24 * hour));
 });

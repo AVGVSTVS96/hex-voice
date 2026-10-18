@@ -9,6 +9,7 @@ import {
   search,
   stageCounts,
   taskOf,
+  tilesOf,
   topicsOf,
   type Entry,
 } from '../src/live/inbox';
@@ -45,6 +46,7 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
   at: at(7, 32),
   question: `${id}?`,
   options: [{ label: 'Yes' }, { label: 'No' }],
+  places: [],
   ...extra,
 });
 const stuck = (id: string, extra: Partial<Stuck> = {}): Stuck => ({
@@ -239,7 +241,7 @@ test('a topic marks each of its threads once, by its most pressing stage, whiche
   ]);
 });
 
-test('a topic’s lane is every one of its threads’ last 12 hours that has any', () => {
+test('a topic’s lane is every one of its threads’ last week that has any', () => {
   const worked = [
     { at: at(2), state: 'working' as const },
     { at: at(3), state: 'done' as const },
@@ -298,19 +300,14 @@ test('search needs every word, in any case, across the question, the line, the t
   assert.equal(search(entries, '   '), entries);
 });
 
-test('hex’s picks are the open asks with a pick that is an answer, never money or a page', () => {
+test('hex’s picks are the open asks with a pick, never money', () => {
   const entries = stream({
     asks: [
       ask('ok', 'pick', { options: [{ label: 'Other' }, { label: 'Deep', pick: true }] }),
       ask('money', 'yesno', { tag: 'money', options: [{ label: 'Pay', pick: true }] }),
       ask('page', 'do', {
-        options: [{ label: 'Open the page', pick: true, url: 'https://example.com' }],
-      }),
-      ask('mixed', 'pick', {
-        options: [
-          { label: 'Open', pick: true, url: 'https://example.com' },
-          { label: 'Later', pick: true },
-        ],
+        options: [{ label: 'Later', pick: true }],
+        links: [{ label: 'PR #2', url: 'https://example.com' }],
       }),
       ask('plain', 'yesno'),
       ask('answered', 'yesno', { options: [{ label: 'Yes', pick: true }] }),
@@ -322,11 +319,11 @@ test('hex’s picks are the open asks with a pick that is an answer, never money
     picksOf(entries, answered).map(({ ask, option }) => [ask.id, option.label]);
   assert.deepEqual(taken({ answered: 'Yes' }), [
     ['ok', 'Deep'],
-    ['mixed', 'Later'],
+    ['page', 'Later'],
   ]);
   assert.deepEqual(taken(), [
     ['ok', 'Deep'],
-    ['mixed', 'Later'],
+    ['page', 'Later'],
     ['answered', 'Yes'],
   ]);
 });
@@ -343,6 +340,103 @@ test('an ask’s choices answer in its row only when every one fits one line of 
   assert.equal(fitsOneLine(long, 700), true);
   assert.equal(fitsOneLine([{ label: 'Done' }, { label: 'Later' }], 120), true);
   assert.equal(fitsOneLine([{ label: 'Done' }, { label: 'Later' }], 90), false);
+});
+
+test('a topic’s page measures its answers at its own size', () => {
+  const answers = [{ label: 'Do the prompt change', pick: true }, { label: 'Leave it' }];
+  assert.equal(fitsOneLine(answers, 300), true);
+  assert.equal(fitsOneLine(answers, 300, 17), false);
+  assert.equal(fitsOneLine(answers, 362, 17), true);
+});
+
+const duo = ask('check:duo-order', 'do', {
+  question: 'Is there an Apple order in for the Duo?',
+  options: [{ label: 'Ordered', value: 'Done' }, { label: 'Not yet' }],
+  links: [{ label: 'Apple Store', url: 'https://www.apple.com/shop' }],
+  places: [
+    {
+      app: 'telegram',
+      place: 'General',
+      task: 'telegram:-1004422245734',
+      link: 'https://t.me/c/4422245734/3451',
+    },
+    { app: 'voice', place: 'Hub-next live, voice split', call: 'live_1' },
+    { app: 'voice', place: 'Hub fix, log lag, RAM site, T3 MCP', call: 'live_2' },
+    { app: 'voice', place: 'Duo date history', call: 'live_3' },
+  ],
+});
+
+test('an ask shows three tiles at most: its places that open, newest first, then its first page', () => {
+  assert.deepEqual(tilesOf(duo), [
+    { kind: 'app', place: 'telegram', label: 'Telegram', link: 'https://t.me/c/4422245734/3451' },
+    { kind: 'call', label: 'Call', call: 'live_1' },
+    { kind: 'link', label: 'Apple Store', url: 'https://www.apple.com/shop' },
+  ]);
+  assert.deepEqual(
+    tilesOf({ ...duo, links: [] }).map((tile) => tile.label),
+    ['Telegram', 'Hub-next live, voice split', 'Hub fix, log lag, RAM site, T3 MCP'],
+  );
+});
+
+test('a place that can’t open comes after every one that can, and a call opens', () => {
+  const tiles = tilesOf(
+    ask('ghosts', 'yesno', {
+      places: [
+        { app: 't3', place: 'autofork' },
+        { app: 'telegram', place: 'DM' },
+        { app: 'discord', place: 'fix hex NOW', link: 'https://discord.com/channels/1/2' },
+        { app: 'voice', place: 'Duo date history', call: 'live_3' },
+      ],
+    }),
+  );
+  assert.deepEqual(tiles, [
+    {
+      kind: 'app',
+      place: 'discord',
+      label: 'Discord',
+      link: 'https://discord.com/channels/1/2',
+    },
+    { kind: 'call', label: 'Call', call: 'live_3' },
+    { kind: 'app', place: 't3', label: 'T3 Code', link: undefined },
+  ]);
+});
+
+test('two places in one app are each named by their thread', () => {
+  const buried = ask('check:antibody', 'yesno', {
+    places: [
+      { app: 'telegram', place: 'antibody', link: 'https://t.me/c/1/10' },
+      { app: 'telegram', place: 'hex', link: 'https://t.me/c/1/20' },
+      { app: 'telegram', place: 'DM' },
+    ],
+  });
+  assert.deepEqual(
+    tilesOf(buried).map((tile) => tile.label),
+    ['antibody', 'hex', 'Telegram'],
+  );
+});
+
+test('every row has a tile where it lives, filled only when it has a link', () => {
+  const entries = stream({
+    asks: [duo],
+    tasks: [
+      row('voiceapp', 'working', at(9), { link: 'https://t.me/c/1/5' }),
+      row('autofork', 'working', at(9), { id: 't3:autofork', app: 't3' }),
+    ],
+    stuck: [stuck('t3-limit')],
+    fresh: [fresh('shipped', 'pigeon')],
+  });
+  assert.deepEqual(
+    entries.map((entry) =>
+      entry.tiles.map((tile) => (tile.kind === 'app' ? tile.link : tile.kind)),
+    ),
+    [
+      ['https://t.me/c/4422245734/3451', 'call', 'link'],
+      [undefined],
+      ['https://t.me/c/1/5'],
+      [undefined],
+      [undefined],
+    ],
+  );
 });
 
 test('a row opens the task it came from, when it has one', () => {
