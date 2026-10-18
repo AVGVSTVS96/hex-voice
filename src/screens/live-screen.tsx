@@ -60,7 +60,7 @@ import {
   type CallSummary,
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { CONTROLS, DOCK, DOCKED, TOOL, screenLayout } from '@/screens/layout';
+import { CONTROLS, DOCKED, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -529,7 +529,8 @@ function CallScreen({ pose }: { pose: Pose }) {
   );
 
   // The orb glides from where it rests to where it reads: docked small in the corner on the phone,
-  // at full size on its own page beside the words. Side by side, the list covers it.
+  // at full size on its own page beside the words. On iPad it glides down beside the call buttons
+  // as Calls or Tasks comes in. Side by side, the list covers it.
   const orbStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
@@ -547,11 +548,11 @@ function CallScreen({ pose }: { pose: Pose }) {
       const tasks = {
         x: orb.dock.tasks.x + ((rail?.orb.x ?? 0) - orb.dock.tasks.x) * w,
         y: orb.dock.tasks.y + ((rail?.orb.y ?? 0) - orb.dock.tasks.y) * w,
-        size: DOCK + ((rail?.orb.size ?? DOCK) - DOCK) * w,
+        size: orb.dock.tasks.size + ((rail?.orb.size ?? 0) - orb.dock.tasks.size) * w,
       };
       x = toward(x, orb.dock.calls.x, tasks.x, beside.d, beside.t);
       at = toward(at, orb.dock.calls.y, tasks.y, beside.d, beside.t);
-      visual = toward(visual, DOCK, tasks.size, beside.d, beside.t);
+      visual = toward(visual, orb.dock.calls.size, tasks.size, beside.d, beside.t);
     }
     visual *= 1 + 0.025 * breath.get();
     return {

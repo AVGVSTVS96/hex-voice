@@ -85,11 +85,32 @@ test('Tasks takes two thirds of a landscape iPad, and standing up leaves the cal
   assert.equal(width(iPads['13-inch portrait']), 1032 - 368);
 });
 
-test('with Tasks open the orb shrinks into the call’s header row and the words start under it', () => {
+test('with a pane open the orb leaves the header and the words start under the toolbar', () => {
   const layout = screenLayout(iPads['11-inch landscape'], pad, { regular: true });
   const room = 1194 - 796;
-  assert.deepEqual(layout.orb.dock?.tasks, { x: room / 2, y: 24 + 16 + 24, size: 40 });
+  assert.ok(layout.orb.dock!.tasks.y > layout.besideTasks.top);
   assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
+});
+
+test('with a pane open the orb sits drawn 56 just before mute, 12 from it, at every card width', () => {
+  const cards = [
+    { size: { width: 1210, height: 834 }, pane: 'calls', from: 360, card: 850 },
+    { size: { width: 1210, height: 834 }, pane: 'tasks', from: 0, card: 403 },
+    { size: { width: 834, height: 1210 }, pane: 'calls', from: 360, card: 474 },
+    { size: { width: 834, height: 1210 }, pane: 'tasks', from: 0, card: 368 },
+  ] as const;
+  for (const { size, pane, from, card } of cards) {
+    const layout = screenLayout(size, pad, { regular: true });
+    assert.ok(layout.controls !== 'inline' && 'center' in layout.controls);
+    const buttons = layout.controls.center[pane];
+    const spot = layout.orb.dock![pane];
+    const where = `${size.width} wide, ${pane}: ${card} card`;
+    assert.equal(buttons.x, from + card / 2, where);
+    assert.equal(Math.round(spot.size * 0.75), 56, `${where}: drawn 56`);
+    const mute = buttons.x - (60 + 12 + 64) / 2;
+    assert.equal(mute - (spot.x + 28), 12, `${where}: 12 from mute`);
+    assert.equal(spot.y, buttons.y, `${where}: centered on the buttons`);
+  }
 });
 
 test('standing up, the words keep a readable 320 beside Tasks', () => {
