@@ -2,6 +2,7 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { VoiceControl } from '@/components/voice-control';
 import type { LiveStatus } from '@/live/types';
+import { CONTROLS, GAP, MUTE } from '@/screens/layout';
 
 type Props = {
   status: LiveStatus;
@@ -43,7 +44,7 @@ export function CallControls({
           testID="session-mute-button"
           disabled={!connected || !canMute}
           selected={muted}
-          size={60}
+          size={MUTE}
           onPress={onMute}
         />
       )}
@@ -62,7 +63,7 @@ export function CallControls({
         }
         testID="session-primary-button"
         prominent
-        size={64}
+        size={CONTROLS}
         loading={connecting || disconnecting}
         disabled={disconnecting || !ready}
         onPress={onPrimary}
@@ -76,8 +77,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 12,
-    height: 64,
+    gap: GAP,
+    height: CONTROLS,
   },
-  column: { alignItems: 'center', gap: 12, width: 64 },
+  column: { alignItems: 'center', gap: GAP, width: CONTROLS },
 });

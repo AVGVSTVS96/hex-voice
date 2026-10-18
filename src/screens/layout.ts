@@ -3,8 +3,9 @@ import type { Pose, Rect } from '../../modules/pose';
 export const GUTTER = 24;
 export const TOOL = 48;
 export const CONTROLS = 64;
+export const MUTE = 60;
+export const GAP = 12;
 export const DOCKED = 52;
-export const DOCK = 40;
 export const RAIL = 96;
 const AGENT = 22;
 const COLUMN = 84;
@@ -16,6 +17,9 @@ const SIDEBAR = 330;
 const TASKS = 380;
 const CALL = 368;
 const RAIL_ORB = 44;
+const BESIDE_MUTE = 56;
+// Persona's Rive art fills three quarters of its view, as measured in the simulator.
+const ART = 0.75;
 
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -59,13 +63,13 @@ export type Layout = {
     | { center: Beside<Place> };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-  // docks into the header row of the room a pane leaves (`dock`), never covered or faded.
+  // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
   orb: {
     size: number;
     rest: Spot;
     room: { top: number; bottom: number };
     read: Spot;
-    dock?: { calls: Spot; tasks: Spot };
+    dock?: { calls: Required<Spot>; tasks: Required<Spot> };
   };
   words: Words;
   text: number;
@@ -87,7 +91,7 @@ export type Layout = {
 export type Inbox = {
   width: number;
   toolbar: Spot & { width: number; axis: 'column' };
-  orb: Spot & { size: number };
+  orb: Required<Spot>;
   controls: Place;
 };
 
@@ -204,9 +208,10 @@ function single(frame: Frame): Layout {
 // iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
 // the whole screen when none is. With nothing open the orb is a third of the short side, beside
 // the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
-// open it shrinks into the header row of the room, between the toolbar's buttons, so the words
-// keep their height, with the buttons at the room's foot. Tasks takes two thirds of a landscape
-// iPad; standing up, a third is too narrow to read, so the call keeps CALL.
+// open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
+// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
+// keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
+// narrow to read, so the call keeps CALL.
 function pad(frame: Frame): Layout {
   const { window, bottomInset, content, toolbar } = frame;
   const { width, height } = window;
@@ -218,11 +223,12 @@ function pad(frame: Frame): Layout {
   const agentLow = bottomInset;
   const agentHigh = bottomInset + CONTROLS + 14;
   const docked = (from: number, to: number) => {
-    const room = measure(from, to);
+    const center = from + (to - from) / 2;
+    const mute = center - (MUTE + GAP + CONTROLS) / 2;
     return {
-      orb: { x: from + (to - from) / 2, y: toolbar.y + TOOL / 2, size: DOCK },
-      words: { ...room, top: below + 16 },
-      controls: { x: from + (to - from) / 2, y: foot },
+      orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
+      words: { ...measure(from, to), top: below + 16 },
+      controls: { x: center, y: foot },
     };
   };
   const withCalls = docked(LIST, width);
