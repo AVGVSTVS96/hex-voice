@@ -147,11 +147,11 @@ export function Hairline() {
   );
 }
 
-export type MarkState = TaskState | 'paused' | 'read' | 'pending';
+export type MarkState = TaskState | 'paused' | 'stopped' | 'read' | 'pending';
 
 // A row's state, small, drawn natively so a long list stays cheap: a mint dot needs you, the arc
-// turns while it works, a check is done (plain once read), ! failed, a ring is idle, a dashed ring
-// hasn't started. Only the arc moves, so only it is the animated one.
+// turns while it works, a check is done (plain once read), ! failed, a small square was stopped,
+// a ring is idle, a dashed ring hasn't started. Only the arc moves, so only it is the animated one.
 export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (
@@ -188,6 +188,10 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
       return disc(
         theme.surfaceSelected,
         <Icon name="pause.fill" size={7} color={theme.secondary} />,
+      );
+    case 'stopped':
+      return (
+        <Rectangle modifiers={[frame({ width: 7, height: 7 }), foregroundStyle(theme.tertiary)]} />
       );
     case 'pending':
       return (
