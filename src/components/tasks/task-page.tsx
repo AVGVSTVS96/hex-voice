@@ -9,8 +9,19 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 
-import { GAP, Header, INSET, MARK, Mark, Pill, SectionHead, ios } from '@/components/tasks/parts';
-import { Pinned, YourCall } from '@/components/tasks/pinned';
+import { YourCall } from '@/components/tasks/ask-card';
+import {
+  GAP,
+  Header,
+  INSET,
+  MARK,
+  Mark,
+  Pill,
+  SectionHead,
+  ios,
+  laneWidth,
+} from '@/components/tasks/parts';
+import { Pinned } from '@/components/tasks/pinned';
 import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
 import { Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
@@ -30,7 +41,7 @@ export function Detail({
   answered,
   threads,
   missing,
-  lane,
+  width,
   onBack,
   onTrace,
   onAnswer,
@@ -45,7 +56,7 @@ export function Detail({
   answered: Record<string, string | null>;
   threads: TaskRow[];
   missing: Set<Place>;
-  lane: number;
+  width: number;
   onBack?: () => void;
   onTrace: (id: string) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
@@ -97,7 +108,13 @@ export function Detail({
               </Text>
             </Column>
           ) : null}
-          <YourCall asks={asks} answered={answered} onAnswer={onAnswer} onUndo={onUndo} />
+          <YourCall
+            asks={asks}
+            answered={answered}
+            width={width}
+            onAnswer={onAnswer}
+            onUndo={onUndo}
+          />
           {working.length ? (
             <Column alignment="start" spacing={0}>
               <SectionHead title="Working" />
@@ -115,7 +132,7 @@ export function Detail({
             task={task}
             threads={threads}
             missing={missing}
-            lane={lane}
+            lane={laneWidth(width)}
             onOpen={onOpen}
             onOpenTask={onOpenTask}
           />

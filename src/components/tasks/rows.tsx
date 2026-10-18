@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Text } from '@expo/ui';
-import { Button, Rectangle, SwipeActions } from '@expo/ui/swift-ui';
+import { Column, Row, Text } from '@expo/ui';
+import { Button, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
@@ -13,10 +13,11 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 
+import { InlineAnswers } from '@/components/tasks/ask-card';
 import { GAP, INSET, MARK, Mark, ios, listRow, type MarkState } from '@/components/tasks/parts';
-import { PLACE_COLOR, PlaceTile } from '@/components/tasks/places';
+import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
-import { PLACES, STUCK, fitsOneLine, type Entry, type Place, type Topic } from '@/live/inbox';
+import { PLACES, STUCK, fitsOneLine, opens, type Entry, type Tile, type Topic } from '@/live/inbox';
 import { STATE_WORDS, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
 
@@ -25,7 +26,7 @@ export type RowActions = {
   selected?: string | null;
   answered: Record<string, string | null>;
   onOpen: (task: string, entry: string) => void;
-  onOpenLink: (link: string, place: Place) => void;
+  onOpenTile: (tile: Tile) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onAct: (id: string) => void;
@@ -39,17 +40,21 @@ const choicesWidth = (width: number) => width - LEADING - MARK - GAP - TRAILING;
 
 // One thing in a topic, whatever it is: an ask, answered in its row when its choices fit one line,
 // a thread, something stuck with its one action, or something that just finished. Swipe right to
-// do the obvious thing (take hex's pick, read it, act on it) and left to open it where it lives.
+// do the obvious thing (take hex's pick, read it, act on it) and left to open it in any place it
+// lives that opens.
 export function EntryRow({
   entry,
   first,
   ...actions
 }: { entry: Entry; first: boolean } & RowActions) {
   const selected = actions.selected === entry.id;
-  const open = (link?: string) =>
-    link
-      ? { label: 'Open', place: entry.place, onPress: () => actions.onOpenLink(link, entry.place) }
-      : undefined;
+  const swiped = {
+    width: actions.width,
+    first,
+    selected,
+    trail: entry.tiles.filter(opens),
+    onTile: actions.onOpenTile,
+  };
   switch (entry.kind) {
     case 'ask': {
       const { ask } = entry;
@@ -64,25 +69,30 @@ export function EntryRow({
             onUndo={() => actions.onUndo(ask)}
           />
         );
-      const pick = ask.options.find((option) => option.pick && !option.url);
-      const inline = fitsOneLine(ask.options, choicesWidth(actions.width));
+      const pick = ask.options.find((option) => option.pick);
+      const inline =
+        ask.options.length > 0 && fitsOneLine(ask.options, choicesWidth(actions.width));
       return (
         <Swiped
-          width={actions.width}
-          first={first}
-          selected={selected}
+          {...swiped}
           lead={pick && { label: pick.label, onPress: () => actions.onAnswer(ask, pick) }}
-          trail={open(ask.link)}
         >
           <Shell
             mark="needs"
             line={ask.question}
             time={clock(new Date(entry.at))}
-            place={entry.place}
+            tiles={entry.tiles}
             label={`${entry.topic} asks: ${ask.question}`}
             onPress={() => actions.onOpen(ask.task, entry.id)}
           >
-            {inline ? <Choices ask={ask} onAnswer={actions.onAnswer} /> : null}
+            {inline ? (
+              <InlineAnswers
+                ask={ask}
+                size={15}
+                onAnswer={actions.onAnswer}
+                modifiers={[padding({ top: 4 })]}
+              />
+            ) : null}
           </Shell>
         </Swiped>
       );
@@ -92,13 +102,13 @@ export function EntryRow({
       const agents = task.state === 'working' ? task.agents.length : 0;
       const mark: MarkState = task.state === 'done' ? 'read' : task.state;
       return (
-        <Swiped width={actions.width} first={first} selected={selected} trail={open(task.link)}>
+        <Swiped {...swiped}>
           <Shell
             mark={mark}
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
             meta={agents ? `${agents} agent${agents === 1 ? '' : 's'}` : undefined}
-            place={entry.place}
+            tiles={entry.tiles}
             label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
             onPress={() => actions.onOpen(task.id, entry.id)}
           />
@@ -109,16 +119,12 @@ export function EntryRow({
       const { stuck } = entry;
       const act = stuck.sent ? undefined : () => actions.onAct(stuck.id);
       return (
-        <Swiped
-          width={actions.width}
-          first={first}
-          lead={act && { label: stuck.action, onPress: act }}
-        >
+        <Swiped {...swiped} lead={act && { label: stuck.action, onPress: act }}>
           <Shell
             mark={stuck.mark}
             line={stuck.title}
             time={clock(new Date(entry.at))}
-            place={entry.place}
+            tiles={entry.tiles}
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
             <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
@@ -130,12 +136,12 @@ export function EntryRow({
       const { fresh } = entry;
       const read = fresh.read ? undefined : () => actions.onRead(fresh.id);
       return (
-        <Swiped width={actions.width} first={first} lead={read && { label: 'Read', onPress: read }}>
+        <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
           <Shell
             mark={fresh.read ? 'read' : 'done'}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
-            place={entry.place}
+            tiles={entry.tiles}
             label={`${fresh.title}, finished: ${fresh.line}`}
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
@@ -146,23 +152,25 @@ export function EntryRow({
   }
 }
 
-type Swipe = { label: string; place?: Place; onPress: () => void };
+type Swipe = { label: string; onPress: () => void };
 
 // A row in the list, with what a swipe from either edge does: right in mint, the full swipe doing
-// it, and left in the color of the app it opens.
+// it, and left a button for each place it opens, in that place's color.
 function Swiped({
   width,
   first,
-  selected = false,
+  selected,
   lead,
   trail,
+  onTile,
   children,
 }: {
   width: number;
   first: boolean;
-  selected?: boolean;
+  selected: boolean;
   lead?: Swipe;
-  trail?: Swipe;
+  trail: Tile[];
+  onTile: (tile: Tile) => void;
   children: ReactNode;
 }) {
   return (
@@ -183,14 +191,21 @@ function Swiped({
           />
         </SwipeActions.Actions>
       ) : null}
-      {trail ? (
+      {trail.length ? (
         <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-          <Button
-            label={trail.label}
-            systemImage="arrow.up.right"
-            onPress={trail.onPress}
-            modifiers={[tint(PLACE_COLOR[trail.place ?? 'server'])]}
-          />
+          {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
+          {[...trail].reverse().map((tile, i) => {
+            const { color, glyph } = swipeLook(tile);
+            return (
+              <Button
+                key={i}
+                label={tile.label}
+                systemImage={glyph}
+                onPress={() => onTile(tile)}
+                modifiers={[tint(color)]}
+              />
+            );
+          })}
         </SwipeActions.Actions>
       ) : null}
     </SwipeActions>
@@ -204,7 +219,7 @@ function Shell({
   line,
   time,
   meta,
-  place,
+  tiles,
   label,
   onPress,
   children,
@@ -213,7 +228,7 @@ function Shell({
   line: string;
   time: string;
   meta?: string;
-  place: Place;
+  tiles: Tile[];
   label: string;
   onPress?: () => void;
   children?: ReactNode;
@@ -252,11 +267,21 @@ function Shell({
           <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
             {meta ? <Meta text={meta} /> : null}
             <Meta text={time} />
-            <PlaceTile place={place} size={14} />
+            <Tiles tiles={tiles} />
           </Row>
         </Row>
         {children}
       </Column>
+    </Row>
+  );
+}
+
+function Tiles({ tiles }: { tiles: Tile[] }) {
+  return (
+    <Row alignment="center" spacing={4}>
+      {tiles.map((tile, i) => (
+        <TileIcon key={i} tile={tile} size={14} />
+      ))}
     </Row>
   );
 }
@@ -270,44 +295,6 @@ function Meta({ text }: { text: string }) {
     >
       {text}
     </Text>
-  );
-}
-
-// An ask's choices in its row: words you tap, hex's pick in mint with its check, a hairline rule
-// between each, and an arrow on one that opens a page.
-function Choices({ ask, onAnswer }: { ask: Ask; onAnswer: (ask: Ask, option: AskOption) => void }) {
-  return (
-    <Row alignment="center" spacing={14} modifiers={[padding({ top: 4 })]}>
-      {ask.options.map((option, i) => (
-        <Row key={option.label} alignment="center" spacing={14}>
-          {i ? (
-            <Rectangle modifiers={[frame({ width: 1, height: 14 }), foregroundStyle(theme.edge)]} />
-          ) : null}
-          <Row
-            alignment="center"
-            spacing={5}
-            onPress={() => onAnswer(ask, option)}
-            modifiers={[
-              padding({ top: 6, bottom: 4 }),
-              contentShape(shapes.rectangle()),
-              ...(ios
-                ? [accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label)]
-                : []),
-            ]}
-          >
-            {option.pick ? <Icon name="checkmark" size={12} color={theme.accent} /> : null}
-            <Text
-              numberOfLines={1}
-              textStyle={{ fontSize: 15, fontWeight: option.pick ? '600' : '500' }}
-              modifiers={[foregroundStyle(option.pick ? theme.accent : theme.text)]}
-            >
-              {option.label}
-            </Text>
-            {option.url ? <Icon name="arrow.up.right" size={11} color={theme.secondary} /> : null}
-          </Row>
-        </Row>
-      ))}
-    </Row>
   );
 }
 
@@ -437,7 +424,7 @@ export function QuietRow({
       </Column>
       <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
         <Meta text={taskTime(entry.task)} />
-        <PlaceTile place={entry.place} size={14} />
+        <Tiles tiles={entry.tiles} />
       </Row>
     </Row>
   );

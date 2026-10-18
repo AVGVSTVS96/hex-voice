@@ -4,8 +4,9 @@ import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import { theme } from '@/theme';
 
-// An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it.
-// Its topic opens the task it belongs to. Once answered, it folds to what was sent where.
+// An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
+// open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
+// was sent where.
 export function CallAsk({
   card,
   onAnswer,
@@ -24,7 +25,11 @@ export function CallAsk({
         </View>
         <Text style={styles.sentText}>
           {`Sent ${answer} to ${ask.topic}`}
-          <Text style={styles.quiet}>{ask.link ? ' and cleared its Telegram buttons' : ''}</Text>
+          <Text style={styles.quiet}>
+            {ask.places.some((place) => place.app === 'telegram' && place.link)
+              ? ' and cleared its Telegram buttons'
+              : ''}
+          </Text>
         </Text>
       </View>
     );
@@ -45,17 +50,31 @@ export function CallAsk({
             key={option.label}
             accessibilityRole="button"
             accessibilityLabel={option.pick ? `${option.label}, hex’s pick` : option.label}
-            onPress={() => (option.url ? void Linking.openURL(option.url) : onAnswer(option))}
+            onPress={() => onAnswer(option)}
             style={({ pressed }) => [
               styles.option,
               option.pick && styles.pick,
               pressed && styles.pressed,
             ]}
           >
-            <Text style={styles.optionText}>{option.url ? `${option.label} ↗` : option.label}</Text>
+            <Text style={styles.optionText}>{option.label}</Text>
           </Pressable>
         ))}
       </View>
+      {ask.links?.length ? (
+        <View style={styles.links}>
+          {ask.links.map((link) => (
+            <Pressable
+              key={link.url}
+              accessibilityRole="link"
+              hitSlop={8}
+              onPress={() => void Linking.openURL(link.url)}
+            >
+              <Text style={styles.link}>{`${link.label} ↗`}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <Text style={styles.hint}>Tap, or just say it</Text>
     </View>
   );
@@ -97,6 +116,8 @@ const styles = StyleSheet.create({
   pick: { borderColor: theme.accent },
   pressed: { opacity: 0.6 },
   optionText: { color: theme.text, fontSize: 17 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 2 },
+  link: { color: theme.secondary, fontSize: 15 },
   hint: { color: theme.tertiary, fontSize: 13, textAlign: 'center' },
   sent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 24 },
   check: {

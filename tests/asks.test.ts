@@ -22,6 +22,7 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
   at: new Date(2026, 9, 13, 7, 32).toISOString(),
   question: `${id}?`,
   options: [{ label: 'Yes' }, { label: 'No' }],
+  places: [],
   ...extra,
 });
 

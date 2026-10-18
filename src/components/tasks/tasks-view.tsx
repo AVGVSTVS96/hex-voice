@@ -24,7 +24,7 @@ import {
   TopicHead,
 } from '@/components/tasks/inbox';
 import { LastCheck } from '@/components/tasks/last-check';
-import { Empty, ios, laneWidth, listRow } from '@/components/tasks/parts';
+import { Empty, ios, listRow } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import { Detail } from '@/components/tasks/task-page';
 import { Trace } from '@/components/tasks/trace';
@@ -41,6 +41,7 @@ import {
   topicsOf,
   type Place,
   type Stage,
+  type Tile,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
@@ -55,6 +56,7 @@ export type TasksProps = {
   haptics: boolean;
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
+  onOpenCall: (id: string) => void;
 };
 
 // The pages pushed beside or over the list: a topic's page, a thread's steps (from the topic's
@@ -84,6 +86,7 @@ export function TasksView({
   haptics,
   onTalk,
   onGoThrough,
+  onOpenCall,
   foot,
 }: TasksProps & { width: number; line?: number; foot?: number }) {
   const { tasks, version, offline } = useTasks(open);
@@ -185,6 +188,16 @@ export function TasksView({
       () => setMissing(new Set([...missing, place])),
     );
   };
+  // Each place a row opens from its swipe: a thread in its app, a call in Calls, or a page.
+  const openTile = (tile: Tile) => {
+    if (tile.kind === 'app') {
+      if (tile.link) openLink(tile.link, tile.place);
+      return;
+    }
+    tap();
+    if (tile.kind === 'call') onOpenCall(tile.call);
+    else void Linking.openURL(tile.url);
+  };
   const chooseStage = (next: Stage) => {
     tick();
     setStage(next);
@@ -212,7 +225,7 @@ export function TasksView({
     selected,
     answered: yours.answered,
     onOpen: openTask,
-    onOpenLink: openLink,
+    onOpenTile: openTile,
     onAnswer: answer,
     onUndo: undo,
     onAct: (id: string) => {
@@ -328,7 +341,7 @@ export function TasksView({
             answered={yours.answered}
             threads={threads}
             missing={missing}
-            lane={laneWidth(pageWidth)}
+            width={pageWidth}
             onBack={columns ? undefined : back}
             onTrace={openTrace}
             onAnswer={answer}
