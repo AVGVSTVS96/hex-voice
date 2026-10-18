@@ -18,7 +18,7 @@ import { GAP, INSET, MARK, Mark, ios, listRow, type MarkState } from '@/componen
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, STUCK, fitsOneLine, opens, type Entry, type Tile, type Topic } from '@/live/inbox';
-import { STATE_WORDS, clock, taskTime } from '@/live/tasks';
+import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
 
 export type RowActions = {
@@ -99,7 +99,7 @@ export function EntryRow({
     }
     case 'task': {
       const { task } = entry;
-      const agents = task.state === 'working' ? task.agents.length : 0;
+      const agents = task.state === 'working' ? atWork(task.agents).length : 0;
       const mark: MarkState = task.state === 'done' ? 'read' : task.state;
       return (
         <Swiped {...swiped}>

@@ -23,10 +23,10 @@ import {
 } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
-import { Steps, TraceLine } from '@/components/tasks/trace';
+import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, placeOf, type Place } from '@/live/inbox';
-import { STATE_WORDS, clock, taskTime, type Task, type TaskRow } from '@/live/tasks';
+import { STATE_WORDS, agentsWorking, clock, taskTime, type Task, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
 const PREVIEW = 3;
@@ -148,7 +148,7 @@ export function Detail({
                     />
                   }
                   text={moment.text}
-                  quiet={i > 0}
+                  color={i > 0 ? theme.secondary : undefined}
                   time={clock(new Date(moment.at))}
                 />
               ))}
@@ -172,9 +172,10 @@ export function Detail({
 }
 
 // A thread at work in the topic: where it is and for how long, then its newest steps, the first
-// turning. It opens into everything it's doing.
+// turning, and which of its agents are at work. It opens into everything it's doing.
 function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
+  const agents = agentsWorking(thread.agents);
   return (
     <Column
       alignment="start"
@@ -216,10 +217,17 @@ function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => v
         <Icon name="chevron.right" size={11} color={theme.tertiary} />
       </Row>
       {steps.length ? (
-        <Steps steps={steps} working opens={false} />
+        <Steps steps={steps} agents={thread.agents} opens={false} />
       ) : (
         <TraceLine lead={<Mark state="working" />} text={thread.line} />
       )}
+      {agents ? (
+        <TraceLine
+          lead={<Icon name={KIND.agent} size={13} color={theme.secondary} />}
+          text={agents}
+          color={theme.secondary}
+        />
+      ) : null}
     </Column>
   );
 }

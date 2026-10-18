@@ -359,7 +359,11 @@ export function TasksView({
         )}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('trace')}>
-        {traced ? <Trace task={traced} onBack={back} /> : <Spacer />}
+        {traced ? (
+          <Trace task={traced} onBack={back} onOpen={(link) => openLink(link, 't3')} />
+        ) : (
+          <Spacer />
+        )}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('check')}>
         <LastCheck check={check} onBack={back} />
