@@ -26,7 +26,15 @@ import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, placeOf, type Place } from '@/live/inbox';
-import { STATE_WORDS, agentsWorking, clock, taskTime, type Task, type TaskRow } from '@/live/tasks';
+import {
+  STATE_WORDS,
+  agentWords,
+  clock,
+  lastRun,
+  taskTime,
+  type Task,
+  type TaskRow,
+} from '@/live/tasks';
 import { theme } from '@/theme';
 
 const PREVIEW = 3;
@@ -119,12 +127,18 @@ export function Detail({
             <Column alignment="start" spacing={0}>
               <SectionHead title="Working" />
               {working.map((thread) => (
-                <Working
+                <Run
                   key={thread.id}
                   thread={thread.id === task.id && full ? full : thread}
                   onPress={() => onTrace(thread.id)}
                 />
               ))}
+            </Column>
+          ) : null}
+          {full && lastRun(full) ? (
+            <Column alignment="start" spacing={0}>
+              <SectionHead title="Last run" />
+              <Run thread={full} onPress={() => onTrace(full.id)} />
             </Column>
           ) : null}
           {full?.pin ? <Pinned text={full.pin} /> : null}
@@ -171,11 +185,13 @@ export function Detail({
   );
 }
 
-// A thread at work in the topic: where it is and for how long, then its newest steps, the first
-// turning, and which of its agents are at work. It opens into everything it's doing.
-function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
+// A thread at work in the topic: where it is and for how long, then its newest steps and which of
+// its agents are at work; or once it's done, when it finished, its last steps and the agents it
+// ran. It opens into everything it did.
+function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
+  const working = thread.state === 'working';
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
-  const agents = agentsWorking(thread.agents);
+  const agents = agentWords(thread.agents, working);
   return (
     <Column
       alignment="start"
@@ -185,7 +201,11 @@ function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => v
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         ...(ios
-          ? [accessibilityLabel(`${thread.place}, working: ${thread.line}. Shows its steps`)]
+          ? [
+              accessibilityLabel(
+                `${thread.place}, ${STATE_WORDS[thread.state]}: ${thread.line}. Shows its steps`,
+              ),
+            ]
           : []),
       ]}
     >
@@ -218,9 +238,9 @@ function Working({ thread, onPress }: { thread: TaskRow | Task; onPress: () => v
       </Row>
       {steps.length ? (
         <Steps steps={steps} agents={thread.agents} opens={false} />
-      ) : (
+      ) : working ? (
         <TraceLine lead={<Mark state="working" />} text={thread.line} />
-      )}
+      ) : null}
       {agents ? (
         <TraceLine
           lead={<Icon name={KIND.agent} size={13} color={theme.secondary} />}

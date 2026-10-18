@@ -7,13 +7,15 @@ import {
   agentMeta,
   agentSteps,
   agentsInOrder,
-  agentsWorking,
+  agentWords,
   atWork,
   laneX,
+  lastRun,
   stepMark,
   stepTimes,
   taskTime,
   type AgentTrail,
+  type Task,
   type TaskRow,
   type TaskStep,
 } from '../src/live/tasks';
@@ -232,12 +234,30 @@ test("an opened agent's steps leave out a last reply that only repeats its resul
   assert.equal(agentSteps({ ...stores, result: undefined }).length, 2);
 });
 
-test('a thread counts and names only the agents still at work', () => {
+test('a thread names the agents still at work, and once done all it ran', () => {
   assert.equal(atWork(agents).length, 2);
-  assert.equal(agentsWorking(agents), '2 agents working · review, recipes');
+  assert.equal(agentWords(agents, true), '2 agents working · review, recipes');
   assert.equal(
-    agentsWorking([agent('x', { label: 'Explore the voice plugin', state: 'working' })]),
+    agentWords([agent('x', { label: 'Explore the voice plugin', state: 'working' })], true),
     '1 agent working · Explore the voice plugin',
   );
-  assert.equal(agentsWorking(agents.filter((one) => one.state !== 'working')), undefined);
+  const done = agents.filter((one) => one.state !== 'working');
+  assert.equal(agentWords(done, true), undefined);
+  assert.equal(agentWords(done, false), '3 agents · stores, recipes, prices');
+  assert.equal(agentWords([], false), undefined);
+});
+
+test("a thread that's done shows its last run while it has steps or agents", () => {
+  const task = (extra: Partial<Task>): Task => ({
+    ...row('Films', 'done'),
+    lately: [],
+    plan: [],
+    steps: [],
+    agents: [],
+    ...extra,
+  });
+  assert.equal(lastRun(task({ steps: [{ at: at(9), kind: 'run', text: 'Build it' }] })), true);
+  assert.equal(lastRun(task({ agents })), true);
+  assert.equal(lastRun(task({})), false);
+  assert.equal(lastRun(task({ state: 'working', agents })), false);
 });

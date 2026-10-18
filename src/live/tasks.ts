@@ -174,15 +174,19 @@ export function agentSteps(agent: AgentTrail) {
   return last.text.slice(0, same) === agent.result.slice(0, same) ? rest : agent.steps;
 }
 
-// A thread's agents at work in a few words, each by its name up to a colon: "2 agents working ·
-// today, sol".
-export function agentsWorking(agents: TaskAgent[]) {
-  const working = atWork(agents);
-  if (!working.length) return undefined;
-  const names = working.map((agent) => agent.label.split(':')[0]!.trim());
-  const count = `${working.length} agent${working.length === 1 ? '' : 's'}`;
-  return `${count} working · ${names.join(', ')}`;
+// A thread's agents in a few words, each by its name up to a colon: those at work while it works,
+// "2 agents working · today, sol", and once it's done all it ran, "2 agents · voice, sol".
+export function agentWords(agents: TaskAgent[], working: boolean) {
+  const named = working ? atWork(agents) : agentsInOrder(agents).shown;
+  if (!named.length) return undefined;
+  const names = named.map((agent) => agent.label.split(':')[0]!.trim());
+  const count = `${named.length} agent${named.length === 1 ? '' : 's'}`;
+  return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;
 }
+
+// A thread that isn't working shows its last run on its topic's page while it kept what it did.
+export const lastRun = (task: Task) =>
+  task.state !== 'working' && !!(task.steps.length || task.agents.length);
 
 // Where a moment falls on a lane `width` wide: the last week on a log scale, now at the right edge.
 // It's about linear for the last few minutes, then each step left covers more time, so the last
