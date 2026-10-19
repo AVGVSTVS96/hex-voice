@@ -54,6 +54,7 @@
       "./plugins/with-call-audio",
       "./plugins/with-activity-orbs",
       "./plugins/without-push",
+      "./plugins/with-rive-legacy",
       "expo-widgets",
       "expo-audio"
     ],
