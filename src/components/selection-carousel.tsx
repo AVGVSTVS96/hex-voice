@@ -1,6 +1,6 @@
 import { RNHostView } from '@expo/ui';
 import { useEffect, useRef } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 
 import { theme } from '@/theme';
 
@@ -20,7 +20,7 @@ export function SelectionCarousel({
   label,
   testID,
 }: SelectionCarouselProps) {
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const index = Math.max(
     0,
     options.findIndex((option) => option.id === value),

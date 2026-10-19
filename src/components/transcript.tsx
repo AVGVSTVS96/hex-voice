@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   Text,
   View,
@@ -36,7 +37,7 @@ export function Transcript({
   onAnswer?: (card: CallCard, option: AskOption) => void;
   onOpenTask?: (task: string) => void;
 }) {
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
   const visible = entries.filter((entry) => entry.text.trim());
