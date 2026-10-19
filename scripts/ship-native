@@ -22,7 +22,7 @@ install_pods() {
   } | git hash-object --stdin)
   [ "$(cat ios/Pods/.inputs 2>/dev/null)" = "$inputs" ] && return
   rm -f ios/Podfile.lock
-  (cd ios && pod install) >build/pod-install.log 2>&1 ||
+  (cd ios && pod install --repo-update) >build/pod-install.log 2>&1 ||
     die "pod install failed, see $PWD/build/pod-install.log on the Mac"
   echo "$inputs" >ios/Pods/.inputs
 }
