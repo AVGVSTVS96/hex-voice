@@ -11,7 +11,8 @@ folder=Developer/hex-voice-release
 app=build/Build/Products/Release-iphoneos/hex.app
 
 # pod install re-extracts React Native's prebuilt frameworks, which makes Xcode recompile every
-# pod, so it only runs when what it reads has changed.
+# pod, so it only runs when what it reads has changed. package-lock.json already pins every pod,
+# so it resolves without the last Podfile.lock, whose old pins would block a package that moved on.
 install_pods() {
   local inputs
   inputs=$({
@@ -20,7 +21,9 @@ install_pods() {
     find modules -name '*.podspec' -exec cat {} +
   } | git hash-object --stdin)
   [ "$(cat ios/Pods/.inputs 2>/dev/null)" = "$inputs" ] && return
-  (cd ios && pod install >/dev/null)
+  rm -f ios/Podfile.lock
+  (cd ios && pod install) >build/pod-install.log 2>&1 ||
+    die "pod install failed, see $PWD/build/pod-install.log on the Mac"
   echo "$inputs" >ios/Pods/.inputs
 }
 
@@ -36,8 +39,8 @@ build() {
   [ "$(cat ios/.sdk 2>/dev/null)" = "$sdk" ] || rm -rf ios
   CI=1 npx expo prebuild --platform ios --no-install --no-clean >/dev/null
   echo "$sdk" >ios/.sdk
-  install_pods
   mkdir -p build
+  install_pods
   xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
     -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
     build >build/xcodebuild.log 2>&1 || {
