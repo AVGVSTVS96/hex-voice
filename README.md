@@ -4,7 +4,7 @@
 
 An iPhone app for calling [hex](https://github.com/AVGVSTVS96/hex), your personal assistant, by voice. You talk with GPT-Live 1; hex's Claude Code session does the real work behind it and tells the voice what to say. Calls keep running with the screen locked, and your orb stays on the Lock Screen and in the Dynamic Island so one tap brings you back. You can talk over replies, pick any GPT-Live voice, and pull the orb down to read the conversation as it happens.
 
-Built on David Mokos's [expo-gpt-live](https://github.com/davidmokos/expo-gpt-live) template (MIT): Expo SDK 57, native Expo UI controls, and six [AI Elements Persona](https://elements.ai-sdk.dev/components/persona) animations. It's a personal fork that updates itself with [autofork](https://autofork.com).
+Built on David Mokos's [expo-gpt-live](https://github.com/davidmokos/expo-gpt-live) template (MIT): Expo SDK 58, native Expo UI controls, and six [AI Elements Persona](https://elements.ai-sdk.dev/components/persona) animations. It's a personal fork that updates itself with [autofork](https://autofork.com).
 
 ```
 iPhone ── WebRTC offer ──► hex voice plugin ──► gpt-live-1 session
