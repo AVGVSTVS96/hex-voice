@@ -69,7 +69,7 @@ wait_for_no_call() {
 # usbmuxd, forwarded here over ssh.
 open_sockets() {
   netmuxd=UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock
-  on_wifi=$(USBMUXD_SOCKET_ADDRESS=$netmuxd xtool devices 2>/dev/null || true)
+  on_wifi=$(USBMUXD_SOCKET_ADDRESS=$netmuxd xtool devices --no-wait 2>/dev/null || true)
   mac_usb=$home/mac-usbmuxd.sock
   rm -f "$mac_usb"
   ssh -NT -o ExitOnForwardFailure=yes -o StreamLocalBindUnlink=yes \
