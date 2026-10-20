@@ -55,17 +55,22 @@ export function Header({
   title,
   subtitle,
   onBack,
+  trailing,
 }: {
   title: string;
   subtitle: string;
   onBack?: () => void;
+  trailing?: ReactNode;
 }) {
   return (
     <Row
       alignment="center"
       spacing={12}
-      style={{ height: HEADER + 14 }}
-      modifiers={[padding({ top: 14, leading: 16, trailing: 16 }), frame({ maxWidth: Infinity })]}
+      modifiers={[
+        frame({ minHeight: HEADER }),
+        padding({ top: 14, leading: 16, trailing: 16 }),
+        frame({ maxWidth: Infinity }),
+      ]}
     >
       {onBack ? (
         <NativeButton
@@ -103,7 +108,7 @@ export function Header({
         ) : null}
       </Column>
       <Spacer flexible />
-      <Spacer style={{ width: HEADER }} />
+      {trailing ?? <Spacer style={{ width: HEADER }} />}
     </Row>
   );
 }
