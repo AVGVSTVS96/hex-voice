@@ -47,6 +47,7 @@ export type TaskRow = {
   name: string;
   place: string;
   state: TaskState;
+  running: boolean;
   line: string;
   since: string;
   at: string;

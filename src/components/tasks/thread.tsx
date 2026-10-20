@@ -14,7 +14,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useRef, useState } from 'react';
 
-import { Header, INSET, MARK, Mark, Pill, SectionHead, ios } from '@/components/tasks/parts';
+import { Hairline, Header, INSET, Mark, Pill, SectionHead, ios } from '@/components/tasks/parts';
 import { OpenIn, PlaceTile } from '@/components/tasks/places';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
@@ -25,9 +25,9 @@ import { theme } from '@/theme';
 
 const FIELD = 50;
 
-// A thread's last words on its topic's page, drawn like the run beside them: where it lives, then
-// who said what last. It opens the thread, and where the thread takes messages from here, a field
-// under it opens it ready to write.
+// A thread's last words on its topic's page: who said what last, under a head that opens the
+// thread and names it where the topic has others. Where the thread takes messages from here, a
+// field under them opens it ready to write.
 export function Messages({
   thread,
   chat,
@@ -43,7 +43,6 @@ export function Messages({
   const last = chat.turns.slice(-2);
   return (
     <Column alignment="start" spacing={0}>
-      <SectionHead title="Messages" count={chat.total || undefined} />
       <Column
         alignment="start"
         spacing={0}
@@ -54,27 +53,11 @@ export function Messages({
           ...(ios ? [accessibilityLabel(`${thread.place}. Opens its messages`)] : []),
         ]}
       >
-        <Row
-          alignment="center"
-          spacing={10}
-          modifiers={[
-            padding({ leading: INSET - 2, trailing: INSET - 2, top: 4, bottom: 4 }),
-            frame({ maxWidth: Infinity }),
-          ]}
-        >
-          <PlaceTile place={placeOf(thread.app)} size={MARK} />
-          <Text
-            numberOfLines={1}
-            textStyle={{ fontSize: 15, fontWeight: '600' }}
-            modifiers={[
-              foregroundStyle(theme.text),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
-            ]}
-          >
-            {thread.place || thread.name}
-          </Text>
-          <Icon name="chevron.right" size={11} color={theme.tertiary} />
-        </Row>
+        <SectionHead
+          title={thread.place === thread.name ? 'Messages' : `Messages · ${thread.place}`}
+          count={chat.total || undefined}
+          opens
+        />
         {last.map((turn, i) => (
           <SaidLine
             key={i}
@@ -112,8 +95,10 @@ export function Messages({
 
 // A thread a level down from its topic: everything said there, newest at the foot, and what it's
 // doing now, opening into its steps. What it waits on you for stays on the topic's page behind it.
-// Where it takes messages from here you write at the foot; anywhere else the foot talks it through or opens it in its app, as
-// its topic's does. Its app's mark at the top opens it there too.
+// Where it takes messages from here you write at the foot; anywhere else the foot talks it through
+// or opens it in its app, as its topic's does. Its app's mark at the top opens it there too. Its
+// current step shows only while its session is in a turn: a thread can stay at work between them,
+// waiting on work it handed off, with nothing running to show or stop.
 export function ThreadPage({
   thread,
   chat,
@@ -142,7 +127,7 @@ export function ThreadPage({
   onTalk: () => void;
 }) {
   const place = PLACES[placeOf(thread.app)];
-  const working = thread.state === 'working';
+  const running = thread.running;
   const title = thread.place || thread.name;
   const turns = chat?.turns ?? [];
   const first = (chat?.total ?? 0) - turns.length;
@@ -157,7 +142,7 @@ export function ThreadPage({
     >
       <Header
         title={title}
-        subtitle={`${place} · ${working ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state]}`}
+        subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
         onBack={onBack}
         trailing={
           thread.link ? (
@@ -176,13 +161,14 @@ export function ThreadPage({
           ) : undefined
         }
       />
+      <Spacer modifiers={[frame({ height: 8 })]} />
+      <Hairline />
       <ScrollView
         showsIndicators={false}
         modifiers={[
           defaultScrollAnchor('bottom'),
           frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           clipped(),
-          padding({ top: 8 }),
         ]}
       >
         <Column alignment="start" spacing={18} modifiers={[padding({ top: 12, bottom: 20 })]}>
@@ -212,7 +198,7 @@ export function ThreadPage({
           {pending.map((sent) => (
             <Sent key={sent.key} sent={sent} onRetry={() => onRetry(sent)} />
           ))}
-          {working ? (
+          {running ? (
             <TraceLine
               lead={<Mark state="working" />}
               text={doing ?? 'Working'}
