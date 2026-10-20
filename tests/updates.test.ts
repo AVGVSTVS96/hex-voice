@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'node:test';
+import test, { after } from 'node:test';
 
 import { publish, serve } from '../updates/store.mjs';
 
+const made: string[] = [];
+after(() => Promise.all(made.map((dir) => rm(dir, { recursive: true, force: true }))));
+
+async function scratch(prefix: string) {
+  const dir = await mkdtemp(join(tmpdir(), prefix));
+  made.push(dir);
+  return dir;
+}
+
 async function exported() {
-  const dist = await mkdtemp(join(tmpdir(), 'dist-'));
+  const dist = await scratch('dist-');
   await mkdir(join(dist, '_expo/static/js/ios'), { recursive: true });
   await mkdir(join(dist, 'assets'));
   await writeFile(join(dist, '_expo/static/js/ios/entry-1.hbc'), 'bundle');
@@ -29,7 +38,7 @@ async function exported() {
 }
 
 async function store() {
-  const dir = await mkdtemp(join(tmpdir(), 'updates-'));
+  const dir = await scratch('updates-');
   const server = serve(dir).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   const origin = `http://localhost:${(server.address() as AddressInfo).port}`;
