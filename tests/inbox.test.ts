@@ -30,6 +30,7 @@ const row = (
   name,
   place: name,
   state,
+  running: state === 'working',
   line: `${name} line`,
   since: when,
   at: when,

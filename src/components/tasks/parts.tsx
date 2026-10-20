@@ -113,8 +113,16 @@ export function Header({
   );
 }
 
-// A section's name over its rows, with how many on the right.
-export function SectionHead({ title, count }: { title: string; count?: string | number }) {
+// A section's name over its rows, with how many on the right, and a chevron where it opens.
+export function SectionHead({
+  title,
+  count,
+  opens = false,
+}: {
+  title: string;
+  count?: string | number;
+  opens?: boolean;
+}) {
   return (
     <Row
       alignment="center"
@@ -135,6 +143,14 @@ export function SectionHead({ title, count }: { title: string; count?: string | 
         <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
           {String(count)}
         </Text>
+      ) : null}
+      {opens ? (
+        <Icon
+          name="chevron.right"
+          size={11}
+          color={theme.tertiary}
+          modifiers={[padding({ leading: 8 })]}
+        />
       ) : null}
     </Row>
   );
