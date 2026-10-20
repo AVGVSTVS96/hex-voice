@@ -8,6 +8,7 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
+import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
 import {
@@ -39,10 +40,10 @@ import { theme } from '@/theme';
 
 const PREVIEW = 3;
 
-// A topic's page, opened from any of its threads: what waits on you there (its asks, answered as
-// rows), what's working (each thread's newest steps, opening into all of them), its pinned post,
-// every place it lives on its own lane, and what it did lately. Talk it through and Open in share
-// the foot.
+// A topic's page, opened from any of its threads: the thread's last messages, what waits on you
+// there (its asks, answered as rows), what's working (each thread's newest steps, opening into all
+// of them), its pinned post, every place it lives on its own lane, and what it did lately. Talk it
+// through and Open in share the foot.
 export function Detail({
   task,
   asks,
@@ -57,6 +58,7 @@ export function Detail({
   onTalk,
   onOpen,
   onOpenTask,
+  messages,
   foot = 0,
 }: {
   task: TaskRow | Task;
@@ -72,6 +74,7 @@ export function Detail({
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: string) => void;
+  messages?: ReactNode;
   foot?: number;
 }) {
   const full = 'lately' in task ? task : undefined;
@@ -116,6 +119,7 @@ export function Detail({
               </Text>
             </Column>
           ) : null}
+          {messages}
           <YourCall
             asks={asks}
             answered={answered}

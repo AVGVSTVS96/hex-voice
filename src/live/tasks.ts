@@ -63,6 +63,17 @@ export type Task = Omit<TaskRow, 'agents'> & {
   agents: AgentTrail[];
 };
 export type TaskList = { version: number; tasks: TaskRow[] };
+// A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
+// of `total`), what you sent that its session hasn't taken in yet, and whether words typed here
+// reach it (T3 Code threads take only what's typed in T3 Code).
+export type ChatTurn = { from: 'me' | 'hex'; text: string };
+export type Chat = {
+  version: number;
+  sends: boolean;
+  total: number;
+  turns: ChatTurn[];
+  waiting: { key: string; text: string; at: string }[];
+};
 export type TaskCounts = { version: number; needs: number; working: number; yours?: number };
 
 export interface TasksAPI {
@@ -70,6 +81,9 @@ export interface TasksAPI {
   counts(after?: number, signal?: AbortSignal): Promise<TaskCounts>;
   get(id: string): Promise<Task>;
   talk(id: string): Promise<void>;
+  chat(id: string, after?: number, signal?: AbortSignal): Promise<Chat>;
+  send(id: string, text: string, key: string): Promise<void>;
+  stop(id: string): Promise<void>;
 }
 
 // How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".

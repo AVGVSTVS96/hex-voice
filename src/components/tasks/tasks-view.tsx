@@ -27,8 +27,10 @@ import { LastCheck } from '@/components/tasks/last-check';
 import { Empty, ios, listRow } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import { Detail } from '@/components/tasks/task-page';
+import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
+import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
@@ -59,9 +61,9 @@ export type TasksProps = {
   onOpenCall: (id: string) => void;
 };
 
-// The pages pushed beside or over the list: a topic's page, a thread's steps (from the topic's
-// page), and what the last check did.
-type Pushed = 'task' | 'trace' | 'check';
+// The pages pushed beside or over the list: a topic's page, a thread's messages and its steps
+// (from the topic's page), and what the last check did.
+type Pushed = 'task' | 'thread' | 'trace' | 'check';
 
 // Wide enough for the list and a topic's page side by side, as C has it on a big iPad: Tasks on
 // a 13-inch beside a call, or anywhere before one. An 11-inch keeps one wide list beside a call.
@@ -98,6 +100,7 @@ export function TasksView({
   const [traceId, setTraceId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
+  const [writing, setWriting] = useState(0);
   const task = useTask(taskId, version);
   const traced = useTask(traceId, version);
   const check = useCheck(path.includes('check') ? yours.list?.check?.at : undefined);
@@ -158,7 +161,12 @@ export function TasksView({
   const openTrace = (id: string) => {
     tick();
     setTraceId(id);
-    setPath(['task', 'trace']);
+    setPath((now) => [...now.filter((slot) => slot !== 'trace'), 'trace']);
+  };
+  const openThread = (write = false) => {
+    tick();
+    setPath(['task', 'thread']);
+    if (write) setWriting((times) => times + 1);
   };
   const openCheck = () => {
     tick();
@@ -220,6 +228,7 @@ export function TasksView({
   ];
   const opened = task ?? tasks?.find((row) => row.id === taskId);
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
+  const said = useChat(open && opened && (columns || path.includes('task')) ? opened.id : null);
   const actions = {
     width: listWidth,
     selected,
@@ -352,7 +361,41 @@ export function TasksView({
             }}
             onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
             onOpenTask={openTask}
+            messages={
+              <Messages
+                thread={opened}
+                chat={said.chat}
+                onOpen={() => openThread()}
+                onWrite={() => openThread(true)}
+              />
+            }
             foot={foot}
+          />
+        ) : (
+          <Spacer />
+        )}
+      </Column>
+      <Column alignment="center" spacing={0} modifiers={page('thread')}>
+        {opened ? (
+          <ThreadPage
+            thread={opened}
+            chat={said.chat}
+            pending={said.pending}
+            focus={writing}
+            foot={foot}
+            onBack={back}
+            onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
+            onSteps={() => openTrace(opened.id)}
+            onSend={said.send}
+            onRetry={said.retry}
+            onStop={() => {
+              tap();
+              void said.stop();
+            }}
+            onTalk={() => {
+              tick();
+              onTalk(opened);
+            }}
           />
         ) : (
           <Spacer />

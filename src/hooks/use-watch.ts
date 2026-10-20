@@ -4,9 +4,10 @@ import { AppState } from 'react-native';
 const RETRY = 2000;
 
 // Asks hex and waits: each answer comes the moment something changes, and the next question
-// carries the version it answered with. It runs while `on`, and only while the app is in front.
+// carries the version it answered with. It runs while `on`, and only while the app is in front; an
+// `on` that names something, like a thread, starts over when it names another.
 export function useWatch<T extends { version: number }>(
-  on: boolean,
+  on: boolean | string | null,
   ask: (after: number | undefined, signal: AbortSignal) => Promise<T>,
   take: (answer: T) => void,
   offline?: (offline: boolean) => void,
