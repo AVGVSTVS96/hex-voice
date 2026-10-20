@@ -1,6 +1,6 @@
 import type { AskList, AsksAPI, Check } from './asks';
 import type { CallRecord, CallsAPI, CallSummary } from './calls';
-import type { Chat, Task, TaskCounts, TaskList, TasksAPI } from './tasks';
+import type { Task, TaskCounts, TaskList, TasksAPI } from './tasks';
 import type { SessionAPI } from './types';
 
 type Options = {
@@ -165,25 +165,6 @@ export function createTasksAPI(options: Options): TasksAPI {
     },
     async talk(id) {
       await hex.request(`/tasks/${encodeURIComponent(id)}/talk`, {
-        method: 'POST',
-        timeoutMs: 10_000,
-      });
-    },
-    async chat(id, after, signal) {
-      const result = await watch(`/tasks/${encodeURIComponent(id)}/chat`, after, signal);
-      if (!Array.isArray(result.turns) || !Array.isArray(result.waiting))
-        throw new Error('hex sent a chat this app can’t read.');
-      return result as Chat;
-    },
-    async send(id, text, key) {
-      await hex.request(`/tasks/${encodeURIComponent(id)}/chat`, {
-        method: 'POST',
-        body: { text, key },
-        timeoutMs: 10_000,
-      });
-    },
-    async stop(id) {
-      await hex.request(`/tasks/${encodeURIComponent(id)}/stop`, {
         method: 'POST',
         timeoutMs: 10_000,
       });
