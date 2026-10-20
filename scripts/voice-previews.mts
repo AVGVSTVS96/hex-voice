@@ -1,6 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { VOICES, type LiveVoice } from '../src/live/voices';
@@ -87,17 +85,18 @@ async function render(voice: LiveVoice, name: string) {
     socket.onerror = () => reject(new Error(`${voice}: socket error`));
   });
 
-  const pcm = join(mkdtempSync(join(tmpdir(), 'voice-')), `${voice}.pcm`);
-  writeFileSync(pcm, Buffer.concat(audio));
   const trim = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse';
-  execFileSync('ffmpeg', [
-    ...`-loglevel error -y -f s16le -ar ${RATE} -ac 1 -i`.split(' '),
-    pcm,
-    // Trim the silence around the line and match loudness, so swiping compares voices, not volume.
-    ...['-af', `${trim},${trim},loudnorm=I=-18:TP=-1.5`],
-    ...`-ar ${RATE} -c:a aac -b:a 64k`.split(' '),
-    join(OUT, `${voice}.m4a`),
-  ]);
+  execFileSync(
+    'ffmpeg',
+    [
+      ...`-loglevel error -y -f s16le -ar ${RATE} -ac 1 -i pipe:0`.split(' '),
+      // Trim the silence around the line and match loudness, so swiping compares voices, not volume.
+      ...['-af', `${trim},${trim},loudnorm=I=-18:TP=-1.5`],
+      ...`-ar ${RATE} -c:a aac -b:a 64k`.split(' '),
+      join(OUT, `${voice}.m4a`),
+    ],
+    { input: Buffer.concat(audio) },
+  );
   console.log(`${voice}: ${transcript.trim()}`);
 }
 
