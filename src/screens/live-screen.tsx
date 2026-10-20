@@ -38,6 +38,7 @@ import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
+import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import { useTaskCounts } from '@/hooks/use-tasks';
@@ -179,6 +180,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           : 'Ready to start a conversation';
 
   useCallFeedback(session.status, preferences);
+  useAppUpdates(onCall);
   useEndedCall(session, voice, calls.add);
   useCallActivity({
     ...session,

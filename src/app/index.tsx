@@ -1,1 +1,1 @@
-export { default } from '@/screens/chat-screen';
+export { default } from '@/screens/live-screen';
