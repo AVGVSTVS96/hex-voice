@@ -44,7 +44,7 @@ test('app keys fit what hex takes', () => {
 test("hex's markdown splits into paragraphs, headings, lists, quotes and code", () => {
   assert.deepEqual(
     blocksOf(
-      '## Done\n\nShipped it.\nAll green.\n\n- one\n- two\n1. first\n\n> quoted\n\n```\nnpm run check\n```',
+      '## Done\n\nShipped it.\nAll green.\n\n- one\n- two\n1. first\n\n> quoted\n\n```\nnpm run check\n```\n-# Task t-3 closed.',
     ),
     [
       { kind: 'heading', text: 'Done' },
@@ -59,6 +59,7 @@ test("hex's markdown splits into paragraphs, headings, lists, quotes and code", 
       },
       { kind: 'quote', text: 'quoted' },
       { kind: 'code', text: 'npm run check' },
+      { kind: 'small', text: 'Task t-3 closed.' },
     ],
   );
 });

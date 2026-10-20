@@ -172,6 +172,8 @@ function Piece({ block }: { block: Block }) {
       );
     case 'heading':
       return <Words text={block.text} weight="semibold" />;
+    case 'small':
+      return <Words text={block.text} size={13} color={theme.secondary} />;
     case 'quote':
       return (
         <Row alignment="start" spacing={12} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -211,10 +213,12 @@ function Piece({ block }: { block: Block }) {
 
 function Words({
   text,
+  size = BODY,
   weight = 'regular',
   color = theme.text,
 }: {
   text: string;
+  size?: number;
   weight?: 'regular' | 'semibold';
   color?: ColorValue;
 }) {
@@ -222,7 +226,7 @@ function Words({
     <Text
       markdownEnabled
       modifiers={[
-        font({ size: BODY, weight }),
+        font({ size, weight }),
         lineSpacing(LEADING),
         foregroundStyle(color),
         textSelection(true),

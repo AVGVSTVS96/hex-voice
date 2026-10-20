@@ -1,11 +1,12 @@
-// hex's markdown as blocks: paragraphs, headings, lists, quotes and fenced code. What's inside a
-// block (bold, code, links) is left for the screen to style.
+// hex's markdown as blocks: paragraphs, headings, lists, quotes, fenced code, and Discord's small
+// grey lines (`-# `). What's inside a block (bold, code, links) is left for the screen to style.
 export type Block =
   | { kind: 'text'; text: string }
   | { kind: 'heading'; text: string }
   | { kind: 'code'; text: string }
   | { kind: 'list'; items: { mark: string; text: string }[] }
-  | { kind: 'quote'; text: string };
+  | { kind: 'quote'; text: string }
+  | { kind: 'small'; text: string };
 
 const ITEM = /^\s*([-*•]|\d+[.)])\s+/;
 
@@ -20,6 +21,8 @@ export function blocksOf(text: string): Block[] {
       blocks.push({ kind: 'code', text: code.join('\n') });
     } else if (!line.trim()) {
       continue;
+    } else if (line.startsWith('-# ')) {
+      blocks.push({ kind: 'small', text: line.slice(3) });
     } else if (/^#{1,6}\s/.test(line)) {
       blocks.push({ kind: 'heading', text: line.replace(/^#+\s+/, '') });
     } else if (line.startsWith('>')) {
@@ -50,6 +53,7 @@ const startsParagraph = (line: string) =>
   !!line.trim() &&
   !line.startsWith('```') &&
   !line.startsWith('>') &&
+  !line.startsWith('-# ') &&
   !/^#{1,6}\s/.test(line) &&
   !ITEM.test(line);
 
