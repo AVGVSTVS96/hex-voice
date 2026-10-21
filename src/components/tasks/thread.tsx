@@ -213,7 +213,7 @@ export function ThreadPage({
       {chat?.sends ? (
         <Composer
           title={title}
-          working={running}
+          working={running && !pending.some((sent) => !sent.failed)}
           focus={focus}
           foot={foot}
           onSend={onSend}
@@ -237,8 +237,9 @@ export function ThreadPage({
 }
 
 // Where you write to the thread, as tall as the pills it takes the place of. Send turns into Stop
-// while the thread works and you've nothing typed. `focus` counts the times you asked to write, so
-// each one brings the keyboard up.
+// while the thread works and you've nothing typed, though not before what you just sent reaches
+// it, so a second tap on Send can't stop the turn you steered. `focus` counts the times you asked
+// to write, so each one brings the keyboard up.
 function Composer({
   title,
   working,
@@ -263,7 +264,7 @@ function Composer({
     return () => clearTimeout(wait);
   }, [focus]);
   const words = text.trim();
-  const stops = working && !words;
+  const stops = working && !text;
   const lit = stops || !!words;
   const send = () => {
     if (stops) return onStop();
