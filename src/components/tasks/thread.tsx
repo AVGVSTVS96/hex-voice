@@ -206,23 +206,19 @@ export function ThreadPage({
               chevron="chevron.right"
               onPress={onSteps}
               label={`Working: ${doing ?? ''}. Shows its steps`}
-              after={
-                chat?.sends ? (
-                  <Text
-                    onPress={onStop}
-                    textStyle={{ fontSize: 15, fontWeight: '500' }}
-                    modifiers={[foregroundStyle(theme.accent)]}
-                  >
-                    Stop
-                  </Text>
-                ) : undefined
-              }
             />
           ) : null}
         </Column>
       </ScrollView>
       {chat?.sends ? (
-        <Composer title={title} focus={focus} foot={foot} onSend={onSend} />
+        <Composer
+          title={title}
+          working={running}
+          focus={focus}
+          foot={foot}
+          onSend={onSend}
+          onStop={onStop}
+        />
       ) : (
         <Row
           alignment="center"
@@ -240,18 +236,23 @@ export function ThreadPage({
   );
 }
 
-// Where you write to the thread, as tall as the pills it takes the place of. `focus` counts the
-// times you asked to write, so each one brings the keyboard up.
+// Where you write to the thread, as tall as the pills it takes the place of. Send turns into Stop
+// while the thread works and you've nothing typed. `focus` counts the times you asked to write, so
+// each one brings the keyboard up.
 function Composer({
   title,
+  working,
   focus,
   foot,
   onSend,
+  onStop,
 }: {
   title: string;
+  working: boolean;
   focus: number;
   foot: number;
   onSend: (text: string) => void;
+  onStop: () => void;
 }) {
   const input = useRef<TextInputRef>(null);
   const [text, setText] = useState('');
@@ -262,7 +263,10 @@ function Composer({
     return () => clearTimeout(wait);
   }, [focus]);
   const words = text.trim();
+  const stops = working && !words;
+  const lit = stops || !!words;
   const send = () => {
+    if (stops) return onStop();
     if (!words) return;
     onSend(words);
     setText('');
@@ -311,13 +315,17 @@ function Composer({
         onPress={send}
         modifiers={[
           frame({ width: FIELD, height: FIELD }),
-          background(words ? theme.prominent : theme.surface),
+          background(lit ? theme.prominent : theme.surface),
           clipShape('circle'),
           contentShape(shapes.circle()),
-          ...(ios ? [accessibilityLabel('Send')] : []),
+          ...(ios ? [accessibilityLabel(stops ? 'Stop' : 'Send')] : []),
         ]}
       >
-        <Icon name="arrow.up" size={18} color={words ? theme.onProminent : theme.tertiary} />
+        <Icon
+          name={stops ? 'stop.fill' : 'arrow.up'}
+          size={stops ? 14 : 18}
+          color={lit ? theme.onProminent : theme.tertiary}
+        />
       </Row>
     </Row>
   );
