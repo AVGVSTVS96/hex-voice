@@ -3,7 +3,8 @@
 # folder, so Xcode only rebuilds what changed, and xtool on the server signs and installs it: the
 # free Apple team has one development certificate, and it lives with xtool on the server.
 # Runs queue up: one that waited behind another builds the newest main, or nothing when the
-# devices already run it. Installing ends a live call, so installs wait for the call to end.
+# devices already run it. Installing ends a call the app carries, so installs wait for that call
+# to end; phone, web and Discord calls don't run in the app.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
@@ -62,8 +63,9 @@ wait_for_no_call() {
     calls=$(ssh "$mac" curl -sf -m 60 -H "'Authorization: Bearer $EXPO_PUBLIC_HEX_TOKEN'" \
       "'$EXPO_PUBLIC_HEX_URL/calls${after:+?after=$after}'") ||
       die "couldn't ask hex whether a call is live, so nothing was installed"
-    [ -n "$(jq -r '.live // empty' <<<"$calls")" ] || return 0
-    [ -n "$after" ] || echo "waiting for the live call to end before installing"
+    [ -n "$(jq -r '.live as $live | .calls[] | select(.id == $live and .from == "app") | .id' <<<"$calls")" ] ||
+      return 0
+    [ -n "$after" ] || echo "waiting for the app's live call to end before installing"
     after=$(jq -r .version <<<"$calls")
   done
 }
