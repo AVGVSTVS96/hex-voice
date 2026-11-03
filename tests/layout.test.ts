@@ -535,11 +535,17 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
   }
 });
 
-test('on iPhone Duo, where Calls comes in beside the call, the orb docks in the bar instead of under Calls', () => {
+test('on iPhone Duo, beside Calls the orb rests whole in the room the call has left, and reads clear of the words', () => {
   for (const [name, { window, insets, pose }] of Object.entries(duo)) {
-    const { calls, orb, duo: duoLayout } = screenLayout(window, insets, pose);
+    const { calls, orb, besideCalls } = screenLayout(window, insets, pose);
     if (calls.place !== 'beside') continue;
-    assert.deepEqual(orb.dock?.calls, duoLayout!.call.orb, name);
+    const { x, y, size } = orb.dock!.calls;
+    const resting = around(x, y, size);
+    assert.ok(resting.x >= calls.width && resting.x + resting.width <= window.width, name);
+    const reading = orb.dock!.read ?? orb.dock!.calls;
+    const docked = around(reading.x, reading.y, reading.size);
+    const words = { x: besideCalls.x, y: besideCalls.top, width: besideCalls.width, height: 400 };
+    assert.ok(!overlaps(docked, words), `${name}: reads clear of the words`);
   }
 });
 

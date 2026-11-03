@@ -607,9 +607,16 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         y: orb.dock.tasks.y + ((rail?.orb.y ?? 0) - orb.dock.tasks.y) * w,
         size: orb.dock.tasks.size + ((rail?.orb.size ?? 0) - orb.dock.tasks.size) * w,
       };
-      x = toward(x, orb.dock.calls.x, tasks.x, beside.d, beside.t);
-      at = toward(at, orb.dock.calls.y, tasks.y, beside.d, beside.t);
-      visual = toward(visual, orb.dock.calls.size, tasks.size, beside.d, beside.t);
+      const room = orb.dock.calls;
+      const read = orb.dock.read ?? room;
+      const calls = {
+        x: room.x + (read.x - room.x) * t,
+        y: room.y + (read.y - room.y) * t,
+        size: room.size + (read.size - room.size) * t,
+      };
+      x = toward(x, calls.x, tasks.x, beside.d, beside.t);
+      at = toward(at, calls.y, tasks.y, beside.d, beside.t);
+      visual = toward(visual, calls.size, tasks.size, beside.d, beside.t);
     }
     let shown = 1;
     if (duo) {

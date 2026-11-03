@@ -129,7 +129,8 @@ export type Layout = {
     rest: Spot;
     room: { top: number; bottom: number };
     read: Spot;
-    dock?: { calls: Required<Spot>; tasks: Required<Spot> };
+    // Beside Calls the orb rests at `calls`, and where the words then need that room, at `read`.
+    dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
   };
   words: Words;
   text: number;
@@ -190,14 +191,32 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
           },
         }),
     tasks: { width: frame.content.width, place: 'page' },
-    // Where Calls comes in beside the call, the orb's place is under it, so the orb docks in the
-    // bar, at the spot it takes when Tasks opens on a call.
+    // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the
+    // room the call has left. Upright that room is the words' page, so once there are words it
+    // docks in the column, at the spot it takes when Tasks opens on a call; on its side it waits
+    // above them.
     orb:
       calls.place === 'beside'
-        ? { ...layout.orb, dock: { calls: duo.call.orb, tasks: duo.call.orb } }
+        ? { ...layout.orb, dock: roomFor(frame, layout, calls, duo) }
         : layout.orb,
     duo,
   };
+}
+
+function roomFor(
+  frame: Frame,
+  layout: Layout,
+  calls: CallsPlacement,
+  duo: Omit<Duo, 'partlyOpen'> & { partlyOpen: boolean },
+): NonNullable<Layout['orb']['dock']> {
+  const from = frame.content.x + calls.width;
+  const to = frame.column ? frame.column.x : frame.window.width;
+  const rest = {
+    x: (from + to) / 2,
+    y: layout.orb.read.y,
+    size: Math.min(layout.orb.size, (to - from) * 0.62),
+  };
+  return { calls: rest, read: frame.column ? duo.call.orb : undefined, tasks: duo.call.orb };
 }
 
 // What the fold takes from the screen. iOS reports it as a division region that's active only
