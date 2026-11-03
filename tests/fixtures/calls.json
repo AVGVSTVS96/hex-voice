@@ -1,0 +1,201 @@
+{
+  "version": 1793726095428,
+  "calls": [
+    {
+      "id": "id-1",
+      "started": "2026-11-03T16:49:40.768Z",
+      "from": "app",
+      "voice": "marin",
+      "ended": "2026-11-03T16:49:40.768Z",
+      "end": "dropped",
+      "reason": "reason",
+      "seconds": 0,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-2",
+      "started": "2026-11-02T21:26:43.551Z",
+      "from": "phone-out",
+      "why": "why",
+      "expires": "2026-11-02T23:26:42.000Z",
+      "claude": "claude-3",
+      "usage": {
+        "seconds": 271,
+        "dollars": 0,
+        "context": 0.06184375
+      },
+      "ended": "2026-11-02T21:30:34.104Z",
+      "end": "you",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting", "waiting"],
+      "seconds": 231,
+      "tasks": 2,
+      "preview": "preview"
+    },
+    {
+      "id": "id-4",
+      "started": "2026-11-02T02:34:02.278Z",
+      "from": "app",
+      "voice": "marin",
+      "claude": "claude-5",
+      "usage": {
+        "seconds": 418,
+        "dollars": 0,
+        "context": 0.119671875
+      },
+      "ended": "2026-11-02T02:41:02.422Z",
+      "end": "you",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting", "waiting"],
+      "seconds": 420,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-6",
+      "started": "2026-10-26T19:01:31.991Z",
+      "from": "phone-out",
+      "why": "why",
+      "expires": "2026-10-26T21:01:31.000Z",
+      "claude": "claude-7",
+      "usage": {
+        "seconds": 967,
+        "dollars": 0,
+        "context": 0.1929453125
+      },
+      "ended": "2026-10-26T19:16:37.443Z",
+      "end": "hex",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting"],
+      "seconds": 905,
+      "tasks": 1,
+      "preview": "preview"
+    },
+    {
+      "id": "id-8",
+      "started": "2026-10-21T00:42:44.840Z",
+      "from": "app",
+      "voice": "marin",
+      "claude": "claude-9",
+      "usage": {
+        "seconds": 1114,
+        "dollars": 0,
+        "context": 0.248390625
+      },
+      "ended": "2026-10-21T01:01:19.003Z",
+      "end": "hex",
+      "reason": "reason",
+      "seconds": 1114,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-10",
+      "started": "2026-10-18T09:16:41.321Z",
+      "from": "app",
+      "end": "no-connect",
+      "reason": "reason",
+      "voice": "marin",
+      "ended": "2026-10-18T09:16:41.321Z",
+      "seconds": 0,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-11",
+      "started": "2026-10-14T06:11:33.116Z",
+      "from": "phone-out",
+      "claude": "claude-12",
+      "why": "why",
+      "expires": "2026-10-14T08:11:32.000Z",
+      "usage": {
+        "seconds": 4365,
+        "dollars": 0,
+        "context": 0.1353359375
+      },
+      "ended": "2026-10-14T07:24:32.516Z",
+      "end": "dropped",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting"],
+      "seconds": 4379,
+      "tasks": 17,
+      "preview": "preview"
+    },
+    {
+      "id": "id-13",
+      "started": "2026-10-13T23:58:36.640Z",
+      "from": "phone-out",
+      "why": "why",
+      "end": "no-connect",
+      "reason": "reason",
+      "ended": "2026-10-13T23:58:49.002Z",
+      "seconds": 12,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-14",
+      "started": "2026-10-13T15:20:12.736Z",
+      "from": "app",
+      "claude": "claude-15",
+      "voice": "marin",
+      "usage": {
+        "seconds": 7209,
+        "dollars": 0,
+        "context": 0.401390625
+      },
+      "ended": "2026-10-13T17:20:11.630Z",
+      "end": "expired",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting", "waiting", "waiting", "waiting"],
+      "seconds": 7199,
+      "tasks": 4,
+      "preview": "preview"
+    },
+    {
+      "id": "id-16",
+      "started": "2026-10-13T14:28:22.399Z",
+      "from": "web",
+      "claude": "claude-17",
+      "voice": "marin",
+      "usage": {
+        "seconds": 399,
+        "dollars": 0,
+        "context": 0.085234375
+      },
+      "ended": "2026-10-13T14:35:01.393Z",
+      "end": "you",
+      "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting", "waiting", "waiting", "waiting", "waiting"],
+      "seconds": 399,
+      "tasks": 0,
+      "preview": "preview"
+    },
+    {
+      "id": "id-18",
+      "started": "2026-10-13T14:25:46.110Z",
+      "from": "web",
+      "voice": "verse",
+      "claude": "claude-19",
+      "ended": "2026-10-13T14:26:10.110Z",
+      "end": "dropped",
+      "reason": "reason",
+      "seconds": 24,
+      "tasks": 0,
+      "preview": "preview"
+    }
+  ]
+}

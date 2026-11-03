@@ -1,0 +1,163 @@
+{
+  "version": 1793726131193,
+  "tasks": [
+    {
+      "id": "id-25",
+      "app": "discord",
+      "thread": "thread-26",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "needs",
+      "running": false,
+      "line": "line",
+      "since": "2026-11-03T06:57:13.771Z",
+      "at": "2026-11-03T07:09:12.667Z",
+      "track": [
+        {
+          "at": "2026-10-28T22:19:55.144Z",
+          "state": "working"
+        },
+        {
+          "at": "2026-10-28T22:26:44.607Z",
+          "state": "needs"
+        },
+        {
+          "at": "2026-10-28T23:18:14.138Z",
+          "state": "working"
+        }
+      ],
+      "link": "https://example.com/27",
+      "agents": []
+    },
+    {
+      "id": "id-28",
+      "app": "telegram",
+      "thread": "thread-29",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "working",
+      "running": true,
+      "line": "line",
+      "since": "2026-11-03T17:15:12.585Z",
+      "at": "2026-11-03T17:15:25.608Z",
+      "track": [
+        {
+          "at": "2026-10-27T17:15:31.178Z",
+          "state": "done"
+        },
+        {
+          "at": "2026-10-28T16:00:10.209Z",
+          "state": "working"
+        },
+        {
+          "at": "2026-10-28T16:02:05.115Z",
+          "state": "done"
+        }
+      ],
+      "link": "https://example.com/30",
+      "agents": []
+    },
+    {
+      "id": "id-31",
+      "app": "telegram",
+      "thread": "thread-32",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "done",
+      "running": false,
+      "line": "line",
+      "since": "2026-11-03T17:15:22.537Z",
+      "at": "2026-11-03T17:15:22.537Z",
+      "track": [
+        {
+          "at": "2026-10-27T17:15:31.173Z",
+          "state": "done"
+        },
+        {
+          "at": "2026-11-03T07:59:45.857Z",
+          "state": "working"
+        },
+        {
+          "at": "2026-11-03T08:05:46.656Z",
+          "state": "done"
+        }
+      ],
+      "link": "https://example.com/33",
+      "agents": []
+    },
+    {
+      "id": "id-34",
+      "app": "telegram",
+      "thread": "thread-35",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "idle",
+      "running": false,
+      "line": "line",
+      "since": "2026-11-03T17:15:22.669Z",
+      "at": "2026-11-03T17:15:22.669Z",
+      "track": [
+        {
+          "at": "2026-11-03T04:09:17.429Z",
+          "state": "working"
+        },
+        {
+          "at": "2026-11-03T04:21:04.400Z",
+          "state": "done"
+        },
+        {
+          "at": "2026-11-03T04:55:03.007Z",
+          "state": "working"
+        }
+      ],
+      "link": "https://example.com/36",
+      "agents": []
+    },
+    {
+      "id": "id-37",
+      "app": "buzz",
+      "thread": "thread-38",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "needs",
+      "running": false,
+      "line": "line",
+      "since": "2026-10-10T09:16:07.618Z",
+      "at": "2026-10-10T09:16:07.618Z",
+      "track": [
+        {
+          "at": "2026-10-27T17:15:31.158Z",
+          "state": "needs"
+        }
+      ],
+      "link": "https://example.com/39",
+      "agents": []
+    },
+    {
+      "id": "id-40",
+      "app": "buzz",
+      "thread": "thread-41",
+      "name": "name",
+      "where": "where",
+      "place": "place",
+      "state": "needs",
+      "running": false,
+      "line": "line",
+      "since": "2026-10-08T23:52:49.300Z",
+      "at": "2026-10-09T23:06:09.915Z",
+      "track": [
+        {
+          "at": "2026-10-27T17:15:31.157Z",
+          "state": "needs"
+        }
+      ],
+      "link": "https://example.com/42",
+      "agents": []
+    }
+  ]
+}
