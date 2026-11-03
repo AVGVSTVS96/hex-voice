@@ -4,11 +4,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { failure, openURL } from '@/hooks/use-failures';
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
+import { reachedBy } from '@/live/inbox';
 import { circle, radius, theme } from '@/theme';
 
 // An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 // open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
-// was sent where.
+// was sent where and what that reached, as hex recorded it, and an undo opens it again.
 export function CallAsk({
   card,
   onAnswer,
@@ -19,17 +20,22 @@ export function CallAsk({
   onOpenTask: () => void;
 }) {
   const { ask } = card;
-  // What you tapped, marked at once while hex takes it, sent once it has, and why if it didn't.
+  // What you tapped, marked at once while hex takes it, sent once it has until hex's record of the
+  // call says so, and why if it didn't.
   const [sending, setSending] = useState<string>();
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
+  if (card.answer && sent) setSent(undefined);
   const answer = card.answer ?? sent;
   const choose = (option: AskOption) => {
     if (sending) return;
     setSending(option.label);
     setFailed(undefined);
     onAnswer(option).then(
-      () => setSent(option.label),
+      () => {
+        setSending(undefined);
+        setSent(option.label);
+      },
       (error: unknown) => {
         setSending(undefined);
         setFailed(failure('Not sent', error));
@@ -44,11 +50,7 @@ export function CallAsk({
         </View>
         <Text style={styles.sentText}>
           {`Sent ${answer} to ${ask.topic}`}
-          <Text style={styles.quiet}>
-            {ask.places.some((place) => place.app === 'telegram' && place.link)
-              ? ' and cleared its Telegram buttons'
-              : ''}
-          </Text>
+          <Text style={styles.quiet}>{reachedBy(ask, card.sent)}</Text>
         </Text>
       </View>
     );
