@@ -5,6 +5,7 @@ import {
   foregroundStyle,
   frame,
   padding,
+  scrollClipDisabled,
 } from '@expo/ui/swift-ui/modifiers';
 
 import { Header } from '@/components/tasks/bar';
@@ -25,7 +26,10 @@ export function LastCheck({ check }: { check?: Check }) {
       <Faded>
         <ScrollView
           showsIndicators={false}
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+          modifiers={[
+            scrollClipDisabled(),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+          ]}
         >
           {check ? (
             <Column alignment="start" spacing={0} modifiers={[padding({ top: 20, bottom: 40 })]}>

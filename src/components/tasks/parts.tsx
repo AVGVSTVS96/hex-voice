@@ -28,9 +28,10 @@ export const INSET = 20;
 export const MARK = 16;
 export const GAP = 10;
 const HAIRLINE = 1 / PixelRatio.get();
-// How far scrolled content fades out before it meets a bar: less than a row's own top padding, so
-// nothing at rest sits in it.
-export const FADE = 12;
+// How far scrolled content fades out as it meets a bar, and how far in from that edge it rests:
+// together with a row's own top padding, nothing at rest sits in the fade.
+const FADE = 28;
+const REST = 14;
 
 export function feel(haptics: boolean) {
   const on = ios && haptics;
@@ -101,8 +102,10 @@ export function SectionHead({
   );
 }
 
-// iOS's soft scroll edge: what scrolls under a bar fades out instead of being cut mid-line. A mask,
-// so it works on any ground and never takes a touch.
+// iOS's soft scroll edge: what scrolls under a bar fades out instead of being cut mid-line. The
+// scroll view inside rests `REST` in from each edge and draws past its frame
+// (`scrollClipDisabled`), so it scrolls on into the fade the way content scrolls under a bar. A
+// mask, so it works on any ground and never takes a touch.
 export function Faded({
   top = true,
   bottom = true,
@@ -131,7 +134,16 @@ export function Faded({
       alignment="top"
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      {children}
+      <Column
+        alignment="center"
+        spacing={0}
+        modifiers={[
+          padding({ top: top ? REST : 0, bottom: bottom ? REST : 0 }),
+          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+        ]}
+      >
+        {children}
+      </Column>
       <Mask.Content>
         <Column
           alignment="center"

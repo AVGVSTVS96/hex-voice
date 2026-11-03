@@ -8,6 +8,7 @@ import {
   frame,
   monospacedDigit,
   padding,
+  scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState, type ReactNode } from 'react';
@@ -74,7 +75,10 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
       <Faded>
         <ScrollView
           showsIndicators={false}
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+          modifiers={[
+            scrollClipDisabled(),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+          ]}
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
             <Sections>

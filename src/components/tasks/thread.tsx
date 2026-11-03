@@ -5,13 +5,13 @@ import {
   accessibilityLabel,
   background,
   clipShape,
-  clipped,
   contentShape,
   defaultScrollAnchor,
   foregroundStyle,
   frame,
   onTapGesture,
   padding,
+  scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -97,9 +97,12 @@ export function Messages({
 }
 
 // Its current step shows only while its session is in a turn: a thread can stay at work between
-// them, waiting on work it handed off, with nothing running to show or stop.
+// them, waiting on work it handed off, with nothing running to show or stop. `beside` its topic's
+// page, that page carries the heading, Talk it through and the way out to its app, so this one is
+// only the conversation and its composer.
 export function ThreadPage({
   thread,
+  beside = false,
   chat,
   pending,
   focus,
@@ -112,6 +115,7 @@ export function ThreadPage({
   onTalk,
 }: {
   thread: TaskRow | Task;
+  beside?: boolean;
   chat: Chat | undefined;
   pending: Sending[];
   focus: boolean;
@@ -137,21 +141,25 @@ export function ThreadPage({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      <Header
-        title={title}
-        subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
-        door={
-          thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
-        }
-      />
+      {beside ? null : (
+        <Header
+          title={title}
+          subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
+          door={
+            thread.link && chat?.sends
+              ? { place: placeOf(thread.app), onPress: () => onOpen(thread) }
+              : undefined
+          }
+        />
+      )}
       <Faded>
         <ScrollView
           showsIndicators={false}
           modifiers={[
+            scrollClipDisabled(),
             defaultScrollAnchor('bottom'),
             accessibilityIdentifier('thread-messages'),
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-            clipped(),
           ]}
         >
           <Column
@@ -219,7 +227,7 @@ export function ThreadPage({
           onSend={onSend}
           onStop={onStop}
         />
-      ) : (
+      ) : beside ? null : (
         <Row
           alignment="center"
           spacing={10}

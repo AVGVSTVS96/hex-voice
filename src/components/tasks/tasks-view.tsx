@@ -191,6 +191,9 @@ export function Tasks({
       onGoThrough={onGoThrough}
     />
   );
+  // The topic and its conversation side by side are one view: the conversation's page shows only
+  // the messages and their composer, and the topic's shows everything else.
+  const paired = spot('topic').shown && spot('thread').shown;
   const levels = [
     page(
       'topic',
@@ -212,7 +215,7 @@ export function Tasks({
             pages.go({ to: 'topic', id });
           }}
           messages={
-            said.chat && (said.chat.total || said.chat.sends) ? (
+            !paired && said.chat && (said.chat.total || said.chat.sends) ? (
               <Messages
                 key="messages"
                 thread={opened}
@@ -233,6 +236,7 @@ export function Tasks({
       opened ? (
         <ThreadPage
           thread={opened}
+          beside={paired}
           chat={said.chat}
           pending={said.pending}
           focus={pages.focusComposer}
