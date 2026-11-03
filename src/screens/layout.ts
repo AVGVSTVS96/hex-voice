@@ -181,6 +181,12 @@ function divide(fold: Region): Rect {
     : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
 }
 
+// How far the call's words keep from the fold: flat it's a bare line, so a small gap; partly open
+// its frame already holds the margins, so none more.
+function clear(fold: Rect) {
+  return Math.min(fold.width, fold.height) > 0 ? 0 : 8;
+}
+
 type Frame = {
   window: Size;
   insets: Insets;
@@ -455,7 +461,7 @@ function split(frame: Frame, fold?: Rect): Layout {
   const { window, insets, bottomInset, content, toolbar } = frame;
   const controls = frame.column?.controls;
   const pane = fold ? fold.x - content.x : content.width / 2;
-  const page = fold ? fold.x + fold.width + 8 : content.x + pane;
+  const page = fold ? fold.x + fold.width + clear(fold) : content.x + pane;
   const right = content.x + content.width - GUTTER;
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? insets.bottom : bottomInset + CONTROLS + 14;
@@ -487,7 +493,7 @@ function split(frame: Frame, fold?: Rect): Layout {
 function stacked(frame: Frame, fold: Rect): Layout {
   const base = single(frame);
   const size = Math.min(base.orb.size, (fold.y - frame.top) * 0.78);
-  const words = { ...base.words, top: fold.y + fold.height + 8 };
+  const words = { ...base.words, top: fold.y + fold.height + clear(fold) };
   return {
     ...base,
     kind: 'stacked',
@@ -597,10 +603,10 @@ type Before = { fold: Rect; words: Words & { raise: number } };
 function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before {
   if (fold.height > fold.width) {
     const x = frame.content.x + GUTTER;
-    const width = Math.min(fold.x - 8 - x, WORDS_BESIDE);
+    const width = Math.min(fold.x - clear(fold) - x, WORDS_BESIDE);
     return { fold, words: { x, width, top: words.top, raise: 0 } };
   }
-  const raise = frame.window.height - fold.y + 8 - agent.bottom;
+  const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
   return { fold, words: { ...words, top: frame.top + 12, raise } };
 }
 
