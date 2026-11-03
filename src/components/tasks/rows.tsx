@@ -6,6 +6,7 @@ import {
   foregroundStyle,
   frame,
   layoutPriority,
+  monospacedDigit,
   padding,
   shapes,
   tint,
@@ -17,7 +18,18 @@ import { Mark, type MarkState } from '@/components/tasks/mark';
 import { GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
-import { PLACES, STUCK, fitsOneLine, opens, type Entry, type Tile, type Topic } from '@/live/inbox';
+import {
+  PLACES,
+  STUCK,
+  fitsOneLine,
+  headlineOf,
+  timeOf,
+  opens,
+  type Entry,
+  type Stage,
+  type Tile,
+  type Topic,
+} from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
 
@@ -410,6 +422,85 @@ export function QuietRow({
         <Meta text={taskTime(entry.task)} />
         <Tiles tiles={entry.tiles} />
       </Row>
+    </Row>
+  );
+}
+
+const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
+  working: 'working',
+  done: 'done',
+  quiet: 'quiet',
+};
+
+// A project, collapsed to one row: its name, the newest thing in it, how many and when. Opens on
+// the page beside the list.
+export function ProjectRow({
+  topic,
+  stage,
+  width,
+  selected,
+  onOpen,
+}: {
+  topic: Topic;
+  stage: Stage;
+  width: number;
+  selected: boolean;
+  onOpen: () => void;
+}) {
+  const [newest] = [...topic.entries].sort(
+    (a, b) => (timeOf(b) ?? -Infinity) - (timeOf(a) ?? -Infinity),
+  );
+  if (!newest) return null;
+  const count = topic.entries.length;
+  const when = timeOf(newest);
+  // Mint means it waits on you, so only Needs you counts in mint.
+  const needs = stage === 'needs';
+  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
+  return (
+    <Row
+      alignment="center"
+      spacing={GAP}
+      onPress={onOpen}
+      testID="project-row"
+      modifiers={[
+        padding({ leading: INSET, trailing: TRAILING, top: 11, bottom: 12 }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        contentShape(shapes.rectangle()),
+        ...listRow(width, { selected }),
+        ...(ios
+          ? [accessibilityLabel(`${topic.name}, ${counted}: ${headlineOf(newest)}. Opens it`)]
+          : []),
+      ]}
+    >
+      <Column
+        alignment="start"
+        spacing={2}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 16, fontWeight: '600' }}
+          modifiers={[foregroundStyle(theme.text)]}
+        >
+          {topic.name}
+        </Text>
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 14 }}
+          modifiers={[foregroundStyle(theme.secondary)]}
+        >
+          {headlineOf(newest)}
+        </Text>
+      </Column>
+      <Column alignment="end" spacing={2}>
+        <Text
+          textStyle={{ fontSize: 15, fontWeight: '600' }}
+          modifiers={[monospacedDigit(), foregroundStyle(needs ? theme.accent : theme.tertiary)]}
+        >
+          {String(count)}
+        </Text>
+        {when === undefined ? null : <Meta text={clock(new Date(when))} />}
+      </Column>
     </Row>
   );
 }

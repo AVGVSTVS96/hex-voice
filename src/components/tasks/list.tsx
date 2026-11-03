@@ -18,12 +18,13 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
-import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
+import { CollapseButton, Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
 import { Empty, Faded, asks, ios, type Feel } from '@/components/tasks/parts';
-import { EntryRow, QuietRow } from '@/components/tasks/rows';
+import { EntryRow, ProjectRow, QuietRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
+import { useSavedPreference } from '@/hooks/use-saved-preference';
 import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
@@ -41,6 +42,10 @@ import { theme } from '@/theme';
 
 const TABS_WITH_BAR = 600;
 
+// Held wide, the list shows every task or folds each project to one row.
+type Listing = 'tasks' | 'projects';
+const isListing = (value: unknown): value is Listing => value === 'tasks' || value === 'projects';
+
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
@@ -54,6 +59,7 @@ export function ListPage({
   pages,
   spot,
   paged,
+  wide,
   tasks,
   offline,
   yours,
@@ -68,6 +74,8 @@ export function ListPage({
   pages: Pages;
   spot: Spot;
   paged: boolean;
+  // The list sits beside a topic's page, side by side, so it can fold to its projects.
+  wide: boolean;
   tasks: TaskRow[] | undefined;
   offline: boolean;
   yours: ReturnType<typeof useAsks>;
@@ -80,6 +88,8 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
+  const folding = useSavedPreference('tasks.list', 'tasks', isListing);
+  const projects = wide && folding.value === 'projects';
   const entries = useMemo(
     () => inboxEntries(tasks ?? [], yours.list, yours.shown),
     [tasks, yours.list, yours.shown],
@@ -147,6 +157,16 @@ export function ListPage({
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
   // one gives back, its title and search a bar of their own above the stages.
   const compact = spot.width >= TABS_WITH_BAR;
+  const collapse = wide ? (
+    <CollapseButton
+      collapsed={projects}
+      disabled={stage === 'quiet' && query === null}
+      onPress={() => {
+        feel.tick();
+        folding.setValue(projects ? 'tasks' : 'projects');
+      }}
+    />
+  ) : null;
   const searching = query !== null;
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
@@ -178,7 +198,16 @@ export function ListPage({
       ) : (
         <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
           {compact ? null : (
-            <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
+            <PageBar
+              title="Tasks"
+              back={back}
+              trailing={
+                <Row alignment="center" spacing={8}>
+                  {collapse}
+                  <SearchButton onPress={startSearch} />
+                </Row>
+              }
+            />
           )}
           <Tabs
             counts={counts}
@@ -218,6 +247,17 @@ export function ListPage({
             if (!searching && stage === 'quiet')
               return [<QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />];
             const lead = topic.entries.map(taskOf).find(Boolean);
+            if (projects && !searching)
+              return [
+                <ProjectRow
+                  key={topic.name}
+                  topic={topic}
+                  stage={stage}
+                  width={width}
+                  selected={!!lead && lead === pages.task}
+                  onOpen={() => lead && openTask(lead, topic.entries[0]?.id)}
+                />,
+              ];
             return [
               <TopicHead
                 key={`${topic.name}:head`}

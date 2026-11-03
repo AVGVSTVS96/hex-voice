@@ -4,8 +4,10 @@ import {
   accessibilityLabel,
   buttonStyle,
   contentShape,
+  disabled as disabledModifier,
   foregroundStyle,
   frame,
+  opacity,
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
@@ -168,12 +170,14 @@ export function BarButton({
   shape,
   label,
   testID,
+  disabled = false,
   onPress,
   children,
 }: {
   shape: 'circle' | 'capsule';
   label: string;
   testID?: string;
+  disabled?: boolean;
   onPress: () => void;
   children: ReactNode;
 }) {
@@ -181,7 +185,11 @@ export function BarButton({
     <Button
       onPress={onPress}
       testID={testID}
-      modifiers={[buttonStyle('plain'), ...(ios ? [accessibilityLabel(label)] : [])]}
+      modifiers={[
+        buttonStyle('plain'),
+        ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),
+        ...(ios ? [accessibilityLabel(label)] : []),
+      ]}
     >
       <Row
         alignment="center"

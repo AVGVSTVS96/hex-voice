@@ -205,6 +205,28 @@ export function search(entries: Entry[], query: string) {
   });
 }
 
+// When an entry last moved, from its own time or its task's, or nothing when neither is real.
+export function timeOf(entry: Entry): number | undefined {
+  const own = Date.parse(entry.at);
+  if (!Number.isNaN(own)) return own;
+  const task = entry.kind === 'task' ? Date.parse(entry.task.at) : NaN;
+  return Number.isNaN(task) ? undefined : task;
+}
+
+// What an entry asks or says, in one line: the question, the stuck thing, what's new.
+export function headlineOf(entry: Entry) {
+  switch (entry.kind) {
+    case 'ask':
+      return entry.ask.question;
+    case 'task':
+      return entry.task.line || entry.task.name;
+    case 'stuck':
+      return entry.stuck.title;
+    case 'fresh':
+      return entry.fresh.title;
+  }
+}
+
 function textOf(entry: Entry) {
   switch (entry.kind) {
     case 'ask':
