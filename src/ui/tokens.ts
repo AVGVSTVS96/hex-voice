@@ -62,6 +62,9 @@ export const type = {
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
   // The one name a carousel's page shows.
   display: { fontSize: 32, lineHeight: 38, weight: 'semibold' },
+  // Under the call: how the last one ended, and what didn't go through.
+  ending: { fontSize: 15, lineHeight: 20 },
+  trouble: { fontSize: 14, lineHeight: 20 },
 } as const satisfies Record<string, TextStyle>;
 
 export type TextVariant = keyof typeof type;
@@ -146,6 +149,8 @@ export const metrics = {
   pageDots: 38,
   // How far an empty list's message sits below its title.
   emptyTop: 130,
+  // Between the wrap-up, how the last call ended and what didn't go through, under the call.
+  footerGap: 22,
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;

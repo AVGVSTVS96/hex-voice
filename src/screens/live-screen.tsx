@@ -1,45 +1,26 @@
 import * as Haptics from 'expo-haptics';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  Settings,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Platform, Pressable, Settings, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
-  cancelAnimation,
   interpolate,
-  useAnimatedReaction,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withRepeat,
   withSpring,
   withTiming,
-  FadeIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import {
-  callIdOf,
-  errorOf,
-  footerOf,
-  showsWords,
-  statusOf,
-  voiceLocked,
-  wakeOf,
-  wordsOf,
-  type Call,
-} from '@/call/call';
-import { CallPersona } from '@/call/persona';
-import { useCall, useLevels } from '@/call/use-call';
+import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
+import { useDrawer } from '@/call/drawer';
+import { CallFooter } from '@/call/footer';
+import { useGlide } from '@/call/glide';
+import { CallPersona, useOrbLife } from '@/call/orb';
+import { useCall } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
@@ -52,7 +33,6 @@ import type { TasksAt } from '@/components/tasks/tasks-view';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceSettings } from '@/components/voice-settings';
-import { WrapUp } from '@/components/wrap-up';
 import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
@@ -65,7 +45,6 @@ import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
-import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
 import type { TaskRow } from '@/live/tasks';
 import type { CallAbout } from '@/live/types';
@@ -80,10 +59,6 @@ import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics } from '@/ui/tokens';
 import { PoseView, type Pose } from '../../modules/pose';
 
-const COMMIT = 0.35;
-const FLICK = 500;
-const RUBBER_BAND = 44;
-const LANDED = 2;
 const AGENT_ROW = 22;
 const CONTROLS_BOX = 200;
 // The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
@@ -158,7 +133,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
   const [settingsOpen, setSettingsOpen] = useState(opening.open === 'settings');
-  const [drawerOpen, setDrawerOpen] = useState(opening.open === 'calls');
   const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
@@ -221,43 +195,8 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const land = () => haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
 
   const size = orb.size;
-  const wake = useSharedValue(0);
-  const breath = useSharedValue(0);
-  const level = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
-  const reacting = live && !reducedMotion && !call.mic.muted && reaction > 0;
-  const { pitch, tone } = useVoiceTone(reacting);
-  const awake = wakeOf(call);
-  useEffect(() => {
-    if (reducedMotion) {
-      wake.set(awake);
-      breath.set(0);
-      return;
-    }
-    wake.set(
-      awake === 1
-        ? withSpring(1, motion.wake)
-        : withTiming(awake, {
-            duration: awake === 0 ? motion.settle.asleep : motion.settle.connecting,
-            easing: motion.settle.easing,
-          }),
-    );
-    breath.set(
-      awake === 0
-        ? withRepeat(withTiming(1, motion.breath), -1, true)
-        : withTiming(0, { duration: motion.breath.out }),
-    );
-  }, [awake, reducedMotion, wake, breath]);
-  const input = useSharedValue(0);
-  useLevels((levels) => input.set(levels.input));
-  useAnimatedReaction(
-    () => (reacting ? Math.max(0, input.get() - 0.06) / 0.94 : 0),
-    (loudness, before) => {
-      if (loudness !== before) level.set(withSpring(loudness, motion.reaction));
-    },
-    [reacting],
-  );
-
+  const { wake, breath, level, pitch, tone } = useOrbLife(call, { reducedMotion, reaction });
   // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
   // and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
   // page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
@@ -303,80 +242,17 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         : 0;
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
-  const progress = useSharedValue(reading ? 1 : 0);
-  const goal = useSharedValue(reading ? 1 : 0);
-  const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
-  const landing = useSharedValue(-1);
-
-  const animateTo = (target: number, velocity = 0) => {
-    'worklet';
-    goal.set(target);
-    landing.set(target);
-    if (reducedMotion) {
-      progress.set(withTiming(target, motion.reduced));
-      return;
-    }
-    const distance = Math.abs(target - progress.get());
-    const direction = Math.sign(target - progress.get());
-    const toward = Math.max(0, direction * velocity);
-    const omega = Math.min(
-      Math.max(motion.glide.ease, toward / (distance || 1)),
-      motion.glide.snap,
-    );
-    progress.set(
-      withSpring(target, {
-        mass: 1,
-        stiffness: omega * omega,
-        damping: 2 * omega,
-        velocity: direction * Math.min(toward, omega * distance),
-      }),
-    );
-  };
-
-  // The orb and the words follow what shows: a drag or a tap has already sent them on their way, so
-  // this only moves them when something else changed it, like turning the device or opening a call.
-  useEffect(() => {
-    const target = reading ? 1 : 0;
-    if (goal.get() !== target) animateTo(target);
-  }, [reading]);
+  const { progress, glideTo, drag, glide } = useGlide({
+    reading,
+    travel,
+    reach,
+    reducedMotion,
+    onCross: tick,
+    onLand: land,
+    onRelease: pullWords,
+  });
 
   const pulls = layout.pulls;
-  const drag = () =>
-    Gesture.Pan()
-      .activeOffsetY([-12, 12])
-      .onStart(({ translationY }) => {
-        'worklet';
-        cancelAnimation(progress);
-        landing.set(-1);
-        const now = progress.get();
-        grab.set({
-          offset: now - translationY / travel,
-          line: goal.get() === 0 ? now + COMMIT : now - COMMIT,
-          crossed: false,
-        });
-      })
-      .onUpdate(({ translationY }) => {
-        'worklet';
-        const { offset, line, crossed } = grab.get();
-        const raw = offset + translationY / travel;
-        const limit = RUBBER_BAND / travel;
-        const over = raw < 0 ? -raw : raw > 1 ? raw - 1 : 0;
-        const banded = limit * (1 - 1 / ((over * 0.55) / limit + 1));
-        progress.set(raw < 0 ? -banded : raw > 1 ? 1 + banded : raw);
-        const past = goal.get() === 0 ? raw >= line : raw <= line;
-        if (past !== crossed) {
-          grab.set({ offset, line, crossed: past });
-          scheduleOnRN(tick);
-        }
-      })
-      .onEnd(({ velocityY }) => {
-        'worklet';
-        const from = goal.get();
-        const target =
-          velocityY > FLICK ? 1 : velocityY < -FLICK ? 0 : grab.get().crossed ? 1 - from : from;
-        animateTo(target, velocityY / travel);
-        scheduleOnRN(pullWords, target === 1);
-      });
   const screenDrag = drag()
     .enabled(pulls && !reading)
     .failOffsetX([-20, 20]);
@@ -397,53 +273,26 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
           scheduleOnRN(showCall, null);
           return;
         }
-        animateTo(0);
+        glideTo(0);
         scheduleOnRN(pullWords, false);
       }),
   );
 
-  const drawer = useSharedValue(drawerOpen ? 1 : 0);
-  const drawerFrom = useSharedValue(0);
-  const onDrawer = (open: boolean) => {
-    setDrawerOpen(open);
-    if (open && panes) setTasksOpen(false);
-  };
-  const settleDrawer = (open: boolean, velocity = 0) => {
-    'worklet';
-    drawer.set(
-      reducedMotion
-        ? withTiming(open ? 1 : 0, motion.reduced)
-        : withSpring(open ? 1 : 0, { ...motion.drawer, velocity: velocity / list.width }),
-    );
-    scheduleOnRN(onDrawer, open);
-  };
-  const drawerPan = (offset: number | [number, number]) =>
-    Gesture.Pan()
-      .activeOffsetX(offset)
-      .failOffsetY([-14, 14])
-      .onStart(() => {
-        'worklet';
-        cancelAnimation(drawer);
-        drawerFrom.set(drawer.get());
-      })
-      .onUpdate(({ translationX }) => {
-        'worklet';
-        drawer.set(Math.min(1, Math.max(0, drawerFrom.get() + translationX / list.width)));
-      })
-      .onEnd(({ velocityX }) => {
-        'worklet';
-        const open = velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5);
-        settleDrawer(open, velocityX);
-      });
-  const edgeOpen = drawerPan(12);
-  const sidebarClose = drawerPan(-16);
-  const peekClose = Gesture.Race(
-    drawerPan([-10, 10]),
-    Gesture.Tap().onEnd(() => {
-      'worklet';
-      settleDrawer(false);
-    }),
-  );
+  const {
+    drawer,
+    open: drawerOpen,
+    settle: settleDrawer,
+    edgeOpen,
+    listClose,
+    peekClose,
+  } = useDrawer({
+    open: opening.open === 'calls',
+    width: list.width,
+    reducedMotion,
+    onChange: (open) => {
+      if (open && panes) setTasksOpen(false);
+    },
+  });
   const toggleDrawer = () => {
     tick();
     settleDrawer(!drawerOpen);
@@ -566,13 +415,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         (before.width - words.width) * a,
     };
   });
-  // How far along its way from resting to reading the orb is (`t`), and its sideways share of that
-  // (`arc`), which starts slow so it drops before it slides. What travels with it uses the same two.
-  const glide = (p: number) => {
-    'worklet';
-    const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
-    return { t, arc: t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1 };
-  };
   const controlsAt =
     layout.controls !== 'inline' && 'center' in layout.controls
       ? layout.controls.center
@@ -595,17 +437,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
       top: toward(y, controlsAt.calls.y, tasksY, d, t) - metrics.call / 2,
     };
   });
-
-  useAnimatedReaction(
-    () => progress.get(),
-    (now) => {
-      const target = landing.get();
-      if (target >= 0 && Math.abs(now - target) * reach <= LANDED) {
-        landing.set(-1);
-        scheduleOnRN(land);
-      }
-    },
-  );
 
   // The orb glides from where it rests to where it reads: docked small in the corner on the phone,
   // at full size on its own page beside the words. On iPad it glides down beside the call buttons
@@ -747,9 +578,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
     else if (voiceLoaded) startCall('asks');
   };
 
-  const footing = footerOf(call, viewing !== null);
-  const ended = footing?.kind === 'ended' ? footing : undefined;
-  const wrapUp = ended && calls.calls?.find(({ id }) => id === ended.id);
   const callControls = (place: Partial<Parameters<typeof CallControls>[0]>) => (
     <CallControls
       call={call}
@@ -778,7 +606,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   // whether Tasks is open or not.
   const inRow = !!duo?.call.controls;
   const sidebar = (
-    <GestureDetector gesture={sidebarClose}>
+    <GestureDetector gesture={listClose}>
       <Animated.View
         style={[styles.sidebar, { width: list.width, top: list.below ?? 0 }, sidebarStyle]}
       >
@@ -926,51 +754,24 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
               </GestureDetector>
             </View>
           </GestureDetector>
-          <Animated.View
-            pointerEvents="box-none"
-            onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
+          <CallFooter
+            call={call}
+            viewing={viewing !== null}
+            calls={calls.calls}
+            trouble={troubleNow}
+            leading={split}
             style={[
-              styles.footer,
               { left: layout.footer.x, width: layout.footer.width },
               (moves || duo?.beside) && columnStyle,
               linesStyle,
               { paddingBottom: layout.footer.bottom },
             ]}
+            onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
+            onOpen={showCall}
+            onMore={() => openTasks({ stage: 'needs' })}
           >
-            {wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
-              <Animated.View
-                entering={FadeIn.duration(motion.toolbar)}
-                style={[styles.wrapUp, split && styles.leading]}
-              >
-                {wrapUp.title && (
-                  <Text numberOfLines={1} style={styles.wrapTitle}>
-                    {wrapUp.title}
-                  </Text>
-                )}
-                <WrapUp
-                  center={!split}
-                  onOpen={() => showCall(wrapUp.id)}
-                  summary={wrapUp.summary}
-                  waiting={wrapUp.waiting}
-                  onMore={() => openTasks({ stage: 'needs' })}
-                />
-              </Animated.View>
-            ) : null}
-            {footing ? (
-              <Text
-                accessibilityRole={footing.kind === 'elsewhere' ? undefined : 'alert'}
-                style={[styles.ended, split && styles.leadingText, ended?.bad && styles.bad]}
-              >
-                {footing.text}
-              </Text>
-            ) : null}
-            {troubleNow || errorOf(call) ? (
-              <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                {troubleNow ?? errorOf(call)}
-              </Text>
-            ) : null}
             {layout.controls === 'inline' && !inRow && controls}
-          </Animated.View>
+          </CallFooter>
           <AnimatedPressable
             pointerEvents={agent ? 'auto' : 'none'}
             accessibilityElementsHidden={!agent}
@@ -1118,12 +919,6 @@ const styles = StyleSheet.create({
   },
   sidebar: { position: 'absolute', top: 0, bottom: 0 },
   edge: { position: 'absolute', top: 0, bottom: 0, width: 20 },
-  ended: { color: theme.secondary, textAlign: 'center', fontSize: 15, lineHeight: 20 },
-  bad: { color: theme.danger },
-  wrapUp: { gap: 10, alignItems: 'center' },
-  leading: { alignItems: 'flex-start' },
-  leadingText: { textAlign: 'left', paddingHorizontal: 0 },
-  wrapTitle: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   fill: { ...StyleSheet.absoluteFill },
   stage: { position: 'absolute', top: 0, bottom: 0 },
   transcript: { position: 'absolute' },
@@ -1156,7 +951,6 @@ const styles = StyleSheet.create({
   },
   orb: { position: 'absolute', left: 0, top: 0 },
   dock: { position: 'absolute' },
-  footer: { position: 'absolute', bottom: 0, gap: 22 },
   agent: { position: 'absolute', height: AGENT_ROW },
   controls: {
     position: 'absolute',
@@ -1164,12 +958,5 @@ const styles = StyleSheet.create({
     height: metrics.call,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  error: {
-    color: theme.danger,
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-    paddingHorizontal: 12,
   },
 });
