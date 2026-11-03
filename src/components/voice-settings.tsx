@@ -144,7 +144,7 @@ export function VoiceSettings({
     width >= BESIDE.from ||
     (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW);
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-  const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
+  const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
   const preview = beside
     ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
