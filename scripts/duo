@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
+# iOS 27.1), and screenshots the real Duo.
+#
+#   scripts/duo build [ref]           bundles and builds it, printing any compile errors
+#   scripts/duo shoot [ref] [states]  each state in the states file (the ref's scripts/duo-states
+#                                     by default) in each pose, dark and light
+#   scripts/duo tap [ref]             uitests/ in each pose, dark and light: XCUITest really taps
+#   scripts/duo phone [update]        the real Duo's screen, once it runs that OTA update if given
+#
+# POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
+# hinge at 110°, upright) and APPEARANCES dark, light or both. Shots land in
+# $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt
+# naming each state the app wasn't running in, which is how a crash or a JS error shows in a
+# release build. ref defaults to main, and a run that waited behind another checks the newest
+# main, or nothing when that commit was already shot. The JS is bundled here; the Mac builds the
+# app for the simulator only when the commit's native fingerprint has no build yet, keeping the
+# last three, and its simulator shuts down after half an hour unused.
+. "$(dirname "$0")/release.sh"
+
+mac=${HEX_VOICE_MAC:-mac}
+folder=Developer/hex-voice-sim
+sim="hexvoice Duo"
+bundle=com.shahidy.hexvoice
+
+# A pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in degrees.
+POSES=${POSES:-cover-up cover-side open-up open-side}
+APPEARANCES=${APPEARANCES:-dark light}
+
+# Sets hinge, orientation and the simulator display that shows the pose.
+pose_of() {
+  case ${1%-*} in
+    cover) hinge=0 display=1 ;;
+    open) hinge=180 display=3 ;;
+    *) hinge=${1%-*} display=3 ;;
+  esac
+  case ${1##*-} in
+    up) orientation=portrait ;;
+    side) orientation=landscape-right ;;
+  esac
+}
+
+# Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
+# js/ its bundle, harness/ this script with what it needs.
+on_mac() {
+  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer}
+  export PATH=/opt/homebrew/bin:$PATH
+  cd ~/"$folder"
+  local command=$1
+  shift
+  "mac_$command" "$@"
+}
+
+mac_build() {
+  local runtime=$1
+  (cd app && prepare_native && SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
+    -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+    -derivedDataPath build ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >build/xcodebuild.log 2>&1) || {
+    grep -E 'error:' app/build/xcodebuild.log | sort -u >&2
+    die "xcodebuild failed, see ~/$folder/app/build/xcodebuild.log on the Mac"
+  }
+  mkdir -p apps
+  rm -rf "apps/$runtime.app"
+  cp -cR app/build/Build/Products/Release-iphonesimulator/hex.app "apps/$runtime.app"
+  ls -t apps | tail -n +4 | sed 's|^|apps/|' | xargs rm -rf
+}
+
+# The commit's bundle in its runtime's build, which never looks for an OTA update.
+mac_install() {
+  rm -rf stage shots && mkdir stage shots
+  cp -cR "apps/$1.app" stage/hex.app
+  rsync -a js/ stage/hex.app/
+  plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
+  codesign -f -s - stage/hex.app 2>/dev/null
+  mac_simulator
+  xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
+  xcrun simctl install "$id" stage/hex.app
+}
+
+mac_simulator() {
+  local runtime=com.apple.CoreSimulator.SimRuntime.iOS-27-1 other
+  id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" --arg runtime "$runtime" \
+    '.devices[$runtime][]? | select(.name == $name and .isAvailable) | .udid' | head -1)
+  [ -n "$id" ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
+  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" \
+    '.devices[][] | select((.name | startswith("hexvoice")) and .udid != $id) | .udid'); do
+    xcrun simctl shutdown "$other"
+  done
+  # iOS asks "Open in hex?" for each link until the scheme is approved, and reads approvals at boot.
+  local approvals=~/Library/Developer/CoreSimulator/Devices/$id/data/Library/Preferences
+  approvals=$approvals/com.apple.launchservices.schemeapproval.plist
+  /usr/libexec/PlistBuddy -c "Print :com.apple.CoreSimulator.CoreSimulatorBridge-->hexvoice" "$approvals" \
+    >/dev/null 2>&1 || {
+    xcrun simctl shutdown "$id" 2>/dev/null || true
+    mkdir -p "$(dirname "$approvals")"
+    /usr/libexec/PlistBuddy -c "Add :com.apple.CoreSimulator.CoreSimulatorBridge-->hexvoice string $bundle" \
+      "$approvals" >/dev/null
+  }
+  xcrun simctl bootstatus "$id" -b >/dev/null
+  xcrun simctl status_bar "$id" clear
+  [ build/devicehub -nt harness/devicehub.c ] || {
+    mkdir -p build
+    xcrun -sdk iphonesimulator clang -arch arm64 -mios-simulator-version-min=27.0 -O2 -o build/devicehub \
+      harness/devicehub.c -framework IOKit -framework CoreFoundation
+    codesign -f -s - build/devicehub 2>/dev/null
+  }
+  date +%s >last-use
+  nohup bash -c "sleep 1800; [ \$(( \$(date +%s) - \$(cat last-use) )) -ge 1800 ] && xcrun simctl shutdown $id" \
+    >/dev/null 2>&1 </dev/null &
+}
+
+hub() { xcrun simctl spawn "$id" "$PWD/build/devicehub" "$@" </dev/null; }
+
+# Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds.
+place() {
+  pose_of "$1"
+  [ "$hinge" = "${placed:-}" ] || {
+    hub hinge "$hinge"
+    sleep 3
+    placed=$hinge
+  }
+  hub orientation "$orientation"
+}
+
+running() {
+  xcrun simctl spawn "$id" launchctl list </dev/null | grep "UIKitApplication:$bundle" | grep -qv '^-'
+}
+
+# Reads "<state> <url> [launch argument…]" lines: each state opens cold from its URL (after
+# launching with its arguments, if it has any), in each pose, then is shot in each appearance.
+# Shots taken on its side are turned to read upright, and a pose the app reports (?report=pose)
+# lands beside them as <pose>-<state>.json.
+mac_shoot() {
+  local states pose hinge orientation display state url arguments appearance file
+  mac_install "$1"
+  states=$(cat)
+  for pose in $POSES; do
+    while read -r -u 4 state url arguments; do
+      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
+      xcrun simctl spawn "$id" defaults delete "$bundle" HexPose >/dev/null 2>&1 || true
+      place "$pose"
+      if [ -n "$arguments" ]; then
+        # shellcheck disable=SC2086
+        xcrun simctl launch "$id" "$bundle" $arguments >/dev/null
+        sleep 2
+      fi
+      xcrun simctl openurl "$id" "$url"
+      sleep "${SETTLE:-5}"
+      running || echo "$pose $state: the app wasn't running" >>shots/notes.txt
+      xcrun simctl spawn "$id" defaults read "$bundle" HexPose 2>/dev/null </dev/null |
+        jq . >"shots/$pose-$state.json" 2>/dev/null || rm -f "shots/$pose-$state.json"
+      for appearance in $APPEARANCES; do
+        xcrun simctl ui "$id" appearance "$appearance"
+        sleep 1.5
+        file=shots/$pose-$state-$appearance.png
+        xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
+        case $orientation in landscape-right) sips -r 90 "$file" >/dev/null ;; esac
+      done
+    done 4<<<"$states"
+  done
+  date +%s >last-use
+}
+
+# Runs uitests/ in each pose and appearance; each step's screenshot becomes
+# shots/<pose>-<step>-<appearance>.png, and failures go to notes.txt.
+mac_tap() {
+  local tests=~/$folder/build/uitests pose hinge orientation display appearance result exported name
+  mac_install "$1"
+  (cd harness/uitests && xcodegen generate -q)
+  xcodebuild build-for-testing -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
+    -destination "id=$id" -derivedDataPath "$tests" -quiet >"$tests.log" 2>&1 || {
+    grep -E 'error:' "$tests.log" | sort -u >&2
+    die "the UI tests didn't build"
+  }
+  for pose in $POSES; do
+    place "$pose"
+    for appearance in $APPEARANCES; do
+      xcrun simctl ui "$id" appearance "$appearance"
+      result=$tests/$pose-$appearance.xcresult
+      rm -rf "$result" "$tests/attachments"
+      xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
+        -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" 2>&1 |
+        grep -E 'error:|XCTAssert|failed' | sed "s|^|$pose $appearance: |" >>shots/notes.txt || true
+      xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
+      jq -r '.[].attachments[] | "\(.exportedFileName) \(.suggestedHumanReadableName)"' \
+        "$tests/attachments/manifest.json" | while read -r exported name; do
+        name=${name%%_[0-9]*_*}
+        name=${name%.*}
+        cp "$tests/attachments/$exported" "shots/$pose-$name-$appearance.${exported##*.}"
+      done
+    done
+  done
+  date +%s >last-use
+}
+
+[ "${1:-}" = mac ] && {
+  shift
+  on_mac "$@"
+  exit
+}
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+verify=$home/verify
+shots=$home/shots
+
+# Checks the ref out in $verify with its node_modules, bundles its JS, and builds its native code
+# on the Mac if no build has its fingerprint.
+prepare() {
+  local ref=${1:-main}
+  if [ "$ref" = main ]; then
+    git -C "$repo" fetch -q origin main
+    ref=origin/main
+  fi
+  commit=$(git -C "$repo" rev-parse --short=7 "$ref^{commit}") || die "no commit $ref"
+  [ -d "$verify" ] || git -C "$repo" worktree add -q --detach "$verify" "$commit"
+  git -C "$verify" checkout -q --force --detach "$commit"
+  cp "$release/.env.local" "$verify/.env.local"
+  (cd "$verify" && install_modules)
+  title=$(git -C "$verify" log --oneline -1 | cut -c1-80)
+  runtime=$(runtime_version "$verify")
+  rm -rf "$home/js" && mkdir -p "$home/js"
+  (cd "$verify" && npx expo export:embed --platform ios --dev false --minify true \
+    --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
+    --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
+    tail -20 "$home/js.log" >&2
+    die "$title didn't bundle"
+  }
+  rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
+    "$repo/uitests" "$mac:$folder/harness/"
+  rsync -a --delete "$home/js/" "$mac:$folder/js/"
+  ssh "$mac" test -d "$folder/apps/$runtime.app" || {
+    echo "building $title's native code for the simulator"
+    rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$verify/" "$mac:$folder/app/"
+    ssh "$mac" "$folder/harness/duo mac build $runtime" </dev/null
+  }
+}
+
+# Copies the Mac's shots to $1 with a sheet per pose, dark beside light.
+collect() {
+  local out=$1 pose
+  mkdir -p "$out"
+  rsync -a "$mac:$folder/shots/" "$out/"
+  for pose in $POSES; do
+    montage -label '%t' -pointsize 28 -tile 2x -geometry 640x640+12+12 -background '#222' -fill white \
+      "$out/$pose"-*.png "$out/sheet-$pose.png" 2>/dev/null || true
+  done
+  [ ! -s "$out/notes.txt" ] || cat "$out/notes.txt"
+  echo "shots: $out"
+}
+
+shoot() {
+  local states=${1:-}
+  [ -n "$states" ] || [ ! -f "$shots/$commit/done" ] || {
+    echo "$title was already shot: $shots/$commit"
+    return
+  }
+  echo "shooting $title"
+  { if [ -n "$states" ]; then cat "$states"; else
+    git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
+  fi; } |
+    grep -v -e '^#' -e '^$' | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac shoot $runtime"
+  collect "$shots/$commit"
+  echo "$title" >"$shots/$commit/done"
+}
+
+tap() {
+  echo "tapping through $title"
+  ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac tap $runtime" </dev/null
+  collect "$shots/$commit/tap"
+}
+
+# The Duo's screen as he sees it. Given an OTA update id, it waits until a device next asks for
+# updates while running it, so hex has just come to the front, and past its splash screen.
+phone() {
+  set -a && . "$release/.env.local" && set +a
+  local since file
+  since=$(date '+%F %T')
+  [ -z "${1:-}" ] || {
+    until journalctl --user -u hex-voice-updates --since "$since" | grep -q "runs $1"; do
+      sleep 5
+    done
+    sleep 8
+  }
+  file=$shots/phone/$(date +%m%d-%H%M%S).png
+  mkdir -p "$shots/phone"
+  ssh "$mac" xcrun devicectl device capture screenshot --device "$DUO_UDID" --destination /tmp/duo-phone.png \
+    >/dev/null || die "couldn't screenshot the Duo; is it unlocked and near the Mac?"
+  scp -q "$mac:/tmp/duo-phone.png" "$file" && ssh "$mac" rm /tmp/duo-phone.png
+  [ "$(magick "$file" -format '%[fx:maxima]' info:)" != 0 ] || die "the Duo's screen was black ($file): off, or the app is stuck"
+  echo "$file"
+}
+
+mkdir -p "$home"
+case ${1:-} in
+  build | shoot | tap)
+    exec 7>"$home/duo.lock"
+    flock -n 7 || {
+      echo "another check is running; this one checks after it"
+      flock 7
+    }
+    start=$SECONDS
+    prepare "${2:-}"
+    case $1 in
+      shoot) shoot "${3:-}" ;;
+      tap) tap ;;
+    esac
+    echo "took $((SECONDS - start))s"
+    ;;
+  phone) phone "${2:-}" ;;
+  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] | phone [update]" ;;
+esac
