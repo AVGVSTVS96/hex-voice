@@ -1,4 +1,4 @@
-# Shared by ship-js and ship-native: the release checkout is origin/main with its own
+# Shared by ship-js, ship-native and duo: the release checkout is origin/main with its own
 # node_modules and .env.local (see .env.example), and the update store sits beside it.
 set -euo pipefail
 
@@ -30,6 +30,39 @@ refresh_release() {
 }
 
 runtime_version() {
-  (cd "$release" && node node_modules/expo-updates/bin/cli.js runtimeversion:resolve --platform ios) |
+  (cd "${1:-$release}" && node node_modules/expo-updates/bin/cli.js runtimeversion:resolve --platform ios) |
     jq -r .runtimeVersion
+}
+
+# pod install re-extracts React Native's prebuilt frameworks, which makes Xcode recompile every
+# pod, so it only runs when what it reads has changed. package-lock.json already pins every pod,
+# so it resolves without the last Podfile.lock, whose old pins would block a package that moved on.
+install_pods() {
+  local inputs
+  inputs=$({
+    cat ios/Podfile ios/Podfile.properties.json package-lock.json
+    find modules -type f | sort
+    find modules -name '*.podspec' -exec cat {} +
+  } | git hash-object --stdin)
+  [ "$(cat ios/Pods/.inputs 2>/dev/null)" = "$inputs" ] && return
+  rm -f ios/Podfile.lock
+  (cd ios && pod install --repo-update) >build/pod-install.log 2>&1 ||
+    die "pod install failed, see $PWD/build/pod-install.log on the Mac"
+  echo "$inputs" >ios/Pods/.inputs
+}
+
+# Runs on the Mac, in a copy of the app: writes its ios folder and installs its pods, so Xcode
+# only rebuilds what changed.
+prepare_native() {
+  export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=/opt/homebrew/bin:$PATH
+  set -a && . ./.env.local && set +a
+  install_modules
+  # Prebuild only writes its native template into a new ios folder, so a new SDK starts one.
+  local sdk
+  sdk=$(node -p 'require("expo/package.json").version.split(".")[0]')
+  [ "$(cat ios/.sdk 2>/dev/null)" = "$sdk" ] || rm -rf ios
+  CI=1 npx expo prebuild --platform ios --no-install --no-clean >/dev/null
+  echo "$sdk" >ios/.sdk
+  mkdir -p build
+  install_pods
 }

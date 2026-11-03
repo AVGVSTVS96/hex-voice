@@ -1,0 +1,21 @@
+name: DuoTests
+options:
+  deploymentTarget:
+    iOS: '27.0'
+targets:
+  DuoTests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [DuoTests.swift]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexvoice.duotests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: '5.0'
+schemes:
+  DuoTests:
+    build:
+      targets:
+        DuoTests: all
+    test:
+      targets: [DuoTests]

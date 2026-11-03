@@ -22,10 +22,24 @@ push main ─┬─ npm run ship:js      JS only: over the air, on both devices 
 ```
 
 - After you push main, run `npm run ship:js`. It publishes main's JS to the update server (`updates/store.mts`, the `hex-voice-updates` service on the server), and the app restarts into it the next time it comes to the front with no call live.
-- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/` or `modules/` changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, and xtool on the server signs it and installs it on the iPhone (over Wi-Fi) and the iPad (plugged into the Mac) once no call is live. A run that waited behind another ships the newest main, or nothing when both devices already run it.
+- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/`, `modules/` or `package.json`'s scripts changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, and xtool on the server signs it and installs it on the iPhone (over Wi-Fi) and the iPad (plugged into the Mac) once no call is live. A run that waited behind another ships the newest main, or nothing when both devices already run it.
 - Sign for devices only with xtool on the server. The free Apple team holds one development certificate at a time, so Xcode signing for a device on the Mac revokes xtool's and breaks every app it signed, hex keyboard too. Simulator builds on the Mac are fine.
 - Both ship what's on origin/main, from the release checkout `~/.local/share/hex-voice/release` and its `.env.local` (see `.env.example`), and both wait their turn, so any agent can run them at any time.
 - The free Apple team's profile stops the app opening 7 days after a native install. Over-the-air updates don't renew it; `ship:native` does.
+
+## Checking on the Duo
+
+One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. It keeps one simulator on the Mac, "hexvoice Duo" on iOS 27.1. Never boot another or copy the app to the Mac.
+
+```
+scripts/duo shoot [ref] [states]  each state (scripts/duo-states) × the Duo's 4 poses × dark and light
+scripts/duo tap [ref]             uitests/: XCUITest really taps Tasks, Back, the edge swipe, the orb
+scripts/duo phone [update]        a screenshot of his real Duo, once hex runs that OTA update
+```
+
+- UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
+- A state is a line in `scripts/duo-states` (or the file you pass): its name, a URL that opens the app straight into it, and any launch arguments. Shots show the simulator's real status bar.
+- The JS is bundled on the server and dropped into a simulator build of the commit's native fingerprint, so a JS change never rebuilds native code. Shots land in `~/.local/share/hex-voice/shots/<commit>/`, with one sheet per pose.
 
 ## Code
 
