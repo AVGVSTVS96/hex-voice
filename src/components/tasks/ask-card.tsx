@@ -18,10 +18,11 @@ import { useContext, useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
+import { noteAsk } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-import type { Ask, AskLink, AskOption } from '@/live/asks';
+import { unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
@@ -44,12 +45,14 @@ export function YourCall({
   width,
   onAnswer,
   onUndo,
+  onAgain,
 }: {
   asks: Ask[];
   answered: Record<string, string | null>;
   width: number;
   onAnswer: Answer;
   onUndo: (ask: Ask) => void;
+  onAgain: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
@@ -86,6 +89,7 @@ export function YourCall({
                 <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.text)]}>
                   {said}
                 </Text>
+                {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
                 {ask.failed ? <Failure text={ask.failed} /> : null}
               </Column>
               <Text
@@ -129,6 +133,21 @@ function AskCard({
 }) {
   const [writing, setWriting] = useState(false);
   const [whole, setWhole] = useState(false);
+  // A note leaves the ask open, so the card stays and says it went, or why it didn't.
+  const notes = useFailures();
+  const [noting, setNoting] = useState(false);
+  const [noted, setNoted] = useState(false);
+  const note = (text: string) => {
+    setNoting(true);
+    void notes
+      .attempt('note', 'Note not sent', () => noteAsk(ask, text))
+      .then((sent) => {
+        setNoting(false);
+        setNoted(sent);
+        if (sent) setWriting(false);
+      });
+  };
+  const failed = ask.failed ?? notes.failed.note;
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Column
@@ -184,13 +203,23 @@ function AskCard({
           </Text>
         ) : null}
         {ask.links?.length ? <Links links={ask.links} /> : null}
-        {ask.failed ? <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} /> : null}
+        {failed ? (
+          <Failure text={failed} modifiers={[padding({ top: 4 })]} />
+        ) : noted ? (
+          <Text
+            textStyle={{ fontSize: 13, lineHeight: 18 }}
+            modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
+          >
+            {`Note sent to ${ask.topic}`}
+          </Text>
+        ) : null}
       </Column>
       {writing ? (
         <Composer
           draft={`ask:${ask.id}`}
           topic={ask.topic}
-          onSend={(label) => onAnswer(ask, { label })}
+          onNote={noting ? undefined : note}
+          onAnswer={(label) => onAnswer(ask, { label })}
         />
       ) : (
         <Answers ask={ask} width={width} onAnswer={onAnswer} />
@@ -348,66 +377,98 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   );
 }
 
+// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
+// instead is the deliberate second step.
 function Composer({
   draft,
   topic,
-  onSend,
+  onNote,
+  onAnswer,
 }: {
   draft: string;
   topic: string;
-  onSend: (text: string) => void;
+  onNote?: (text: string) => void;
+  onAnswer: (text: string) => void;
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const typing = useContext(Typing);
-  const note = text.trim();
+  const words = text.trim();
   return (
-    <Row
-      alignment="end"
-      spacing={10}
-      modifiers={[
-        padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
-        frame({ minHeight: ROW - 8 }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(theme.surface),
-        clipShape('roundedRectangle', radius.control),
-        strokeBorder({
-          content: theme.edge,
-          style: { lineWidth: 1 },
-          shape: 'roundedRectangle',
-          cornerRadius: radius.control,
-        }),
-        padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
-      ]}
-    >
-      <TextInput
-        autoFocus
-        multiline
-        testID="ask-input"
-        onFocus={() => typing(true)}
-        onBlur={() => typing(false)}
-        defaultValue={first}
-        placeholder={`Your answer or a note for ${topic}`}
-        placeholderTextColor={theme.tertiary}
-        cursorColor={theme.accent}
-        onChangeText={(now) => {
-          setText(now);
-          keep(now);
-        }}
-        textStyle={{ fontSize: 17 }}
+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Row
+        alignment="end"
+        spacing={10}
         modifiers={[
-          foregroundStyle(theme.text),
-          padding({ top: 6, bottom: 6 }),
+          padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
+          frame({ minHeight: ROW - 8 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
+          background(theme.surface),
+          clipShape('roundedRectangle', radius.control),
+          strokeBorder({
+            content: theme.edge,
+            style: { lineWidth: 1 },
+            shape: 'roundedRectangle',
+            cornerRadius: radius.control,
+          }),
+          padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
         ]}
-      />
-      <Icon
-        name="arrow.up.circle.fill"
-        size={30}
-        color={note ? theme.accent : theme.tertiary}
-        onPress={note ? () => onSend(note) : undefined}
-        modifiers={ios ? [accessibilityLabel(`Send to ${topic}`)] : []}
-      />
+      >
+        <TextInput
+          autoFocus
+          multiline
+          testID="ask-input"
+          onFocus={() => typing(true)}
+          onBlur={() => typing(false)}
+          defaultValue={first}
+          placeholder={`A note for ${topic}`}
+          placeholderTextColor={theme.tertiary}
+          cursorColor={theme.accent}
+          onChangeText={(now) => {
+            setText(now);
+            keep(now);
+          }}
+          textStyle={{ fontSize: 17 }}
+          modifiers={[
+            foregroundStyle(theme.text),
+            padding({ top: 6, bottom: 6 }),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        />
+        <Icon
+          name="arrow.up.circle.fill"
+          size={30}
+          color={words && onNote ? theme.accent : theme.tertiary}
+          onPress={words && onNote ? () => onNote(words) : undefined}
+          modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
+        />
+      </Row>
+      <Text
+        textStyle={{ fontSize: 15, fontWeight: '600' }}
+        onPress={words ? () => onAnswer(words) : undefined}
+        modifiers={[
+          foregroundStyle(words ? theme.accent : theme.tertiary),
+          padding({ leading: INSET, trailing: INSET, top: 4, bottom: 10 }),
+        ]}
+      >
+        Answer with this
+      </Text>
+    </Column>
+  );
+}
+
+// An answer that couldn't reach every place, and the way to finish it.
+export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => void }) {
+  return (
+    <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Failure text={unreached(missed)} />
+      <Text
+        textStyle={{ fontSize: 13, fontWeight: '600' }}
+        onPress={onAgain}
+        modifiers={[foregroundStyle(theme.accent), padding({ top: 6, bottom: 6 })]}
+      >
+        Send again
+      </Text>
     </Row>
   );
 }
