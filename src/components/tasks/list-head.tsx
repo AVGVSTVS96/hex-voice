@@ -17,8 +17,10 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
+import { useContext } from 'react';
 
 import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
+import { Typing } from '@/components/tasks/pages';
 import { INSET, ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
@@ -199,6 +201,7 @@ export function Search({
   onChange: (query: string) => void;
   onCancel: () => void;
 }) {
+  const typing = useContext(Typing);
   return (
     <Row
       alignment="center"
@@ -224,6 +227,8 @@ export function Search({
         <TextInput
           autoFocus
           testID="tasks-search-field"
+          onFocus={() => typing(true)}
+          onBlur={() => typing(false)}
           defaultValue={query}
           placeholder="Tasks, topics, asks"
           placeholderTextColor={theme.tertiary}

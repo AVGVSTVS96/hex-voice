@@ -12,10 +12,11 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
+import { Typing } from '@/components/tasks/pages';
 import { Faded, Pill, SectionHead, ios } from '@/components/tasks/parts';
 import { OpenIn } from '@/components/tasks/places';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
@@ -100,7 +101,6 @@ export function ThreadPage({
   pending,
   focus,
   foot = 0,
-  onTyping,
   onOpen,
   onSteps,
   onSend,
@@ -113,7 +113,6 @@ export function ThreadPage({
   pending: Sending[];
   focus: boolean;
   foot?: number;
-  onTyping?: (typing: boolean) => void;
   onOpen: (thread: TaskRow) => void;
   onSteps: () => void;
   onSend: (text: string) => void;
@@ -207,7 +206,6 @@ export function ThreadPage({
           foot={foot}
           onSend={onSend}
           onStop={onStop}
-          onTyping={onTyping}
         />
       ) : (
         <Row
@@ -235,7 +233,6 @@ function Composer({
   foot,
   onSend,
   onStop,
-  onTyping,
 }: {
   title: string;
   working: boolean;
@@ -243,11 +240,11 @@ function Composer({
   foot: number;
   onSend: (text: string) => void;
   onStop: () => void;
-  onTyping?: (typing: boolean) => void;
 }) {
   const input = useRef<TextInputRef>(null);
   const [text, setText] = useState('');
   const [typing, setTyping] = useState(false);
+  const typingHere = useContext(Typing);
   useEffect(() => {
     if (!focus) return;
     const wait = setTimeout(() => input.current?.focus(), 350);
@@ -292,11 +289,11 @@ function Composer({
           onChangeText={setText}
           onFocus={() => {
             setTyping(true);
-            onTyping?.(true);
+            typingHere(true);
           }}
           onBlur={() => {
             setTyping(false);
-            onTyping?.(false);
+            typingHere(false);
           }}
           textStyle={{ fontSize: 17 }}
           testID="thread-input"
