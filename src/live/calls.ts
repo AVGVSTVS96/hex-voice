@@ -59,10 +59,13 @@ const CallTask = z.object({
 });
 export type CallTask = z.infer<typeof CallTask>;
 // hex's exact words to the voice (say, note), things that happened to the call itself, and the asks
-// it put on screen with their answers.
+// it put on screen with their answers and the undos that took one back.
 const CallMark = z.object({
   at: z.number(),
-  kind: z.catch(z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered']), 'note'),
+  kind: z.catch(
+    z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered', 'undone']),
+    'note',
+  ),
   text: z.string(),
 });
 export type CallMark = z.infer<typeof CallMark>;
