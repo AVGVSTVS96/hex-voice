@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { CallSummary } from '@/live/calls';
@@ -6,6 +5,7 @@ import { circle, theme } from '@/theme';
 
 type Props = Pick<CallSummary, 'why' | 'summary' | 'waiting'> & {
   center?: boolean;
+  onOpen?: () => void;
   onMore?: () => void;
 };
 
@@ -13,25 +13,24 @@ type Props = Pick<CallSummary, 'why' | 'summary' | 'waiting'> & {
 const UNDER_ORB = 3;
 
 // hex's own account of a call once its work settles: what happened, where things went, and what's
-// left for you. Until then a phone call hex placed still says why it called. Under the orb it's
-// cut to fit, and a tap on it shows it whole.
-export function WrapUp({ why, summary, waiting = [], center, onMore }: Props) {
-  const [whole, setWhole] = useState(!center);
+// left for you. Until then a phone call hex placed still says why it called. Under the orb it's cut
+// to fit, and a tap opens the call, where it reads whole.
+export function WrapUp({ why, summary, waiting = [], center, onOpen, onMore }: Props) {
   const lead = summary ?? (why && `hex called because: ${why}`);
   if (!lead && !waiting.length) return null;
-  const shown = whole ? waiting : waiting.slice(0, UNDER_ORB);
+  const shown = center ? waiting.slice(0, UNDER_ORB) : waiting;
   const more = waiting.length - shown.length;
   return (
     <Pressable
-      disabled={whole}
-      onPress={() => setWhole(true)}
-      accessibilityHint={whole ? undefined : 'Shows all of it'}
+      disabled={!onOpen}
+      onPress={onOpen}
+      accessibilityHint={onOpen ? 'Opens the call' : undefined}
       style={[styles.wrap, center && styles.center]}
     >
       {lead && (
         <Text
-          selectable={whole}
-          numberOfLines={whole ? undefined : 4}
+          selectable={!center}
+          numberOfLines={center ? 4 : undefined}
           style={[styles.summary, center && styles.centered]}
         >
           {lead}
@@ -44,8 +43,8 @@ export function WrapUp({ why, summary, waiting = [], center, onMore }: Props) {
             <View key={item} style={styles.item}>
               <View style={styles.dot} />
               <Text
-                selectable={whole}
-                numberOfLines={whole ? undefined : 2}
+                selectable={!center}
+                numberOfLines={center ? 2 : undefined}
                 style={styles.itemText}
               >
                 {item}

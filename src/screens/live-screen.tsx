@@ -948,8 +948,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                   </Text>
                 )}
                 <WrapUp
-                  key={last.id}
                   center={!split}
+                  onOpen={last.id ? () => showCall(last.id!) : undefined}
                   summary={wrapUp.summary}
                   waiting={wrapUp.waiting}
                   onMore={() => openTasks({ stage: 'needs' })}
