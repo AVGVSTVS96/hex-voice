@@ -18,9 +18,9 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
-import { ListHead, Search, SearchButton, Tabs } from '@/components/tasks/list-head';
+import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, Faded, ios, listRow, type Feel } from '@/components/tasks/parts';
+import { Empty, Faded, ios, type Feel } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -54,7 +54,6 @@ export function ListPage({
   pages,
   spot,
   paged,
-  toolbarLine,
   tasks,
   offline,
   yours,
@@ -69,7 +68,6 @@ export function ListPage({
   pages: Pages;
   spot: Spot;
   paged: boolean;
-  toolbarLine?: number;
   tasks: TaskRow[] | undefined;
   offline: boolean;
   yours: ReturnType<typeof useAsks>;
@@ -79,7 +77,7 @@ export function ListPage({
   onOpenTile: (tile: Tile) => void;
   onGoThrough: () => void;
 }) {
-  const { bar, back } = useChrome();
+  const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
   const entries = useMemo(
@@ -148,7 +146,7 @@ export function ListPage({
   const unreachable = (offline || yours.offline) && !loaded;
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
   // one gives back, its title and search a bar of their own above the stages.
-  const compact = bar === 'inline' && spot.width >= TABS_WITH_BAR;
+  const compact = spot.width >= TABS_WITH_BAR;
   const searching = query !== null;
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
@@ -171,7 +169,6 @@ export function ListPage({
       {searching ? (
         <Search
           query={query}
-          glass={paged}
           onChange={setQuery}
           onCancel={() => {
             feel.tick();
@@ -180,9 +177,7 @@ export function ListPage({
         />
       ) : (
         <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-          {compact ? null : bar === 'center' ? (
-            <ListHead toolbarLine={toolbarLine} onSearch={startSearch} />
-          ) : (
+          {compact ? null : (
             <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
           )}
           <Tabs

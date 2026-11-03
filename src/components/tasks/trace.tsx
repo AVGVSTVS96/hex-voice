@@ -15,7 +15,7 @@ import { useState, type ReactNode } from 'react';
 import type { ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Header, useChrome } from '@/components/tasks/bar';
+import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
@@ -57,7 +57,6 @@ const RAIL_TOP = 30;
 const RAIL_FOOT = 18;
 
 export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
-  const named = useChrome().bar !== 'center';
   const working = task.state === 'working';
   const done = task.plan.filter((item) => item.state === 'done').length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -69,8 +68,8 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       <Header
-        title={named ? 'Steps' : task.place || task.name}
-        subtitle={`${named ? `${task.place || task.name} · ` : ''}${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
+        title="Steps"
+        subtitle={`${task.place || task.name} · ${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
       />
       <Faded>
         <ScrollView

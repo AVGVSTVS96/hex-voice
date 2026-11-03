@@ -218,19 +218,19 @@ test('beside the transcript, Tasks lays out one page wide with the list’s Back
   const pages = pagesOf(go(), room);
   assert.equal(pages.shape, 'one');
   const list = spotOf('list', pages, room);
-  assert.deepEqual([list.shown, list.back, list.width, list.bar], [true, 'call', 423, 'inline']);
+  assert.deepEqual([list.shown, list.back, list.width], [true, 'call', 423]);
   const deeper = pagesOf(go({ to: 'topic', id: 'a' }), room);
   assert.equal(spotOf('list', deeper, room).offset.x, -455);
   assert.equal(spotOf('topic', deeper, room).back, 'list');
 });
 
-test('the phone’s sheet keeps its look: a page waits a third behind, Back unnamed in a center bar', () => {
+test('the phone’s sheet: a page waits a third behind, and Back goes a level up', () => {
   const pages = pagesOf(go({ to: 'topic', id: 'a' }), sheet, false);
   const list = spotOf('list', pages, sheet);
   const task = spotOf('topic', pages, sheet);
   assert.equal(list.offset.x, -440 / 3);
   assert.equal(list.back, undefined);
-  assert.deepEqual([task.offset.x, task.bar, task.back], [0, 'center', 'list']);
+  assert.deepEqual([task.offset.x, task.back], [0, 'list']);
   assert.equal(spotOf('thread', pages, sheet).offset.x, 440);
 });
 
@@ -254,27 +254,12 @@ test('on pages one over the other, the lower page you type in takes both, the up
   assert.equal(move(writing, { to: 'back' }).focusComposer, false);
 });
 
-test('a page wider than it is tall draws its bar on one line, and one ending at the fold says so', () => {
+test('a page ending at the fold keeps nothing clear below it, and Back always says where it goes', () => {
   const side = roomOf(openOnSide);
-  const top = spotOf('list', pagesOf(go(), side), side);
-  const bottom = spotOf('topic', pagesOf(go(), side), side);
-  assert.deepEqual([top.bar, top.foot], ['inline', 0]);
-  assert.deepEqual([bottom.bar, bottom.foot], ['inline', 34]);
+  assert.equal(spotOf('list', pagesOf(go(), side), side).foot, 0);
+  assert.equal(spotOf('topic', pagesOf(go(), side), side).foot, 34);
   const beside = roomOf(openOnSideDuo.beside!.tasks);
-  const alone = spotOf('list', pagesOf(go(), beside), beside);
-  assert.deepEqual([alone.bar, alone.back], ['inline', 'call']);
-  const lying = screenLayout(
-    { width: 678, height: 466 },
-    { top: 0, right: 84, bottom: 34, left: 0 },
-    { regular: false, bar: 'right' },
-  ).duo!.tasks;
-  const lyingRoom = roomOf(lying);
-  assert.equal(spotOf('list', pagesOf(go(), lyingRoom), lyingRoom).bar, 'inline');
-  for (const page of [openUpright, folded]) {
-    const room = roomOf(page);
-    const list = spotOf('list', pagesOf(go(), room), room);
-    assert.equal(list.bar, 'inline');
-  }
+  assert.equal(spotOf('list', pagesOf(go(), beside), beside).back, 'call');
 });
 
 test('open flat on its side, Tasks is one page: the list fills it and a topic pushes over it', () => {
@@ -288,5 +273,5 @@ test('open flat on its side, Tasks is one page: the list fills it and a topic pu
   assert.deepEqual(onScreen(go(), room), ['list']);
   assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['topic']);
   const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: 'a' }), room), room);
-  assert.deepEqual([topic.bar, topic.back, topic.width], ['inline', 'list', 669]);
+  assert.deepEqual([topic.back, topic.width], ['list', 669]);
 });

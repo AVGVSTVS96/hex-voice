@@ -14,17 +14,14 @@ const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
 const BACK_FLICK_SPEED = 400;
 
-// `toolbar` is how far down the toolbar's line sits, where the list's title lines up with it.
 export function TasksPane({
   top,
-  toolbar,
   foot,
   width,
   style,
   ...view
 }: TasksProps & {
   top: number;
-  toolbar: number;
   foot: number;
   width: number;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
@@ -37,7 +34,7 @@ export function TasksPane({
       style={[styles.pane, { width, paddingTop: top }, style]}
     >
       <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
-        <TasksView {...view} width={width} toolbarLine={toolbar - top} foot={foot} />
+        <TasksView {...view} width={width} foot={foot} />
       </Host>
     </Animated.View>
   );
