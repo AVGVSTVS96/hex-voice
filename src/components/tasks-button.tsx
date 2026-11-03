@@ -1,25 +1,29 @@
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeOut,
-  ZoomIn,
-  ZoomOut,
-  cancelAnimation,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { Circle, ZStack } from '@expo/ui/swift-ui';
+import {
+  Animation,
+  animation,
+  foregroundStyle,
+  frame,
+  offset,
+  onAppear,
+  opacity,
+  rotationEffect,
+  scaleEffect,
+  strokeBorder,
+} from '@expo/ui/swift-ui/modifiers';
+import { useState } from 'react';
+import { useReducedMotion } from 'react-native-reanimated';
 
-import { VoiceControl } from '@/components/voice-control';
+import { Control } from '@/components/voice-control';
 import { motion } from '@/motion';
+import { TOOL } from '@/screens/layout';
 import { theme } from '@/theme';
 
-const SIZE = 48;
 const RING = 56;
+const DOT = 14;
+const LINE = 2;
+const ARC = (Math.PI * (RING - LINE)) / 4;
+const CLEAR = '#00000000';
 
 // The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
 // dot says something needs you. Nothing else on it moves.
@@ -42,69 +46,59 @@ export function TasksButton({
     .filter(Boolean)
     .join(', ');
   return (
-    <View style={styles.button}>
-      <VoiceControl
+    <ZStack
+      modifiers={[
+        frame({ width: TOOL, height: TOOL }),
+        animation(Animation.easeInOut({ duration: motion.toolbar / 1000 }), working > 0),
+      ]}
+    >
+      {working > 0 && <Ring />}
+      <Control
         icon="tasks"
         label={label}
         testID="tasks-button"
         selected={selected}
         onPress={onPress}
-        size={SIZE}
       />
-      {working > 0 && <Ring />}
-      {needs > 0 && (
-        <Animated.View
-          pointerEvents="none"
-          entering={ZoomIn.springify().damping(14)}
-          exiting={ZoomOut.duration(motion.toolbar)}
-          style={styles.dot}
-        />
-      )}
-    </View>
+      <Circle
+        modifiers={[
+          foregroundStyle(theme.accent),
+          frame({ width: DOT, height: DOT }),
+          strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
+          offset({ x: (TOOL - DOT) / 2, y: -(TOOL - DOT) / 2 }),
+          scaleEffect(needs > 0 ? 1 : 0.01),
+          opacity(needs > 0 ? 1 : 0),
+          animation(Animation.bouncy(), needs > 0),
+        ]}
+      />
+    </ZStack>
   );
 }
 
 function Ring() {
-  const spin = useSharedValue(0);
   const still = useReducedMotion();
-  useEffect(() => {
-    if (still) return;
-    spin.set(withRepeat(withTiming(1, { duration: motion.agent.turn, easing: Easing.linear }), -1));
-    return () => cancelAnimation(spin);
-  }, [spin, still]);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
+  const [turning, setTurning] = useState(false);
   return (
-    <Animated.View
-      pointerEvents="none"
-      entering={FadeIn.duration(motion.toolbar)}
-      exiting={FadeOut.duration(motion.toolbar)}
-      style={[styles.ring, style]}
+    <Circle
+      modifiers={[
+        foregroundStyle(CLEAR),
+        frame({ width: RING, height: RING }),
+        strokeBorder({ content: theme.accentTrack, style: { lineWidth: LINE }, shape: 'circle' }),
+        strokeBorder({
+          content: theme.accent,
+          style: { lineWidth: LINE, lineCap: 'round', dash: [ARC, 3 * ARC] },
+          shape: 'circle',
+        }),
+        rotationEffect(turning ? 360 : 0),
+        animation(
+          Animation.linear({ duration: motion.agent.turn / 1000 }).repeat({
+            repeatCount: 1_000_000,
+            autoreverses: false,
+          }),
+          turning,
+        ),
+        onAppear(() => setTurning(!still)),
+      ]}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  button: { width: SIZE, height: SIZE },
-  ring: {
-    position: 'absolute',
-    left: (SIZE - RING) / 2,
-    top: (SIZE - RING) / 2,
-    width: RING,
-    height: RING,
-    borderRadius: RING / 2,
-    borderWidth: 2,
-    borderColor: theme.accentTrack,
-    borderTopColor: theme.accent,
-  },
-  dot: {
-    position: 'absolute',
-    left: 34,
-    top: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: theme.background,
-    backgroundColor: theme.accent,
-  },
-});

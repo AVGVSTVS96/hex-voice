@@ -1,6 +1,7 @@
+import { GlassEffectContainer, HStack, Host, VStack } from '@expo/ui/swift-ui';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { VoiceControl } from '@/components/voice-control';
+import { Control, glass } from '@/components/voice-control';
 import type { LiveStatus } from '@/live/types';
 import { CONTROLS, GAP, MUTE } from '@/screens/layout';
 
@@ -38,53 +39,68 @@ export function CallControls({
   const connected = status === 'connected';
   const connecting = status === 'connecting';
   const disconnecting = status === 'disconnecting';
+  const gap = sizes.gap;
+  const along = (mute ? sizes.mute + gap : 0) + sizes.call;
+  const Stack = axis === 'row' ? HStack : VStack;
+  const muteOff = !connected || !canMute;
+  const primaryOff = disconnecting || !ready;
   return (
     <View
       pointerEvents="box-none"
-      style={[styles[axis], { gap: sizes.gap }, axis === 'row' && { height: sizes.call }, style]}
+      style={[styles[axis], axis === 'row' && { height: sizes.call }, style]}
     >
-      {mute && (
-        <VoiceControl
-          icon={muted ? 'mic-off' : 'mic'}
-          label={muted ? 'Unmute microphone' : 'Mute microphone'}
-          testID="session-mute-button"
-          disabled={!connected || !canMute}
-          selected={muted}
-          size={sizes.mute}
-          onPress={onMute}
-        />
-      )}
-      <VoiceControl
-        icon={connected || connecting ? 'close' : 'waveform'}
-        label={
-          disconnecting
-            ? 'Ending conversation'
-            : connecting
-              ? 'Cancel connection'
-              : connected
-                ? 'End conversation'
-                : failed
-                  ? 'Retry conversation'
-                  : 'Start conversation'
+      <Host
+        matchContents
+        ignoreSafeArea="all"
+        style={
+          axis === 'row'
+            ? { width: along, height: sizes.call }
+            : { width: sizes.call, height: along }
         }
-        testID="session-primary-button"
-        prominent
-        size={sizes.call}
-        loading={connecting || disconnecting}
-        disabled={disconnecting || !ready}
-        onPress={onPrimary}
-      />
+      >
+        <GlassEffectContainer>
+          <Stack spacing={gap}>
+            {mute && (
+              <Control
+                icon={muted ? 'mic-off' : 'mic'}
+                label={muted ? 'Unmute microphone' : 'Mute microphone'}
+                testID="session-mute-button"
+                disabled={muteOff}
+                selected={muted}
+                size={sizes.mute}
+                onPress={onMute}
+                modifiers={[glass('circle', { disabled: muteOff })]}
+              />
+            )}
+            <Control
+              icon={connected || connecting ? 'close' : 'waveform'}
+              label={
+                disconnecting
+                  ? 'Ending conversation'
+                  : connecting
+                    ? 'Cancel connection'
+                    : connected
+                      ? 'End conversation'
+                      : failed
+                        ? 'Retry conversation'
+                        : 'Start conversation'
+              }
+              testID="session-primary-button"
+              prominent
+              size={sizes.call}
+              loading={connecting || disconnecting}
+              disabled={primaryOff}
+              onPress={onPrimary}
+              modifiers={[glass('circle', { prominent: true, disabled: primaryOff })]}
+            />
+          </Stack>
+        </GlassEffectContainer>
+      </Host>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: GAP,
-    height: CONTROLS,
-  },
-  column: { alignItems: 'center', gap: GAP, width: CONTROLS },
+  row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', height: CONTROLS },
+  column: { alignItems: 'center', width: CONTROLS },
 });
