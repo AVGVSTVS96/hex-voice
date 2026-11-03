@@ -163,7 +163,8 @@ export function CheckRow({
   );
 }
 
-// It asks once more first, since it answers for you many times over.
+// It asks once more first, since it answers for you many times over, naming each question and the
+// answer it would give.
 export function PicksRow({
   picks,
   width,
@@ -198,9 +199,15 @@ export function PicksRow({
       </ConfirmationDialog.Actions>
       <ConfirmationDialog.Message>
         <NativeText>
-          {picks.map(({ ask, option }) => `${ask.topic}: ${option.label}`).join('\n')}
+          {picks.map(({ ask, option }) => `${clip(ask.question)} → ${option.label}`).join('\n\n')}
         </NativeText>
       </ConfirmationDialog.Message>
     </ConfirmationDialog>
   );
+}
+
+const CLIP = 70;
+
+function clip(text: string) {
+  return text.length > CLIP ? `${text.slice(0, CLIP - 1).trimEnd()}…` : text;
 }
