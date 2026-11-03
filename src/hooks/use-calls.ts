@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
+import { useWatch } from '@/hooks/use-watch';
 import { callsAPI } from '@/live/api';
 import type { CallRecord, CallSummary } from '@/live/calls';
 
@@ -18,9 +19,10 @@ async function restore<T>(key: string) {
   } catch {}
 }
 
-// The list shows what the phone kept right away, then follows hex's copy while it's open: each
-// request waits on the server until a call changes, so a new call or its title arrives as it lands.
-export function useCalls(open: boolean) {
+// The list shows what this device kept right away, then follows hex's copy while the app is in
+// front: each request waits on the server until a call changes, so a new call, its title and its
+// wrap-up arrive as they land.
+export function useCalls() {
   const [calls, setCalls] = useState<CallSummary[]>();
   const [live, setLive] = useState<string>();
   const [offline, setOffline] = useState(false);
@@ -35,26 +37,15 @@ export function useCalls(open: boolean) {
     if (calls) store(LIST, calls);
   }, [calls]);
 
-  useEffect(() => {
-    if (!open) return;
-    const controller = new AbortController();
-    void (async () => {
-      let version: number | undefined;
-      while (!controller.signal.aborted) {
-        try {
-          const list = await callsAPI.list(version, controller.signal);
-          version = list.version;
-          setCalls(list.calls);
-          setLive(list.live);
-          setOffline(false);
-        } catch {
-          if (!controller.signal.aborted) setOffline(true);
-          return;
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [open]);
+  useWatch(
+    true,
+    callsAPI.list,
+    (list) => {
+      setCalls(list.calls);
+      setLive(list.live);
+    },
+    setOffline,
+  );
 
   const add = (call: CallSummary) =>
     setCalls((current) => [call, ...(current ?? []).filter(({ id }) => id !== call.id)]);
