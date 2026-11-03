@@ -85,6 +85,7 @@ export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 // (`typing`), the way a laptop keeps what you write above its keys.
 export type Duo = {
   tasks: Page;
+  settings?: Settings;
   beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
   call: {
     orb: Required<Spot>;
@@ -92,6 +93,12 @@ export type Duo = {
     controls?: { right: number; top: number };
   };
 };
+
+// Settings on the open Duo is a place of its own over the call, like Tasks, not a sheet: iOS moves
+// a sheet off an active fold, and the layout follows the screen, not the fold. Its two pages, the
+// persona's and the rows', sit beside each other held wide and one over the other on its side,
+// the first `at` long, then the fold's band: none open flat, its whole frame partly open.
+export type Settings = { area: Rect; split: { axis: 'row' | 'column'; at: number; band: number } };
 
 // Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 // buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
@@ -170,7 +177,10 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
         : single(frame);
   if (!pose.bar && !fold) return layout;
   const before = fold && wordsBefore(frame, layout, fold);
-  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
+  const placed = frame.column
+    ? besideColumn(frame, frame.column, before)
+    : belowBand(frame, before);
+  const duo = fold ? { ...placed, settings: settingsOf(placed.tasks.area, fold) } : placed;
   // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
   const calls = frame.column
     ? layout.calls
@@ -677,4 +687,14 @@ function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before
   }
   const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
   return { fold, words: { ...words, top: frame.top + 12, raise } };
+}
+
+function settingsOf(area: Rect, fold: Rect): Settings {
+  return {
+    area,
+    split:
+      fold.height > fold.width
+        ? { axis: 'row', at: fold.x - area.x, band: fold.width }
+        : { axis: 'column', at: fold.y - area.y, band: fold.height },
+  };
 }

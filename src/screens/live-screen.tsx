@@ -1016,19 +1016,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
           )}
         </Animated.View>
         {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
-        <VoiceSettings
-          sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
-          isPresented={settingsOpen}
-          onDismiss={() => setSettingsOpen(false)}
-          voice={voice}
-          onVoiceChange={setVoice}
-          voiceEnabled={voiceLoaded && !voiceLocked}
-          voiceLocked={voiceLocked}
-          persona={variant}
-          onPersonaChange={setVariant}
-          personaEnabled={personaLoaded}
-          preferences={preferences}
-        />
         {!drawerOpen && !(duo && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
             <View style={[styles.edge, { left: layout.content.x }]} />
@@ -1053,6 +1040,20 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
           pane={pane}
         />
       )}
+      <VoiceSettings
+        sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
+        place={duo?.settings}
+        isPresented={settingsOpen}
+        onDismiss={() => setSettingsOpen(false)}
+        voice={voice}
+        onVoiceChange={setVoice}
+        voiceEnabled={voiceLoaded && !voiceLocked}
+        voiceLocked={voiceLocked}
+        persona={variant}
+        onPersonaChange={setVariant}
+        personaEnabled={personaLoaded}
+        preferences={preferences}
+      />
       {duo?.call.controls && inRow
         ? callControls({
             sizes: { mute: TOOL, call: TOOL, gap: GAP },
@@ -1069,9 +1070,16 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         style={[{ top: toolbar.y }, toolbarStyle]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
-        onCalls={toggleDrawer}
-        onTasks={toggleTasks}
-        onSettings={() => setSettingsOpen(true)}
+        onCalls={() => {
+          setSettingsOpen(false);
+          toggleDrawer();
+        }}
+        onTasks={() => {
+          setSettingsOpen(false);
+          toggleTasks();
+        }}
+        // On the open Duo settings is a place like Tasks, so its button opens and closes it.
+        onSettings={() => setSettingsOpen((open) => (duo?.settings ? !open : true))}
       />
       {controlsColumn && controls}
     </>
