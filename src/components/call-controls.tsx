@@ -1,5 +1,5 @@
-import { GlassEffectContainer, HStack, Host, VStack } from '@expo/ui/swift-ui';
-import { accessibilityHidden, opacity } from '@expo/ui/swift-ui/modifiers';
+import { GlassEffectContainer, HStack, Host, Spacer, VStack } from '@expo/ui/swift-ui';
+import { frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Control, glass } from '@/components/voice-control';
@@ -44,7 +44,9 @@ export function CallControls({
   const along = (mute ? sizes.mute + gap : 0) + sizes.call;
   const Stack = axis === 'row' ? HStack : VStack;
   const muteOff = !connected || !canMute;
-  // With no call there's nothing to mute, so mute keeps its place unseen and nothing beside it moves.
+  // With no call there's nothing to mute, so an empty space holds mute's place and the call button
+  // beside it never moves. Not an invisible button: in a GlassEffectContainer, a glass button with
+  // opacity 0 still drew, glyph and all.
   const idle = !connected && !connecting && !disconnecting;
   const primaryOff = disconnecting || !ready;
   return (
@@ -63,7 +65,9 @@ export function CallControls({
       >
         <GlassEffectContainer>
           <Stack spacing={gap}>
-            {mute && (
+            {mute && idle ? (
+              <Spacer modifiers={[frame({ width: sizes.mute, height: sizes.mute })]} />
+            ) : mute ? (
               <Control
                 icon={muted ? 'mic-off' : 'mic'}
                 label={muted ? 'Unmute microphone' : 'Mute microphone'}
@@ -72,12 +76,9 @@ export function CallControls({
                 selected={muted}
                 size={sizes.mute}
                 onPress={onMute}
-                modifiers={[
-                  glass('circle', { disabled: muteOff }),
-                  ...(idle ? [opacity(0), accessibilityHidden(true)] : []),
-                ]}
+                modifiers={[glass('circle', { disabled: muteOff })]}
               />
-            )}
+            ) : null}
             <Control
               icon={connected || connecting ? 'close' : 'waveform'}
               label={
