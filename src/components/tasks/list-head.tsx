@@ -1,4 +1,4 @@
-import { Column, Icon, Row, ScrollView, Text, TextInput, type TextInputRef } from '@expo/ui';
+import { Column, Icon, Row, ScrollView, TextInput, type TextInputRef } from '@expo/ui';
 import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
@@ -6,7 +6,6 @@ import {
   contentShape,
   foregroundStyle,
   frame,
-  glassEffect,
   monospacedDigit,
   padding,
   shapes,
@@ -15,15 +14,16 @@ import { useContext, type RefObject } from 'react';
 
 import { BackButton, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
-import { ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { glass } from '@/ui/glass-button';
+import { Text } from '@/ui/text';
+import { labelOf, metrics, space } from '@/ui/tokens';
 
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
     <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
-      <Icon name="magnifyingglass" size={17} color={theme.text} />
+      <Icon name="magnifyingglass" size={metrics.symbol.bar} color={theme.text} />
     </BarButton>
   );
 }
@@ -48,14 +48,17 @@ export function Tabs({
     <Column
       alignment="start"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity }), ...(onSearch ? [padding({ top: 10 })] : [])]}
+      modifiers={[
+        frame({ maxWidth: Infinity }),
+        ...(onSearch ? [padding({ top: space[2.5] })] : []),
+      ]}
     >
       <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
         {back ? (
           <Row
             alignment="center"
             spacing={0}
-            modifiers={[padding({ leading: metrics.list.inset - 4, bottom: 8 })]}
+            modifiers={[padding({ leading: metrics.list.inset - space[1], bottom: space[2] })]}
           >
             <BackButton back={back} />
           </Row>
@@ -67,7 +70,7 @@ export function Tabs({
         >
           <Row
             alignment="end"
-            spacing={20}
+            spacing={space[5]}
             modifiers={[padding({ leading: metrics.list.inset, trailing: metrics.list.inset })]}
           >
             {STAGES.map(({ key, title }) => {
@@ -78,32 +81,28 @@ export function Tabs({
                 <Overlay key={key} alignment="bottom">
                   <Row
                     alignment="center"
-                    spacing={5}
+                    spacing={metrics.tabs.gap}
                     onPress={() => onChange(key)}
                     modifiers={[
-                      padding({ bottom: 11 }),
+                      padding({ bottom: metrics.tabs.underline }),
                       contentShape(shapes.rectangle()),
-                      ...(ios
-                        ? [
-                            accessibilityLabel(unknown ? title : `${title}, ${count}`),
-                            ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-                          ]
-                        : []),
+                      accessibilityLabel(unknown ? title : `${title}, ${count}`),
+                      ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
                     ]}
                   >
                     <Text
                       numberOfLines={1}
-                      textStyle={{ fontSize: 15, fontWeight: on ? '600' : '500' }}
-                      modifiers={[foregroundStyle(on ? theme.text : theme.secondary)]}
+                      variant="subheadline"
+                      weight={on ? 'semibold' : 'medium'}
+                      tone={on ? 'text' : 'secondary'}
                     >
                       {title}
                     </Text>
                     <Text
-                      textStyle={{ fontSize: 15, fontWeight: on || needs ? '600' : '500' }}
-                      modifiers={[
-                        monospacedDigit(),
-                        foregroundStyle(needs ? theme.accent : on ? theme.text : theme.tertiary),
-                      ]}
+                      variant="subheadline"
+                      weight={on || needs ? 'semibold' : 'medium'}
+                      tone={needs ? 'accent' : on ? 'text' : 'tertiary'}
+                      modifiers={[monospacedDigit()]}
                     >
                       {unknown ? '–' : String(count)}
                     </Text>
@@ -122,7 +121,7 @@ export function Tabs({
           <Row
             alignment="center"
             spacing={0}
-            modifiers={[padding({ trailing: metrics.list.inset - 4, bottom: 8 })]}
+            modifiers={[padding({ trailing: metrics.list.inset - space[1], bottom: space[2] })]}
           >
             <SearchButton onPress={onSearch} />
           </Row>
@@ -154,20 +153,25 @@ export function Search({
   return (
     <Row
       alignment="center"
-      spacing={10}
+      spacing={space[2.5]}
       modifiers={[
-        padding({ leading: 16, trailing: metrics.list.inset - 4, top: 18, bottom: 10 }),
+        padding({
+          leading: space[4],
+          trailing: metrics.list.inset - space[1],
+          top: space[4.5],
+          bottom: space[2.5],
+        }),
         frame({ maxWidth: Infinity }),
       ]}
     >
       <Row
         alignment="center"
-        spacing={8}
+        spacing={space[2]}
         modifiers={[
-          padding({ leading: 14, trailing: 14 }),
+          padding({ leading: space[3.5], trailing: space[3.5] }),
           frame({ height: metrics.bar.button }),
           frame({ maxWidth: Infinity }),
-          glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' }),
+          glass('capsule'),
         ]}
       >
         <Icon name="magnifyingglass" size={14} color={theme.secondary} />
@@ -182,7 +186,7 @@ export function Search({
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={onChange}
-          textStyle={{ fontSize: 16 }}
+          textStyle={labelOf('callout')}
           modifiers={[
             foregroundStyle(theme.text),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
@@ -190,7 +194,7 @@ export function Search({
         />
       </Row>
       <BarButton shape="circle" label="Cancel" testID="tasks-search-cancel" onPress={onCancel}>
-        <Icon name="xmark" size={17} color={theme.text} />
+        <Icon name="xmark" size={metrics.symbol.bar} color={theme.text} />
       </BarButton>
     </Row>
   );

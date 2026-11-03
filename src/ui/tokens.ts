@@ -159,6 +159,9 @@ export const metrics = {
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
+  // Tasks' stage tabs: the gap between a tab's name and its count, and the room under them for
+  // the selected tab's underline.
+  tabs: { gap: 5, underline: 11 },
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge. Together with a
   // row's own top padding, nothing at rest sits in the fade.
