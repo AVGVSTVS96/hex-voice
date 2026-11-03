@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
-import { Button, Label, Menu, ShareLink, ZStack } from '@expo/ui/swift-ui';
+import { ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   background,
@@ -210,81 +210,5 @@ export function Places({
         </Text>
       ) : null}
     </Column>
-  );
-}
-
-export function OpenIn({
-  task,
-  threads,
-  onOpen,
-}: {
-  task: TaskRow;
-  threads: TaskRow[];
-  onOpen: (thread: TaskRow) => void;
-}) {
-  const linked = [task, ...threads.filter((one) => one.id !== task.id)].filter((one) => one.link);
-  const [first] = linked;
-  if (!first) return null;
-  const place = placeOf(first.app);
-  return (
-    <Row
-      alignment="center"
-      spacing={0}
-      modifiers={[
-        frame({ height: 50 }),
-        frame({ maxWidth: Infinity }),
-        background(theme.surface),
-        clipShape('capsule'),
-        ...(ios ? [accessibilityLabel(`Open in ${PLACES[place]}`)] : []),
-      ]}
-    >
-      <Row
-        alignment="center"
-        spacing={8}
-        onPress={() => onOpen(first)}
-        modifiers={[
-          padding({ leading: 14, trailing: 6 }),
-          frame({ height: 50 }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-          contentShape(shapes.rectangle()),
-        ]}
-      >
-        <PlaceTile place={place} size={22} />
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 16, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
-          {PLACES[place]}
-        </Text>
-      </Row>
-      <Menu
-        label={
-          <Row
-            alignment="center"
-            spacing={0}
-            modifiers={[
-              frame({ width: 40, height: 50 }),
-              contentShape(shapes.rectangle()),
-              ...(ios ? [accessibilityLabel('Other places')] : []),
-            ]}
-          >
-            <Icon name="chevron.down" size={12} color={theme.secondary} />
-          </Row>
-        }
-      >
-        {linked.map((thread) => (
-          <Button
-            key={thread.id}
-            label={`${PLACES[placeOf(thread.app)]} · ${thread.place}`}
-            systemImage={GLYPH[placeOf(thread.app)]}
-            onPress={() => onOpen(thread)}
-          />
-        ))}
-        <ShareLink item={first.link!} subject={task.name}>
-          <Label title="Share link" systemImage="square.and.arrow.up" />
-        </ShareLink>
-      </Menu>
-    </Row>
   );
 }

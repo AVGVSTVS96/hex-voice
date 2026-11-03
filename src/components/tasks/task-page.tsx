@@ -12,24 +12,16 @@ import {
 import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
-import { Header } from '@/components/tasks/bar';
+import { Header, Talk } from '@/components/tasks/bar';
 import { laneWidth } from '@/components/tasks/lane';
 import { Mark } from '@/components/tasks/mark';
-import {
-  Faded,
-  GAP,
-  INSET,
-  MARK,
-  Pill,
-  SectionHead,
-  Sections,
-  ios,
-} from '@/components/tasks/parts';
+import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
-import { OpenIn, PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
+import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
+import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
-import { PLACES, placeOf, type Place } from '@/live/inbox';
+import { placeOf, type Place } from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
@@ -57,6 +49,8 @@ export function Detail({
   onOpen,
   onOpenTask,
   messages,
+  beside = false,
+  onWrite,
   foot = 0,
 }: {
   task: TaskRow | Task;
@@ -72,6 +66,8 @@ export function Detail({
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: string) => void;
   messages?: ReactNode;
+  beside?: boolean;
+  onWrite?: () => void;
   foot?: number;
 }) {
   const full = 'lately' in task ? task : undefined;
@@ -80,7 +76,8 @@ export function Detail({
   const working = [task, ...threads.filter((one) => one.id !== task.id)].filter(
     (one) => one.state === 'working',
   );
-  const apps = [...new Set(threads.map((one) => PLACES[placeOf(one.app)]))];
+  const open = asks.filter((ask) => !answered[ask.id]).length;
+  const door = [task, ...threads].find((one) => one.link);
   return (
     <Column
       alignment="center"
@@ -89,11 +86,8 @@ export function Detail({
     >
       <Header
         title={task.name}
-        subtitle={
-          threads.length > 1
-            ? `${threads.length} threads · ${apps.join(', ')}`
-            : `${PLACES[placeOf(task.app)]} · ${STATE_WORDS[task.state]}`
-        }
+        subtitle={`${open ? `${open} need${open === 1 ? 's' : ''} you` : STATE_WORDS[task.state]} · ${taskTime(task)}`}
+        door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
         <ScrollView
@@ -120,7 +114,6 @@ export function Detail({
                   </Text>
                 </Column>
               ) : null}
-              {messages}
               {asks.length ? (
                 <YourCall
                   key="call"
@@ -150,6 +143,7 @@ export function Detail({
                 </Column>
               ) : null}
               {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
+              {messages}
               {hasPlaces(task, threads) ? (
                 <Places
                   key="places"
@@ -185,17 +179,12 @@ export function Detail({
           </Column>
         </ScrollView>
       </Faded>
-      <Row
-        alignment="center"
-        spacing={10}
-        modifiers={[
-          padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(14, foot) }),
-          frame({ maxWidth: Infinity }),
-        ]}
-      >
-        <Pill label="Talk it through" icon="waveform" prominent onPress={onTalk} />
-        <OpenIn task={task} threads={threads} onOpen={onOpen} />
-      </Row>
+      {beside ? null : (
+        <Foot foot={foot}>
+          {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
+          <Talk alone={!onWrite} onPress={onTalk} />
+        </Foot>
+      )}
     </Column>
   );
 }
