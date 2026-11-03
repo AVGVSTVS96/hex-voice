@@ -285,7 +285,10 @@ export class LiveSession {
   // microphone while paused is the way back.
   toggleMute = () => {
     if (this.snapshot.status !== 'connected' || !this.transport) return;
-    if (this.snapshot.interrupted) return this.interrupt(false);
+    if (this.snapshot.interrupted) {
+      this.interrupt(false);
+      if (!this.snapshot.muted) return;
+    }
     clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
     if (muted) this.transport.setMuted(true);
