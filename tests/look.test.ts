@@ -16,7 +16,6 @@ const files = (dir: string): string[] =>
 // shrinks.
 const unmigrated = new Set([
   'src/components/tasks/ask-card.tsx',
-  'src/components/tasks/bar.tsx',
   'src/components/tasks/inbox.tsx',
   'src/components/tasks/last-check.tsx',
   'src/components/tasks/list-head.tsx',
