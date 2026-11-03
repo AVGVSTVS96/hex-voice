@@ -49,6 +49,7 @@ export function Detail({
   onOpenTask,
   messages,
   beside = false,
+  answering = false,
   onWrite,
   foot = 0,
 }: {
@@ -66,6 +67,8 @@ export function Detail({
   onOpenTask: (id: string) => void;
   messages?: ReactNode;
   beside?: boolean;
+  // Writing your own answer to an ask, so its field is the one on the page.
+  answering?: boolean;
   onWrite?: () => void;
   foot?: number;
 }) {
@@ -178,7 +181,7 @@ export function Detail({
           </Column>
         </ScrollView>
       </Faded>
-      {beside ? null : (
+      {beside || answering ? null : (
         <Foot foot={foot}>
           {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
           <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
