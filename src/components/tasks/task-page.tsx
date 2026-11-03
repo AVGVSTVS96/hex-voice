@@ -1,8 +1,7 @@
-import { Column, Icon, Row, ScrollView, Text } from '@expo/ui';
+import { Column, Icon, Row, ScrollView } from '@expo/ui';
 import {
   accessibilityLabel,
   contentShape,
-  foregroundStyle,
   frame,
   monospacedDigit,
   padding,
@@ -14,7 +13,7 @@ import type { ReactNode } from 'react';
 import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, ios } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
@@ -32,7 +31,8 @@ import {
   type TaskId,
 } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 const PREVIEW = 3;
 
@@ -106,19 +106,18 @@ export function Detail({
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
             <Sections>
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
                   <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
                   <Text
-                    textStyle={{ fontSize: 17, lineHeight: 22 }}
+                    paragraph
                     modifiers={[
-                      foregroundStyle(theme.text),
                       padding({
                         leading: metrics.list.inset,
                         trailing: metrics.list.inset,
-                        bottom: 6,
+                        bottom: space[1.5],
                       }),
                       frame({ maxWidth: Infinity, alignment: 'leading' }),
                     ]}
@@ -250,7 +249,7 @@ export function Asked({
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
             {asks.length ? (
               <YourCall
                 asks={asks}
@@ -282,13 +281,9 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
       modifiers={[
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
-        ...(ios
-          ? [
-              accessibilityLabel(
-                `${thread.place}, ${STATE_WORDS[thread.state]}: ${thread.line}. Shows its steps`,
-              ),
-            ]
-          : []),
+        accessibilityLabel(
+          `${thread.place}, ${STATE_WORDS[thread.state]}: ${thread.line}. Shows its steps`,
+        ),
       ]}
     >
       <Row
@@ -296,10 +291,10 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         spacing={metrics.list.gap}
         modifiers={[
           padding({
-            leading: metrics.list.inset - 2,
-            trailing: metrics.list.inset - 2,
-            top: 4,
-            bottom: 2,
+            leading: metrics.list.inset - space[0.5],
+            trailing: metrics.list.inset - space[0.5],
+            top: space[1],
+            bottom: space[0.5],
           }),
           frame({ maxWidth: Infinity }),
         ]}
@@ -307,18 +302,13 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
         <Text
           numberOfLines={1}
-          textStyle={{ fontSize: 15, fontWeight: '600' }}
-          modifiers={[
-            foregroundStyle(theme.text),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+          variant="subheadline"
+          weight="semibold"
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {thread.place}
         </Text>
-        <Text
-          textStyle={{ fontSize: 13 }}
-          modifiers={[monospacedDigit(), foregroundStyle(theme.tertiary)]}
-        >
+        <Text variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
           {taskTime(thread)}
         </Text>
         <Icon name="chevron.right" size={11} color={theme.tertiary} />
