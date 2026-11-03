@@ -1,15 +1,14 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Divider } from '@expo/ui/swift-ui';
-import { accessibilityLabel, foregroundStyle, padding } from '@expo/ui/swift-ui/modifiers';
+import { accessibilityLabel, padding } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { radius, theme } from '@/theme';
-import { metrics, type } from '@/ui/tokens';
+import { hairline, radius, theme } from '@/theme';
+import { Text } from '@/ui/text';
+import { metrics } from '@/ui/tokens';
 
-export const DIVIDER = 1 / 3;
-
-export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * DIVIDER;
+export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 
 export function Group({ width, children }: { width: number; children: ReactNode }) {
   return (
@@ -54,9 +53,7 @@ export function SettingRow({
       modifiers={label ? [accessibilityLabel(label)] : []}
     >
       <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
-      <Text textStyle={{ fontSize: type.body.fontSize }} modifiers={[foregroundStyle(theme.text)]}>
-        {title}
-      </Text>
+      <Text>{title}</Text>
       <Spacer flexible />
       {children}
     </Row>
