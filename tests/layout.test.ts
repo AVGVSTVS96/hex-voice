@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
 import { screenLayout, type Layout } from '../src/screens/layout';
+import { metrics } from '../src/ui/tokens';
 
 const phone = { top: 62, right: 0, bottom: 34, left: 0 };
 
@@ -42,13 +43,13 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
     y: 170,
     width: 48,
     axis: 'column',
-    gaps: { tools: 32, group: 16 },
+    gaps: 'regular',
   });
   assert.deepEqual(layout.controls, {
     right: 10,
     bottom: 34,
     axis: 'column',
-    sizes: { mute: 60, call: 64, gap: 12 },
+    size: 'regular',
   });
   assert.equal(layout.orb.rest.x, 191);
   assert.deepEqual(layout.calls, { width: 310, place: 'slide' });
@@ -91,7 +92,7 @@ test('iPad landscape puts the orb with its buttons under it on the leading half,
   assert.equal(buttons.x, 295);
   assert.ok(buttons.y - 32 > layout.orb.read.y + layout.orb.size / 2, 'buttons sit under the orb');
   assert.deepEqual(layout.words, { x: 590 + 24, width: 590 - 48, top: 24 + 16 + 48 + 16 });
-  assert.equal(layout.text, 19);
+  assert.equal(layout.text, 'large');
   assert.equal(layout.pulls, false);
 });
 
@@ -316,11 +317,12 @@ function bar(layout: Layout, window: Size) {
   };
   if (duo!.beside) placed.switch = around(duo!.beside.button.x, duo!.beside.button.y, 48);
   if (toolbar.axis === 'column') {
-    const { tools, group } = toolbar.gaps!;
+    const { tools, group } = metrics.toolbar[toolbar.gaps!];
     placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 3 * 48 + tools + group };
     assert.ok(controls !== 'inline' && 'bottom' in controls);
-    const { mute, call: end, gap } = controls.sizes!;
-    const height = mute + gap + end;
+    const sizes = metrics.controls[controls.size!];
+    const end = metrics[sizes.call];
+    const height = metrics[sizes.mute] + sizes.gap + end;
     const x = window.width - controls.right - 32;
     placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
   } else {
