@@ -6,6 +6,8 @@ import {
   fitsOneLine,
   headlineOf,
   timeOf,
+  pageOf,
+  topicIn,
   inboxEntries,
   picksOf,
   search,
@@ -453,4 +455,14 @@ test('an entry’s time is its own or its task’s, never a made-up one', () => 
     'a Claude session’s epoch is no time: its start stands in',
   );
   assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '', since: '' } }), undefined);
+});
+
+test('a project opens on its leading thread, or on a page of its own when it has none', () => {
+  const [entry] = stream({ tasks: [row('voiceapp', 'needs', at(3))] });
+  assert.ok(entry?.kind === 'task');
+  const topic = { name: 'voiceapp', entries: [entry], marks: [] };
+  assert.equal(pageOf(topic), entry.task.id);
+  const stuck = { name: 'Stuck', entries: [], marks: [] };
+  assert.equal(topicIn(pageOf(stuck)), 'Stuck');
+  assert.equal(topicIn(entry.task.id), undefined);
 });

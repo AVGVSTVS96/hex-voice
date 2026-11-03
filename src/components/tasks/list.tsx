@@ -15,24 +15,27 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useMemo, useState } from 'react';
+import { Keyboard } from 'react-native';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
-import { CollapseButton, Search, SearchButton, Tabs } from '@/components/tasks/list-head';
+import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
 import { Empty, Faded, asks, ios, type Feel } from '@/components/tasks/parts';
-import { EntryRow, ProjectRow, QuietRow } from '@/components/tasks/rows';
+import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
-import { useSavedPreference } from '@/hooks/use-saved-preference';
 import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
   picksOf,
   search,
   stageCounts,
+  pageOf,
   taskOf,
+  topicIn,
   topicsOf,
+  tracksOf,
   type Stage,
   type Tile,
 } from '@/live/inbox';
@@ -41,10 +44,6 @@ import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
 const TABS_WITH_BAR = 600;
-
-// Held wide, the list folds each project to one row, or shows every task.
-type Listing = 'tasks' | 'projects';
-const isListing = (value: unknown): value is Listing => value === 'tasks' || value === 'projects';
 
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
@@ -59,7 +58,6 @@ export function ListPage({
   pages,
   spot,
   paged,
-  wide,
   tasks,
   offline,
   yours,
@@ -74,8 +72,6 @@ export function ListPage({
   pages: Pages;
   spot: Spot;
   paged: boolean;
-  // The list sits beside a topic's page, side by side, so it can fold to its projects.
-  wide: boolean;
   tasks: TaskRow[] | undefined;
   offline: boolean;
   yours: ReturnType<typeof useAsks>;
@@ -88,8 +84,6 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
-  const folding = useSavedPreference('tasks.list', 'projects', isListing);
-  const projects = wide && folding.value === 'projects';
   const entries = useMemo(
     () => inboxEntries(tasks ?? [], yours.list, yours.shown),
     [tasks, yours.list, yours.shown],
@@ -111,7 +105,8 @@ export function ListPage({
   const topics = useMemo(() => topicsOf(shown, entries), [shown, entries]);
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
-  const first = shown.map(taskOf).find(Boolean);
+  const searching = query !== null;
+  const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
   useEffect(() => {
     if (beside && open && !pages.task && first) pages.go({ to: 'beside', id: first });
   }, [beside, open, pages.task, first]);
@@ -121,9 +116,17 @@ export function ListPage({
         shown.find((entry) => taskOf(entry) === pages.task)
       )?.id ?? null)
     : null;
+  // The project open beside the list, by what its page shows.
+  const openTopic = beside
+    ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
+    : undefined;
+  // Lanes end at now, as of the last time the list moved.
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => setNow(Date.now()), [tasks]);
 
-  const openTask = (id: string, row?: string) => {
+  const openPage = (id: string, row?: string) => {
     feel.tick();
+    Keyboard.dismiss();
     pages.go({ to: 'topic', id, row });
   };
   const chooseStage = (next: Stage) => {
@@ -140,7 +143,7 @@ export function ListPage({
     width,
     selected,
     answered: yours.answered,
-    onOpen: openTask,
+    onOpen: openPage,
     onOpenTile,
     onAnswer,
     onUndo,
@@ -157,17 +160,6 @@ export function ListPage({
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
   // one gives back, its title and search a bar of their own above the stages.
   const compact = spot.width >= TABS_WITH_BAR;
-  const collapse = wide ? (
-    <CollapseButton
-      collapsed={projects}
-      disabled={stage === 'quiet' && query === null}
-      onPress={() => {
-        feel.tick();
-        folding.setValue(projects ? 'tasks' : 'projects');
-      }}
-    />
-  ) : null;
-  const searching = query !== null;
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
       <GoThrough
@@ -198,16 +190,7 @@ export function ListPage({
       ) : (
         <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
           {compact ? null : (
-            <PageBar
-              title="Tasks"
-              back={back}
-              trailing={
-                <Row alignment="center" spacing={8}>
-                  {collapse}
-                  <SearchButton onPress={startSearch} />
-                </Row>
-              }
-            />
+            <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
           )}
           <Tabs
             counts={counts}
@@ -244,26 +227,26 @@ export function ListPage({
             />
           ) : null}
           {topics.flatMap((topic) => {
-            if (!searching && stage === 'quiet')
-              return [<QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />];
-            const lead = topic.entries.map(taskOf).find(Boolean);
-            if (projects && !searching)
+            if (!searching)
               return [
                 <ProjectRow
                   key={topic.name}
                   topic={topic}
                   stage={stage}
+                  tracks={tracksOf(topic.name, tasks ?? [])}
+                  now={now}
                   width={width}
-                  selected={!!lead && lead === pages.task}
-                  onOpen={() => lead && openTask(lead, topic.entries[0]?.id)}
+                  selected={topic.name === openTopic}
+                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
                 />,
               ];
+            const lead = topic.entries.map(taskOf).find(Boolean);
             return [
               <TopicHead
                 key={`${topic.name}:head`}
                 topic={topic}
                 width={width}
-                onPress={lead ? () => openTask(lead) : undefined}
+                onPress={() => openPage(lead ?? pageOf(topic))}
               />,
               ...topic.entries.map((entry, i) => (
                 <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
