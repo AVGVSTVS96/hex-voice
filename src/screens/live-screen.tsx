@@ -86,8 +86,6 @@ const OVER_SHEET = 96;
 const PAD = Platform.OS === 'ios' && Platform.isPad;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
-// upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export type Opening = {
   tasks?: TasksAt;
   open?: 'settings' | 'calls';
@@ -95,6 +93,8 @@ export type Opening = {
   reportPose: boolean;
 };
 
+// The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
+// upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const upright = pose && !PAD && !pose.bar && !pose.fold;
@@ -260,10 +260,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }, [loudness, level]);
 
   // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
-  // and what sits above it (the resting orb, or the words) keeps clear of it. On a call Tasks opens
-  // half height over a compact screen, and the resting orb keeps clear of it too, small, still
-  // listening.
-  // Where the words have a page of their own, the footer sits on that page, away from the orb.
+  // and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
+  // page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
+  // height over a compact screen, and the resting orb keeps clear of it too, small, still listening.
   const [footer, setFooter] = useState(
     layout.footer.bottom + (layout.controls === 'inline' ? CONTROLS : 0),
   );
@@ -342,7 +341,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }, [reading]);
 
   const pulls = layout.pulls;
-  const transcriptButton = pulls;
   const drag = () =>
     Gesture.Pan()
       .activeOffsetY([-12, 12])
@@ -876,7 +874,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                   )}
                 </View>
               </Animated.View>
-              {transcriptButton && (
+              {pulls && (
                 <Animated.View
                   pointerEvents={reading ? 'none' : 'auto'}
                   accessibilityElementsHidden={reading}
