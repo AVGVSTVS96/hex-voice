@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 
+import LiveScreen from '@/call/call-screen';
 import { TaskId } from '@/live/tasks';
-import LiveScreen from '@/screens/live-screen';
 
 // A link opens the app at a place (scripts/duo-states): ?tasks for Tasks' list, ?tasks=<topic>
 // for a topic, ?open=settings or ?open=calls for those sheets, ?report=pose to write the pose where

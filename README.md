@@ -39,6 +39,6 @@ Expo handles signing and installation. Expo Go cannot run this app because WebRT
 npm run check
 ```
 
-The screen is in `src/screens/live-screen.tsx`, native controls and Persona renderers in `src/components`, and the call lifecycle in `src/live`, along with the call's Live Activity (`call-activity.tsx`, built with `expo-widgets`). Its orb stills are rendered from the Persona files by `npm run activity-orbs`. See [dependency notes](docs/dependencies.md) for the Xcode workaround.
+The call is in `src/call`: one `Call` model (`call.ts`), the session's owner at the app's root (`use-call.tsx`) and the call screen and its parts. Native controls and Persona renderers are in `src/components`, and the session and transport in `src/live`, along with the call's Live Activity (`call-activity.tsx`, built with `expo-widgets`). Its orb stills are rendered from the Persona files by `npm run activity-orbs`. See [dependency notes](docs/dependencies.md) for the Xcode workaround.
 
 MIT. Persona assets keep their [upstream license and attribution](src/components/persona/assets/README.md).
