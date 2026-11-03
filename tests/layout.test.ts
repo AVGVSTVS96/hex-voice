@@ -518,3 +518,19 @@ test('on iPhone Duo Calls never lies over the call: the call yields it an edge a
   const { calls } = screenLayout(window, insets, pose);
   assert.deepEqual(calls, { width: 475.5, place: 'beside' }, 'open upright, the leading page');
 });
+
+test('open flat, iPhone Duo treats the fold as a line, never as partly open, in every way it lays out', () => {
+  for (const [name, fixture] of Object.entries(duo)) {
+    const { window, insets } = fixture;
+    const pose: Pose = fixture.pose;
+    const layout = screenLayout(window, insets, pose);
+    const partly = !!pose.fold?.active;
+    assert.equal(!!layout.duo?.partlyOpen, partly, `${name}: partly open`);
+    if (pose.fold && !partly && layout.kind === 'split')
+      assert.equal(
+        layout.orb.rest.x,
+        layout.content.x + layout.content.width / 2,
+        `${name}: orb rests mid-screen`,
+      );
+  }
+});
