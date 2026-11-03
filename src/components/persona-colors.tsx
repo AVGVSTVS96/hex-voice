@@ -12,7 +12,8 @@ import {
   type PersonaVariant,
 } from '@/components/persona/variants';
 import type { CallPreferences } from '@/hooks/use-call-preferences';
-import { circle, metrics, theme } from '@/theme';
+import { circle, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const SLOTS = OPAL_PALETTES.length;
 const MIN_GAP = 4;

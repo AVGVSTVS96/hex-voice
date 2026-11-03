@@ -14,12 +14,12 @@ import {
 import { useState } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 
-import { Control } from '@/components/voice-control';
 import { motion } from '@/motion';
-import { TOOL } from '@/screens/layout';
 import { theme } from '@/theme';
+import { GlassButton } from '@/ui/glass-button';
+import { metrics } from '@/ui/tokens';
 
-const RING = TOOL;
+const RING = metrics.tool;
 const DOT = 14;
 const LINE = 2;
 const ARC = (Math.PI * (RING - LINE)) / 4;
@@ -48,12 +48,13 @@ export function TasksButton({
   return (
     <ZStack
       modifiers={[
-        frame({ width: TOOL, height: TOOL }),
+        frame({ width: metrics.tool, height: metrics.tool }),
         animation(Animation.easeInOut({ duration: motion.toolbar / 1000 }), working > 0),
       ]}
     >
       {working > 0 && <Ring />}
-      <Control
+      <GlassButton
+        bare
         icon="tasks"
         label={label}
         testID="tasks-button"
@@ -65,7 +66,7 @@ export function TasksButton({
           foregroundStyle(theme.accent),
           frame({ width: DOT, height: DOT }),
           strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
-          offset({ x: (TOOL - DOT) / 2, y: -(TOOL - DOT) / 2 }),
+          offset({ x: (metrics.tool - DOT) / 2, y: -(metrics.tool - DOT) / 2 }),
           scaleEffect(needs > 0 ? 1 : 0.01),
           opacity(needs > 0 ? 1 : 0),
           animation(Animation.bouncy(), needs > 0),

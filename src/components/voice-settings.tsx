@@ -62,7 +62,8 @@ import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import type { Settings } from '@/screens/layout';
-import { metrics, theme } from '@/theme';
+import { theme } from '@/theme';
+import { metrics, type } from '@/ui/tokens';
 
 // On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
 // the width is regular it's a centered form sheet, and a page sheet where the call is split across
@@ -319,7 +320,7 @@ export function VoiceSettings({
           testID="voice-row"
         >
           <Text
-            textStyle={{ fontSize: metrics.body }}
+            textStyle={{ fontSize: type.body.fontSize }}
             modifiers={[foregroundStyle(theme.secondary)]}
           >
             {selectedVoice.label}
@@ -376,7 +377,7 @@ export function VoiceSettings({
         />
         <Spacer flexible />
         <Text
-          textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
+          textStyle={{ fontSize: type.body.fontSize, fontWeight: '600' }}
           modifiers={[foregroundStyle(theme.text)]}
         >
           Voice

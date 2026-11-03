@@ -21,7 +21,8 @@ import {
   type CallTask,
   type ShownMark,
 } from '@/live/calls';
-import { circle, metrics, radius, theme } from '@/theme';
+import { circle, radius, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const MARKS: Record<ShownMark['kind'], SFSymbol> = {
   paused: 'pause.circle',

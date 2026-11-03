@@ -12,11 +12,12 @@ import Animated, {
 
 import { TasksPage } from '@/components/tasks-pane';
 import type { TasksProps } from '@/components/tasks/tasks-view';
-import { VoiceControl } from '@/components/voice-control';
 import { clock } from '@/live/calls';
 import { motion } from '@/motion';
-import { TIME, TOOL, type Duo } from '@/screens/layout';
+import { TIME, type Duo } from '@/screens/layout';
 import { theme } from '@/theme';
+import { HostedGlassButton } from '@/ui/glass-button';
+import { metrics } from '@/ui/tokens';
 
 // iPhone Duo's Tasks as the call screen sees it. While it's open on a call the call is docked in
 // the bar, and open, the switch in the bar can give the call's words the page before the fold,
@@ -141,11 +142,11 @@ export function DuoTasks({
           importantForAccessibility={state.offered ? 'auto' : 'no-hide-descendants'}
           style={[
             styles.button,
-            { left: button.x - TOOL / 2, top: button.y - TOOL / 2 },
+            { left: button.x - metrics.tool / 2, top: button.y - metrics.tool / 2 },
             offerStyle,
           ]}
         >
-          <VoiceControl
+          <HostedGlassButton
             icon={stacks ? 'beside-column' : 'beside-row'}
             label="Transcript beside Tasks"
             testID="transcript-beside-button"

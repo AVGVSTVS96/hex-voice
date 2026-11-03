@@ -4,7 +4,8 @@ import { accessibilityLabel, foregroundStyle, padding } from '@expo/ui/swift-ui/
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { metrics, radius, theme } from '@/theme';
+import { radius, theme } from '@/theme';
+import { metrics, type } from '@/ui/tokens';
 
 export const DIVIDER = 1 / 3;
 
@@ -53,7 +54,7 @@ export function SettingRow({
       modifiers={label ? [accessibilityLabel(label)] : []}
     >
       <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
-      <Text textStyle={{ fontSize: metrics.body }} modifiers={[foregroundStyle(theme.text)]}>
+      <Text textStyle={{ fontSize: type.body.fontSize }} modifiers={[foregroundStyle(theme.text)]}>
         {title}
       </Text>
       <Spacer flexible />
