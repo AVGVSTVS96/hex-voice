@@ -380,7 +380,7 @@ test('open upright, Tasks takes both pages, or the trailing one while the callâ€
   });
 });
 
-test('open on its side, the toolbar sits in the status band level with the status items, and Tasks starts under it', () => {
+test('open on its side, the toolbar sits in the status band level with the status items, and Tasks starts under it as one page', () => {
   const { window, insets, pose } = duo['open on its side'];
   const layout = screenLayout(window, insets, pose);
   const { toolbar } = layout;
@@ -391,7 +391,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.deepEqual(tasks.fold, { axis: 'column', at: 475.5 - 82, band: 0 });
+  assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
   assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
   assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
