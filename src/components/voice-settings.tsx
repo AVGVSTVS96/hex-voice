@@ -159,8 +159,11 @@ export function VoiceSettings({
     ? Math.min(BESIDE.height, room)
     : APPEARANCE_HEIGHT - ORB + preview;
   // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
-  // so there the voice page fills the settings page's whole height and nothing of it shows.
-  const detents = [{ height: appearanceHeight }, { height: VOICE_HEIGHT }];
+  // so there the voice page fills the settings page's whole height and nothing of it shows: given
+  // the voice page's detent too, the sheet shrinks to it under content still the settings' height.
+  const detents = phone
+    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
+    : [{ height: appearanceHeight }];
   const orbSize = Math.min(beside ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
@@ -323,10 +326,11 @@ export function VoiceSettings({
           modifiers={[
             presentationDragIndicator('visible'),
             presentationDetents(detents, {
-              selection: detents[onVoicePage ? 1 : 0],
+              selection: detents[onVoicePage ? detents.length - 1 : 0],
               // Dragging the sheet to the other height reads as leaving the page you're on: up from
               // the voices goes back to settings, down from settings closes the sheet.
               onSelectionChange: (detent) => {
+                if (!phone) return;
                 const voiceSized =
                   typeof detent === 'object' &&
                   'height' in detent &&
