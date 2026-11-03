@@ -1,13 +1,16 @@
+import { useGlobalSearchParams } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { CallProvider } from '@/call/use-call';
 import { theme } from '@/theme';
 
 export default function RootLayout() {
   const system = useColorScheme() === 'light' ? DefaultTheme : DarkTheme;
+  const { demo } = useGlobalSearchParams<{ demo?: string }>();
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
       <ThemeProvider
@@ -22,14 +25,16 @@ export default function RootLayout() {
         }}
       >
         <StatusBar style="auto" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.background },
-          }}
-        >
-          <Stack.Screen name="index" options={{ title: 'hex' }} />
-        </Stack>
+        <CallProvider demo={demo === 'call'}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.background },
+            }}
+          >
+            <Stack.Screen name="index" options={{ title: 'hex' }} />
+          </Stack>
+        </CallProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

@@ -27,6 +27,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { useSession } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
@@ -52,7 +53,6 @@ import { failure } from '@/hooks/use-failures';
 import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
-import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
@@ -92,7 +92,6 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export type Opening = {
   tasks?: TasksAt;
   open?: 'settings' | 'calls';
-  demoCall: boolean;
   reportPose: boolean;
 };
 
@@ -153,7 +152,7 @@ function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
 type Size = { width: number; height: number };
 
 function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; opening: Opening }) {
-  const session = useLiveSession(opening.demoCall);
+  const session = useSession();
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -1115,7 +1114,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
 
 // The call you just hung up on is at the top of Calls before hex's copy arrives.
 function useEndedCall(
-  session: ReturnType<typeof useLiveSession>,
+  session: ReturnType<typeof useSession>,
   voice: string,
   add: (call: CallSummary) => void,
 ) {

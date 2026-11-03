@@ -1,20 +1,26 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import {
+  createContext,
+  use,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { AppState } from 'react-native';
-import { LiveSession } from '@/live/session';
-import { createTransport } from '@/live/transport';
+
 import { hex } from '@/hex';
 import { demoAPI, demoTransport } from '@/live/demo-call';
+import { LiveSession } from '@/live/session';
+import { createTransport } from '@/live/transport';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
-// A demo session plays a pretend call (src/live/demo-call.ts) and starts at once.
-export function useLiveSession(demo = false) {
+const Session = createContext<LiveSession | null>(null);
+
+// The call's audio lives above every screen, so moving between them never ends it. A demo session
+// plays a pretend call (src/live/demo-call.ts) and starts at once.
+export function CallProvider({ demo, children }: { demo: boolean; children: ReactNode }) {
   const [session] = useState(() =>
     demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
-  );
-  const snapshot = useSyncExternalStore(
-    session.subscribe,
-    session.getSnapshot,
-    session.getSnapshot,
   );
   useEffect(() => {
     const onAppStateChange = (state: typeof AppState.currentState) => {
@@ -35,5 +41,15 @@ export function useLiveSession(demo = false) {
       void session.stop();
     };
   }, [session, demo]);
+  return <Session value={session}>{children}</Session>;
+}
+
+export function useSession() {
+  const session = use(Session)!;
+  const snapshot = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getSnapshot,
+  );
   return { ...snapshot, start: session.start, stop: session.stop, toggleMute: session.toggleMute };
 }
