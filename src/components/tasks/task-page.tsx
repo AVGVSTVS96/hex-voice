@@ -182,7 +182,7 @@ export function Detail({
                         />
                       }
                       text={moment.text}
-                      color={i > 0 ? theme.secondary : undefined}
+                      tone={i > 0 ? 'secondary' : undefined}
                       time={clock(new Date(moment.at))}
                     />
                   ))}
@@ -322,7 +322,7 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         <TraceLine
           lead={<Icon name={KIND.agent} size={13} color={theme.secondary} />}
           text={agents}
-          color={theme.secondary}
+          tone="secondary"
         />
       ) : null}
     </Column>

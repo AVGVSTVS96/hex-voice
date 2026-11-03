@@ -192,6 +192,8 @@ export const metrics = {
     rest: space[3],
     row: { top: 11, bottom: space[3] },
     place: 11,
+    // A step's first line, which its mark, time and chevron center on.
+    line: 20,
   },
 } as const;
 
