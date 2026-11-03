@@ -215,7 +215,7 @@ mac_tap() {
               "shots/$pose-${line##*duo-step }-$appearance.png" >/dev/null 2>&1
             ;;
           *"duo-pose "*) place "${line##*duo-pose }" ;;
-          *error:* | *XCTAssert* | *failed*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
+          *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
       done || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
@@ -278,7 +278,8 @@ prepare() {
 collect() {
   local out=$1 pose
   mkdir -p "$out"
-  rsync -a "$mac:$folder/shots/" "$out/"
+  rsync -a --exclude=notes.txt "$mac:$folder/shots/" "$out/"
+  ssh "$mac" cat "$folder/shots/notes.txt" 2>/dev/null >>"$out/notes.txt" || true
   for pose in $POSES; do
     montage -label '%t' -pointsize 28 -tile 2x -geometry 640x640+12+12 -background '#222' -fill white \
       "$out/$pose"-*.png "$out/sheet-$pose.png" 2>/dev/null || true

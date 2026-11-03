@@ -5,9 +5,14 @@ import XCTest
 //   launch <url>          starts the app afresh from a link
 //   open <url>            opens a link in the running app
 //   tap <query>           taps the element whose id is the query, or whose label holds it
+//   tap-at <x> <y>        taps that point of the window
 //   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
+//   scroll <query>        swipes up on that element, so its rows run under the bars
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
+//   snap <name>           has it screenshot right away and goes on, to catch what moves
+//   wait <seconds>        waits
 //   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
+//   frame <query>         notes where accessibility puts that element
 //   selected <query>      checks the element is selected; unselected checks it isn't
 //   type <query> <text>   taps the element and types the text on the software keyboard
 //   above-keyboard <query> checks the keyboard is up and the element shows whole above it
@@ -43,13 +48,21 @@ final class DuoTests: XCTestCase {
                 XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
             case "open": app.open(try XCTUnwrap(URL(string: argument)))
             case "tap": element(argument).tap()
+            case "tap-at":
+                let point = argument.split(separator: " ").compactMap { Double($0) }
+                app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+                    .withOffset(CGVector(dx: point[0], dy: point[1])).tap()
             case "swipe-back":
                 element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+            case "scroll": element(argument).swipeUp()
             case "shoot", "pose":
                 sleep(1)
                 print("duo-\(command == "shoot" ? "step" : "pose") \(argument)")
                 sleep(command == "shoot" ? 3 : 5)
+            case "snap": print("duo-step \(argument)")
+            case "frame": print("duo-frame \(argument) \(element(argument).frame)")
+            case "wait": usleep(UInt32((Double(argument) ?? 1) * 1_000_000))
             case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")
             case "unselected": XCTAssertFalse(element(argument).isSelected, "\(argument) is still selected")
             case "type":
