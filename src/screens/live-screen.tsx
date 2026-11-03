@@ -88,7 +88,12 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
 // upright as it always has; iPad and iPhone Duo turn to fit however they're held.
-export type Opening = { tasks?: TasksAt; demoCall: boolean; reportPose: boolean };
+export type Opening = {
+  tasks?: TasksAt;
+  open?: 'settings' | 'calls';
+  demoCall: boolean;
+  reportPose: boolean;
+};
 
 export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
@@ -130,8 +135,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(opening.open === 'settings');
+  const [drawerOpen, setDrawerOpen] = useState(opening.open === 'calls');
   const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
