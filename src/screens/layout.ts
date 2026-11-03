@@ -62,14 +62,17 @@ type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; s
 // Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
 // (single), and everywhere else they have a place of their own and always show.
 //
-// Calls and Tasks come in from the sides in one of these ways:
-// - slide: the call slides aside as a card, showing the pane beneath (the phone's Calls)
-// - beside: the call's card gives up that edge to the pane, and the call moves into the room left
-//   (iPad)
-// - over: the pane comes in over the call (iPhone Duo)
+// Calls and Tasks come in from the sides, and where they go is all this decides; the call card
+// looks the same either way. Calls comes in one of two ways:
+// - slide: the call slides aside, showing Calls beneath (the phone, iPhone Duo folded)
+// - beside: the call gives up its leading edge to Calls and moves into the room left
+// Tasks comes in one of three:
+// - beside: the call gives up its trailing edge to Tasks (iPad)
 // - sheet: Tasks rises as a sheet (phone)
 // - page: Tasks is a place of its own over the call (iPhone Duo, see `Duo`)
-export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' | 'page' };
+export type Pane<Place> = { width: number; place: Place };
+export type CallsPlacement = Pane<'slide' | 'beside'>;
+export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
 // iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
 // call sits in the bar beside the system's status items: its orb with its time, down the side
@@ -137,8 +140,8 @@ export type Layout = {
   // How far the footer and agent line rise while a pane is open, to clear the call buttons that
   // move in under them.
   lift: { calls: number; tasks: number };
-  calls: Pane;
-  tasks: Pane;
+  calls: CallsPlacement;
+  tasks: TasksPlacement;
   // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
   inbox?: Inbox;
   duo?: Duo;
