@@ -1,10 +1,8 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import {
   background,
   clipShape,
   contentShape,
-  font,
-  foregroundStyle,
   frame,
   padding,
   shapes,
@@ -17,7 +15,8 @@ import { Failure, SectionHead } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { radius, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 export function Pinned({ text }: { text: string }) {
   const sections = pinSections(text);
@@ -40,17 +39,17 @@ function Section({ section }: { section: PinSection }) {
         onPress={() => setOpen(true)}
         modifiers={[
           padding({
-            leading: metrics.list.inset - 2,
+            leading: metrics.list.inset - space[0.5],
             trailing: metrics.list.inset,
-            top: 12,
-            bottom: 12,
+            top: space[3],
+            bottom: space[3],
           }),
           frame({ maxWidth: Infinity }),
           contentShape(shapes.rectangle()),
         ]}
       >
         <Mark state={section.mark} />
-        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.secondary)]}>
+        <Text variant="subheadline" tone="secondary">
           {`${section.title} · ${section.lines.length}`}
         </Text>
         <Spacer flexible />
@@ -72,20 +71,19 @@ function Line({ line }: { line: PinLine }) {
   if (line.kind === 'code')
     return (
       <Text
-        textStyle={{ fontSize: 14, lineHeight: 20 }}
+        variant="code"
+        paragraph
         modifiers={[
-          font({ design: 'monospaced', size: 14 }),
-          foregroundStyle(theme.text),
           textSelection(true),
-          padding({ leading: 16, trailing: 16, top: 12, bottom: 12 }),
+          padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
           clipShape('roundedRectangle', radius.inner),
           padding({
-            leading: metrics.list.inset - 2 + metrics.list.mark + metrics.list.gap,
+            leading: metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap,
             trailing: metrics.list.inset,
-            top: 4,
-            bottom: 8,
+            top: space[1],
+            bottom: space[2],
           }),
         ]}
       >
@@ -97,11 +95,17 @@ function Line({ line }: { line: PinLine }) {
   if (line.kind === 'text' && !url)
     return (
       <Text
-        textStyle={{ fontSize: 15, lineHeight: 20 }}
+        variant="subheadline"
+        tone="secondary"
+        paragraph
         modifiers={[
-          foregroundStyle(theme.secondary),
           textSelection(true),
-          padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
+          padding({
+            leading: metrics.list.inset,
+            trailing: metrics.list.inset,
+            top: space[1.5],
+            bottom: space[1.5],
+          }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
@@ -115,22 +119,26 @@ function Line({ line }: { line: PinLine }) {
         spacing={metrics.list.gap}
         onPress={open}
         modifiers={[
-          padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
+          padding({
+            leading: metrics.list.inset,
+            trailing: metrics.list.inset,
+            top: space[1.5],
+            bottom: space[1.5],
+          }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
         ]}
       >
         <Column
           alignment="start"
-          spacing={2}
+          spacing={space[0.5]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           <Text
-            textStyle={{ fontSize: 15, lineHeight: 20 }}
-            modifiers={[
-              foregroundStyle(theme.secondary),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
-            ]}
+            variant="subheadline"
+            tone="secondary"
+            paragraph
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {line.text}
           </Text>
@@ -146,10 +154,10 @@ function Line({ line }: { line: PinLine }) {
       onPress={open}
       modifiers={[
         padding({
-          leading: metrics.list.inset - 2,
+          leading: metrics.list.inset - space[0.5],
           trailing: metrics.list.inset,
-          top: 8,
-          bottom: 8,
+          top: space[2],
+          bottom: space[2],
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
@@ -158,15 +166,14 @@ function Line({ line }: { line: PinLine }) {
       <Mark state={line.mark === 'done' ? 'read' : line.mark} />
       <Column
         alignment="start"
-        spacing={2}
+        spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         <Text
-          textStyle={{ fontSize: 15, lineHeight: 20 }}
-          modifiers={[
-            foregroundStyle(line.mark === 'done' ? theme.secondary : theme.text),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+          variant="subheadline"
+          tone={line.mark === 'done' ? 'secondary' : 'text'}
+          paragraph
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {line.text}
         </Text>
