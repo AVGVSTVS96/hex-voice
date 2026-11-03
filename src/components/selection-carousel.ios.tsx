@@ -1,9 +1,9 @@
 import { Column, RNHostView, Row, Spacer, Text } from '@expo/ui';
 import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
   accessibilityLabel,
   contentShape,
-  accessibilityHidden,
   foregroundStyle,
   frame,
   onTapGesture,
@@ -45,11 +45,11 @@ export function SelectionCarousel({
     );
   }
 
-  // The pager owns its page and reports each change, which lands halfway through a swipe, so the
-  // swipe never waits on JavaScript to confirm the page it's already on.
+  // The pager reports each change, which lands halfway through a swipe, and is handed back the page
+  // it's on, so a swipe never waits on JavaScript; a tapped dot hands it another.
   const pager = (
     <TabView
-      defaultSelection={value}
+      selection={value}
       onSelectionChange={(next) => {
         if (next !== value && options.some((option) => option.id === next)) onChange(next);
       }}
@@ -75,22 +75,34 @@ export function SelectionCarousel({
     </TabView>
   );
 
-  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground.
+  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground. As
+  // iOS's do, each says which page it is and a tap on one goes there.
   const dots = (
-    <Row
-      alignment="center"
-      spacing={DOT}
-      modifiers={[padding({ bottom: (38 - DOT) / 2 }), accessibilityHidden(true)]}
-    >
-      {options.map((option) => (
-        <Circle
-          key={option.id}
-          modifiers={[
-            frame({ width: DOT, height: DOT }),
-            foregroundStyle(option.id === value ? theme.text : theme.tertiary),
-          ]}
-        />
-      ))}
+    <Row alignment="center" spacing={0} modifiers={[padding({ bottom: (38 - REACH) / 2 })]}>
+      {options.map((option, i) => {
+        const current = option.id === value;
+        return (
+          <Row
+            key={option.id}
+            alignment="center"
+            spacing={0}
+            onPress={current ? undefined : () => onChange(option.id)}
+            modifiers={[
+              frame({ width: DOT * 2, height: REACH }),
+              contentShape(shapes.rectangle()),
+              accessibilityLabel(`${option.label}, ${i + 1} of ${options.length}`),
+              ...(current ? [accessibilityAddTraits(['isSelected'])] : []),
+            ]}
+          >
+            <Circle
+              modifiers={[
+                frame({ width: DOT, height: DOT }),
+                foregroundStyle(current ? theme.text : theme.tertiary),
+              ]}
+            />
+          </Row>
+        );
+      })}
     </Row>
   );
   return (
@@ -124,6 +136,7 @@ export function SelectionCarousel({
 }
 
 const DOT = 7;
+const REACH = 30;
 
 function SelectionPage({
   option,
