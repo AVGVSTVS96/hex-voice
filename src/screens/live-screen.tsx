@@ -515,7 +515,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
   const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
   // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
-  const makesWay = list.place === 'over' && layout.toolbar.axis === 'row';
+  const makesWay = list.place === 'over' && layout.toolbar.axis === 'row' && !list.below;
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
   const toolbarStyle = useAnimatedStyle(() => ({
     left: toolbar.x + (makesWay ? drawer.get() * list.width : 0),
@@ -759,10 +759,14 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const sidebar = (
     <GestureDetector gesture={sidebarClose}>
       <Animated.View
-        style={[styles.sidebar, { left: layout.content.x, width: list.width }, sidebarStyle]}
+        style={[
+          styles.sidebar,
+          { left: layout.content.x, width: list.width, top: list.below ?? 0 },
+          sidebarStyle,
+        ]}
       >
         <CallsSidebar
-          top={insets.top}
+          top={list.below === undefined ? insets.top : 0}
           width={list.width}
           calls={calls.calls}
           live={calls.live}
@@ -1036,14 +1040,21 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         {list.place === 'over' && !split && (
           <Animated.View
             pointerEvents="none"
-            style={[styles.dim, { left: layout.content.x, width: layout.content.width }, dimStyle]}
+            style={[
+              styles.dim,
+              { left: layout.content.x, width: layout.content.width, top: list.below ?? 0 },
+              dimStyle,
+            ]}
           />
         )}
         {drawerOpen && list.place !== 'beside' && (
           <GestureDetector gesture={peekClose}>
             <View
               accessibilityLabel="Close calls"
-              style={[styles.fill, { left: layout.content.x, width: layout.content.width }]}
+              style={[
+                styles.fill,
+                { left: layout.content.x, width: layout.content.width, top: list.below ?? 0 },
+              ]}
             />
           </GestureDetector>
         )}
