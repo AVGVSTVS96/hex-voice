@@ -112,8 +112,9 @@ function Ghost({ place, size }: { place: Place; size: number }) {
   );
 }
 
+// Places list a topic's threads once it has more than one; one thread's place is its header's door.
 export const hasPlaces = (task: TaskRow, threads: TaskRow[]) =>
-  !!task.link || threads.some((thread) => thread.id !== task.id);
+  threads.some((thread) => thread.id !== task.id);
 
 export function Places({
   task,

@@ -90,6 +90,7 @@ export function Detail({
       />
       <Faded>
         <ScrollView
+          key={beside ? 'beside' : 'alone'}
           showsIndicators={false}
           modifiers={[
             scrollClipDisabled(),
