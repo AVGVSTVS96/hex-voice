@@ -12,7 +12,7 @@ import {
   type PersonaVariant,
 } from '@/components/persona/variants';
 import type { CallPreferences } from '@/hooks/use-call-preferences';
-import { metrics, theme } from '@/theme';
+import { circle, metrics, theme } from '@/theme';
 
 const ios = process.env.EXPO_OS === 'ios';
 const SLOTS = OPAL_PALETTES.length;
@@ -175,9 +175,7 @@ function Swatch({
       onPress={onPress}
       hitSlop={gap / 2}
       style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
+        ...circle(size),
         borderWidth: 2,
         borderColor: selected ? theme.text : 'transparent',
         alignItems: 'center',
@@ -186,9 +184,7 @@ function Swatch({
     >
       <View
         style={{
-          width: inner,
-          height: inner,
-          borderRadius: inner / 2,
+          ...circle(inner),
           backgroundColor: color,
           experimental_backgroundImage: color ? undefined : ORIGINAL_OPAL,
         }}
@@ -203,9 +199,7 @@ function SkeletonSwatch({ size }: { size: number }) {
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View
         style={{
-          width: inner,
-          height: inner,
-          borderRadius: inner / 2,
+          ...circle(inner),
           backgroundColor: theme.skeleton,
         }}
       />

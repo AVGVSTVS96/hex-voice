@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { metrics, theme } from '@/theme';
+import { metrics, radius, theme } from '@/theme';
 
 const ios = process.env.EXPO_OS === 'ios';
 
@@ -20,10 +20,7 @@ export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * D
 
 export function Group({ width, children }: { width: number; children: ReactNode }) {
   return (
-    <Column
-      spacing={0}
-      style={{ width, borderRadius: metrics.groupRadius, backgroundColor: theme.group }}
-    >
+    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.group }}>
       {children}
     </Column>
   );

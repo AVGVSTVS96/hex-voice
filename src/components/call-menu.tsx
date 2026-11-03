@@ -2,7 +2,7 @@ import { Column, Host, Spacer } from '@expo/ui';
 import { Button, Image, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
 import { contentShape, shapes } from '@expo/ui/swift-ui/modifiers';
 
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
 
 type Props = { transcript?: string; title: string; onDelete?: () => void; size?: number };
 
@@ -15,9 +15,7 @@ export function CallMenu({ transcript, title, onDelete, size = 48 }: Props) {
             alignment="center"
             spacing={0}
             style={{
-              width: size,
-              height: size,
-              borderRadius: size / 2,
+              ...circle(size),
               backgroundColor: theme.surface,
             }}
             modifiers={[contentShape(shapes.circle())]}

@@ -2,7 +2,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
-import { theme } from '@/theme';
+import { circle, radius, theme } from '@/theme';
 
 // An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 // open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   card: {
     alignSelf: 'stretch',
     backgroundColor: theme.surface,
-    borderRadius: 24,
+    borderRadius: radius.group,
     borderCurve: 'continuous',
     padding: 14,
     gap: 12,
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     backgroundColor: theme.surfaceSelected,
-    borderRadius: 12,
+    borderRadius: radius.inner,
     overflow: 'hidden',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: radius.control,
     borderCurve: 'continuous',
     borderWidth: 1.5,
     borderColor: 'transparent',
@@ -121,9 +121,7 @@ const styles = StyleSheet.create({
   hint: { color: theme.tertiary, fontSize: 13, textAlign: 'center' },
   sent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 24 },
   check: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    ...circle(26),
     backgroundColor: theme.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',

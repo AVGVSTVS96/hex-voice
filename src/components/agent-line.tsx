@@ -16,7 +16,7 @@ import Animated, {
 
 import type { AgentLine as Line } from '@/live/agents';
 import { motion } from '@/motion';
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
 
 const { step, turn, rise } = motion.agent;
 const timing = { duration: step, easing: Easing.out(Easing.cubic) };
@@ -151,19 +151,13 @@ export function Arc({ size = 12 }: { size?: number }) {
     return () => cancelAnimation(spin);
   }, [spin, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  return (
-    <Animated.View
-      style={[styles.arc, { width: size, height: size, borderRadius: size / 2 }, style]}
-    />
-  );
+  return <Animated.View style={[styles.arc, circle(size), style]} />;
 }
 
 const styles = StyleSheet.create({
   row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: 10 },
   glyph: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    ...circle(22),
     backgroundColor: theme.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,12 +165,10 @@ const styles = StyleSheet.create({
   glyphFailed: { backgroundColor: theme.dangerMuted },
   glyphPaused: { backgroundColor: theme.surfaceSelected },
   mark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  yourTurn: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.accent },
-  past: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.tertiary },
+  yourTurn: { ...circle(12), backgroundColor: theme.accent },
+  past: { ...circle(6), backgroundColor: theme.tertiary },
   idle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    ...circle(10),
     borderWidth: 1.5,
     borderColor: theme.tertiary,
   },

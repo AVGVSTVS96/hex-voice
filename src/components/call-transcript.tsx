@@ -21,7 +21,7 @@ import {
   type CallSummary,
   type CallTask,
 } from '@/live/calls';
-import { theme } from '@/theme';
+import { circle, metrics, radius, theme } from '@/theme';
 
 const MARKS: Record<CallMark['kind'], SFSymbol> = {
   say: 'text.bubble',
@@ -124,18 +124,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     maxWidth: '86%',
     backgroundColor: theme.bubble,
-    borderRadius: 20,
+    borderRadius: radius.bubble,
     borderCurve: 'continuous',
-    paddingHorizontal: 15,
-    paddingVertical: 11,
+    paddingHorizontal: metrics.bubbleX,
+    paddingVertical: metrics.bubbleY,
   },
   voice: { alignSelf: 'flex-start', maxWidth: '96%' },
   text: { color: theme.text, fontSize: 17, lineHeight: 25 },
   marker: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    ...circle(22),
     alignItems: 'center',
     justifyContent: 'center',
   },

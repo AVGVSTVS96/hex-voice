@@ -18,7 +18,7 @@ import { INSET } from '@/components/tasks/parts';
 import { said, type Sending } from '@/live/chat';
 import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
-import { theme } from '@/theme';
+import { metrics, radius, theme } from '@/theme';
 
 const BODY = 17;
 const LEADING = 5;
@@ -116,9 +116,14 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
           lineSpacing(LEADING),
           foregroundStyle(dim ? theme.secondary : theme.text),
           textSelection(true),
-          padding({ leading: 15, trailing: 15, top: 11, bottom: 11 }),
+          padding({
+            leading: metrics.bubbleX,
+            trailing: metrics.bubbleX,
+            top: metrics.bubbleY,
+            bottom: metrics.bubbleY,
+          }),
           background(theme.bubble),
-          clipShape('roundedRectangle', 20),
+          clipShape('roundedRectangle', radius.bubble),
         ]}
       >
         {text}
@@ -148,7 +153,7 @@ function Piece({ block }: { block: Block }) {
           modifiers={[
             frame({ maxWidth: Infinity, alignment: 'leading' }),
             background(theme.surface),
-            clipShape('roundedRectangle', 12),
+            clipShape('roundedRectangle', radius.inner),
           ]}
         >
           <Text
