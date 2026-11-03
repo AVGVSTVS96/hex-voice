@@ -2,9 +2,9 @@ import { GlassEffectContainer, HStack, Host, Spacer, VStack } from '@expo/ui/swi
 import { frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { Control, glass } from '@/components/voice-control';
 import type { LiveStatus } from '@/live/types';
-import { CONTROLS, GAP, MUTE } from '@/screens/layout';
+import { GlassButton } from '@/ui/glass-button';
+import { metrics, type ControlsSize } from '@/ui/tokens';
 
 type Props = {
   status: LiveStatus;
@@ -14,7 +14,7 @@ type Props = {
   ready: boolean;
   axis: 'row' | 'column';
   mute?: boolean;
-  sizes?: { mute: number; call: number; gap: number };
+  size?: ControlsSize;
   style?: ViewStyle;
   onMute: () => void;
   onPrimary: () => void;
@@ -22,8 +22,7 @@ type Props = {
 
 // Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
 // column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
-// iPad inbox's rail, before any call, the call button waits alone. `sizes` draws them smaller,
-// where they share iPhone Duo's toolbar or a short column.
+// iPad inbox's rail, before any call, the call button waits alone.
 export function CallControls({
   status,
   canMute,
@@ -32,16 +31,18 @@ export function CallControls({
   ready,
   axis,
   mute = true,
-  sizes = { mute: MUTE, call: CONTROLS, gap: GAP },
+  size = 'regular',
   style,
   onMute,
   onPrimary,
 }: Props) {
+  const sizes = metrics.controls[size];
   const connected = status === 'connected';
   const connecting = status === 'connecting';
   const disconnecting = status === 'disconnecting';
-  const gap = sizes.gap;
-  const along = (mute ? sizes.mute + gap : 0) + sizes.call;
+  const muteSide = metrics[sizes.mute];
+  const callSide = metrics[sizes.call];
+  const along = (mute ? muteSide + sizes.gap : 0) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
   const muteOff = !connected || !canMute;
   // With no call there's nothing to mute, so an empty space holds mute's place and the call button
@@ -52,23 +53,21 @@ export function CallControls({
   return (
     <View
       pointerEvents="box-none"
-      style={[styles[axis], axis === 'row' && { height: sizes.call }, style]}
+      style={[styles[axis], axis === 'row' && { height: callSide }, style]}
     >
       <Host
         matchContents
         ignoreSafeArea="all"
         style={
-          axis === 'row'
-            ? { width: along, height: sizes.call }
-            : { width: sizes.call, height: along }
+          axis === 'row' ? { width: along, height: callSide } : { width: callSide, height: along }
         }
       >
         <GlassEffectContainer>
-          <Stack spacing={gap}>
+          <Stack spacing={sizes.gap}>
             {mute && idle ? (
-              <Spacer modifiers={[frame({ width: sizes.mute, height: sizes.mute })]} />
+              <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
             ) : mute ? (
-              <Control
+              <GlassButton
                 icon={muted ? 'mic-off' : 'mic'}
                 label={muted ? 'Unmute microphone' : 'Mute microphone'}
                 testID="session-mute-button"
@@ -76,10 +75,9 @@ export function CallControls({
                 selected={muted}
                 size={sizes.mute}
                 onPress={onMute}
-                modifiers={[glass('circle', { disabled: muteOff })]}
               />
             ) : null}
-            <Control
+            <GlassButton
               icon={connected || connecting ? 'close' : 'waveform'}
               label={
                 disconnecting
@@ -98,7 +96,6 @@ export function CallControls({
               loading={connecting || disconnecting}
               disabled={primaryOff}
               onPress={onPrimary}
-              modifiers={[glass('circle', { prominent: true, disabled: primaryOff })]}
             />
           </Stack>
         </GlassEffectContainer>
@@ -108,6 +105,11 @@ export function CallControls({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', height: CONTROLS },
-  column: { alignItems: 'center', width: CONTROLS },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    height: metrics.call,
+  },
+  column: { alignItems: 'center', width: metrics.call },
 });

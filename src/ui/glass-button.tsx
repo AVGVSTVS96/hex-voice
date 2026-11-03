@@ -10,10 +10,10 @@ import {
   glassEffect,
   shapes,
   tint,
-  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 
 import { theme } from '@/theme';
+import { metrics, type GlassSize } from '@/ui/tokens';
 
 const symbols = {
   settings: 'slider.horizontal.3',
@@ -33,7 +33,7 @@ type Props = {
   label: string;
   onPress: () => void;
   testID: string;
-  size?: number;
+  size?: GlassSize;
   disabled?: boolean;
   selected?: boolean;
   prominent?: boolean;
@@ -55,18 +55,19 @@ export function glass(
   });
 }
 
-export function Control({
+// A round button on glass. A `bare` one leaves the glass to the group it sits in.
+export function GlassButton({
   icon,
   label,
   onPress,
   testID,
-  size = 48,
+  size = 'tool',
   disabled = false,
   selected = false,
   prominent = false,
   loading = false,
-  modifiers = [],
-}: Props & { modifiers?: ModifierConfig[] }) {
+  bare = false,
+}: Props & { bare?: boolean }) {
   const color = prominent
     ? theme.onProminent
     : disabled
@@ -74,8 +75,9 @@ export function Control({
       : selected
         ? theme.accent
         : theme.text;
+  const diameter = metrics[size];
   const face = [
-    frame({ width: size, height: size }),
+    frame({ width: diameter, height: diameter }),
     ...(selected
       ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
       : []),
@@ -90,7 +92,7 @@ export function Control({
         disable(disabled),
         accessibilityLabel(label),
         accessibilityAddTraits(selected ? ['isSelected'] : []),
-        ...modifiers,
+        ...(bare ? [] : [glass('circle', { prominent, disabled })]),
       ]}
     >
       {loading ? (
@@ -98,7 +100,7 @@ export function Control({
       ) : (
         <Image
           systemName={symbols[icon]}
-          size={prominent ? 27 : 24}
+          size={metrics.symbol[prominent ? 'prominent' : 'regular']}
           color={color}
           modifiers={face}
         />
@@ -107,14 +109,12 @@ export function Control({
   );
 }
 
-export function VoiceControl(props: Props) {
-  const size = props.size ?? 48;
+// A GlassButton that React Native lays out, in a Host of its own.
+export function HostedGlassButton(props: Props) {
+  const diameter = metrics[props.size ?? 'tool'];
   return (
-    <Host matchContents ignoreSafeArea="all" style={{ width: size, height: size }}>
-      <Control
-        {...props}
-        modifiers={[glass('circle', { prominent: props.prominent, disabled: props.disabled })]}
-      />
+    <Host matchContents ignoreSafeArea="all" style={{ width: diameter, height: diameter }}>
+      <GlassButton {...props} />
     </Host>
   );
 }

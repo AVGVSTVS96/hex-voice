@@ -39,7 +39,6 @@ import { TasksSheet } from '@/components/tasks-sheet';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
-import { VoiceControl } from '@/components/voice-control';
 import { VoiceSettings } from '@/components/voice-settings';
 import { WrapUp } from '@/components/wrap-up';
 import { useCallActivity } from '@/hooks/use-call-activity';
@@ -71,10 +70,12 @@ import {
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
+import { screenLayout } from '@/screens/layout';
 import { logPose, startPoseLog } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
-import { metrics, radius, theme } from '@/theme';
+import { radius, theme } from '@/theme';
+import { HostedGlassButton } from '@/ui/glass-button';
+import { metrics } from '@/ui/tokens';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const COMMIT = 0.35;
@@ -285,7 +286,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   // page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
   // height over a compact screen, and the resting orb keeps clear of it too, small, still listening.
   const [footer, setFooter] = useState(
-    layout.footer.bottom + (layout.controls === 'inline' ? CONTROLS : 0),
+    layout.footer.bottom + (layout.controls === 'inline' ? metrics.call : 0),
   );
   const overSheet = tasksOpen && onCall && side.place === 'sheet';
   const rest = orbRest(
@@ -613,7 +614,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
     const y = rest.y + (open.y - rest.y) * Math.min(1, Math.max(0, along.t));
     return {
       left: toward(x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
-      top: toward(y, controlsAt.calls.y, tasksY, d, t) - CONTROLS / 2,
+      top: toward(y, controlsAt.calls.y, tasksY, d, t) - metrics.call / 2,
     };
   });
 
@@ -797,7 +798,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
     controlsColumn
       ? {
           axis: controlsColumn.axis,
-          sizes: controlsColumn.sizes,
+          size: controlsColumn.size,
           style: {
             position: 'absolute',
             right: controlsColumn.right,
@@ -927,15 +928,15 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
                   importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
                   style={[
                     styles.dock,
-                    { left: orb.read.x - DOCKED / 2, top: orb.read.y - DOCKED / 2 },
+                    { left: orb.read.x - metrics.docked / 2, top: orb.read.y - metrics.docked / 2 },
                     dockStyle,
                   ]}
                 >
-                  <VoiceControl
+                  <HostedGlassButton
                     icon="transcript"
                     label="Show transcript"
                     testID="transcript-button"
-                    size={DOCKED}
+                    size="docked"
                     onPress={() => pullWords(true)}
                   />
                 </Animated.View>
@@ -1077,7 +1078,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
       />
       {duo?.call.controls && inRow
         ? callControls({
-            sizes: { mute: TOOL, call: TOOL, gap: GAP },
+            size: 'tool',
             style: {
               position: 'absolute',
               right: duo.call.controls.right,
@@ -1206,7 +1207,7 @@ const styles = StyleSheet.create({
   controls: {
     position: 'absolute',
     width: CONTROLS_BOX,
-    height: CONTROLS,
+    height: metrics.call,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,14 +1,11 @@
+import { metrics, type ControlsSize, type ToolbarGaps } from '@/ui/tokens';
+
 import type { Pose, Rect, Region } from '../../modules/pose';
 
-export const GUTTER = 24;
-export const TOOL = 48;
-export const CONTROLS = 64;
-export const MUTE = 60;
-export const GAP = 12;
-export const DOCKED = 52;
+const GAP = 12;
 // The toolbar's Tasks and settings, one glass capsule.
-export const PAIR = 2 * TOOL + GAP;
-export const RAIL = 96;
+const PAIR = 2 * metrics.tool + metrics.toolbar.row;
+const RAIL = 96;
 const AGENT = 22;
 const COLUMN = 84;
 const WORDS = 600;
@@ -22,10 +19,6 @@ const RAIL_ORB = 44;
 const BESIDE_MUTE = 56;
 // iPhone Duo's column: below this height (folded on its side) its buttons draw smaller and closer.
 const SHORT = 520;
-const COLUMN_GAPS = { tools: 32, group: 16 };
-const TIGHT_GAPS = { tools: 12, group: 10 };
-const SIZES = { mute: MUTE, call: CONTROLS, gap: GAP };
-const TIGHT_SIZES = { mute: 48, call: 52, gap: 10 };
 // On a call with Tasks open, the orb this big and the call's time this tall and wide join the bar.
 export const CALL_ORB = 34;
 export const TIME = 16;
@@ -45,10 +38,13 @@ type Place = { x: number; y: number };
 type Spot = Place & { size?: number };
 type Span = { x: number; width: number };
 type Words = Span & { top: number };
-type Gaps = typeof COLUMN_GAPS;
-type Sizes = typeof SIZES;
-type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: Gaps };
-type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; sizes?: Sizes };
+type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGaps };
+type ColumnControls = {
+  right: number;
+  bottom: number;
+  axis: 'row' | 'column';
+  size?: ControlsSize;
+};
 
 // The call screen's geometry for a window in a pose. It comes in three arrangements:
 // - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
@@ -141,7 +137,7 @@ export type Layout = {
     dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
   };
   words: Words;
-  text: number;
+  text: 'regular' | 'large';
   // Where the words move while Calls or Tasks sit beside them.
   besideCalls: Words;
   besideTasks: Words;
@@ -194,8 +190,8 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
       : {
           besideCalls: {
             ...layout.words,
-            x: LIST + GUTTER,
-            width: Math.min(frame.content.width - LIST - 2 * GUTTER, WORDS),
+            x: LIST + metrics.gutter,
+            width: Math.min(frame.content.width - LIST - 2 * metrics.gutter, WORDS),
           },
         }),
     tasks: { width: frame.content.width, place: 'page' },
@@ -266,9 +262,9 @@ function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
   const toolbar = pose.fold
     ? band(window, insets, pose.occlusions ?? [])
     : {
-        x: GUTTER,
+        x: metrics.gutter,
         y: insets.top + (pose.regular ? 16 : 12),
-        width: window.width - 2 * GUTTER,
+        width: window.width - 2 * metrics.gutter,
         axis: 'row' as const,
       };
   return {
@@ -277,7 +273,7 @@ function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
     bottomInset,
     content: { x: 0, y: 0, width: window.width, height: window.height },
     toolbar,
-    top: Math.max(insets.top, toolbar.y + TOOL),
+    top: Math.max(insets.top, toolbar.y + metrics.tool),
   };
 }
 
@@ -286,8 +282,8 @@ function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
 function band(window: Size, insets: Insets, occlusions: Rect[]): Toolbar {
   const status = occlusions.filter((area) => area.y + area.height / 2 < insets.top);
   return {
-    ...widestClear(GUTTER, window.width - GUTTER, status),
-    y: insets.top / 2 + STATUS_DROP - TOOL / 2,
+    ...widestClear(metrics.gutter, window.width - metrics.gutter, status),
+    y: insets.top / 2 + STATUS_DROP - metrics.tool / 2,
     axis: 'row',
   };
 }
@@ -325,20 +321,20 @@ function column(window: Size, insets: Insets, pose: Pose) {
   return {
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
-      x: x + (width - TOOL) / 2,
+      x: x + (width - metrics.tool) / 2,
       y: Math.max(top, GAP + 4),
-      width: TOOL,
+      width: metrics.tool,
       axis: 'column' as const,
-      gaps: tight ? TIGHT_GAPS : COLUMN_GAPS,
+      gaps: tight ? ('compact' as const) : ('regular' as const),
     },
     column: {
       x,
       width,
       controls: {
-        right: window.width - x - (width + CONTROLS) / 2,
+        right: window.width - x - (width + metrics.call) / 2,
         bottom: foot,
         axis: 'column' as const,
-        sizes: tight ? TIGHT_SIZES : SIZES,
+        size: tight ? ('compact' as const) : ('regular' as const),
       },
     },
     top: insets.top,
@@ -349,16 +345,16 @@ function single(frame: Frame): Layout {
   const { window, insets, bottomInset, content, toolbar, top } = frame;
   const controls = frame.column?.controls;
   const center = content.x + content.width / 2;
-  const width = Math.min(content.width - 2 * GUTTER, WORDS);
+  const width = Math.min(content.width - 2 * metrics.gutter, WORDS);
   const words = { x: center - width / 2, width };
-  const inset = { x: content.x + GUTTER, width: content.width - 2 * GUTTER };
+  const inset = { x: content.x + metrics.gutter, width: content.width - 2 * metrics.gutter };
   const agent = { ...inset, bottom: Math.max(insets.bottom - 17, 6) };
   const size = Math.min(content.width * 0.62, window.height * 0.34, 280);
   const shared = {
     kind: 'single' as const,
     content,
     toolbar,
-    text: 17,
+    text: 'regular' as const,
     agent,
     lift: { calls: 0, tasks: 0 },
     tasks: { width: TASKS, place: 'sheet' as const },
@@ -374,9 +370,9 @@ function single(frame: Frame): Layout {
         rest: { x: center, y: window.height / 2 },
         room: { top, bottom: window.height },
         read: {
-          x: content.x + GUTTER + DOCKED / 2,
-          y: window.height - bottomInset - CONTROLS / 2,
-          size: DOCKED,
+          x: content.x + metrics.gutter + metrics.docked / 2,
+          y: window.height - bottomInset - metrics.call / 2,
+          size: metrics.docked,
         },
       },
       words: top12,
@@ -388,7 +384,7 @@ function single(frame: Frame): Layout {
   }
   // With the buttons in the side column, the docked orb takes the content's bottom corner and the
   // footer sits above it.
-  const dock = window.height - insets.bottom - 8 - DOCKED / 2;
+  const dock = window.height - insets.bottom - 8 - metrics.docked / 2;
   const below = { ...words, top: insets.top + 72 };
   return {
     ...shared,
@@ -397,12 +393,12 @@ function single(frame: Frame): Layout {
       size,
       rest: { x: center, y: (insets.top + window.height - insets.bottom) / 2 },
       room: { top, bottom: window.height },
-      read: { x: content.x + GUTTER + DOCKED / 2, y: dock, size: DOCKED },
+      read: { x: content.x + metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked },
     },
     words: below,
     besideCalls: below,
     besideTasks: below,
-    footer: { ...inset, bottom: window.height - dock + DOCKED / 2 + 18 },
+    footer: { ...inset, bottom: window.height - dock + metrics.docked / 2 + 18 },
     calls: { width: Math.min(content.width - 72, LIST), place: 'slide' },
   };
 }
@@ -420,13 +416,14 @@ function pad(frame: Frame): Layout {
   const landscape = width > height;
   const size = Math.round(Math.min(width, height) * 0.32);
   const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
-  const below = toolbar.y + TOOL;
-  const foot = height - bottomInset - CONTROLS / 2;
+  const below = toolbar.y + metrics.tool;
+  const foot = height - bottomInset - metrics.call / 2;
   const agentLow = bottomInset;
-  const agentHigh = bottomInset + CONTROLS + 14;
+  const agentHigh = bottomInset + metrics.call + 14;
   const docked = (from: number, to: number) => {
     const center = from + (to - from) / 2;
-    const mute = center - (MUTE + GAP + CONTROLS) / 2;
+    const { mute: muteSize, call, gap } = metrics.controls.regular;
+    const mute = center - (metrics[muteSize] + gap + metrics[call]) / 2;
     return {
       orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
       words: { ...measure(from, to), top: below + 16 },
@@ -437,14 +434,19 @@ function pad(frame: Frame): Layout {
   const withTasks = docked(0, width - tasks);
   const rail = {
     width: width - RAIL,
-    toolbar: { x: (RAIL - TOOL) / 2, y: toolbar.y, width: TOOL, axis: 'column' as const },
-    orb: { x: RAIL / 2, y: foot - CONTROLS / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
+    toolbar: {
+      x: (RAIL - metrics.tool) / 2,
+      y: toolbar.y,
+      width: metrics.tool,
+      axis: 'column' as const,
+    },
+    orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
     controls: { x: RAIL / 2, y: foot },
   };
 
   if (landscape) {
     const half = width / 2;
-    const group = size + 40 + CONTROLS;
+    const group = size + 40 + metrics.call;
     const top = (height - group) / 2;
     const words = { ...measure(half, width), top: below + 16 };
     return {
@@ -453,10 +455,10 @@ function pad(frame: Frame): Layout {
       toolbar,
       controls: {
         center: {
-          open: { x: half / 2, y: top + size + 40 + CONTROLS / 2 },
+          open: { x: half / 2, y: top + size + 40 + metrics.call / 2 },
           calls: withCalls.controls,
           tasks: withTasks.controls,
-          rest: { x: half, y: top + size + 40 + CONTROLS / 2 },
+          rest: { x: half, y: top + size + 40 + metrics.call / 2 },
         },
       },
       orb: {
@@ -467,7 +469,7 @@ function pad(frame: Frame): Layout {
         dock: { calls: withCalls.orb, tasks: withTasks.orb },
       },
       words,
-      text: 19,
+      text: 'large' as const,
       besideCalls: withCalls.words,
       besideTasks: withTasks.words,
       footer: { ...words, bottom: agentLow + AGENT },
@@ -496,13 +498,13 @@ function pad(frame: Frame): Layout {
     },
     orb: {
       size,
-      rest: { x: width / 2, y: (below + foot - CONTROLS / 2) / 2 },
+      rest: { x: width / 2, y: (below + foot - metrics.call / 2) / 2 },
       room: { top: below, bottom: height },
       read: { x: width / 2, y: orbY },
       dock: { calls: withCalls.orb, tasks: withTasks.orb },
     },
     words,
-    text: 19,
+    text: 'large' as const,
     besideCalls: withCalls.words,
     besideTasks: withTasks.words,
     footer: { ...words, bottom: agentHigh + AGENT },
@@ -516,7 +518,7 @@ function pad(frame: Frame): Layout {
 
 // The words' measure, centered in the room between `from` and `to`.
 function measure(from: number, to: number): Span {
-  const width = Math.min(to - from - 2 * GUTTER, MEASURE);
+  const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
   return { x: from + (to - from - width) / 2, width };
 }
 
@@ -526,9 +528,9 @@ function split(frame: Frame, fold?: Rect): Layout {
   const controls = frame.column?.controls;
   const pane = fold ? fold.x - content.x : content.width / 2;
   const page = fold ? fold.x + fold.width + clear(fold) : content.x + pane;
-  const right = content.x + content.width - GUTTER;
+  const right = content.x + content.width - metrics.gutter;
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
-  const agentBottom = controls ? insets.bottom : bottomInset + CONTROLS + 14;
+  const agentBottom = controls ? insets.bottom : bottomInset + metrics.call + 14;
   const top = controls ? insets.top + 72 : toolbar.y + 64;
   // Before a call the orb rests in the middle; partly open that's the hinge, so it waits on its page.
   const read = { x: content.x + pane / 2, y: window.height / 2 };
@@ -536,7 +538,7 @@ function split(frame: Frame, fold?: Rect): Layout {
     kind: 'split',
     content,
     toolbar,
-    controls: controls ?? { right: GUTTER, bottom: bottomInset, axis: 'row' },
+    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
     orb: {
       size: Math.min(pane * 0.62, window.height * 0.42, 300),
       rest:
@@ -545,7 +547,7 @@ function split(frame: Frame, fold?: Rect): Layout {
       read,
     },
     words: { ...words, top },
-    text: 17,
+    text: 'regular' as const,
     besideCalls: { x: page, width: right - page, top },
     besideTasks: { ...words, top },
     footer: { ...words, bottom: agentBottom + AGENT },
@@ -578,10 +580,10 @@ function stacked(frame: Frame, fold: Rect): Layout {
 // switch sit as one group midway between the tools and the call buttons.
 function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before?: Before): Duo {
   const { window, insets, toolbar } = frame;
-  const gaps = toolbar.gaps ?? COLUMN_GAPS;
-  const sizes = column.controls.sizes ?? SIZES;
+  const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
+  const sizes = metrics.controls[column.controls.size ?? 'regular'];
   const x = column.x + column.width / 2;
-  const reach = Math.max(TOOL, sizes.mute, sizes.call) / 2;
+  const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
   const leading = column.x === 0;
   const { tasks, after } = paged(
     {
@@ -594,9 +596,10 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before
     },
     before?.fold,
   );
-  const tools = toolbar.y + 3 * TOOL + gaps.tools + gaps.group;
-  const buttons = window.height - column.controls.bottom - sizes.mute - sizes.gap - sizes.call;
-  const group = CALL_ORB + 4 + TIME + (after ? 12 + TOOL : 0);
+  const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
+  const buttons =
+    window.height - column.controls.bottom - metrics[sizes.mute] - sizes.gap - metrics[sizes.call];
+  const group = CALL_ORB + 4 + TIME + (after ? 12 + metrics.tool : 0);
   const y = (tools + buttons - group) / 2;
   const time = y + CALL_ORB + 4;
   return {
@@ -605,7 +608,7 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before
       before && {
         tasks: after,
         words: before.words,
-        button: { x, y: time + TIME + 12 + TOOL / 2 },
+        button: { x, y: time + TIME + 12 + metrics.tool / 2 },
       },
     call: {
       orb: { x, y: y + CALL_ORB / 2, size: CALL_ORB },
@@ -634,10 +637,11 @@ function belowBand(frame: Frame, before?: Before): Duo {
     before?.fold,
   );
   const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
-  const middle = toolbar.y + TOOL / 2;
-  const mute = end - 2 * TOOL - GAP;
-  const button = { x: mute - 14 - TOOL / 2, y: middle };
-  const time = (after ? button.x - TOOL / 2 - 10 : mute - 14) - TIME_WIDTH;
+  const middle = toolbar.y + metrics.tool / 2;
+  const tool = metrics.controls.tool;
+  const mute = end - metrics[tool.mute] - tool.gap - metrics[tool.call];
+  const button = { x: mute - 14 - metrics.tool / 2, y: middle };
+  const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
   return {
     tasks,
     beside: after && before && { tasks: after, typing: above, words: before.words, button },
@@ -681,7 +685,7 @@ type Before = { fold: Rect; words: Words & { raise: number } };
 // them rise until that line ends a gap short of it.
 function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before {
   if (fold.height > fold.width) {
-    const x = frame.content.x + GUTTER;
+    const x = frame.content.x + metrics.gutter;
     const width = Math.min(fold.x - clear(fold) - x, WORDS_BESIDE);
     return { fold, words: { x, width, top: words.top, raise: 0 } };
   }

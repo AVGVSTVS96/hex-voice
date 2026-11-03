@@ -15,7 +15,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 
 import { INSET, ios } from '@/components/tasks/parts';
 import { PlaceTile } from '@/components/tasks/places';
-import { glass } from '@/components/voice-control';
+import { glass } from '@/ui/glass-button';
 import { PLACES, type Place } from '@/live/inbox';
 import { theme } from '@/theme';
 

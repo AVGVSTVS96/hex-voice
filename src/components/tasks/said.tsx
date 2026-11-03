@@ -18,7 +18,8 @@ import { INSET } from '@/components/tasks/parts';
 import { said, type Sending } from '@/live/chat';
 import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
-import { metrics, radius, theme } from '@/theme';
+import { radius, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const BODY = 17;
 const LEADING = 5;

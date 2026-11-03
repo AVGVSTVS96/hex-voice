@@ -3,19 +3,20 @@ import { Button, Image, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
 import { contentShape, shapes } from '@expo/ui/swift-ui/modifiers';
 
 import { circle, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
-type Props = { transcript?: string; title: string; onDelete?: () => void; size?: number };
+type Props = { transcript?: string; title: string; onDelete?: () => void };
 
-export function CallMenu({ transcript, title, onDelete, size = 48 }: Props) {
+export function CallMenu({ transcript, title, onDelete }: Props) {
   return (
-    <Host matchContents ignoreSafeArea="all" style={{ width: size, height: size }}>
+    <Host matchContents ignoreSafeArea="all" style={{ width: metrics.tool, height: metrics.tool }}>
       <Menu
         label={
           <Column
             alignment="center"
             spacing={0}
             style={{
-              ...circle(size),
+              ...circle(metrics.tool),
               backgroundColor: theme.surface,
             }}
             modifiers={[contentShape(shapes.circle())]}

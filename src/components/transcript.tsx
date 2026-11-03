@@ -4,7 +4,6 @@ import {
   type ScrollViewInstance,
   StyleSheet,
   Text,
-  View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -15,7 +14,9 @@ import type { AskOption } from '@/live/asks';
 import type { TaskId } from '@/live/tasks';
 import type { TranscriptEntry } from '@/live/types';
 import { motion } from '@/motion';
-import { metrics, radius, theme } from '@/theme';
+import { theme } from '@/theme';
+import { Turn } from '@/ui/turn';
+import { metrics, space, textOf } from '@/ui/tokens';
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
@@ -24,7 +25,7 @@ type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 export function Transcript({
   entries,
   active,
-  size = 17,
+  size = 'regular',
   emptyAt = 'end',
   cards = [],
   onAnswer,
@@ -32,7 +33,7 @@ export function Transcript({
 }: {
   entries: TranscriptEntry[];
   active: boolean;
-  size?: number;
+  size?: 'regular' | 'large';
   emptyAt?: 'end' | 'center';
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => Promise<unknown>;
@@ -110,22 +111,18 @@ function interleave(entries: TranscriptEntry[], cards: CallCard[]) {
   return moments;
 }
 
-function Line({ entry, size }: { entry: TranscriptEntry; size: number }) {
+function Line({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'large' }) {
   const text = entry.text.trim();
   const [warm, settled] = useSettledLength(text.length);
   const user = entry.role === 'user';
   return (
-    <View style={user ? styles.user : styles.assistant}>
-      <Text
-        accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`}
-        selectable
-        style={[styles.text, { fontSize: size, lineHeight: Math.round(size * 1.47) }]}
-      >
+    <Turn you={user}>
+      <Text accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`} selectable style={styles[size]}>
         {text.slice(0, settled)}
         <Text style={styles.warm}>{text.slice(settled, warm)}</Text>
         <Text style={styles.fresh}>{text.slice(warm)}</Text>
       </Text>
-    </View>
+    </Turn>
   );
 }
 
@@ -143,29 +140,19 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'flex-end',
-    gap: 24,
+    gap: space[6],
     paddingTop: metrics.fade,
     paddingBottom: metrics.fade,
   },
   centered: { justifyContent: 'center' },
-  user: {
-    alignSelf: 'flex-end',
-    maxWidth: '86%',
-    backgroundColor: theme.bubble,
-    borderRadius: radius.bubble,
-    borderCurve: 'continuous',
-    paddingHorizontal: metrics.bubbleX,
-    paddingVertical: metrics.bubbleY,
-  },
-  assistant: { alignSelf: 'flex-start', maxWidth: '96%' },
-  text: { color: theme.text, fontSize: 17, lineHeight: 25 },
+  regular: { ...textOf('words'), color: theme.text },
+  large: { ...textOf('wordsLarge'), color: theme.text },
   warm: { color: theme.secondary },
   fresh: { color: theme.tertiary },
   empty: {
+    ...textOf('callout'),
     color: theme.secondary,
-    fontSize: 16,
-    lineHeight: 24,
     textAlign: 'center',
-    paddingBottom: 12,
+    paddingBottom: space[3],
   },
 });
