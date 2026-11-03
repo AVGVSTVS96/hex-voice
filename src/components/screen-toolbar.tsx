@@ -1,5 +1,5 @@
 import { HStack, Host, VStack } from '@expo/ui/swift-ui';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
 import { TasksButton } from '@/components/tasks-button';
@@ -8,6 +8,7 @@ import { TOOL } from '@/screens/layout';
 
 type Props = {
   axis: 'row' | 'column';
+  onLayout?: ViewProps['onLayout'];
   gaps?: { tools: number; group: number };
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
@@ -25,6 +26,7 @@ const GROUP_GAP = { row: 12, column: 16 } as const;
 // side column with the two set apart (`gaps` apart, where the column is short).
 export function ScreenToolbar({
   axis,
+  onLayout,
   gaps,
   style,
   callsOpen,
@@ -40,6 +42,7 @@ export function ScreenToolbar({
   return (
     <Animated.View
       pointerEvents="box-none"
+      onLayout={onLayout}
       style={[styles[axis], gaps && { gap: gaps.tools }, style]}
     >
       <VoiceControl
