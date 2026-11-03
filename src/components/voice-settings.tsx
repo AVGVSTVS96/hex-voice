@@ -158,6 +158,8 @@ export function VoiceSettings({
   const appearanceHeight = beside
     ? Math.min(BESIDE.height, room)
     : APPEARANCE_HEIGHT - ORB + preview;
+  // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
+  // so there the voice page fills the settings page's whole height and nothing of it shows.
   const detents = [{ height: appearanceHeight }, { height: VOICE_HEIGHT }];
   const orbSize = Math.min(beside ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
@@ -354,7 +356,7 @@ export function VoiceSettings({
                     clipped(),
                   ]
                 : [
-                    frame({ height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    frame({ height: appearanceHeight }),
                     frame({ maxWidth: Infinity }),
                     clipped(),
                     animation(motion.page, onVoicePage),
@@ -396,7 +398,7 @@ export function VoiceSettings({
               <Column
                 alignment="center"
                 spacing={0}
-                modifiers={page(onVoicePage, width, VOICE_HEIGHT)}
+                modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
               >
                 <Row
                   alignment="center"
