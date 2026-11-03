@@ -36,11 +36,51 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
   );
   assert.equal(layout.kind, 'single');
   assert.deepEqual(layout.content, { x: 0, y: 0, width: 382, height: 678 });
-  assert.deepEqual(layout.toolbar, { x: 400, y: 170, width: 48, axis: 'column' });
-  assert.deepEqual(layout.controls, { right: 10, bottom: 34, axis: 'column' });
+  assert.deepEqual(layout.toolbar, {
+    x: 400,
+    y: 170,
+    width: 48,
+    axis: 'column',
+    gaps: { tools: 32, group: 16 },
+  });
+  assert.deepEqual(layout.controls, {
+    right: 10,
+    bottom: 34,
+    axis: 'column',
+    sizes: { mute: 60, call: 64, gap: 12 },
+  });
   assert.equal(layout.orb.rest.x, 191);
   assert.deepEqual(layout.calls, { width: 310, place: 'over' });
-  assert.equal(layout.tasks.place, 'sheet');
+  assert.equal(layout.tasks.place, 'page');
+  assert.deepEqual(layout.page?.area, layout.content);
+  assert.equal(layout.page?.fold, undefined);
+  const orb = layout.page!.call.orb;
+  assert.equal(orb.x, 424);
+  assert.ok(orb.y - orb.size / 2 > 170 + 3 * 48 + 48, 'the orb sits below the tools');
+  assert.ok(orb.y + orb.size / 2 + 20 < 678 - 34 - 136, 'and its time above the call buttons');
+});
+
+test('iPhone Duo closed on its side keeps the tools at the column top and the buttons above its camera', () => {
+  const layout = screenLayout(
+    { width: 678, height: 466 },
+    { top: 0, right: 84, bottom: 34, left: 0 },
+    {
+      regular: false,
+      bar: 'right',
+      occlusions: [
+        { x: 611.7, y: 399.7, width: 37, height: 37 },
+        { x: 594, y: 384, width: 84, height: 82 },
+      ],
+    },
+  );
+  assert.equal(layout.toolbar.y, 16);
+  assert.ok(layout.controls !== 'inline' && 'bottom' in layout.controls);
+  assert.equal(layout.controls.bottom, 466 - 384 + 8);
+  const { sizes } = layout.controls;
+  const buttons = 466 - layout.controls.bottom - sizes!.mute - sizes!.gap - sizes!.call;
+  const tools = 16 + 3 * 48 + layout.toolbar.gaps!.tools + layout.toolbar.gaps!.group;
+  const orb = layout.page!.call.orb;
+  assert.ok(orb.y - orb.size / 2 >= tools && orb.y + orb.size / 2 + 20 <= buttons, 'orb fits');
 });
 
 const pad = { top: 24, right: 0, bottom: 20, left: 0 };
@@ -166,7 +206,8 @@ test('iPhone Duo open splits at the fold, with its bars down the side', () => {
   assert.equal(layout.words.x, 503);
   assert.deepEqual(layout.calls, { width: 455, place: 'over' });
   assert.deepEqual(layout.besideCalls, { x: 503, width: 951 - 84 - 24 - 503, top: 72 });
-  assert.equal(layout.tasks.place, 'sheet');
+  assert.equal(layout.tasks.place, 'page');
+  assert.deepEqual(layout.page?.fold, { axis: 'row', at: 455, band: 40 });
 });
 
 test('iPhone Duo on a table puts the orb above the fold and the words below it', () => {
@@ -179,5 +220,9 @@ test('iPhone Duo on a table puts the orb above the fold and the words below it',
   assert.equal(layout.words.top, 503);
   assert.ok(layout.orb.read.y < 455);
   assert.equal(layout.pulls, false);
-  assert.equal(layout.tasks.place, 'sheet');
+  assert.equal(layout.tasks.place, 'page');
+  const page = layout.page!;
+  assert.equal(page.area.y, layout.toolbar.y + 48 + 10);
+  assert.deepEqual(page.fold, { axis: 'column', at: 455 - page.area.y, band: 40 });
+  assert.ok(page.controls && page.call.orb.y === layout.toolbar.y + 24);
 });

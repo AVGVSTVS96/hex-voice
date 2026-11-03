@@ -15,7 +15,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { Hairline, Header, INSET, Mark, Pill, SectionHead, ios } from '@/components/tasks/parts';
-import { OpenIn, PlaceTile } from '@/components/tasks/places';
+import { OpenIn } from '@/components/tasks/places';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
@@ -106,6 +106,8 @@ export function ThreadPage({
   focus,
   foot = 0,
   onBack,
+  back,
+  onTyping,
   onOpen,
   onSteps,
   onSend,
@@ -118,7 +120,9 @@ export function ThreadPage({
   pending: Sending[];
   focus: number;
   foot?: number;
-  onBack: () => void;
+  onBack?: () => void;
+  back?: string;
+  onTyping?: (typing: boolean) => void;
   onOpen: (thread: TaskRow) => void;
   onSteps: () => void;
   onSend: (text: string) => void;
@@ -144,21 +148,9 @@ export function ThreadPage({
         title={title}
         subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
         onBack={onBack}
-        trailing={
-          thread.link ? (
-            <Row
-              alignment="center"
-              spacing={0}
-              onPress={() => onOpen(thread)}
-              modifiers={[
-                frame({ width: 36, height: 36 }),
-                contentShape(shapes.rectangle()),
-                ...(ios ? [accessibilityLabel(`Open in ${place}`)] : []),
-              ]}
-            >
-              <PlaceTile place={placeOf(thread.app)} size={30} />
-            </Row>
-          ) : undefined
+        back={back}
+        door={
+          thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
         }
       />
       <Spacer modifiers={[frame({ height: 8 })]} />
@@ -198,18 +190,26 @@ export function ThreadPage({
           {pending.map((sent) => (
             <Sent key={sent.key} sent={sent} onRetry={() => onRetry(sent)} />
           ))}
-          {running ? (
-            <TraceLine
-              lead={<Mark state="working" />}
-              text={doing ?? 'Working'}
-              time={taskTime(thread)}
-              chevron="chevron.right"
-              onPress={onSteps}
-              label={`Working: ${doing ?? ''}. Shows its steps`}
-            />
-          ) : null}
         </Column>
       </ScrollView>
+      {running ? (
+        <TraceLine
+          lead={<Mark state="working" />}
+          text={doing ?? 'Working'}
+          time={taskTime(thread)}
+          chevron="chevron.right"
+          after={
+            <Text
+              textStyle={{ fontSize: 15, fontWeight: '600' }}
+              modifiers={[foregroundStyle(theme.accent)]}
+            >
+              Steps
+            </Text>
+          }
+          onPress={onSteps}
+          label={`Working: ${doing ?? ''}. Shows its steps`}
+        />
+      ) : null}
       {chat?.sends ? (
         <Composer
           title={title}
@@ -218,6 +218,7 @@ export function ThreadPage({
           foot={foot}
           onSend={onSend}
           onStop={onStop}
+          onTyping={onTyping}
         />
       ) : (
         <Row
@@ -247,6 +248,7 @@ function Composer({
   foot,
   onSend,
   onStop,
+  onTyping,
 }: {
   title: string;
   working: boolean;
@@ -254,6 +256,7 @@ function Composer({
   foot: number;
   onSend: (text: string) => void;
   onStop: () => void;
+  onTyping?: (typing: boolean) => void;
 }) {
   const input = useRef<TextInputRef>(null);
   const [text, setText] = useState('');
@@ -300,8 +303,14 @@ function Composer({
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={setText}
-          onFocus={() => setTyping(true)}
-          onBlur={() => setTyping(false)}
+          onFocus={() => {
+            setTyping(true);
+            onTyping?.(true);
+          }}
+          onBlur={() => {
+            setTyping(false);
+            onTyping?.(false);
+          }}
           textStyle={{ fontSize: 17 }}
           testID="thread-input"
           modifiers={[

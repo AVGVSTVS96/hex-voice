@@ -18,6 +18,16 @@ const TASKS = 380;
 const CALL = 368;
 const RAIL_ORB = 44;
 const BESIDE_MUTE = 56;
+// iPhone Duo's column: below this height (folded on its side) its buttons draw smaller and closer.
+const SHORT = 520;
+const COLUMN_GAPS = { tools: 32, group: 16 };
+const TIGHT_GAPS = { tools: 12, group: 10 };
+const SIZES = { mute: MUTE, call: CONTROLS, gap: GAP };
+const TIGHT_SIZES = { mute: 48, call: 52, gap: 10 };
+// On a call with Tasks open, the orb this big and the call's time this tall and wide join the column.
+export const CALL_ORB = 34;
+export const TIME = 16;
+const TIME_WIDTH = 44;
 // Persona's Rive art fills three quarters of its view, as measured in the simulator.
 const ART = 0.75;
 
@@ -27,6 +37,10 @@ type Place = { x: number; y: number };
 type Spot = Place & { size?: number };
 type Span = { x: number; width: number };
 type Words = Span & { top: number };
+type Gaps = typeof COLUMN_GAPS;
+type Sizes = typeof SIZES;
+type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: Gaps };
+type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; sizes?: Sizes };
 
 // The call screen's geometry for a window in a pose. It comes in three arrangements:
 // - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed
@@ -45,8 +59,26 @@ type Words = Span & { top: number };
 // - beside: the call's card gives up that edge to the pane, and the call moves into the room left
 //   (iPad)
 // - over: the pane comes in over the call (iPhone Duo)
-// - sheet: Tasks rises as a sheet (phone and iPhone Duo)
-export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' };
+// - sheet: Tasks rises as a sheet (phone)
+// - page: Tasks takes the screen beside the call's column as a place of its own (iPhone Duo)
+export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' | 'page' };
+
+// iPhone Duo's Tasks: the screen beside the call's column, or under the toolbar where that runs
+// across the top, split into two pages along the fold while the Duo is open. On a call the orb
+// and the call's time join the column (`call`); where the toolbar runs across the top, the call
+// buttons join it at its trailing end (`controls`) and the tools gather at its leading one.
+export type Page = {
+  area: Rect;
+  fold?: Fold;
+  top: number;
+  foot: number;
+  call: { orb: Required<Spot>; time: Place & { width: number; align: 'center' | 'left' } };
+  controls?: { right: number; top: number };
+};
+
+// The fold within Tasks: the pages sit side by side (`row`) or one over the other (`column`), the
+// first `at` long, then the fold's band.
+export type Fold = { axis: 'row' | 'column'; at: number; band: number };
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
 export type Beside<T> = { open: T; calls: T; tasks: T };
@@ -54,13 +86,10 @@ export type Beside<T> = { open: T; calls: T; tasks: T };
 export type Layout = {
   kind: 'single' | 'split' | 'stacked';
   content: Rect;
-  toolbar: Spot & { width: number; axis: 'row' | 'column' };
+  toolbar: Toolbar;
   // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
   // on their own; on iPad they're centered at `center`, moving with the room a pane leaves.
-  controls:
-    | 'inline'
-    | { right: number; bottom: number; axis: 'row' | 'column' }
-    | { center: Beside<Place> };
+  controls: 'inline' | ColumnControls | { center: Beside<Place> };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
   // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
@@ -85,6 +114,7 @@ export type Layout = {
   tasks: Pane;
   // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
   inbox?: Inbox;
+  page?: Page;
   pulls: boolean;
 };
 
@@ -98,14 +128,31 @@ export type Inbox = {
 export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   const frame = frameFor(window, insets, pose);
   if (pose.regular && !pose.fold && !pose.bar) return pad(frame);
-  if (pose.regular && window.width > window.height) return split(frame, pose);
-  if (pose.fold?.active && pose.fold.width > pose.fold.height) return stacked(frame, pose.fold);
-  return single(frame);
+  const layout =
+    pose.regular && window.width > window.height
+      ? split(frame, pose)
+      : pose.fold?.active && pose.fold.width > pose.fold.height
+        ? stacked(frame, pose.fold)
+        : single(frame);
+  if (!pose.bar && !pose.fold) return layout;
+  return {
+    ...layout,
+    tasks: { width: frame.content.width, place: 'page' },
+    page: page(frame, pose.fold),
+  };
 }
 
-type Frame = ReturnType<typeof frameFor>;
+type Frame = {
+  window: Size;
+  insets: Insets;
+  bottomInset: number;
+  content: Rect;
+  toolbar: Toolbar;
+  controls?: ColumnControls;
+  top: number;
+};
 
-function frameFor(window: Size, insets: Insets, pose: Pose) {
+function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
   const bottomInset = Math.max(insets.bottom, 20) + 14;
   if (!pose.bar) {
     const top = insets.top + (pose.regular ? 16 : 12);
@@ -125,20 +172,38 @@ function frameFor(window: Size, insets: Insets, pose: Pose) {
   }
   const width = Math.max(pose.bar === 'right' ? insets.right : insets.left, COLUMN);
   const x = pose.bar === 'right' ? window.width - width : 0;
-  // The camera and the system's bars take the column's top; our tools start below them.
-  const taken = (pose.occlusions ?? [])
-    .filter((area) => area.x < x + width && area.x + area.width > x)
+  // The camera and the system's bars sit at the column's top upright and at its foot on its side;
+  // the tools start below what's at the top, and the call buttons end above what's at the foot.
+  const covers = (pose.occlusions ?? []).filter(
+    (area) => area.x < x + width && area.x + area.width > x,
+  );
+  const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
+  const top = covers
+    .filter(high)
     .reduce((bottom, area) => Math.max(bottom, area.y + area.height), insets.top);
+  const foot = covers
+    .filter((area) => !high(area))
+    .reduce((bottom, area) => Math.max(bottom, window.height - area.y + 8), insets.bottom);
+  // A short column (folded on its side) draws its buttons smaller and closer, so the call's orb and
+  // time still fit between the tools and the call buttons.
+  const tight = window.height < SHORT;
   return {
     window,
     insets,
     bottomInset,
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
-    toolbar: { x: x + (width - TOOL) / 2, y: taken, width: TOOL, axis: 'column' as const },
+    toolbar: {
+      x: x + (width - TOOL) / 2,
+      y: Math.max(top, GAP + 4),
+      width: TOOL,
+      axis: 'column' as const,
+      gaps: tight ? TIGHT_GAPS : COLUMN_GAPS,
+    },
     controls: {
       right: window.width - x - (width + CONTROLS) / 2,
-      bottom: insets.bottom,
+      bottom: foot,
       axis: 'column' as const,
+      sizes: tight ? TIGHT_SIZES : SIZES,
     },
     top: insets.top,
   };
@@ -363,4 +428,55 @@ function stacked(frame: Frame, fold: Rect): Layout {
     besideTasks: words,
     pulls: false,
   };
+}
+
+// iPhone Duo's Tasks (see `Page`). In the side column the orb and its time sit midway between the
+// tools and the call buttons; across the top they sit just before mute, the time after the orb.
+function page(frame: Frame, fold: Rect | undefined): Page {
+  const { window, insets, content, toolbar, controls } = frame;
+  const along = fold && (fold.height > fold.width ? 'row' : 'column');
+  if (controls) {
+    const gaps = toolbar.gaps ?? COLUMN_GAPS;
+    const sizes = controls.sizes ?? SIZES;
+    const tools = toolbar.y + 3 * TOOL + gaps.tools + gaps.group;
+    const buttons = window.height - controls.bottom - sizes.mute - sizes.gap - sizes.call;
+    const x = toolbar.x + TOOL / 2;
+    const y = (tools + buttons) / 2 - (TIME + 4) / 2;
+    return {
+      area: content,
+      fold: fold && along && cut(along, fold, content),
+      top: insets.top,
+      foot: insets.bottom,
+      call: {
+        orb: { x, y, size: CALL_ORB },
+        time: {
+          x: x - TIME_WIDTH / 2,
+          y: y + CALL_ORB / 2 + 4,
+          width: TIME_WIDTH,
+          align: 'center',
+        },
+      },
+    };
+  }
+  const y = toolbar.y + TOOL + 10;
+  const area = { x: content.x, y, width: content.width, height: window.height - y };
+  const orbX = window.width - GUTTER - 2 * TOOL - GAP - 14 - TIME_WIDTH - 6 - CALL_ORB / 2;
+  const middle = toolbar.y + TOOL / 2;
+  return {
+    area,
+    fold: fold && along && cut(along, fold, area),
+    top: 0,
+    foot: insets.bottom,
+    call: {
+      orb: { x: orbX, y: middle, size: CALL_ORB },
+      time: { x: orbX + CALL_ORB / 2 + 6, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
+    },
+    controls: { right: GUTTER, top: toolbar.y },
+  };
+}
+
+function cut(axis: Fold['axis'], fold: Rect, area: Rect): Fold {
+  return axis === 'row'
+    ? { axis, at: fold.x - area.x, band: fold.width }
+    : { axis, at: fold.y - area.y, band: fold.height };
 }

@@ -6,6 +6,8 @@ import { VoiceControl } from '@/components/voice-control';
 
 type Props = {
   axis: 'row' | 'column';
+  gaps?: { tools: number; group: number };
+  gathered?: boolean;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
@@ -15,9 +17,12 @@ type Props = {
 };
 
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
-// side column with the two set apart.
+// side column with the two set apart (`gaps` apart, where the column is short). `gathered`, the
+// three sit together at the leading end, leaving the trailing end to the call buttons.
 export function ScreenToolbar({
   axis,
+  gaps,
+  gathered = false,
   style,
   callsOpen,
   tasks,
@@ -26,7 +31,10 @@ export function ScreenToolbar({
   onSettings,
 }: Props) {
   return (
-    <Animated.View pointerEvents="box-none" style={[styles[axis], style]}>
+    <Animated.View
+      pointerEvents="box-none"
+      style={[styles[axis], gaps && { gap: gaps.tools }, gathered && styles.gathered, style]}
+    >
       <VoiceControl
         icon="calls"
         label="Calls"
@@ -34,7 +42,7 @@ export function ScreenToolbar({
         selected={callsOpen}
         onPress={onCalls}
       />
-      <View style={styles[`${axis}Group`]}>
+      <View style={[styles[`${axis}Group`], gaps && { gap: gaps.group }]}>
         <TasksButton
           needs={tasks.needs}
           working={tasks.working}
@@ -55,6 +63,7 @@ export function ScreenToolbar({
 const styles = StyleSheet.create({
   row: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between' },
   rowGroup: { flexDirection: 'row', gap: 12 },
+  gathered: { justifyContent: 'flex-start', gap: 12 },
   column: { position: 'absolute', alignItems: 'center', gap: 32 },
   columnGroup: { alignItems: 'center', gap: 16 },
 });
