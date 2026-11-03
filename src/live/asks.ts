@@ -3,7 +3,7 @@ import * as z from 'zod/mini';
 import { CallId, timeOfDay } from './calls';
 import { TaskId } from './tasks';
 
-export const AskId = z.string();
+export const AskId = z.string().brand<'AskId'>();
 export type AskId = z.infer<typeof AskId>;
 
 // An answer: each tells hex something. A page an ask points to is a link, and opening it answers

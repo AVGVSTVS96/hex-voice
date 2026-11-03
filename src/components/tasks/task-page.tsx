@@ -29,6 +29,7 @@ import {
   taskTime,
   type Task,
   type TaskRow,
+  type TaskId,
 } from '@/live/tasks';
 import { theme } from '@/theme';
 
@@ -59,12 +60,12 @@ export function Detail({
   threads: TaskRow[];
   missing: Set<Place>;
   width: number;
-  onSteps: (id: string) => void;
+  onSteps: (id: TaskId) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
-  onOpenTask: (id: string) => void;
+  onOpenTask: (id: TaskId) => void;
   messages?: ReactNode;
   beside?: boolean;
   // Writing your own answer to an ask, so its field is the one on the page.

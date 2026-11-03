@@ -3,7 +3,7 @@ import * as z from 'zod/mini';
 
 import type { TranscriptEntry } from './types';
 
-export const CallId = z.string();
+export const CallId = z.string().brand<'CallId'>();
 export type CallId = z.infer<typeof CallId>;
 
 export const CallSource = z.catch(

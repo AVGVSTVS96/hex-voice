@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
+import { TaskId } from '@/live/tasks';
 import LiveScreen from '@/screens/live-screen';
 
 // A link opens the app at a place (scripts/duo-states): ?tasks for Tasks' list, ?tasks=<topic>
@@ -15,7 +16,7 @@ export default function Index() {
   return (
     <LiveScreen
       opening={{
-        tasks: tasks === undefined ? undefined : { task: tasks || undefined },
+        tasks: tasks === undefined ? undefined : { task: tasks ? TaskId.parse(tasks) : undefined },
         open: open === 'settings' || open === 'calls' ? open : undefined,
         demoCall: demo === 'call',
         reportPose: report === 'pose',
