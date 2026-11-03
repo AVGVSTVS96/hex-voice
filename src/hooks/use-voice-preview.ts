@@ -4,7 +4,7 @@ import {
   useAudioPlayer,
   type AudioMode,
 } from 'expo-audio';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { VOICE_PREVIEWS } from '@/live/voice-previews';
 import type { LiveVoice } from '@/live/voices';
@@ -16,37 +16,37 @@ const PREVIEW_AUDIO: Partial<AudioMode> = {
   playsInSilentMode: true,
   interruptionMode: 'duckOthers',
 };
-// The call's chimes keep the audio session awake, so ending a preview doesn't let it go: music
+// The call's chimes keep the audio session awake, so leaving the previews doesn't let it go: music
 // comes back up only once the mode stops asking to duck it.
 const SHARED_AUDIO: Partial<AudioMode> = {
   playsInSilentMode: true,
   interruptionMode: 'mixWithOthers',
 };
-const share = () => void setAudioModeAsync(SHARED_AUDIO).catch(() => {});
 
 export function useVoicePreview(voice: LiveVoice, playing: boolean, take = 0) {
   const player = useAudioPlayer(null);
-
-  useEffect(() => {
-    const finished = player.addListener('playbackStatusUpdate', (status) => {
-      if (status.didJustFinish) share();
-    });
-    return () => finished.remove();
-  }, [player]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!playing) return;
+    let open = true;
+    void setAudioModeAsync(PREVIEW_AUDIO)
+      .catch(() => {})
+      .then(() => open && setReady(true));
     return () => {
+      open = false;
+      setReady(false);
       player.pause();
-      share();
+      void setAudioModeAsync(SHARED_AUDIO).catch(() => {});
     };
   }, [player, playing]);
 
+  // Waking the audio session can take a moment, so it happens off the JavaScript thread before the
+  // swipe's preview starts, leaving play() nothing slow to do.
   useEffect(() => {
-    if (!playing) return;
+    if (!ready) return;
     let current = true;
-    void setAudioModeAsync(PREVIEW_AUDIO)
-      .then(() => setIsAudioActiveAsync(true))
+    void setIsAudioActiveAsync(true)
       .catch(() => {})
       .then(() => {
         if (!current) return;
@@ -56,5 +56,5 @@ export function useVoicePreview(voice: LiveVoice, playing: boolean, take = 0) {
     return () => {
       current = false;
     };
-  }, [player, voice, playing, take]);
+  }, [player, voice, ready, take]);
 }
