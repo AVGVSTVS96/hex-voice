@@ -162,6 +162,8 @@ export const metrics = {
   // Tasks' stage tabs: the gap between a tab's name and its count, and the room under them for
   // the selected tab's underline.
   tabs: { gap: 5, underline: 11 },
+  // A topic's marks, as dots beside its name.
+  dots: { size: 6, gap: 3 },
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge. Together with a
   // row's own top padding, nothing at rest sits in the fade.
