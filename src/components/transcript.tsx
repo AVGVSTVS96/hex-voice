@@ -139,7 +139,13 @@ function useSettledLength(length: number) {
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: 'flex-end', gap: 24, paddingTop: 36, paddingBottom: 4 },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    gap: 24,
+    paddingTop: metrics.fade,
+    paddingBottom: metrics.fade,
+  },
   centered: { justifyContent: 'center' },
   user: {
     alignSelf: 'flex-end',

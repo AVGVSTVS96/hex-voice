@@ -72,7 +72,7 @@ import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
-import { radius, theme } from '@/theme';
+import { metrics, radius, theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const COMMIT = 0.35;
@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 36,
+    height: metrics.fade,
     experimental_backgroundImage: [{ type: 'linear-gradient', colorStops: FADE }],
   },
   fadeBottom: {
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 36,
+    height: metrics.fade,
     experimental_backgroundImage: [
       { type: 'linear-gradient', direction: 'to top', colorStops: FADE },
     ],
