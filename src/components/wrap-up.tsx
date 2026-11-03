@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { CallSummary } from '@/live/calls';
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
 
 type Props = Pick<CallSummary, 'why' | 'summary' | 'waiting'> & { center?: boolean };
 
@@ -47,9 +47,7 @@ const styles = StyleSheet.create({
   label: { color: theme.secondary, fontSize: 13, lineHeight: 18, fontWeight: '600' },
   item: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    ...circle(6),
     marginTop: 8,
     backgroundColor: theme.accent,
   },

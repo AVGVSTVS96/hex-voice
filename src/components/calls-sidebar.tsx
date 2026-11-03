@@ -23,7 +23,7 @@ import {
   type CallSummary,
 } from '@/live/calls';
 import { motion } from '@/motion';
-import { theme } from '@/theme';
+import { circle, radius, theme } from '@/theme';
 
 const ACTION = 64;
 const DELETE_AT = 180;
@@ -239,13 +239,13 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 6,
   },
-  row: { height: 64, marginHorizontal: 8, borderRadius: 14, borderCurve: 'continuous' },
+  row: { height: 64, marginHorizontal: 8, borderRadius: radius.control, borderCurve: 'continuous' },
   selected: { backgroundColor: theme.skeleton },
   slide: {
     ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: radius.control,
     borderCurve: 'continuous',
     backgroundColor: theme.sheet,
   },
@@ -266,18 +266,14 @@ const styles = StyleSheet.create({
   when: { color: theme.secondary, fontSize: 14, lineHeight: 19, fontVariant: ['tabular-nums'] },
   action: { position: 'absolute', right: 8, top: 10 },
   delete: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    ...circle(44),
     backgroundColor: theme.danger,
     alignItems: 'center',
     justifyContent: 'center',
   },
   empty: { alignItems: 'center', paddingHorizontal: 30, paddingTop: 130 },
   ring: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    ...circle(72),
     backgroundColor: theme.skeleton,
     alignItems: 'center',
     justifyContent: 'center',

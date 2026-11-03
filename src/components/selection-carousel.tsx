@@ -2,7 +2,7 @@ import { RNHostView } from '@expo/ui';
 import { useEffect, useRef } from 'react';
 import { ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
 
 import type { SelectionCarouselProps } from './selection-carousel.types';
 
@@ -113,5 +113,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  dot: { width: 7, height: 7, borderRadius: 4 },
+  dot: circle(7),
 });

@@ -16,7 +16,7 @@ import { Linking } from 'react-native';
 import { Mark } from '@/components/tasks/mark';
 import { GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
-import { theme } from '@/theme';
+import { radius, theme } from '@/theme';
 
 export function Pinned({ text }: { text: string }) {
   const sections = pinSections(text);
@@ -73,7 +73,7 @@ function Line({ line }: { line: PinLine }) {
           padding({ leading: 16, trailing: 16, top: 12, bottom: 12 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
-          clipShape('roundedRectangle', 14),
+          clipShape('roundedRectangle', radius.inner),
           padding({ leading: INSET - 2 + MARK + GAP, trailing: INSET, top: 4, bottom: 8 }),
         ]}
       >

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CallMenu } from '@/components/call-menu';
 import { callName, callWhen, type CallSummary } from '@/live/calls';
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
 
 type Props = {
   call: CallSummary;
@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
   when: { color: theme.secondary, fontSize: 13, lineHeight: 18 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: theme.switchOn },
+  liveDot: { ...circle(7), backgroundColor: theme.switchOn },
   backText: { color: theme.switchOn, fontSize: 13, lineHeight: 18, fontWeight: '500' },
 });

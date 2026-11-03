@@ -23,7 +23,7 @@ import { GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts
 import type { Ask, AskLink, AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';
-import { theme } from '@/theme';
+import { radius, theme } from '@/theme';
 
 const ROW = 50;
 const QUESTION = 17;
@@ -341,12 +341,12 @@ function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => 
         frame({ minHeight: ROW - 8 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         background(theme.surface),
-        clipShape('roundedRectangle', 14),
+        clipShape('roundedRectangle', radius.control),
         strokeBorder({
           content: theme.edge,
           style: { lineWidth: 1 },
           shape: 'roundedRectangle',
-          cornerRadius: 14,
+          cornerRadius: radius.control,
         }),
         padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
       ]}

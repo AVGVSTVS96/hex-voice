@@ -72,7 +72,7 @@ import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
-import { theme } from '@/theme';
+import { radius, theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const COMMIT = 0.35;
@@ -501,7 +501,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             (side.place === 'slide' ? t * side.width : 0),
         },
       ],
-      borderRadius: 44 * Math.min(1, open * 4),
+      borderRadius: radius.card * Math.min(1, open * 4),
       borderWidth: slid > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });

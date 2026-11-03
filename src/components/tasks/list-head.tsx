@@ -23,7 +23,7 @@ import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
 import { INSET, ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
-import { theme } from '@/theme';
+import { radius, theme } from '@/theme';
 
 export function ListHead({
   toolbarLine,
@@ -220,7 +220,7 @@ export function Search({
           frame({ maxWidth: Infinity }),
           ...(glass
             ? [glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' })]
-            : [background(theme.surface), clipShape('roundedRectangle', 12)]),
+            : [background(theme.surface), clipShape('roundedRectangle', radius.control)]),
         ]}
       >
         <Icon name="magnifyingglass" size={14} color={theme.secondary} />

@@ -13,7 +13,7 @@ import { Mark } from '@/components/tasks/mark';
 import { Faded, GAP, INSET, SectionHead, Sections } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
-import { theme } from '@/theme';
+import { radius, theme } from '@/theme';
 
 export function LastCheck({ check }: { check?: Check }) {
   return (
@@ -69,7 +69,7 @@ function Read({ read }: { read: Record<string, number> }) {
         padding({ top: 16, bottom: 16, leading: 8, trailing: 8 }),
         frame({ maxWidth: Infinity }),
         background(theme.group),
-        clipShape('roundedRectangle', 22),
+        clipShape('roundedRectangle', radius.group),
         padding({ leading: INSET, trailing: INSET }),
       ]}
     >
