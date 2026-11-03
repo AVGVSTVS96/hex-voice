@@ -20,7 +20,8 @@ import { theme } from '@/theme';
 // iOS 26's bar buttons: 44pt glass, a circle for a symbol and a capsule for a name.
 export const BAR = 44;
 
-export type Back = { to?: string; onPress: () => void };
+// Back names where it goes; `short`, it shows only its chevron, and still says where to VoiceOver.
+export type Back = { to: string; short: boolean; onPress: () => void };
 
 export type Chrome = { back?: Back };
 export const PageChrome = createContext<Chrome>({});
@@ -101,13 +102,13 @@ export function PageBar({
 export function BackButton({ back }: { back: Back }) {
   return (
     <BarButton
-      shape={back.to ? 'capsule' : 'circle'}
-      label={back.to ? `Back to ${back.to}` : 'Back'}
+      shape={back.short ? 'circle' : 'capsule'}
+      label={`Back to ${back.to}`}
       testID="task-back"
       onPress={back.onPress}
     >
       <Icon name="chevron.left" size={17} color={theme.accent} />
-      {back.to ? (
+      {!back.short ? (
         <Text
           numberOfLines={1}
           textStyle={{ fontSize: 17, fontWeight: '500' }}
@@ -120,18 +121,12 @@ export function BackButton({ back }: { back: Back }) {
   );
 }
 
+// The way out to the app a page lives in: its place's tile in a glass circle, so the title keeps
+// the bar's width.
 function DoorPill({ door }: { door: Door }) {
   return (
-    <BarButton shape="capsule" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
-      <PlaceTile place={door.place} size={22} />
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 15, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.text)]}
-      >
-        {PLACES[door.place]}
-      </Text>
-      <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+    <BarButton shape="circle" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
+      <PlaceTile place={door.place} size={24} />
     </BarButton>
   );
 }
