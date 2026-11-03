@@ -47,18 +47,19 @@ import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
-import { useCall, useCalls } from '@/hooks/use-calls';
+import { usePastCall, useCalls } from '@/hooks/use-calls';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import { failure } from '@/hooks/use-failures';
 import { useNow } from '@/hooks/use-now';
-import { useTaskCounts } from '@/hooks/use-tasks';
+import { answerAsk, raiseAsks } from '@/hooks/use-asks';
+import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
-import { asksAPI, tasksAPI } from '@/live/api';
 import type { TaskRow } from '@/live/tasks';
+import type { CallAbout } from '@/live/types';
 import {
   ENDINGS,
   SOURCES,
@@ -163,7 +164,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const showCall = (call: string | null) =>
     setShowing((now) => ({ pulled: now.pulled || call !== null, call }));
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
-  const past = useCall(shown);
+  const past = usePastCall(shown?.id);
   // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
   // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
@@ -698,7 +699,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     action.catch((error: unknown) => setTrouble({ call, why: failure(what, error) }));
   };
   const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
-  const startCall = (about?: string) => {
+  const startCall = (about?: CallAbout) => {
     if (viewing) leaveCall();
     void session.start(voice, about);
   };
@@ -727,8 +728,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
     stepAside();
-    if (onCall) tried('Not sent', tasksAPI.talk(task.id));
-    else if (voiceLoaded) startCall(task.id);
+    if (onCall) tried('Not sent', raiseTask(task.id));
+    else if (voiceLoaded) startCall({ task: task.id });
   };
   // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
   const openCallFromTasks = (id: string) => {
@@ -747,7 +748,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
     stepAside();
-    if (onCall) tried('Not sent', asksAPI.talk());
+    if (onCall) tried('Not sent', raiseAsks());
     else if (voiceLoaded) startCall('asks');
   };
 
@@ -872,7 +873,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                       size={layout.text}
                       emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
-                      onAnswer={(card, option) => asksAPI.answer(card.ask.id, option.label)}
+                      onAnswer={(card, option) => answerAsk(card.ask, option)}
                       onOpenTask={(task) => openTasks({ task })}
                     />
                   )}

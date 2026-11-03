@@ -1,20 +1,25 @@
-import type { Ask } from './asks';
+import * as z from 'zod/mini';
 
-export type AgentTask = {
-  id: string;
-  state: 'running' | 'done' | 'failed';
-  text: string;
-  to?: string;
-  line?: string;
-};
+import { Ask } from './asks';
+import { CallId } from './calls';
+
+const AgentTask = z.object({
+  id: z.string(),
+  state: z.catch(z.enum(['running', 'done', 'failed']), 'done'),
+  text: z.string(),
+  to: z.optional(z.string()),
+  line: z.optional(z.string()),
+});
+export type AgentTask = z.infer<typeof AgentTask>;
 // An ask hex put on screen during the call, with the answer once it has one.
-export type CallCard = { at: number; ask: Ask; answer?: string };
-export type AgentActivity = {
-  version: number;
-  call: string | null;
-  tasks: AgentTask[];
-  asks?: CallCard[];
-};
+const CallCard = z.object({ at: z.number(), ask: Ask, answer: z.optional(z.string()) });
+export type CallCard = z.infer<typeof CallCard>;
+export const AgentActivity = z.object({
+  version: z.number(),
+  call: z.nullable(CallId),
+  tasks: z.array(AgentTask),
+  asks: z.optional(z.array(CallCard)),
+});
 export type AgentLine = {
   id: string;
   state: AgentTask['state'];
@@ -22,30 +27,6 @@ export type AgentLine = {
   waiting: boolean;
   where: string;
 };
-
-export interface AgentsAPI {
-  watch(after: number | undefined, signal: AbortSignal): Promise<AgentActivity>;
-}
-
-export function createAgentsAPI(options: {
-  fetch: typeof globalThis.fetch;
-  hexUrl?: string;
-  token?: string;
-}): AgentsAPI {
-  return {
-    async watch(after, signal) {
-      const origin = options.hexUrl?.trim().replace(/\/+$/, '');
-      if (!origin) throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address.');
-      const query = after === undefined ? '' : `?after=${after}`;
-      const response = await options.fetch(`${origin}/activity${query}`, {
-        headers: options.token ? { Authorization: `Bearer ${options.token}` } : {},
-        signal,
-      });
-      if (!response.ok) throw new Error(`hex answered HTTP ${response.status}.`);
-      return (await response.json()) as AgentActivity;
-    },
-  };
-}
 
 // The tasks come most recently changed first, so the first running one is the agent that
 // took a step last. A task that just finished holds the line until something runs again.

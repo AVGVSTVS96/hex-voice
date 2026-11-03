@@ -1,57 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import { useActive } from '@/hooks/use-watch';
-import { callsAPI, sessionAPI } from '@/live/api';
-import type { CallRecord } from '@/live/calls';
-
-const RETRY = 2000;
+import { hex } from '@/hex';
+import { usePastCall } from '@/hooks/use-calls';
+import type { CallId } from '@/live/calls';
 
 // hex holds one call at a time. When it's one this app isn't on, a phone call or the web page, the
 // screen shows it as its own: the call's record follows it word by word until it ends, and the
 // ended call stays on screen, with how it ended, until a call starts here. A call that ended while
 // the app was away is read once more for its ending.
-export function useCallElsewhere(live: string | undefined, here: boolean) {
-  const [call, setCall] = useState<CallRecord>();
-  const [leaving, setLeaving] = useState(false);
-  const active = useActive();
-  const follow = live ?? (call && !call.ended ? call.id : undefined);
-
-  useEffect(() => {
-    if (here) setCall(undefined);
-  }, [here]);
-
-  useEffect(() => {
-    setLeaving(false);
-    if (!follow || !active) return;
-    const controller = new AbortController();
-    void (async () => {
-      let version: number | undefined;
-      while (!controller.signal.aborted) {
-        try {
-          const record = await callsAPI.get(follow, version, controller.signal);
-          if (controller.signal.aborted) return;
-          setCall(record);
-          if (record.ended || record.version === undefined) return;
-          version = record.version;
-        } catch {
-          if (controller.signal.aborted) return;
-          await new Promise((resolve) => setTimeout(resolve, RETRY));
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [follow, active]);
+export function useCallElsewhere(live: CallId | undefined, here: boolean) {
+  const [shown, setShown] = useState<CallId>();
+  const [leaving, setLeaving] = useState<CallId>();
+  if (live && live !== shown) setShown(live);
+  if (here && shown) setShown(undefined);
+  const { call } = usePastCall(shown);
+  const on = !!call && !call.ended;
 
   const hangUp = async () => {
     if (!call || call.ended) return;
-    setLeaving(true);
+    setLeaving(call.id);
     try {
-      await sessionAPI.close(call.id);
+      await hex.session.close(call.id);
     } catch (error) {
-      setLeaving(false);
+      setLeaving(undefined);
       throw error;
     }
   };
 
-  return { call, live: !!call && !call.ended, leaving, hangUp };
+  return { call, live: on, leaving: on && leaving === call.id, hangUp };
 }

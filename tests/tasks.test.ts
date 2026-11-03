@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createSessionAPI, createTasksAPI } from '../src/live/api-client';
+import type * as z from 'zod/mini';
+
 import {
   agentCounts,
   agentMeta,
@@ -16,11 +17,10 @@ import {
   taskTime,
   type AgentTrail,
   type Task,
-  type TaskRow,
+  TaskRow,
   type TaskStep,
 } from '../src/live/tasks';
 
-const hexUrl = 'https://hex.example:8790';
 const now = new Date(2026, 9, 13, 10, 0);
 const at = (hours: number, minutes = 0, day = 13) =>
   new Date(2026, 9, day, hours, minutes).toISOString();
@@ -28,21 +28,22 @@ const row = (
   name: string,
   state: TaskRow['state'],
   when = at(9),
-  extra: Partial<TaskRow> = {},
-): TaskRow => ({
-  id: `telegram:${name}`,
-  app: 'telegram',
-  name,
-  place: name,
-  state,
-  running: state === 'working',
-  line: `${name} line`,
-  since: when,
-  at: when,
-  agents: [],
-  track: [],
-  ...extra,
-});
+  extra: Partial<z.input<typeof TaskRow>> = {},
+): TaskRow =>
+  TaskRow.parse({
+    id: `telegram:${name}`,
+    app: 'telegram',
+    name,
+    place: name,
+    state,
+    running: state === 'working',
+    line: `${name} line`,
+    since: when,
+    at: when,
+    agents: [],
+    track: [],
+    ...extra,
+  });
 
 test('a row says how long it has worked, or since when it waited or finished', () => {
   assert.equal(taskTime(row('voiceapp', 'working', at(9, 46)), now), '14 min');
@@ -69,51 +70,6 @@ test('a step without an end lasts until the next began, and a reply says when it
   const said = stepTimes([step(59, 30, 'run'), step(20, 0, 'say')], now);
   assert.equal(said[0], '');
   assert.match(said[1]!, /^9:20\sAM$/);
-});
-
-test('tasks are asked for with the hex token, waiting on the version they last saw', async () => {
-  const asked: string[] = [];
-  const api = createTasksAPI({
-    hexUrl,
-    token: 'secret',
-    fetch: async (url, init) => {
-      asked.push(`${init?.method} ${url}`);
-      assert.equal(
-        (init?.headers as Record<string, string> | undefined)?.Authorization,
-        'Bearer secret',
-      );
-      if (String(url).endsWith('/talk')) return new Response(null, { status: 204 });
-      if (String(url).includes('summary'))
-        return Response.json({ version: 3, needs: 1, working: 2 });
-      return Response.json({ version: 7, tasks: [row('autofork', 'needs')] });
-    },
-  });
-  assert.equal((await api.list()).tasks[0].name, 'autofork');
-  await api.list(7);
-  assert.deepEqual(await api.counts(2), { version: 3, needs: 1, working: 2 });
-  await api.talk('telegram:-100:908');
-  assert.deepEqual(asked, [
-    `GET ${hexUrl}/tasks`,
-    `GET ${hexUrl}/tasks?after=7`,
-    `GET ${hexUrl}/tasks/summary?after=2`,
-    `POST ${hexUrl}/tasks/telegram%3A-100%3A908/talk`,
-  ]);
-});
-
-test('a call started from a task tells hex which one', async () => {
-  const api = createSessionAPI({
-    hexUrl,
-    fetch: async (_url, init) => {
-      assert.deepEqual(JSON.parse(String(init?.body)), {
-        sdp: 'offer',
-        voice: 'cedar',
-        from: 'app',
-        about: 'telegram:-100:908',
-      });
-      return Response.json({ session: { id: 'live_1' }, transport: { sdp: 'answer' } });
-    },
-  });
-  await api.create('offer', 'cedar', 'telegram:-100:908');
 });
 
 test('a lane shows the last week on a log scale, now at the right edge', () => {

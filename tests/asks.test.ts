@@ -1,31 +1,33 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createAsksAPI } from '../src/live/api-client';
+import type * as z from 'zod/mini';
+
 import {
   checkLine,
   failedOn,
   keepInPlace,
   openAsks,
   yours,
-  type Ask,
+  Ask,
   type AskList,
   type Yours,
 } from '../src/live/asks';
 import { pinSections } from '../src/live/pinned';
 
-const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
-  id,
-  kind,
-  task: 'telegram:-100:1',
-  app: 'telegram',
-  topic: 'autofork',
-  at: new Date(2026, 9, 13, 7, 32).toISOString(),
-  question: `${id}?`,
-  options: [{ label: 'Yes' }, { label: 'No' }],
-  places: [],
-  ...extra,
-});
+const ask = (id: string, kind: Ask['kind'], extra: Partial<z.input<typeof Ask>> = {}): Ask =>
+  Ask.parse({
+    id,
+    kind,
+    task: 'telegram:-100:1',
+    app: 'telegram',
+    topic: 'autofork',
+    at: new Date(2026, 9, 13, 7, 32).toISOString(),
+    question: `${id}?`,
+    options: [{ label: 'Yes' }, { label: 'No' }],
+    places: [],
+    ...extra,
+  });
 
 test('the check strip says what the check did', () => {
   const { did } = checkLine({
@@ -76,34 +78,6 @@ test('a pinned post reads as sections: what waits on you, what runs, known probl
     mark: 'done',
     url: 'https://example.com/review',
   });
-});
-
-test('an answer, an undo and a stuck item’s action each go to hex with the app’s token', async () => {
-  const calls: { url: string; init?: RequestInit }[] = [];
-  const api = createAsksAPI({
-    hexUrl: 'https://hex.example:8790/',
-    token: 'secret',
-    fetch: (async (url: string, init?: RequestInit) => {
-      calls.push({ url, init });
-      return new Response(null, { status: 204 });
-    }) as typeof fetch,
-  });
-  await api.answer('telegram:-100:1:7', 'Deep');
-  await api.undo('check:music');
-  await api.act('t3-limit');
-  assert.deepEqual(
-    calls.map(({ url }) => url),
-    [
-      'https://hex.example:8790/asks/telegram%3A-100%3A1%3A7/answer',
-      'https://hex.example:8790/asks/check%3Amusic/undo',
-      'https://hex.example:8790/stuck/t3-limit/act',
-    ],
-  );
-  assert.equal(calls[0]!.init?.body, JSON.stringify({ label: 'Deep' }));
-  assert.equal(
-    (calls[0]!.init?.headers as Record<string, string> | undefined)?.Authorization,
-    'Bearer secret',
-  );
 });
 
 const list = (...ids: string[]): AskList => ({

@@ -1,10 +1,10 @@
-import type { Chat, ChatTurn } from './tasks';
+import type { Chat, ChatTurn, TaskId } from './tasks';
 
 // What you sent from here to thread `id` that its chat doesn't show yet: `total` is how long the
 // chat was then, so it's found once it shows up after that point. One that failed says why and
 // keeps its key, so trying again delivers it once; one hex refused can't be tried again.
 export type Sending = {
-  id: string;
+  id: TaskId;
   key: string;
   text: string;
   total: number;

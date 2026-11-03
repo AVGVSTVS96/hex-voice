@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { Ask, Fresh, Stuck } from '../src/live/asks';
+import type * as z from 'zod/mini';
+
+import { Ask, Fresh, Stuck } from '../src/live/asks';
 import {
   fitsOneLine,
   headlineOf,
@@ -17,7 +19,7 @@ import {
   topicsOf,
   type Entry,
 } from '../src/live/inbox';
-import type { TaskRow } from '../src/live/tasks';
+import { TaskRow } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
 const at = (hours: number, minutes = 0, day = 13) =>
@@ -27,52 +29,56 @@ const row = (
   name: string,
   state: TaskRow['state'],
   when = at(9),
-  extra: Partial<TaskRow> = {},
-): TaskRow => ({
-  id: `telegram:${name}`,
-  app: 'telegram',
-  name,
-  place: name,
-  state,
-  running: state === 'working',
-  line: `${name} line`,
-  since: when,
-  at: when,
-  agents: [],
-  track: [],
-  ...extra,
-});
-const ask = (id: string, kind: Ask['kind'], extra: Partial<Ask> = {}): Ask => ({
-  id,
-  kind,
-  task: 'telegram:-100:1',
-  app: 'telegram',
-  topic: 'autofork',
-  at: at(7, 32),
-  question: `${id}?`,
-  options: [{ label: 'Yes' }, { label: 'No' }],
-  places: [],
-  ...extra,
-});
-const stuck = (id: string, extra: Partial<Stuck> = {}): Stuck => ({
-  id,
-  app: 't3',
-  title: `${id} stopped`,
-  why: `${id} why`,
-  action: 'Retry',
-  mark: 'failed',
-  at: at(6),
-  ...extra,
-});
-const fresh = (id: string, topic: string, when = at(9), read = false): Fresh => ({
-  id,
-  app: 't3',
-  topic,
-  title: `${id} title`,
-  line: `${id} line`,
-  at: when,
-  read,
-});
+  extra: Partial<z.input<typeof TaskRow>> = {},
+): TaskRow =>
+  TaskRow.parse({
+    id: `telegram:${name}`,
+    app: 'telegram',
+    name,
+    place: name,
+    state,
+    running: state === 'working',
+    line: `${name} line`,
+    since: when,
+    at: when,
+    agents: [],
+    track: [],
+    ...extra,
+  });
+const ask = (id: string, kind: Ask['kind'], extra: Partial<z.input<typeof Ask>> = {}): Ask =>
+  Ask.parse({
+    id,
+    kind,
+    task: 'telegram:-100:1',
+    app: 'telegram',
+    topic: 'autofork',
+    at: at(7, 32),
+    question: `${id}?`,
+    options: [{ label: 'Yes' }, { label: 'No' }],
+    places: [],
+    ...extra,
+  });
+const stuck = (id: string, extra: Partial<z.input<typeof Stuck>> = {}): Stuck =>
+  Stuck.parse({
+    id,
+    app: 't3',
+    title: `${id} stopped`,
+    why: `${id} why`,
+    action: 'Retry',
+    mark: 'failed',
+    at: at(6),
+    ...extra,
+  });
+const fresh = (id: string, topic: string, when = at(9), read = false): Fresh =>
+  Fresh.parse({
+    id,
+    app: 't3',
+    topic,
+    title: `${id} title`,
+    line: `${id} line`,
+    at: when,
+    read,
+  });
 
 type Parts = { tasks?: TaskRow[]; asks?: Ask[]; stuck?: Stuck[]; fresh?: Fresh[] };
 const stream = ({ tasks = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>

@@ -1,68 +1,100 @@
-import { timeOfDay } from './calls';
+import * as z from 'zod/mini';
 
-export type AskKind = 'pick' | 'yesno' | 'do' | 'look';
+import { CallId, timeOfDay } from './calls';
+import { TaskId } from './tasks';
+
+export const AskId = z.string();
+export type AskId = z.infer<typeof AskId>;
+
 // An answer: each tells hex something. A page an ask points to is a link, and opening it answers
 // nothing.
-export type AskOption = { label: string; value?: string; pick?: boolean };
-export type AskLink = { label: string; url: string };
+const AskOption = z.object({
+  label: z.string(),
+  value: z.optional(z.string()),
+  pick: z.optional(z.boolean()),
+});
+export type AskOption = z.infer<typeof AskOption>;
+const AskLink = z.object({ label: z.string(), url: z.string() });
+export type AskLink = z.infer<typeof AskLink>;
 // Each place an ask was asked: a thread in its app (`task` is its id among the tasks) or a call
 // (`app: 'voice'`, opened in Calls by `call`). Without a link we know it's from there but can't open
 // it. hex sends the ones that open first, then the rest, each newest first.
-export type AskPlace = { app: string; place: string; task?: string; call?: string; link?: string };
+const AskPlace = z.object({
+  app: z.string(),
+  place: z.string(),
+  task: z.optional(TaskId),
+  call: z.optional(CallId),
+  link: z.optional(z.string()),
+});
+export type AskPlace = z.infer<typeof AskPlace>;
+export const Ask = z.object({
+  id: AskId,
+  kind: z.catch(z.enum(['pick', 'yesno', 'do', 'look']), 'pick'),
+  task: TaskId,
+  app: z.string(),
+  topic: z.string(),
+  at: z.string(),
+  question: z.string(),
+  context: z.optional(z.string()),
+  options: z.array(AskOption),
+  links: z.optional(z.array(AskLink)),
+  places: z.array(AskPlace),
+  tag: z.optional(z.string()),
+});
 // Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` is
 // this app's, never hex's: what you did to it here that didn't go through, and why.
-export type Ask = {
-  id: string;
-  kind: AskKind;
-  task: string;
-  app: string;
-  topic: string;
-  at: string;
-  question: string;
-  context?: string;
-  options: AskOption[];
-  links?: AskLink[];
-  places: AskPlace[];
-  tag?: string;
-  failed?: string;
-};
-export type Stuck = {
-  id: string;
-  app: string;
-  title: string;
-  why: string;
-  action: string;
-  mark: 'paused' | 'failed';
-  at: string;
-  request?: string;
-  sent?: string;
-  failed?: string;
-};
-export type Fresh = {
-  id: string;
-  app: string;
-  topic: string;
-  title: string;
-  line: string;
-  at: string;
-  read: boolean;
-  failed?: string;
-};
-export type CheckSummary = { at: string; why: string; fixed: number; flagged: number };
-export type CheckNote = { title: string; text: string; did?: string };
-export type Check = {
-  at: string;
-  why: string;
-  read: Record<string, number>;
-  fixed: CheckNote[];
-  flagged: CheckNote[];
-};
-export type AskList = {
-  version: number;
+export type Ask = z.infer<typeof Ask> & { failed?: string };
+export const Stuck = z.object({
+  id: z.string(),
+  app: z.string(),
+  title: z.string(),
+  why: z.string(),
+  action: z.string(),
+  mark: z.catch(z.enum(['paused', 'failed']), 'paused'),
+  at: z.string(),
+  request: z.optional(z.string()),
+  sent: z.optional(z.string()),
+});
+export type Stuck = z.infer<typeof Stuck> & { failed?: string };
+export const Fresh = z.object({
+  id: z.string(),
+  app: z.string(),
+  topic: z.string(),
+  title: z.string(),
+  line: z.string(),
+  at: z.string(),
+  read: z.boolean(),
+});
+export type Fresh = z.infer<typeof Fresh> & { failed?: string };
+const CheckSummary = z.object({
+  at: z.string(),
+  why: z.string(),
+  fixed: z.number(),
+  flagged: z.number(),
+});
+export type CheckSummary = z.infer<typeof CheckSummary>;
+const CheckNote = z.object({ title: z.string(), text: z.string(), did: z.optional(z.string()) });
+export type CheckNote = z.infer<typeof CheckNote>;
+export const Check = z.object({
+  at: z.string(),
+  why: z.string(),
+  read: z.record(z.string(), z.number()),
+  fixed: z.array(CheckNote),
+  flagged: z.array(CheckNote),
+});
+export type Check = z.infer<typeof Check>;
+export const AskList = z.object({
+  version: z.number(),
+  asks: z.array(Ask),
+  stuck: z.array(Stuck),
+  fresh: z.array(Fresh),
+  check: z.nullable(CheckSummary),
+});
+// What this app holds of hex's list, with what didn't go through here on each item it's about.
+export type AskList = Omit<z.infer<typeof AskList>, 'asks' | 'stuck' | 'fresh'> & {
   asks: Ask[];
   stuck: Stuck[];
   fresh: Fresh[];
-  check: CheckSummary | null;
 };
 
 // What's yours as this phone shows it: hex's list, with each ask answered here held in its place,
@@ -132,16 +164,6 @@ export function keepInPlace(before: Ask[], after: Ask[], held: (id: string) => b
 
 function without<T>(record: Record<string, T>, ids: string[]) {
   return Object.fromEntries(Object.entries(record).filter(([id]) => !ids.includes(id)));
-}
-
-export interface AsksAPI {
-  list(after?: number, signal?: AbortSignal): Promise<AskList>;
-  check(): Promise<Check>;
-  answer(id: string, label: string): Promise<void>;
-  undo(id: string): Promise<void>;
-  act(id: string): Promise<void>;
-  read(id: string): Promise<void>;
-  talk(): Promise<void>;
 }
 
 // "Checked 6:31pm" with what it did: "fixed 4 · flagged 3".

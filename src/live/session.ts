@@ -1,5 +1,12 @@
-import type { CallEnding } from './calls';
-import type { LiveEvent, LiveSnapshot, LiveTransport, SessionAPI, TransportFactory } from './types';
+import type { CallEnding, CallId } from './calls';
+import type {
+  CallAbout,
+  LiveEvent,
+  LiveSnapshot,
+  LiveTransport,
+  SessionAPI,
+  TransportFactory,
+} from './types';
 import { DEFAULT_VOICE, type LiveVoice } from './voices';
 
 const initialSnapshot = (): LiveSnapshot => ({
@@ -21,7 +28,7 @@ export class LiveSession {
   private snapshot = initialSnapshot();
   private listeners = new Set<() => void>();
   private transport: LiveTransport | null = null;
-  private sessionId: string | null = null;
+  private sessionId: CallId | null = null;
   private generation = 0;
   private statsTimer?: ReturnType<typeof setInterval>;
   private startupTimer?: ReturnType<typeof setTimeout>;
@@ -54,7 +61,7 @@ export class LiveSession {
     this.listeners.forEach((listener) => listener());
   }
 
-  start = async (voice: LiveVoice = DEFAULT_VOICE, about?: string) => {
+  start = async (voice: LiveVoice = DEFAULT_VOICE, about?: CallAbout) => {
     if (
       this.closing ||
       this.snapshot.status === 'connecting' ||
@@ -70,8 +77,6 @@ export class LiveSession {
     const isCurrent = () => generation === this.generation;
     let transport: LiveTransport | undefined;
     try {
-      // Validate setup before asking for microphone access or allocating audio.
-      this.api.prepare?.();
       transport = await this.factory({
         onEvent: (event) => {
           if (

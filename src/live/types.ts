@@ -1,4 +1,7 @@
-import type { CallEnding } from './calls';
+import * as z from 'zod/mini';
+
+import type { CallEnding, CallId } from './calls';
+import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
@@ -17,19 +20,47 @@ export type LiveSnapshot = {
   outputLevel: number;
   elapsedSeconds: number;
   transcript: TranscriptEntry[];
-  callId: string | null;
+  callId: CallId | null;
   ending: CallEnding | null;
   interrupted: boolean;
 };
-export type LiveEvent = {
-  type: string;
-  client_event_id?: string;
-  delta?: string;
-  start_ms?: number;
-  end_ms?: number;
-  reason?: string;
-  error?: { message?: string; code?: string };
-  usage?: { seconds?: number };
+
+// The events this app acts on, of all the voice service sends over the data channel.
+const LiveEvent = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('session.started') }),
+  z.object({
+    type: z.enum(['session.input_transcript.delta', 'session.output_transcript.delta']),
+    delta: z.string(),
+    start_ms: z.optional(z.number()),
+    end_ms: z.optional(z.number()),
+  }),
+  z.object({
+    type: z.enum(['session.input_audio.muted', 'session.input_audio.unmuted']),
+    client_event_id: z.optional(z.string()),
+  }),
+  z.object({ type: z.literal('session.closed'), reason: z.optional(z.string()) }),
+  z.object({
+    type: z.enum(['error', 'session.error']),
+    error: z.catch(z.optional(z.object({ message: z.optional(z.string()) })), undefined),
+  }),
+]);
+export type LiveEvent = z.infer<typeof LiveEvent>;
+
+const Message = z.object({ data: z.string() });
+
+// A data channel message as one of the events above, or nothing when it's none of them.
+export function parseEvent(message: unknown) {
+  const text = Message.safeParse(message).data?.data;
+  try {
+    return text === undefined ? undefined : LiveEvent.safeParse(JSON.parse(text)).data;
+  } catch {
+    return undefined;
+  }
+}
+
+export type LiveCommand = {
+  type: 'session.input_audio.mute' | 'session.input_audio.unmute' | 'session.close';
+  event_id?: string;
 };
 export type AudioStats = {
   inputLevel: number;
@@ -40,7 +71,7 @@ export type AudioStats = {
 export interface LiveTransport {
   offer(): Promise<string>;
   answer(sdp: string): Promise<void>;
-  send(event: { type: string; event_id?: string }): boolean;
+  send(event: LiveCommand): boolean;
   setMuted(muted: boolean): void;
   stats(): Promise<AudioStats>;
   close(): void;
@@ -50,13 +81,14 @@ export type TransportCallbacks = {
   onFailure: (message: string) => void;
 };
 export type TransportFactory = (callbacks: TransportCallbacks) => Promise<LiveTransport>;
-export interface SessionAPI {
-  prepare?(): void;
-  create(
+// What a call is about when it starts: a task, or going through your asks.
+export type CallAbout = { task: TaskId } | 'asks';
+export type SessionAPI = {
+  create: (
     sdp: string,
     voice?: LiveVoice,
-    about?: string,
-  ): Promise<{ sdp: string; sessionId: string }>;
-  close(sessionId: string): Promise<void>;
-  mark?(sessionId: string, kind: 'paused' | 'resumed'): Promise<void>;
-}
+    about?: CallAbout,
+  ) => Promise<{ sdp: string; sessionId: CallId }>;
+  close: (sessionId: CallId) => Promise<void>;
+  mark?: (sessionId: CallId, kind: 'paused' | 'resumed') => Promise<void>;
+};

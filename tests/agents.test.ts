@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { agentLine, createAgentsAPI, justFinished, type AgentTask } from '../src/live/agents';
+import { agentLine, justFinished, type AgentTask } from '../src/live/agents';
 
 const sent: AgentTask = {
   id: 'orb',
@@ -67,41 +67,4 @@ test('a task finishes when it was running in the last snapshot and is not now', 
   assert.equal(justFinished([sent, read], [{ ...sent, state: 'done' }, read])?.id, 'orb');
   assert.equal(justFinished([], [{ ...sent, state: 'done' }]), undefined);
   assert.equal(justFinished([sent], [sent]), undefined);
-});
-
-test('watching asks hex for the activity since the last version it saw', async () => {
-  const urls: string[] = [];
-  const api = createAgentsAPI({
-    hexUrl: 'https://hex.example:8790/',
-    fetch: async (url) => {
-      urls.push(String(url));
-      return Response.json({ version: 7, call: 'live_1', tasks: [sent] });
-    },
-  });
-  const signal = new AbortController().signal;
-  assert.deepEqual(await api.watch(undefined, signal), {
-    version: 7,
-    call: 'live_1',
-    tasks: [sent],
-  });
-  await api.watch(7, signal);
-  assert.deepEqual(urls, [
-    'https://hex.example:8790/activity',
-    'https://hex.example:8790/activity?after=7',
-  ]);
-});
-
-test('watching carries the hex token when the app has one', async () => {
-  const seen: (string | null)[] = [];
-  const fetch = async (_url: string | URL | Request, init?: RequestInit) => {
-    seen.push(new Headers(init?.headers).get('authorization'));
-    return Response.json({ version: 1, call: null, tasks: [] });
-  };
-  const signal = new AbortController().signal;
-  await createAgentsAPI({ hexUrl: 'https://hex.example:8790', token: 'secret', fetch }).watch(
-    undefined,
-    signal,
-  );
-  await createAgentsAPI({ hexUrl: 'https://hex.example:8790', fetch }).watch(undefined, signal);
-  assert.deepEqual(seen, ['Bearer secret', null]);
 });
