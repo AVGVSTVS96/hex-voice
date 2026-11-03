@@ -1,7 +1,14 @@
 import XCTest
 
-// Taps the installed hex app (scripts/duo tap installs the commit under test) the way he does on
-// the Duo. scripts/duo screenshots each step, and the run keeps the accessibility tree.
+// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
+// installed hex app, one command a line:
+//   open <url>            opens a link in the app
+//   tap <query>           taps the element whose id is the query, or whose label holds it
+//   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
+//   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
+//   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
+//   selected <query>      checks the element is selected; unselected checks it isn't
+// The accessibility tree at the end is kept beside the shots.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
 
@@ -12,53 +19,39 @@ final class DuoTests: XCTestCase {
     }
 
     override func tearDown() {
-        keepTree("tree")
-    }
-
-    func testTasksOpensAndEveryWayBackCloses() {
-        let tasks = app.buttons["tasks-button"]
-        XCTAssertTrue(tasks.waitForExistence(timeout: 20), "no Tasks button")
-        keep("call")
-
-        tasks.tap()
-        keep("tasks-open")
-        XCTAssertTrue(tasks.isSelected, "Tasks isn't lit after opening it")
-        tasks.tap()
-        keep("closed-by-tasks")
-        XCTAssertFalse(tasks.isSelected, "Tasks stayed open after tapping Tasks")
-
-        tasks.tap()
-        let back = app.buttons["task-back"]
-        XCTAssertTrue(back.waitForExistence(timeout: 5), "no ‹ Call back on Tasks' list")
-        back.tap()
-        keep("closed-by-back")
-        XCTAssertFalse(tasks.isSelected, "Tasks stayed open after ‹ Call")
-
-        tasks.tap()
-        swipeInFromLeadingEdge()
-        keep("closed-by-edge-swipe")
-        XCTAssertFalse(tasks.isSelected, "Tasks stayed open after the edge swipe")
-    }
-
-    private func swipeInFromLeadingEdge() {
-        let edge = app.otherElements["tasks-edge"]
-        XCTAssertTrue(edge.waitForExistence(timeout: 5), "no edge to swipe back from")
-        edge.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
-    }
-
-    private func keepTree(_ name: String) {
         let tree = XCTAttachment(string: app.debugDescription)
-        tree.name = name
+        tree.name = "tree"
         tree.lifetime = .keepAlways
         add(tree)
     }
 
-    // XCUITest can't capture the Duo's open screen, so scripts/duo shoots the display when it
-    // reads the step, while the test holds still.
-    private func keep(_ step: String) {
-        sleep(1)
-        print("duo-step \(step)")
-        sleep(3)
+    func testScript() throws {
+        let script = try XCTUnwrap(ProcessInfo.processInfo.environment["DUO_TAPS"], "no tap script")
+        for line in script.split(separator: "\n") {
+            let words = line.split(separator: " ", maxSplits: 1).map(String.init)
+            guard let command = words.first, !command.hasPrefix("#") else { continue }
+            let argument = words.count > 1 ? words[1] : ""
+            switch command {
+            case "open": app.open(try XCTUnwrap(URL(string: argument)))
+            case "tap": element(argument).tap()
+            case "swipe-back":
+                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                    .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+            case "shoot", "pose":
+                sleep(1)
+                print("duo-\(command == "shoot" ? "step" : "pose") \(argument)")
+                sleep(command == "shoot" ? 3 : 5)
+            case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")
+            case "unselected": XCTAssertFalse(element(argument).isSelected, "\(argument) is still selected")
+            default: XCTFail("unknown tap command: \(line)")
+            }
+        }
+    }
+
+    private func element(_ query: String) -> XCUIElement {
+        let match = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query)).firstMatch
+        XCTAssertTrue(match.waitForExistence(timeout: 10), "nothing matches \(query)")
+        return match
     }
 }
