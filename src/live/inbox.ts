@@ -1,4 +1,12 @@
-import type { Ask, AskList, AskOption, Fresh, Stuck } from './asks';
+import {
+  unreached,
+  type Ask,
+  type AskList,
+  type AskOption,
+  type Fresh,
+  type Stuck,
+  type Sent,
+} from './asks';
 import { startOfDay, type TaskId, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
@@ -302,4 +310,17 @@ export function taskOf(entry: Entry) {
   if (entry.kind === 'ask') return entry.ask.task;
   if (entry.kind === 'task') return entry.task.id;
   return undefined;
+}
+
+// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, named
+// by the apps the ask was asked in, only when it cleared some, and the places it couldn't reach.
+export function reachedBy(ask: Ask, sent: Sent | undefined) {
+  if (!sent) return '';
+  const apps = [...new Set(ask.places.map((place) => placeOf(place.app)))]
+    .filter((place) => place === 'telegram' || place === 'discord')
+    .map((place) => PLACES[place]);
+  const cleared = sent.settled
+    ? ` and cleared its ${apps.length ? `${apps.join(' and ')} ` : ''}buttons`
+    : '';
+  return sent.missed ? `${cleared}. ${unreached(sent.missed)}` : cleared;
 }

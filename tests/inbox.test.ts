@@ -12,6 +12,7 @@ import {
   topicIn,
   inboxEntries,
   picksOf,
+  reachedBy,
   search,
   stageCounts,
   taskOf,
@@ -488,4 +489,25 @@ test('a project opens on its leading thread, or on a page of its own when it has
   const stuck = { name: 'Stuck', entries: [], marks: [] };
   assert.equal(topicIn(pageOf(stuck)), 'Stuck');
   assert.equal(topicIn(entry.task.id), undefined);
+});
+
+test('an answer says it cleared buttons only when hex says it settled some, and what it missed', () => {
+  const asked = ask('a', 'pick', {
+    places: [
+      { app: 'telegram', place: 'General', link: 'https://t.me/c/1/2' },
+      { app: 'voice', place: 'Desk setup', call: 'call_1' },
+    ],
+  });
+  const sent = { thread: 'telegram:-1:2', topic: 'hex', settled: 0, missed: 0 };
+  assert.equal(reachedBy(asked, undefined), '');
+  assert.equal(reachedBy(asked, sent), '');
+  assert.equal(reachedBy(asked, { ...sent, settled: 1 }), ' and cleared its Telegram buttons');
+  assert.equal(
+    reachedBy(asked, { ...sent, settled: 1, missed: 1 }),
+    ' and cleared its Telegram buttons. One place was out of reach and still asks it',
+  );
+  assert.equal(
+    reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
+    '. 2 places were out of reach and still ask it',
+  );
 });
