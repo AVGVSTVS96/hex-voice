@@ -470,6 +470,8 @@ function split(frame: Frame, fold?: Rect): Layout {
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? insets.bottom : bottomInset + CONTROLS + 14;
   const top = controls ? insets.top + 72 : toolbar.y + 64;
+  // Before a call the orb rests in the middle; partly open that's the hinge, so it waits on its page.
+  const read = { x: content.x + pane / 2, y: window.height / 2 };
   return {
     kind: 'split',
     content,
@@ -477,9 +479,9 @@ function split(frame: Frame, fold?: Rect): Layout {
     controls: controls ?? { right: GUTTER, bottom: bottomInset, axis: 'row' },
     orb: {
       size: Math.min(pane * 0.62, window.height * 0.42, 300),
-      rest: { x: content.x + content.width / 2, y: window.height / 2 },
+      rest: fold?.width ? read : { x: content.x + content.width / 2, y: window.height / 2 },
       room: { top: 0, bottom: window.height },
-      read: { x: content.x + pane / 2, y: window.height / 2 },
+      read,
     },
     words: { ...words, top },
     text: 17,
@@ -498,10 +500,11 @@ function stacked(frame: Frame, fold: Rect): Layout {
   const base = single(frame);
   const size = Math.min(base.orb.size, (fold.y - frame.top) * 0.78);
   const words = { ...base.words, top: fold.y + fold.height + clear(fold) };
+  const read = { x: base.orb.rest.x, y: (frame.top + fold.y) / 2 };
   return {
     ...base,
     kind: 'stacked',
-    orb: { ...base.orb, size, read: { x: base.orb.rest.x, y: (frame.top + fold.y) / 2 } },
+    orb: { ...base.orb, size, rest: fold.height ? read : base.orb.rest, read },
     words,
     besideCalls: words,
     besideTasks: words,

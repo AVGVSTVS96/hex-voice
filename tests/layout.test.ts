@@ -475,7 +475,7 @@ test('open, the orb and the words each keep a page of their own off the fold, an
       height: window.height - layout.words.top,
     };
     const orb = around(layout.orb.read.x, layout.orb.read.y, layout.orb.size);
-    assert.equal(layout.pulls, false, `${name}: the words always show`);
+    assert.equal(layout.pulls, false, `${name}: the words have a page of their own`);
     assert.ok(!overlaps(orb, fold) && !overlaps(words, fold), `${name}: neither sits on the hinge`);
     assert.ok(
       row ? orb.x + orb.width <= fold.x : orb.y + orb.height <= fold.y,
@@ -489,5 +489,22 @@ test('open, the orb and the words each keep a page of their own off the fold, an
     };
     assert.ok(!overlaps(before, fold), `${name}: the words beside Tasks are off the hinge`);
     assert.ok(!overlaps(before, beside.tasks.area), `${name}: and clear of Tasks`);
+  }
+});
+
+test('before a call the orb rests in the middle open flat, and on its page partly open, never on the hinge', () => {
+  for (const name of [
+    'open upright',
+    'open on its side',
+    'partly open upright',
+    'partly open on its side',
+  ] as const) {
+    const { window, insets, pose } = duo[name];
+    const { orb } = screenLayout(window, insets, pose);
+    const resting = around(orb.rest.x, orb.rest.y, orb.size);
+    if (pose.fold.active) {
+      assert.ok(!overlaps(resting, pose.fold), `${name}: off the hinge`);
+      assert.deepEqual(orb.rest, orb.read, `${name}: where it reads`);
+    } else assert.notDeepEqual(orb.rest, orb.read, `${name}: in the middle, not on a page`);
   }
 });
