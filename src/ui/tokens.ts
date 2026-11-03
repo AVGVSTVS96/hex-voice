@@ -42,6 +42,7 @@ export type TextStyle = {
   // own leading.
   lineSpacing?: number;
   weight?: Weight;
+  design?: 'monospaced';
 };
 
 export const type = {
@@ -63,6 +64,8 @@ export const type = {
   itemDetail: { fontSize: 14, lineHeight: 19, lineSpacing: 5 },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
+  // Code, as written.
+  code: { fontSize: 14, lineSpacing: 6, design: 'monospaced' },
   // A count that stands for itself, like what the last check read.
   stat: { fontSize: 26, weight: 'semibold' },
   // The one name a carousel's page shows.

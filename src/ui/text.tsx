@@ -31,6 +31,7 @@ export function Text({
           textStyle: style.textStyle,
           size: style.fontSize,
           weight: weight ?? style.weight,
+          design: style.design,
         }),
         foregroundStyle(theme[tone]),
         ...(paragraph && style.lineSpacing !== undefined ? [lineSpacing(style.lineSpacing)] : []),
