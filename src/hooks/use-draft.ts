@@ -16,6 +16,11 @@ export function keepDraft(where: string, text: string) {
   Settings.set({ [KEY]: text.trim() ? { ...rest, [where]: text } : rest });
 }
 
+// Once what you typed has gone, its draft goes too, unless you've typed more since.
+export function sentDraft(where: string, text: string) {
+  if (saved()[where]?.trim() === text.trim()) keepDraft(where, '');
+}
+
 export function useDraft(where: string) {
   const [first] = useState(() => saved()[where] ?? '');
   return { first, keep: (text: string) => keepDraft(where, text) };
