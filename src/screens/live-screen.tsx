@@ -749,9 +749,11 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       : { top: toolbar.y };
   const sidebar = (
     <GestureDetector gesture={sidebarClose}>
-      <Animated.View style={[styles.sidebar, { width: list.width }, sidebarStyle]}>
+      <Animated.View
+        style={[styles.sidebar, { width: list.width, top: list.below ?? 0 }, sidebarStyle]}
+      >
         <CallsSidebar
-          top={insets.top}
+          top={list.below === undefined ? insets.top : 0}
           width={list.width}
           calls={calls.calls}
           live={calls.live}

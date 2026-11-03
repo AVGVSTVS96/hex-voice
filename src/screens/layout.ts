@@ -71,7 +71,8 @@ type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; s
 // - sheet: Tasks rises as a sheet (phone)
 // - page: Tasks is a place of its own over the call (iPhone Duo, see `Duo`)
 export type Pane<Place> = { width: number; place: Place };
-export type CallsPlacement = Pane<'slide' | 'beside'>;
+// Calls that starts `below` a band of status and bar buttons leaves that band whole.
+export type CallsPlacement = Pane<'slide' | 'beside'> & { below?: number };
 export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
 // iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
@@ -171,8 +172,10 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
     partlyOpen: !!fold && partly(fold),
     ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
   };
-  // Open on its side the call yields its leading edge to Calls, as on iPad.
-  const calls = frame.column ? layout.calls : { width: LIST, place: 'beside' as const };
+  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
+  const calls = frame.column
+    ? layout.calls
+    : { width: LIST, place: 'beside' as const, below: frame.top };
   return {
     ...layout,
     calls,
