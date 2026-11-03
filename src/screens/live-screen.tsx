@@ -936,7 +936,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                 <WrapUp
                   center={!split}
                   summary={wrapUp.summary}
-                  waiting={wrapUp.waiting?.slice(0, 3)}
+                  waiting={wrapUp.waiting}
+                  onMore={() => openTasks({ stage: 'needs' })}
                 />
               </Animated.View>
             ) : null}
