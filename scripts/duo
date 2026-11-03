@@ -197,10 +197,12 @@ mac_tap() {
       result=$tests/$pose-$appearance.xcresult
       rm -rf "$result" "$tests/attachments"
       xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
-        -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" 2>&1 |
+        -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
+        -collect-test-diagnostics never 2>&1 |
         grep -E 'error:|XCTAssert|failed' | sed "s|^|$pose $appearance: |" >>shots/notes.txt || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
-      jq -r '.[].attachments[] | "\(.exportedFileName) \(.suggestedHumanReadableName)"' \
+      jq -r '.[].attachments[] | select(.suggestedHumanReadableName | test("^[a-z-]+_")) |
+        "\(.exportedFileName) \(.suggestedHumanReadableName)"' \
         "$tests/attachments/manifest.json" | while read -r exported name; do
         name=${name%%_[0-9]*_*}
         name=${name%.*}
