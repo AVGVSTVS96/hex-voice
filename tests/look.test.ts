@@ -19,7 +19,6 @@ const unmigrated = new Set([
   'src/components/tasks/list.tsx',
   'src/components/tasks/rows.tsx',
   'src/components/tasks/tasks-view.tsx',
-  'src/components/tasks/thread.tsx',
   'src/components/tasks/trace.tsx',
   'src/components/voice-settings.tsx',
   'src/live/call-activity.tsx',

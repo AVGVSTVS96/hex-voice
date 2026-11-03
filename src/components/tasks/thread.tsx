@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, Text, TextInput, type TextInputRef } from '@expo/ui';
+import { Column, Icon, Row, Spacer, TextInput, type TextInputRef } from '@expo/ui';
 import { ScrollView } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
@@ -20,16 +20,15 @@ import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
-import { Failure, Faded, SectionHead, ios } from '@/components/tasks/parts';
+import { Failure, Faded, SectionHead } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
 import { PLACES, placeOf } from '@/live/inbox';
 import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
-import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
-
-const FIELD = 50;
+import { radius, theme } from '@/theme';
+import { Text } from '@/ui/text';
+import { labelOf, metrics, space } from '@/ui/tokens';
 
 export function Messages({
   thread,
@@ -50,7 +49,7 @@ export function Messages({
         modifiers={[
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
-          ...(ios ? [accessibilityLabel(`${thread.place}. Opens its messages`)] : []),
+          accessibilityLabel(`${thread.place}. Opens its messages`),
         ]}
       >
         <SectionHead
@@ -149,29 +148,23 @@ export function ThreadPage({
         >
           <Column
             alignment="start"
-            spacing={18}
+            spacing={space[4.5]}
             modifiers={[
-              padding({ top: 20, bottom: 20 }),
+              padding({ top: space[5], bottom: space[5] }),
               contentShape(shapes.rectangle()),
               onTapGesture(() => field.current?.blur()),
             ]}
           >
             {first > 0 ? (
-              <Text
-                textStyle={{ fontSize: 13 }}
-                modifiers={[foregroundStyle(theme.tertiary), frame({ maxWidth: Infinity })]}
-              >
+              <Text variant="footnote" tone="tertiary" modifiers={[frame({ maxWidth: Infinity })]}>
                 {`Earlier messages are in ${place}`}
               </Text>
             ) : null}
             {chat && !turns.length && !pending.length ? (
               <Text
-                textStyle={{ fontSize: 15 }}
-                modifiers={[
-                  foregroundStyle(theme.tertiary),
-                  padding({ top: 40 }),
-                  frame({ maxWidth: Infinity }),
-                ]}
+                variant="subheadline"
+                tone="tertiary"
+                modifiers={[padding({ top: space[10] }), frame({ maxWidth: Infinity })]}
               >
                 Nothing said here yet
               </Text>
@@ -192,10 +185,7 @@ export function ThreadPage({
           time={taskTime(thread)}
           chevron="chevron.right"
           after={
-            <Text
-              textStyle={{ fontSize: 15, fontWeight: '600' }}
-              modifiers={[foregroundStyle(theme.accent)]}
-            >
+            <Text variant="subheadline" weight="semibold" tone="accent">
               Steps
             </Text>
           }
@@ -207,7 +197,7 @@ export function ThreadPage({
         <Failure
           text={failed}
           modifiers={[
-            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 8 }),
+            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: space[2] }),
           ]}
         />
       ) : null}
@@ -279,9 +269,14 @@ function Composer({
   return (
     <Row
       alignment="end"
-      spacing={8}
+      spacing={space[2]}
       modifiers={[
-        padding({ leading: 16, trailing: 16, top: 8, bottom: typing ? 8 : Math.max(14, foot) }),
+        padding({
+          leading: space[4],
+          trailing: space[4],
+          top: space[2],
+          bottom: typing ? space[2] : Math.max(space[3.5], foot),
+        }),
         frame({ maxWidth: Infinity }),
       ]}
     >
@@ -289,11 +284,16 @@ function Composer({
         alignment="center"
         spacing={0}
         modifiers={[
-          padding({ leading: 18, trailing: 18, top: 14, bottom: 14 }),
-          frame({ minHeight: FIELD }),
+          padding({
+            leading: space[4.5],
+            trailing: space[4.5],
+            top: space[3.5],
+            bottom: space[3.5],
+          }),
+          frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity }),
           background(theme.surface),
-          clipShape('roundedRectangle', FIELD / 2),
+          clipShape('roundedRectangle', radius.field),
         ]}
       >
         <TextInput
@@ -315,7 +315,7 @@ function Composer({
             setTyping(false);
             typingHere(false);
           }}
-          textStyle={{ fontSize: 17 }}
+          textStyle={labelOf('body')}
           testID="thread-input"
           modifiers={[
             foregroundStyle(theme.text),
@@ -329,11 +329,11 @@ function Composer({
         onPress={send}
         testID="thread-send"
         modifiers={[
-          frame({ width: FIELD, height: FIELD }),
+          frame({ width: metrics.field, height: metrics.field }),
           background(lit ? theme.prominent : theme.surface),
           clipShape('circle'),
           contentShape(shapes.circle()),
-          ...(ios ? [accessibilityLabel(stops ? 'Stop' : 'Send')] : []),
+          accessibilityLabel(stops ? 'Stop' : 'Send'),
         ]}
       >
         <Icon
@@ -352,9 +352,14 @@ export function Foot({ foot, children }: { foot: number; children: ReactNode }) 
   return (
     <Row
       alignment="center"
-      spacing={8}
+      spacing={space[2]}
       modifiers={[
-        padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(14, foot) }),
+        padding({
+          leading: space[4],
+          trailing: space[4],
+          top: space[2],
+          bottom: Math.max(space[3.5], foot),
+        }),
         frame({ maxWidth: Infinity }),
       ]}
     >
@@ -372,18 +377,16 @@ export function WriteField({ title, onPress }: { title: string; onPress: () => v
       onPress={onPress}
       testID="thread-write"
       modifiers={[
-        padding({ leading: 18, trailing: 18 }),
-        frame({ height: FIELD }),
+        padding({ leading: space[4.5], trailing: space[4.5] }),
+        frame({ height: metrics.field }),
         frame({ maxWidth: Infinity }),
         background(theme.surface),
-        clipShape('roundedRectangle', FIELD / 2),
+        clipShape('roundedRectangle', radius.field),
         contentShape(shapes.rectangle()),
-        ...(ios ? [accessibilityLabel(`Message ${title}`)] : []),
+        accessibilityLabel(`Message ${title}`),
       ]}
     >
-      <Text textStyle={{ fontSize: 17 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-        {`Message ${title}`}
-      </Text>
+      <Text tone="tertiary">{`Message ${title}`}</Text>
       <Spacer flexible />
     </Row>
   );
