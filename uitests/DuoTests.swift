@@ -2,7 +2,8 @@ import XCTest
 
 // Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
 // installed hex app, one command a line:
-//   open <url>            opens a link in the app
+//   launch <url>          starts the app afresh from a link
+//   open <url>            opens a link in the running app
 //   tap <query>           taps the element whose id is the query, or whose label holds it
 //   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
@@ -36,6 +37,10 @@ final class DuoTests: XCTestCase {
             guard let command = words.first, !command.hasPrefix("#") else { continue }
             let argument = words.count > 1 ? words[1] : ""
             switch command {
+            case "launch":
+                app.terminate()
+                XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: argument)))
+                XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
             case "open": app.open(try XCTUnwrap(URL(string: argument)))
             case "tap": element(argument).tap()
             case "swipe-back":
