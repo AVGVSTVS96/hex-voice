@@ -38,8 +38,7 @@ type Props = {
   loading?: boolean;
 };
 
-// SwiftUI's glass, tinted where prominent like glassProminent. It's the glassEffect behind a plain
-// button rather than buttonStyle('glass'), which pads the label past the sizes the layout counts on.
+// Not buttonStyle('glass'): SwiftUI pads its label past the frame sizes the layout counts on.
 export function glass(
   shape: 'circle' | 'capsule',
   { prominent = false, disabled = false }: { prominent?: boolean; disabled?: boolean } = {},
@@ -54,9 +53,6 @@ export function glass(
   });
 }
 
-// A round control as a SwiftUI view, for a Host. It brings no glass of its own: alone it wears
-// `glass('circle')`, and in a group the group's capsule is its glass. Selected, it sits on a lit
-// platter with a mint glyph, the way a glass bar marks where you are.
 export function Control({
   icon,
   label,

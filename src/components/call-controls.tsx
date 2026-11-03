@@ -22,8 +22,7 @@ type Props = {
 // Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
 // column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
 // iPad inbox's rail, before any call, the call button waits alone. `sizes` draws them smaller,
-// where they share iPhone Duo's toolbar or a short column. The two share one glass
-// container, so their glass samples and morphs together like the system's.
+// where they share iPhone Duo's toolbar or a short column.
 export function CallControls({
   status,
   canMute,
