@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 
+import { keepDraft } from '@/hooks/use-draft';
 import { useWatch } from '@/hooks/use-watch';
 import { asksAPI } from '@/live/api';
 import { openAsks, yours, type Ask, type AskOption } from '@/live/asks';
@@ -17,7 +18,10 @@ export function useAsks(open: boolean) {
 
   const answer = (ask: Ask, option: AskOption) => {
     dispatch({ type: 'answer', id: ask.id, label: option.label });
-    asksAPI.answer(ask.id, option.label).catch(() => dispatch({ type: 'failed', id: ask.id }));
+    asksAPI.answer(ask.id, option.label).then(
+      () => keepDraft(`ask:${ask.id}`, ''),
+      () => dispatch({ type: 'failed', id: ask.id }),
+    );
   };
   const undo = (id: string) => {
     dispatch({ type: 'undo', id });
