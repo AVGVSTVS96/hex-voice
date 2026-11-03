@@ -50,16 +50,11 @@ export const KIND: Record<StepKind, SFSymbol> = {
   tool: 'wrench.and.screwdriver',
 };
 const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
-// Where a row's words start, past its mark.
 const TEXT = INSET - 2 + MARK + GAP;
 // An open agent's rail runs from just under its mark to the middle of its last line.
 const RAIL_TOP = 30;
 const RAIL_FOOT = 18;
 
-// A thread a level down, drawn the way shadcn's Trace draws an agent's work: its plan with how far
-// it got, the agents it handed work to, who's at work first, then its steps newest first, each a
-// line with what it did and how long it took, thoughts in their own words. Agents and steps open
-// into what they did and what came back.
 export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
   const named = useChrome().bar !== 'center';
   const working = task.state === 'working';
@@ -115,9 +110,6 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
   );
 }
 
-// Each step newest first. A thought or a reply shows three lines; any other step one, and where it
-// `opens`, a tap shows a thought or a reply whole, or what a step acted on and what came back. A
-// step that started an agent shows how that agent is doing instead of a time.
 export function Steps({
   steps,
   agents = [],
@@ -178,7 +170,6 @@ export function Steps({
   );
 }
 
-// What a step acted on, or what came back from it line by line, as the tool wrote it.
 function Output({ lines, wraps, color }: { lines: string[]; wraps: number; color: ColorValue }) {
   return (
     <Column alignment="start" spacing={0} modifiers={[padding({ top: 4 })]}>
@@ -199,9 +190,6 @@ function Output({ lines, wraps, color }: { lines: string[]; wraps: number; color
   );
 }
 
-// An agent the thread handed work to: what it's on, who it is and how long it's taken, and while it
-// works its newest step under it. A tap opens what it handed back (red when it failed; another tap
-// shows it whole), then its steps on a rail down from its mark, then a way into it in T3 Code.
 function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) {
   const [open, setOpen] = useState(false);
   const [whole, setWhole] = useState(false);
@@ -266,8 +254,6 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
   );
 }
 
-// Agents that stopped and were run again under the same name, folded into one quiet line that
-// opens to them.
 function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) => void }) {
   const [open, setOpen] = useState(false);
   const words = `${tries.length} earlier ${tries.length === 1 ? 'try' : 'tries'}, stopped`;
@@ -286,7 +272,6 @@ function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
   );
 }
 
-// A line under a row's words, a step quieter.
 function Under({
   text,
   lines = 1,
@@ -307,8 +292,6 @@ function Under({
   );
 }
 
-// One line: what it did, one sentence (a thought or a reply keeps up to three), what it opened into
-// under it, and on the right how long or how far.
 export function TraceLine({
   lead,
   text,

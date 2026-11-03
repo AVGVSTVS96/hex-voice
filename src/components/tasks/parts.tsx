@@ -24,12 +24,10 @@ import { theme } from '@/theme';
 
 export const ios = process.env.EXPO_OS === 'ios';
 export const INSET = 20;
-// A row's mark sits in a slot this wide, and its words start after it and the gap.
 export const MARK = 16;
 export const GAP = 10;
 const HAIRLINE = 1 / PixelRatio.get();
 
-// What Tasks gives under a finger while haptics are on: a tick as it moves, a tap as it acts.
 export function feel(haptics: boolean) {
   const on = ios && haptics;
   return {
@@ -44,8 +42,7 @@ export function feel(haptics: boolean) {
 
 export type Feel = ReturnType<typeof feel>;
 
-// What every row of a list `width` wide wears: no inset or fill of its own, so the list's ground
-// shows behind it, and a separator that runs edge to edge.
+// No inset or fill of its own, so the list's ground shows behind it.
 export function listRow(width: number, { top = true, bottom = true } = {}): ModifierConfig[] {
   return [
     listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
@@ -58,7 +55,6 @@ export function listRow(width: number, { top = true, bottom = true } = {}): Modi
   ];
 }
 
-// A section's name over its rows, with how many on the right, and a chevron where it opens.
 export function SectionHead({
   title,
   count,
@@ -157,7 +153,6 @@ export function Pill({
   );
 }
 
-// A tab with nothing in it says so, quietly.
 export function Empty({ text, width }: { text: string; width: number }) {
   return (
     <Text

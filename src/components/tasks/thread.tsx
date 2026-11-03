@@ -27,9 +27,6 @@ import { theme } from '@/theme';
 
 const FIELD = 50;
 
-// A thread's last words on its topic's page: who said what last, under a head that opens the
-// thread and names it where the topic has others. Where the thread takes messages from here, a
-// field under them opens it ready to write.
 export function Messages({
   thread,
   chat,
@@ -95,12 +92,8 @@ export function Messages({
   );
 }
 
-// A thread a level down from its topic: everything said there, newest at the foot, and what it's
-// doing now, opening into its steps. What it waits on you for stays on the topic's page behind it.
-// Where it takes messages from here you write at the foot; anywhere else the foot talks it through
-// or opens it in its app, as its topic's does. Its app's mark at the top opens it there too. Its
-// current step shows only while its session is in a turn: a thread can stay at work between them,
-// waiting on work it handed off, with nothing running to show or stop.
+// Its current step shows only while its session is in a turn: a thread can stay at work between
+// them, waiting on work it handed off, with nothing running to show or stop.
 export function ThreadPage({
   thread,
   chat,
@@ -233,9 +226,8 @@ export function ThreadPage({
   );
 }
 
-// Where you write to the thread, as tall as the pills it takes the place of. Send turns into Stop
-// while the thread works and you've nothing typed, though not before what you just sent reaches
-// it, so a second tap on Send can't stop the turn you steered.
+// Send turns into Stop while the thread works and you've nothing typed, though not before what you
+// just sent reaches it, so a second tap on Send can't stop the turn you steered.
 function Composer({
   title,
   working,

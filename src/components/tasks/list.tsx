@@ -45,10 +45,6 @@ const EMPTY: Record<Stage, string> = {
   quiet: 'Nothing is quiet',
 };
 
-// The list: tabs for what needs you, what's working, what's done and what's quiet, each cut into
-// its topics with their lanes, or what a search finds. An ask answers in its row when its choices
-// fit one line; anything else steps down to its topic's page. With a page beside the list, the
-// first topic shown is up there until you open another, and the row it came from stays lit.
 export function ListPage({
   open,
   at,
@@ -92,7 +88,6 @@ export function ListPage({
   useEffect(() => {
     if (open) setQuery(null);
   }, [open, at]);
-  // A tab opens where it was sent, or on what needs you while anything does.
   useEffect(() => {
     if (open && loaded) setStage(at.stage ?? (counts.needs ? 'needs' : 'working'));
   }, [open, loaded, at]);

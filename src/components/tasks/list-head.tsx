@@ -78,7 +78,6 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-// Where the list draws its bar inline, Back leads the tabs and search ends them instead.
 export function Tabs({
   counts,
   stage,

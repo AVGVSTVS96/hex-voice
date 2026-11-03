@@ -38,7 +38,7 @@ import type { TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 
-// Where Tasks opens: on a task's own page, or on a stage's tab. Every opening brings a new one.
+// Every opening passes a new one, which restarts the pages and the list's tab.
 export type TasksAt = { task?: string; stage?: Stage };
 
 export type TasksProps = {
@@ -105,7 +105,6 @@ export function Tasks({
     );
   };
   const openThread = (thread: TaskRow) => openLink(thread.link!, placeOf(thread.app));
-  // Each place a row opens from its swipe: a thread in its app, a call in Calls, or a page.
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
       if (tile.link) openLink(tile.link, tile.place);
