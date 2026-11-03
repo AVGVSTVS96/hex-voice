@@ -72,6 +72,7 @@ import {
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
+import { logPose, startPoseLog } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { metrics, radius, theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -135,21 +136,18 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
 }
 
 // Writes the window, the size the screen lays out at, the safe area and the pose to the app's
-// defaults (HexPose), where scripts/duo reads them, and the last moments of them with their times
-// (HexPoseLog), so a check can see what changed between two shots.
+// defaults (HexPose), where scripts/duo reads them, and starts the timed log of them and of where
+// the screen's parts were laid out (HexPoseLog), so a check can see what changed between shots.
 function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const log = useRef<object[]>([]);
+  useEffect(startPoseLog, []);
   useEffect(() => {
-    const now = { at: Date.now(), window, size, insets, pose };
-    log.current = [...log.current.slice(-(LOGGED - 1)), now];
-    Settings.set({ HexPose: JSON.stringify(now), HexPoseLog: JSON.stringify(log.current) });
+    Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose }) });
+    logPose('pose', { window, size, insets, pose });
   }, [window, size, insets, pose]);
   return null;
 }
-
-const LOGGED = 40;
 
 type Size = { width: number; height: number };
 
@@ -1087,6 +1085,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
           })
         : null}
       <ScreenToolbar
+        onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
         axis={toolbar.axis}
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
         style={[

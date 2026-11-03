@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { shapeOf, usePages } from '@/components/tasks/pages';
 import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
 import type { Page } from '@/screens/layout';
+import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
 
 // Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
@@ -68,6 +69,9 @@ export function TasksPage({
   return (
     <Animated.View
       testID="tasks-page"
+      onLayout={({ nativeEvent: { layout } }) =>
+        logPose('tasks', { ...layout, shape: pages.shape })
+      }
       pointerEvents={view.open ? 'auto' : 'none'}
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
