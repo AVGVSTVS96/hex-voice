@@ -197,7 +197,7 @@ function Empty({ offline }: { offline: boolean }) {
       <Text style={styles.emptyTitle}>{offline ? 'Can’t reach hex' : 'No calls yet'}</Text>
       <Text style={styles.emptyText}>
         {offline
-          ? 'Check that Tailscale is on, then open Calls again.'
+          ? 'Check that Tailscale is on. Calls catches up on its own once hex answers.'
           : 'When a call ends, it lands here, whether you called from this app, the web page or your phone.'}
       </Text>
     </View>

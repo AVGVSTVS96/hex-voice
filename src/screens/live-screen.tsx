@@ -52,7 +52,6 @@ import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import { useNow } from '@/hooks/use-now';
 import { useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
-import { useWrapUp } from '@/hooks/use-wrap-up';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
@@ -157,7 +156,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     call: null,
   });
   const viewing = showing.call;
-  const calls = useCalls(drawerOpen || viewing !== null);
+  const calls = useCalls();
   const pullWords = (pulled: boolean) =>
     setShowing((now) => (pulled ? { ...now, pulled } : { pulled, call: null }));
   const showCall = (call: string | null) =>
@@ -745,7 +744,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     ? { id: away.id, end: away.end ?? null, seconds: endedSeconds(away) }
     : { id: session.callId, end: session.ending, seconds: session.elapsedSeconds };
   const ending = last.end && !onCall && !viewing ? ENDINGS[last.end] : undefined;
-  const wrapUp = useWrapUp(last.id, !!ending && last.end !== 'no-connect');
+  const wrapUp = calls.calls?.find(({ id }) => id === last.id);
   const callControls = (place: Partial<Parameters<typeof CallControls>[0]>) => (
     <CallControls
       status={elsewhere.live ? (elsewhere.leaving ? 'disconnecting' : 'connected') : session.status}
