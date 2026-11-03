@@ -139,7 +139,8 @@ export function Tasks({
     }
     tap();
     if (tile.kind === 'call') onOpenCall(tile.call);
-    else void Linking.openURL(tile.url);
+    // A page's link is the web's, which the browser always opens.
+    else void Linking.openURL(tile.url).catch(() => undefined);
   };
   const openSteps = (id: string) => {
     tick();
@@ -299,6 +300,7 @@ export function Tasks({
           beside={paired}
           chat={said.chat}
           pending={said.pending}
+          failed={said.failed}
           focus={pages.focusComposer}
           foot={spot('thread').foot}
           onOpen={openThread}

@@ -17,7 +17,7 @@ import { InlineAnswers } from '@/components/tasks/ask-card';
 import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
-import { GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
+import { Failure, GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
 import {
@@ -103,6 +103,7 @@ export function EntryRow({
                 modifiers={[padding({ top: 4 })]}
               />
             ) : null}
+            {ask.failed ? <Failure text={ask.failed} /> : null}
           </Shell>
         </Swiped>
       );
@@ -139,6 +140,7 @@ export function EntryRow({
           >
             {stuck.why ? <Why text={stuck.why} /> : null}
             <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
+            {stuck.failed ? <Failure text={stuck.failed} /> : null}
           </Shell>
         </Swiped>
       );
@@ -156,6 +158,7 @@ export function EntryRow({
             label={`${fresh.title}, finished: ${fresh.line}`}
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
+            {fresh.failed ? <Failure text={fresh.failed} /> : null}
           </Shell>
         </Swiped>
       );
@@ -376,6 +379,7 @@ function Folded({
         >
           {`${label} → ${ask.topic}`}
         </Text>
+        {ask.failed ? <Failure text={ask.failed} /> : null}
       </Column>
       <Text
         textStyle={{ fontSize: 15, fontWeight: '600' }}
