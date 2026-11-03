@@ -112,7 +112,7 @@ function Marker({ task }: { task: CallTask }) {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 22, paddingTop: 36, paddingBottom: 24 },
+  content: { gap: 22, paddingTop: metrics.fade, paddingBottom: metrics.fade },
   line: {
     alignSelf: 'center',
     flexDirection: 'row',

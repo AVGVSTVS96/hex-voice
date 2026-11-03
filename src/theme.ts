@@ -45,6 +45,9 @@ export const metrics = {
   body: 17,
   bubbleX: 15,
   bubbleY: 11,
+  // How tall the call's words fade at their top and bottom edges, and how far their first and
+  // newest lines sit in from those edges, so a line at rest is never under its fade.
+  fade: 36,
 } as const;
 
 // One corner per kind of shape, the same in every pose and screen. Where something sits never
