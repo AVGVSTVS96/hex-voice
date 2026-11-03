@@ -149,13 +149,13 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // footer and agent line follow the words there instead of spanning the screen.
   const moves = split || !!orb.dock;
   // What the words show, in one place. Where the layout pulls the words down over the orb, they
-  // show once pulled; everywhere else they always show. Opening a past call pulls them, and letting
+  // show once pulled; everywhere else they take their own page once there's a call or words to show,
+  // and before that the orb rests alone in the middle. Opening a past call pulls them, and letting
   // them go goes back to the live call, so the two never disagree.
   const [showing, setShowing] = useState<{ pulled: boolean; call: string | null }>({
     pulled: false,
     call: null,
   });
-  const reading = !layout.pulls || showing.pulled;
   const viewing = showing.call;
   const calls = useCalls(drawerOpen || viewing !== null);
   const pullWords = (pulled: boolean) =>
@@ -182,6 +182,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   );
   const away = elsewhere.call;
   const onCall = voiceLocked || elsewhere.live;
+  const reading = layout.pulls
+    ? showing.pulled
+    : !!shown || onCall || !!away || session.transcript.length > 0 || cards.length > 0;
   const awake = connected || (elsewhere.live && !elsewhere.leaving);
   const duoTasks = useDuoTasks(duo, tasksOpen, onCall, reducedMotion);
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
