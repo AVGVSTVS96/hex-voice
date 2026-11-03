@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
-import { List, ZStack } from '@expo/ui/swift-ui';
+import { List } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   animation,
@@ -156,118 +156,113 @@ export function ListPage({
         }}
       />
     ) : null;
-  // At the fold the list ends above the pill: a row scrolled under it would show cut by the hinge.
-  const floats = !spot.endsAtFold;
-
+  // The list ends above the pill, so no row ever shows cut beneath it.
   return (
-    <ZStack alignment="bottom" modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
-      <Column
-        alignment="start"
-        spacing={0}
-        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-      >
-        {searching ? (
-          <Search
-            query={query}
-            glass={paged}
-            onChange={setQuery}
-            onCancel={() => {
-              feel.tick();
-              setQuery(null);
-            }}
-          />
-        ) : (
-          <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-            {compact ? null : bar === 'center' ? (
-              <ListHead toolbarLine={toolbarLine} onSearch={startSearch} />
-            ) : (
-              <PageBar
-                bar={bar}
-                title="Tasks"
-                back={back}
-                trailing={<SearchButton onPress={startSearch} />}
-              />
-            )}
-            <Tabs
-              counts={counts}
-              stage={stage}
-              offline={unreachable}
-              onChange={chooseStage}
-              back={compact ? back : undefined}
-              onSearch={compact ? startSearch : undefined}
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      {searching ? (
+        <Search
+          query={query}
+          glass={paged}
+          onChange={setQuery}
+          onCancel={() => {
+            feel.tick();
+            setQuery(null);
+          }}
+        />
+      ) : (
+        <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+          {compact ? null : bar === 'center' ? (
+            <ListHead toolbarLine={toolbarLine} onSearch={startSearch} />
+          ) : (
+            <PageBar
+              bar={bar}
+              title="Tasks"
+              back={back}
+              trailing={<SearchButton onPress={startSearch} />}
             />
-          </Column>
-        )}
-        <Faded>
-          <List
-            modifiers={[
-              listStyle('plain'),
-              scrollContentBackground('hidden'),
-              ...(paged ? [] : [background(theme.sheet)]),
-              frame({ maxWidth: Infinity, maxHeight: Infinity }),
-              animation(
-                motion.list,
-                rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
-              ),
-            ]}
-          >
-            <Edge width={width} />
-            {!searching && stage === 'needs' && picks.length > 1 ? (
-              <PicksRow
-                picks={picks}
+          )}
+          <Tabs
+            counts={counts}
+            stage={stage}
+            offline={unreachable}
+            onChange={chooseStage}
+            back={compact ? back : undefined}
+            onSearch={compact ? startSearch : undefined}
+          />
+        </Column>
+      )}
+      <Faded>
+        <List
+          modifiers={[
+            listStyle('plain'),
+            scrollContentBackground('hidden'),
+            ...(paged ? [] : [background(theme.sheet)]),
+            frame({ maxWidth: Infinity, maxHeight: Infinity }),
+            animation(
+              motion.list,
+              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
+            ),
+          ]}
+        >
+          <Edge width={width} />
+          {!searching && stage === 'needs' && picks.length > 1 ? (
+            <PicksRow
+              picks={picks}
+              width={width}
+              onTake={() => {
+                feel.tap();
+                for (const { ask, option } of picks) yours.answer(ask, option);
+              }}
+            />
+          ) : null}
+          {topics.flatMap((topic) => {
+            if (!searching && stage === 'quiet')
+              return [<QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />];
+            const lead = topic.entries.map(taskOf).find(Boolean);
+            return [
+              <TopicHead
+                key={`${topic.name}:head`}
+                topic={topic}
                 width={width}
-                onTake={() => {
-                  feel.tap();
-                  for (const { ask, option } of picks) yours.answer(ask, option);
-                }}
-              />
-            ) : null}
-            {topics.flatMap((topic) => {
-              if (!searching && stage === 'quiet')
-                return [
-                  <QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />,
-                ];
-              const lead = topic.entries.map(taskOf).find(Boolean);
-              return [
-                <TopicHead
-                  key={`${topic.name}:head`}
-                  topic={topic}
-                  width={width}
-                  onPress={lead ? () => openTask(lead) : undefined}
-                />,
-                ...topic.entries.map((entry, i) => (
-                  <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
-                )),
-              ];
-            })}
-            {!searching && stage === 'needs' && yours.list?.check ? (
-              <CheckRow
-                check={yours.list.check}
-                width={width}
-                onPress={() => {
-                  feel.tick();
-                  pages.go({ to: 'check' });
-                }}
-              />
-            ) : null}
-            {loaded && !topics.length ? (
-              <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
-            ) : null}
-            {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
-            <Edge width={width} height={goThrough && floats ? 72 : FADE} />
-          </List>
-        </Faded>
-        {floats ? null : goThrough}
-      </Column>
-      {floats ? goThrough : null}
-    </ZStack>
+                onPress={lead ? () => openTask(lead) : undefined}
+              />,
+              ...topic.entries.map((entry, i) => (
+                <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
+              )),
+            ];
+          })}
+          {!searching && stage === 'needs' && yours.list?.check ? (
+            <CheckRow
+              check={yours.list.check}
+              width={width}
+              onPress={() => {
+                feel.tick();
+                pages.go({ to: 'check' });
+              }}
+            />
+          ) : null}
+          {loaded && !topics.length ? (
+            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
+          ) : null}
+          {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
+          <Edge width={width} />
+        </List>
+      </Faded>
+      {goThrough}
+    </Column>
   );
 }
 
-// The room the list leaves at its ends, so at rest no row sits in the fade or under the pill.
-function Edge({ width, height = FADE }: { width: number; height?: number }) {
+// The room the list leaves at its ends, so at rest no row sits in the fade.
+function Edge({ width }: { width: number }) {
   return (
-    <Spacer modifiers={[frame({ height }), ...listRow(width, { top: false, bottom: false })]} />
+    <Spacer
+      modifiers={[frame({ height: FADE }), ...listRow(width, { top: false, bottom: false })]}
+    />
   );
 }
 

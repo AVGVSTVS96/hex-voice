@@ -126,7 +126,6 @@ export type Spot = {
   width: number;
   pad: { top: number; leading: number; trailing: number };
   foot: number;
-  endsAtFold: boolean;
   bar: Bar;
   back?: Level | 'call';
 };
@@ -140,8 +139,9 @@ function barOf(room: Room, width: number, height: number): Bar {
   return !room.paged ? 'center' : width > height || width >= INLINE ? 'inline' : 'large';
 }
 
+// A page that ends at the fold keeps nothing clear below it.
 function footOf(foot: number | 'fold') {
-  return foot === 'fold' ? { foot: 0, endsAtFold: true } : { foot, endsAtFold: false };
+  return { foot: foot === 'fold' ? 0 : foot };
 }
 
 export function spotOf(level: Level, pages: Placing, room: Room, typing = false): Spot {
