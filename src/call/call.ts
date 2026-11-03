@@ -6,6 +6,7 @@ import {
   endedSeconds,
   liveEntries,
   type CallEnding,
+  type CallId,
   type CallRecord,
   type CallSource,
 } from '@/live/calls';
@@ -15,7 +16,7 @@ export type Mic = { muted: boolean; interrupted: boolean };
 
 // What a call leaves on screen once it ends, whether it was here or hex held it elsewhere.
 export type Ended = {
-  id?: string;
+  id?: CallId;
   from: CallSource;
   ending?: CallEnding;
   seconds: number;
@@ -30,7 +31,7 @@ export type Call =
   | {
       kind: 'here';
       phase: 'connecting' | 'live' | 'ending';
-      id?: string;
+      id?: CallId;
       mic: Mic;
       seconds: number;
       words: TranscriptEntry[];
