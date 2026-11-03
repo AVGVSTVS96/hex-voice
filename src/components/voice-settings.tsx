@@ -1,4 +1,4 @@
-import { Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
 import {
   BottomSheet,
   Button as NativeButton,
@@ -32,7 +32,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -93,8 +93,7 @@ const PHRASE = [
   { level: 0, pitch: 0, tone: 0 },
 ];
 const PREVIEW_ORB = 160;
-const CENTERED = 560;
-const BESIDE = { width: 760, height: 520, carousel: 300, preview: 260, orb: 180 };
+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
 
 const SHEET_TOP = 24;
 const SHEET_BOTTOM = 26;
@@ -129,13 +128,12 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const window = useWindowDimensions();
-  // Where the width is regular the sheet fits its content, so the content sets the width and
-  // never reads it back from the sheet: a width measured from a sheet sized to its content settles
-  // wherever the two last met, a different width each time it opens.
-  const width =
-    fit === 'phone'
-      ? window.width
-      : Math.min(fit === 'centered' ? CENTERED : BESIDE.width, window.width - 2 * metrics.gutter);
+  // Where the width is regular the system sizes the sheet as a page, and its content lays out to
+  // the width that page gets. The width flows one way, from the sheet to the content: a sheet
+  // fitted to its content's width chases its own measurement, and one held to a width we pick gets
+  // capped by the system narrower than its content.
+  const [given, setGiven] = useState<number>();
+  const width = fit === 'phone' ? window.width : (given ?? 0);
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
   const rowsWidth = fit === 'beside' ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
@@ -317,7 +315,9 @@ export function VoiceSettings({
                 else onDismiss();
               },
             }),
-            ...(fit === 'phone' ? [] : [presentationSizing('fitted')]),
+            ...(fit === 'phone'
+              ? []
+              : [presentationSizing('page', { fitted: { horizontal: false, vertical: true } })]),
             presentationBackground(theme.sheet),
           ]}
         >
@@ -334,12 +334,22 @@ export function VoiceSettings({
                     }),
                   ]
                 : [
-                    frame({ width, height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    frame({ height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
+                    frame({ maxWidth: Infinity }),
                     animation(motion.page, onVoicePage),
                   ]
             }
           >
-            {fit === 'beside' ? (
+            {fit !== 'phone' && (
+              <RNHostView>
+                <View
+                  pointerEvents="none"
+                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
+                  style={StyleSheet.absoluteFill}
+                />
+              </RNHostView>
+            )}
+            {width > 0 && fit === 'beside' ? (
               <Row
                 alignment="center"
                 spacing={metrics.gutter}
@@ -349,7 +359,7 @@ export function VoiceSettings({
                 {carousel}
                 <Column spacing={metrics.groupSpacing}>{rows}</Column>
               </Row>
-            ) : (
+            ) : width > 0 ? (
               <Column
                 alignment="center"
                 spacing={metrics.groupSpacing}
@@ -359,59 +369,61 @@ export function VoiceSettings({
                 {carousel}
                 {rows}
               </Column>
-            )}
-            <Column
-              alignment="center"
-              spacing={0}
-              modifiers={page(onVoicePage, width, VOICE_HEIGHT)}
-            >
-              <Row
+            ) : null}
+            {width > 0 && (
+              <Column
                 alignment="center"
                 spacing={0}
-                style={{ width: contentWidth, height: HEADER }}
-                modifiers={[padding({ top: HEADER_TOP })]}
+                modifiers={page(onVoicePage, width, VOICE_HEIGHT)}
               >
-                <NativeButton
-                  label="Back"
-                  systemImage="chevron.left"
-                  onPress={() => showVoices(false)}
-                  testID="voice-back"
-                  modifiers={[
-                    labelStyle('iconOnly'),
-                    buttonStyle('glass'),
-                    buttonBorderShape('circle'),
-                    controlSize('large'),
-                  ]}
-                />
-                <Spacer flexible />
-                <Text
-                  textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
-                  modifiers={[foregroundStyle(theme.text)]}
+                <Row
+                  alignment="center"
+                  spacing={0}
+                  style={{ width: contentWidth, height: HEADER }}
+                  modifiers={[padding({ top: HEADER_TOP })]}
                 >
-                  Voice
-                </Text>
-                <Spacer flexible />
-                <Spacer style={{ width: HEADER }} />
-              </Row>
-              <SelectionCarousel
-                options={voiceOptions}
-                value={voice}
-                width={contentWidth}
-                height={VOICE_CAROUSEL}
-                enabled={voiceEnabled}
-                disabledHint={
-                  voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
-                }
-                label="Voice"
-                testID="voice-carousel"
-                onPress={() => setTake((count) => count + 1)}
-                onChange={(next) => {
-                  if (!voiceEnabled || !isLiveVoice(next)) return;
-                  haptic();
-                  onVoiceChange(next);
-                }}
-              />
-            </Column>
+                  <NativeButton
+                    label="Back"
+                    systemImage="chevron.left"
+                    onPress={() => showVoices(false)}
+                    testID="voice-back"
+                    modifiers={[
+                      labelStyle('iconOnly'),
+                      buttonStyle('glass'),
+                      buttonBorderShape('circle'),
+                      controlSize('large'),
+                    ]}
+                  />
+                  <Spacer flexible />
+                  <Text
+                    textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
+                    modifiers={[foregroundStyle(theme.text)]}
+                  >
+                    Voice
+                  </Text>
+                  <Spacer flexible />
+                  <Spacer style={{ width: HEADER }} />
+                </Row>
+                <SelectionCarousel
+                  options={voiceOptions}
+                  value={voice}
+                  width={contentWidth}
+                  height={VOICE_CAROUSEL}
+                  enabled={voiceEnabled}
+                  disabledHint={
+                    voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
+                  }
+                  label="Voice"
+                  testID="voice-carousel"
+                  onPress={() => setTake((count) => count + 1)}
+                  onChange={(next) => {
+                    if (!voiceEnabled || !isLiveVoice(next)) return;
+                    haptic();
+                    onVoiceChange(next);
+                  }}
+                />
+              </Column>
+            )}
           </ZStack>
         </SheetContent>
       </BottomSheet>
