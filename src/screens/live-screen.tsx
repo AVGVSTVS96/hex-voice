@@ -678,15 +678,24 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     };
   });
 
+  // What an action on the call couldn't do shows in the footer's error line until the next one.
+  const [trouble, setTrouble] = useState<string>();
+  const tried = (action: Promise<unknown>) => {
+    setTrouble(undefined);
+    action.catch((error: unknown) =>
+      setTrouble(error instanceof Error ? error.message : 'That didn’t reach hex.'),
+    );
+  };
   const startCall = (about?: string) => {
     if (viewing) leaveCall();
+    setTrouble(undefined);
     void session.start(voice, about);
   };
   const onPrimaryPress = () => {
     if (disconnecting || elsewhere.leaving || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (connected || connecting) void session.stop();
-    else if (elsewhere.live) elsewhere.hangUp();
+    else if (elsewhere.live) tried(elsewhere.hangUp());
     else startCall();
   };
   const onMute = () => {
@@ -707,7 +716,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
     stepAside();
-    if (onCall) void tasksAPI.talk(task.id).catch(() => {});
+    if (onCall) tried(tasksAPI.talk(task.id));
     else if (voiceLoaded) startCall(task.id);
   };
   // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
@@ -727,7 +736,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
     stepAside();
-    if (onCall) void asksAPI.talk().catch(() => {});
+    if (onCall) tried(asksAPI.talk());
     else if (voiceLoaded) startCall('asks');
   };
 
@@ -964,9 +973,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                 Paused while another app has the audio
               </Text>
             ) : null}
-            {session.error && !away ? (
+            {trouble || (session.error && !away) ? (
               <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                {session.error}
+                {trouble ?? session.error}
               </Text>
             ) : null}
             {layout.controls === 'inline' && !inRow && controls}
