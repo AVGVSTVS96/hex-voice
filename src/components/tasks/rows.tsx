@@ -275,15 +275,20 @@ function Shell({
   );
 }
 
+// Where a row lives, one tile per look: two Telegram threads show as one Telegram tile, and the
+// row's swipe still opens each.
 function Tiles({ tiles }: { tiles: Tile[] }) {
+  const looks = new Map(tiles.map((tile) => [lookOf(tile), tile]));
   return (
     <Row alignment="center" spacing={4}>
-      {tiles.map((tile, i) => (
-        <TileIcon key={i} tile={tile} size={14} />
+      {[...looks].map(([look, tile]) => (
+        <TileIcon key={look} tile={tile} size={14} />
       ))}
     </Row>
   );
 }
+
+const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(tile)}` : tile.kind);
 
 function Meta({ text }: { text: string }) {
   return (
