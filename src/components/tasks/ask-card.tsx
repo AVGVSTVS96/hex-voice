@@ -26,11 +26,15 @@ import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
 
-const ROW = 50;
-const QUESTION = 17;
+// Compact, so a page of many asks scans: a question, two lines of why, and its choices on one
+// line where they fit.
+const ROW = 40;
+const QUESTION = 16;
+const ANSWER = 15;
+const CONTEXT = 2;
 // The pencil takes taps across 44 points but only the question's first line of height.
 const PENCIL = 44;
-const LINE = 22;
+const LINE = 21;
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
@@ -96,7 +100,17 @@ export function YourCall({
               </Text>
             </Row>
           );
-        return <AskCard key={ask.id} ask={ask} first={i === 0} width={width} onAnswer={onAnswer} />;
+        return (
+          <Column
+            key={ask.id}
+            alignment="start"
+            spacing={0}
+            modifiers={[frame({ maxWidth: Infinity })]}
+          >
+            {i ? <Hairline /> : null}
+            <AskCard ask={ask} first={i === 0} width={width} onAnswer={onAnswer} />
+          </Column>
+        );
       })}
     </Column>
   );
@@ -119,9 +133,9 @@ function AskCard({
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Column
         alignment="start"
-        spacing={4}
+        spacing={3}
         modifiers={[
-          padding({ leading: INSET, trailing: INSET, top: first ? 2 : 22, bottom: 12 }),
+          padding({ leading: INSET, trailing: INSET, top: first ? 2 : 12, bottom: 6 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
@@ -157,11 +171,11 @@ function AskCard({
         </Row>
         {ask.context ? (
           <Text
-            textStyle={{ fontSize: 15, lineHeight: 20 }}
+            textStyle={{ fontSize: 14, lineHeight: 19 }}
             onPress={() => setWhole(!whole)}
             modifiers={[
               foregroundStyle(theme.secondary),
-              whole ? lineLimit() : lineLimit(4),
+              whole ? lineLimit() : lineLimit(CONTEXT),
               animation(motion.list, whole),
               ...(ios ? [accessibilityLabel(whole ? 'Show less' : 'Show all')] : []),
             ]}
@@ -270,28 +284,23 @@ export function InlineAnswers({
 
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   if (!ask.options.length) return null;
-  if (fitsOneLine(ask.options, width - 2 * INSET, QUESTION))
+  if (fitsOneLine(ask.options, width - 2 * INSET, ANSWER))
     return (
       <InlineAnswers
         ask={ask}
-        size={QUESTION}
+        size={ANSWER}
         onAnswer={onAnswer}
-        modifiers={[padding({ leading: INSET, trailing: INSET, top: 2, bottom: 14 })]}
+        modifiers={[padding({ leading: INSET, trailing: INSET, top: 0, bottom: 10 })]}
       />
     );
   return (
-    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Hairline />
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity }), padding({ bottom: 4 })]}
+    >
       {ask.options.map((option) => (
-        <Column
-          key={option.label}
-          alignment="start"
-          spacing={0}
-          modifiers={[frame({ maxWidth: Infinity })]}
-        >
-          <Choice option={option} onPress={() => onAnswer(ask, option)} />
-          <Hairline />
-        </Column>
+        <Choice key={option.label} option={option} onPress={() => onAnswer(ask, option)} />
       ))}
     </Column>
   );
@@ -304,7 +313,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
       spacing={12}
       onPress={onPress}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 8, bottom: 8 }),
+        padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
         frame({ minHeight: ROW }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
@@ -314,12 +323,12 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
       ]}
     >
       {option.pick ? (
-        <Icon name="checkmark" size={15} color={theme.accent} />
+        <Icon name="checkmark" size={14} color={theme.accent} />
       ) : (
-        <Spacer style={{ width: 15 }} />
+        <Spacer style={{ width: 14 }} />
       )}
       <Text
-        textStyle={{ fontSize: 17, lineHeight: 22, fontWeight: option.pick ? '500' : '400' }}
+        textStyle={{ fontSize: ANSWER, lineHeight: 20, fontWeight: option.pick ? '500' : '400' }}
         modifiers={[
           foregroundStyle(option.pick ? theme.accent : theme.text),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
@@ -329,7 +338,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
       </Text>
       {option.pick ? (
         <Text
-          textStyle={{ fontSize: 13, fontWeight: '500' }}
+          textStyle={{ fontSize: 12, fontWeight: '500' }}
           modifiers={[foregroundStyle(theme.accent)]}
         >
           hex’s pick
