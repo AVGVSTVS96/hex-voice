@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 
-import { agentLine, justFinished, type AgentTask, type CallCard } from '@/live/agents';
-import { agentsAPI } from '@/live/api';
+import { hex } from '@/hex';
 import { useWatch } from '@/hooks/use-watch';
+import { agentLine, justFinished, type AgentTask, type CallCard } from '@/live/agents';
+import type { CallId } from '@/live/calls';
 import { motion } from '@/motion';
 
-type Live = { call: string | null; tasks: AgentTask[]; cards: CallCard[] };
+type Live = { call: CallId | null; tasks: AgentTask[]; cards: CallCard[] };
 
 // The call hex holds right now, wherever it is (this app, a phone call, the web page), and what
 // its agents are doing, from the voice plugin's /activity long poll: it answers the moment a call
@@ -16,10 +17,8 @@ export function useAgentLine(haptics: boolean) {
   const [live, setLive] = useState<Live>({ call: null, tasks: [], cards: [] });
   const [finished, setFinished] = useState<AgentTask>();
   const seen = useRef<AgentTask[]>([]);
-  const feel = useRef(haptics);
-  feel.current = haptics;
 
-  useWatch(true, agentsAPI.watch, (activity) => {
+  useWatch('activity', hex.activity.watch, (activity) => {
     const tasks = activity.call ? activity.tasks : [];
     const done = justFinished(seen.current, tasks);
     seen.current = tasks;
@@ -27,7 +26,7 @@ export function useAgentLine(haptics: boolean) {
     if (!activity.call) setFinished(undefined);
     if (!done) return;
     setFinished(done);
-    if (feel.current && process.env.EXPO_OS === 'ios')
+    if (haptics && process.env.EXPO_OS === 'ios')
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
   });
 

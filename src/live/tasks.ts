@@ -1,91 +1,113 @@
+import * as z from 'zod/mini';
+
 import { timeOfDay } from './calls';
 
-export type TaskState = 'needs' | 'working' | 'done' | 'failed' | 'idle';
+export const TaskId = z.string();
+export type TaskId = z.infer<typeof TaskId>;
+
+export const TaskState = z.catch(z.enum(['needs', 'working', 'done', 'failed', 'idle']), 'idle');
+export type TaskState = z.infer<typeof TaskState>;
 // What a step did: a thought, something it said, a step of its plan, a command, a read, an edit, a
 // search of the code or the web, an agent it started, or another tool.
-export type StepKind =
-  'think' | 'say' | 'plan' | 'run' | 'read' | 'edit' | 'search' | 'web' | 'agent' | 'tool';
+const StepKind = z.catch(
+  z.enum(['think', 'say', 'plan', 'run', 'read', 'edit', 'search', 'web', 'agent', 'tool']),
+  'tool',
+);
+export type StepKind = z.infer<typeof StepKind>;
 // A step that called a tool says how it went, `detail` is what it acted on (the command, a path,
 // the query), `result` the first lines of what came back, and `agent` the agent it started.
-export type TaskStep = {
-  id?: string;
-  at: string;
-  end?: string;
-  kind: StepKind;
-  text: string;
-  state?: 'running' | 'done' | 'failed';
-  detail?: string;
-  result?: string;
-  agent?: string;
-};
+const TaskStep = z.object({
+  id: z.optional(z.string()),
+  at: z.string(),
+  end: z.optional(z.string()),
+  kind: StepKind,
+  text: z.string(),
+  state: z.catch(z.optional(z.enum(['running', 'done', 'failed'])), undefined),
+  detail: z.optional(z.string()),
+  result: z.optional(z.string()),
+  agent: z.optional(z.string()),
+});
+export type TaskStep = z.infer<typeof TaskStep>;
 // An agent a thread started: a Claude Code subagent or session, or a T3 Code delegation. `who` is
 // its model in words, `line` its newest step while it works, `result` what it handed back, and
 // `link` opens it in T3 Code. Stopped is interrupted or cancelled.
-export type AgentState = 'working' | 'done' | 'failed' | 'stopped';
-export type TaskAgent = {
-  id: string;
-  label: string;
-  state: AgentState;
-  who?: string;
-  since?: string;
-  end?: string;
-  line?: string;
-  result?: string;
-  link?: string;
+const AgentState = z.catch(z.enum(['working', 'done', 'failed', 'stopped']), 'done');
+export type AgentState = z.infer<typeof AgentState>;
+const agent = {
+  id: z.string(),
+  label: z.string(),
+  state: AgentState,
+  who: z.optional(z.string()),
+  since: z.optional(z.string()),
+  end: z.optional(z.string()),
+  line: z.optional(z.string()),
+  result: z.optional(z.string()),
+  link: z.optional(z.string()),
 };
-export type AgentTrail = TaskAgent & { steps: TaskStep[] };
-export type TaskMoment = { at: string; state: TaskState; text: string };
+const TaskAgent = z.object(agent);
+export type TaskAgent = z.infer<typeof TaskAgent>;
+const AgentTrail = z.object({ ...agent, steps: z.array(TaskStep) });
+export type AgentTrail = z.infer<typeof AgentTrail>;
+const TaskMoment = z.object({ at: z.string(), state: TaskState, text: z.string() });
+export type TaskMoment = z.infer<typeof TaskMoment>;
 // The plan as Claude Code's todo list stands.
-export type Planned = { text: string; state: 'done' | 'running' | 'pending' };
+const Planned = z.object({
+  text: z.string(),
+  state: z.catch(z.enum(['done', 'running', 'pending']), 'pending'),
+});
+export type Planned = z.infer<typeof Planned>;
 // One entry of the job's last week: the state it was in then, a change or a step within one.
-export type Turn = { at: string; state: TaskState };
+const Turn = z.object({ at: z.string(), state: TaskState });
+export type Turn = z.infer<typeof Turn>;
 // `place` is what the thread is called where it lives: a Telegram topic's name, General or DM, or
 // T3 Code's own title for its thread.
-export type TaskRow = {
-  id: string;
-  app: string;
-  name: string;
-  place: string;
-  state: TaskState;
-  running: boolean;
-  line: string;
-  since: string;
-  at: string;
-  agents: TaskAgent[];
-  track: Turn[];
-  link?: string;
+const row = {
+  id: TaskId,
+  app: z.string(),
+  name: z.string(),
+  place: z.string(),
+  state: TaskState,
+  running: z.boolean(),
+  line: z.string(),
+  since: z.string(),
+  at: z.string(),
+  track: z.array(Turn),
+  link: z.optional(z.string()),
 };
-export type Task = Omit<TaskRow, 'agents'> & {
-  needs?: string;
-  pin?: string;
-  lately: TaskMoment[];
-  steps: TaskStep[];
-  plan: Planned[];
-  agents: AgentTrail[];
-};
-export type TaskList = { version: number; tasks: TaskRow[] };
+export const TaskRow = z.object({ ...row, agents: z.array(TaskAgent) });
+export type TaskRow = z.infer<typeof TaskRow>;
+export const Task = z.object({
+  ...row,
+  needs: z.optional(z.string()),
+  pin: z.optional(z.string()),
+  lately: z.array(TaskMoment),
+  steps: z.array(TaskStep),
+  plan: z.array(Planned),
+  agents: z.array(AgentTrail),
+});
+export type Task = z.infer<typeof Task>;
+export const TaskList = z.object({ version: z.number(), tasks: z.array(TaskRow) });
+export type TaskList = z.infer<typeof TaskList>;
 // A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
 // of `total`), what you sent that its session hasn't taken in yet, and whether words typed here
 // reach it (T3 Code threads take only what's typed in T3 Code).
-export type ChatTurn = { from: 'me' | 'hex'; text: string };
-export type Chat = {
-  version: number;
-  sends: boolean;
-  total: number;
-  turns: ChatTurn[];
-  waiting: { key: string; text: string; at: string }[];
-};
-export type TaskCounts = { version: number; needs: number; working: number; yours?: number };
-
-export interface TasksAPI {
-  list(after?: number, signal?: AbortSignal): Promise<TaskList>;
-  counts(after?: number, signal?: AbortSignal): Promise<TaskCounts>;
-  get(id: string): Promise<Task>;
-  talk(id: string): Promise<void>;
-  chat(id: string, after?: number, signal?: AbortSignal): Promise<Chat>;
-  send(id: string, text: string, key: string): Promise<void>;
-  stop(id: string): Promise<void>;
-}
+const ChatTurn = z.object({ from: z.catch(z.enum(['me', 'hex']), 'hex'), text: z.string() });
+export type ChatTurn = z.infer<typeof ChatTurn>;
+export const Chat = z.object({
+  version: z.number(),
+  sends: z.boolean(),
+  total: z.number(),
+  turns: z.array(ChatTurn),
+  waiting: z.array(z.object({ key: z.string(), text: z.string(), at: z.string() })),
+});
+export type Chat = z.infer<typeof Chat>;
+export const TaskCounts = z.object({
+  version: z.number(),
+  needs: z.number(),
+  working: z.number(),
+  yours: z.optional(z.number()),
+});
+export type TaskCounts = z.infer<typeof TaskCounts>;
 
 // How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
 export function taskTime(task: TaskRow, now = new Date()) {

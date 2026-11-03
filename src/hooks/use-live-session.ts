@@ -2,14 +2,14 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
-import { sessionAPI } from '@/live/api';
+import { hex } from '@/hex';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
 // A demo session plays a pretend call (src/live/demo-call.ts) and starts at once.
 export function useLiveSession(demo = false) {
   const [session] = useState(() =>
-    demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, sessionAPI),
+    demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
   );
   const snapshot = useSyncExternalStore(
     session.subscribe,

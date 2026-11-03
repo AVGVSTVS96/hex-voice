@@ -15,7 +15,7 @@ import {
   wordsOf,
   type Call,
 } from '../src/call/call';
-import type { CallRecord } from '../src/live/calls';
+import { CallId, type CallRecord } from '../src/live/calls';
 import type { LiveSnapshot, TranscriptEntry } from '../src/live/types';
 
 const words: TranscriptEntry[] = [{ id: 'user-0', role: 'user', text: 'Hi hex', startMs: 0 }];
@@ -36,9 +36,11 @@ function session(change: Partial<LiveSnapshot> = {}): LiveSnapshot {
   };
 }
 
+const sess = CallId.parse('sess_1');
+
 function record(change: Partial<CallRecord> = {}): CallRecord {
   return {
-    id: 'phone_1',
+    id: CallId.parse('phone_1'),
     from: 'phone-out',
     started: '2026-11-03T08:00:00.000Z',
     turns: [{ who: 'voice', at: 0, text: 'Hey, it is hex' }],
@@ -49,7 +51,7 @@ function record(change: Partial<CallRecord> = {}): CallRecord {
 
 const nobody = { leaving: false };
 const live = (change: Partial<LiveSnapshot> = {}) =>
-  callOf(session({ status: 'connected', callId: 'sess_1', transcript: words, ...change }), nobody);
+  callOf(session({ status: 'connected', callId: sess, transcript: words, ...change }), nobody);
 const seen = (call: Call, viewing = false) => ({
   persona: personaOf(call, false),
   wake: wakeOf(call),
@@ -131,7 +133,7 @@ test('ending a call here thinks, keeps the microphone as it was, and lets nothin
 
 test('a call that ended here says how and how long, and its words stay', () => {
   const ended = callOf(
-    session({ callId: 'sess_1', ending: 'you', elapsedSeconds: 125, transcript: words }),
+    session({ callId: sess, ending: 'you', elapsedSeconds: 125, transcript: words }),
     nobody,
   );
   assert.deepEqual(seen(ended), {
@@ -167,7 +169,7 @@ test('a dropped call shows its length in red', () => {
   const dropped = callOf(
     session({
       status: 'error',
-      callId: 'sess_1',
+      callId: sess,
       ending: 'dropped',
       error: 'Connection lost.',
       elapsedSeconds: 45,
@@ -184,7 +186,7 @@ test('a dropped call shows its length in red', () => {
 });
 
 test('a past call on screen opens the words and hides how the last call ended', () => {
-  const ended = callOf(session({ callId: 'sess_1', ending: 'hex', elapsedSeconds: 30 }), nobody);
+  const ended = callOf(session({ callId: sess, ending: 'hex', elapsedSeconds: 30 }), nobody);
   assert.equal(footerOf(ended, true), undefined);
   assert.equal(showsWords(ended, { viewing: true, cards: 0 }), true);
 });
@@ -241,7 +243,7 @@ test('with nothing said and no call, the words never open beside the orb', () =>
   });
   assert.equal(showsWords(unanswered, { viewing: false, cards: 0 }), false);
   assert.equal(footerOf(unanswered, false)?.text, 'No answer · 30 sec');
-  const cancelled = callOf(session({ callId: 'sess_1' }), nobody);
+  const cancelled = callOf(session({ callId: sess }), nobody);
   assert.equal(showsWords(cancelled, { viewing: false, cards: 0 }), false);
 });
 
@@ -253,11 +255,11 @@ test('the call going on now is named by hex once it answers, wherever it is', ()
   assert.equal(callIdOf(callOf(session({ status: 'connecting' }), nobody)), undefined);
   assert.equal(callIdOf(live()), 'sess_1');
   assert.equal(callIdOf(callOf(session(), { record: record(), leaving: false })), 'phone_1');
-  assert.equal(callIdOf(callOf(session({ callId: 'sess_1', ending: 'you' }), nobody)), undefined);
+  assert.equal(callIdOf(callOf(session({ callId: sess, ending: 'you' }), nobody)), undefined);
 });
 
 test('a call here wins over the one hex says it holds', () => {
-  const both = callOf(session({ status: 'connected', callId: 'sess_1' }), {
+  const both = callOf(session({ status: 'connected', callId: sess }), {
     record: record(),
     leaving: false,
   });

@@ -1,6 +1,6 @@
 import { mediaDevices, RTCPeerConnection, RTCSessionDescription } from 'react-native-webrtc';
 import InCallManager from 'react-native-incall-manager';
-import type { AudioStats, LiveEvent, TransportFactory } from './types';
+import { parseEvent, type AudioStats, type TransportFactory } from './types';
 
 // On iOS, WebRTC owns the audio session, set up by plugins/with-call-audio.js.
 const callManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
@@ -29,14 +29,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   let closed = false;
   let disconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const energies = new Map<string, { energy: number; duration: number }>();
-  channel.onmessage = (event: unknown) => {
-    const { data } = event as unknown as { data: unknown };
-    if (closed || typeof data !== 'string') return;
-    try {
-      onEvent(JSON.parse(data) as LiveEvent);
-    } catch {
-      /* Ignore unrelated data packets. */
-    }
+  channel.onmessage = (message: unknown) => {
+    const event = closed ? undefined : parseEvent(message);
+    if (event) onEvent(event);
   };
   channel.onclose = () => {
     if (!closed) onFailure('The voice connection closed. Start a new conversation to reconnect.');

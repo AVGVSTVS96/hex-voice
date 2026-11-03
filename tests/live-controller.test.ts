@@ -11,6 +11,7 @@ import type {
   TransportFactory,
 } from '../src/live/types';
 import type { LiveVoice } from '../src/live/voices';
+import { CallId } from '../src/live/calls';
 
 // All transport and API operations are local fakes. These tests make no API calls.
 function deferred<T>() {
@@ -135,8 +136,10 @@ function harness() {
   const voices: (LiveVoice | undefined)[] = [];
   const closed: string[] = [];
   const control = {
-    prepare: () => {},
-    create: async (sdp: string) => ({ sdp: `answer-${sdp}`, sessionId: `live_${created.length}` }),
+    create: async (sdp: string) => ({
+      sdp: `answer-${sdp}`,
+      sessionId: CallId.parse(`live_${created.length}`),
+    }),
     close: async (_id: string): Promise<void> => {},
     factory: async (callbacks: TransportCallbacks): Promise<LiveTransport> => {
       const transport = new FakeTransport(callbacks);
@@ -146,7 +149,6 @@ function harness() {
   };
   const factory: TransportFactory = (callbacks) => control.factory(callbacks);
   const api: SessionAPI = {
-    prepare: () => control.prepare(),
     create: (sdp, voice) => {
       created.push(sdp);
       voices.push(voice);
@@ -177,17 +179,16 @@ function harness() {
   };
 }
 
-test('configuration errors do not open the microphone', async () => {
+test('a call hex can’t start says why and lets go of the microphone', async () => {
   const h = harness();
-  h.control.prepare = () => {
-    throw new Error('Set EXPO_PUBLIC_HEX_URL.');
+  h.control.create = async () => {
+    throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
   };
   try {
     await h.session.start();
     assert.equal(h.session.getSnapshot().status, 'error');
     assert.match(h.session.getSnapshot().error ?? '', /EXPO_PUBLIC_HEX_URL/);
-    assert.equal(h.transports.length, 0);
-    assert.equal(h.created.length, 0);
+    assert.equal(h.transports[0]!.closed, true);
   } finally {
     await h.cleanup();
   }
@@ -285,7 +286,7 @@ test('allows a fresh start after cancellation while microphone permission is pen
 
 test('a late session creation is closed without applying its answer after cancellation', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: string }>();
+  const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = () => response.promise;
   try {
     const starting = h.session.start();
@@ -293,7 +294,7 @@ test('a late session creation is closed without applying its answer after cancel
     const transport = h.transports[0];
     transport.acknowledgeClose = 'none';
     const stopping = h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: 'live_late' });
+    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late') });
     await starting;
     assert.deepEqual(transport.answers, []);
     assert.deepEqual(h.closed, ['live_late']);
@@ -307,7 +308,7 @@ test('a late session creation is closed without applying its answer after cancel
 
 test('late creation cleanup failure is visible after cancellation has finished', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: string }>();
+  const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = () => response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
@@ -316,7 +317,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
     const starting = h.session.start();
     await settle();
     await h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: 'live_late_failure' });
+    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
     await starting;
     assert.equal(h.session.getSnapshot().status, 'error');
     assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/);
@@ -330,7 +331,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
 
 test('stop finalization cannot erase a late creation cleanup failure', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: string }>();
+  const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = () => response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
@@ -341,7 +342,7 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
     const transport = h.transports[0];
     transport.acknowledgeClose = 'none';
     const stopping = h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: 'live_late_failure' });
+    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
     await settle();
     assert.deepEqual(h.closed, ['live_late_failure']);
     transport.emit({ type: 'session.closed' });
@@ -356,7 +357,7 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
 
 test('late creation cleanup failure preserves a newer connected conversation', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: string }>();
+  const response = deferred<{ sdp: string; sessionId: CallId }>();
   const cleanup = deferred<void>();
   const originalCreate = h.control.create;
   h.control.create = () => response.promise;
@@ -370,7 +371,7 @@ test('late creation cleanup failure preserves a newer connected conversation', a
     const starting = h.session.start();
     await settle();
     await h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: 'live_old_failure' });
+    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_old_failure') });
     await settle();
     assert.deepEqual(h.closed, ['live_old_failure']);
 
@@ -419,7 +420,7 @@ test('server-initiated finalization cleans up without another close command or H
   try {
     await h.session.start();
     const transport = h.transports[0];
-    transport.emit({ type: 'session.closed', usage: { seconds: 12 } });
+    transport.emit({ type: 'session.closed' });
     await settle();
     assert.equal(h.session.getSnapshot().status, 'idle');
     assert.equal(transport.closed, true);
@@ -563,13 +564,13 @@ test('a muted microphone stays muted when returning from the background', async 
 
 test('a session connecting during background transition is kept without starting visual stats', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: string }>();
+  const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = () => response.promise;
   try {
     const starting = h.session.start();
     await settle();
     h.session.setAppActive(false);
-    response.resolve({ sdp: 'background-answer', sessionId: 'live_background' });
+    response.resolve({ sdp: 'background-answer', sessionId: CallId.parse('live_background') });
     await starting;
     await h.clock.fire(120);
     assert.equal(h.session.getSnapshot().status, 'connected');

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createCallsAPI } from '../src/live/api-client';
 import {
   byDay,
   callLength,
@@ -12,52 +11,9 @@ import {
   putBack,
   timeline,
   transcriptText,
-  type CallSummary,
+  CallId,
+  CallSummary,
 } from '../src/live/calls';
-
-const hexUrl = 'https://hex.example:8790';
-
-test('asks for the list, then waits on hex for the next change', async () => {
-  const urls: string[] = [];
-  const api = createCallsAPI({
-    hexUrl,
-    fetch: async (url) => {
-      urls.push(String(url));
-      return Response.json({ version: 7, live: 'sess_2', calls: [] });
-    },
-  });
-  assert.deepEqual(await api.list(), { version: 7, live: 'sess_2', calls: [] });
-  await api.list(7);
-  assert.deepEqual(urls, [`${hexUrl}/calls`, `${hexUrl}/calls?after=7`]);
-});
-
-test('closing the list stops its waiting request as it is', async () => {
-  const controller = new AbortController();
-  const api = createCallsAPI({
-    hexUrl,
-    fetch: (_url, init) =>
-      new Promise((_resolve, reject) =>
-        init?.signal?.addEventListener('abort', () => reject(new DOMException('', 'AbortError'))),
-      ),
-  });
-  const waiting = api.list(7, controller.signal);
-  controller.abort();
-  await assert.rejects(waiting, { name: 'AbortError' });
-});
-
-test('a live call is asked for whole, then waited on for its next word', async () => {
-  const urls: string[] = [];
-  const api = createCallsAPI({
-    hexUrl,
-    fetch: async (url) => {
-      urls.push(String(url));
-      return Response.json({ id: 'sess_1', version: 8, turns: [] });
-    },
-  });
-  assert.equal((await api.get('sess_1')).version, 8);
-  await api.get('sess_1', 8);
-  assert.deepEqual(urls, [`${hexUrl}/calls/sess_1`, `${hexUrl}/calls/sess_1?after=8`]);
-});
 
 test('a phone call’s turns read as the live transcript, each keeping its place as it grows', () => {
   const turns = [
@@ -80,26 +36,15 @@ test('a phone call’s turns read as the live transcript, each keeping its place
   );
 });
 
-test('deletes one call by id', async () => {
-  const api = createCallsAPI({
-    hexUrl,
-    fetch: async (url, init) => {
-      assert.equal(url, `${hexUrl}/calls/sess_1`);
-      assert.equal(init?.method, 'DELETE');
-      return new Response(null, { status: 204 });
-    },
+const call = (id: string, started: string): CallSummary =>
+  CallSummary.parse({
+    id,
+    started,
+    from: 'app',
+    seconds: 60,
+    tasks: 0,
+    preview: 'Is the build green?',
   });
-  await api.remove('sess_1');
-});
-
-const call = (id: string, started: string): CallSummary => ({
-  id,
-  started,
-  from: 'app',
-  seconds: 60,
-  tasks: 0,
-  preview: 'Is the build green?',
-});
 
 test('calls group by day, newest first, as hex sends them', () => {
   const now = new Date(2026, 9, 13, 9);
@@ -151,7 +96,7 @@ test('each of hex’s tasks is one marker where it started, showing how it ended
 
 test('a call shows when the phone took its audio and the time-limit warning, and its copy leads with hex’s wrap-up', () => {
   const call = {
-    id: 'live_1',
+    id: CallId.parse('live_1'),
     started: '2026-10-13T10:00:00.000Z',
     from: 'app' as const,
     summary: 'Checked CI and sent the PR to Telegram.',

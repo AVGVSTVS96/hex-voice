@@ -1,21 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
+import type * as z from 'zod/mini';
+
+// What this device kept, read back through the schema of hex's answer, since an older app may have
+// written it.
+export async function restore<S extends z.ZodMiniType>(key: string, schema: S) {
+  try {
+    const saved = await AsyncStorage.getItem(key);
+    return saved ? schema.safeParse(JSON.parse(saved)).data : undefined;
+  } catch {}
+}
+
+export function store(key: string, value: unknown) {
+  void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => {});
+}
 
 // What hex last sent, kept on this device, so while hex is slow or out of reach the screen shows
 // that, not an empty or zeroed list. hex's answer replaces it the moment it lands.
-export function useKept<T>(key: string) {
-  const [value, setValue] = useState<T>();
+export function useKept<S extends z.ZodMiniType>(key: string, schema: S) {
+  const [value, setValue] = useState<z.output<S>>();
   useEffect(() => {
-    void AsyncStorage.getItem(`kept:${key}`)
-      .then((saved) => {
-        if (saved) setValue((now) => now ?? (JSON.parse(saved) as T));
-      })
-      .catch(() => {});
+    void restore(`kept:${key}`, schema).then((saved) => {
+      if (saved !== undefined) setValue((now) => now ?? saved);
+    });
   }, [key]);
   const keep = useCallback(
-    (next: T) => {
+    (next: z.output<S>) => {
       setValue(next);
-      void AsyncStorage.setItem(`kept:${key}`, JSON.stringify(next)).catch(() => {});
+      store(`kept:${key}`, next);
     },
     [key],
   );

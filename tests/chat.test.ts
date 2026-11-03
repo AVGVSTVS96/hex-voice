@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { arrived, newKey, said } from '../src/live/chat';
 import { blocksOf, plainOf } from '../src/live/markdown';
-import type { Chat } from '../src/live/tasks';
+import { TaskId, type Chat } from '../src/live/tasks';
 
 const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns.length): Chat => ({
   version: 1,
@@ -14,7 +14,7 @@ const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns
 });
 
 test('what you sent shows until hex has it waiting under its key, or said after you sent it', () => {
-  const sent = { id: 't', key: 'app-abc12345', text: 'ship it', total: 2 };
+  const sent = { id: TaskId.parse('t'), key: 'app-abc12345', text: 'ship it', total: 2 };
   const before = [
     { from: 'me' as const, text: 'ship it' },
     { from: 'hex' as const, text: 'Shipped.' },
@@ -28,7 +28,7 @@ test('what you sent shows until hex has it waiting under its key, or said after 
 });
 
 test('a chat cut to its latest turns still finds what you said after you sent it', () => {
-  const sent = { id: 't', key: 'app-abc12345', text: 'and the docs', total: 150 };
+  const sent = { id: TaskId.parse('t'), key: 'app-abc12345', text: 'and the docs', total: 150 };
   const latest = Array.from({ length: 100 }, (_, i) => ({ from: 'hex' as const, text: `${i}` }));
   assert.equal(arrived(chat(latest, [], 150), sent), false);
   assert.equal(

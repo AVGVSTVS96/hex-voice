@@ -16,16 +16,14 @@ import {
   clock,
   timeOfDay,
   timeline,
-  type CallMark,
   type CallRecord,
   type CallSummary,
   type CallTask,
+  type ShownMark,
 } from '@/live/calls';
 import { circle, metrics, radius, theme } from '@/theme';
 
-const MARKS: Record<CallMark['kind'], SFSymbol> = {
-  say: 'text.bubble',
-  note: 'note.text',
+const MARKS: Record<ShownMark['kind'], SFSymbol> = {
   paused: 'pause.circle',
   resumed: 'play.circle',
   warned: 'timer',

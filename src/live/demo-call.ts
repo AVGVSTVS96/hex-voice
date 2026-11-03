@@ -1,8 +1,14 @@
+import { CallId } from './calls';
 import type { LiveEvent, SessionAPI, TransportFactory } from './types';
 
 // A call with no microphone or server behind it, for looking at the call screens
 // (hexvoice:///?demo=call): it connects at once and says a few lines.
-const LINES: [type: string, at: number, text: string][] = [
+type Line = [
+  type: 'session.input_transcript.delta' | 'session.output_transcript.delta',
+  at: number,
+  text: string,
+];
+const LINES: Line[] = [
   ['session.input_transcript.delta', 4, "What's left on the voice app's Duo pass?"],
   [
     'session.output_transcript.delta',
@@ -23,9 +29,8 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
         emit({ type, delta, start_ms: at * 1000, end_ms: (at + 4) * 1000 });
     },
     send: (event) => {
-      if (event.type === 'session.input_audio.mute' || event.type === 'session.input_audio.unmute')
-        emit({ type: `${event.type}d`, client_event_id: event.event_id });
       if (event.type === 'session.close') emit({ type: 'session.closed' });
+      else emit({ type: `${event.type}d`, client_event_id: event.event_id });
       return true;
     },
     setMuted: () => {},
@@ -35,6 +40,6 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
 };
 
 export const demoAPI: SessionAPI = {
-  create: async () => ({ sdp: '', sessionId: 'demo' }),
+  create: async () => ({ sdp: '', sessionId: CallId.parse('demo') }),
   close: async () => {},
 };

@@ -1,57 +1,86 @@
 import type { SFSymbol } from 'sf-symbols-typescript';
+import * as z from 'zod/mini';
 
 import type { TranscriptEntry } from './types';
 
-export type CallSource = 'app' | 'web' | 'phone-in' | 'phone-out';
-export type CallEnding =
-  'you' | 'hex' | 'dropped' | 'expired' | 'no-connect' | 'no-answer' | 'busy';
+export const CallId = z.string();
+export type CallId = z.infer<typeof CallId>;
 
-export type CallSummary = {
-  id: string;
-  started: string;
-  ended?: string;
-  end?: CallEnding;
-  from: CallSource;
-  voice?: string;
-  title?: string;
-  reason?: string;
-  why?: string;
-  summary?: string;
-  waiting?: string[];
-  seconds: number;
-  tasks: number;
-  preview: string;
-  // This app's, never hex's: why deleting it here didn't go through.
-  failed?: string;
+export const CallSource = z.catch(
+  z.enum(['app', 'web', 'phone-in', 'phone-out', 'discord', 'other']),
+  'other',
+);
+export type CallSource = z.infer<typeof CallSource>;
+export const CallEnding = z.enum([
+  'you',
+  'hex',
+  'dropped',
+  'expired',
+  'no-connect',
+  'no-answer',
+  'busy',
+]);
+export type CallEnding = z.infer<typeof CallEnding>;
+
+const call = {
+  id: CallId,
+  started: z.string(),
+  ended: z.optional(z.string()),
+  end: z.catch(z.optional(CallEnding), undefined),
+  from: CallSource,
+  voice: z.optional(z.string()),
+  title: z.optional(z.string()),
+  reason: z.optional(z.string()),
+  why: z.optional(z.string()),
+  summary: z.optional(z.string()),
+  waiting: z.optional(z.array(z.string())),
 };
 
-export type CallTurn = { who: 'you' | 'voice'; at: number; text: string };
-export type CallTask = {
-  id: string;
-  state: 'running' | 'done' | 'failed';
-  at: number;
-  text: string;
-};
-// hex's exact words to the voice (say, note) and things that happened to the call itself.
-export type CallMark = {
-  at: number;
-  kind: 'say' | 'note' | 'paused' | 'resumed' | 'warned';
-  text: string;
-};
+export const CallSummary = z.object({
+  ...call,
+  seconds: z.number(),
+  tasks: z.number(),
+  preview: z.string(),
+});
+// `failed` is this app's, never hex's: why deleting it here didn't go through.
+export type CallSummary = z.infer<typeof CallSummary> & { failed?: string };
+
+const CallTurn = z.object({
+  who: z.catch(z.enum(['you', 'voice']), 'voice'),
+  at: z.number(),
+  text: z.string(),
+});
+export type CallTurn = z.infer<typeof CallTurn>;
+const CallTask = z.object({
+  id: z.string(),
+  state: z.catch(z.enum(['running', 'done', 'failed']), 'done'),
+  at: z.number(),
+  text: z.string(),
+});
+export type CallTask = z.infer<typeof CallTask>;
+// hex's exact words to the voice (say, note), things that happened to the call itself, and the asks
+// it put on screen with their answers.
+const CallMark = z.object({
+  at: z.number(),
+  kind: z.catch(z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered']), 'note'),
+  text: z.string(),
+});
+export type CallMark = z.infer<typeof CallMark>;
 // A live call's record carries a version, and asking with it waits for the next word.
-export type CallRecord = Omit<CallSummary, 'seconds' | 'tasks' | 'preview'> & {
-  turns: CallTurn[];
-  tasks: CallTask[];
-  moments?: CallMark[];
-  version?: number;
-};
-export type CallList = { version: number; live?: string; calls: CallSummary[] };
-
-export interface CallsAPI {
-  list(after?: number, signal?: AbortSignal): Promise<CallList>;
-  get(id: string, after?: number, signal?: AbortSignal): Promise<CallRecord>;
-  remove(id: string): Promise<void>;
-}
+export const CallRecord = z.object({
+  ...call,
+  turns: z.array(CallTurn),
+  tasks: z.array(CallTask),
+  moments: z.optional(z.array(CallMark)),
+  version: z.optional(z.number()),
+});
+export type CallRecord = z.infer<typeof CallRecord>;
+export const CallList = z.object({
+  version: z.number(),
+  live: z.optional(CallId),
+  calls: z.array(CallSummary),
+});
+export type CallList = z.infer<typeof CallList>;
 
 // `where` is what the call screen says while it shows a call held somewhere other than this app.
 export const SOURCES: Record<CallSource, { started: string; where: string; symbol: SFSymbol }> = {
@@ -67,6 +96,8 @@ export const SOURCES: Record<CallSource, { started: string; where: string; symbo
     where: 'On your phone',
     symbol: 'phone.arrow.up.right',
   },
+  discord: { started: 'You called from Discord', where: 'On Discord', symbol: 'headphones' },
+  other: { started: 'A call with hex', where: 'Somewhere else', symbol: 'phone' },
 };
 
 // `line` closes the call on screen; `short` joins a list row, which only mentions the ending when
@@ -181,13 +212,16 @@ export function byDay(calls: CallSummary[], now = new Date()) {
   return days;
 }
 
+// What happened to the call shows in it; hex's say and note text is the voice's own words already,
+// and its asks show as cards.
+const SHOWN = { paused: true, resumed: true, warned: true };
+export type ShownMark = CallMark & { kind: keyof typeof SHOWN };
+const shown = (mark: CallMark): mark is ShownMark => mark.kind in SHOWN;
+
 export type Moment =
   | { kind: 'turn'; key: string; at: number; turn: CallTurn }
   | { kind: 'task'; key: string; at: number; task: CallTask }
-  | { kind: 'mark'; key: string; at: number; mark: CallMark };
-
-// What happened to the call shows in it; hex's say and note text is the voice's own words already.
-const SHOWN: CallMark['kind'][] = ['paused', 'resumed', 'warned'];
+  | { kind: 'mark'; key: string; at: number; mark: ShownMark };
 
 // One marker per task, where hex started it, showing how it ended up.
 export function timeline({
@@ -207,7 +241,7 @@ export function timeline({
       task,
     })),
     ...moments
-      .filter((mark) => SHOWN.includes(mark.kind))
+      .filter(shown)
       .map((mark, i) => ({ kind: 'mark' as const, key: `mark-${i}`, at: mark.at, mark })),
   ].sort((a, b) => a.at - b.at);
 }
