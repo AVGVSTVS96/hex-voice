@@ -1,4 +1,5 @@
 import { GlassEffectContainer, HStack, Host, VStack } from '@expo/ui/swift-ui';
+import { accessibilityHidden, opacity } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Control, glass } from '@/components/voice-control';
@@ -43,6 +44,8 @@ export function CallControls({
   const along = (mute ? sizes.mute + gap : 0) + sizes.call;
   const Stack = axis === 'row' ? HStack : VStack;
   const muteOff = !connected || !canMute;
+  // With no call there's nothing to mute, so mute keeps its place unseen and nothing beside it moves.
+  const idle = !connected && !connecting && !disconnecting;
   const primaryOff = disconnecting || !ready;
   return (
     <View
@@ -69,7 +72,10 @@ export function CallControls({
                 selected={muted}
                 size={sizes.mute}
                 onPress={onMute}
-                modifiers={[glass('circle', { disabled: muteOff })]}
+                modifiers={[
+                  glass('circle', { disabled: muteOff }),
+                  ...(idle ? [opacity(0), accessibilityHidden(true)] : []),
+                ]}
               />
             )}
             <Control
