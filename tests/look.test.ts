@@ -18,7 +18,6 @@ const unmigrated = new Set([
   'src/components/tasks/ask-card.tsx',
   'src/components/tasks/list.tsx',
   'src/components/tasks/rows.tsx',
-  'src/components/tasks/said.tsx',
   'src/components/tasks/tasks-view.tsx',
   'src/components/tasks/thread.tsx',
   'src/components/tasks/trace.tsx',
@@ -55,6 +54,11 @@ function rawLooks(file: string) {
       ([found, value]) => ({ found, value, strict: true }),
     ),
     ...[...source.matchAll(/\bfont\(\{[^}]*\bsize: ([^,}]+)/g)].map(([found, value]) => ({
+      found,
+      value,
+      strict: true,
+    })),
+    ...[...source.matchAll(/\blineSpacing\(([^)]+)\)/g)].map(([found, value]) => ({
       found,
       value,
       strict: true,

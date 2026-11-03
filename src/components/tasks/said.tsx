@@ -3,25 +3,19 @@ import { ScrollView, Text } from '@expo/ui/swift-ui';
 import {
   background,
   clipShape,
-  font,
-  foregroundStyle,
   frame,
   lineLimit,
-  lineSpacing,
   onTapGesture,
   padding,
   textSelection,
 } from '@expo/ui/swift-ui/modifiers';
-import type { ColorValue } from 'react-native';
 
 import { said, type Sending } from '@/live/chat';
 import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
 import { radius, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
-
-const BODY = 17;
-const LEADING = 5;
+import { textLook } from '@/ui/text';
+import { metrics, space, type Tone } from '@/ui/tokens';
 
 // Drawn as the call transcript draws a turn.
 export function Said({ turn }: { turn: ChatTurn }) {
@@ -32,7 +26,7 @@ export function Said({ turn }: { turn: ChatTurn }) {
   return (
     <Column
       alignment="start"
-      spacing={12}
+      spacing={space[3]}
       modifiers={[
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
         frame({ maxWidth: Infinity }),
@@ -47,15 +41,18 @@ export function Said({ turn }: { turn: ChatTurn }) {
 
 export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) {
   return (
-    <Column alignment="end" spacing={4} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Column alignment="end" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Mine text={sent.text} dim={!sent.failed} />
       <Row alignment="center" spacing={0} modifiers={[padding({ trailing: metrics.list.inset })]}>
         <Spacer flexible />
         <Text
           modifiers={[
             ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
-            font({ size: 13, weight: sent.failed ? 'medium' : 'regular' }),
-            foregroundStyle(sent.failed ? theme.danger : theme.tertiary),
+            ...textLook({
+              variant: 'footnote',
+              weight: sent.failed ? 'medium' : 'regular',
+              tone: sent.failed ? 'danger' : 'tertiary',
+            }),
           ]}
         >
           {!sent.failed
@@ -85,15 +82,19 @@ export function SaidLine({
   return (
     <Row
       alignment="start"
-      spacing={10}
+      spacing={space[2.5]}
       modifiers={[
-        padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 5, bottom: 5 }),
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset,
+          top: space[1.25],
+          bottom: space[1.25],
+        }),
       ]}
     >
       <Text
         modifiers={[
-          font({ size: 13, weight: 'semibold' }),
-          foregroundStyle(theme.secondary),
+          ...textLook({ variant: 'footnote', weight: 'semibold', tone: 'secondary' }),
           frame({ width: 30, alignment: 'leading' }),
         ]}
       >
@@ -102,10 +103,12 @@ export function SaidLine({
       <Text
         markdownEnabled
         modifiers={[
-          font({ size: 15 }),
-          foregroundStyle(one.kind === 'event' ? theme.secondary : theme.text),
+          ...textLook({
+            variant: 'preview',
+            tone: one.kind === 'event' ? 'secondary' : 'text',
+            paragraph: true,
+          }),
           lineLimit(lines),
-          lineSpacing(2),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
@@ -120,14 +123,14 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: 52, trailing: metrics.list.inset - 4 })]}
+      modifiers={[
+        padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset - space[1] }),
+      ]}
     >
       <Spacer flexible />
       <Text
         modifiers={[
-          font({ size: BODY }),
-          lineSpacing(LEADING),
-          foregroundStyle(dim ? theme.secondary : theme.text),
+          ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
           textSelection(true),
           padding({
             leading: metrics.bubbleX,
@@ -150,10 +153,10 @@ function Event({ text }: { text: string }) {
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: 52, trailing: metrics.list.inset })]}
+      modifiers={[padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset })]}
     >
       <Spacer flexible />
-      <Text modifiers={[font({ size: 13 }), foregroundStyle(theme.secondary), lineLimit(3)]}>
+      <Text modifiers={[...textLook({ variant: 'footnote', tone: 'secondary' }), lineLimit(3)]}>
         {text}
       </Text>
     </Row>
@@ -175,11 +178,14 @@ function Piece({ block }: { block: Block }) {
         >
           <Text
             modifiers={[
-              font({ size: 13, design: 'monospaced' }),
-              lineSpacing(3),
-              foregroundStyle(theme.text),
+              ...textLook({ variant: 'snippet', paragraph: true }),
               textSelection(true),
-              padding({ leading: 14, trailing: 14, top: 12, bottom: 12 }),
+              padding({
+                leading: space[3.5],
+                trailing: space[3.5],
+                top: space[3],
+                bottom: space[3],
+              }),
             ]}
           >
             {block.text}
@@ -189,10 +195,10 @@ function Piece({ block }: { block: Block }) {
     case 'heading':
       return <Words text={block.text} weight="semibold" />;
     case 'small':
-      return <Words text={block.text} size={13} color={theme.secondary} />;
+      return <Words text={block.text} variant="footnote" tone="secondary" />;
     case 'quote':
       return (
-        <Row alignment="start" spacing={12} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Row alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
           <Spacer
             modifiers={[
               frame({ width: 3 }),
@@ -200,18 +206,17 @@ function Piece({ block }: { block: Block }) {
               background(theme.edge),
             ]}
           />
-          <Words text={block.text} color={theme.secondary} />
+          <Words text={block.text} tone="secondary" />
         </Row>
       );
     case 'list':
       return (
-        <Column alignment="start" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
           {block.items.map((item, i) => (
-            <Row key={i} alignment="start" spacing={8}>
+            <Row key={i} alignment="start" spacing={space[2]}>
               <Text
                 modifiers={[
-                  font({ size: BODY }),
-                  foregroundStyle(theme.secondary),
+                  ...textLook({ tone: 'secondary' }),
                   frame({ minWidth: 14, alignment: 'leading' }),
                 ]}
               >
@@ -229,22 +234,20 @@ function Piece({ block }: { block: Block }) {
 
 function Words({
   text,
-  size = BODY,
+  variant = 'body',
   weight = 'regular',
-  color = theme.text,
+  tone = 'text',
 }: {
   text: string;
-  size?: number;
+  variant?: 'body' | 'footnote';
   weight?: 'regular' | 'semibold';
-  color?: ColorValue;
+  tone?: Tone;
 }) {
   return (
     <Text
       markdownEnabled
       modifiers={[
-        font({ size, weight }),
-        lineSpacing(LEADING),
-        foregroundStyle(color),
+        ...textLook({ variant, weight, tone, paragraph: true }),
         textSelection(true),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}

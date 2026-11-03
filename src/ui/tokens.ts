@@ -64,8 +64,11 @@ export const type = {
   itemDetail: { fontSize: 14, lineHeight: 19, lineSpacing: 5 },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
-  // Code, as written.
+  // Code, as written: on its own in a pinned note, and smaller inside what hex said.
   code: { fontSize: 14, lineSpacing: 6, design: 'monospaced' },
+  snippet: { fontSize: 13, lineSpacing: 3, design: 'monospaced' },
+  // A turn cut to its first few lines, as a thread's row previews it.
+  preview: { textStyle: 'subheadline', fontSize: 15, lineSpacing: 2 },
   // A count that stands for itself, like what the last check read.
   stat: { fontSize: 26, weight: 'semibold' },
   // The one name a carousel's page shows.
@@ -102,6 +105,7 @@ export const space = {
   0.5: 2,
   0.75: 3,
   1: 4,
+  1.25: 5,
   1.5: 6,
   2: 8,
   2.5: 10,
@@ -153,6 +157,8 @@ export const metrics = {
   // What you said, inside its bubble.
   bubbleX: 15,
   bubbleY: 11,
+  // The room it leaves on its other side in a Tasks thread.
+  bubbleRoom: 52,
   // How tall the call's words fade at their top and bottom edges, and how far their first and
   // newest lines sit in from those edges, so a line at rest is never under its fade.
   fade: 36,
