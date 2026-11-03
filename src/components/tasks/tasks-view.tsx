@@ -36,7 +36,7 @@ import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import { placeOf, type Place, type Stage, type Tile } from '@/live/inbox';
-import type { TaskRow } from '@/live/tasks';
+import { movedAt, type TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 
@@ -345,7 +345,7 @@ export function Tasks({
 
 function newestOf(rows: TaskRow[]) {
   return rows.reduce<TaskRow | undefined>(
-    (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
+    (newest, row) => (!newest || movedAt(row) > movedAt(newest) ? row : newest),
     undefined,
   );
 }

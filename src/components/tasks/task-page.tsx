@@ -149,7 +149,7 @@ export function Detail({
               {messages}
               {hasPlaces(task, threads) ? (
                 <Places
-                  key="places"
+                  key={`places:${task.id}`}
                   task={task}
                   threads={threads}
                   missing={missing}

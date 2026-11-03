@@ -87,12 +87,16 @@ export interface TasksAPI {
   stop(id: string): Promise<void>;
 }
 
-// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11". A
-// Claude session's finish comes from hex as the epoch, so its start stands in.
+// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
 export function taskTime(task: TaskRow, now = new Date()) {
   if (task.state === 'working') return duration(now.getTime() - Date.parse(task.since));
-  const finished = Date.parse(task.at) > 0 ? task.at : task.since;
-  return clock(new Date(task.state === 'needs' ? task.since : finished), now);
+  return clock(new Date(task.state === 'needs' ? task.since : movedAt(task)), now);
+}
+
+// When a thread last moved. hex sends a Claude session's as the epoch, so its start stands in.
+export function movedAt(task: Pick<TaskRow, 'at' | 'since'>) {
+  const at = Date.parse(task.at);
+  return at > 0 ? at : Date.parse(task.since);
 }
 
 export function clock(at: Date, now = new Date()) {

@@ -12,12 +12,13 @@ import {
   shapes,
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
+import { useState } from 'react';
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
-import { clock, type TaskRow } from '@/live/tasks';
+import { clock, movedAt, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
 const GLYPH: Record<Place, SFSymbol> = {
@@ -131,18 +132,21 @@ export function Places({
 }) {
   const others = threads
     .filter((thread) => thread.id !== task.id)
-    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
+    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || movedAt(b) - movedAt(a));
   const all = [task, ...others];
-  const rest = all.length - SHOWN;
+  const [every, setEvery] = useState(false);
+  const shown = every ? all : all.slice(0, SHOWN);
+  const rest = all.length - shown.length;
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <SectionHead title="Places" count={all.length} />
-      {all.slice(0, SHOWN).map((thread) => {
+      {shown.map((thread) => {
         const place = placeOf(thread.app);
         const gone = missing.has(place);
+        const opens = !!thread.link || thread.id !== task.id;
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
-          : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
+          : `${PLACES[place]} · ${clock(new Date(movedAt(thread)))}${thread.link ? '' : ' · no link'}`;
         return (
           <Column
             key={thread.id}
@@ -153,8 +157,8 @@ export function Places({
             <Row
               alignment="center"
               spacing={12}
-              onPress={() =>
-                thread.link ? onOpen(thread) : thread.id !== task.id && onOpenTask(thread.id)
+              onPress={
+                opens ? () => (thread.link ? onOpen(thread) : onOpenTask(thread.id)) : undefined
               }
               modifiers={[
                 padding({ leading: INSET, trailing: INSET - 4, top: 11, bottom: 11 }),
@@ -184,11 +188,13 @@ export function Places({
                   {note}
                 </Text>
               </Column>
-              <Icon
-                name={thread.link ? 'arrow.up.right' : 'chevron.right'}
-                size={12}
-                color={theme.tertiary}
-              />
+              {opens ? (
+                <Icon
+                  name={thread.link ? 'arrow.up.right' : 'chevron.right'}
+                  size={12}
+                  color={theme.tertiary}
+                />
+              ) : null}
             </Row>
             <Hairline />
           </Column>
@@ -196,14 +202,15 @@ export function Places({
       })}
       {rest > 0 ? (
         <Text
+          onPress={() => setEvery(true)}
           textStyle={{ fontSize: 13 }}
           modifiers={[
-            foregroundStyle(theme.tertiary),
+            foregroundStyle(theme.accent),
             padding({ leading: INSET + 40, top: 10, bottom: 4 }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >
-          {`${rest} more thread${rest === 1 ? '' : 's'} in ${task.name}`}
+          {`Show ${rest} more thread${rest === 1 ? '' : 's'}`}
         </Text>
       ) : null}
     </Column>
