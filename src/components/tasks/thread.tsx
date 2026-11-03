@@ -118,10 +118,7 @@ export function ThreadPage({
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       {beside ? (
-        <PageBar
-          title="Messages"
-          subtitle={chat?.total ? `${chat.total} message${chat.total === 1 ? '' : 's'}` : undefined}
-        />
+        <PageBar title="Messages" subtitle={chat?.total ? String(chat.total) : undefined} />
       ) : (
         <Header
           title={heading}
@@ -215,7 +212,7 @@ export function ThreadPage({
         />
       ) : (
         <Foot foot={foot}>
-          <Talk alone onPress={onTalk} />
+          <Talk about={title} alone onPress={onTalk} />
         </Foot>
       )}
     </Column>
@@ -322,7 +319,7 @@ function Composer({
           color={lit ? theme.onProminent : theme.tertiary}
         />
       </Row>
-      {typing ? null : <Talk alone={false} onPress={onTalk} />}
+      {typing ? null : <Talk about={title} alone={false} onPress={onTalk} />}
     </Row>
   );
 }

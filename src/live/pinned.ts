@@ -10,7 +10,8 @@ export type PinSection = { title: string; mark: PinMark; folded: boolean; lines:
 const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
 const LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/;
 const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/;
-const SQUARES = /^[🟥🟧🟨🟩🟦🟪⬛⬜]\s*/u;
+// A heading's own emoji: the section's mark already says what it is.
+const EMOJI = /^(\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 const TITLES =
   /^(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}:\s*(.+)$/i;
 const EMOJI_MARKS: [RegExp, PinMark][] = [
@@ -57,9 +58,10 @@ export function pinSections(text: string): PinSection[] {
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
 function headingOf(line: string) {
   const bold = line.match(/^\*\*([^*]+)\*\*:?$/);
-  if (bold) return bold[1]!.replace(SQUARES, '').replace(/:$/, '').trim();
+  if (bold) return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
   const bare = plain(line);
-  if (bare.length <= 60 && /:$/.test(bare) && !BULLET.test(line)) return bare.slice(0, -1).trim();
+  if (bare.length <= 60 && /:$/.test(bare) && !BULLET.test(line))
+    return bare.slice(0, -1).replace(EMOJI, '').trim();
   return undefined;
 }
 

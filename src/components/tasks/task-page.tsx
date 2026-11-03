@@ -181,7 +181,7 @@ export function Detail({
       {beside ? null : (
         <Foot foot={foot}>
           {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
-          <Talk alone={!onWrite} onPress={onTalk} />
+          <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
         </Foot>
       )}
     </Column>
