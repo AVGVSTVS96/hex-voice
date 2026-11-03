@@ -46,7 +46,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Persona } from '@/components/persona';
+import { Persona, preloadPersonas } from '@/components/persona';
 import { PageBar } from '@/components/tasks/bar';
 import {
   PERSONA_VARIANTS,
@@ -237,6 +237,9 @@ export function VoiceSettings({
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
   ];
+  useEffect(() => {
+    if (isPresented) preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
+  }, [isPresented]);
   // Leaving settings there leaves the voices too, as dismissing the sheet does.
   useEffect(() => {
     if (!isPresented) setOnVoicePage(false);

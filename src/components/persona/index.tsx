@@ -49,13 +49,31 @@ function loadFile(variant: PersonaVariant) {
   return promise;
 }
 
+// Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
+export function preloadPersonas(variants: readonly PersonaVariant[]) {
+  for (const variant of variants) void loadFile(variant).catch(() => {});
+}
+
 function sameColor(a: number, b: number) {
   return [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
 }
 
 export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
-  // Give the new file a fresh native view and discard any previous visual error.
-  return <PersonaRenderer key={variant} variant={variant} {...props} />;
+  // The persona on screen stays until the next one's file is read, so a change never shows an
+  // empty space while it loads; each gets a fresh native view, which drops any earlier error.
+  const [shown, setShown] = useState(variant);
+  useEffect(() => {
+    let active = true;
+    void loadFile(variant)
+      .catch(() => undefined)
+      .then(() => {
+        if (active) setShown(variant);
+      });
+    return () => {
+      active = false;
+    };
+  }, [variant]);
+  return <PersonaRenderer key={shown} variant={shown} {...props} />;
 }
 
 function PersonaRenderer({
