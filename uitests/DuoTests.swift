@@ -7,11 +7,16 @@ import XCTest
 //   tap <query>           taps the element whose id is the query, or whose label holds it
 //   tap-at <x> <y>        taps that point of the window
 //   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
-//   scroll <query>        swipes up on that element, so its rows run under the bars
+//   swipe-left <query>    swipes left across the row, pager or list holding that element: a row's swipe
+//                         actions, a pager's next page
+//   scroll [query]        swipes up the list holding that element (or the list on screen), so its
+//                         rows run under the bars
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
-//   snap <name>           has it screenshot right away and goes on, to catch what moves
+//   snap <name>           has it screenshot right away and goes on, to catch what moves (two snaps a
+//                         wait 0.1 apart are shot about 100 ms apart)
 //   wait <seconds>        waits
 //   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
+//   pose-burst <pose>     the same, with three shots as fast as they come once the hinge lands
 //   frame <query>         notes where accessibility puts that element
 //   selected <query>      checks the element is selected; unselected checks it isn't
 //   type <query> <text>   taps the element and types the text on the software keyboard
@@ -20,7 +25,10 @@ import XCTest
 //   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 //   no-keyboard           checks the keyboard has gone
 //   tree <name>           keeps the accessibility tree as it is now, as <name>
-// The accessibility tree at the end is kept beside the shots too.
+//   absent <id>           checks no element has that id
+//   hex down|up           has the stand-in drop every read from now on, as when hex can't be reached, or answer again
+// A line whose element isn't there fails and is skipped, and the script goes on. The
+// accessibility tree at the end is kept beside the shots too.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
     var marked: [String: CGRect] = [:]
@@ -54,47 +62,56 @@ final class DuoTests: XCTestCase {
                 XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: argument)))
                 XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
             case "open": app.open(try XCTUnwrap(URL(string: argument)))
-            case "tap": element(argument).tap()
+            case "tap": element(argument)?.tap()
             case "tap-at":
                 let point = argument.split(separator: " ").compactMap { Double($0) }
                 app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: point[0], dy: point[1])).tap()
             case "swipe-back":
-                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
-            case "scroll": element(argument).swipeUp()
-            case "shoot", "pose":
+            case "swipe-left": element(argument).map { holder($0, rows: true) }?.swipeLeft()
+            case "scroll": (argument.isEmpty ? app.collectionViews.firstMatch : element(argument).map { holder($0, rows: false) })?.swipeUp()
+            case "shoot", "pose", "pose-burst":
                 sleep(1)
-                print("duo-\(command == "shoot" ? "step" : "pose") \(argument)")
-                sleep(command == "shoot" ? 3 : 5)
-            case "snap": print("duo-step \(argument)")
+                print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
+                sleep(command == "shoot" ? 3 : 9)
+            case "snap": print("duo-snap \(argument)")
+            case "hex":
+                print("duo-hex \(argument)")
+                sleep(1)
             case "tree": keepTree(argument)
-            case "frame": print("duo-frame \(argument) \(element(argument).frame)")
+            case "absent":
+                XCTAssertFalse(app.descendants(matching: .any)[argument].exists, "\(argument) is there")
+            case "frame": element(argument).map { print("duo-frame \(argument) \($0.frame)") }
             case "wait": usleep(UInt32((Double(argument) ?? 1) * 1_000_000))
-            case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")
-            case "unselected": XCTAssertFalse(element(argument).isSelected, "\(argument) is still selected")
+            case "selected": element(argument).map { XCTAssertTrue($0.isSelected, "\(argument) isn't selected") }
+            case "unselected": element(argument).map { XCTAssertFalse($0.isSelected, "\(argument) is still selected") }
             case "type":
                 let parts = argument.split(separator: " ", maxSplits: 1).map(String.init)
-                let field = element(parts[0])
+                guard let field = element(parts[0]) else { break }
                 field.tap()
                 field.typeText(parts.count > 1 ? parts[1] : "")
             case "above-keyboard":
                 let keyboard = app.keyboards.firstMatch
                 XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "the keyboard isn't up")
-                let frame = element(argument).frame
+                guard let frame = element(argument)?.frame else { break }
                 XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
                 XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
             case "swipe-down":
-                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+                element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
             case "no-keyboard":
                 let gone = NSPredicate(format: "exists == false")
                 let wait = XCTNSPredicateExpectation(predicate: gone, object: app.keyboards.firstMatch)
                 XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 5), .completed, "the keyboard is still up")
-            case "mark": marked[argument] = element(argument).frame
+            case "mark": marked[argument] = element(argument)?.frame
             case "still":
-                let was = try XCTUnwrap(marked[argument], "\(argument) wasn't marked")
-                let now = element(argument).frame
+                guard let was = marked[argument] else {
+                    XCTFail("\(argument) wasn't marked")
+                    break
+                }
+                guard let now = element(argument)?.frame else { break }
                 XCTAssertEqual(now.minY, was.minY, accuracy: 1, "\(argument) moved from \(was) to \(now)")
                 XCTAssertEqual(now.minX, was.minX, accuracy: 1, "\(argument) moved from \(was) to \(now)")
                 XCTAssertEqual(now.width, was.width, accuracy: 1, "\(argument) resized from \(was) to \(now)")
@@ -104,13 +121,29 @@ final class DuoTests: XCTestCase {
         }
     }
 
-    // Pages that have left stay in the tree off screen, so the first match on screen wins.
-    private func element(_ query: String) -> XCUIElement {
-        let matches = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query))
-        XCTAssertTrue(matches.firstMatch.waitForExistence(timeout: 10), "nothing matches \(query)")
+    // Pages that have left stay in the tree off screen, and rows scrolled under a bar can't be
+    // touched, so the first match that can be wins, then the first on screen.
+    private func element(_ query: String) -> XCUIElement? {
+        let matches = app.descendants(matching: .any).matching(predicate(for: query))
+        guard matches.firstMatch.waitForExistence(timeout: 10) else {
+            XCTFail("nothing matches \(query), so its line was skipped")
+            return nil
+        }
         let screen = app.windows.firstMatch.frame
-        return matches.allElementsBoundByIndex.first { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
-            ?? matches.firstMatch
+        let onScreen = matches.allElementsBoundByIndex.filter { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+        return onScreen.first { $0.isHittable } ?? onScreen.first ?? matches.firstMatch
+    }
+
+    // The smallest list or scroll view under the element, or with rows the smallest row too.
+    private func holder(_ inside: XCUIElement, rows: Bool) -> XCUIElement {
+        let point = CGPoint(x: inside.frame.midX, y: inside.frame.midY)
+        let around = (app.collectionViews.allElementsBoundByIndex + app.scrollViews.allElementsBoundByIndex
+            + (rows ? app.cells.allElementsBoundByIndex : []))
+            .filter { $0.frame.contains(point) }
+        return around.min { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height } ?? inside
+    }
+
+    private func predicate(for query: String) -> NSPredicate {
+        NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query)
     }
 }

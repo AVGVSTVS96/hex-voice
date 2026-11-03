@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
-# iOS 27.1), and screenshots the real Duo.
+# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
 #
 #   scripts/duo build [ref]           bundles and builds it, printing any compile errors
 #   scripts/duo shoot [ref] [states]  each state in the states file (the ref's scripts/duo-states
@@ -14,20 +14,33 @@
 # $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt naming each
 # state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 # screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
-# newest main, or nothing when that commit was already shot. The JS is bundled here; the Mac builds the
+# newest main, or nothing when that commit was already shot. DEVICE=ipad borrows hex keyboard's
+# "hexkb look iPad Pro 11" in place of the Duo, so only one is ever booted; its poses are up and
+# side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
+# last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
+# while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
+# ANSWERS=<file of answers by path> answers those paths from the file, its shots in kept/<file>/. The JS is bundled here; the Mac builds the
 # app for the simulator only when the commit's native fingerprint has no build yet, keeping the
-# last three, and its simulator shuts down after half an hour unused.
+# last three, and its simulator is booted only while a check runs.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
 folder=Developer/hex-voice-sim
-sim="hexvoice Duo"
+DEVICE=${DEVICE:-duo}
+HEX=${HEX:-live}
+ipad="hexkb look iPad Pro 11"
+case $DEVICE in
+  duo) sim="hexvoice Duo" ;;
+  ipad) sim=$ipad ;;
+  *) echo "DEVICE is duo or ipad" >&2 && exit 1 ;;
+esac
 bundle=com.shahidy.hexvoice
 # The app under check talks to scripts/duo-hex.mjs here, which never passes a write on to hex.
 hexport=8799
 
-# A pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in degrees.
-POSES=${POSES:-cover-up cover-side open-up open-side}
+# A Duo pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in
+# degrees. The iPad's are up and side.
+if [ "$DEVICE" = ipad ]; then POSES=${POSES:-up side}; else POSES=${POSES:-cover-up cover-side open-up open-side}; fi
 APPEARANCES=${APPEARANCES:-dark light}
 
 # Sets hinge, orientation and the simulator display that shows the pose.
@@ -35,6 +48,7 @@ pose_of() {
   case ${1%-*} in
     cover) hinge=0 display=1 ;;
     open) hinge=180 display=3 ;;
+    up | side) hinge='' display='' ;;
     *) hinge=${1%-*} display=3 ;;
   esac
   case ${1##*-} in
@@ -72,13 +86,18 @@ mac_build() {
 # the read-only stand-in for hex for as long as this check runs. It installs fresh, so nothing a
 # run left saved (a collapsed list, a chosen voice) changes what the next run sees.
 mac_install() {
-  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport exec node harness/duo-hex.mjs) &
+  rm -f hex-down
+  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport DUO_HEX_ANSWERS=$PWD/answers.json DUO_HEX_DOWN=$PWD/hex-down \
+    DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
+    exec node harness/duo-hex.mjs) &
   standin=$!
-  trap 'kill "$standin"' EXIT
+  trap 'kill "$standin"; xcrun simctl shutdown "$id" 2>/dev/null' EXIT
   # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
   curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 -o /dev/null "http://127.0.0.1:$hexport/tasks/summary" ||
-    die "hex didn't answer a read in 10 s, so the screens would be empty: nothing was checked"
+    die "hex didn't answer a read in 10 s (with HEX=kept: none is kept), so the screens would be empty: nothing was checked"
   rm -rf stage shots && mkdir stage shots
+  [ "$HEX" != kept ] || echo "answered from hex's reads kept $(date -r answers.json '+%b %-d %H:%M')" >>shots/notes.txt
+  [ ! -f harness/also.json ] || echo "and $(jq -r 'keys | join(", ")' harness/also.json) from the run's own answers" >>shots/notes.txt
   cp -cR "apps/$1.app" stage/hex.app
   rsync -a js/ stage/hex.app/
   plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
@@ -90,11 +109,12 @@ mac_install() {
 
 mac_simulator() {
   local runtime=com.apple.CoreSimulator.SimRuntime.iOS-27-1 other
-  id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" --arg runtime "$runtime" \
-    '.devices[$runtime][]? | select(.name == $name and .isAvailable) | .udid' | head -1)
-  [ -n "$id" ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
-  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" \
-    '.devices[][] | select((.name | startswith("hexvoice")) and .udid != $id) | .udid'); do
+  id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" \
+    '.devices[][] | select(.name == $name and .isAvailable) | .udid' | head -1)
+  [ -n "$id" ] || [ "$DEVICE" != duo ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
+  [ -n "$id" ] || die "the Mac has no \"$sim\" simulator"
+  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" --arg ipad "$ipad" \
+    '.devices[][] | select(((.name | startswith("hexvoice")) or .name == $ipad) and .udid != $id) | .udid'); do
     xcrun simctl shutdown "$other"
   done
   # iOS asks "Open in hex?" for each link until the scheme is approved, and reads approvals at boot.
@@ -108,6 +128,7 @@ mac_simulator() {
       "$approvals" >/dev/null
   }
   xcrun simctl bootstatus "$id" -b >/dev/null
+  rm -f build/hinge
   xcrun simctl status_bar "$id" clear
   [ build/devicehub -nt harness/devicehub.c ] || {
     mkdir -p build
@@ -115,20 +136,21 @@ mac_simulator() {
       harness/devicehub.c -framework IOKit -framework CoreFoundation
     codesign -f -s - build/devicehub 2>/dev/null
   }
-  date +%s >last-use
-  nohup bash -c "sleep 1800; [ \$(( \$(date +%s) - \$(cat last-use) )) -ge 1800 ] && xcrun simctl shutdown $id" \
-    >/dev/null 2>&1 </dev/null &
 }
 
 hub() { xcrun simctl spawn "$id" "$PWD/build/devicehub" "$@" </dev/null; }
 
-# Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds.
+# Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds, and
+# sweeps from where it is (kept in build/hinge since the simulator booted), never through the closed Duo.
 place() {
+  local at
   pose_of "$1"
-  [ "$hinge" = "${placed:-}" ] || {
-    hub hinge "$hinge"
+  at=$(cat build/hinge 2>/dev/null || true)
+  [ -z "$hinge" ] || [ "$hinge" = "$at" ] || {
+    hub hinge "$hinge" ${at:+"$at"}
+    [ -z "${burst:-}" ] || shoot_burst
     sleep 3
-    placed=$hinge
+    echo "$hinge" >build/hinge
   }
   hub orientation "$orientation"
   sleep 1
@@ -136,14 +158,47 @@ place() {
 }
 
 # Whether a shot has the shape its pose turns the screen to: the open screen is wide upright and
-# tall on its side, the cover the other way round.
+# tall on its side, the cover and the iPad the other way round.
 turned() {
   local width height
   read -r width height < <(sips -g pixelWidth -g pixelHeight "$1" | awk '/pixel/ { printf "%s ", $2 }')
   case $display:${pose##*-} in
-    3:up | 1:side) [ "$width" -gt "$height" ] ;;
+    3:up | 1:side | :side) [ "$width" -gt "$height" ] ;;
     *) [ "$width" -lt "$height" ] ;;
   esac
+}
+
+ms() { perl -MTime::HiRes=time -e 'printf "%d", time * 1000'; }
+
+# Three shots as fast as the simulator gives them once the hinge has settled, to catch a frame
+# drawn for the wrong window, each named by its ms after and the clock's ms (the clock the app's
+# HexPoseLog stamps its changes with), then that log as it stands just after.
+shoot_burst() {
+  local start=$(ms) now i
+  for i in 1 2 3; do
+    now=$(ms)
+    xcrun simctl io "$id" screenshot ${display:+--display=$display} "$burst-$((now - start))ms-at$now.png" >/dev/null 2>&1
+  done
+  xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null | jq . >"$burst-log.json" 2>/dev/null ||
+    rm -f "$burst-log.json"
+  burst=
+}
+
+# Places a pose mid-check and, when the screen hasn't turned to it, says so and turns it again from
+# upright, as a shot whose shape is wrong does.
+place_turned() {
+  local pose=$1
+  place "$pose"
+  sleep 2
+  xcrun simctl io "$id" screenshot ${display:+--display=$display} build/turn.png >/dev/null 2>&1
+  turned build/turn.png && return
+  echo "$pose: the screen hadn't turned to $pose (the app may have locked it), so it was turned again" >>shots/notes.txt
+  hub orientation portrait
+  sleep 1
+  hub orientation "$orientation"
+  sleep 2
+  xcrun simctl io "$id" screenshot ${display:+--display=$display} build/turn.png >/dev/null 2>&1
+  turned build/turn.png || echo "$pose: the screen didn't turn to $pose" >>shots/notes.txt
 }
 
 running() {
@@ -177,28 +232,31 @@ mac_shoot() {
         xcrun simctl ui "$id" appearance "$appearance"
         sleep 1.5
         file=shots/$pose-$state-$appearance.png
-        xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
+        xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
         turned "$file" || {
           hub orientation portrait
           sleep 1
           hub orientation "$orientation"
           sleep 2
-          xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
+          xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
           turned "$file" || echo "$pose $state $appearance: the screen didn't turn to $pose" >>shots/notes.txt
         }
       done
     done 4<<<"$states"
   done
-  date +%s >last-use
 }
 
 # Plays the tap script it reads (uitests/DuoTests.swift has its commands) in each pose and
 # appearance: each "shoot <name>" is shot as shots/<pose>-<name>-<appearance>.png, "pose <pose>"
-# moves the Duo there without relaunching the app, failures go to notes.txt, and the
+# moves the Duo there without relaunching the app (turning it again if the screen didn't turn), a
+# step opened with ?report=pose keeps the pose the app had as <pose>-<name>-<appearance>.json and its
+# last changes as …-log.json, "pose-burst <pose>" also shoots three frames right as the hinge lands,
+# failures go to notes.txt, and the
 # accessibility tree at the end lands beside the shots.
 mac_tap() {
-  local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line
+  local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line prefs step
   mac_install "$1"
+  prefs=$(xcrun simctl get_app_container "$id" "$bundle" data)/Library/Preferences/$bundle
   taps=$(cat)
   (cd harness/uitests && xcodegen generate -q)
   xcodebuild build-for-testing -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
@@ -208,22 +266,38 @@ mac_tap() {
   }
   for pose in $POSES; do
     for appearance in $APPEARANCES; do
-      place "$pose"
+      place_turned "$pose"
       xcrun simctl ui "$id" appearance "$appearance"
       result=$tests/$pose-$appearance.xcresult
       rm -rf "$result" "$tests/attachments"
       TEST_RUNNER_DUO_TAPS=$taps xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
-        -collect-test-diagnostics never 2>&1 | while IFS= read -r line; do
+        -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
         case $line in
           *"duo-step "*)
-            xcrun simctl io "$id" screenshot --display="$display" \
-              "shots/$pose-${line##*duo-step }-$appearance.png" >/dev/null 2>&1
+            step=${line##*duo-step }
+            xcrun simctl io "$id" screenshot ${display:+--display=$display} \
+              "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
+            xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
+              jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
+            xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
+              jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
             ;;
-          *"duo-pose "*) place "${line##*duo-pose }" ;;
+          *"duo-snap "*)
+            xcrun simctl io "$id" screenshot ${display:+--display=$display} \
+              "shots/$pose-${line##*duo-snap }-$appearance.png" >/dev/null 2>&1 &
+            ;;
+          *"duo-pose "*) place_turned "${line##*duo-pose }" ;;
+          *"duo-burst "*)
+            bursts=$((${bursts:-0} + 1))
+            burst=shots/$pose-burst$bursts-${line##*duo-burst }-$appearance
+            place_turned "${line##*duo-burst }"
+            ;;
+          *"duo-hex down"*) touch hex-down ;;
+          *"duo-hex up"*) rm -f hex-down ;;
           *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
-      done || true
+      done; wait; } || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
       jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
         "\(.exportedFileName) \(.suggestedHumanReadableName | sub("_[0-9]+_[0-9A-F-]+.*$"; ""))"' \
@@ -232,7 +306,6 @@ mac_tap() {
       done
     done
   done
-  date +%s >last-use
 }
 
 [ "${1:-}" = mac ] && {
@@ -274,6 +347,7 @@ prepare() {
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
     "$repo/scripts/duo-hex.mjs" "$repo/uitests" "$mac:$folder/harness/"
   rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
+  [ -z "${ANSWERS:-}" ] || rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
   rsync -a --delete "$home/js/" "$mac:$folder/js/"
   ssh "$mac" test -d "$folder/apps/$runtime.app" || {
     echo "building $title's native code for the simulator"
@@ -299,25 +373,25 @@ collect() {
 
 shoot() {
   local states=${1:-}
-  [ -n "$states" ] || [ ! -f "$shots/$commit/done" ] || {
-    echo "$title was already shot: $shots/$commit"
+  [ -n "$states" ] || [ ! -f "$out/done" ] || {
+    echo "$title was already shot: $out"
     return
   }
   echo "shooting $title"
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac shoot $runtime"
-  collect "$shots/$commit"
-  echo "$title" >"$shots/$commit/done"
+    grep -v -e '^#' -e '^$' | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac shoot $runtime"
+  collect "$out"
+  echo "$title" >"$out/done"
 }
 
 tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac tap $runtime"
-  collect "$shots/$commit/tap"
+  fi; } | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac tap $runtime"
+  collect "$out/tap"
 }
 
 # The Duo's lit screen. Given an OTA update id, it first waits until a device asks for updates
@@ -355,6 +429,10 @@ case ${1:-} in
     }
     start=$SECONDS
     prepare "${2:-}"
+    out=$shots/$commit
+    [ "$DEVICE" = duo ] || out=$out/$DEVICE
+    [ "$HEX" = live ] || out=$out/$HEX
+    [ -z "${ANSWERS:-}" ] || out=$out/$(basename "$ANSWERS" .json)
     case $1 in
       shoot) shoot "${3:-}" ;;
       tap) tap "${3:-}" ;;
