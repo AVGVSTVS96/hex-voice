@@ -41,6 +41,7 @@ import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCalls, usePastCall } from '@/hooks/use-calls';
 import { failure } from '@/hooks/use-failures';
+import { useEscape } from '@/hooks/use-escape';
 import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
@@ -231,6 +232,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     tick();
     setTasksOpen(false);
   };
+  useEscape(tasksOpen ? closeTasks : undefined);
   const now = useNow(docked && call.kind === 'elsewhere');
   const callSeconds =
     call.kind === 'here'
