@@ -24,8 +24,8 @@ export const GAP = 10;
 const HAIRLINE = 1 / PixelRatio.get();
 // How far scrolled content fades out as it meets a bar, and how far in from that edge it rests:
 // together with a row's own top padding, nothing at rest sits in the fade.
-const FADE = 32;
-const REST = 20;
+const FADE = 24;
+const REST = 12;
 
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
@@ -123,8 +123,7 @@ export function Faded({
         frame({ maxWidth: Infinity }),
         foregroundStyle({
           type: 'linearGradient',
-          // Clear for its first half, so a line scrolled up to the bar is gone before it meets it.
-          colors: ['#00000000', '#00000000', '#000000'],
+          colors: ['#00000000', '#000000'],
           startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
           endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
         }),
