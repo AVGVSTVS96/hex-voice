@@ -20,7 +20,7 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, Faded, ios, type Feel } from '@/components/tasks/parts';
+import { Empty, Faded, asks, ios, type Feel } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -264,7 +264,7 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
         clipShape('capsule'),
         contentShape(shapes.capsule()),
         padding({ leading: 16, trailing: 16, top: 12, bottom: Math.max(16, foot) }),
-        ...(ios ? [accessibilityLabel(`Go through ${count} with hex, on a call`)] : []),
+        ...(ios ? [accessibilityLabel(`Go through ${asks(count)} with hex, on a call`)] : []),
       ]}
     >
       <Spacer flexible />
@@ -273,7 +273,7 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
         textStyle={{ fontSize: 17, fontWeight: '600' }}
         modifiers={[foregroundStyle(theme.onProminent)]}
       >
-        {`Go through ${count} with hex`}
+        {`Go through ${asks(count)} with hex`}
       </Text>
       <Spacer flexible />
     </Row>

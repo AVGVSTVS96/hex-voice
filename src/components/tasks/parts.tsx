@@ -27,6 +27,9 @@ const HAIRLINE = 1 / PixelRatio.get();
 const FADE = 32;
 const REST = 20;
 
+// Counts say what they count, so a stage tab's number and an ask count read as different things.
+export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
+
 export function feel(haptics: boolean) {
   const on = ios && haptics;
   return {
