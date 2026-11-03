@@ -27,13 +27,25 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { useSession } from '@/call/use-call';
+import {
+  callIdOf,
+  errorOf,
+  footerOf,
+  personaOf,
+  showsWords,
+  statusOf,
+  voiceLocked,
+  wakeOf,
+  wordsOf,
+  type Call,
+} from '@/call/call';
+import { useCall, useSession } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
-import { Persona, type PersonaState } from '@/components/persona';
+import { Persona } from '@/components/persona';
 import { ScreenToolbar } from '@/components/screen-toolbar';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
@@ -47,8 +59,7 @@ import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
-import { usePastCall, useCalls } from '@/hooks/use-calls';
-import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
+import { useCalls, usePastCall } from '@/hooks/use-calls';
 import { failure } from '@/hooks/use-failures';
 import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
@@ -59,15 +70,7 @@ import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { activityOrb } from '@/live/activity-orb';
 import type { TaskRow } from '@/live/tasks';
 import type { CallAbout } from '@/live/types';
-import {
-  ENDINGS,
-  SOURCES,
-  callLength,
-  endedSeconds,
-  liveEntries,
-  transcriptText,
-  type CallSummary,
-} from '@/live/calls';
+import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
@@ -190,56 +193,29 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const panes = side.place !== 'sheet';
   const duo = layout.duo;
   const reducedMotion = useReducedMotion();
-  const connected = session.status === 'connected';
-  const connecting = session.status === 'connecting';
-  const disconnecting = session.status === 'disconnecting';
-  const voiceLocked = connecting || connected || disconnecting;
-  const { call: hexCall, line: agent, cards } = useAgentLine(preferences.haptics);
+  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
   // its words, its agents and asks, and Tasks talking to it, with End hanging it up.
-  const elsewhere = useCallElsewhere(
-    hexCall && !voiceLocked && hexCall !== session.callId ? hexCall : undefined,
-    voiceLocked,
-  );
-  const away = elsewhere.call;
-  const onCall = voiceLocked || elsewhere.live;
+  const { call, start, end, toggleMute } = useCall(held);
+  const onCall = call.kind !== 'none';
+  const live = call.kind === 'here' && call.phase === 'live';
   const reading = layout.pulls
     ? showing.pulled
-    : !!shown || onCall || !!away || session.transcript.length > 0 || cards.length > 0;
-  const awake = connected || (elsewhere.live && !elsewhere.leaving);
+    : showsWords(call, { viewing: !!shown, cards: cards.length });
   const duoTasks = useDuoTasks(duo, tasksOpen, onCall, reducedMotion);
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
   const inboxShown = !!inbox && tasksOpen;
-  const asleep = !awake && !connecting && !disconnecting && !elsewhere.leaving;
-  const speaking = connected && session.outputLevel > 0.035;
-  const personaState: PersonaState =
-    connecting || disconnecting || elsewhere.leaving
-      ? 'thinking'
-      : speaking
-        ? 'speaking'
-        : awake && !(connected && session.muted)
-          ? 'listening'
-          : 'idle';
-  const status = connecting
-    ? 'Connecting'
-    : disconnecting || elsewhere.leaving
-      ? 'Ending conversation'
-      : connected
-        ? session.muted
-          ? 'Microphone muted'
-          : 'Conversation active'
-        : elsewhere.live && away
-          ? `${SOURCES[away.from].started}, ${SOURCES[away.from].where.toLowerCase()}`
-          : 'Ready to start a conversation';
+  const personaState = personaOf(call, session.outputLevel > 0.035);
+  const status = statusOf(call);
 
-  useCallFeedback(session.status, preferences);
+  useCallFeedback(live, preferences);
   useAppUpdates(onCall);
-  useEndedCall(session, voice, calls.add);
-  useCallActivity({
-    ...session,
-    orb: activityOrb(variant, preferences.personaColor, preferences.opalPalette),
+  useEndedCall(call, voice, calls.add);
+  useCallActivity(call, activityOrb(variant, preferences.personaColor, preferences.opalPalette), {
+    toggleMute,
+    end,
   });
   const haptic = (feedback: () => Promise<void>) => {
     if (process.env.EXPO_OS === 'ios' && preferences.haptics) void feedback();
@@ -252,30 +228,30 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const breath = useSharedValue(0);
   const level = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
-  const reacting = connected && !reducedMotion && !session.muted && reaction > 0;
+  const reacting = live && !reducedMotion && !call.mic.muted && reaction > 0;
   const loudness = reacting ? Math.max(0, session.inputLevel - 0.06) / 0.94 : 0;
   const { pitch, tone } = useVoiceTone(reacting);
+  const awake = wakeOf(call);
   useEffect(() => {
-    const target = awake ? 1 : asleep ? 0 : 0.5;
     if (reducedMotion) {
-      wake.set(target);
+      wake.set(awake);
       breath.set(0);
       return;
     }
     wake.set(
-      awake
+      awake === 1
         ? withSpring(1, motion.wake)
-        : withTiming(target, {
-            duration: asleep ? motion.settle.asleep : motion.settle.connecting,
+        : withTiming(awake, {
+            duration: awake === 0 ? motion.settle.asleep : motion.settle.connecting,
             easing: motion.settle.easing,
           }),
     );
     breath.set(
-      asleep
+      awake === 0
         ? withRepeat(withTiming(1, motion.breath), -1, true)
         : withTiming(0, { duration: motion.breath.out }),
     );
-  }, [awake, asleep, reducedMotion, wake, breath]);
+  }, [awake, reducedMotion, wake, breath]);
   useEffect(() => {
     level.set(withSpring(loudness, motion.reaction));
   }, [loudness, level]);
@@ -316,12 +292,13 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
     tick();
     setTasksOpen(false);
   };
-  const now = useNow(docked && !connected && !!away);
-  const callSeconds = connected
-    ? session.elapsedSeconds
-    : away
-      ? Math.max(0, Math.floor((now.getTime() - Date.parse(away.started)) / 1000))
-      : 0;
+  const now = useNow(docked && call.kind === 'elsewhere');
+  const callSeconds =
+    call.kind === 'here'
+      ? call.seconds
+      : call.kind === 'elsewhere'
+        ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
+        : 0;
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
   const progress = useSharedValue(reading ? 1 : 0);
@@ -708,32 +685,27 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   });
 
   // What an action on a call couldn't do shows in the footer's error line while that call lasts.
-  const callNow = voiceLocked
-    ? (session.callId ?? undefined)
-    : elsewhere.live
-      ? away?.id
-      : undefined;
+  const callNow = callIdOf(call);
   const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
   const tried = (what: string, action: Promise<unknown>) => {
-    const call = callNow;
+    const on = callNow;
     setTrouble(undefined);
-    action.catch((error: unknown) => setTrouble({ call, why: failure(what, error) }));
+    action.catch((error: unknown) => setTrouble({ call: on, why: failure(what, error) }));
   };
   const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
   const startCall = (about?: CallAbout) => {
     if (viewing) leaveCall();
-    void session.start(voice, about);
+    void start(voice, about);
   };
   const onPrimaryPress = () => {
-    if (disconnecting || elsewhere.leaving || !voiceLoaded) return;
+    if ((onCall && call.phase === 'ending') || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-    if (connected || connecting) void session.stop();
-    else if (elsewhere.live) tried('Not ended', elsewhere.hangUp());
+    if (onCall) tried('Not ended', end());
     else startCall();
   };
   const onMute = () => {
     haptic(Haptics.selectionAsync);
-    session.toggleMute();
+    toggleMute();
   };
   const openTasks = (at: TasksAt = {}) => {
     tick();
@@ -773,18 +745,12 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
     else if (voiceLoaded) startCall('asks');
   };
 
-  // How the last call ended, whichever it was: one held elsewhere only stays while it's the latest.
-  const last = away
-    ? { id: away.id, end: away.end ?? null, seconds: endedSeconds(away) }
-    : { id: session.callId, end: session.ending, seconds: session.elapsedSeconds };
-  const ending = last.end && !onCall && !viewing ? ENDINGS[last.end] : undefined;
-  const wrapUp = calls.calls?.find(({ id }) => id === last.id);
+  const footing = footerOf(call, viewing !== null);
+  const ended = footing?.kind === 'ended' ? footing : undefined;
+  const wrapUp = ended && calls.calls?.find(({ id }) => id === ended.id);
   const callControls = (place: Partial<Parameters<typeof CallControls>[0]>) => (
     <CallControls
-      status={elsewhere.live ? (elsewhere.leaving ? 'disconnecting' : 'connected') : session.status}
-      canMute={!elsewhere.live}
-      muted={session.muted || session.interrupted}
-      failed={!!session.error}
+      call={call}
       ready={voiceLoaded}
       axis="row"
       mute={!inboxShown}
@@ -889,7 +855,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
                     />
                   ) : (
                     <Transcript
-                      entries={away ? liveEntries(away.turns) : session.transcript}
+                      entries={wordsOf(call)}
                       active={reading}
                       size={layout.text}
                       emptyAt={pulls ? 'end' : 'center'}
@@ -969,7 +935,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
               { paddingBottom: layout.footer.bottom },
             ]}
           >
-            {ending && wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
+            {wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
               <Animated.View
                 entering={FadeIn.duration(motion.toolbar)}
                 style={[styles.wrapUp, split && styles.leading]}
@@ -981,34 +947,24 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
                 )}
                 <WrapUp
                   center={!split}
-                  onOpen={last.id ? () => showCall(last.id!) : undefined}
+                  onOpen={() => showCall(wrapUp.id)}
                   summary={wrapUp.summary}
                   waiting={wrapUp.waiting}
                   onMore={() => openTasks({ stage: 'needs' })}
                 />
               </Animated.View>
             ) : null}
-            {ending ? (
+            {footing ? (
               <Text
-                accessibilityRole="alert"
-                style={[styles.ended, split && styles.leadingText, ending.bad && styles.bad]}
+                accessibilityRole={footing.kind === 'elsewhere' ? undefined : 'alert'}
+                style={[styles.ended, split && styles.leadingText, ended?.bad && styles.bad]}
               >
-                {last.end === 'no-connect'
-                  ? ending.line
-                  : `${ending.line} · ${callLength(last.seconds)}`}
-              </Text>
-            ) : elsewhere.live && away ? (
-              <Text style={[styles.ended, split && styles.leadingText]}>
-                {`${SOURCES[away.from].where} · ${SOURCES[away.from].started}`}
-              </Text>
-            ) : session.interrupted ? (
-              <Text accessibilityRole="alert" style={[styles.ended, split && styles.leadingText]}>
-                Paused while another app has the audio
+                {footing.text}
               </Text>
             ) : null}
-            {troubleNow || (session.error && !away) ? (
+            {troubleNow || errorOf(call) ? (
               <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                {troubleNow ?? session.error}
+                {troubleNow ?? errorOf(call)}
               </Text>
             ) : null}
             {layout.controls === 'inline' && !inRow && controls}
@@ -1068,8 +1024,8 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         onDismiss={() => setSettingsOpen(false)}
         voice={voice}
         onVoiceChange={setVoice}
-        voiceEnabled={voiceLoaded && !voiceLocked}
-        voiceLocked={voiceLocked}
+        voiceEnabled={voiceLoaded && !voiceLocked(call)}
+        voiceLocked={voiceLocked(call)}
         persona={variant}
         onPersonaChange={setVariant}
         personaEnabled={personaLoaded}
@@ -1113,33 +1069,30 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
 }
 
 // The call you just hung up on is at the top of Calls before hex's copy arrives.
-function useEndedCall(
-  session: ReturnType<typeof useSession>,
-  voice: string,
-  add: (call: CallSummary) => void,
-) {
+function useEndedCall(call: Call, voice: string, add: (call: CallSummary) => void) {
   const started = useRef<string | null>(null);
-  const { status, callId, transcript, elapsedSeconds } = session;
+  const live = call.kind === 'here' && call.phase === 'live';
+  const ended = call.kind === 'none' ? call.last : undefined;
   useEffect(() => {
-    if (status === 'connected') started.current ??= new Date().toISOString();
-    if ((status !== 'idle' && status !== 'error') || !callId || !started.current) return;
+    if (live) started.current ??= new Date().toISOString();
+    if (!ended?.id || ended.from !== 'app' || !started.current) return;
     add({
-      id: callId,
+      id: ended.id,
       started: started.current,
       ended: new Date().toISOString(),
-      end: session.ending ?? undefined,
+      end: ended.ending,
       from: 'app',
       voice,
-      seconds: elapsedSeconds,
+      seconds: ended.seconds,
       tasks: 0,
       preview:
-        transcript
+        ended.words
           .find((entry) => entry.role === 'user')
           ?.text.trim()
           .slice(0, 160) ?? '',
     });
     started.current = null;
-  }, [status]);
+  }, [call.kind, live]);
 }
 
 // A side column keeps its own width at the edge it's on. iOS grows the screen before the call

@@ -2,15 +2,12 @@ import { GlassEffectContainer, HStack, Host, Spacer, VStack } from '@expo/ui/swi
 import { frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import type { LiveStatus } from '@/live/types';
+import { buttonsOf, type Call, type CallButton } from '@/call/call';
 import { GlassButton } from '@/ui/glass-button';
 import { metrics, type ControlsSize } from '@/ui/tokens';
 
 type Props = {
-  status: LiveStatus;
-  canMute: boolean;
-  muted: boolean;
-  failed: boolean;
+  call: Call;
   ready: boolean;
   axis: 'row' | 'column';
   mute?: boolean;
@@ -20,14 +17,22 @@ type Props = {
   onPrimary: () => void;
 };
 
+const PRIMARY: Record<
+  CallButton,
+  { icon: 'close' | 'waveform'; label: string; loading?: true; off?: true }
+> = {
+  start: { icon: 'waveform', label: 'Start conversation' },
+  retry: { icon: 'waveform', label: 'Retry conversation' },
+  cancel: { icon: 'close', label: 'Cancel connection', loading: true },
+  end: { icon: 'close', label: 'End conversation' },
+  ending: { icon: 'waveform', label: 'Ending conversation', loading: true, off: true },
+};
+
 // Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
 // column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
 // iPad inbox's rail, before any call, the call button waits alone.
 export function CallControls({
-  status,
-  canMute,
-  muted,
-  failed,
+  call,
   ready,
   axis,
   mute = true,
@@ -37,19 +42,13 @@ export function CallControls({
   onPrimary,
 }: Props) {
   const sizes = metrics.controls[size];
-  const connected = status === 'connected';
-  const connecting = status === 'connecting';
-  const disconnecting = status === 'disconnecting';
+  const buttons = buttonsOf(call);
+  const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
   const callSide = metrics[sizes.call];
   const along = (mute ? muteSide + sizes.gap : 0) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
-  const muteOff = !connected || !canMute;
-  // With no call there's nothing to mute, so an empty space holds mute's place and the call button
-  // beside it never moves. Not an invisible button: in a GlassEffectContainer, a glass button with
-  // opacity 0 still drew, glyph and all.
-  const idle = !connected && !connecting && !disconnecting;
-  const primaryOff = disconnecting || !ready;
+  const primaryOff = primary.off || !ready;
   return (
     <View
       pointerEvents="box-none"
@@ -64,36 +63,29 @@ export function CallControls({
       >
         <GlassEffectContainer>
           <Stack spacing={sizes.gap}>
-            {mute && idle ? (
+            {/* With no call there's nothing to mute, so an empty space holds mute's place and the
+            call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
+            a glass button with opacity 0 still drew, glyph and all. */}
+            {mute && !buttons.mute ? (
               <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
-            ) : mute ? (
+            ) : mute && buttons.mute ? (
               <GlassButton
-                icon={muted ? 'mic-off' : 'mic'}
-                label={muted ? 'Unmute microphone' : 'Mute microphone'}
+                icon={buttons.mute.muted ? 'mic-off' : 'mic'}
+                label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
                 testID="session-mute-button"
-                disabled={muteOff}
-                selected={muted}
+                disabled={!buttons.mute.enabled}
+                selected={buttons.mute.muted}
                 size={sizes.mute}
                 onPress={onMute}
               />
             ) : null}
             <GlassButton
-              icon={connected || connecting ? 'close' : 'waveform'}
-              label={
-                disconnecting
-                  ? 'Ending conversation'
-                  : connecting
-                    ? 'Cancel connection'
-                    : connected
-                      ? 'End conversation'
-                      : failed
-                        ? 'Retry conversation'
-                        : 'Start conversation'
-              }
+              icon={primary.icon}
+              label={primary.label}
               testID="session-primary-button"
               prominent
               size={sizes.call}
-              loading={connecting || disconnecting}
+              loading={primary.loading}
               disabled={primaryOff}
               onPress={onPrimary}
             />
