@@ -33,6 +33,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -57,13 +58,11 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
-// On the phone the sheet hangs from the bottom edge, full width. Where the width is regular it's a
-// centered sheet, and beside the words (iPad landscape, iPhone Duo open) it lays the carousel
-// beside the rows.
-export type SettingsFit = 'phone' | 'centered' | 'beside';
-
+// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights.
+// Where the width is regular the system sizes it as a page. Either way its content lays out to the
+// width the sheet gets, the carousel beside the rows where that's wide enough.
 type Props = {
-  fit: SettingsFit;
+  phone: boolean;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -93,7 +92,10 @@ const PHRASE = [
   { level: 0, pitch: 0, tone: 0 },
 ];
 const PREVIEW_ORB = 160;
-const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 660 };
+// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
+const SHORT_PREVIEW = 120;
+const SHEET_GAP = 24;
 
 const SHEET_TOP = 24;
 const SHEET_BOTTOM = 26;
@@ -115,7 +117,7 @@ const APPEARANCE_HEIGHT =
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
 export function VoiceSettings({
-  fit,
+  phone,
   isPresented,
   onDismiss,
   voice,
@@ -128,18 +130,26 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const window = useWindowDimensions();
-  // Where the width is regular the system sizes the sheet as a page, and its content lays out to
-  // the width that page gets. The width flows one way, from the sheet to the content: a sheet
-  // fitted to its content's width chases its own measurement, and one held to a width we pick gets
-  // capped by the system narrower than its content.
+  const insets = useSafeAreaInsets();
+  // The system sizes the sheet, and its content lays out to the width the sheet gets. The width
+  // flows one way, from the sheet to the content: a sheet fitted to its content's width chases its
+  // own measurement, and one held to a width we pick gets capped by the system narrower than its
+  // content, or the window's width runs under iPhone Duo's side column.
   const [given, setGiven] = useState<number>();
-  const width = fit === 'phone' ? window.width : (given ?? 0);
+  const width = given ?? 0;
+  const beside = width >= BESIDE.from;
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
-  const rowsWidth = fit === 'beside' ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-  const appearanceHeight = fit === 'beside' ? BESIDE.height : APPEARANCE_HEIGHT;
+  const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
+  const preview = beside
+    ? BESIDE.preview
+    : Math.max(
+        SHORT_PREVIEW,
+        Math.min(ORB, window.height - insets.top - SHEET_GAP - (APPEARANCE_HEIGHT - ORB)),
+      );
+  const appearanceHeight = beside ? BESIDE.height : APPEARANCE_HEIGHT - ORB + preview;
   const detents = [{ height: appearanceHeight }, { height: VOICE_HEIGHT }];
-  const orbSize = fit === 'beside' ? BESIDE.orb : PREVIEW_ORB;
+  const orbSize = beside ? BESIDE.orb : Math.min(PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
@@ -183,7 +193,7 @@ export function VoiceSettings({
     <SelectionCarousel
       options={PERSONA_VARIANTS}
       value={persona}
-      width={fit === 'beside' ? carouselWidth : contentWidth}
+      width={beside ? carouselWidth : contentWidth}
       height={PERSONA_PAGE}
       preview={
         isPresented ? (
@@ -198,7 +208,7 @@ export function VoiceSettings({
           </Animated.View>
         ) : undefined
       }
-      previewHeight={fit === 'beside' ? BESIDE.preview : ORB}
+      previewHeight={preview}
       enabled={personaEnabled}
       label="Persona appearance"
       testID="persona-carousel"
@@ -315,7 +325,7 @@ export function VoiceSettings({
                 else onDismiss();
               },
             }),
-            ...(fit === 'phone'
+            ...(phone
               ? []
               : [presentationSizing('page', { fitted: { horizontal: false, vertical: true } })]),
             presentationBackground(theme.sheet),
@@ -324,7 +334,7 @@ export function VoiceSettings({
           <ZStack
             alignment="bottom"
             modifiers={
-              fit === 'phone'
+              phone
                 ? [
                     frame({
                       maxWidth: Infinity,
@@ -340,16 +350,14 @@ export function VoiceSettings({
                   ]
             }
           >
-            {fit !== 'phone' && (
-              <RNHostView>
-                <View
-                  pointerEvents="none"
-                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
-                  style={StyleSheet.absoluteFill}
-                />
-              </RNHostView>
-            )}
-            {width > 0 && fit === 'beside' ? (
+            <RNHostView>
+              <View
+                pointerEvents="none"
+                onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
+                style={StyleSheet.absoluteFill}
+              />
+            </RNHostView>
+            {width > 0 && beside ? (
               <Row
                 alignment="center"
                 spacing={metrics.gutter}

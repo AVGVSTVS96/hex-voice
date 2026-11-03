@@ -1016,7 +1016,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         {controlsColumn && controls}
         {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
         <VoiceSettings
-          fit={split ? 'beside' : pose.regular ? 'centered' : 'phone'}
+          phone={!pose.regular}
           isPresented={settingsOpen}
           onDismiss={() => setSettingsOpen(false)}
           voice={voice}
