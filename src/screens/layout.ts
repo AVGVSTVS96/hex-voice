@@ -167,15 +167,23 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
         : single(frame);
   if (!pose.bar && !fold) return layout;
   const before = fold && wordsBefore(frame, layout, fold);
+  const duo = {
+    partlyOpen: !!fold && partly(fold),
+    ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
+  };
+  // Open on its side the call yields its leading edge to Calls, as on iPad.
+  const calls = frame.column ? layout.calls : { width: LIST, place: 'beside' as const };
   return {
     ...layout,
+    calls,
     tasks: { width: frame.content.width, place: 'page' },
-    // Open on its side the call yields its leading edge to Calls, as on iPad.
-    ...(frame.column ? {} : { calls: { width: LIST, place: 'beside' } }),
-    duo: {
-      partlyOpen: !!fold && partly(fold),
-      ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
-    },
+    // Where Calls comes in beside the call, the orb's place is under it, so the orb docks in the
+    // bar, at the spot it takes when Tasks opens on a call.
+    orb:
+      calls.place === 'beside'
+        ? { ...layout.orb, dock: { calls: duo.call.orb, tasks: duo.call.orb } }
+        : layout.orb,
+    duo,
   };
 }
 

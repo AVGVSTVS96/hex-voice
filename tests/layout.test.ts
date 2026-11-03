@@ -534,3 +534,11 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
       );
   }
 });
+
+test('on iPhone Duo, where Calls comes in beside the call, the orb docks in the bar instead of under Calls', () => {
+  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+    const { calls, orb, duo: duoLayout } = screenLayout(window, insets, pose);
+    if (calls.place !== 'beside') continue;
+    assert.deepEqual(orb.dock?.calls, duoLayout!.call.orb, name);
+  }
+});
