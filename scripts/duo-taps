@@ -23,3 +23,10 @@ tap tasks-button
 swipe-back tasks-edge
 shoot closed-by-edge-swipe
 unselected tasks-button
+tap voice-settings-button
+shoot settings
+mark voice-row
+swipe-down voice-settings-sheet
+tap voice-settings-button
+shoot settings-again
+still voice-row
