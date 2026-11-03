@@ -1,11 +1,10 @@
-import { Column, Icon, Row, Text } from '@expo/ui';
+import { Column, Icon, Row } from '@expo/ui';
 import { Button } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   buttonStyle,
   contentShape,
   disabled as disabledModifier,
-  foregroundStyle,
   frame,
   opacity,
   padding,
@@ -13,15 +12,12 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { createContext, useContext, type ReactNode } from 'react';
 
-import { ios } from '@/components/tasks/parts';
 import { PlaceTile } from '@/components/tasks/places';
 import { glass } from '@/ui/glass-button';
 import { PLACES, type Place } from '@/live/inbox';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
-
-// iOS 26's bar buttons: 44pt glass, a circle for a symbol and a capsule for a name.
-export const BAR = 44;
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 // Back names where it goes; `short`, it shows only its chevron, and still says where to VoiceOver.
 export type Back = { to: string; short: boolean; onPress: () => void };
@@ -67,32 +63,29 @@ export function PageBar({
   return (
     <Row
       alignment="center"
-      spacing={12}
+      spacing={space[3]}
       modifiers={[
-        padding({ leading: metrics.list.inset - 4, trailing: 16, top: 6, bottom: 6 }),
-        frame({ minHeight: BAR + 12 }),
+        padding({
+          leading: metrics.list.inset - space[1],
+          trailing: space[4],
+          top: space[1.5],
+          bottom: space[1.5],
+        }),
+        frame({ minHeight: metrics.bar.button + space[3] }),
         frame({ maxWidth: Infinity }),
       ]}
     >
       {backButton}
       <Column
         alignment="start"
-        spacing={1}
+        spacing={space[0.25]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 17, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
+        <Text numberOfLines={1} variant="headline">
           {title}
         </Text>
         {subtitle ? (
-          <Text
-            numberOfLines={1}
-            textStyle={{ fontSize: 13 }}
-            modifiers={[foregroundStyle(theme.secondary)]}
-          >
+          <Text numberOfLines={1} variant="footnote" tone="secondary">
             {subtitle}
           </Text>
         ) : null}
@@ -110,13 +103,9 @@ export function BackButton({ back }: { back: Back }) {
       testID="task-back"
       onPress={back.onPress}
     >
-      <Icon name="chevron.left" size={17} color={theme.accent} />
+      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.accent} />
       {!back.short ? (
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 17, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.accent)]}
-        >
+        <Text numberOfLines={1} weight="medium" tone="accent">
           {back.to}
         </Text>
       ) : null}
@@ -152,13 +141,9 @@ export function Talk({
       testID="talk-it-through"
       onPress={onPress}
     >
-      <Icon name="phone.and.waveform" size={17} color={theme.text} />
+      <Icon name="phone.and.waveform" size={metrics.symbol.bar} color={theme.text} />
       {alone ? (
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 16, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
+        <Text numberOfLines={1} variant="callout" weight="semibold">
           Talk it through
         </Text>
       ) : null}
@@ -166,7 +151,7 @@ export function Talk({
   );
 }
 
-// Not buttonStyle('glass'): its padding grows each control past BAR by a different amount.
+// Not buttonStyle('glass'): its padding grows each control past 44pt by a different amount.
 export function BarButton({
   shape,
   label,
@@ -189,16 +174,22 @@ export function BarButton({
       modifiers={[
         buttonStyle('plain'),
         ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),
-        ...(ios ? [accessibilityLabel(label)] : []),
+        accessibilityLabel(label),
       ]}
     >
       <Row
         alignment="center"
-        spacing={shape === 'circle' ? 0 : 6}
+        spacing={shape === 'circle' ? 0 : metrics.bar.capsule.gap}
         modifiers={[
           ...(shape === 'circle'
-            ? [frame({ width: BAR, height: BAR })]
-            : [padding({ leading: 13, trailing: 15 }), frame({ height: BAR })]),
+            ? [frame({ width: metrics.bar.button, height: metrics.bar.button })]
+            : [
+                padding({
+                  leading: metrics.bar.capsule.leading,
+                  trailing: metrics.bar.capsule.trailing,
+                }),
+                frame({ height: metrics.bar.button }),
+              ]),
           glass(shape),
           contentShape(shape === 'circle' ? shapes.circle() : shapes.capsule()),
         ]}
