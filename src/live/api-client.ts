@@ -17,6 +17,12 @@ type Request = {
   timeoutMs?: number;
 };
 
+// How long to give hex, which can take a minute to answer when its machine is busy: a read, a
+// write, and a watch, which hex holds open until something changes before it answers.
+const READ = 90_000;
+const WRITE = 60_000;
+const WAIT = 120_000;
+
 // hex heard the request and said no, so sending the same thing again gets the same answer.
 export class Refused extends Error {}
 
@@ -37,7 +43,7 @@ function createHexClient(options: Options) {
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort);
-    const timeout = setTimeout(abort, timeoutMs ?? options.timeoutMs ?? 35_000);
+    const timeout = setTimeout(abort, timeoutMs ?? options.timeoutMs ?? READ);
     try {
       const response = await options.fetch(`${origin()}${path}`, {
         method,
@@ -107,7 +113,7 @@ export function createSessionAPI(options: Options): SessionAPI {
       await hex.request(`/calls/${encodeURIComponent(sessionId)}/moments`, {
         method: 'POST',
         body: { kind },
-        timeoutMs: 10_000,
+        timeoutMs: WRITE,
       });
     },
   };
@@ -120,7 +126,7 @@ export function createCallsAPI(options: Options): CallsAPI {
       const result = await hex.request(after === undefined ? '/calls' : `/calls?after=${after}`, {
         method: 'GET',
         signal,
-        timeoutMs: after === undefined ? undefined : 40_000,
+        timeoutMs: after === undefined ? undefined : WAIT,
       });
       if (!isRecord(result) || typeof result.version !== 'number' || !Array.isArray(result.calls))
         throw new Error('hex sent a call list this app can’t read.');
@@ -135,7 +141,7 @@ export function createCallsAPI(options: Options): CallsAPI {
       return (await hex.request(after === undefined ? path : `${path}?after=${after}`, {
         method: 'GET',
         signal,
-        timeoutMs: after === undefined ? undefined : 40_000,
+        timeoutMs: after === undefined ? undefined : WAIT,
       })) as CallRecord;
     },
     async remove(id) {
@@ -150,7 +156,7 @@ export function createTasksAPI(options: Options): TasksAPI {
     const result = await hex.request(after === undefined ? path : `${path}?after=${after}`, {
       method: 'GET',
       signal,
-      timeoutMs: after === undefined ? undefined : 40_000,
+      timeoutMs: after === undefined ? undefined : WAIT,
     });
     if (!isRecord(result) || typeof result.version !== 'number')
       throw new Error('hex sent tasks this app can’t read.');
@@ -171,7 +177,7 @@ export function createTasksAPI(options: Options): TasksAPI {
     async talk(id) {
       await hex.request(`/tasks/${encodeURIComponent(id)}/talk`, {
         method: 'POST',
-        timeoutMs: 10_000,
+        timeoutMs: WRITE,
       });
     },
     async chat(id, after, signal) {
@@ -184,13 +190,13 @@ export function createTasksAPI(options: Options): TasksAPI {
       await hex.request(`/tasks/${encodeURIComponent(id)}/chat`, {
         method: 'POST',
         body: { text, key },
-        timeoutMs: 10_000,
+        timeoutMs: WRITE,
       });
     },
     async stop(id) {
       await hex.request(`/tasks/${encodeURIComponent(id)}/stop`, {
         method: 'POST',
-        timeoutMs: 10_000,
+        timeoutMs: WRITE,
       });
     },
   };
@@ -199,14 +205,14 @@ export function createTasksAPI(options: Options): TasksAPI {
 export function createAsksAPI(options: Options): AsksAPI {
   const hex = createHexClient(options);
   const post = async (path: string, body?: unknown) => {
-    await hex.request(path, { method: 'POST', body, timeoutMs: 10_000 });
+    await hex.request(path, { method: 'POST', body, timeoutMs: WRITE });
   };
   return {
     async list(after, signal) {
       const result = await hex.request(after === undefined ? '/asks' : `/asks?after=${after}`, {
         method: 'GET',
         signal,
-        timeoutMs: after === undefined ? undefined : 40_000,
+        timeoutMs: after === undefined ? undefined : WAIT,
       });
       if (!isRecord(result) || typeof result.version !== 'number' || !Array.isArray(result.asks))
         throw new Error('hex sent asks this app can’t read.');

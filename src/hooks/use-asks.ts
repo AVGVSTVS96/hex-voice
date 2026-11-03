@@ -2,9 +2,10 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { keepDraft } from '@/hooks/use-draft';
 import { useFailures } from '@/hooks/use-failures';
+import { useKept } from '@/hooks/use-kept';
 import { useWatch } from '@/hooks/use-watch';
 import { asksAPI } from '@/live/api';
-import { failedOn, openAsks, yours, type Ask, type AskOption } from '@/live/asks';
+import { failedOn, openAsks, yours, type Ask, type AskList, type AskOption } from '@/live/asks';
 
 // Everything waiting on you, live while the sheet is open. An answer folds its card where it sits
 // and goes to hex; the card stays folded there with Undo until the sheet closes. Whatever hex
@@ -15,7 +16,19 @@ export function useAsks(open: boolean) {
   const tries = useFailures();
   // Each ask's latest answer, so an Undo tapped while it's on its way reaches hex after it.
   const answers = useRef(new Map<string, Promise<boolean>>());
-  useWatch(open, asksAPI.list, (list) => dispatch({ type: 'list', list }), setOffline);
+  const [kept, keep] = useKept<AskList>('asks');
+  useEffect(() => {
+    if (kept && !state.list) dispatch({ type: 'list', list: kept });
+  }, [kept]);
+  const current = useWatch(
+    open,
+    asksAPI.list,
+    (list) => {
+      keep(list);
+      dispatch({ type: 'list', list });
+    },
+    setOffline,
+  );
   useEffect(() => {
     if (open) return;
     dispatch({ type: 'close' });
@@ -50,6 +63,7 @@ export function useAsks(open: boolean) {
     answered: state.answered,
     open: openAsks(state),
     offline,
+    current,
     answer,
     undo,
     act: (id: string) => tries.attempt(id, 'Not sent', () => asksAPI.act(id)),

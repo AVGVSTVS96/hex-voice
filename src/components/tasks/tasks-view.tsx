@@ -74,7 +74,7 @@ export function Tasks({
   pages,
   room,
 }: TasksProps & { pages: Pages; room: Room }) {
-  const { tasks, version, offline } = useTasks(open);
+  const { tasks, version, offline, current } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
@@ -209,6 +209,7 @@ export function Tasks({
       paged={room.paged}
       tasks={tasks}
       offline={offline}
+      current={current}
       yours={yours}
       feel={touch}
       onAnswer={answer}
