@@ -508,3 +508,18 @@ test('before a call the orb rests in the middle open flat, and on its page partl
     } else assert.notDeepEqual(orb.rest, orb.read, `${name}: in the middle, not on a page`);
   }
 });
+
+test('open on its side, Calls is a page under the band, which keeps its buttons in place', () => {
+  for (const name of ['open on its side', 'partly open on its side'] as const) {
+    const { window, insets, pose } = duo[name];
+    const { calls, toolbar } = screenLayout(window, insets, pose);
+    assert.deepEqual(calls, { width: window.width, place: 'over', below: insets.top }, name);
+    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
+  }
+  const { window, insets, pose } = duo['open upright'];
+  assert.equal(
+    screenLayout(window, insets, pose).calls.below,
+    undefined,
+    'upright, beside the column',
+  );
+});
