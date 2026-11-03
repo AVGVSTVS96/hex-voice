@@ -16,7 +16,7 @@ import XCTest
 //   selected <query>      checks the element is selected; unselected checks it isn't
 //   type <query> <text>   taps the element and types the text on the software keyboard
 //   above-keyboard <query> checks the keyboard is up and the element shows whole above it
-//   mark <query>          remembers where the element is; still <query> checks it hasn't moved
+//   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
 //   swipe-down <query>    drags down on the element, the way you pull a keyboard away
 //   no-keyboard           checks the keyboard has gone
 // The accessibility tree at the end is kept beside the shots.
@@ -89,6 +89,8 @@ final class DuoTests: XCTestCase {
                 let now = element(argument).frame
                 XCTAssertEqual(now.minY, was.minY, accuracy: 1, "\(argument) moved from \(was) to \(now)")
                 XCTAssertEqual(now.minX, was.minX, accuracy: 1, "\(argument) moved from \(was) to \(now)")
+                XCTAssertEqual(now.width, was.width, accuracy: 1, "\(argument) resized from \(was) to \(now)")
+                XCTAssertEqual(now.height, was.height, accuracy: 1, "\(argument) resized from \(was) to \(now)")
             default: XCTFail("unknown tap command: \(line)")
             }
         }
