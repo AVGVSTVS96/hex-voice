@@ -17,7 +17,8 @@ import {
 import { useState } from 'react';
 import { Linking } from 'react-native';
 
-import { GAP, Hairline, INSET, Mark, SectionHead, ios } from '@/components/tasks/parts';
+import { Mark } from '@/components/tasks/mark';
+import { GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import type { Ask, AskLink, AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';

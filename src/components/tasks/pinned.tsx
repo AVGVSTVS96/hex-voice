@@ -13,7 +13,8 @@ import {
 import { useState } from 'react';
 import { Linking } from 'react-native';
 
-import { GAP, INSET, MARK, Mark, SectionHead } from '@/components/tasks/parts';
+import { Mark } from '@/components/tasks/mark';
+import { GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { theme } from '@/theme';
 

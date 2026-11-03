@@ -15,7 +15,8 @@ import {
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Hairline, INSET, Lane, SectionHead, ios } from '@/components/tasks/parts';
+import { Lane } from '@/components/tasks/lane';
+import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';

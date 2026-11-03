@@ -14,7 +14,9 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useRef, useState } from 'react';
 
-import { Hairline, Header, INSET, Mark, Pill, SectionHead, ios } from '@/components/tasks/parts';
+import { Header } from '@/components/tasks/bar';
+import { Mark } from '@/components/tasks/mark';
+import { Hairline, Pill, SectionHead, ios } from '@/components/tasks/parts';
 import { OpenIn } from '@/components/tasks/places';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
@@ -105,8 +107,6 @@ export function ThreadPage({
   pending,
   focus,
   foot = 0,
-  onBack,
-  back,
   onTyping,
   onOpen,
   onSteps,
@@ -120,8 +120,6 @@ export function ThreadPage({
   pending: Sending[];
   focus: number;
   foot?: number;
-  onBack?: () => void;
-  back?: string;
   onTyping?: (typing: boolean) => void;
   onOpen: (thread: TaskRow) => void;
   onSteps: () => void;
@@ -147,8 +145,6 @@ export function ThreadPage({
       <Header
         title={title}
         subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
-        onBack={onBack}
-        back={back}
         door={
           thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
         }

@@ -14,7 +14,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { InlineAnswers } from '@/components/tasks/ask-card';
-import { GAP, INSET, MARK, Mark, ios, listRow, type MarkState } from '@/components/tasks/parts';
+import { Mark, type MarkState } from '@/components/tasks/mark';
+import { GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, STUCK, fitsOneLine, opens, type Entry, type Tile, type Topic } from '@/live/inbox';

@@ -11,18 +11,10 @@ import {
 import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
-import {
-  GAP,
-  Header,
-  INSET,
-  MARK,
-  Mark,
-  Pill,
-  SectionHead,
-  ios,
-  laneWidth,
-  useBar,
-} from '@/components/tasks/parts';
+import { Header, useChrome } from '@/components/tasks/bar';
+import { laneWidth } from '@/components/tasks/lane';
+import { Mark } from '@/components/tasks/mark';
+import { GAP, INSET, MARK, Pill, SectionHead, ios } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
@@ -52,8 +44,6 @@ export function Detail({
   threads,
   missing,
   width,
-  onBack,
-  back,
   onTrace,
   onAnswer,
   onUndo,
@@ -69,8 +59,6 @@ export function Detail({
   threads: TaskRow[];
   missing: Set<Place>;
   width: number;
-  onBack?: () => void;
-  back?: string;
   onTrace: (id: string) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
@@ -88,7 +76,8 @@ export function Detail({
   );
   const apps = [...new Set(threads.map((one) => PLACES[placeOf(one.app)]))];
   // On iPhone Duo's pages the bar holds the way out to the topic's app; the foot keeps its menu.
-  const door = useBar() === 'center' ? undefined : [task, ...threads].find((one) => one.link);
+  const door =
+    useChrome().bar === 'center' ? undefined : [task, ...threads].find((one) => one.link);
   return (
     <Column
       alignment="center"
@@ -102,8 +91,6 @@ export function Detail({
             ? `${threads.length} threads · ${apps.join(', ')}`
             : `${PLACES[placeOf(task.app)]} · ${STATE_WORDS[task.state]}`
         }
-        onBack={onBack}
-        back={back}
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <ScrollView

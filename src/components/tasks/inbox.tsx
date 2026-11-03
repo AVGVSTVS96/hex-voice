@@ -1,244 +1,24 @@
-import { Column, Icon, Row, ScrollView, Spacer, Text, TextInput } from '@expo/ui';
+import { Icon, Row, Spacer, Text } from '@expo/ui';
+import { Button, Circle, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
 import {
-  Button,
-  Capsule,
-  Circle,
-  ConfirmationDialog,
-  Overlay,
-  Rectangle,
-  Text as NativeText,
-} from '@expo/ui/swift-ui';
-import {
-  accessibilityAddTraits,
   accessibilityLabel,
-  background,
-  buttonBorderShape,
-  buttonStyle,
-  clipShape,
   contentShape,
-  controlSize,
   foregroundStyle,
   frame,
-  labelStyle,
   layoutPriority,
-  monospacedDigit,
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 
-import { INSET, Lane, Mark, ios, laneWidth, listRow } from '@/components/tasks/parts';
+import { Lane, laneWidth } from '@/components/tasks/lane';
+import { Mark } from '@/components/tasks/mark';
+import { INSET, ios, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
-import { STAGES, type Stage, type Topic } from '@/live/inbox';
+import type { Stage, Topic } from '@/live/inbox';
 import { theme } from '@/theme';
 
 const MARKS = 6;
-
-// The list's head: its title and search. The title sits on the toolbar's line where there is one
-// beside it (`line`), and under the grabber in a sheet.
-export function ListHead({ line, onSearch }: { line?: number; onSearch: () => void }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={12}
-      modifiers={[
-        padding({
-          leading: INSET,
-          trailing: INSET - 4,
-          top: line === undefined ? 22 : Math.max(8, line - 20),
-          bottom: 12,
-        }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 28, fontWeight: '700' }}
-        modifiers={[
-          foregroundStyle(theme.text),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
-      >
-        Tasks
-      </Text>
-      <SearchButton onPress={onSearch} />
-    </Row>
-  );
-}
-
-export function SearchButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Button
-      label="Search"
-      systemImage="magnifyingglass"
-      onPress={onPress}
-      testID="tasks-search"
-      modifiers={[
-        labelStyle('iconOnly'),
-        buttonStyle('glass'),
-        buttonBorderShape('circle'),
-        controlSize('regular'),
-      ]}
-    />
-  );
-}
-
-// The stages as tabs, each with its count: words, the chosen one in text with a mint rule under it
-// that sits on the line across the list. What needs you counts in mint whichever tab is open.
-// Where the list has no room for its title, search sits at the tabs' end (`onSearch`).
-export function Tabs({
-  counts,
-  stage,
-  offline,
-  onChange,
-  onSearch,
-}: {
-  counts: Record<Stage, number>;
-  stage: Stage;
-  offline: boolean;
-  onChange: (stage: Stage) => void;
-  onSearch?: () => void;
-}) {
-  return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity }), ...(onSearch ? [padding({ top: 10 })] : [])]}
-    >
-      <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-        <ScrollView
-          direction="horizontal"
-          showsIndicators={false}
-          modifiers={[frame({ maxWidth: Infinity })]}
-        >
-          <Row
-            alignment="end"
-            spacing={20}
-            modifiers={[padding({ leading: INSET, trailing: INSET })]}
-          >
-            {STAGES.map(({ key, title }) => {
-              const on = key === stage;
-              const count = counts[key];
-              const needs = key === 'needs' && count > 0;
-              return (
-                <Overlay key={key} alignment="bottom">
-                  <Row
-                    alignment="center"
-                    spacing={5}
-                    onPress={() => onChange(key)}
-                    modifiers={[
-                      padding({ bottom: 11 }),
-                      contentShape(shapes.rectangle()),
-                      ...(ios
-                        ? [
-                            accessibilityLabel(`${title}, ${count}`),
-                            ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-                          ]
-                        : []),
-                    ]}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      textStyle={{ fontSize: 15, fontWeight: on ? '600' : '500' }}
-                      modifiers={[foregroundStyle(on ? theme.text : theme.secondary)]}
-                    >
-                      {title}
-                    </Text>
-                    <Text
-                      textStyle={{ fontSize: 15, fontWeight: on || needs ? '600' : '500' }}
-                      modifiers={[
-                        monospacedDigit(),
-                        foregroundStyle(needs ? theme.accent : on ? theme.text : theme.tertiary),
-                      ]}
-                    >
-                      {offline ? '–' : String(count)}
-                    </Text>
-                  </Row>
-                  {on ? (
-                    <Overlay.Content>
-                      <Capsule modifiers={[frame({ height: 2 }), foregroundStyle(theme.accent)]} />
-                    </Overlay.Content>
-                  ) : null}
-                </Overlay>
-              );
-            })}
-          </Row>
-        </ScrollView>
-        {onSearch ? (
-          <Row
-            alignment="center"
-            spacing={0}
-            modifiers={[padding({ trailing: INSET - 4, bottom: 8 })]}
-          >
-            <SearchButton onPress={onSearch} />
-          </Row>
-        ) : null}
-      </Row>
-      <Rectangle
-        modifiers={[
-          frame({ height: 1 }),
-          frame({ maxWidth: Infinity }),
-          foregroundStyle(theme.edge),
-        ]}
-      />
-    </Column>
-  );
-}
-
-export function Search({
-  query,
-  onChange,
-  onCancel,
-}: {
-  query: string;
-  onChange: (query: string) => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={12}
-      modifiers={[
-        padding({ leading: 16, trailing: INSET, top: 18, bottom: 10 }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      <Row
-        alignment="center"
-        spacing={8}
-        modifiers={[
-          padding({ leading: 12, trailing: 12 }),
-          frame({ height: 40 }),
-          frame({ maxWidth: Infinity }),
-          background(theme.surface),
-          clipShape('roundedRectangle', 12),
-        ]}
-      >
-        <Icon name="magnifyingglass" size={14} color={theme.secondary} />
-        <TextInput
-          autoFocus
-          defaultValue={query}
-          placeholder="Tasks, topics, asks"
-          placeholderTextColor={theme.tertiary}
-          cursorColor={theme.accent}
-          onChangeText={onChange}
-          textStyle={{ fontSize: 16 }}
-          modifiers={[
-            foregroundStyle(theme.text),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
-        />
-      </Row>
-      <Text
-        onPress={onCancel}
-        textStyle={{ fontSize: 16, fontWeight: '500' }}
-        modifiers={[foregroundStyle(theme.accent)]}
-      >
-        Cancel
-      </Text>
-    </Row>
-  );
-}
 
 // A topic's head: its name, B's dots (one per thread, the most pressing first), and C's lane of its
 // last 12 hours. It opens the topic's first thread.
@@ -430,43 +210,5 @@ export function PicksRow({
         </NativeText>
       </ConfirmationDialog.Message>
     </ConfirmationDialog>
-  );
-}
-
-// Starts a call that walks the asks with hex, one at a time; it floats over the foot of the list.
-export function GoThrough({
-  count,
-  foot = 0,
-  onPress,
-}: {
-  count: number;
-  foot?: number;
-  onPress: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={9}
-      onPress={onPress}
-      modifiers={[
-        frame({ height: 52 }),
-        frame({ maxWidth: Infinity }),
-        background(theme.prominent),
-        clipShape('capsule'),
-        contentShape(shapes.capsule()),
-        padding({ leading: 16, trailing: 16, bottom: Math.max(12, foot) }),
-        ...(ios ? [accessibilityLabel(`Go through ${count} with hex, on a call`)] : []),
-      ]}
-    >
-      <Spacer flexible />
-      <Icon name="waveform" size={16} color={theme.onProminent} />
-      <Text
-        textStyle={{ fontSize: 17, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.onProminent)]}
-      >
-        {`Go through ${count} with hex`}
-      </Text>
-      <Spacer flexible />
-    </Row>
   );
 }
