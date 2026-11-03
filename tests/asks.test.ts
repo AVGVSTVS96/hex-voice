@@ -8,6 +8,7 @@ import {
   failedOn,
   keepInPlace,
   openAsks,
+  unreached,
   yours,
   Ask,
   type AskList,
@@ -166,4 +167,17 @@ test('what didn’t go through shows on the item it was about, and nowhere else'
     [undefined, 'Not answered · That question is already answered or settled'],
   );
   assert.equal(failed.stuck[0]!.failed, 'Not sent · No General');
+});
+
+test('an answer that missed a place says how many still ask it, on that ask alone', () => {
+  const shown = failedOn(list('a', 'b'), { a: 'Not sent again · Cannot reach hex' }, { a: 2 });
+  assert.deepEqual(
+    shown.asks.map((one) => [one.failed, one.missed]),
+    [
+      ['Not sent again · Cannot reach hex', 2],
+      [undefined, undefined],
+    ],
+  );
+  assert.equal(unreached(1), 'One place was out of reach and still asks it');
+  assert.equal(unreached(2), '2 places were out of reach and still ask it');
 });

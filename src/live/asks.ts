@@ -56,6 +56,15 @@ export const Sent = z.object({
   missed: z.number(),
 });
 export type Sent = z.infer<typeof Sent>;
+
+// What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
+export const NOT_NEEDED = 'Not needed';
+
+// The places an answer couldn't reach, which still ask it until it's sent again.
+export const unreached = (missed: number) =>
+  missed === 1
+    ? 'One place was out of reach and still asks it'
+    : `${missed} places were out of reach and still ask it`;
 export const Stuck = z.object({
   id: z.string(),
   app: z.string(),
@@ -145,13 +154,20 @@ export function yours(state: Yours, action: YoursAction): Yours {
   }
 }
 
-// hex's list with what didn't go through on each item it's about.
-export function failedOn(list: AskList, failed: Record<string, string>): AskList {
+// hex's list with what didn't go through on each item it's about, and on each ask an answer from
+// here left open somewhere, how many places still ask it.
+export function failedOn(
+  list: AskList,
+  failed: Record<string, string>,
+  missed: Record<string, number> = {},
+): AskList {
   const on = <T extends { id: string }>(item: T) =>
     failed[item.id] ? { ...item, failed: failed[item.id] } : item;
   return {
     ...list,
-    asks: list.asks.map(on),
+    asks: list.asks.map((ask) =>
+      missed[ask.id] ? { ...on(ask), missed: missed[ask.id] } : on(ask),
+    ),
     stuck: list.stuck.map(on),
     fresh: list.fresh.map(on),
   };
