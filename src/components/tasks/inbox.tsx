@@ -12,10 +12,11 @@ import {
 import { useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { INSET, asks, ios, listRow } from '@/components/tasks/parts';
+import { asks, ios, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
 import type { Stage, Topic } from '@/live/inbox';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const MARKS = 6;
 
@@ -34,7 +35,12 @@ export function TopicHead({
       spacing={8}
       onPress={onPress}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET - 4, top: 14, bottom: 2 }),
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset - 4,
+          top: 14,
+          bottom: 2,
+        }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
         ...listRow(width, { bottom: false }),
@@ -102,7 +108,12 @@ function Strip({
       spacing={10}
       onPress={onPress}
       modifiers={[
-        padding({ leading: INSET - 2, trailing: INSET, top: 12, bottom: 12 }),
+        padding({
+          leading: metrics.list.inset - 2,
+          trailing: metrics.list.inset,
+          top: 12,
+          bottom: 12,
+        }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
         ...listRow(width),

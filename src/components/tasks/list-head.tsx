@@ -15,9 +15,10 @@ import { useContext, type RefObject } from 'react';
 
 import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
-import { INSET, ios } from '@/components/tasks/parts';
+import { ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
@@ -54,7 +55,7 @@ export function Tabs({
           <Row
             alignment="center"
             spacing={0}
-            modifiers={[padding({ leading: INSET - 4, bottom: 8 })]}
+            modifiers={[padding({ leading: metrics.list.inset - 4, bottom: 8 })]}
           >
             <BackButton back={back} />
           </Row>
@@ -67,7 +68,7 @@ export function Tabs({
           <Row
             alignment="end"
             spacing={20}
-            modifiers={[padding({ leading: INSET, trailing: INSET })]}
+            modifiers={[padding({ leading: metrics.list.inset, trailing: metrics.list.inset })]}
           >
             {STAGES.map(({ key, title }) => {
               const on = key === stage;
@@ -121,7 +122,7 @@ export function Tabs({
           <Row
             alignment="center"
             spacing={0}
-            modifiers={[padding({ trailing: INSET - 4, bottom: 8 })]}
+            modifiers={[padding({ trailing: metrics.list.inset - 4, bottom: 8 })]}
           >
             <SearchButton onPress={onSearch} />
           </Row>
@@ -155,7 +156,7 @@ export function Search({
       alignment="center"
       spacing={10}
       modifiers={[
-        padding({ leading: 16, trailing: INSET - 4, top: 18, bottom: 10 }),
+        padding({ leading: 16, trailing: metrics.list.inset - 4, top: 18, bottom: 10 }),
         frame({ maxWidth: Infinity }),
       ]}
     >

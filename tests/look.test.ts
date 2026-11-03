@@ -21,7 +21,6 @@ const unmigrated = new Set([
   'src/components/tasks/last-check.tsx',
   'src/components/tasks/list-head.tsx',
   'src/components/tasks/list.tsx',
-  'src/components/tasks/parts.tsx',
   'src/components/tasks/pinned.tsx',
   'src/components/tasks/places.tsx',
   'src/components/tasks/rows.tsx',

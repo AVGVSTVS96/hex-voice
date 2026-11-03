@@ -14,7 +14,6 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import type { ColorValue } from 'react-native';
 
-import { INSET } from '@/components/tasks/parts';
 import { said, type Sending } from '@/live/chat';
 import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
@@ -34,7 +33,10 @@ export function Said({ turn }: { turn: ChatTurn }) {
     <Column
       alignment="start"
       spacing={12}
-      modifiers={[padding({ leading: INSET, trailing: INSET }), frame({ maxWidth: Infinity })]}
+      modifiers={[
+        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
+        frame({ maxWidth: Infinity }),
+      ]}
     >
       {blocksOf(one.text).map((block, i) => (
         <Piece key={i} block={block} />
@@ -47,7 +49,7 @@ export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
   return (
     <Column alignment="end" spacing={4} modifiers={[frame({ maxWidth: Infinity })]}>
       <Mine text={sent.text} dim={!sent.failed} />
-      <Row alignment="center" spacing={0} modifiers={[padding({ trailing: INSET })]}>
+      <Row alignment="center" spacing={0} modifiers={[padding({ trailing: metrics.list.inset })]}>
         <Spacer flexible />
         <Text
           modifiers={[
@@ -84,7 +86,9 @@ export function SaidLine({
     <Row
       alignment="start"
       spacing={10}
-      modifiers={[padding({ leading: INSET, trailing: INSET, top: 5, bottom: 5 })]}
+      modifiers={[
+        padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 5, bottom: 5 }),
+      ]}
     >
       <Text
         modifiers={[
@@ -113,7 +117,11 @@ export function SaidLine({
 
 function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
   return (
-    <Row alignment="center" spacing={0} modifiers={[padding({ leading: 52, trailing: INSET - 4 })]}>
+    <Row
+      alignment="center"
+      spacing={0}
+      modifiers={[padding({ leading: 52, trailing: metrics.list.inset - 4 })]}
+    >
       <Spacer flexible />
       <Text
         modifiers={[
@@ -139,7 +147,11 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
 
 function Event({ text }: { text: string }) {
   return (
-    <Row alignment="center" spacing={0} modifiers={[padding({ leading: 52, trailing: INSET })]}>
+    <Row
+      alignment="center"
+      spacing={0}
+      modifiers={[padding({ leading: 52, trailing: metrics.list.inset })]}
+    >
       <Spacer flexible />
       <Text modifiers={[font({ size: 13 }), foregroundStyle(theme.secondary), lineLimit(3)]}>
         {text}

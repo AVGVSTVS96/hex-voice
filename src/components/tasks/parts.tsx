@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -14,26 +14,19 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { Children, isValidElement, type ReactNode } from 'react';
-import { PixelRatio } from 'react-native';
 
 import type { Answered } from '@/hooks/use-watch';
-import { theme } from '@/theme';
+import { hairline, theme } from '@/theme';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 export const ios = process.env.EXPO_OS === 'ios';
-export const INSET = 20;
-export const MARK = 16;
-export const GAP = 10;
-const HAIRLINE = 1 / PixelRatio.get();
-// How far scrolled content fades out as it meets a bar, and how far in from that edge it rests:
-// together with a row's own top padding, nothing at rest sits in the fade.
-const FADE = 24;
-const REST = 12;
 
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
 
 export function feel(haptics: boolean) {
-  const on = ios && haptics;
+  const on = haptics;
   return {
     tick: () => {
       if (on) void Haptics.selectionAsync();
@@ -77,19 +70,21 @@ export function SectionHead({
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 22, bottom: 6 }),
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset,
+          top: space[5.5],
+          bottom: space[1.5],
+        }),
         frame({ maxWidth: Infinity }),
       ]}
     >
-      <Text
-        textStyle={{ fontSize: 13, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.secondary)]}
-      >
+      <Text variant="footnote" weight="semibold" tone="secondary">
         {title}
       </Text>
       <Spacer flexible />
       {count !== undefined ? (
-        <Text textStyle={{ fontSize: 13 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        <Text variant="footnote" tone="tertiary">
           {String(count)}
         </Text>
       ) : null}
@@ -98,7 +93,7 @@ export function SectionHead({
           name="chevron.right"
           size={11}
           color={theme.tertiary}
-          modifiers={[padding({ leading: 8 })]}
+          modifiers={[padding({ leading: space[2] })]}
         />
       ) : null}
     </Row>
@@ -106,7 +101,7 @@ export function SectionHead({
 }
 
 // iOS's soft scroll edge: what scrolls under a bar fades out instead of being cut mid-line. The
-// scroll view inside rests `REST` in from each edge and draws past its frame
+// scroll view inside rests `metrics.list.rest` in from each edge and draws past its frame
 // (`scrollClipDisabled`), so it scrolls on into the fade the way content scrolls under a bar. A
 // mask, so it works on any ground and never takes a touch.
 export function Faded({
@@ -121,7 +116,7 @@ export function Faded({
   const edge = (from: 'top' | 'bottom') => (
     <Rectangle
       modifiers={[
-        frame({ height: FADE }),
+        frame({ height: metrics.list.fade }),
         frame({ maxWidth: Infinity }),
         foregroundStyle({
           type: 'linearGradient',
@@ -141,7 +136,7 @@ export function Faded({
         alignment="center"
         spacing={0}
         modifiers={[
-          padding({ top: top ? REST : 0, bottom: bottom ? REST : 0 }),
+          padding({ top: top ? metrics.list.rest : 0, bottom: bottom ? metrics.list.rest : 0 }),
           frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
         ]}
       >
@@ -180,7 +175,7 @@ export function Sections({ children }: { children: ReactNode }) {
           modifiers={[frame({ maxWidth: Infinity })]}
         >
           {i ? (
-            <Column alignment="start" spacing={0} modifiers={[padding({ top: 20 })]}>
+            <Column alignment="start" spacing={0} modifiers={[padding({ top: space[5] })]}>
               <Hairline />
             </Column>
           ) : null}
@@ -195,7 +190,7 @@ export function Hairline() {
   return (
     <Rectangle
       modifiers={[
-        frame({ height: HAIRLINE }),
+        frame({ height: hairline }),
         frame({ maxWidth: Infinity }),
         foregroundStyle(theme.edge),
       ]}
@@ -206,10 +201,10 @@ export function Hairline() {
 export function Empty({ text, width }: { text: string; width: number }) {
   return (
     <Text
-      textStyle={{ fontSize: 15 }}
+      variant="subheadline"
+      tone="tertiary"
       modifiers={[
-        foregroundStyle(theme.tertiary),
-        padding({ top: 48, bottom: 48 }),
+        padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
         ...listRow(width, { top: false, bottom: false }),
       ]}
@@ -226,7 +221,7 @@ export function Loading({ width }: { width: number }) {
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ top: 48, bottom: 48 }),
+        padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
         ...listRow(width, { top: false, bottom: false }),
         accessibilityLabel('Loading'),
@@ -252,12 +247,17 @@ export function Waiting({ failed, refused, gone }: Answered & { gone: string }) 
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ top: 48, bottom: 48, leading: INSET, trailing: INSET }),
+        padding({
+          top: space[12],
+          bottom: space[12],
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset,
+        }),
         frame({ maxWidth: Infinity }),
       ]}
     >
       {why ? (
-        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        <Text variant="subheadline" tone="tertiary">
           {why}
         </Text>
       ) : (
@@ -273,12 +273,10 @@ export const UNREACHED = 'Can’t reach hex. Trying again…';
 export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
   return (
     <Text
-      textStyle={{ fontSize: 13, lineHeight: 18 }}
-      modifiers={[
-        foregroundStyle(theme.danger),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ...modifiers,
-      ]}
+      variant="footnote"
+      tone="danger"
+      paragraph
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...modifiers]}
     >
       {text}
     </Text>

@@ -17,16 +17,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import {
-  Faded,
-  GAP,
-  INSET,
-  MARK,
-  SectionHead,
-  Sections,
-  Waiting,
-  ios,
-} from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, Waiting, ios } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -46,6 +37,7 @@ import {
 } from '@/live/tasks';
 import type { Answered } from '@/hooks/use-watch';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 // Each kind of step's icon, as shadcn's Trace marks what a line did.
 export const KIND: Record<StepKind, SFSymbol> = {
@@ -61,7 +53,7 @@ export const KIND: Record<StepKind, SFSymbol> = {
   tool: 'wrench.and.screwdriver',
 };
 const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
-const TEXT = INSET - 2 + MARK + GAP;
+const TEXT = metrics.list.inset - 2 + metrics.list.mark + metrics.list.gap;
 // An open agent's rail runs from just under its mark to the middle of its last line.
 const RAIL_TOP = 30;
 const RAIL_FOOT = 18;
@@ -251,7 +243,7 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             spacing={0}
             onPress={() => setWhole(!whole)}
             modifiers={[
-              padding({ leading: TEXT, trailing: INSET - 2, top: -8, bottom: 8 }),
+              padding({ leading: TEXT, trailing: metrics.list.inset - 2, top: -8, bottom: 8 }),
               contentShape(shapes.rectangle()),
             ]}
           >
@@ -262,7 +254,9 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             />
           </Row>
         ) : null}
-        {steps.length ? <Steps steps={steps} indent={MARK + GAP} /> : null}
+        {steps.length ? (
+          <Steps steps={steps} indent={metrics.list.mark + metrics.list.gap} />
+        ) : null}
         {link ? (
           <TraceLine
             lead={null}
@@ -278,7 +272,11 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             modifiers={[
               frame({ width: 1 }),
               foregroundStyle(theme.edge),
-              padding({ leading: INSET - 2 + MARK / 2, top: RAIL_TOP, bottom: RAIL_FOOT }),
+              padding({
+                leading: metrics.list.inset - 2 + metrics.list.mark / 2,
+                top: RAIL_TOP,
+                bottom: RAIL_FOOT,
+              }),
             ]}
           />
         ) : null}
@@ -353,16 +351,25 @@ export function TraceLine({
   return (
     <Row
       alignment="start"
-      spacing={GAP}
+      spacing={metrics.list.gap}
       onPress={onPress}
       modifiers={[
-        padding({ leading: INSET - 2 + indent, trailing: INSET - 2, top: 8, bottom: 8 }),
+        padding({
+          leading: metrics.list.inset - 2 + indent,
+          trailing: metrics.list.inset - 2,
+          top: 8,
+          bottom: 8,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         ...(ios && label ? [accessibilityLabel(label)] : []),
       ]}
     >
-      <Row alignment="center" spacing={0} modifiers={[frame({ width: MARK, height: 20 })]}>
+      <Row
+        alignment="center"
+        spacing={0}
+        modifiers={[frame({ width: metrics.list.mark, height: 20 })]}
+      >
         {lead}
       </Row>
       <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -400,7 +407,11 @@ export function TraceLine({
 
 function Quiet({ text }: { text: string }) {
   return (
-    <Row alignment="center" spacing={0} modifiers={[padding({ leading: INSET, top: 6 })]}>
+    <Row
+      alignment="center"
+      spacing={0}
+      modifiers={[padding({ leading: metrics.list.inset, top: 6 })]}
+    >
       <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
         {text}
       </Text>

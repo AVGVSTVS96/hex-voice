@@ -5,9 +5,9 @@ import type { ReactNode } from 'react';
 import { View, type ColorValue } from 'react-native';
 
 import { Arc } from '@/components/agent-line';
-import { MARK } from '@/components/tasks/parts';
 import type { TaskState } from '@/live/tasks';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 export type MarkState = TaskState | 'paused' | 'stopped' | 'read' | 'pending';
 
@@ -16,13 +16,23 @@ export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (
       <RNHostView matchContents>
-        <View style={{ width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            width: metrics.list.mark,
+            height: metrics.list.mark,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Arc size={13} />
         </View>
       </RNHostView>
     );
   return (
-    <ZStack alignment="center" modifiers={[frame({ width: MARK, height: MARK })]}>
+    <ZStack
+      alignment="center"
+      modifiers={[frame({ width: metrics.list.mark, height: metrics.list.mark })]}
+    >
       <Face state={state} />
     </ZStack>
   );
