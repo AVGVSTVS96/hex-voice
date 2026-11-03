@@ -1,5 +1,5 @@
 import type { Ask, AskList, AskOption, Fresh, Stuck } from './asks';
-import { startOfDay, type TaskRow, type Turn } from './tasks';
+import { startOfDay, type TaskRow } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
 // stuck, then what's working, then what finished today, then the rest, quiet. Tasks shows it a
@@ -25,7 +25,7 @@ export type Entry = Base &
 
 // A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
 // last week for its lane.
-export type Topic = { name: string; entries: Entry[]; marks: Stage[]; tracks: Turn[][] };
+export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
 
 export const STAGES: { key: Stage; title: string }[] = [
   { key: 'needs', title: 'Needs you' },
@@ -184,10 +184,6 @@ export function topicsOf(shown: Entry[], all: Entry[], tasks: TaskRow[]): Topic[
       name,
       entries: shown.filter((entry) => entry.topic === name),
       marks: [...threads.values()].sort((a, b) => RANK[a] - RANK[b]),
-      tracks: [...threads.keys()].flatMap((id) => {
-        const track = tasks.find((task) => task.id === id)?.track;
-        return track?.length ? [track] : [];
-      }),
     };
   });
 }

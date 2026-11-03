@@ -15,7 +15,6 @@ import {
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Lane } from '@/components/tasks/lane';
 import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskRow } from '@/live/tasks';
@@ -120,14 +119,12 @@ export function Places({
   task,
   threads,
   missing,
-  lane,
   onOpen,
   onOpenTask,
 }: {
   task: TaskRow;
   threads: TaskRow[];
   missing: Set<Place>;
-  lane: number;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: string) => void;
 }) {
@@ -186,7 +183,6 @@ export function Places({
                   {note}
                 </Text>
               </Column>
-              {thread.track.length ? <Lane tracks={[thread.track]} width={lane} /> : null}
               <Icon
                 name={thread.link ? 'arrow.up.right' : 'chevron.right'}
                 size={12}

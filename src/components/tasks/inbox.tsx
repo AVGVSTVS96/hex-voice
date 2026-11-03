@@ -11,7 +11,6 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 
-import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark } from '@/components/tasks/mark';
 import { INSET, ios, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
@@ -51,7 +50,6 @@ export function TopicHead({
       </Text>
       {topic.marks.length ? <Dots marks={topic.marks} /> : null}
       <Spacer flexible />
-      {topic.tracks.length ? <Lane tracks={topic.tracks} width={laneWidth(width)} /> : null}
       {onPress ? <Icon name="chevron.right" size={11} color={theme.tertiary} /> : null}
     </Row>
   );

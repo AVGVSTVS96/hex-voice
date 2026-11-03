@@ -117,7 +117,8 @@ export type Room =
       inset: Inset;
     };
 
-export type Bar = 'center' | 'large' | 'inline';
+// A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
+export type Bar = 'center' | 'inline';
 
 // `frame` is a page's width and the most it may be tall: the keyboard can shorten it.
 export type Spot = {
@@ -132,12 +133,9 @@ export type Spot = {
 };
 
 const FLUSH: Inset = { left: 0, right: 0 };
-const INLINE = 600;
 
-// iOS draws a bar on one line where the screen is wider than tall (a landscape iPhone), so a page
-// does the same, and so does a page wide enough to hold its title, back and buttons on one line.
-function barOf(room: Room, width: number, height: number): Bar {
-  return !room.paged ? 'center' : width > height || width >= INLINE ? 'inline' : 'large';
+function barOf(room: Room): Bar {
+  return room.paged ? 'inline' : 'center';
 }
 
 // A page that ends at the fold keeps nothing clear below it.
@@ -175,7 +173,7 @@ function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot 
     width: page - inset.left - inset.right,
     pad: { top, leading: inset.left, trailing: inset.right },
     ...footOf(room.foot),
-    bar: barOf(room, page, room.paged ? room.height - top : 0),
+    bar: barOf(room),
     back: level === 'list' ? (front && closes ? 'call' : undefined) : levels[i - 1],
   };
 }
@@ -194,7 +192,7 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
     width: level === 'list' ? list : page,
     pad: { top, leading: 0, trailing: 0 },
     ...footOf(room.foot),
-    bar: barOf(room, page, room.paged ? room.height - top : 0),
+    bar: barOf(room),
     back: level === 'list' || level === 'topic' ? undefined : levels[i - 1],
   };
 }
@@ -242,7 +240,7 @@ function spotAtFold(
     width: frame.width - pad.leading - pad.trailing,
     pad: { top, ...pad },
     ...footOf(!row && at <= 0 && !(alone && front) ? 'fold' : room.foot),
-    bar: barOf(room, frame.width, frame.maxHeight - top),
+    bar: barOf(room),
     back: !leading ? undefined : level === 'list' ? (closes ? 'call' : undefined) : levels[i - 1],
   };
 }

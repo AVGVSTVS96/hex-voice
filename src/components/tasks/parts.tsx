@@ -41,11 +41,15 @@ export function feel(haptics: boolean) {
 
 export type Feel = ReturnType<typeof feel>;
 
-// No inset or fill of its own, so the list's ground shows behind it.
-export function listRow(width: number, { top = true, bottom = true } = {}): ModifierConfig[] {
+// No inset or fill of its own, so the list's ground shows behind it, unless it's the selected row.
+// A row takes the fill set closest to it, so the selection is set here and not on top.
+export function listRow(
+  width: number,
+  { top = true, bottom = true, selected = false } = {},
+): ModifierConfig[] {
   return [
     listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
-    listRowBackground('transparent'),
+    listRowBackground(selected ? theme.surfaceSelected : 'transparent'),
     listRowSeparatorTint(theme.edge),
     alignmentGuide('listRowSeparatorLeading', 0),
     alignmentGuide('listRowSeparatorTrailing', width),
