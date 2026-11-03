@@ -21,7 +21,6 @@ import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
-// Each app's own mark: its symbol on its own color, so a row says where it lives at a glance.
 const GLYPH: Record<Place, SFSymbol> = {
   telegram: 'paperplane.fill',
   t3: 'chevron.left.forwardslash.chevron.right',
@@ -41,8 +40,6 @@ const DARK: Place[] = ['t3', 'server'];
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
-// How a tile looks, filled: an app's own mark, a call in this app's own mint on dark, a page's
-// arrow in gray.
 function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
   switch (tile.kind) {
     case 'app':
@@ -54,14 +51,12 @@ function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
   }
 }
 
-// A tile's button in a row's swipe wears its color, a call's in the mint that holds white words.
 export function swipeLook(tile: Tile) {
   const { color, glyph } = look(tile);
   return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
 }
 
-// A tile, filled when tapping goes somewhere; a thread without a link is a ghost, its app's ring
-// and symbol with nothing behind them: we know it's from there, but there's no door.
+// A thread without a link is a ghost: we know it's from there, but there's no door.
 export function TileIcon({ tile, size }: { tile: Tile; size: number }) {
   if (tile.kind === 'app' && !tile.link) return <Ghost place={tile.place} size={size} />;
   return <Solid {...look(tile)} size={size} />;
@@ -118,9 +113,6 @@ function Ghost({ place, size }: { place: Place; size: number }) {
   );
 }
 
-// The topic's threads, each a door into its own app with its own lane: the open thread first, then
-// those with a link, newest first. One without a link opens its page here instead. An app missing
-// from this device says so in its row.
 export function Places({
   task,
   threads,
@@ -219,8 +211,6 @@ export function Places({
   );
 }
 
-// The split button: its app's mark and name open the thread where it lives, and its arrow lists
-// every place the topic has a link, each in its own app's mark, and sharing the link.
 export function OpenIn({
   task,
   threads,

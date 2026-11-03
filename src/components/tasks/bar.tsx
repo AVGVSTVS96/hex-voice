@@ -32,7 +32,6 @@ export type Chrome = { bar: Bar; back?: Back };
 export const PageChrome = createContext<Chrome>({ bar: 'center' });
 export const useChrome = () => useContext(PageChrome);
 
-// Where a page opens in its app, as its bar holds it.
 export type Door = { place: Place; onPress: () => void };
 
 export function Header({

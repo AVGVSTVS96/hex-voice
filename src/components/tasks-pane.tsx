@@ -14,8 +14,7 @@ const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
 const BACK_FLICK_SPEED = 400;
 
-// Tasks on iPad: a pane down the trailing edge that stays open beside the call. `toolbar` is the
-// height of the toolbar's line its title sits on.
+// `toolbar` is how far down the toolbar's line sits, where the list's title lines up with it.
 export function TasksPane({
   top,
   toolbar,

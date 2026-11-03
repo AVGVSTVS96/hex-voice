@@ -23,9 +23,7 @@ import { theme } from '@/theme';
 const BODY = 17;
 const LEADING = 5;
 
-// One turn of a thread, drawn as the call transcript draws one: your words in a bubble on the
-// right, hex's as text across the page with their markdown, and what you did there (answered,
-// voted, sent a photo) as a quiet line under your side.
+// Drawn as the call transcript draws a turn.
 export function Said({ turn }: { turn: ChatTurn }) {
   const one = said(turn);
   if (one.kind === 'me') return <Mine text={one.text} />;
@@ -44,8 +42,6 @@ export function Said({ turn }: { turn: ChatTurn }) {
   );
 }
 
-// What you sent from here before hex has it: dimmed while it goes, and if it didn't, a tap sends
-// it again.
 export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) {
   return (
     <Column alignment="end" spacing={4} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -66,8 +62,6 @@ export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
   );
 }
 
-// A turn in a line or a few, for a topic's page: who said it, unless the line above did, then
-// what, without its code.
 export function SaidLine({
   turn,
   named,

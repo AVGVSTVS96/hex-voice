@@ -33,10 +33,6 @@ import { theme } from '@/theme';
 
 const PREVIEW = 3;
 
-// A topic's page, opened from any of its threads: the thread's last messages, what waits on you
-// there (its asks, answered as rows), what's working (each thread's newest steps, opening into all
-// of them), its pinned post, every place it lives on its own lane, and what it did lately. Talk it
-// through and Open in share the foot.
 export function Detail({
   task,
   asks,
@@ -75,7 +71,6 @@ export function Detail({
     (one) => one.state === 'working',
   );
   const apps = [...new Set(threads.map((one) => PLACES[placeOf(one.app)]))];
-  // On iPhone Duo's pages the bar holds the way out to the topic's app; the foot keeps its menu.
   const door =
     useChrome().bar === 'center' ? undefined : [task, ...threads].find((one) => one.link);
   return (
@@ -183,9 +178,6 @@ export function Detail({
   );
 }
 
-// A thread at work in the topic: where it is and for how long, then its newest steps and which of
-// its agents are at work; or once it's done, when it finished, its last steps and the agents it
-// ran. It opens into everything it did.
 function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
   const working = thread.state === 'working';
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];

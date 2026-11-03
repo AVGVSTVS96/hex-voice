@@ -32,8 +32,6 @@ const LINE = 22;
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
-// The topic's asks, answered right here. One you answer folds where it sits to what you said, with
-// Undo.
 export function YourCall({
   asks,
   answered,
@@ -102,9 +100,6 @@ export function YourCall({
   );
 }
 
-// An ask on its topic's page: its question, with a pencil at its end to write your own, what it
-// unblocks (four lines of it until you tap it open), the pages it points to, then its answers, on one line when they fit the page and as
-// rows when they don't. The pencil swaps the answers for a composer.
 function AskCard({
   ask,
   first,
@@ -183,7 +178,6 @@ function AskCard({
   );
 }
 
-// The pages an ask points to, in one quiet line: each opens, and none of them answers.
 function Links({ links }: { links: AskLink[] }) {
   return (
     <Row alignment="center" spacing={6} modifiers={[padding({ top: 4 })]}>
@@ -215,9 +209,6 @@ function Links({ links }: { links: AskLink[] }) {
   );
 }
 
-// An ask's answers on one line: words you tap, a step quieter than the question, hex's pick in mint
-// with its check, and a hairline rule between each. A row in the list draws them at 15, a topic's
-// page at 17, and everything around the words keeps to that size.
 export function InlineAnswers({
   ask,
   size,
@@ -265,8 +256,6 @@ export function InlineAnswers({
   );
 }
 
-// An ask's answers on its page: on one line when they fit, otherwise one row each with a hairline
-// between, hex's pick saying so in mint.
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   if (!ask.options.length) return null;
   if (fitsOneLine(ask.options, width - 2 * INSET, QUESTION))
@@ -339,7 +328,6 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   );
 }
 
-// Your own answer or a note, when none of the choices says it: it goes to the topic like a tap.
 function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => void }) {
   const [text, setText] = useState('');
   const note = text.trim();

@@ -24,7 +24,6 @@ export type Move =
   | { to: 'check' }
   | { to: 'back' };
 
-// 'columns' is a big iPad's list with a topic's page beside it; 'fold' is iPhone Duo open.
 export type Shape = 'one' | 'columns' | 'fold';
 
 export const START: Stack = {
@@ -68,7 +67,6 @@ export function move(stack: Stack, step: Move): Stack {
   }
 }
 
-// Beside the list, a topic's page is always up.
 export function levelsOf(stack: Stack, shape: Shape): Level[] {
   const levels: Level[] = ['list', ...stack.path];
   if (shape !== 'one' && levels.length === 1) levels.push('topic');
@@ -106,9 +104,7 @@ type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
 type Inset = { left: number; right: number };
 
-// A sheet (the phone) or a pane (iPad) fills its container and paints its own pages. Paged rooms
-// are iPhone Duo's: clear pages over the screen's backdrop, `foot` either clear of the home
-// indicator or ending at the fold.
+// Paged rooms are iPhone Duo's, whose pages are clear over the screen's backdrop.
 export type Room =
   | { paged: false; width: number; foot: number }
   | {
@@ -193,9 +189,8 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
   };
 }
 
-// The front page sits after the fold and the one below it before the fold; the rest wait a page
-// behind the first or past the second. A thread you write to on pages stacked one over the other
-// takes both, so the keyboard leaves room to read it.
+// A thread you write to on pages stacked one over the other takes both, so the keyboard leaves
+// room to read it.
 function spotAtFold(
   level: Level,
   { levels, closes }: Placing,

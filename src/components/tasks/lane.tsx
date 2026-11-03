@@ -15,11 +15,6 @@ import { theme } from '@/theme';
 
 const LANE = 10;
 
-// C's lane: the last week on a log scale (`laneX`), now at the right, with faint ticks an hour and a
-// day back. A bar wherever it worked, at least 2pt however short, joined to the next where they
-// touch, each step a hair apart only where there's room to see it (the last few minutes); a thin
-// line while it waited on you, a ring where it asked; a dot where it finished, red where it failed.
-// Every thread of a topic draws on the same lane.
 export function Lane({
   tracks,
   width,
@@ -116,7 +111,6 @@ export function Lane({
   );
 }
 
-// A lane takes a quarter of the row it sits in, within reason.
 export function laneWidth(width: number) {
   return Math.round(Math.min(240, Math.max(84, width * 0.25)));
 }

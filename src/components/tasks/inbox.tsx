@@ -20,8 +20,6 @@ import { theme } from '@/theme';
 
 const MARKS = 6;
 
-// A topic's head: its name, B's dots (one per thread, the most pressing first), and C's lane of its
-// last 12 hours. It opens the topic's first thread.
 export function TopicHead({
   topic,
   width,
@@ -59,7 +57,6 @@ export function TopicHead({
   );
 }
 
-// One small dot per thread: mint needs you, deep mint works, grey finished, faint quiet.
 function Dots({ marks }: { marks: Stage[] }) {
   return (
     <Row alignment="center" spacing={3}>
@@ -84,7 +81,6 @@ function Dots({ marks }: { marks: Stage[] }) {
   );
 }
 
-// A plain row over the topics: its mark, what it says, and what it does on the right.
 function Strip({
   width,
   mark,
@@ -147,7 +143,6 @@ function Strip({
   );
 }
 
-// "Checked 6:31pm · fixed 4 · flagged 3", opening what the check read, fixed and flagged.
 export function CheckRow({
   check,
   width,
@@ -170,7 +165,6 @@ export function CheckRow({
   );
 }
 
-// hex has a pick for several asks: take them all at once, each folding where it sits with Undo.
 // It asks once more first, since it answers for you many times over.
 export function PicksRow({
   picks,

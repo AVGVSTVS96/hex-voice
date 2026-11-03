@@ -39,10 +39,6 @@ const LEADING = INSET - 2;
 const TRAILING = INSET - 4;
 const choicesWidth = (width: number) => width - LEADING - MARK - GAP - TRAILING;
 
-// One thing in a topic, whatever it is: an ask, answered in its row when its choices fit one line,
-// a thread, something stuck with its one action, or something that just finished. Swipe right to
-// do the obvious thing (take hex's pick, read it, act on it) and left to open it in any place it
-// lives that opens.
 export function EntryRow({
   entry,
   first,
@@ -155,8 +151,6 @@ export function EntryRow({
 
 type Swipe = { label: string; onPress: () => void };
 
-// A row in the list, with what a swipe from either edge does: right in mint, the full swipe doing
-// it, and left a button for each place it opens, in that place's color.
 function Swiped({
   width,
   first,
@@ -213,8 +207,6 @@ function Swiped({
   );
 }
 
-// The frame every row shares: its mark, its line in its own words, when and where, and whatever it
-// lets you do right there under it. One size; the line in text and the rest quieter.
 function Shell({
   mark,
   line,
@@ -314,7 +306,6 @@ function Action({ label, onPress }: { label: string; onPress?: () => void }) {
   );
 }
 
-// An ask answered here, folded to what you said and where it went, with Undo, until Tasks closes.
 function Folded({
   ask,
   label,
@@ -374,8 +365,6 @@ function Folded({
   );
 }
 
-// A topic with nothing going, in Quiet: its name and its last line, one size, the line a step
-// quieter. It opens the topic.
 export function QuietRow({
   topic,
   width,

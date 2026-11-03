@@ -11,9 +11,7 @@ import { theme } from '@/theme';
 
 export type MarkState = TaskState | 'paused' | 'stopped' | 'read' | 'pending';
 
-// A row's state, small, drawn natively so a long list stays cheap: a mint dot needs you, the arc
-// turns while it works, a check is done (plain once read), ! failed, a small square was stopped,
-// a ring is idle, a dashed ring hasn't started. Only the arc moves, so only it is the animated one.
+// Drawn natively so a long list stays cheap; only the arc moves, so only it animates.
 export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (

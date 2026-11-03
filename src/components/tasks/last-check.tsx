@@ -14,7 +14,6 @@ import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import { theme } from '@/theme';
 
-// What hex's last check read, what it fixed on its own, and what it wants you to look at.
 export function LastCheck({ check }: { check?: Check }) {
   return (
     <Column
@@ -53,7 +52,6 @@ export function LastCheck({ check }: { check?: Check }) {
   );
 }
 
-// How much it read, as a row of numbers.
 function Read({ read }: { read: Record<string, number> }) {
   return (
     <Row

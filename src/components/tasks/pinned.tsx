@@ -18,8 +18,6 @@ import { GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { theme } from '@/theme';
 
-// The pinned status post drawn natively: each section with its lines marked as the section says,
-// commands set apart to select and copy, links that open, and Done folded to one line.
 export function Pinned({ text }: { text: string }) {
   const sections = pinSections(text);
   return (
