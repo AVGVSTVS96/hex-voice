@@ -1,8 +1,7 @@
-import { Column, Row, ScrollView, Text } from '@expo/ui';
+import { Column, Row, ScrollView } from '@expo/ui';
 import {
   background,
   clipShape,
-  foregroundStyle,
   frame,
   padding,
   scrollClipDisabled,
@@ -15,7 +14,8 @@ import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import type { Answered } from '@/hooks/use-watch';
 import { radius, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
   return (
@@ -34,7 +34,11 @@ export function LastCheck({ check, ...answered }: Answered & { check?: Check }) 
           ]}
         >
           {check ? (
-            <Column alignment="start" spacing={0} modifiers={[padding({ top: 20, bottom: 40 })]}>
+            <Column
+              alignment="start"
+              spacing={0}
+              modifiers={[padding({ top: space[5], bottom: space[10] })]}
+            >
               <Sections>
                 <Read key="read" read={check.read} />
                 {check.fixed.length ? (
@@ -70,7 +74,7 @@ function Read({ read }: { read: Record<string, number> }) {
       alignment="start"
       spacing={0}
       modifiers={[
-        padding({ top: 16, bottom: 16, leading: 8, trailing: 8 }),
+        padding({ top: space[4], bottom: space[4], leading: space[2], trailing: space[2] }),
         frame({ maxWidth: Infinity }),
         background(theme.group),
         clipShape('roundedRectangle', radius.group),
@@ -81,19 +85,11 @@ function Read({ read }: { read: Record<string, number> }) {
         <Column
           key={what}
           alignment="center"
-          spacing={2}
+          spacing={space[0.5]}
           modifiers={[frame({ maxWidth: Infinity })]}
         >
-          <Text
-            textStyle={{ fontSize: 26, fontWeight: '600' }}
-            modifiers={[foregroundStyle(theme.text)]}
-          >
-            {String(count)}
-          </Text>
-          <Text
-            textStyle={{ fontSize: 13, lineHeight: 16 }}
-            modifiers={[foregroundStyle(theme.secondary)]}
-          >
+          <Text variant="stat">{String(count)}</Text>
+          <Text variant="footnote" tone="secondary">
             {what}
           </Text>
         </Column>
@@ -109,10 +105,10 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       spacing={metrics.list.gap}
       modifiers={[
         padding({
-          leading: metrics.list.inset - 2,
+          leading: metrics.list.inset - space[0.5],
           trailing: metrics.list.inset,
-          top: 10,
-          bottom: 10,
+          top: space[2.5],
+          bottom: space[2.5],
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
@@ -120,26 +116,17 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       <Mark state={fixed ? 'done' : 'needs'} />
       <Column
         alignment="start"
-        spacing={3}
+        spacing={space[0.75]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text
-          textStyle={{ fontSize: 15, lineHeight: 20, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
+        <Text variant="subheadline" weight="medium" paragraph>
           {note.title}
         </Text>
-        <Text
-          textStyle={{ fontSize: 15, lineHeight: 20 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
+        <Text variant="subheadline" tone="secondary" paragraph>
           {note.text}
         </Text>
         {note.did ? (
-          <Text
-            textStyle={{ fontSize: 15, lineHeight: 20, fontWeight: '500' }}
-            modifiers={[foregroundStyle(theme.accent)]}
-          >
+          <Text variant="subheadline" weight="medium" tone="accent" paragraph>
             {note.did}
           </Text>
         ) : null}
