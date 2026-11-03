@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { failure, openURL } from '@/hooks/use-failures';
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import { circle, radius, theme } from '@/theme';
@@ -28,7 +29,7 @@ export function CallAsk({
     setFailed(undefined);
     onAnswer(option).then(undefined, (error: unknown) => {
       setSending(undefined);
-      setFailed(error instanceof Error ? error.message : 'That didn’t reach hex. Tap it again.');
+      setFailed(failure('Not sent', error));
     });
   };
   if (answer)
@@ -95,7 +96,9 @@ export function CallAsk({
               key={link.url}
               accessibilityRole="link"
               hitSlop={8}
-              onPress={() => void Linking.openURL(link.url)}
+              onPress={() =>
+                openURL(link.url).catch((error: Error) => setFailed(failure('Not opened', error)))
+              }
             >
               <Text style={styles.link}>{`${link.label} ↗`}</Text>
             </Pressable>
