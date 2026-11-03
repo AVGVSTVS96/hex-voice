@@ -101009,7 +101009,7 @@ index 0000000000000000000000000000000000000000..42300503e437fc7bea3217dfa2c51d63
 +}
 diff --git a/src/components/tasks/places.tsx b/src/components/tasks/places.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da0225f6a1
+index 0000000000000000000000000000000000000000..d8f27467a298f7352dcb00960b95c6d3d71551dc
 --- /dev/null
 +++ b/src/components/tasks/places.tsx
 @@ -0,0 +1,218 @@
@@ -101033,7 +101033,7 @@ index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da
 +
 +import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 +import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
-+import { clock, movedAt, type TaskId, type TaskRow } from '@/live/tasks';
++import { clock, type TaskId, type TaskRow } from '@/live/tasks';
 +import { theme } from '@/theme';
 +
 +const GLYPH: Record<Place, SFSymbol> = {
@@ -101147,7 +101147,7 @@ index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da
 +}) {
 +  const others = threads
 +    .filter((thread) => thread.id !== task.id)
-+    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || movedAt(b) - movedAt(a));
++    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
 +  const all = [task, ...others];
 +  const [every, setEvery] = useState(false);
 +  const shown = every ? all : all.slice(0, SHOWN);
@@ -101161,7 +101161,7 @@ index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da
 +        const opens = !!thread.link || thread.id !== task.id;
 +        const note = gone
 +          ? `${PLACES[place]} isn’t on this ${DEVICE}`
-+          : `${PLACES[place]} · ${clock(new Date(movedAt(thread)))}${thread.link ? '' : ' · no link'}`;
++          : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
 +        return (
 +          <Column
 +            key={thread.id}
@@ -101233,10 +101233,10 @@ index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da
 +}
 diff --git a/src/components/tasks/rows.tsx b/src/components/tasks/rows.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1c45c0177b1ecd8291b65ecc4b0212544a3152da
+index 0000000000000000000000000000000000000000..b5023a37ac8a66c7a654a764af8b4a69bf8947b4
 --- /dev/null
 +++ b/src/components/tasks/rows.tsx
-@@ -0,0 +1,505 @@
+@@ -0,0 +1,501 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { Button, SwipeActions } from '@expo/ui/swift-ui';
 +import {
@@ -101264,7 +101264,6 @@ index 0000000000000000000000000000000000000000..1c45c0177b1ecd8291b65ecc4b021254
 +  STUCK,
 +  fitsOneLine,
 +  headlineOf,
-+  timeOf,
 +  opens,
 +  type Entry,
 +  type Stage,
@@ -101679,12 +101678,9 @@ index 0000000000000000000000000000000000000000..1c45c0177b1ecd8291b65ecc4b021254
 +  selected: boolean;
 +  onOpen: () => void;
 +}) {
-+  const [newest] = [...topic.entries].sort(
-+    (a, b) => (timeOf(b) ?? -Infinity) - (timeOf(a) ?? -Infinity),
-+  );
++  const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 +  if (!newest) return null;
 +  const count = topic.entries.length;
-+  const when = timeOf(newest);
 +  // Mint means it waits on you, so only Needs you counts in mint.
 +  const needs = stage === 'needs';
 +  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
@@ -101737,7 +101733,7 @@ index 0000000000000000000000000000000000000000..1c45c0177b1ecd8291b65ecc4b021254
 +        >
 +          {headlineOf(newest)}
 +        </Text>
-+        {when === undefined ? null : <Meta text={clock(new Date(when))} />}
++        <Meta text={clock(new Date(newest.at))} />
 +      </Row>
 +    </Column>
 +  );
@@ -102322,7 +102318,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..cc318869141f881f4de5fd6cd55a308bdbb57d47
+index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee4a1a8fb0
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
 @@ -0,0 +1,497 @@
@@ -102374,7 +102370,7 @@ index 0000000000000000000000000000000000000000..cc318869141f881f4de5fd6cd55a308b
 +  type Stage,
 +  type Tile,
 +} from '@/live/inbox';
-+import { movedAt, type TaskId, type TaskRow } from '@/live/tasks';
++import type { TaskId, TaskRow } from '@/live/tasks';
 +import { motion } from '@/motion';
 +import type { Fold } from '@/screens/layout';
 +import { theme } from '@/theme';
@@ -102727,7 +102723,7 @@ index 0000000000000000000000000000000000000000..cc318869141f881f4de5fd6cd55a308b
 +
 +function newestOf(rows: TaskRow[]) {
 +  return rows.reduce<TaskRow | undefined>(
-+    (newest, row) => (!newest || movedAt(row) > movedAt(newest) ? row : newest),
++    (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
 +    undefined,
 +  );
 +}
@@ -107334,10 +107330,10 @@ index 0000000000000000000000000000000000000000..3be79e23a02aa6a82ef1e728529abe1a
 +};
 diff --git a/src/live/inbox.ts b/src/live/inbox.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5ff0762f29f60dc5e89363956c19a2f4302d24ec
+index 0000000000000000000000000000000000000000..89ebb47d8ae92b24466a7850a46575532ee070f6
 --- /dev/null
 +++ b/src/live/inbox.ts
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,315 @@
 +import {
 +  unreached,
 +  type Ask,
@@ -107553,20 +107549,6 @@ index 0000000000000000000000000000000000000000..5ff0762f29f60dc5e89363956c19a2f4
 +    const text = [entry.topic, PLACES[entry.place], ...textOf(entry)].join(' ').toLowerCase();
 +    return words.every((word) => text.includes(word));
 +  });
-+}
-+
-+// When an entry last moved, from its own time or its task's, or nothing when neither is real. hex
-+// sends a Claude session's last move as the epoch, so a thread's start stands in for it.
-+export function timeOf(entry: Entry): number | undefined {
-+  return (
-+    real(entry.at) ??
-+    (entry.kind === 'task' ? (real(entry.task.at) ?? real(entry.task.since)) : undefined)
-+  );
-+}
-+
-+function real(at: string) {
-+  const time = Date.parse(at);
-+  return time > 0 ? time : undefined;
 +}
 +
 +// What an entry asks or says, in one line: the question, the stuck thing, what's new.
@@ -108178,10 +108160,10 @@ index 8fc1dc541a597a333effe7a61dff8dc92c484e22..67f21d89431e4e01e4734e97ea7abb15
      });
 diff --git a/src/live/tasks.ts b/src/live/tasks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..312d6fc1fb77b6a14978325e1464b4734d9114e3
+index 0000000000000000000000000000000000000000..d96653bf8a19c801dd36af1ac0a837eaf68e24b1
 --- /dev/null
 +++ b/src/live/tasks.ts
-@@ -0,0 +1,284 @@
+@@ -0,0 +1,278 @@
 +import * as z from 'zod/mini';
 +
 +import { timeOfDay } from './calls';
@@ -108322,13 +108304,7 @@ index 0000000000000000000000000000000000000000..312d6fc1fb77b6a14978325e1464b473
 +// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
 +export function taskTime(task: TaskRow, now = new Date()) {
 +  if (task.state === 'working') return duration(now.getTime() - Date.parse(task.since));
-+  return clock(new Date(task.state === 'needs' ? task.since : movedAt(task)), now);
-+}
-+
-+// When a thread last moved. hex sends a Claude session's as the epoch, so its start stands in.
-+export function movedAt(task: Pick<TaskRow, 'at' | 'since'>) {
-+  const at = Date.parse(task.at);
-+  return at > 0 ? at : Date.parse(task.since);
++  return clock(new Date(task.state === 'needs' ? task.since : task.at), now);
 +}
 +
 +export function clock(at: Date, now = new Date()) {
@@ -115741,10 +115717,10 @@ index 9dd18c87f9f6b1803889689f7450ea51ef06bf17..00000000000000000000000000000000
 -});
 diff --git a/tests/inbox.test.ts b/tests/inbox.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..07ef9a77770d3234edc2147952a919b00ee1b314
+index 0000000000000000000000000000000000000000..79956cae692676e314f3790bcfd880dd716fe64c
 --- /dev/null
 +++ b/tests/inbox.test.ts
-@@ -0,0 +1,513 @@
+@@ -0,0 +1,498 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -115754,7 +115730,6 @@ index 0000000000000000000000000000000000000000..07ef9a77770d3234edc2147952a919b0
 +import {
 +  fitsOneLine,
 +  headlineOf,
-+  timeOf,
 +  pageOf,
 +  topicIn,
 +  inboxEntries,
@@ -116212,20 +116187,6 @@ index 0000000000000000000000000000000000000000..07ef9a77770d3234edc2147952a919b0
 +test('an entry’s headline is what it asks or says', () => {
 +  const entries = stream({ tasks: [row('voiceapp', 'needs', at(3), { line: 'Plug the Duo in' })] });
 +  assert.deepEqual(entries.map(headlineOf), ['Plug the Duo in']);
-+});
-+
-+test('an entry’s time is its own or its task’s, never a made-up one', () => {
-+  const [entry] = stream({ tasks: [row('voiceapp', 'working', at(3))] });
-+  assert.ok(entry?.kind === 'task');
-+  assert.equal(timeOf(entry), Date.parse(at(3)));
-+  assert.equal(timeOf({ ...entry, at: '' }), Date.parse(entry.task.at));
-+  const epoch = new Date(0).toISOString();
-+  assert.equal(
-+    timeOf({ ...entry, at: epoch, task: { ...entry.task, at: epoch, since: at(5) } }),
-+    Date.parse(at(5)),
-+    'a Claude session’s epoch is no time: its start stands in',
-+  );
-+  assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '', since: '' } }), undefined);
 +});
 +
 +test('a project opens on its leading thread, or on a page of its own when it has none', () => {
