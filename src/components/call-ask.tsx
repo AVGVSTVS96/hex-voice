@@ -6,6 +6,7 @@ import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import { reachedBy } from '@/live/inbox';
 import { circle, radius, theme } from '@/theme';
+import { labelOf, space, textOf } from '@/ui/tokens';
 
 // An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 // open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
@@ -119,27 +120,31 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface,
     borderRadius: radius.group,
     borderCurve: 'continuous',
-    padding: 14,
-    gap: 12,
+    padding: space[3.5],
+    gap: space[3],
   },
-  head: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 2 },
-  topic: { color: theme.secondary, fontSize: 15, fontWeight: '600' },
-  question: { flex: 1, color: theme.tertiary, fontSize: 15 },
+  head: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: space[2],
+    paddingHorizontal: space[0.5],
+  },
+  topic: { ...labelOf('subheadline', 'semibold'), color: theme.secondary },
+  question: { ...labelOf('subheadline'), flex: 1, color: theme.tertiary },
   tag: {
+    ...labelOf('footnote', 'semibold'),
     color: theme.text,
-    fontSize: 13,
-    fontWeight: '600',
     backgroundColor: theme.surfaceSelected,
     borderRadius: radius.inner,
     overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: space[2.5],
+    paddingVertical: space[1],
   },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   option: {
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: space[4],
     borderRadius: radius.control,
     borderCurve: 'continuous',
     borderWidth: 1.5,
@@ -148,19 +153,24 @@ const styles = StyleSheet.create({
   },
   pick: { borderColor: theme.accent },
   pressed: { opacity: 0.6 },
-  optionText: { color: theme.text, fontSize: 17 },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 2 },
-  link: { color: theme.secondary, fontSize: 15 },
-  hint: { color: theme.tertiary, fontSize: 13, textAlign: 'center' },
+  optionText: { ...labelOf('body'), color: theme.text },
+  links: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space[4],
+    paddingHorizontal: space[0.5],
+  },
+  link: { ...labelOf('subheadline'), color: theme.secondary },
+  hint: { ...labelOf('footnote'), color: theme.tertiary, textAlign: 'center' },
   failed: { color: theme.danger },
-  sent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 24 },
+  sent: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3], paddingRight: space[6] },
   check: {
     ...circle(26),
     backgroundColor: theme.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkMark: { color: theme.accent, fontSize: 13, fontWeight: '700' },
-  sentText: { flex: 1, color: theme.text, fontSize: 16, lineHeight: 22 },
+  checkMark: { ...labelOf('footnote', 'bold'), color: theme.accent },
+  sentText: { ...textOf('sent'), flex: 1, color: theme.text },
   quiet: { color: theme.secondary },
 });

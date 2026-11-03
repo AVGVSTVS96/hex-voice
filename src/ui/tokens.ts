@@ -52,6 +52,8 @@ export const type = {
   wordsLarge: { fontSize: 19, lineHeight: 28 },
   // A footnote that ends a subheadline's line, like a time or a place, level with its words.
   tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
+  // What became of something you did, beside its mark, like an answer sent.
+  sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
   // The one name a carousel's page shows.
   display: { fontSize: 32, lineHeight: 38, weight: 'semibold' },
 } as const satisfies Record<string, TextStyle>;
@@ -70,8 +72,16 @@ export function textOf(variant: TextVariant, weight?: Weight) {
   };
 }
 
+// A text style for a React Native label: the variant's size and weight on the font's own line
+// height, as SwiftUI text always is.
+export function labelOf(variant: TextVariant, weight?: Weight) {
+  const { fontSize, fontWeight } = textOf(variant, weight);
+  return { fontSize, fontWeight };
+}
+
 // Every gap and padding is a step of this scale, in points: a step is 4pt, so space[2.5] is 10.
 export const space = {
+  0.5: 2,
   1: 4,
   1.5: 6,
   2: 8,
