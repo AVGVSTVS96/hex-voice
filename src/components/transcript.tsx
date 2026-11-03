@@ -12,6 +12,7 @@ import {
 import { CallAsk } from '@/components/call-ask';
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
+import type { TaskId } from '@/live/tasks';
 import type { TranscriptEntry } from '@/live/types';
 import { motion } from '@/motion';
 import { metrics, radius, theme } from '@/theme';
@@ -35,7 +36,7 @@ export function Transcript({
   emptyAt?: 'end' | 'center';
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => Promise<unknown>;
-  onOpenTask?: (task: string) => void;
+  onOpenTask?: (task: TaskId) => void;
 }) {
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);

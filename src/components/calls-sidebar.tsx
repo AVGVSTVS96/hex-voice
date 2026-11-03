@@ -20,6 +20,7 @@ import {
   callDetails,
   callName,
   timeOfDay,
+  type CallId,
   type CallSummary,
 } from '@/live/calls';
 import { motion } from '@/motion';
@@ -37,7 +38,7 @@ type Props = {
   offline: boolean;
   haptics: boolean;
   onOpen: (call: CallSummary) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: CallId) => void;
 };
 
 export function CallsSidebar({
@@ -101,7 +102,7 @@ function Row({
   selected: boolean;
   haptics: boolean;
   onOpen: (call: CallSummary) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: CallId) => void;
 }) {
   const x = useSharedValue(0);
   const from = useSharedValue(0);

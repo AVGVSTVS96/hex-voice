@@ -38,6 +38,7 @@ import {
   tracksOf,
   type Stage,
   type Tile,
+  type PageId,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
@@ -127,7 +128,7 @@ export function ListPage({
   const [now, setNow] = useState(Date.now);
   useEffect(() => setNow(Date.now()), [tasks]);
 
-  const openPage = (id: string, row?: string) => {
+  const openPage = (id: PageId, row?: string) => {
     feel.tick();
     Keyboard.dismiss();
     pages.go({ to: 'topic', id, row });

@@ -1,6 +1,8 @@
 import { createContext, useEffect, useReducer } from 'react';
 
 import type { TasksAt } from '@/components/tasks/tasks-view';
+import type { PageId } from '@/live/inbox';
+import type { TaskId } from '@/live/tasks';
 import type { Fold } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
@@ -8,19 +10,19 @@ type Pushed = Exclude<Level, 'list'>;
 
 export type Stack = {
   path: Pushed[];
-  task: string | null;
+  task: PageId | null;
   row: string | null;
-  stepsOf: string | null;
+  stepsOf: TaskId | null;
   focusComposer: boolean;
 };
 
 export type Move =
   | { to: 'start'; at: TasksAt }
-  | { to: 'topic'; id: string; row?: string }
-  | { to: 'beside'; id: string | null }
+  | { to: 'topic'; id: PageId; row?: string }
+  | { to: 'beside'; id: PageId | null }
   | { to: 'thread'; write?: boolean }
   | { to: 'composerFocused' }
-  | { to: 'steps'; id: string }
+  | { to: 'steps'; id: TaskId }
   | { to: 'check' }
   | { to: 'back' };
 

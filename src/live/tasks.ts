@@ -2,7 +2,7 @@ import * as z from 'zod/mini';
 
 import { timeOfDay } from './calls';
 
-export const TaskId = z.string();
+export const TaskId = z.string().brand<'TaskId'>();
 export type TaskId = z.infer<typeof TaskId>;
 
 export const TaskState = z.catch(z.enum(['needs', 'working', 'done', 'failed', 'idle']), 'idle');

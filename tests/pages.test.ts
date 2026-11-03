@@ -14,8 +14,10 @@ import {
   type Shape,
   type Stack,
 } from '../src/components/tasks/pages';
+import { TaskId } from '../src/live/tasks';
 import { screenLayout, type Page } from '../src/screens/layout';
 
+const A = TaskId.parse('a');
 const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
 
 const openUpright = screenLayout(
@@ -67,9 +69,9 @@ const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
 
 const stacks: [string, Stack][] = [
   ['the list', go()],
-  ['a topic', go({ to: 'topic', id: 'a' })],
-  ['a thread', go({ to: 'topic', id: 'a' }, { to: 'thread' })],
-  ['its steps', go({ to: 'topic', id: 'a' }, { to: 'thread' }, { to: 'steps', id: 'a' })],
+  ['a topic', go({ to: 'topic', id: A })],
+  ['a thread', go({ to: 'topic', id: A }, { to: 'thread' })],
+  ['its steps', go({ to: 'topic', id: A }, { to: 'thread' }, { to: 'steps', id: A })],
   ['the last check', go({ to: 'check' })],
 ];
 
@@ -83,7 +85,7 @@ test('the Duo pages split at its fold held wide, on its side and folded it shows
 test('open, the Duo shows the deepest two levels, each step down sliding both along', () => {
   const room = roomOf(openUpright);
   assert.deepEqual(onScreen(go(), room), ['list', 'topic']);
-  assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['list', 'topic']);
+  assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['list', 'topic']);
   assert.deepEqual(onScreen(stacks[2]![1], room), ['topic', 'thread']);
   assert.deepEqual(onScreen(stacks[3]![1], room), ['thread', 'steps']);
 });
@@ -91,15 +93,15 @@ test('open, the Duo shows the deepest two levels, each step down sliding both al
 test('back goes a level up, and from the list backLeavesTasks for the call', () => {
   const cases: [Shape, Stack, Level[] | 'call'][] = [
     ['one', go(), 'call'],
-    ['one', go({ to: 'topic', id: 'a' }), ['list']],
-    ['one', go({ to: 'topic', id: 'a' }, { to: 'thread' }), ['list', 'topic']],
+    ['one', go({ to: 'topic', id: A }), ['list']],
+    ['one', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
     ['one', go({ to: 'check' }), ['list']],
     ['fold', go(), 'call'],
-    ['fold', go({ to: 'topic', id: 'a' }), 'call'],
+    ['fold', go({ to: 'topic', id: A }), 'call'],
     ['fold', go({ to: 'check' }), 'call'],
-    ['fold', go({ to: 'topic', id: 'a' }, { to: 'thread' }), ['list', 'topic']],
+    ['fold', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
     ['fold', stacks[3]![1], ['list', 'topic', 'thread']],
-    ['columns', go({ to: 'topic', id: 'a' }), 'call'],
+    ['columns', go({ to: 'topic', id: A }), 'call'],
     ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
   for (const [shape, stack, after] of cases) {
@@ -111,7 +113,7 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
 });
 
 test('Tasks opened on a topic goes back to the list before the call', () => {
-  const stack = go({ to: 'start', at: { task: 'a' } });
+  const stack = go({ to: 'start', at: { task: A } });
   assert.deepEqual(levelsOf(stack, 'one'), ['list', 'topic']);
   assert.equal(backLeavesTasks(stack, 'one'), false);
   assert.equal(backLeavesTasks(move(stack, { to: 'back' }), 'one'), true);
@@ -216,13 +218,13 @@ test('beside the transcript, Tasks lays out one page wide with the list’s Back
   assert.equal(pages.shape, 'one');
   const list = spotOf('list', pages, room);
   assert.deepEqual([list.shown, list.back, list.width], [true, 'call', 423]);
-  const deeper = pagesOf(go({ to: 'topic', id: 'a' }), room);
+  const deeper = pagesOf(go({ to: 'topic', id: A }), room);
   assert.equal(spotOf('list', deeper, room).offset.x, -455);
   assert.equal(spotOf('topic', deeper, room).back, 'list');
 });
 
 test('the phone’s sheet: a page waits a third behind, and Back goes a level up', () => {
-  const pages = pagesOf(go({ to: 'topic', id: 'a' }), sheet, false);
+  const pages = pagesOf(go({ to: 'topic', id: A }), sheet, false);
   const list = spotOf('list', pages, sheet);
   const task = spotOf('topic', pages, sheet);
   assert.equal(list.offset.x, -440 / 3);
@@ -232,7 +234,7 @@ test('the phone’s sheet: a page waits a third behind, and Back goes a level up
 });
 
 test('writing focuses the composer once, and going back lets it go', () => {
-  const writing = go({ to: 'topic', id: 'a' }, { to: 'thread', write: true });
+  const writing = go({ to: 'topic', id: A }, { to: 'thread', write: true });
   assert.equal(writing.focusComposer, true);
   assert.equal(move(writing, { to: 'composerFocused' }).focusComposer, false);
   assert.equal(move(writing, { to: 'back' }).focusComposer, false);
@@ -255,8 +257,8 @@ test('on its side, flat or partly open, Tasks is one page: the list fills it and
     const room = roomOf(page);
     assert.equal(room.fold, undefined);
     assert.deepEqual(onScreen(go(), room), ['list']);
-    assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['topic']);
-    const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: 'a' }), room), room);
+    assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
+    const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);
     assert.deepEqual([topic.back, topic.width], ['list', 669]);
   }
 });

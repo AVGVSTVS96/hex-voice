@@ -37,8 +37,16 @@ import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
-import { inboxEntries, placeOf, topicIn, type Place, type Stage, type Tile } from '@/live/inbox';
-import { movedAt, type TaskRow } from '@/live/tasks';
+import {
+  inboxEntries,
+  placeOf,
+  taskIn,
+  topicIn,
+  type Place,
+  type Stage,
+  type Tile,
+} from '@/live/inbox';
+import { movedAt, type TaskId, type TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
@@ -46,7 +54,7 @@ import { theme } from '@/theme';
 const NAMED_BACK = 420;
 
 // Every opening passes a new one, which restarts the pages and the list's tab.
-export type TasksAt = { task?: string; stage?: Stage };
+export type TasksAt = { task?: TaskId; stage?: Stage };
 
 export type TasksProps = {
   open: boolean;
@@ -81,7 +89,7 @@ export function Tasks({
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
   // A project with no thread to show has a page of its own, with nothing to fetch.
-  const task = useTask(topicIn(pages.task) ? null : pages.task, version);
+  const task = useTask(taskIn(pages.task), version);
   const traced = useTask(pages.stepsOf, version);
   const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
@@ -144,7 +152,7 @@ export function Tasks({
     // A page's link is the web's, which the browser always opens.
     else void Linking.openURL(tile.url).catch(() => undefined);
   };
-  const openSteps = (id: string) => {
+  const openSteps = (id: TaskId) => {
     tick();
     pages.go({ to: 'steps', id });
   };

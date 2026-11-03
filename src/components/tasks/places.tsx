@@ -18,7 +18,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
-import { clock, movedAt, type TaskRow } from '@/live/tasks';
+import { clock, movedAt, type TaskId, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
 const GLYPH: Record<Place, SFSymbol> = {
@@ -128,7 +128,7 @@ export function Places({
   threads: TaskRow[];
   missing: Set<Place>;
   onOpen: (thread: TaskRow) => void;
-  onOpenTask: (id: string) => void;
+  onOpenTask: (id: TaskId) => void;
 }) {
   const others = threads
     .filter((thread) => thread.id !== task.id)

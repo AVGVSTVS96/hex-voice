@@ -31,6 +31,7 @@ import {
   type Stage,
   type Tile,
   type Topic,
+  type PageId,
 } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
@@ -39,7 +40,7 @@ export type RowActions = {
   width: number;
   selected?: string | null;
   answered: Record<string, string | null>;
-  onOpen: (task: string, entry: string) => void;
+  onOpen: (task: PageId, entry: string) => void;
   onOpenTile: (tile: Tile) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
