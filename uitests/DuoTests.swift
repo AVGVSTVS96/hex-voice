@@ -17,6 +17,8 @@ import XCTest
 //   type <query> <text>   taps the element and types the text on the software keyboard
 //   above-keyboard <query> checks the keyboard is up and the element shows whole above it
 //   mark <query>          remembers where the element is; still <query> checks it hasn't moved
+//   swipe-down <query>    drags down on the element, the way you pull a keyboard away
+//   no-keyboard           checks the keyboard has gone
 // The accessibility tree at the end is kept beside the shots.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
@@ -76,6 +78,11 @@ final class DuoTests: XCTestCase {
                 let frame = element(argument).frame
                 XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
                 XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
+            case "swipe-down": element(argument).swipeDown()
+            case "no-keyboard":
+                let gone = NSPredicate(format: "exists == false")
+                let wait = XCTNSPredicateExpectation(predicate: gone, object: app.keyboards.firstMatch)
+                XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 5), .completed, "the keyboard is still up")
             case "mark": marked[argument] = element(argument).frame
             case "still":
                 let was = try XCTUnwrap(marked[argument], "\(argument) wasn't marked")
