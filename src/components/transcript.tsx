@@ -34,7 +34,7 @@ export function Transcript({
   size?: number;
   emptyAt?: 'end' | 'center';
   cards?: CallCard[];
-  onAnswer?: (card: CallCard, option: AskOption) => void;
+  onAnswer?: (card: CallCard, option: AskOption) => Promise<unknown>;
   onOpenTask?: (task: string) => void;
 }) {
   const scroll = useRef<ScrollViewInstance>(null);
@@ -85,7 +85,7 @@ export function Transcript({
             <CallAsk
               key={`ask ${moment.ask.id}`}
               card={moment}
-              onAnswer={(option) => onAnswer?.(moment, option)}
+              onAnswer={(option) => onAnswer?.(moment, option) ?? Promise.resolve()}
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : (

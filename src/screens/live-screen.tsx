@@ -848,9 +848,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                       size={layout.text}
                       emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
-                      onAnswer={(card, option) =>
-                        void asksAPI.answer(card.ask.id, option.label).catch(() => {})
-                      }
+                      onAnswer={(card, option) => asksAPI.answer(card.ask.id, option.label)}
                       onOpenTask={(task) => openTasks({ task })}
                     />
                   )}
