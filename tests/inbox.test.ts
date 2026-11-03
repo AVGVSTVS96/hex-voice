@@ -192,7 +192,6 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
   const needs = topicsOf(
     entries.filter((entry) => entry.stage === 'needs'),
     entries,
-    [],
   );
   assert.deepEqual(
     needs.map((topic) => [topic.name, ids(topic.entries)]),
@@ -205,7 +204,6 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
   const working = topicsOf(
     entries.filter((entry) => entry.stage === 'working'),
     entries,
-    [],
   );
   assert.deepEqual(
     working.map((topic) => topic.name),
@@ -232,7 +230,6 @@ test('a topic marks each of its threads once, by its most pressing stage, whiche
     topicsOf(
       entries.filter((entry) => entry.stage === stage),
       entries,
-      tasks,
     ).map((topic) => [topic.name, topic.marks]);
   assert.deepEqual(marks('needs'), [
     ['autofork', ['needs', 'working', 'quiet']],

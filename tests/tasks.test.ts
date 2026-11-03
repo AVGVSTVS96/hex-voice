@@ -78,7 +78,10 @@ test('tasks are asked for with the hex token, waiting on the version they last s
     token: 'secret',
     fetch: async (url, init) => {
       asked.push(`${init?.method} ${url}`);
-      assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer secret');
+      assert.equal(
+        (init?.headers as Record<string, string> | undefined)?.Authorization,
+        'Bearer secret',
+      );
       if (String(url).endsWith('/talk')) return new Response(null, { status: 204 });
       if (String(url).includes('summary'))
         return Response.json({ version: 3, needs: 1, working: 2 });
