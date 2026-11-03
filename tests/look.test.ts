@@ -14,11 +14,10 @@ const files = (dir: string): string[] =>
 
 // Files still drawing with numbers of their own, until each moves onto the tokens. This list only
 // shrinks.
-const unmigrated = new Set([
-  'src/components/tasks/tasks-view.tsx',
-  'src/live/call-activity.tsx',
-  'src/screens/duo-tasks.tsx',
-]);
+const unmigrated = new Set(['src/components/tasks/tasks-view.tsx', 'src/screens/duo-tasks.tsx']);
+
+// The Live Activity runs as a string in the widget extension, where the tokens don't exist.
+const widget = 'src/live/call-activity.tsx';
 
 // A token, a value React Native or SwiftUI was given by its parent, or a constant made of those,
 // halved to center one on another.
@@ -90,7 +89,7 @@ function rawLooks(file: string) {
 test('every look comes from the tokens, so a component looks the same wherever it sits', () => {
   const found = files('src')
     .filter((file) => !file.endsWith('theme.ts') && !file.startsWith('src/ui/'))
-    .filter((file) => !unmigrated.has(file))
+    .filter((file) => file !== widget && !unmigrated.has(file))
     .flatMap(rawLooks);
   assert.deepEqual(found, []);
 });
