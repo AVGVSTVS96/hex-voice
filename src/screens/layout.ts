@@ -6,6 +6,8 @@ export const CONTROLS = 64;
 export const MUTE = 60;
 export const GAP = 12;
 export const DOCKED = 52;
+// The toolbar's Tasks and settings, one glass capsule.
+export const PAIR = 2 * TOOL + GAP;
 export const RAIL = 96;
 const AGENT = 22;
 const COLUMN = 84;
@@ -551,8 +553,9 @@ function besideColumn(
 }
 
 // iPhone Duo open on its side, its toolbar in the band along the top (see `Duo`). Tasks takes the
-// screen below the band; on a call the call buttons end the band's stretch, and before them sit
-// the words' switch, then the orb with its time after it.
+// screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
+// at its trailing end whether Tasks is open or not; with Tasks open the call buttons come in just
+// before that pair, and before them sit the words' switch, then the orb with its time after it.
 function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   const { window, insets, toolbar, top } = frame;
   const { tasks, after } = paged(
@@ -564,7 +567,7 @@ function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
     },
     before?.fold,
   );
-  const end = toolbar.x + toolbar.width;
+  const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
   const middle = toolbar.y + TOOL / 2;
   const mute = end - 2 * TOOL - GAP;
   const button = { x: mute - 14 - TOOL / 2, y: middle };

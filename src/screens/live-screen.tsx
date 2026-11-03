@@ -1001,7 +1001,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         <ScreenToolbar
           axis={toolbar.axis}
           gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-          gathered={inRow}
           style={[toolbarPlace, toolbarStyle]}
           callsOpen={drawerOpen}
           tasks={{ ...counts, open: tasksOpen }}

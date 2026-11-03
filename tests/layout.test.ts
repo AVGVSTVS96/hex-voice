@@ -311,7 +311,8 @@ function bar(layout: Layout, window: Size) {
     const x = window.width - controls.right - 32;
     placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
   } else {
-    placed.tools = { x: toolbar.x, y: toolbar.y, width: 3 * 48 + 2 * 12, height: 48 };
+    placed.calls = { x: toolbar.x, y: toolbar.y, width: 48, height: 48 };
+    placed.pair = { x: toolbar.x + toolbar.width - 108, y: toolbar.y, width: 108, height: 48 };
     const { right, top } = call.controls!;
     placed.buttons = { x: window.width - right - 108, y: top, width: 108, height: 48 };
   }
@@ -399,7 +400,11 @@ test('open on its side, the toolbar sits in the status band level with the statu
     475.5 - 8,
     'the agent line under them ends short of the fold',
   );
-  assert.deepEqual(call.controls, { right: 669 - 523, top: toolbar.y });
+  assert.deepEqual(
+    call.controls,
+    { right: 669 - (523 - 108 - 24), top: toolbar.y },
+    'the call buttons come in before Tasks and settings, which stay put',
+  );
 });
 
 test('partly open, Tasks keeps its pages off the fold’s whole frame, margins and all', () => {

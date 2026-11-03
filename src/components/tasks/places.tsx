@@ -113,6 +113,10 @@ function Ghost({ place, size }: { place: Place; size: number }) {
   );
 }
 
+// Places show where a topic lives once there's more than one, or one it can open.
+export const hasPlaces = (task: TaskRow, threads: TaskRow[]) =>
+  !!task.link || threads.some((thread) => thread.id !== task.id);
+
 export function Places({
   task,
   threads,
@@ -132,7 +136,6 @@ export function Places({
     .filter((thread) => thread.id !== task.id)
     .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
   const all = [task, ...others];
-  if (all.length < 2 && !task.link) return null;
   const rest = all.length - SHOWN;
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
