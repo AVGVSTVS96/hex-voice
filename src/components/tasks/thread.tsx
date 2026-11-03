@@ -152,7 +152,7 @@ export function ThreadPage({
             modifiers={[
               padding({ top: 20, bottom: 20 }),
               contentShape(shapes.rectangle()),
-              onTapGesture(Keyboard.dismiss),
+              onTapGesture(() => Keyboard.dismiss()),
             ]}
           >
             {first > 0 ? (

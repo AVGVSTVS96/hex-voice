@@ -13,14 +13,32 @@
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/no-misused-promises": "error",
     "import/no-cycle": "error",
-    "typescript/no-floating-promises": "off",
-    "typescript/unbound-method": "off",
+    "typescript/no-floating-promises": "error",
+    "typescript/unbound-method": "error",
     "typescript/await-thenable": "off",
     "no-unused-vars": [
       "error",
       {
         "ignoreRestSiblings": true,
         "argsIgnorePattern": "^_"
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "fetch",
+        "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "expo/fetch",
+            "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+          }
+        ]
       }
     ]
   },
@@ -29,7 +47,42 @@
       "files": ["tests/**"],
       "rules": {
         "typescript/no-base-to-string": "off",
-        "typescript/restrict-template-expressions": "off"
+        "typescript/restrict-template-expressions": "off",
+        "typescript/no-floating-promises": "off",
+        "no-restricted-globals": "off"
+      }
+    },
+    {
+      "files": ["src/hex/**"],
+      "rules": {
+        "no-restricted-globals": "off",
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/app/**", "src/components/**", "src/screens/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "expo/fetch",
+                "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+              },
+              {
+                "name": "@/hex",
+                "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/hex/*"],
+                "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              }
+            ]
+          }
+        ]
       }
     }
   ]
