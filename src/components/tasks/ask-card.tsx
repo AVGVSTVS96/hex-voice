@@ -319,7 +319,6 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
         <Spacer style={{ width: 15 }} />
       )}
       <Text
-        numberOfLines={3}
         textStyle={{ fontSize: 17, lineHeight: 22, fontWeight: option.pick ? '500' : '400' }}
         modifiers={[
           foregroundStyle(option.pick ? theme.accent : theme.text),
