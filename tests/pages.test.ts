@@ -254,7 +254,7 @@ test('a page wider than it is tall draws its bar on one line, and one ending at 
   assert.deepEqual([bottom.bar, bottom.endsAtFold, bottom.foot], ['inline', false, 34]);
   const beside = roomOf(openOnSideDuo.beside!.tasks);
   const alone = spotOf('list', pagesOf(go(), beside), beside);
-  assert.deepEqual([alone.bar, alone.endsAtFold, alone.back], ['inline', true, 'call']);
+  assert.deepEqual([alone.bar, alone.endsAtFold, alone.back], ['inline', false, 'call']);
   const lying = screenLayout(
     { width: 678, height: 466 },
     { top: 0, right: 84, bottom: 34, left: 0 },

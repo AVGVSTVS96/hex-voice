@@ -281,7 +281,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
   // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
-  const { docked, dock, covers } = duoTasks;
+  const { docked, dock, covers, hides, aside } = duoTasks;
+  // Where the call's words and the lines under them go when they take the page before the fold.
+  const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
     tick();
     setTasksOpen(false);
@@ -529,23 +531,29 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   };
   const columnStyle = useAnimatedStyle(() => {
     const { d, t } = besideness(drawer.get(), pane.get());
+    const a = aside.get();
     return {
-      left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
-      width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
-      transform: [{ translateY: -(lift.calls * d + lift.tasks * t) }],
+      left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
+      width:
+        toward(words.width, besideCalls.width, besideTasks.width, d, t) +
+        (before.width - words.width) * a,
+      transform: [{ translateY: -(lift.calls * d + lift.tasks * t + before.raise * a) }],
     };
   });
   // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
   const linesStyle = useAnimatedStyle(() => {
     const { t } = besideness(drawer.get(), pane.get());
-    return { opacity: (1 - wide.get() * t) * uncovered(covers.get()) };
+    return { opacity: (1 - wide.get() * t) * uncovered(hides.get()) };
   });
   const wordsStyle = useAnimatedStyle(() => {
     const { d, t } = besideness(drawer.get(), pane.get());
+    const a = aside.get();
     return {
-      top: toward(words.top, besideCalls.top, besideTasks.top, d, t),
-      left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
-      width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
+      top: toward(words.top, besideCalls.top, besideTasks.top, d, t) + (before.top - words.top) * a,
+      left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
+      width:
+        toward(words.width, besideCalls.width, besideTasks.width, d, t) +
+        (before.width - words.width) * a,
     };
   });
   const controlsAt =
@@ -644,8 +652,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
     const { d, t } = besideness(drawer.get(), pane.get());
     return {
-      bottom: footerHeight.get() + 18 + lift.calls * d + lift.tasks * t,
-      opacity: shown * (1 - wide.get() * t) * uncovered(covers.get()),
+      bottom:
+        footerHeight.get() + 18 + lift.calls * d + lift.tasks * t + before.raise * aside.get(),
+      opacity: shown * (1 - wide.get() * t) * uncovered(hides.get()),
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });
@@ -900,7 +909,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             style={[
               styles.footer,
               { left: layout.footer.x, width: layout.footer.width },
-              moves && columnStyle,
+              (moves || duo?.beside) && columnStyle,
               linesStyle,
               { paddingBottom: layout.footer.bottom },
             ]}
@@ -957,7 +966,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             style={[
               styles.agent,
               { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
-              moves && columnStyle,
+              (moves || duo?.beside) && columnStyle,
               linesStyle,
             ]}
           >

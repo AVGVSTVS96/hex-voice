@@ -19,22 +19,40 @@ import { TIME, TOOL, type Duo } from '@/screens/layout';
 import { theme } from '@/theme';
 
 // iPhone Duo's Tasks as the call screen sees it. While it's open on a call the call is docked in
-// the bar, and open, Tasks can leave the call's words their page after the fold: a choice that
-// lasts the call. `dock` settles from 0 to 1 as the call moves into the bar, and `covers` as Tasks
-// covers the call's own pages.
+// the bar. Open, the call can take the page before the fold, beside Tasks: on a call, or before one
+// while the Duo is partly open, where it starts that way. The switch in the bar picks otherwise
+// until the call ends or the Duo folds or flattens. `dock` settles from 0 to 1 as the call moves
+// into the bar, `covers` as Tasks covers the orb's page, `hides` as it covers the words, and
+// `aside` as the words move to the page before the fold.
 export function useDuoTasks(
   duo: Duo | undefined,
   open: boolean,
   onCall: boolean,
   reducedMotion: boolean,
 ) {
-  const [chosen, setChosen] = useState(false);
-  if (chosen && !onCall) setChosen(false);
+  const partlyOpen = !!duo?.partlyOpen;
+  const [chosen, setChosen] = useState<{ partlyOpen: boolean; beside: boolean }>();
+  const available = !!duo?.beside && (onCall || partlyOpen);
+  if (chosen && (chosen.partlyOpen !== partlyOpen || !available)) setChosen(undefined);
+  const offered = available && open;
   const docked = !!duo && open && onCall;
-  const beside = docked && chosen && !!duo.beside;
+  const beside = offered && (chosen?.beside ?? partlyOpen);
   const dock = useSettle(docked, reducedMotion);
   const covers = useSettle(!!duo && open && !beside, reducedMotion);
-  return { docked, beside, toggleBeside: () => setChosen((now) => !now), dock, covers };
+  const hides = useSettle(!!duo && open && !(beside && docked), reducedMotion);
+  const aside = useSettle(beside && docked, reducedMotion);
+  const offer = useSettle(offered, reducedMotion);
+  return {
+    docked,
+    beside,
+    offered,
+    toggleBeside: () => setChosen({ partlyOpen, beside: !beside }),
+    dock,
+    covers,
+    hides,
+    aside,
+    offer,
+  };
 }
 
 // How much of the call's own page shows while Tasks covers it: gone by the time Tasks is halfway in.
@@ -52,8 +70,8 @@ function useSettle(on: boolean, reducedMotion: boolean) {
   return value;
 }
 
-// Tasks' pages, and on a call the call's time by its docked orb and the switch that gives the words
-// their page beside Tasks, lit while they have it. Tasks slides in as `pane` opens it.
+// Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call its
+// page beside Tasks, lit while it has it. Tasks slides in as `pane` opens it.
 export function DuoTasks({
   duo,
   tasks,
@@ -74,6 +92,7 @@ export function DuoTasks({
     transform: [{ translateX: (1 - pane.get()) * 48 }],
   }));
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
+  const offerStyle = useAnimatedStyle(() => ({ opacity: state.offer.get() }));
   const { time } = duo.call;
   const button = duo.beside?.button;
   return (
@@ -96,20 +115,20 @@ export function DuoTasks({
           {clock(seconds * 1000)}
         </Animated.Text>
       )}
-      {onCall && button && (
+      {button && (
         <Animated.View
-          pointerEvents={state.docked ? 'box-none' : 'none'}
-          accessibilityElementsHidden={!state.docked}
-          importantForAccessibility={state.docked ? 'auto' : 'no-hide-descendants'}
+          pointerEvents={state.offered ? 'box-none' : 'none'}
+          accessibilityElementsHidden={!state.offered}
+          importantForAccessibility={state.offered ? 'auto' : 'no-hide-descendants'}
           style={[
             styles.button,
             { left: button.x - TOOL / 2, top: button.y - TOOL / 2 },
-            dockedStyle,
+            offerStyle,
           ]}
         >
           <VoiceControl
             icon="transcript"
-            label="Transcript beside Tasks"
+            label={onCall ? 'Transcript beside Tasks' : 'Call beside Tasks'}
             testID="transcript-beside-button"
             selected={state.beside}
             onPress={state.toggleBeside}

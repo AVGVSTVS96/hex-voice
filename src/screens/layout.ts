@@ -72,11 +72,14 @@ export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet'
 // iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
 // call sits in the bar beside the system's status items: its orb with its time, down the side
 // column or across the top band, where the call buttons join them (`controls`) and the tools
-// gather at the band's leading end. Open, Tasks can give the call's words the page after the fold
-// and keep the one before it (`beside`), switched by a button in the bar.
+// gather at the band's leading end. Open, the call can take the page before the fold while Tasks
+// keeps the one after it (`beside`), switched by a button in the bar: there the orb waits, and on a
+// call its words show (`words`, risen `raise` from where they end). That's how iOS's overlay
+// arrangement places a view over another, and so it's where the Duo starts while partly open.
 export type Duo = {
+  partlyOpen: boolean;
   tasks: Page;
-  beside?: { tasks: Page; button: Place };
+  beside?: { tasks: Page; words: Words & { raise: number }; button: Place };
   call: {
     orb: Required<Spot>;
     time: Place & { width: number; align: 'center' | 'left' };
@@ -156,10 +159,14 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
         ? stacked(frame, fold)
         : single(frame);
   if (!pose.bar && !fold) return layout;
+  const before = fold && wordsBefore(frame, layout, fold);
   return {
     ...layout,
     tasks: { width: frame.content.width, place: 'page' },
-    duo: frame.column ? besideColumn(frame, frame.column, fold) : belowBand(frame, fold),
+    duo: {
+      partlyOpen: !!pose.fold?.active,
+      ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
+    },
   };
 }
 
@@ -495,14 +502,18 @@ function stacked(frame: Frame, fold: Rect): Layout {
 // iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
 // buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
 // switch sit as one group midway between the tools and the call buttons.
-function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, fold?: Rect): Duo {
+function besideColumn(
+  frame: Frame,
+  column: NonNullable<Frame['column']>,
+  before?: Before,
+): Omit<Duo, 'partlyOpen'> {
   const { window, insets, toolbar } = frame;
   const gaps = toolbar.gaps ?? COLUMN_GAPS;
   const sizes = column.controls.sizes ?? SIZES;
   const x = column.x + column.width / 2;
   const reach = Math.max(TOOL, sizes.mute, sizes.call) / 2;
   const leading = column.x === 0;
-  const { tasks, first } = paged(
+  const { tasks, after } = paged(
     {
       area: leading
         ? { x: x + reach, y: 0, width: window.width - x - reach, height: window.height }
@@ -511,16 +522,21 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, fold?:
       top: insets.top,
       foot: insets.bottom,
     },
-    fold,
+    before?.fold,
   );
   const tools = toolbar.y + 3 * TOOL + gaps.tools + gaps.group;
   const buttons = window.height - column.controls.bottom - sizes.mute - sizes.gap - sizes.call;
-  const group = CALL_ORB + 4 + TIME + (first ? 12 + TOOL : 0);
+  const group = CALL_ORB + 4 + TIME + (after ? 12 + TOOL : 0);
   const y = (tools + buttons - group) / 2;
   const time = y + CALL_ORB + 4;
   return {
     tasks,
-    beside: first && { tasks: first, button: { x, y: time + TIME + 12 + TOOL / 2 } },
+    beside: after &&
+      before && {
+        tasks: after,
+        words: before.words,
+        button: { x, y: time + TIME + 12 + TOOL / 2 },
+      },
     call: {
       orb: { x, y: y + CALL_ORB / 2, size: CALL_ORB },
       time: { x: x - TIME_WIDTH / 2, y: time, width: TIME_WIDTH, align: 'center' },
@@ -531,25 +547,25 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, fold?:
 // iPhone Duo open on its side, its toolbar in the band along the top (see `Duo`). Tasks takes the
 // screen below the band; on a call the call buttons end the band's stretch, and before them sit
 // the words' switch, then the orb with its time after it.
-function belowBand(frame: Frame, fold?: Rect): Duo {
+function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   const { window, insets, toolbar, top } = frame;
-  const { tasks, first } = paged(
+  const { tasks, after } = paged(
     {
       area: { x: 0, y: top, width: window.width, height: window.height - top },
       inset: FLUSH,
       top: 0,
       foot: insets.bottom,
     },
-    fold,
+    before?.fold,
   );
   const end = toolbar.x + toolbar.width;
   const middle = toolbar.y + TOOL / 2;
   const mute = end - 2 * TOOL - GAP;
   const button = { x: mute - 14 - TOOL / 2, y: middle };
-  const time = (first ? button.x - TOOL / 2 - 10 : mute - 14) - TIME_WIDTH;
+  const time = (after ? button.x - TOOL / 2 - 10 : mute - 14) - TIME_WIDTH;
   return {
     tasks,
-    beside: first && { tasks: first, button },
+    beside: after && before && { tasks: after, words: before.words, button },
     call: {
       orb: { x: time - 6 - CALL_ORB / 2, y: middle, size: CALL_ORB },
       time: { x: time, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
@@ -558,18 +574,34 @@ function belowBand(frame: Frame, fold?: Rect): Duo {
   };
 }
 
-// Tasks over a page's area, cut at the fold while the Duo is open, and the page before the fold,
-// the one it keeps when the call's words take the one after it.
-function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; first?: Page } {
+// Tasks over a page's area, cut at the fold while the Duo is open, and the page after the fold,
+// the one it keeps when the call takes the one before it.
+function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; after?: Page } {
   if (!fold) return { tasks: page };
   const { area } = page;
   const row = fold.height > fold.width;
+  const end = { x: fold.x + fold.width, y: fold.y + fold.height };
   return {
     tasks: { ...page, fold: cut(row ? 'row' : 'column', fold, area) },
-    first: row
-      ? { ...page, area: { ...area, width: fold.x - area.x } }
-      : { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
+    after: row
+      ? { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } }
+      : { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
   };
+}
+
+type Before = { fold: Rect; words: Words & { raise: number } };
+
+// Where the call's words go on the page before the fold, beside Tasks: upright, at the words' own
+// height; on its side, from under the band down to the fold, so they and the agent line beneath
+// them rise until that line ends a gap short of it.
+function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before {
+  if (fold.height > fold.width) {
+    const x = frame.content.x + GUTTER;
+    const width = Math.min(fold.x - 8 - x, WORDS_BESIDE);
+    return { fold, words: { x, width, top: words.top, raise: 0 } };
+  }
+  const raise = frame.window.height - fold.y + 8 - agent.bottom;
+  return { fold, words: { ...words, top: frame.top + 12, raise } };
 }
 
 function cut(axis: Fold['axis'], fold: Rect, area: Rect): Fold {
