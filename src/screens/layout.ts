@@ -119,8 +119,9 @@ export type Layout = {
   content: Rect;
   toolbar: Toolbar;
   // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
-  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves.
-  controls: 'inline' | ColumnControls | { center: Beside<Place> };
+  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
+  // `rest` under the orb while it rests alone.
+  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
   // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
@@ -448,11 +449,12 @@ function pad(frame: Frame): Layout {
           open: { x: half / 2, y: top + size + 40 + CONTROLS / 2 },
           calls: withCalls.controls,
           tasks: withTasks.controls,
+          rest: { x: half, y: top + size + 40 + CONTROLS / 2 },
         },
       },
       orb: {
         size,
-        rest: { x: half / 2, y: top + size / 2 },
+        rest: { x: half, y: top + size / 2 },
         room: { top: 0, bottom: height },
         read: { x: half / 2, y: top + size / 2 },
         dock: { calls: withCalls.orb, tasks: withTasks.orb },
@@ -482,11 +484,12 @@ function pad(frame: Frame): Layout {
         open: { x: width / 2, y: foot },
         calls: withCalls.controls,
         tasks: withTasks.controls,
+        rest: { x: width / 2, y: foot },
       },
     },
     orb: {
       size,
-      rest: { x: width / 2, y: orbY },
+      rest: { x: width / 2, y: (below + foot - CONTROLS / 2) / 2 },
       room: { top: below, bottom: height },
       read: { x: width / 2, y: orbY },
       dock: { calls: withCalls.orb, tasks: withTasks.orb },
