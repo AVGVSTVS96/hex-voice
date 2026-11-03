@@ -111,7 +111,7 @@ export function ListPage({
   const topics = useMemo(() => topicsOf(shown, entries, tasks ?? []), [shown, entries, tasks]);
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
-  const first = shown.map(taskOf).find((id) => id && tasks?.some((row) => row.id === id));
+  const first = shown.map(taskOf).find(Boolean);
   useEffect(() => {
     if (beside && open && !pages.task && first) pages.go({ to: 'beside', id: first });
   }, [beside, open, pages.task, first]);
