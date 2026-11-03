@@ -26,7 +26,7 @@ import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
 import { Persona, type PersonaState } from '@/components/persona';
 import { ScreenToolbar } from '@/components/screen-toolbar';
-import { TasksPage, TasksPane } from '@/components/tasks-pane';
+import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import { opalPaletteInput } from '@/components/persona/variants';
@@ -55,14 +55,14 @@ import {
   ENDINGS,
   SOURCES,
   callLength,
-  clock,
   endedSeconds,
   liveEntries,
   transcriptText,
   type CallSummary,
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { CONTROLS, DOCKED, GAP, TIME, TOOL, screenLayout } from '@/screens/layout';
+import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
+import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -139,9 +139,9 @@ function CallScreen({ pose }: { pose: Pose }) {
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = useCall(shown);
   // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
-  // page of its own beside the call's column, and the call goes on in the column.
+  // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
-  const page = layout.page;
+  const duo = layout.duo;
   const reducedMotion = useReducedMotion();
   const connected = session.status === 'connected';
   const connecting = session.status === 'connecting';
@@ -157,6 +157,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   const away = elsewhere.call;
   const onCall = voiceLocked || elsewhere.live;
   const awake = connected || (elsewhere.live && !elsewhere.leaving);
+  const duoTasks = useDuoTasks(duo, tasksOpen, onCall, reducedMotion);
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
@@ -257,18 +258,13 @@ function CallScreen({ pose }: { pose: Pose }) {
     restScale.set(settle(rest.scale));
     footerHeight.set(settle(footer));
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
-  // With Tasks open on iPhone Duo during a call, the orb moves into the column, small, still
-  // answering the voice, with the call's time under it; tapping it closes Tasks for the call.
-  const docked = !!page && tasksOpen && onCall;
+  // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
+  // the voice, with the call's time by it; tapping it closes Tasks for the call.
+  const { docked, dock, covers } = duoTasks;
   const closeTasks = () => {
     tick();
     setTasksOpen(false);
   };
-  const dock = useSharedValue(docked ? 1 : 0);
-  useEffect(() => {
-    const to = docked ? 1 : 0;
-    dock.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
-  }, [docked, reducedMotion, dock]);
   const now = useNow(docked && !connected && !!away);
   const callSeconds = connected
     ? session.elapsedSeconds
@@ -515,9 +511,13 @@ function CallScreen({ pose }: { pose: Pose }) {
     return {
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t),
       width: toward(words.width, besideCalls.width, besideTasks.width, d, t),
-      opacity: 1 - wide.get() * t,
       transform: [{ translateY: -(lift.calls * d + lift.tasks * t) }],
     };
+  });
+  // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
+  const linesStyle = useAnimatedStyle(() => {
+    const { t } = besideness(drawer.get(), pane.get());
+    return { opacity: (1 - wide.get() * t) * uncovered(covers.get()) };
   });
   const wordsStyle = useAnimatedStyle(() => {
     const { d, t } = besideness(drawer.get(), pane.get());
@@ -583,19 +583,23 @@ function CallScreen({ pose }: { pose: Pose }) {
       at = toward(at, orb.dock.calls.y, tasks.y, beside.d, beside.t);
       visual = toward(visual, orb.dock.calls.size, tasks.size, beside.d, beside.t);
     }
-    if (page) {
+    let shown = 1;
+    if (duo) {
       const k = dock.get();
-      const spot = page.call.orb;
+      const spot = duo.call.orb;
       x += (spot.x - x) * k;
       at += (spot.y - at) * k;
       visual += (spot.size - visual) * k;
+      const under = uncovered(covers.get());
+      shown = under + (1 - under) * k;
     }
     visual *= 1 + 0.025 * breath.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
-        (split && !orb.dock ? 1 - Math.max(drawer.get(), page ? 0 : pane.get()) : 1),
+        (split && !orb.dock ? 1 - drawer.get() : 1) *
+        shown,
       transform: [
         { translateX: x - size / 2 },
         { translateY: at - size / 2 },
@@ -604,10 +608,14 @@ function CallScreen({ pose }: { pose: Pose }) {
       ],
     };
   });
-  const timeStyle = useAnimatedStyle(() => ({ opacity: dock.get() }));
   const dockStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP),
+    opacity:
+      interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) * uncovered(covers.get()),
   }));
+  // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
+  // the words' fades trade the call's color for the backdrop's as it comes in.
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: pane.get() }));
+  const callColorStyle = useAnimatedStyle(() => ({ opacity: 1 - pane.get() }));
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const shown = reducedMotion
@@ -616,7 +624,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     const { d, t } = besideness(drawer.get(), pane.get());
     return {
       bottom: footerHeight.get() + 18 + lift.calls * d + lift.tasks * t,
-      opacity: shown * (1 - wide.get() * t),
+      opacity: shown * (1 - wide.get() * t) * uncovered(covers.get()),
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });
@@ -708,7 +716,7 @@ function CallScreen({ pose }: { pose: Pose }) {
       : {},
   );
   // Open on its side, the toolbar runs across the top; with Tasks open, the call buttons join it.
-  const inRow = !!page?.controls && tasksOpen;
+  const inRow = !!duo?.call.controls && tasksOpen;
   const toolbarPlace =
     toolbar.axis === 'row'
       ? { top: toolbar.y, right: width - toolbar.x - toolbar.width }
@@ -748,7 +756,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   return (
     <>
       {list.place !== 'over' && sidebar}
-      {panes && !page && (
+      {panes && !duo && (
         <TasksPane
           {...tasks}
           top={insets.top}
@@ -759,6 +767,12 @@ function CallScreen({ pose }: { pose: Pose }) {
         />
       )}
       <Animated.View style={[styles.card, cardStyle]}>
+        {duo && (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.fill, styles.backdrop, backdropStyle]}
+          />
+        )}
         <Animated.View style={[styles.stage, { width }, stageStyle]}>
           <GestureDetector gesture={screenDrag}>
             <View style={styles.fill}>
@@ -799,8 +813,26 @@ function CallScreen({ pose }: { pose: Pose }) {
                       onOpenTask={(task) => openTasks({ task })}
                     />
                   )}
-                  <View pointerEvents="none" style={styles.fade} />
-                  <View pointerEvents="none" style={styles.fadeBottom} />
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[styles.fade, duo && callColorStyle]}
+                  />
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[styles.fadeBottom, duo && callColorStyle]}
+                  />
+                  {duo && (
+                    <>
+                      <Animated.View
+                        pointerEvents="none"
+                        style={[styles.fade, styles.onBackdrop, backdropStyle]}
+                      />
+                      <Animated.View
+                        pointerEvents="none"
+                        style={[styles.fadeBottom, styles.onBackdropBottom, backdropStyle]}
+                      />
+                    </>
+                  )}
                 </View>
               </Animated.View>
               {transcriptButton && (
@@ -848,6 +880,7 @@ function CallScreen({ pose }: { pose: Pose }) {
               styles.footer,
               { left: layout.footer.x, width: layout.footer.width },
               moves && columnStyle,
+              linesStyle,
               { paddingBottom: layout.footer.bottom },
             ]}
           >
@@ -892,7 +925,7 @@ function CallScreen({ pose }: { pose: Pose }) {
                 </Text>
               )
             )}
-            {layout.controls === 'inline' && controls}
+            {layout.controls === 'inline' && !inRow && controls}
           </Animated.View>
           <AnimatedPressable
             pointerEvents={agent ? 'auto' : 'none'}
@@ -904,6 +937,7 @@ function CallScreen({ pose }: { pose: Pose }) {
               styles.agent,
               { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
               moves && columnStyle,
+              linesStyle,
             ]}
           >
             <AgentLine line={agent} />
@@ -914,29 +948,24 @@ function CallScreen({ pose }: { pose: Pose }) {
             </Animated.View>
           )}
         </Animated.View>
-        {page && <TasksPage {...tasks} page={page} style={paneStyle} />}
-        {page && onCall && (
-          <Animated.Text
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={[
-              styles.time,
-              {
-                left: page.call.time.x,
-                top: page.call.time.y,
-                width: page.call.time.width,
-                textAlign: page.call.time.align,
-              },
-              timeStyle,
-            ]}
-          >
-            {clock(callSeconds * 1000)}
-          </Animated.Text>
+        {duo && (
+          <DuoTasks
+            duo={duo}
+            tasks={{ ...tasks, onClose: closeTasks }}
+            state={duoTasks}
+            onCall={onCall}
+            seconds={callSeconds}
+            pane={pane}
+          />
         )}
-        {page?.controls && inRow
+        {duo?.call.controls && inRow
           ? callControls({
               sizes: { mute: TOOL, call: TOOL, gap: GAP },
-              style: { position: 'absolute', right: page.controls.right, top: page.controls.top },
+              style: {
+                position: 'absolute',
+                right: duo.call.controls.right,
+                top: duo.call.controls.top,
+              },
             })
           : null}
         <ScreenToolbar
@@ -965,7 +994,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           personaEnabled={personaLoaded}
           preferences={preferences}
         />
-        {!drawerOpen && !(page && tasksOpen) && (
+        {!drawerOpen && !(duo && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
             <View style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
@@ -1029,9 +1058,11 @@ function useEndedCall(
 }
 
 const FADE = [{ color: theme.background }, { color: 'transparent' }];
+const FADE_BACKDROP = [{ color: theme.sheet }, { color: 'transparent' }];
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.sheet },
+  backdrop: { backgroundColor: theme.sheet },
   card: {
     ...StyleSheet.absoluteFill,
     backgroundColor: theme.background,
@@ -1070,16 +1101,16 @@ const styles = StyleSheet.create({
       { type: 'linear-gradient', direction: 'to top', colorStops: FADE },
     ],
   },
+  onBackdrop: {
+    experimental_backgroundImage: [{ type: 'linear-gradient', colorStops: FADE_BACKDROP }],
+  },
+  onBackdropBottom: {
+    experimental_backgroundImage: [
+      { type: 'linear-gradient', direction: 'to top', colorStops: FADE_BACKDROP },
+    ],
+  },
   orb: { position: 'absolute', left: 0, top: 0 },
   dock: { position: 'absolute' },
-  time: {
-    position: 'absolute',
-    height: TIME,
-    color: theme.secondary,
-    fontSize: 12,
-    lineHeight: TIME,
-    fontVariant: ['tabular-nums'],
-  },
   footer: { position: 'absolute', bottom: 0, gap: 22 },
   agent: { position: 'absolute', height: AGENT_ROW },
   controls: {
