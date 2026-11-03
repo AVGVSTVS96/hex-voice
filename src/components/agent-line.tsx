@@ -17,6 +17,7 @@ import Animated, {
 import type { AgentLine as Line } from '@/live/agents';
 import { motion } from '@/motion';
 import { circle, theme } from '@/theme';
+import { space, textOf } from '@/ui/tokens';
 
 const { step, turn, rise } = motion.agent;
 const timing = { duration: step, easing: Easing.out(Easing.cubic) };
@@ -115,7 +116,7 @@ export function Arc({ size = 12 }: { size?: number }) {
 }
 
 const styles = StyleSheet.create({
-  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[2.5] },
   mark: {
     ...circle(22),
     backgroundColor: theme.accentMuted,
@@ -130,16 +131,14 @@ const styles = StyleSheet.create({
   },
   ticker: { flex: 1, height: 22, overflow: 'hidden' },
   text: {
+    ...textOf('subheadline', 'medium'),
     position: 'absolute',
     left: 0,
     right: 0,
     color: theme.text,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
   },
   waiting: { color: theme.secondary },
-  where: { color: theme.tertiary, fontSize: 13, lineHeight: 22, fontVariant: ['tabular-nums'] },
+  where: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
   done: { color: theme.accent },
   failed: { color: theme.danger },
 });

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CallMenu } from '@/components/call-menu';
 import { callName, callWhen, type CallSummary } from '@/live/calls';
 import { circle, theme } from '@/theme';
+import { metrics, space, textOf } from '@/ui/tokens';
 
 type Props = {
   call: CallSummary;
@@ -39,12 +40,12 @@ export function PastCallBar({ call, live, onCall, transcript, onBack, onDelete }
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', gap: 12 },
-  spacer: { width: 48 },
-  title: { flex: 1, alignItems: 'center', paddingTop: 3 },
-  name: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: '600' },
-  when: { color: theme.secondary, fontSize: 13, lineHeight: 18 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  spacer: { width: metrics.tool },
+  title: { flex: 1, alignItems: 'center' },
+  name: { ...textOf('headline'), color: theme.text },
+  when: { ...textOf('footnote'), color: theme.secondary },
+  back: { flexDirection: 'row', alignItems: 'center', gap: space[1.5] },
   liveDot: { ...circle(7), backgroundColor: theme.switchOn },
-  backText: { color: theme.switchOn, fontSize: 13, lineHeight: 18, fontWeight: '500' },
+  backText: { ...textOf('footnote', 'medium'), color: theme.switchOn },
 });

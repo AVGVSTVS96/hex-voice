@@ -21,8 +21,9 @@ import {
   type CallTask,
   type ShownMark,
 } from '@/live/calls';
-import { circle, radius, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { circle, theme } from '@/theme';
+import { Turn } from '@/ui/turn';
+import { metrics, space, textOf } from '@/ui/tokens';
 
 const MARKS: Record<ShownMark['kind'], SFSymbol> = {
   paused: 'pause.circle',
@@ -61,16 +62,12 @@ export function CallTranscript({ summary, call, failed, live }: Props) {
             <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
               {`${moment.mark.text} · ${clock(moment.at)}`}
             </Line>
-          ) : moment.turn.who === 'you' ? (
-            <View key={moment.key} style={styles.you}>
+          ) : (
+            <Turn key={moment.key} you={moment.turn.who === 'you'}>
               <Text selectable style={styles.text}>
                 {moment.turn.text}
               </Text>
-            </View>
-          ) : (
-            <Text key={moment.key} selectable style={[styles.text, styles.voice]}>
-              {moment.turn.text}
-            </Text>
+            </Turn>
           ),
         )
       ) : failed ? (
@@ -111,33 +108,23 @@ function Marker({ task }: { task: CallTask }) {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 22, paddingTop: metrics.fade, paddingBottom: metrics.fade },
+  content: { gap: space[6], paddingTop: metrics.fade, paddingBottom: metrics.fade },
   line: {
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space[1.5],
   },
-  lineText: { fontSize: 13, lineHeight: 18 },
-  you: {
-    alignSelf: 'flex-end',
-    maxWidth: '86%',
-    backgroundColor: theme.bubble,
-    borderRadius: radius.bubble,
-    borderCurve: 'continuous',
-    paddingHorizontal: metrics.bubbleX,
-    paddingVertical: metrics.bubbleY,
-  },
-  voice: { alignSelf: 'flex-start', maxWidth: '96%' },
-  text: { color: theme.text, fontSize: 17, lineHeight: 25 },
-  marker: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  lineText: textOf('footnote'),
+  text: { ...textOf('words'), color: theme.text },
+  marker: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2.5] },
   dot: {
     ...circle(22),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  task: { flex: 1, color: theme.text, fontSize: 15, lineHeight: 22, fontWeight: '500' },
-  at: { color: theme.tertiary, fontSize: 13, lineHeight: 22, fontVariant: ['tabular-nums'] },
-  note: { color: theme.secondary, fontSize: 16, lineHeight: 23, textAlign: 'center' },
-  loading: { marginTop: 40 },
+  task: { ...textOf('subheadline', 'medium'), flex: 1, color: theme.text },
+  at: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
+  note: { ...textOf('callout'), color: theme.secondary, textAlign: 'center' },
+  loading: { marginTop: space[10] },
 });

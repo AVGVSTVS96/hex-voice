@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { CallSummary } from '@/live/calls';
 import { circle, theme } from '@/theme';
+import { space, textOf } from '@/ui/tokens';
 
 type Props = Pick<CallSummary, 'why' | 'summary' | 'waiting'> & {
   center?: boolean;
@@ -67,18 +68,18 @@ export function WrapUp({ why, summary, waiting = [], center, onOpen, onMore }: P
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 14 },
+  wrap: { gap: space[3.5] },
   center: { alignItems: 'center' },
   centered: { textAlign: 'center' },
-  summary: { color: theme.secondary, fontSize: 16, lineHeight: 23 },
-  waiting: { gap: 8 },
-  label: { color: theme.secondary, fontSize: 13, lineHeight: 18, fontWeight: '600' },
-  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  summary: { ...textOf('callout'), color: theme.secondary },
+  waiting: { gap: space[2] },
+  label: { ...textOf('footnote', 'semibold'), color: theme.secondary },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2.5] },
   dot: {
     ...circle(6),
-    marginTop: 8,
+    marginTop: space[2],
     backgroundColor: theme.accent,
   },
-  itemText: { flexShrink: 1, color: theme.text, fontSize: 15, lineHeight: 22 },
+  itemText: { ...textOf('subheadline'), flexShrink: 1, color: theme.text },
   more: { color: theme.accent },
 });
