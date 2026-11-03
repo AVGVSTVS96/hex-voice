@@ -24,6 +24,7 @@ import {
   type Pages,
   type Room,
   type Spot,
+  Typing,
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
 import { Detail } from '@/components/tasks/task-page';
@@ -77,7 +78,7 @@ export function Tasks({
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
-  const [typing, setTyping] = useState(false);
+  const [typing, setTyping] = useState<Level | null>(null);
   const task = useTask(pages.task, version);
   const traced = useTask(pages.stepsOf, version);
   const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
@@ -150,11 +151,17 @@ export function Tasks({
             },
     },
   });
+  const typingOn = (level: Level) => (on: boolean) => {
+    setTyping((was) => (on ? level : was === level ? null : was));
+    if (on) pages.go({ to: 'composerFocused' });
+  };
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (
       <PageAt key={level} spot={at} paged={room.paged}>
-        <PageChrome.Provider value={chromeOf(at)}>{children}</PageChrome.Provider>
+        <PageChrome.Provider value={chromeOf(at)}>
+          <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
+        </PageChrome.Provider>
       </PageAt>
     );
   };
@@ -223,10 +230,6 @@ export function Tasks({
           pending={said.pending}
           focus={pages.focusComposer}
           foot={spot('thread').foot}
-          onTyping={(on) => {
-            setTyping(on);
-            if (on) pages.go({ to: 'composerFocused' });
-          }}
           onOpen={openThread}
           onSteps={() => openSteps(opened.id)}
           onSend={said.send}

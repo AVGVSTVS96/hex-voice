@@ -234,13 +234,21 @@ test('the phone’s sheet keeps its look: a page waits a third behind, Back unna
   assert.equal(spotOf('thread', pages, sheet).offset.x, 440);
 });
 
-test('a thread you write to on pages one over the other takes both', () => {
+test('on pages one over the other, the lower page you type in takes both, the upper one stays', () => {
   const room = roomOf(openOnSide);
-  const pages = pagesOf(go({ to: 'topic', id: 'a' }, { to: 'thread', write: true }), room);
-  const thread = spotOf('thread', pages, room, true);
+  const writing = go({ to: 'topic', id: 'a' }, { to: 'thread', write: true });
+  const thread = spotOf('thread', pagesOf(writing, room), room, 'thread');
   assert.deepEqual([thread.offset.y, thread.frame?.maxHeight], [0, room.height]);
-  assert.equal(spotOf('topic', pages, room, true).shown, false);
-  const writing = go({ to: 'thread', write: true });
+  assert.equal(spotOf('topic', pagesOf(writing, room), room, 'thread').shown, false);
+  const topic = go({ to: 'topic', id: 'a' });
+  const answering = spotOf('topic', pagesOf(topic, room), room, 'topic');
+  assert.deepEqual([answering.offset.y, answering.frame?.maxHeight], [0, room.height]);
+  const searching = (level: Level) => spotOf(level, pagesOf(topic, room), room, 'list');
+  assert.deepEqual([searching('list').offset.y, searching('list').shown], [0, true]);
+  assert.deepEqual(
+    [searching('topic').offset.y, searching('topic').shown],
+    [spotOf('topic', pagesOf(topic, room), room).offset.y, true],
+  );
   assert.equal(writing.focusComposer, true);
   assert.equal(move(writing, { to: 'composerFocused' }).focusComposer, false);
   assert.equal(move(writing, { to: 'back' }).focusComposer, false);

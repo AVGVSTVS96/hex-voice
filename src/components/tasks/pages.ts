@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react';
+import { createContext, useEffect, useReducer } from 'react';
 
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { Fold } from '@/screens/layout';
@@ -145,7 +145,15 @@ function footOf(foot: number | 'fold') {
   return { foot: foot === 'fold' ? 0 : foot };
 }
 
-export function spotOf(level: Level, pages: Placing, room: Room, typing = false): Spot {
+// A field on a page says when it's being typed in, so that page can make room above the keyboard.
+export const Typing = createContext<(on: boolean) => void>(() => {});
+
+export function spotOf(
+  level: Level,
+  pages: Placing,
+  room: Room,
+  typing: Level | null = null,
+): Spot {
   if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold, typing);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
@@ -191,21 +199,21 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
   };
 }
 
-// A thread you write to on pages stacked one over the other takes both, so the keyboard leaves
-// room to read it.
+// On pages stacked one over the other the keyboard covers the lower one, so a page you type in
+// there takes both, and the Host shortens it to end above the keyboard.
 function spotAtFold(
   level: Level,
   { levels, closes }: Placing,
   room: Extract<Room, { paged: true }>,
   fold: Fold,
-  typing: boolean,
+  typing: Level | null,
 ): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const row = fold.axis === 'row';
   const size = row ? room.width : room.height;
   const second = { at: fold.at + fold.band, length: size - fold.at - fold.band };
-  const alone = !row && typing && levels.at(-1) === 'thread';
+  const alone = !row && typing !== null && typing === levels.at(-1);
   const { at, length, shown } =
     alone && front
       ? { at: 0, length: size, shown: true }

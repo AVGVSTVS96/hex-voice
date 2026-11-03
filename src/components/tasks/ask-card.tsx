@@ -14,10 +14,11 @@ import {
   strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Linking } from 'react-native';
 
 import { Mark } from '@/components/tasks/mark';
+import { Typing } from '@/components/tasks/pages';
 import { GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import type { Ask, AskLink, AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
@@ -329,6 +330,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
 
 function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => void }) {
   const [text, setText] = useState('');
+  const typing = useContext(Typing);
   const note = text.trim();
   return (
     <Row
@@ -353,6 +355,8 @@ function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => 
         autoFocus
         multiline
         testID="ask-input"
+        onFocus={() => typing(true)}
+        onBlur={() => typing(false)}
         placeholder={`Your answer or a note for ${topic}`}
         placeholderTextColor={theme.tertiary}
         cursorColor={theme.accent}
