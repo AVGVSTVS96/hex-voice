@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { keepDraft } from '@/hooks/use-draft';
 import { useFailures } from '@/hooks/use-failures';
@@ -13,6 +13,8 @@ export function useAsks(open: boolean) {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const [offline, setOffline] = useState(false);
   const tries = useFailures();
+  // Each ask's latest answer, so an Undo tapped while it's on its way reaches hex after it.
+  const answers = useRef(new Map<string, Promise<boolean>>());
   useWatch(open, asksAPI.list, (list) => dispatch({ type: 'list', list }), setOffline);
   useEffect(() => {
     if (open) return;
@@ -27,6 +29,7 @@ export function useAsks(open: boolean) {
   const answer = (ask: Ask, option: AskOption) => {
     dispatch({ type: 'answer', id: ask.id, label: option.label });
     const sent = tries.attempt(ask.id, 'Not answered', () => asksAPI.answer(ask.id, option.label));
+    answers.current.set(ask.id, sent);
     void sent.then((landed) => {
       if (landed) keepDraft(`ask:${ask.id}`, '');
       else dispatch({ type: 'failed', id: ask.id });
@@ -36,9 +39,10 @@ export function useAsks(open: boolean) {
     const label = state.answered[id];
     if (!label) return;
     dispatch({ type: 'undo', id });
-    void tries
-      .attempt(id, 'Not undone', () => asksAPI.undo(id))
-      .then((undone) => undone || dispatch({ type: 'answer', id, label }));
+    void answers.current.get(id)?.then(async (landed) => {
+      if (landed && !(await tries.attempt(id, 'Not undone', () => asksAPI.undo(id))))
+        dispatch({ type: 'answer', id, label });
+    });
   };
   return {
     list,
