@@ -957,15 +957,14 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
               </Text>
             ) : session.interrupted ? (
               <Text accessibilityRole="alert" style={[styles.ended, split && styles.leadingText]}>
-                Paused while your phone has the audio
+                Paused while another app has the audio
               </Text>
-            ) : (
-              session.error && (
-                <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                  {session.error}
-                </Text>
-              )
-            )}
+            ) : null}
+            {session.error && !away ? (
+              <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
+                {session.error}
+              </Text>
+            ) : null}
             {layout.controls === 'inline' && !inRow && controls}
           </Animated.View>
           <AnimatedPressable
