@@ -33,7 +33,8 @@ export type Weight = 'regular' | 'medium' | 'semibold' | 'bold';
 
 export type TextStyle = {
   // Apple's text style: SwiftUI text that has one follows the system's text size.
-  textStyle?: 'headline' | 'body' | 'callout' | 'subheadline' | 'footnote' | 'caption';
+  textStyle?:
+    'title' | 'title2' | 'headline' | 'body' | 'callout' | 'subheadline' | 'footnote' | 'caption';
   fontSize: number;
   // React Native's whole line box. SwiftUI keeps its own leading.
   lineHeight: number;
@@ -41,6 +42,8 @@ export type TextStyle = {
 };
 
 export const type = {
+  title: { textStyle: 'title', fontSize: 28, lineHeight: 34, weight: 'bold' },
+  title2: { textStyle: 'title2', fontSize: 22, lineHeight: 28, weight: 'semibold' },
   headline: { textStyle: 'headline', fontSize: 17, lineHeight: 22, weight: 'semibold' },
   body: { textStyle: 'body', fontSize: 17, lineHeight: 22 },
   callout: { textStyle: 'callout', fontSize: 16, lineHeight: 23 },
@@ -52,6 +55,9 @@ export const type = {
   wordsLarge: { fontSize: 19, lineHeight: 28 },
   // A footnote that ends a subheadline's line, like a time or a place, level with its words.
   tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
+  // A name in a list, like a call's in Calls, and the details under it.
+  item: { textStyle: 'callout', fontSize: 16, lineHeight: 21, weight: 'medium' },
+  itemDetail: { fontSize: 14, lineHeight: 19 },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
   // The one name a carousel's page shows.
@@ -91,7 +97,9 @@ export const space = {
   4: 16,
   4.5: 18,
   5: 20,
+  5.5: 22,
   6: 24,
+  7.5: 30,
   8: 32,
   10: 40,
 } as const;
@@ -136,6 +144,8 @@ export const metrics = {
   fade: 36,
   // The room a carousel's page dots take under its page.
   pageDots: 38,
+  // How far an empty list's message sits below its title.
+  emptyTop: 130,
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;
