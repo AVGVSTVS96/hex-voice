@@ -46,6 +46,7 @@ export function Detail({
   onAnswer,
   onUndo,
   onAgain,
+  onDismiss,
   onTalk,
   onOpen,
   onOpenTask,
@@ -65,6 +66,7 @@ export function Detail({
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
+  onDismiss: (ask: Ask) => void;
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: TaskId) => void;
@@ -129,6 +131,7 @@ export function Detail({
                   onAnswer={onAnswer}
                   onUndo={onUndo}
                   onAgain={onAgain}
+                  onDismiss={onDismiss}
                 />
               ) : null}
               {working.length ? (
@@ -208,6 +211,7 @@ export function Asked({
   onAnswer,
   onUndo,
   onAgain,
+  onDismiss,
 }: {
   topic: string;
   asks: Ask[];
@@ -218,6 +222,7 @@ export function Asked({
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
+  onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
@@ -249,6 +254,7 @@ export function Asked({
                 onAnswer={onAnswer}
                 onUndo={onUndo}
                 onAgain={onAgain}
+                onDismiss={onDismiss}
               />
             ) : null}
             {rows}

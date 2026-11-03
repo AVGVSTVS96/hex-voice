@@ -22,7 +22,7 @@ import { noteAsk } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-import { unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
+import { NOT_NEEDED, unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
@@ -46,6 +46,7 @@ export function YourCall({
   onAnswer,
   onUndo,
   onAgain,
+  onDismiss,
 }: {
   asks: Ask[];
   answered: Record<string, string | null>;
@@ -53,6 +54,7 @@ export function YourCall({
   onAnswer: Answer;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
+  onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
@@ -112,7 +114,13 @@ export function YourCall({
             modifiers={[frame({ maxWidth: Infinity })]}
           >
             {i ? <Hairline /> : null}
-            <AskCard ask={ask} first={i === 0} width={width} onAnswer={onAnswer} />
+            <AskCard
+              ask={ask}
+              first={i === 0}
+              width={width}
+              onAnswer={onAnswer}
+              onDismiss={onDismiss}
+            />
           </Column>
         );
       })}
@@ -125,11 +133,13 @@ function AskCard({
   first,
   width,
   onAnswer,
+  onDismiss,
 }: {
   ask: Ask;
   first: boolean;
   width: number;
   onAnswer: Answer;
+  onDismiss: (ask: Ask) => void;
 }) {
   const [writing, setWriting] = useState(false);
   const [whole, setWhole] = useState(false);
@@ -222,6 +232,7 @@ function AskCard({
           sending={noting}
           onNote={note}
           onAnswer={(label) => onAnswer(ask, { label })}
+          onDismiss={() => onDismiss(ask)}
         />
       ) : (
         <Answers ask={ask} width={width} onAnswer={onAnswer} />
@@ -380,19 +391,22 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
 }
 
 // What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-// instead is the deliberate second step. Neither goes while a note is on its way.
+// instead is the deliberate second step, and Not needed puts the ask away with no answer at all.
+// None of them goes while a note is on its way.
 function Composer({
   draft,
   topic,
   sending,
   onNote,
   onAnswer,
+  onDismiss,
 }: {
   draft: string;
   topic: string;
   sending: boolean;
   onNote: (text: string) => void;
   onAnswer: (text: string) => void;
+  onDismiss: () => void;
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
@@ -447,16 +461,30 @@ function Composer({
           modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
         />
       </Row>
-      <Text
-        textStyle={{ fontSize: 15, fontWeight: '600' }}
-        onPress={words ? () => onAnswer(words) : undefined}
+      <Row
+        alignment="center"
+        spacing={0}
         modifiers={[
-          foregroundStyle(words ? theme.accent : theme.tertiary),
           padding({ leading: INSET, trailing: INSET, top: 4, bottom: 10 }),
+          frame({ maxWidth: Infinity }),
         ]}
       >
-        Answer with this
-      </Text>
+        <Text
+          textStyle={{ fontSize: 15, fontWeight: '600' }}
+          onPress={words ? () => onAnswer(words) : undefined}
+          modifiers={[foregroundStyle(words ? theme.accent : theme.tertiary)]}
+        >
+          Answer with this
+        </Text>
+        <Spacer flexible />
+        <Text
+          textStyle={{ fontSize: 15, fontWeight: '500' }}
+          onPress={sending ? undefined : onDismiss}
+          modifiers={[foregroundStyle(sending ? theme.tertiary : theme.secondary)]}
+        >
+          {NOT_NEEDED}
+        </Text>
+      </Row>
     </Column>
   );
 }

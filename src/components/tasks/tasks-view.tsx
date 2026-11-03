@@ -130,6 +130,10 @@ export function Tasks({
     tap();
     yours.again(ask);
   };
+  const dismiss = (ask: Ask) => {
+    tap();
+    yours.dismiss(ask);
+  };
   // A link to an app that isn't installed fails without a word from iOS, so its place says so.
   const openLink = (link: string, place: Place) => {
     tap();
@@ -251,6 +255,7 @@ export function Tasks({
           onAnswer={answer}
           onUndo={undo}
           onAgain={again}
+          onDismiss={dismiss}
           onTalk={() => talk(opened)}
           onOpen={openThread}
           onOpenTask={(id) => {
@@ -292,10 +297,7 @@ export function Tasks({
                 onOpenTile={openTile}
                 onAnswer={answer}
                 onUndo={undo}
-                onDismiss={(ask) => {
-                  tap();
-                  yours.dismiss(ask);
-                }}
+                onDismiss={dismiss}
                 onAgain={again}
                 onAct={(id) => {
                   tap();
@@ -310,6 +312,7 @@ export function Tasks({
           onAnswer={answer}
           onUndo={undo}
           onAgain={again}
+          onDismiss={dismiss}
         />
       ) : (
         <Nothing loaded={!!tasks} />
