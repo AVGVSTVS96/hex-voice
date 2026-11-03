@@ -94,10 +94,14 @@ export type Opening = {
   reportPose: boolean;
 };
 
-// The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
-// upright as it always has; iPad and iPhone Duo turn to fit however they're held.
+// The screen lays itself out for the device's pose and the size it's drawn at, so it waits for the
+// first of each. The size is the screen's own, as laid out: React Native's window size can report
+// another screen's for a moment while iPhone Duo unfolds, and the call screen would lay out for the
+// cover across the open screen. A phone stays upright as it always has; iPad and iPhone Duo turn
+// to fit however they're held.
 export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
+  const [size, setSize] = useState<Size>();
   const upright = pose && !PAD && !pose.bar && !pose.fold;
   useEffect(() => {
     if (upright === undefined) return;
@@ -106,7 +110,16 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
       : ScreenOrientation.unlockAsync());
   }, [upright]);
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      onLayout={({ nativeEvent: { layout } }) =>
+        setSize((was) =>
+          was?.width === layout.width && was.height === layout.height
+            ? was
+            : { width: layout.width, height: layout.height },
+        )
+      }
+    >
       {PoseView && (
         <PoseView
           style={StyleSheet.absoluteFill}
@@ -115,23 +128,32 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
           }
         />
       )}
-      {pose && opening.reportPose && <PoseReport pose={pose} />}
-      {pose && <CallScreen pose={pose} opening={opening} />}
+      {pose && size && opening.reportPose && <PoseReport pose={pose} size={size} />}
+      {pose && size && <CallScreen pose={pose} size={size} opening={opening} />}
     </View>
   );
 }
 
-// Writes the window, safe area and pose to the app's defaults (HexPose), where scripts/duo reads them.
-function PoseReport({ pose }: { pose: Pose }) {
+// Writes the window, the size the screen lays out at, the safe area and the pose to the app's
+// defaults (HexPose), where scripts/duo reads them, and the last moments of them with their times
+// (HexPoseLog), so a check can see what changed between two shots.
+function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const log = useRef<object[]>([]);
   useEffect(() => {
-    Settings.set({ HexPose: JSON.stringify({ window, insets, pose }) });
-  }, [window, insets, pose]);
+    const now = { at: Date.now(), window, size, insets, pose };
+    log.current = [...log.current.slice(-(LOGGED - 1)), now];
+    Settings.set({ HexPose: JSON.stringify(now), HexPoseLog: JSON.stringify(log.current) });
+  }, [window, size, insets, pose]);
   return null;
 }
 
-function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
+const LOGGED = 40;
+
+type Size = { width: number; height: number };
+
+function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; opening: Opening }) {
   const session = useLiveSession(opening.demoCall);
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
@@ -142,8 +164,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const layout = screenLayout({ width, height }, insets, pose);
+  const { width, height } = screen;
+  const layout = screenLayout(screen, insets, pose);
   const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
