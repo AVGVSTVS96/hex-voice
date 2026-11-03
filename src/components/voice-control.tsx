@@ -1,17 +1,33 @@
-import { Button, Column, Host, RNHostView, Spacer } from '@expo/ui';
+import { Button, Host, Image, ProgressView } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
+  background,
+  buttonStyle,
   contentShape,
+  disabled as disable,
+  frame,
+  glassEffect,
   shapes,
+  tint,
+  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { ActivityIndicator } from 'react-native';
 
-import { VoiceGlyph, type VoiceGlyphName } from '@/components/voice-glyph';
 import { theme } from '@/theme';
 
+const symbols = {
+  settings: 'slider.horizontal.3',
+  transcript: 'text.bubble',
+  calls: 'clock.arrow.circlepath',
+  tasks: 'list.bullet',
+  mic: 'mic',
+  'mic-off': 'mic.slash',
+  close: 'xmark',
+  waveform: 'waveform',
+} as const;
+
 type Props = {
-  icon: VoiceGlyphName;
+  icon: keyof typeof symbols;
   label: string;
   onPress: () => void;
   testID: string;
@@ -22,7 +38,26 @@ type Props = {
   loading?: boolean;
 };
 
-export function VoiceControl({
+// SwiftUI's glass, tinted where prominent like glassProminent. It's the glassEffect behind a plain
+// button rather than buttonStyle('glass'), which pads the label past the sizes the layout counts on.
+export function glass(
+  shape: 'circle' | 'capsule',
+  { prominent = false, disabled = false }: { prominent?: boolean; disabled?: boolean } = {},
+) {
+  return glassEffect({
+    glass: {
+      variant: 'regular',
+      interactive: !disabled,
+      tint: prominent ? theme.prominent : undefined,
+    },
+    shape,
+  });
+}
+
+// A round control as a SwiftUI view, for a Host. It brings no glass of its own: alone it wears
+// `glass('circle')`, and in a group the group's capsule is its glass. Selected, it sits on a lit
+// platter with a mint glyph, the way a glass bar marks where you are.
+export function Control({
   icon,
   label,
   onPress,
@@ -32,53 +67,56 @@ export function VoiceControl({
   selected = false,
   prominent = false,
   loading = false,
-}: Props) {
-  const color = prominent ? theme.onProminent : theme.text;
+  modifiers = [],
+}: Props & { modifiers?: ModifierConfig[] }) {
+  const color = prominent
+    ? theme.onProminent
+    : disabled
+      ? theme.tertiary
+      : selected
+        ? theme.accent
+        : theme.text;
+  const face = [
+    frame({ width: size, height: size }),
+    ...(selected
+      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
+      : []),
+    contentShape(shapes.circle()),
+  ];
   return (
-    <Host
-      matchContents
-      ignoreSafeArea="all"
-      style={{ width: size, height: size }}
-      accessibilityLabel={process.env.EXPO_OS === 'web' ? label : undefined}
+    <Button
+      onPress={onPress}
+      testID={testID}
+      modifiers={[
+        buttonStyle('plain'),
+        disable(disabled),
+        accessibilityLabel(label),
+        accessibilityAddTraits(selected ? ['isSelected'] : []),
+        ...modifiers,
+      ]}
     >
-      <Button
-        variant="text"
-        onPress={onPress}
-        disabled={disabled}
-        testID={testID}
-        style={{ padding: 0, width: size, height: size, borderRadius: size / 2 }}
-        modifiers={
-          process.env.EXPO_OS === 'ios'
-            ? [accessibilityLabel(label), accessibilityAddTraits(selected ? ['isSelected'] : [])]
-            : undefined
-        }
-      >
-        <Column
-          alignment="center"
-          spacing={0}
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: prominent
-              ? theme.prominent
-              : selected
-                ? theme.surfaceSelected
-                : theme.surface,
-          }}
-          modifiers={process.env.EXPO_OS === 'ios' ? [contentShape(shapes.circle())] : undefined}
-        >
-          <Spacer flexible />
-          {loading ? (
-            <RNHostView matchContents>
-              <ActivityIndicator color={color} style={{ width: 26, height: 26 }} />
-            </RNHostView>
-          ) : (
-            <VoiceGlyph name={icon} color={color} size={prominent ? 27 : 24} />
-          )}
-          <Spacer flexible />
-        </Column>
-      </Button>
+      {loading ? (
+        <ProgressView modifiers={[tint(color), ...face]} />
+      ) : (
+        <Image
+          systemName={symbols[icon]}
+          size={prominent ? 27 : 24}
+          color={color}
+          modifiers={face}
+        />
+      )}
+    </Button>
+  );
+}
+
+export function VoiceControl(props: Props) {
+  const size = props.size ?? 48;
+  return (
+    <Host matchContents ignoreSafeArea="all" style={{ width: size, height: size }}>
+      <Control
+        {...props}
+        modifiers={[glass('circle', { prominent: props.prominent, disabled: props.disabled })]}
+      />
     </Host>
   );
 }
