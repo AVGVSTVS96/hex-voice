@@ -3,6 +3,7 @@ import {
   use,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -20,10 +21,10 @@ import type { CallAbout, Levels } from '@/live/types';
 import type { LiveVoice } from '@/live/voices';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
-const Session = createContext<LiveSession | null>(null);
+const Session = createContext<{ session: LiveSession; demo: boolean } | null>(null);
 
 // The call's audio lives above every screen, so moving between them never ends it. A demo session
-// plays a pretend call (src/live/demo-call.ts) and starts at once.
+// plays a pretend call (src/live/demo-call.ts), starting as the call screen opens.
 export function CallProvider({ demo, children }: { demo: boolean; children: ReactNode }) {
   const [session] = useState(() =>
     demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
@@ -36,7 +37,6 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
       if (state === 'background' && process.env.EXPO_OS !== 'ios') void session.stop();
     };
     onAppStateChange(AppState.currentState);
-    if (demo) void session.start();
     const listener = AppState.addEventListener('change', onAppStateChange);
     const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) =>
       session.interrupt(began),
@@ -46,14 +46,15 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
       interruptions?.remove();
       void session.stop();
     };
-  }, [session, demo]);
-  return <Session value={session}>{children}</Session>;
+  }, [session]);
+  const [value] = useState({ session, demo });
+  return <Session value={value}>{children}</Session>;
 }
 
 // The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
 // /activity), followed word by word until it ends.
 export function useCall(held: CallId | null) {
-  const session = use(Session)!;
+  const { session, demo } = use(Session)!;
   const snapshot = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
@@ -65,6 +66,9 @@ export function useCall(held: CallId | null) {
     here,
   );
   const call = callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving });
+  useEffect(() => {
+    if (demo) void session.start();
+  }, [session, demo]);
   return {
     call,
     start: (voice: LiveVoice, about?: CallAbout) => session.start(voice, about),
@@ -73,9 +77,14 @@ export function useCall(held: CallId | null) {
   };
 }
 
-// The call's audio levels as they change, outside React's renders.
+// The call's audio levels, from where they are as the screen first draws, then as they change,
+// outside React's renders.
 export function useLevels(hear: (levels: Levels) => void) {
-  const session = use(Session)!;
+  const { session } = use(Session)!;
   const take = useEffectEvent(hear);
-  useEffect(() => session.subscribeLevels(() => take(session.getLevels())), [session]);
+  useLayoutEffect(() => {
+    const now = () => take(session.getLevels());
+    now();
+    return session.subscribeLevels(now);
+  }, [session]);
 }

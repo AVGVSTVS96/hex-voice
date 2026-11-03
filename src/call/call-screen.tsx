@@ -533,7 +533,8 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const onPrimaryPress = () => {
     if ((onCall && call.phase === 'ending') || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-    if (onCall) tried('Not ended', end());
+    if (call.kind === 'here') void end();
+    else if (call.kind === 'elsewhere') tried('Not ended', end());
     else startCall();
   };
   const onMute = () => {
