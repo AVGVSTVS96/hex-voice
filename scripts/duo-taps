@@ -1,11 +1,20 @@
 # The tap script scripts/duo tap plays by default; uitests/DuoTests.swift lists its commands.
 shoot call
+mark tasks-button
 tap tasks-button
 shoot tasks-open
 selected tasks-button
+still tasks-button
+tap tasks-search
+type tasks-search-field voice
+shoot searching
+above-keyboard tasks-search-field
+still tasks-button
+tap Cancel
 tap tasks-button
 shoot closed-by-tasks
 unselected tasks-button
+still tasks-button
 tap tasks-button
 tap task-back
 shoot closed-by-back
