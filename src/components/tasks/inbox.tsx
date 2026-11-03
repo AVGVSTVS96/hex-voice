@@ -12,7 +12,7 @@ import {
 import { useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { INSET, ios, listRow } from '@/components/tasks/parts';
+import { INSET, asks, ios, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
 import type { Stage, Topic } from '@/live/inbox';
 import { theme } from '@/theme';
@@ -186,9 +186,9 @@ export function PicksRow({
         <Strip
           width={width}
           mark="done"
-          title={`hex has a pick for ${n} of these`}
+          title={`hex has a pick for ${asks(n)}`}
           action={`Take ${n}`}
-          label={`hex has a pick for ${n}. Take them`}
+          label={`hex has a pick for ${asks(n)}. Take them`}
           onPress={() => setAsking(true)}
         />
       </ConfirmationDialog.Trigger>
