@@ -15,7 +15,6 @@ const files = (dir: string): string[] =>
 // Files still drawing with numbers of their own, until each moves onto the tokens. This list only
 // shrinks.
 const unmigrated = new Set([
-  'src/components/calls-sidebar.tsx',
   'src/components/tasks/ask-card.tsx',
   'src/components/tasks/bar.tsx',
   'src/components/tasks/inbox.tsx',
