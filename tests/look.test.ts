@@ -33,7 +33,6 @@ const unmigrated = new Set([
   'src/components/voice-settings.tsx',
   'src/live/call-activity.tsx',
   'src/screens/duo-tasks.tsx',
-  'src/screens/live-screen.tsx',
 ]);
 
 // A token, a value React Native or SwiftUI was given by its parent, or a constant made of those.
