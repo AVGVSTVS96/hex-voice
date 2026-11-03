@@ -14,7 +14,6 @@ import {
 import type { CallPreferences } from '@/hooks/use-call-preferences';
 import { circle, metrics, theme } from '@/theme';
 
-const ios = process.env.EXPO_OS === 'ios';
 const SLOTS = OPAL_PALETTES.length;
 const MIN_GAP = 4;
 const MAX_SWATCH = 36;
@@ -86,20 +85,16 @@ export function PersonaColors({
       layout={layout}
       label="Persona color"
       trailing={
-        ios && (
-          <ColorPicker
-            selection={color}
-            supportsOpacity={false}
-            onSelectionChange={(next) =>
-              preferences.setPersonaColor(next.slice(0, 7).toUpperCase())
-            }
-            modifiers={[
-              labelsHidden(),
-              frame({ width: size, height: size }),
-              accessibilityLabel(custom ? 'Custom color, selected' : 'Custom color'),
-            ]}
-          />
-        )
+        <ColorPicker
+          selection={color}
+          supportsOpacity={false}
+          onSelectionChange={(next) => preferences.setPersonaColor(next.slice(0, 7).toUpperCase())}
+          modifiers={[
+            labelsHidden(),
+            frame({ width: size, height: size }),
+            accessibilityLabel(custom ? 'Custom color, selected' : 'Custom color'),
+          ]}
+        />
       }
     >
       {PERSONA_COLORS.map((preset) => (

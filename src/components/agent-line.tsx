@@ -53,7 +53,7 @@ export function AgentLine({ line }: { line: Line | null }) {
       accessibilityLiveRegion="polite"
       style={styles.row}
     >
-      <Glyph state={line.state} />
+      <Mark state={line.state} />
       <View style={styles.ticker}>
         <Animated.Text
           key={`${line.id} ${line.text}`}
@@ -80,50 +80,10 @@ export function AgentLine({ line }: { line: Line | null }) {
   );
 }
 
-export type GlyphState = Line['state'] | 'needs' | 'idle' | 'paused';
-
-// One mark, one meaning: the arc turns while something works, a check is done, ! failed, a
-// filled mint dot is your turn, and a hollow ring is idle. A quiet mark is history, an entry
-// something newer has replaced: a bare check or ! where it finished, a small dot where it moved on.
-export function Glyph({ state, quiet = false }: { state: GlyphState; quiet?: boolean }) {
-  if (quiet)
-    return (
-      <View style={styles.mark}>
-        {state === 'done' || state === 'failed' ? (
-          <Host matchContents>
-            <Icon
-              name={state === 'done' ? 'checkmark' : 'exclamationmark'}
-              size={11}
-              color={state === 'done' ? theme.secondary : theme.danger}
-            />
-          </Host>
-        ) : (
-          <View style={styles.past} />
-        )}
-      </View>
-    );
-  if (state === 'needs')
-    return (
-      <View style={styles.mark}>
-        <View style={styles.yourTurn} />
-      </View>
-    );
-  if (state === 'idle')
-    return (
-      <View style={styles.mark}>
-        <View style={styles.idle} />
-      </View>
-    );
-  if (state === 'paused')
-    return (
-      <View style={[styles.glyph, styles.glyphPaused]}>
-        <Host matchContents>
-          <Icon name="pause.fill" size={9} color={theme.secondary} />
-        </Host>
-      </View>
-    );
+// One mark, one meaning: the arc turns while something works, a check is done, ! failed.
+function Mark({ state }: { state: Line['state'] }) {
   return (
-    <View style={[styles.glyph, state === 'failed' && styles.glyphFailed]}>
+    <View style={[styles.mark, state === 'failed' && styles.markFailed]}>
       {state === 'running' ? (
         <Arc />
       ) : (
@@ -156,22 +116,13 @@ export function Arc({ size = 12 }: { size?: number }) {
 
 const styles = StyleSheet.create({
   row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  glyph: {
+  mark: {
     ...circle(22),
     backgroundColor: theme.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glyphFailed: { backgroundColor: theme.dangerMuted },
-  glyphPaused: { backgroundColor: theme.surfaceSelected },
-  mark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  yourTurn: { ...circle(12), backgroundColor: theme.accent },
-  past: { ...circle(6), backgroundColor: theme.tertiary },
-  idle: {
-    ...circle(10),
-    borderWidth: 1.5,
-    borderColor: theme.tertiary,
-  },
+  markFailed: { backgroundColor: theme.dangerMuted },
   arc: {
     borderWidth: 2,
     borderColor: theme.accentTrack,

@@ -1,18 +1,10 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 import { Divider } from '@expo/ui/swift-ui';
-import {
-  accessibilityLabel,
-  contentShape,
-  foregroundStyle,
-  padding,
-  shapes,
-} from '@expo/ui/swift-ui/modifiers';
+import { accessibilityLabel, foregroundStyle, padding } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { metrics, radius, theme } from '@/theme';
-
-const ios = process.env.EXPO_OS === 'ios';
 
 export const DIVIDER = 1 / 3;
 
@@ -58,16 +50,9 @@ export function SettingRow({
       style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
       onPress={onPress}
       testID={testID}
-      modifiers={[
-        contentShape(shapes.rectangle()),
-        ...(label && ios ? [accessibilityLabel(label)] : []),
-      ]}
+      modifiers={label ? [accessibilityLabel(label)] : []}
     >
-      {ios ? (
-        <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
-      ) : (
-        <Spacer style={{ width: metrics.rowIcon }} />
-      )}
+      <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
       <Text textStyle={{ fontSize: metrics.body }} modifiers={[foregroundStyle(theme.text)]}>
         {title}
       </Text>
