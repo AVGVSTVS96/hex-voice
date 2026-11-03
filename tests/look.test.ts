@@ -16,7 +16,6 @@ const files = (dir: string): string[] =>
 // shrinks.
 const unmigrated = new Set([
   'src/components/tasks/tasks-view.tsx',
-  'src/components/voice-settings.tsx',
   'src/live/call-activity.tsx',
   'src/screens/duo-tasks.tsx',
 ]);

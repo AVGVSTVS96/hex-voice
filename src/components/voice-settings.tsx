@@ -1,4 +1,4 @@
-import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Column, Host, Icon, RNHostView, Row, Spacer } from '@expo/ui';
 import {
   BottomSheet,
   Button as NativeButton,
@@ -19,7 +19,6 @@ import {
   buttonStyle,
   clipped,
   controlSize,
-  foregroundStyle,
   frame,
   labelsHidden,
   labelStyle,
@@ -64,7 +63,8 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import type { Settings } from '@/screens/layout';
 import { theme } from '@/theme';
-import { metrics, type } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { breakpoint, metrics, space } from '@/ui/tokens';
 
 // On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
 // the width is regular it's a centered form sheet, and a page sheet where the call is split across
@@ -88,7 +88,6 @@ type Props = {
   preferences: CallPreferences;
 };
 
-const ios = process.env.EXPO_OS === 'ios';
 const voiceOptions = VOICES.map((voice) => ({
   ...voice,
   description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
@@ -105,18 +104,19 @@ const PHRASE = [
   { level: 0, pitch: 0, tone: 0 },
 ];
 const PREVIEW_ORB = 160;
-// Side by side from `from` wide, or from `tight` wide where the page stacked can't fit the height.
-const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 600, tight: 540 };
+// Side by side from `breakpoint.beside` wide, or from `besideShort` wide where the page stacked
+// can't fit the height.
+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
 // The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
 const SHORT_PREVIEW = 120;
 const SHEET_GAP = 24;
 
-const SHEET_TOP = 24;
+const SHEET_TOP = space[6];
 const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
 const ORB = 190;
 const VOICE_CAROUSEL = 180;
-const HEADER_TOP = 14;
+const HEADER_TOP = space[3.5];
 const HEADER = 44;
 // The bar over the persona's page on the open Duo.
 const BAR = 60;
@@ -161,8 +161,8 @@ export function VoiceSettings({
   const room = screen.height - insets.top - SHEET_GAP;
   const beside =
     !pages &&
-    (width >= BESIDE.from ||
-      (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
+    (width >= breakpoint.beside ||
+      (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = pages
     ? Math.min(pages.first.width - 2 * metrics.gutter, BESIDE.carousel + 80)
@@ -205,7 +205,7 @@ export function VoiceSettings({
   useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
   const haptic = (enabled = preferences.haptics) => {
-    if (ios && enabled) void Haptics.selectionAsync();
+    if (enabled) void Haptics.selectionAsync();
   };
   const showVoices = (show: boolean) => {
     haptic();
@@ -320,13 +320,8 @@ export function VoiceSettings({
           onPress={() => showVoices(true)}
           testID="voice-row"
         >
-          <Text
-            textStyle={{ fontSize: type.body.fontSize }}
-            modifiers={[foregroundStyle(theme.secondary)]}
-          >
-            {selectedVoice.label}
-          </Text>
-          {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
+          <Text tone="secondary">{selectedVoice.label}</Text>
+          <Icon name="chevron.right" size={13} color={theme.secondary} />
         </SettingRow>
         <Separator />
         <SettingRow icon="speaker.wave.2" title="Call sounds" width={rowsWidth}>
@@ -377,12 +372,7 @@ export function VoiceSettings({
           ]}
         />
         <Spacer flexible />
-        <Text
-          textStyle={{ fontSize: type.body.fontSize, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
-          Voice
-        </Text>
+        <Text variant="headline">Voice</Text>
         <Spacer flexible />
         <Spacer style={{ width: HEADER }} />
       </Row>

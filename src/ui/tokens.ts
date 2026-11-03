@@ -212,3 +212,6 @@ export const metrics = {
 
 export type ControlsSize = keyof typeof metrics.controls;
 export type ToolbarGaps = 'regular' | 'compact';
+
+// Widths from which a sheet lays its content out side by side.
+export const breakpoint = { beside: 600, besideShort: 540 } as const;
