@@ -13,49 +13,59 @@ const saved = (id: CallId) => `call:${id}`;
 
 // The list shows what this device kept right away, then follows hex's copy while the app is in
 // front: each request waits on the server until a call changes, so a new call, its title and its
-// wrap-up arrive as they land.
+// wrap-up arrive as they land. A call that just ended here leads the list until hex answers, and
+// only hex's answers are kept on this device.
 export function useCalls() {
-  const [calls, setCalls] = useState<CallSummary[]>();
+  const [listed, setListed] = useState<CallSummary[]>();
+  const [justEnded, setJustEnded] = useState<CallSummary[]>([]);
   const [live, setLive] = useState<CallId>();
   const tries = useFailures();
 
   useEffect(() => {
     void restore(LIST, z.array(CallSummary)).then((kept) => {
-      if (kept) setCalls((current) => current ?? kept);
+      if (kept) setListed((current) => current ?? kept);
     });
   }, []);
 
   useEffect(() => {
-    if (calls) store(LIST, calls);
-  }, [calls]);
+    if (listed) store(LIST, listed);
+  }, [listed]);
 
   const watching = useWatch('calls', hex.calls.list, (list) => {
-    setCalls(list.calls);
+    setListed(list.calls);
+    setJustEnded([]);
     setLive(list.live);
   });
 
   const add = (call: CallSummary) =>
-    setCalls((current) => [call, ...(current ?? []).filter(({ id }) => id !== call.id)]);
+    setJustEnded((current) => [call, ...current.filter(({ id }) => id !== call.id)]);
 
   const remove = (id: CallId) => {
-    const removed = calls?.find((call) => call.id === id);
-    setCalls((current) => current?.filter((call) => call.id !== id));
+    const others = (calls: CallSummary[]) => calls.filter((call) => call.id !== id);
+    const fromHex = listed?.find((call) => call.id === id);
+    const fromHere = justEnded.find((call) => call.id === id);
+    setListed((current) => current && others(current));
+    setJustEnded(others);
     void tries
       .attempt(id, 'Not deleted', () => hex.calls.remove(id))
       .then((deleted) => {
         if (deleted) void AsyncStorage.removeItem(saved(id)).catch(() => {});
-        else if (removed) setCalls((current) => putBack(current ?? [], removed));
+        if (!deleted && fromHex) setListed((current) => putBack(current ?? [], fromHex));
+        if (!deleted && fromHere) setJustEnded((current) => putBack(current, fromHere));
       });
   };
 
   // A call that wouldn't delete comes back in its place saying why.
-  const shown = useMemo(
-    () =>
-      calls?.map((call) =>
-        tries.failed[call.id] ? { ...call, failed: tries.failed[call.id] } : call,
-      ),
-    [calls, tries.failed],
-  );
+  const shown = useMemo(() => {
+    if (!listed && !justEnded.length) return undefined;
+    const calls = [
+      ...justEnded,
+      ...(listed ?? []).filter(({ id }) => !justEnded.some((call) => call.id === id)),
+    ];
+    return calls.map((call) =>
+      tries.failed[call.id] ? { ...call, failed: tries.failed[call.id] } : call,
+    );
+  }, [listed, justEnded, tries.failed]);
   return { calls: shown, live, offline: watching === 'offline', add, remove };
 }
 
