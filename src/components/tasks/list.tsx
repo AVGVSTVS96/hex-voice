@@ -39,6 +39,8 @@ import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
+const TABS_WITH_BAR = 600;
+
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
@@ -144,7 +146,9 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
-  const compact = bar === 'inline';
+  // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
+  // one gives back, its title and search a bar of their own above the stages.
+  const compact = bar === 'inline' && spot.width >= TABS_WITH_BAR;
   const searching = query !== null;
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
@@ -179,12 +183,7 @@ export function ListPage({
           {compact ? null : bar === 'center' ? (
             <ListHead toolbarLine={toolbarLine} onSearch={startSearch} />
           ) : (
-            <PageBar
-              bar={bar}
-              title="Tasks"
-              back={back}
-              trailing={<SearchButton onPress={startSearch} />}
-            />
+            <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
           )}
           <Tabs
             counts={counts}

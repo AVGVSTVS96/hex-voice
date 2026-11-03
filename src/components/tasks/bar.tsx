@@ -47,7 +47,6 @@ export function Header({
   if (bar !== 'center')
     return (
       <PageBar
-        bar={bar}
         title={title}
         subtitle={subtitle}
         back={back}
@@ -121,95 +120,52 @@ export function Header({
 }
 
 export function PageBar({
-  bar,
   title,
   subtitle,
   back,
   trailing,
 }: {
-  bar: Exclude<Bar, 'center'>;
   title: string;
   subtitle?: string;
   back?: Back;
   trailing?: ReactNode;
 }) {
   const backButton = back ? <BackButton back={back} /> : null;
-  if (bar === 'inline')
-    return (
-      <Row
-        alignment="center"
-        spacing={12}
-        modifiers={[
-          padding({ leading: INSET - 4, trailing: 16, top: 6, bottom: 6 }),
-          frame({ minHeight: BAR + 12 }),
-          frame({ maxWidth: Infinity }),
-        ]}
+  return (
+    <Row
+      alignment="center"
+      spacing={12}
+      modifiers={[
+        padding({ leading: INSET - 4, trailing: 16, top: 6, bottom: 6 }),
+        frame({ minHeight: BAR + 12 }),
+        frame({ maxWidth: Infinity }),
+      ]}
+    >
+      {backButton}
+      <Column
+        alignment="start"
+        spacing={1}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        {backButton}
         <Text
           numberOfLines={1}
-          textStyle={{ fontSize: 19, fontWeight: '700' }}
-          modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
+          textStyle={{ fontSize: 17, fontWeight: '600' }}
+          modifiers={[foregroundStyle(theme.text)]}
         >
           {title}
         </Text>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 14 }}
-          modifiers={[
-            foregroundStyle(theme.secondary),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
-        >
-          {subtitle ?? ''}
-        </Text>
-        {trailing}
-      </Row>
-    );
-  return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[
-        padding({ leading: INSET, trailing: 16, top: 8, bottom: 10 }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-      ]}
-    >
-      {backButton || trailing ? (
-        <Row
-          alignment="center"
-          spacing={12}
-          modifiers={[frame({ height: BAR }), frame({ maxWidth: Infinity })]}
-        >
-          {backButton}
-          <Spacer flexible />
-          {trailing}
-        </Row>
-      ) : null}
-      <Text
-        numberOfLines={2}
-        textStyle={{ fontSize: 28, fontWeight: '700' }}
-        modifiers={[
-          foregroundStyle(theme.text),
-          padding({ top: 10 }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
-      >
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15 }}
-          modifiers={[
-            foregroundStyle(theme.secondary),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
-    </Column>
+        {subtitle ? (
+          <Text
+            numberOfLines={1}
+            textStyle={{ fontSize: 13 }}
+            modifiers={[foregroundStyle(theme.secondary)]}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </Column>
+      {trailing}
+    </Row>
   );
 }
 

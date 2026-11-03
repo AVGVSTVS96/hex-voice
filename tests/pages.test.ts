@@ -218,7 +218,7 @@ test('beside the transcript, Tasks lays out one page wide with the list’s Back
   const pages = pagesOf(go(), room);
   assert.equal(pages.shape, 'one');
   const list = spotOf('list', pages, room);
-  assert.deepEqual([list.shown, list.back, list.width, list.bar], [true, 'call', 423, 'large']);
+  assert.deepEqual([list.shown, list.back, list.width, list.bar], [true, 'call', 423, 'inline']);
   const deeper = pagesOf(go({ to: 'topic', id: 'a' }), room);
   assert.equal(spotOf('list', deeper, room).offset.x, -455);
   assert.equal(spotOf('topic', deeper, room).back, 'list');
@@ -273,7 +273,7 @@ test('a page wider than it is tall draws its bar on one line, and one ending at 
   for (const page of [openUpright, folded]) {
     const room = roomOf(page);
     const list = spotOf('list', pagesOf(go(), room), room);
-    assert.equal(list.bar, 'large');
+    assert.equal(list.bar, 'inline');
   }
 });
 

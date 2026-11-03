@@ -13,7 +13,6 @@ import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk } from '@/components/tasks/bar';
-import { laneWidth } from '@/components/tasks/lane';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
@@ -150,7 +149,6 @@ export function Detail({
                   task={task}
                   threads={threads}
                   missing={missing}
-                  lane={laneWidth(width)}
                   onOpen={onOpen}
                   onOpenTask={onOpenTask}
                 />

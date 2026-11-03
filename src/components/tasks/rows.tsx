@@ -6,7 +6,6 @@ import {
   foregroundStyle,
   frame,
   layoutPriority,
-  listRowBackground,
   padding,
   shapes,
   tint,
@@ -78,7 +77,7 @@ export function EntryRow({
             mark="needs"
             line={ask.question}
             time={clock(new Date(entry.at))}
-            tiles={entry.tiles}
+            tiles={badges(entry)}
             label={`${entry.topic} asks: ${ask.question}`}
             onPress={() => actions.onOpen(ask.task, entry.id)}
           >
@@ -105,7 +104,7 @@ export function EntryRow({
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
             meta={agents ? `${agents} agent${agents === 1 ? '' : 's'}` : undefined}
-            tiles={entry.tiles}
+            tiles={badges(entry)}
             label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
             onPress={() => actions.onOpen(task.id, entry.id)}
           />
@@ -121,7 +120,7 @@ export function EntryRow({
             mark={stuck.mark}
             line={stuck.title}
             time={clock(new Date(entry.at))}
-            tiles={entry.tiles}
+            tiles={badges(entry)}
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
             <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
@@ -138,7 +137,7 @@ export function EntryRow({
             mark={fresh.read ? 'read' : 'done'}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
-            tiles={entry.tiles}
+            tiles={badges(entry)}
             label={`${fresh.title}, finished: ${fresh.line}`}
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
@@ -169,12 +168,7 @@ function Swiped({
   children: ReactNode;
 }) {
   return (
-    <SwipeActions
-      modifiers={[
-        ...listRow(width, { top: !first }),
-        ...(selected ? [listRowBackground(theme.surfaceSelected)] : []),
-      ]}
-    >
+    <SwipeActions modifiers={[...listRow(width, { top: !first, selected })]}>
       {children}
       {lead ? (
         <SwipeActions.Actions edge="leading">
@@ -267,6 +261,17 @@ function Shell({
       </Column>
     </Row>
   );
+}
+
+// A row's badges say where else it lives: never its own place, and each place once.
+function badges({ place, tiles }: Entry): Tile[] {
+  const seen = new Set<string>();
+  return tiles.filter((tile) => {
+    const key = tile.kind === 'app' ? tile.place : tile.kind;
+    if ((tile.kind === 'app' && tile.place === place) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function Tiles({ tiles }: { tiles: Tile[] }) {
@@ -414,7 +419,7 @@ export function QuietRow({
       </Column>
       <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
         <Meta text={taskTime(entry.task)} />
-        <Tiles tiles={entry.tiles} />
+        <Tiles tiles={badges(entry)} />
       </Row>
     </Row>
   );

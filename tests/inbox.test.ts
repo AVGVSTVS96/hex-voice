@@ -242,22 +242,6 @@ test('a topic marks each of its threads once, by its most pressing stage, whiche
   ]);
 });
 
-test('a topic’s lane is every one of its threads’ last week that has any', () => {
-  const worked = [
-    { at: at(2), state: 'working' as const },
-    { at: at(3), state: 'done' as const },
-  ];
-  const asked = [{ at: at(7), state: 'needs' as const }];
-  const tasks = [
-    row('autofork', 'done', at(3), { id: 't3:autofork', app: 't3', track: worked }),
-    row('autofork', 'needs', at(7), { track: asked }),
-    row('autofork', 'idle', at(1), { id: 'buzz:autofork', app: 'buzz' }),
-  ];
-  const entries = stream({ tasks });
-  const [topic] = topicsOf(entries, entries, tasks);
-  assert.deepEqual(topic!.tracks, [asked, worked]);
-});
-
 test('each tab counts its stage, leaving out the asks you answered here', () => {
   const entries = stream({
     asks: [ask('a', 'pick'), ask('b', 'yesno')],
