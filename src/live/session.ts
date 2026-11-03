@@ -306,6 +306,7 @@ export class LiveSession {
 
   stop = (reason?: string): Promise<void> => {
     if (this.closing) return this.closing;
+    this.refreshElapsed();
     if (!this.transport && this.snapshot.status !== 'connecting') {
       if (reason) this.update({ status: 'error', error: reason });
       return Promise.resolve();
