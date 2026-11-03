@@ -60,7 +60,7 @@
       }
     },
     {
-      "files": ["src/app/**", "src/components/**", "src/screens/**"],
+      "files": ["src/app/**", "src/call/**", "src/components/**", "src/screens/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -79,6 +79,22 @@
               {
                 "group": ["@/hex/*"],
                 "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/call/use-call.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "expo/fetch",
+                "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
               }
             ]
           }
