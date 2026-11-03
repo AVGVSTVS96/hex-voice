@@ -479,46 +479,36 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     }
     pane.set(settle(tasksOpen ? 1 : 0));
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-  // The call is a card. Calls and Tasks either slide it aside or take an edge of it, and while
-  // either is open its corners round off against them. Where they take an edge, what's on the call
-  // stays put in the window, so only the words move over into what's left. Only a card that slides
-  // away wears a hairline: one that spans the screen's height would draw it along its top and foot.
+  // The call is a card, and while Calls or Tasks is open its corners round off against them, with
+  // a hairline at its edge. That's its look in every pose; where it goes is placement's alone: Calls
+  // slides it aside or takes its leading edge, Tasks takes its trailing edge or comes over it. Where
+  // a pane takes an edge, what's on the call stays put in the window, so only the words move over
+  // into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
   const cardStyle = useAnimatedStyle(() => {
     const d = drawer.get();
     const t = pane.get();
-    const open = Math.max(
-      list.place === 'over' ? 0 : d,
-      side.place === 'sheet' || side.place === 'page' ? 0 : t,
-    );
-    const slid = list.place === 'slide' ? d : 0;
+    const slid = list.place === 'slide' ? d * list.width : 0;
+    const yielded = Math.min(1, Math.max(d, t) * 4);
     return {
-      left: list.place === 'beside' ? d * list.width : 0,
-      right: side.place === 'beside' ? t * paneW.get() : 0,
-      transform: [
-        {
-          translateX:
-            (list.place === 'slide' ? d * list.width : 0) -
-            (side.place === 'slide' ? t * side.width : 0),
-        },
-      ],
-      borderRadius: radius.card * Math.min(1, open * 4),
-      borderWidth: slid > 0 ? StyleSheet.hairlineWidth : 0,
+      left: (list.place === 'beside' ? d * list.width : 0) + slid,
+      right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
+      borderRadius: radius.card * yielded,
+      borderWidth: yielded > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });
   const stageStyle = useAnimatedStyle(() => ({
     left: list.place === 'beside' ? -drawer.get() * list.width : 0,
   }));
   const sidebarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (drawer.get() - 1) * (list.place === 'over' ? list.width : 48) }],
+    left: layout.content.x + (drawer.get() - 1) * 48,
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-  const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
-  // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
-  const makesWay = list.place === 'over' && layout.toolbar.axis === 'row';
+  // The bar sits in the window, so a card that yields an edge never moves it. Only a card that
+  // slides aside takes it along, so Calls never ends up under its buttons.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
   const toolbarStyle = useAnimatedStyle(() => ({
-    left: toolbar.x + (makesWay ? drawer.get() * list.width : 0),
+    left: toolbar.x + (list.place === 'slide' ? drawer.get() * list.width : 0),
   }));
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
@@ -542,7 +532,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       width:
         toward(words.width, besideCalls.width, besideTasks.width, d, t) +
         (before.width - words.width) * a,
-      transform: [{ translateY: -(lift.calls * d + lift.tasks * t + before.raise * a) }],
+      marginBottom: lift.calls * d + lift.tasks * t + before.raise * a,
     };
   });
   // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
@@ -758,9 +748,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       : { top: toolbar.y };
   const sidebar = (
     <GestureDetector gesture={sidebarClose}>
-      <Animated.View
-        style={[styles.sidebar, { left: layout.content.x, width: list.width }, sidebarStyle]}
-      >
+      <Animated.View style={[styles.sidebar, { width: list.width }, sidebarStyle]}>
         <CallsSidebar
           top={insets.top}
           width={list.width}
@@ -790,7 +778,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
 
   return (
     <>
-      {list.place !== 'over' && sidebar}
+      {sidebar}
       {panes && !duo && (
         <TasksPane
           {...tasks}
@@ -983,37 +971,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             </Animated.View>
           )}
         </Animated.View>
-        {duo && (
-          <DuoTasks
-            duo={duo}
-            tasks={{ ...tasks, onClose: closeTasks }}
-            state={duoTasks}
-            onCall={onCall}
-            seconds={callSeconds}
-            pane={pane}
-          />
-        )}
-        {duo?.call.controls && inRow
-          ? callControls({
-              sizes: { mute: TOOL, call: TOOL, gap: GAP },
-              style: {
-                position: 'absolute',
-                right: duo.call.controls.right,
-                top: duo.call.controls.top,
-              },
-            })
-          : null}
-        <ScreenToolbar
-          axis={toolbar.axis}
-          gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-          style={[toolbarPlace, toolbarStyle]}
-          callsOpen={drawerOpen}
-          tasks={{ ...counts, open: tasksOpen }}
-          onCalls={toggleDrawer}
-          onTasks={toggleTasks}
-          onSettings={() => setSettingsOpen(true)}
-        />
-        {controlsColumn && controls}
         {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
         <VoiceSettings
           sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
@@ -1033,12 +990,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             <View style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
-        {list.place === 'over' && !split && (
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.dim, { left: layout.content.x, width: layout.content.width }, dimStyle]}
-          />
-        )}
         {drawerOpen && list.place !== 'beside' && (
           <GestureDetector gesture={peekClose}>
             <View
@@ -1047,16 +998,38 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             />
           </GestureDetector>
         )}
-        {tasksOpen && side.place === 'slide' && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close tasks"
-            onPress={toggleTasks}
-            style={styles.fill}
-          />
-        )}
       </Animated.View>
-      {list.place === 'over' && sidebar}
+      {duo && (
+        <DuoTasks
+          duo={duo}
+          tasks={{ ...tasks, onClose: closeTasks }}
+          state={duoTasks}
+          onCall={onCall}
+          seconds={callSeconds}
+          pane={pane}
+        />
+      )}
+      {duo?.call.controls && inRow
+        ? callControls({
+            sizes: { mute: TOOL, call: TOOL, gap: GAP },
+            style: {
+              position: 'absolute',
+              right: duo.call.controls.right,
+              top: duo.call.controls.top,
+            },
+          })
+        : null}
+      <ScreenToolbar
+        axis={toolbar.axis}
+        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
+        style={[toolbarPlace, toolbarStyle]}
+        callsOpen={drawerOpen}
+        tasks={{ ...counts, open: tasksOpen }}
+        onCalls={toggleDrawer}
+        onTasks={toggleTasks}
+        onSettings={() => setSettingsOpen(true)}
+      />
+      {controlsColumn && controls}
     </>
   );
 }
@@ -1106,7 +1079,6 @@ const styles = StyleSheet.create({
   },
   sidebar: { position: 'absolute', top: 0, bottom: 0 },
   edge: { position: 'absolute', top: 0, bottom: 0, width: 20 },
-  dim: { position: 'absolute', top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
   ended: { color: theme.secondary, textAlign: 'center', fontSize: 15, lineHeight: 20 },
   bad: { color: theme.danger },
   wrapUp: { gap: 10, alignItems: 'center' },
