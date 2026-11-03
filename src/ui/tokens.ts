@@ -57,6 +57,14 @@ export const type = {
   // The call's words, with room between their lines to read along as they come.
   words: { textStyle: 'body', fontSize: 17, lineHeight: 25 },
   wordsLarge: { fontSize: 19, lineHeight: 28 },
+  // An ask's question in Tasks.
+  question: {
+    textStyle: 'callout',
+    fontSize: 16,
+    lineHeight: 21,
+    lineSpacing: 5,
+    weight: 'semibold',
+  },
   // A footnote that ends a subheadline's line, like a time or a place, level with its words.
   tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
   // A name in a list, like a call's in Calls, and the details under it.

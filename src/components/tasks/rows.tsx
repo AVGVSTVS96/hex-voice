@@ -104,7 +104,6 @@ export function EntryRow({
             {inline ? (
               <InlineAnswers
                 ask={ask}
-                size={15}
                 onAnswer={actions.onAnswer}
                 modifiers={[padding({ top: space[1] })]}
               />
