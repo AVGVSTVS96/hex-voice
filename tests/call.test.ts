@@ -25,8 +25,6 @@ function session(change: Partial<LiveSnapshot> = {}): LiveSnapshot {
     status: 'idle',
     error: null,
     muted: false,
-    inputLevel: 0,
-    outputLevel: 0,
     elapsedSeconds: 0,
     transcript: [],
     callId: null,

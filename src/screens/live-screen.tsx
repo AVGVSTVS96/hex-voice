@@ -31,7 +31,6 @@ import {
   callIdOf,
   errorOf,
   footerOf,
-  personaOf,
   showsWords,
   statusOf,
   voiceLocked,
@@ -39,13 +38,13 @@ import {
   wordsOf,
   type Call,
 } from '@/call/call';
-import { useCall, useSession } from '@/call/use-call';
+import { CallPersona } from '@/call/persona';
+import { useCall, useLevels } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
-import { Persona } from '@/components/persona';
 import { ScreenToolbar } from '@/components/screen-toolbar';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
@@ -155,7 +154,6 @@ function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
 type Size = { width: number; height: number };
 
 function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; opening: Opening }) {
-  const session = useSession();
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -207,7 +205,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
   const inboxShown = !!inbox && tasksOpen;
-  const personaState = personaOf(call, session.outputLevel > 0.035);
   const status = statusOf(call);
 
   useCallFeedback(live, preferences);
@@ -229,7 +226,6 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const level = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
   const reacting = live && !reducedMotion && !call.mic.muted && reaction > 0;
-  const loudness = reacting ? Math.max(0, session.inputLevel - 0.06) / 0.94 : 0;
   const { pitch, tone } = useVoiceTone(reacting);
   const awake = wakeOf(call);
   useEffect(() => {
@@ -252,9 +248,15 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         : withTiming(0, { duration: motion.breath.out }),
     );
   }, [awake, reducedMotion, wake, breath]);
-  useEffect(() => {
-    level.set(withSpring(loudness, motion.reaction));
-  }, [loudness, level]);
+  const input = useSharedValue(0);
+  useLevels((levels) => input.set(levels.input));
+  useAnimatedReaction(
+    () => (reacting ? Math.max(0, input.get() - 0.06) / 0.94 : 0),
+    (loudness, before) => {
+      if (loudness !== before) level.set(withSpring(loudness, motion.reaction));
+    },
+    [reacting],
+  );
 
   // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
   // and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
@@ -913,9 +915,9 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
                   accessibilityHint={docked ? 'Closes Tasks for the call' : undefined}
                   style={[styles.orb, { width: size, height: size }, orbStyle]}
                 >
-                  <Persona
+                  <CallPersona
+                    call={call}
                     variant={variant}
-                    state={personaState}
                     size={size}
                     color={preferences.personaColor}
                     palette={opalPaletteInput(preferences.opalPalette)}
