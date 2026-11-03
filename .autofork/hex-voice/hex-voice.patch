@@ -118,16 +118,18 @@ index 0000000000000000000000000000000000000000..a2fb755a7ec908dae1891ef38b4f8a67
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..69283061fdac21c9c50d3dc9437a3f4a627da19b 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..128d756f8c17750648f7fa31e7a8c04fb9259e2a 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,60 @@
+@@ -1,21 +1,62 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
 +Read https://docs.expo.dev/versions/v58.0.0/ before changing Expo code.
 +
 +Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`).
++
++hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx github:AVGVSTVS96/autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
 +
 +## How it works
 +
