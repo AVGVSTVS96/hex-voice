@@ -20,7 +20,6 @@ const unmigrated = new Set([
   'src/components/tasks/pinned.tsx',
   'src/components/tasks/rows.tsx',
   'src/components/tasks/said.tsx',
-  'src/components/tasks/task-page.tsx',
   'src/components/tasks/tasks-view.tsx',
   'src/components/tasks/thread.tsx',
   'src/components/tasks/trace.tsx',
