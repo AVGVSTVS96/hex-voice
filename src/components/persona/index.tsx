@@ -15,7 +15,8 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
-import { theme } from '@/theme';
+import { circle, theme } from '@/theme';
+import { textOf } from '@/ui/tokens';
 import {
   PERSONA_MODELS,
   PERSONA_STATE_MACHINE,
@@ -201,9 +202,7 @@ function PersonaRenderer({
       ) : (
         <View
           style={{
-            width: size * 0.6,
-            height: size * 0.6,
-            borderRadius: size,
+            ...circle(size * 0.6),
             borderWidth: 1,
             borderColor: theme.accentMuted,
             alignItems: 'center',
@@ -211,7 +210,7 @@ function PersonaRenderer({
           }}
         >
           {failed && (
-            <Text style={{ color: theme.secondary, fontSize: 12 }}>Visual unavailable</Text>
+            <Text style={{ ...textOf('caption'), color: theme.secondary }}>Visual unavailable</Text>
           )}
         </View>
       )}
