@@ -17,7 +17,7 @@ import XCTest
 //   type <query> <text>   taps the element and types the text on the software keyboard
 //   above-keyboard <query> checks the keyboard is up and the element shows whole above it
 //   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
-//   swipe-down <query>    drags down on the element, the way you pull a keyboard away
+//   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 //   no-keyboard           checks the keyboard has gone
 // The accessibility tree at the end is kept beside the shots.
 final class DuoTests: XCTestCase {
@@ -78,7 +78,9 @@ final class DuoTests: XCTestCase {
                 let frame = element(argument).frame
                 XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
                 XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
-            case "swipe-down": element(argument).swipeDown()
+            case "swipe-down":
+                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+                    .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
             case "no-keyboard":
                 let gone = NSPredicate(format: "exists == false")
                 let wait = XCTNSPredicateExpectation(predicate: gone, object: app.keyboards.firstMatch)
@@ -96,10 +98,13 @@ final class DuoTests: XCTestCase {
         }
     }
 
+    // Pages that have left stay in the tree off screen, so the first match on screen wins.
     private func element(_ query: String) -> XCUIElement {
-        let match = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query)).firstMatch
-        XCTAssertTrue(match.waitForExistence(timeout: 10), "nothing matches \(query)")
-        return match
+        let matches = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query))
+        XCTAssertTrue(matches.firstMatch.waitForExistence(timeout: 10), "nothing matches \(query)")
+        let screen = app.windows.firstMatch.frame
+        return matches.allElementsBoundByIndex.first { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+            ?? matches.firstMatch
     }
 }
