@@ -21,7 +21,7 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, Faded, asks, ios, type Feel } from '@/components/tasks/parts';
+import { Empty, Faded, asks, ios, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -60,6 +60,7 @@ export function ListPage({
   paged,
   tasks,
   offline,
+  current,
   yours,
   feel,
   onAnswer,
@@ -74,6 +75,8 @@ export function ListPage({
   paged: boolean;
   tasks: TaskRow[] | undefined;
   offline: boolean;
+  // hex has answered since this list showed what was kept on this device, and nothing failed since.
+  current: boolean;
   yours: ReturnType<typeof useAsks>;
   feel: Feel;
   onAnswer: (ask: Ask, option: AskOption) => void;
@@ -157,6 +160,7 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
+  const behind = loaded && !(current && yours.current);
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
   // one gives back, its title and search a bar of their own above the stages.
   const compact = spot.width >= TABS_WITH_BAR;
@@ -216,6 +220,7 @@ export function ListPage({
             ),
           ]}
         >
+          {behind ? <Behind width={width} /> : null}
           {!searching && stage === 'needs' && picks.length > 1 ? (
             <PicksRow
               picks={picks}
@@ -271,6 +276,23 @@ export function ListPage({
       </Faded>
       {goThrough}
     </Column>
+  );
+}
+
+// While hex is slow or out of reach, what's shown is what it last sent, and says so quietly.
+function Behind({ width }: { width: number }) {
+  return (
+    <Text
+      textStyle={{ fontSize: 13 }}
+      modifiers={[
+        foregroundStyle(theme.tertiary),
+        padding({ top: 6, bottom: 6 }),
+        frame({ maxWidth: Infinity }),
+        ...listRow(width, { top: false, bottom: false }),
+      ]}
+    >
+      Last from hex · waiting for an update
+    </Text>
   );
 }
 

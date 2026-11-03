@@ -7,7 +7,8 @@ const RETRY = 2000;
 // carries the version it answered with. It runs while `on`, and only while the app is in front; an
 // `on` that names something, like a thread, starts over when it names another. Coming back to the
 // front picks up from the version it had, since a question without one is how hex hears that
-// something was opened.
+// something was opened. It says whether what it took last is current: hex has answered, and the
+// last try since didn't fail.
 export function useWatch<T extends { version: number }>(
   on: boolean | string | null,
   ask: (after: number | undefined, signal: AbortSignal) => Promise<T>,
@@ -15,6 +16,7 @@ export function useWatch<T extends { version: number }>(
   offline?: (offline: boolean) => void,
 ) {
   const active = useActive();
+  const [current, setCurrent] = useState(false);
   const version = useRef<number>(undefined);
   useEffect(() => {
     version.current = undefined;
@@ -29,9 +31,11 @@ export function useWatch<T extends { version: number }>(
           if (controller.signal.aborted) return;
           version.current = answer.version;
           take(answer);
+          setCurrent(true);
           offline?.(false);
         } catch {
           if (controller.signal.aborted) return;
+          setCurrent(false);
           offline?.(true);
           await new Promise((resolve) => setTimeout(resolve, RETRY));
         }
@@ -39,6 +43,7 @@ export function useWatch<T extends { version: number }>(
     })();
     return () => controller.abort();
   }, [on, active]);
+  return current;
 }
 
 export function useActive() {
