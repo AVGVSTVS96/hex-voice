@@ -22,8 +22,7 @@ const GROUP_GAP = { row: 12, column: 16 } as const;
 
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
 // side column with the two set apart (`gaps` apart, where the column is short). `gathered`, the
-// three sit together at the leading end, leaving the trailing end to the call buttons. Calls is a
-// glass circle of its own; Tasks and settings share one glass capsule, like a bar's item group.
+// three sit together at the leading end, leaving the trailing end to the call buttons.
 export function ScreenToolbar({
   axis,
   gaps,

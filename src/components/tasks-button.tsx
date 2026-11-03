@@ -25,8 +25,8 @@ const LINE = 2;
 const ARC = (Math.PI * (RING - LINE)) / 4;
 const CLEAR = '#00000000';
 
-// The Tasks control wears the agent line's marks: its arc turns while anything works, and a mint
-// dot says something needs you. Nothing else on it moves. A SwiftUI view, for the toolbar's group.
+// The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
+// dot says something needs you. Nothing else on it moves.
 export function TasksButton({
   needs,
   working,
