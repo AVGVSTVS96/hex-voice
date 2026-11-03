@@ -10,7 +10,7 @@ import {
   shapes,
   tabViewStyle,
 } from '@expo/ui/swift-ui/modifiers';
-import { View } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 
 import { theme } from '@/theme';
 
@@ -30,6 +30,7 @@ export function SelectionCarousel({
   label,
   testID,
 }: SelectionCarouselProps) {
+  const scheme = useColorScheme();
   const totalHeight = height + previewHeight;
   // A static page prevents both swipe and page-dot changes during a call.
   if (!enabled) {
@@ -56,7 +57,8 @@ export function SelectionCarousel({
       modifiers={[
         frame({ width, height: totalHeight }),
         tabViewStyle({ type: 'page', indexDisplayMode: 'always' }),
-        indexViewStyle({ backgroundDisplayMode: 'never' }),
+        // iOS draws the dots white, so on a light ground they sit on its translucent backdrop.
+        indexViewStyle({ backgroundDisplayMode: scheme === 'light' ? 'always' : 'never' }),
         accessibilityLabel(label),
       ]}
     >
