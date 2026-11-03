@@ -212,7 +212,7 @@ export function ListPage({
           <Tabs
             counts={counts}
             stage={stage}
-            offline={unreachable}
+            unknown={!loaded}
             onChange={chooseStage}
             back={compact ? back : undefined}
             onSearch={compact ? startSearch : undefined}

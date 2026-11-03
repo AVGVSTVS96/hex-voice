@@ -58,14 +58,15 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
 export function Tabs({
   counts,
   stage,
-  offline,
+  unknown,
   onChange,
   back,
   onSearch,
 }: {
   counts: Record<Stage, number>;
   stage: Stage;
-  offline: boolean;
+  // Not loaded yet, or hex can't be reached: no count is better than a made-up 0.
+  unknown: boolean;
   onChange: (stage: Stage) => void;
   back?: Back;
   onSearch?: () => void;
@@ -99,7 +100,7 @@ export function Tabs({
             {STAGES.map(({ key, title }) => {
               const on = key === stage;
               const count = counts[key];
-              const needs = key === 'needs' && count > 0;
+              const needs = !unknown && key === 'needs' && count > 0;
               return (
                 <Overlay key={key} alignment="bottom">
                   <Row
@@ -111,7 +112,7 @@ export function Tabs({
                       contentShape(shapes.rectangle()),
                       ...(ios
                         ? [
-                            accessibilityLabel(`${title}, ${count}`),
+                            accessibilityLabel(unknown ? title : `${title}, ${count}`),
                             ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
                           ]
                         : []),
@@ -131,7 +132,7 @@ export function Tabs({
                         foregroundStyle(needs ? theme.accent : on ? theme.text : theme.tertiary),
                       ]}
                     >
-                      {offline ? '–' : String(count)}
+                      {unknown ? '–' : String(count)}
                     </Text>
                   </Row>
                   {on ? (
