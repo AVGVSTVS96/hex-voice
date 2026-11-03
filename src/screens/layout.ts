@@ -24,12 +24,18 @@ const COLUMN_GAPS = { tools: 32, group: 16 };
 const TIGHT_GAPS = { tools: 12, group: 10 };
 const SIZES = { mute: MUTE, call: CONTROLS, gap: GAP };
 const TIGHT_SIZES = { mute: 48, call: 52, gap: 10 };
-// On a call with Tasks open, the orb this big and the call's time this tall and wide join the column.
+// On a call with Tasks open, the orb this big and the call's time this tall and wide join the bar.
 export const CALL_ORB = 34;
 export const TIME = 16;
 const TIME_WIDTH = 44;
+// Tasks' rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
+// bar's buttons.
+const FLUSH = { left: 0, right: 0 };
 // Persona's Rive art fills three quarters of its view, as measured in the simulator.
 const ART = 0.75;
+// iPhone Duo open on its side reserves its whole top band for the status items but draws them this
+// far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
+const STATUS_DROP = 7;
 
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -43,13 +49,13 @@ type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: Gaps };
 type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; sizes?: Sizes };
 
 // The call screen's geometry for a window in a pose. It comes in three arrangements:
-// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed
-//   or open tall)
+// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
 // - split: the orb on the leading page and the words on the trailing one, both there from the
 //   start (iPad landscape, iPhone Duo open)
-// - stacked: the orb above and the words below it (iPad portrait, iPhone Duo set down on a table)
+// - stacked: the orb above and the words below it (iPad portrait, iPhone Duo open on its side)
 // Where the system puts its bars down the side (iPhone Duo), the toolbar and call buttons move
-// into that side column, and the content is the rest of the screen.
+// into that side column, and the content is the rest of the screen. Where they stay along the top
+// (iPhone Duo open on its side), the toolbar moves up into that band beside the status items.
 //
 // Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
 // (single), and everywhere else they have a place of their own and always show.
@@ -60,20 +66,33 @@ type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; s
 //   (iPad)
 // - over: the pane comes in over the call (iPhone Duo)
 // - sheet: Tasks rises as a sheet (phone)
-// - page: Tasks takes the screen beside the call's column as a place of its own (iPhone Duo)
+// - page: Tasks is a place of its own over the call (iPhone Duo, see `Duo`)
 export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' | 'page' };
 
-// iPhone Duo's Tasks: the screen beside the call's column, or under the toolbar where that runs
-// across the top, split into two pages along the fold while the Duo is open. On a call the orb
-// and the call's time join the column (`call`); where the toolbar runs across the top, the call
-// buttons join it at its trailing end (`controls`) and the tools gather at its leading one.
+// iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
+// call sits in the bar beside the system's status items: its orb with its time, down the side
+// column or across the top band, where the call buttons join them (`controls`) and the tools
+// gather at the band's leading end. Open, Tasks can give the call's words the page after the fold
+// and keep the one before it (`beside`), switched by a button in the bar.
+export type Duo = {
+  tasks: Page;
+  beside?: { tasks: Page; button: Place };
+  call: {
+    orb: Required<Spot>;
+    time: Place & { width: number; align: 'center' | 'left' };
+    controls?: { right: number; top: number };
+  };
+};
+
+// Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
+// buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
+// clear of the home indicator. Open, the fold cuts it into two pages (`fold`, within `area`).
 export type Page = {
   area: Rect;
   fold?: Fold;
+  inset: { left: number; right: number };
   top: number;
   foot: number;
-  call: { orb: Required<Spot>; time: Place & { width: number; align: 'center' | 'left' } };
-  controls?: { right: number; top: number };
 };
 
 // The fold within Tasks: the pages sit side by side (`row`) or one over the other (`column`), the
@@ -114,7 +133,7 @@ export type Layout = {
   tasks: Pane;
   // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
   inbox?: Inbox;
-  page?: Page;
+  duo?: Duo;
   pulls: boolean;
 };
 
@@ -131,14 +150,14 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   const layout =
     pose.regular && window.width > window.height
       ? split(frame, pose)
-      : pose.fold?.active && pose.fold.width > pose.fold.height
+      : pose.fold && pose.fold.width > pose.fold.height
         ? stacked(frame, pose.fold)
         : single(frame);
   if (!pose.bar && !pose.fold) return layout;
   return {
     ...layout,
     tasks: { width: frame.content.width, place: 'page' },
-    page: page(frame, pose.fold),
+    duo: frame.column ? besideColumn(frame, frame.column, pose.fold) : belowBand(frame, pose.fold),
   };
 }
 
@@ -148,32 +167,60 @@ type Frame = {
   bottomInset: number;
   content: Rect;
   toolbar: Toolbar;
-  controls?: ColumnControls;
+  // iPhone Duo's side column, the tools at its top and the call buttons at its foot.
+  column?: Span & { controls: ColumnControls };
   top: number;
 };
 
 function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
   const bottomInset = Math.max(insets.bottom, 20) + 14;
-  if (!pose.bar) {
-    const top = insets.top + (pose.regular ? 16 : 12);
-    return {
-      window,
-      insets,
-      bottomInset,
-      content: { x: 0, y: 0, width: window.width, height: window.height },
-      toolbar: {
+  if (pose.bar) return { window, insets, bottomInset, ...column(window, insets, pose) };
+  const toolbar = pose.fold
+    ? band(window, insets, pose.occlusions ?? [])
+    : {
         x: GUTTER,
-        y: top,
+        y: insets.top + (pose.regular ? 16 : 12),
         width: window.width - 2 * GUTTER,
         axis: 'row' as const,
-      },
-      top: top + TOOL,
-    };
+      };
+  return {
+    window,
+    insets,
+    bottomInset,
+    content: { x: 0, y: 0, width: window.width, height: window.height },
+    toolbar,
+    top: Math.max(insets.top, toolbar.y + TOOL),
+  };
+}
+
+// iPhone Duo open on its side: the system's status items sit in the band along the top, and the
+// toolbar takes the widest stretch of that band they leave, level with them.
+function band(window: Size, insets: Insets, occlusions: Rect[]): Toolbar {
+  const status = occlusions.filter((area) => area.y + area.height / 2 < insets.top);
+  return {
+    ...widestClear(GUTTER, window.width - GUTTER, status),
+    y: insets.top / 2 + STATUS_DROP - TOOL / 2,
+    axis: 'row',
+  };
+}
+
+function widestClear(from: number, to: number, taken: Rect[]): Span {
+  let best = { x: from, width: 0 };
+  let start = from;
+  for (const area of [...taken].sort((a, b) => a.x - b.x)) {
+    const end = Math.min(to, area.x - GAP);
+    if (end - start > best.width) best = { x: start, width: end - start };
+    start = Math.max(start, area.x + area.width + GAP);
   }
+  return to - start > best.width ? { x: start, width: to - start } : best;
+}
+
+// iPhone Duo's side column. The camera and the system's status items sit at its top upright and
+// at its foot on its side; the tools start below what's at the top, and the call buttons end above
+// what's at the foot.
+function column(window: Size, insets: Insets, pose: Pose) {
   const width = Math.max(pose.bar === 'right' ? insets.right : insets.left, COLUMN);
   const x = pose.bar === 'right' ? window.width - width : 0;
-  // The camera and the system's bars sit at the column's top upright and at its foot on its side;
-  // the tools start below what's at the top, and the call buttons end above what's at the foot.
   const covers = (pose.occlusions ?? []).filter(
     (area) => area.x < x + width && area.x + area.width > x,
   );
@@ -188,9 +235,6 @@ function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
   // time still fit between the tools and the call buttons.
   const tight = window.height < SHORT;
   return {
-    window,
-    insets,
-    bottomInset,
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
       x: x + (width - TOOL) / 2,
@@ -199,18 +243,23 @@ function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
       axis: 'column' as const,
       gaps: tight ? TIGHT_GAPS : COLUMN_GAPS,
     },
-    controls: {
-      right: window.width - x - (width + CONTROLS) / 2,
-      bottom: foot,
-      axis: 'column' as const,
-      sizes: tight ? TIGHT_SIZES : SIZES,
+    column: {
+      x,
+      width,
+      controls: {
+        right: window.width - x - (width + CONTROLS) / 2,
+        bottom: foot,
+        axis: 'column' as const,
+        sizes: tight ? TIGHT_SIZES : SIZES,
+      },
     },
     top: insets.top,
   };
 }
 
 function single(frame: Frame): Layout {
-  const { window, insets, bottomInset, content, toolbar, controls, top } = frame;
+  const { window, insets, bottomInset, content, toolbar, top } = frame;
+  const controls = frame.column?.controls;
   const center = content.x + content.width / 2;
   const width = Math.min(content.width - 2 * GUTTER, WORDS);
   const words = { x: center - width / 2, width };
@@ -383,7 +432,8 @@ function measure(from: number, to: number): Span {
 
 // iPhone Duo open: the orb on the page before the fold, the words on the page after it.
 function split(frame: Frame, pose: Pose): Layout {
-  const { window, insets, bottomInset, content, toolbar, controls } = frame;
+  const { window, insets, bottomInset, content, toolbar } = frame;
+  const controls = frame.column?.controls;
   const fold = pose.fold;
   const pane = fold ? fold.x - content.x : content.width / 2;
   const page = fold ? fold.x + fold.width + 8 : content.x + pane;
@@ -430,48 +480,83 @@ function stacked(frame: Frame, fold: Rect): Layout {
   };
 }
 
-// iPhone Duo's Tasks (see `Page`). In the side column the orb and its time sit midway between the
-// tools and the call buttons; across the top they sit just before mute, the time after the orb.
-function page(frame: Frame, fold: Rect | undefined): Page {
-  const { window, insets, content, toolbar, controls } = frame;
-  const along = fold && (fold.height > fold.width ? 'row' : 'column');
-  if (controls) {
-    const gaps = toolbar.gaps ?? COLUMN_GAPS;
-    const sizes = controls.sizes ?? SIZES;
-    const tools = toolbar.y + 3 * TOOL + gaps.tools + gaps.group;
-    const buttons = window.height - controls.bottom - sizes.mute - sizes.gap - sizes.call;
-    const x = toolbar.x + TOOL / 2;
-    const y = (tools + buttons) / 2 - (TIME + 4) / 2;
-    return {
-      area: content,
-      fold: fold && along && cut(along, fold, content),
+// iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
+// buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
+// switch sit as one group midway between the tools and the call buttons.
+function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, fold?: Rect): Duo {
+  const { window, insets, toolbar } = frame;
+  const gaps = toolbar.gaps ?? COLUMN_GAPS;
+  const sizes = column.controls.sizes ?? SIZES;
+  const x = column.x + column.width / 2;
+  const reach = Math.max(TOOL, sizes.mute, sizes.call) / 2;
+  const leading = column.x === 0;
+  const { tasks, first } = paged(
+    {
+      area: leading
+        ? { x: x + reach, y: 0, width: window.width - x - reach, height: window.height }
+        : { x: 0, y: 0, width: x - reach, height: window.height },
+      inset: FLUSH,
       top: insets.top,
       foot: insets.bottom,
-      call: {
-        orb: { x, y, size: CALL_ORB },
-        time: {
-          x: x - TIME_WIDTH / 2,
-          y: y + CALL_ORB / 2 + 4,
-          width: TIME_WIDTH,
-          align: 'center',
-        },
-      },
-    };
-  }
-  const y = toolbar.y + TOOL + 10;
-  const area = { x: content.x, y, width: content.width, height: window.height - y };
-  const orbX = window.width - GUTTER - 2 * TOOL - GAP - 14 - TIME_WIDTH - 6 - CALL_ORB / 2;
-  const middle = toolbar.y + TOOL / 2;
-  return {
-    area,
-    fold: fold && along && cut(along, fold, area),
-    top: 0,
-    foot: insets.bottom,
-    call: {
-      orb: { x: orbX, y: middle, size: CALL_ORB },
-      time: { x: orbX + CALL_ORB / 2 + 6, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
     },
-    controls: { right: GUTTER, top: toolbar.y },
+    fold,
+  );
+  const tools = toolbar.y + 3 * TOOL + gaps.tools + gaps.group;
+  const buttons = window.height - column.controls.bottom - sizes.mute - sizes.gap - sizes.call;
+  const group = CALL_ORB + 4 + TIME + (first ? 12 + TOOL : 0);
+  const y = (tools + buttons - group) / 2;
+  const time = y + CALL_ORB + 4;
+  return {
+    tasks,
+    beside: first && { tasks: first, button: { x, y: time + TIME + 12 + TOOL / 2 } },
+    call: {
+      orb: { x, y: y + CALL_ORB / 2, size: CALL_ORB },
+      time: { x: x - TIME_WIDTH / 2, y: time, width: TIME_WIDTH, align: 'center' },
+    },
+  };
+}
+
+// iPhone Duo open on its side, its toolbar in the band along the top (see `Duo`). Tasks takes the
+// screen below the band; on a call the call buttons end the band's stretch, and before them sit
+// the words' switch, then the orb with its time after it.
+function belowBand(frame: Frame, fold?: Rect): Duo {
+  const { window, insets, toolbar, top } = frame;
+  const { tasks, first } = paged(
+    {
+      area: { x: 0, y: top, width: window.width, height: window.height - top },
+      inset: FLUSH,
+      top: 0,
+      foot: insets.bottom,
+    },
+    fold,
+  );
+  const end = toolbar.x + toolbar.width;
+  const middle = toolbar.y + TOOL / 2;
+  const mute = end - 2 * TOOL - GAP;
+  const button = { x: mute - 14 - TOOL / 2, y: middle };
+  const time = (first ? button.x - TOOL / 2 - 10 : mute - 14) - TIME_WIDTH;
+  return {
+    tasks,
+    beside: first && { tasks: first, button },
+    call: {
+      orb: { x: time - 6 - CALL_ORB / 2, y: middle, size: CALL_ORB },
+      time: { x: time, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
+      controls: { right: window.width - end, top: toolbar.y },
+    },
+  };
+}
+
+// Tasks over a page's area, cut at the fold while the Duo is open, and the page before the fold,
+// the one it keeps when the call's words take the one after it.
+function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; first?: Page } {
+  if (!fold) return { tasks: page };
+  const { area } = page;
+  const row = fold.height > fold.width;
+  return {
+    tasks: { ...page, fold: cut(row ? 'row' : 'column', fold, area) },
+    first: row
+      ? { ...page, area: { ...area, width: fold.x - area.x } }
+      : { ...page, area: { ...area, height: fold.y - area.y }, foot: 0 },
   };
 }
 
