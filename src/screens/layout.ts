@@ -583,15 +583,19 @@ function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   };
 }
 
-// Tasks over a page's area, cut at the fold while the Duo is open, and the page after the fold,
-// the one it keeps when the call takes the one before it.
+// Tasks over a page's area, and the page after the fold, the one it keeps when the call takes the
+// one before it. Open upright the fold cuts Tasks into two pages side by side, a list beside its
+// topic, as a split view does on a wide screen; partly open it cuts it on its side too, along the
+// hinge. Open flat on its side there's nothing to cut along: the screen is one tall page, and Tasks
+// takes it whole.
 function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; after?: Page } {
   if (!fold) return { tasks: page };
   const { area } = page;
   const row = fold.height > fold.width;
   const end = { x: fold.x + fold.width, y: fold.y + fold.height };
   return {
-    tasks: { ...page, fold: cut(row ? 'row' : 'column', fold, area) },
+    tasks:
+      row || fold.height > 0 ? { ...page, fold: cut(row ? 'row' : 'column', fold, area) } : page,
     after: row
       ? { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } }
       : { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
