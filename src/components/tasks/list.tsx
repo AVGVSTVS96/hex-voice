@@ -38,8 +38,6 @@ import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
-// A list shorter than this drops its title and keeps search at the tabs' end.
-const SHORT_LIST = 360;
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
@@ -57,7 +55,7 @@ export function ListPage({
   pages,
   spot,
   paged,
-  line,
+  toolbarLine,
   tasks,
   offline,
   yours,
@@ -72,7 +70,7 @@ export function ListPage({
   pages: Pages;
   spot: Spot;
   paged: boolean;
-  line?: number;
+  toolbarLine?: number;
   tasks: TaskRow[] | undefined;
   offline: boolean;
   yours: ReturnType<typeof useAsks>;
@@ -120,7 +118,7 @@ export function ListPage({
 
   const openTask = (id: string, row?: string) => {
     feel.tick();
-    pages.go({ to: 'task', id, row });
+    pages.go({ to: 'topic', id, row });
   };
   const chooseStage = (next: Stage) => {
     feel.tick();
@@ -150,9 +148,21 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
-  const short = paged && spot.tall - spot.pad.top < SHORT_LIST;
+  const compact = bar === 'inline';
   const searching = query !== null;
-  const goThrough = !searching && stage === 'needs' && yours.open.length > 0;
+  const goThrough =
+    !searching && stage === 'needs' && yours.open.length > 0 ? (
+      <GoThrough
+        count={yours.open.length}
+        foot={spot.foot}
+        onPress={() => {
+          feel.tick();
+          onGoThrough();
+        }}
+      />
+    ) : null;
+  // At the fold the list ends above the pill: a row scrolled under it would show cut by the hinge.
+  const floats = !spot.endsAtFold;
 
   return (
     <ZStack alignment="bottom" modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
@@ -173,8 +183,8 @@ export function ListPage({
           />
         ) : (
           <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-            {short ? null : bar === 'center' ? (
-              <ListHead line={line} onSearch={startSearch} />
+            {compact ? null : bar === 'center' ? (
+              <ListHead toolbarLine={toolbarLine} onSearch={startSearch} />
             ) : (
               <PageBar
                 bar={bar}
@@ -188,8 +198,8 @@ export function ListPage({
               stage={stage}
               offline={unreachable}
               onChange={chooseStage}
-              back={short ? back : undefined}
-              onSearch={short ? startSearch : undefined}
+              back={compact ? back : undefined}
+              onSearch={compact ? startSearch : undefined}
             />
           </Column>
         )}
@@ -245,37 +255,20 @@ export function ListPage({
             <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
           ) : null}
           {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
-          {goThrough ? (
+          {goThrough && floats ? (
             <Spacer
               modifiers={[frame({ height: 72 }), ...listRow(width, { top: false, bottom: false })]}
             />
           ) : null}
         </List>
+        {floats ? null : goThrough}
       </Column>
-      {goThrough ? (
-        <GoThrough
-          count={yours.open.length}
-          foot={spot.foot}
-          onPress={() => {
-            feel.tick();
-            onGoThrough();
-          }}
-        />
-      ) : null}
+      {floats ? goThrough : null}
     </ZStack>
   );
 }
 
-// Starts a call that walks the asks with hex, one at a time; it floats over the foot of the list.
-function GoThrough({
-  count,
-  foot = 0,
-  onPress,
-}: {
-  count: number;
-  foot?: number;
-  onPress: () => void;
-}) {
+function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPress: () => void }) {
   return (
     <Row
       alignment="center"
@@ -287,7 +280,7 @@ function GoThrough({
         background(theme.prominent),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
-        padding({ leading: 16, trailing: 16, bottom: Math.max(12, foot) }),
+        padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(12, foot) }),
         ...(ios ? [accessibilityLabel(`Go through ${count} with hex, on a call`)] : []),
       ]}
     >

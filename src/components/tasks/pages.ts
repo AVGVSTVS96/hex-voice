@@ -3,35 +3,37 @@ import { useEffect, useReducer } from 'react';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { Fold } from '@/screens/layout';
 
-// Tasks' levels, the list at the foot: a topic's page, a thread's messages and its steps (from the
-// topic's page), and what the last check did.
-export type Level = 'list' | 'task' | 'thread' | 'trace' | 'check';
+export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
 
-// What's open: the levels pushed over the list, deepest last; the topic the pages show, the row it
-// was opened from, whose steps show; and each time a thread was opened to write to.
 export type Stack = {
   path: Pushed[];
   task: string | null;
   row: string | null;
-  trace: string | null;
-  writes: number;
+  stepsOf: string | null;
+  focusComposer: boolean;
 };
 
 export type Move =
   | { to: 'start'; at: TasksAt }
-  | { to: 'task'; id: string; row?: string }
+  | { to: 'topic'; id: string; row?: string }
   | { to: 'beside'; id: string | null }
   | { to: 'thread'; write?: boolean }
-  | { to: 'trace'; id: string }
+  | { to: 'composerFocused' }
+  | { to: 'steps'; id: string }
   | { to: 'check' }
   | { to: 'back' };
 
-// How the room holds the levels: one page at a time; the list with a topic's page beside it (a big
-// iPad); or iPhone Duo's two pages either side of the fold.
+// 'columns' is a big iPad's list with a topic's page beside it; 'fold' is iPhone Duo open.
 export type Shape = 'one' | 'columns' | 'fold';
 
-export const START: Stack = { path: [], task: null, row: null, trace: null, writes: 0 };
+export const START: Stack = {
+  path: [],
+  task: null,
+  row: null,
+  stepsOf: null,
+  focusComposer: false,
+};
 
 // Wide enough for the list and a topic's page side by side: Tasks on a 13-inch iPad beside a call,
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
@@ -44,48 +46,42 @@ export function shapeOf(width: number, fold: Fold | undefined): Shape {
 export function move(stack: Stack, step: Move): Stack {
   switch (step.to) {
     case 'start':
-      return { ...START, task: step.at.task ?? null, path: step.at.task ? ['task'] : [] };
-    case 'task':
-      return { ...stack, task: step.id, row: step.row ?? null, path: ['task'] };
+      return { ...START, task: step.at.task ?? null, path: step.at.task ? ['topic'] : [] };
+    case 'topic':
+      return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
     case 'beside':
       return { ...stack, task: step.id };
     case 'thread':
+      return { ...stack, path: ['topic', 'thread'], focusComposer: !!step.write };
+    case 'composerFocused':
+      return stack.focusComposer ? { ...stack, focusComposer: false } : stack;
+    case 'steps':
       return {
         ...stack,
-        path: ['task', 'thread'],
-        writes: stack.writes + (step.write ? 1 : 0),
-      };
-    case 'trace':
-      return {
-        ...stack,
-        trace: step.id,
-        path: [...stack.path.filter((at) => at !== 'trace'), 'trace'],
+        stepsOf: step.id,
+        path: [...stack.path.filter((at) => at !== 'steps'), 'steps'],
       };
     case 'check':
       return { ...stack, path: ['check'] };
     case 'back':
-      return { ...stack, path: stack.path.slice(0, -1) };
+      return { ...stack, path: stack.path.slice(0, -1), focusComposer: false };
   }
 }
 
-// The levels on screen, the list first. With a page beside the list, a topic's page is always up.
+// Beside the list, a topic's page is always up.
 export function levelsOf(stack: Stack, shape: Shape): Level[] {
   const levels: Level[] = ['list', ...stack.path];
-  if (shape !== 'one' && levels.length === 1) levels.push('task');
+  if (shape !== 'one' && levels.length === 1) levels.push('topic');
   return levels;
 }
 
-// Whether going back from here leaves Tasks: the page at its leading edge is the list. On the Duo's
-// two pages that's the page before the front; beside a big iPad's list, the topic beside it.
-export function leaves(stack: Stack, shape: Shape): boolean {
+export function backLeavesTasks(stack: Stack, shape: Shape): boolean {
   const levels = levelsOf(stack, shape);
   if (shape === 'one') return levels.length === 1;
-  if (shape === 'columns') return levels.length === 2 && levels[1] === 'task';
+  if (shape === 'columns') return levels.length === 2 && levels[1] === 'topic';
   return levels.at(-2) === 'list';
 }
 
-// The page stack a Tasks owner holds: it starts fresh with each opening, and Back leaves Tasks
-// (`onClose`) from its top.
 export function usePages({
   open,
   at,
@@ -101,103 +97,114 @@ export function usePages({
   useEffect(() => {
     if (open) go({ to: 'start', at });
   }, [open, at]);
-  const back = () => (leaves(stack, shape) ? onClose?.() : go({ to: 'back' }));
+  const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : go({ to: 'back' }));
   return { ...stack, shape, levels: levelsOf(stack, shape), closes: !!onClose, go, back };
 }
 
 export type Pages = ReturnType<typeof usePages>;
+type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
-// The room Tasks lays out in, `width` by `height` (0 where it fills a sheet), with `top` taken at
-// its top for the status bar or the toolbar's line, `foot` at its foot for the home indicator, and
-// its content kept `inset` from its sides. `paged` on iPhone Duo, where Tasks is a place of its own:
-// its pages draw no fill, so the screen's backdrop runs through them and the fold.
-export type Room = {
-  width: number;
-  height: number;
-  fold?: Fold;
-  top: number;
-  foot: number;
-  inset: { left: number; right: number };
-  paged: boolean;
-};
+type Inset = { left: number; right: number };
 
-// How a page's bar is drawn: centered under a sheet's grabber or in iPad's pane, and on iPhone Duo's
-// pages as iOS draws a page's: Back named for where it goes over the page's name set large
-// (`large`), or all on one line where the page is short (`inline`).
+// A sheet (the phone) or a pane (iPad) fills its container and paints its own pages. Paged rooms
+// are iPhone Duo's: clear pages over the screen's backdrop, `foot` either clear of the home
+// indicator or ending at the fold.
+export type Room =
+  | { paged: false; width: number; foot: number }
+  | {
+      paged: true;
+      width: number;
+      height: number;
+      fold?: Fold;
+      top: number;
+      foot: number | 'fold';
+      inset: Inset;
+    };
+
 export type Bar = 'center' | 'large' | 'inline';
 
-// Where a level's page sits: its frame on the Duo's pages (it fills the room elsewhere), moved by
-// `offset`; on screen or not; its content's width and padding; and where its Back goes, if it has
-// one ('call' leaves Tasks).
 export type Spot = {
   frame?: { width: number; height: number };
   offset: { x: number; y: number };
   shown: boolean;
-  tall: number;
   width: number;
   pad: { top: number; leading: number; trailing: number };
   foot: number;
+  endsAtFold: boolean;
   bar: Bar;
   back?: Level | 'call';
 };
 
-// A page shorter than this draws its bar on one line.
-const SHORT_PAGE = 520;
+const FLUSH: Inset = { left: 0, right: 0 };
 
-function listWidth(room: Room, shape: Shape) {
-  if (shape === 'columns') return Math.round(Math.min(440, Math.max(360, room.width * 0.42)));
-  return room.fold?.axis === 'row' ? room.fold.at : room.width;
+// iOS draws a bar on one line where the screen is wider than tall (a landscape iPhone), so a page
+// does the same.
+function barOf(room: Room, width: number, height: number): Bar {
+  return !room.paged ? 'center' : width > height ? 'inline' : 'large';
 }
 
-// One page at a time, a page steps down over the one before, which waits a third of a page behind
-// (a whole page on the Duo, whose pages are clear, so none shows through another). Beside a big
-// iPad's list the pages step down the same way to its side. On the Duo's two pages the front page
-// sits on the second and the one below it on the first, the rest a page behind the first or past
-// the second; a thread you write to on pages stacked one over the other takes both.
-export function spotOf(
-  level: Level,
-  pages: Pick<Pages, 'levels' | 'shape' | 'closes'>,
-  room: Room,
-  typing = false,
-): Spot {
-  const { levels, shape, closes } = pages;
+function footOf(foot: number | 'fold') {
+  return foot === 'fold' ? { foot: 0, endsAtFold: true } : { foot, endsAtFold: false };
+}
+
+export function spotOf(level: Level, pages: Placing, room: Room, typing = false): Spot {
+  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold, typing);
+  return pages.shape === 'columns'
+    ? spotInColumns(level, pages, room)
+    : spotAlone(level, pages, room);
+}
+
+// A page steps down over the one before, which waits a third of a page behind; on the Duo a whole
+// page, since its clear pages would show through each other.
+function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const below = i > 0 ? levels[i - 1] : undefined;
-  const bar = (tall: number): Bar =>
-    !room.paged ? 'center' : tall - room.top < SHORT_PAGE ? 'inline' : 'large';
-  const { fold, inset } = room;
+  const page = room.width;
+  const x = front ? 0 : i >= 0 ? -(room.paged ? page : page / 3) : page;
+  const top = room.paged ? room.top : 0;
+  const inset = room.paged ? room.inset : FLUSH;
+  return {
+    offset: { x, y: 0 },
+    shown: x === 0,
+    width: page - inset.left - inset.right,
+    pad: { top, leading: inset.left, trailing: inset.right },
+    ...footOf(room.foot),
+    bar: barOf(room, page, room.paged ? room.height - top : 0),
+    back: level === 'list' ? (front && closes ? 'call' : undefined) : levels[i - 1],
+  };
+}
 
-  if (!fold) {
-    const columns = shape === 'columns';
-    const list = listWidth(room, shape);
-    const page = columns ? room.width - list - 1 : room.width;
-    const behind = i >= 0 || (columns && level === 'task');
-    const x =
-      (columns && level === 'list') || front ? 0 : behind ? -(room.paged ? page : page / 3) : page;
-    const pad = columns
-      ? { leading: 0, trailing: 0 }
-      : { leading: inset.left, trailing: inset.right };
-    const back =
-      level === 'list'
-        ? front && closes && !columns
-          ? 'call'
-          : undefined
-        : columns && level === 'task'
-          ? undefined
-          : below;
-    return {
-      offset: { x, y: 0 },
-      shown: x === 0,
-      tall: room.height,
-      width: (level === 'list' ? list : page) - pad.leading - pad.trailing,
-      pad: { top: room.top, ...pad },
-      foot: room.foot,
-      bar: bar(room.height),
-      back,
-    };
-  }
+function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
+  const list = Math.round(Math.min(440, Math.max(360, room.width * 0.42)));
+  const page = room.width - list - 1;
+  const i = levels.indexOf(level);
+  const front = i === levels.length - 1;
+  const behind = i >= 0 || level === 'topic';
+  const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
+  const top = room.paged ? room.top : 0;
+  return {
+    offset: { x, y: 0 },
+    shown: x === 0,
+    width: level === 'list' ? list : page,
+    pad: { top, leading: 0, trailing: 0 },
+    ...footOf(room.foot),
+    bar: barOf(room, page, room.paged ? room.height - top : 0),
+    back: level === 'list' || level === 'topic' ? undefined : levels[i - 1],
+  };
+}
 
+// The front page sits after the fold and the one below it before the fold; the rest wait a page
+// behind the first or past the second. A thread you write to on pages stacked one over the other
+// takes both, so the keyboard leaves room to read it.
+function spotAtFold(
+  level: Level,
+  { levels, closes }: Placing,
+  room: Extract<Room, { paged: true }>,
+  fold: Fold,
+  typing: boolean,
+): Spot {
+  const i = levels.indexOf(level);
+  const front = i === levels.length - 1;
   const row = fold.axis === 'row';
   const size = row ? room.width : room.height;
   const second = { at: fold.at + fold.band, length: size - fold.at - fold.band };
@@ -213,21 +220,24 @@ export function spotOf(
             ? { at: -second.at, length: fold.at, shown: false }
             : { ...second, at: size, shown: false };
   const leading = shown && at <= 0;
+  const { inset } = room;
   const pad = !row
     ? { leading: inset.left, trailing: inset.right }
     : at <= 0
       ? { leading: inset.left, trailing: 0 }
       : { leading: 0, trailing: inset.right };
-  const tall = row ? room.height : length;
+  const top = !row && at > 0 ? 0 : room.top;
+  const frame = row
+    ? { width: length, height: room.height }
+    : { width: room.width, height: length };
   return {
-    frame: row ? { width: length, height: room.height } : { width: room.width, height: length },
+    frame,
     offset: row ? { x: at, y: 0 } : { x: 0, y: at },
     shown,
-    tall,
-    width: (row ? length : room.width) - pad.leading - pad.trailing,
-    pad: { top: !row && at > 0 ? 0 : room.top, ...pad },
-    foot: !row && at <= 0 && !(alone && front) ? 0 : room.foot,
-    bar: bar(tall),
-    back: !leading ? undefined : level === 'list' ? (closes ? 'call' : undefined) : below,
+    width: frame.width - pad.leading - pad.trailing,
+    pad: { top, ...pad },
+    ...footOf(!row && at <= 0 && !(alone && front) ? 'fold' : room.foot),
+    bar: barOf(room, frame.width, frame.height - top),
+    back: !leading ? undefined : level === 'list' ? (closes ? 'call' : undefined) : levels[i - 1],
   };
 }

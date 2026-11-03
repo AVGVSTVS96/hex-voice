@@ -18,15 +18,16 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { Bar } from '@/components/tasks/pages';
 import { INSET, ios } from '@/components/tasks/parts';
 import { PlaceTile } from '@/components/tasks/places';
+import { glass } from '@/components/voice-control';
 import { PLACES, type Place } from '@/live/inbox';
 import { theme } from '@/theme';
 
 const HEADER = 36;
+// iOS 26's bar buttons: 44pt glass, a circle for a symbol and a capsule for a name.
+export const BAR = 44;
 
-// Back, named for where it goes ('' draws a bare chevron).
-export type Back = { to: string; onPress: () => void };
+export type Back = { to?: string; onPress: () => void };
 
-// What a page's bar takes from where the page sits: how it's drawn, and its Back.
 export type Chrome = { bar: Bar; back?: Back };
 export const PageChrome = createContext<Chrome>({ bar: 'center' });
 export const useChrome = () => useContext(PageChrome);
@@ -50,7 +51,7 @@ export function Header({
         bar={bar}
         title={title}
         subtitle={subtitle}
-        back={back && { ...back, to: back.to === title ? '' : back.to }}
+        back={back}
         trailing={door ? <DoorPill door={door} /> : undefined}
       />
     );
@@ -120,8 +121,6 @@ export function Header({
   );
 }
 
-// A page's bar on iPhone Duo: Back and what sits at the bar's end over the page's name set large,
-// or all of it on one line.
 export function PageBar({
   bar,
   title,
@@ -142,8 +141,8 @@ export function PageBar({
         alignment="center"
         spacing={12}
         modifiers={[
-          padding({ leading: INSET - 4, trailing: 16, top: 8, bottom: 8 }),
-          frame({ minHeight: 56 }),
+          padding({ leading: INSET - 4, trailing: 16, top: 6, bottom: 6 }),
+          frame({ minHeight: BAR + 12 }),
           frame({ maxWidth: Infinity }),
         ]}
       >
@@ -181,7 +180,7 @@ export function PageBar({
         <Row
           alignment="center"
           spacing={12}
-          modifiers={[frame({ height: 44 }), frame({ maxWidth: Infinity })]}
+          modifiers={[frame({ height: BAR }), frame({ maxWidth: Infinity })]}
         >
           {backButton}
           <Spacer flexible />
@@ -193,7 +192,7 @@ export function PageBar({
         textStyle={{ fontSize: 28, fontWeight: '700' }}
         modifiers={[
           foregroundStyle(theme.text),
-          padding({ top: 2 }),
+          padding({ top: 10 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
@@ -215,57 +214,76 @@ export function PageBar({
   );
 }
 
-// Back as iOS 26 draws it in a bar: a chevron, and the name of where it goes, on Liquid Glass.
 export function BackButton({ back }: { back: Back }) {
   return (
-    <Button
-      onPress={back.onPress}
+    <BarButton
+      shape={back.to ? 'capsule' : 'circle'}
+      label={back.to ? `Back to ${back.to}` : 'Back'}
       testID="task-back"
-      modifiers={[
-        buttonStyle('glass'),
-        buttonBorderShape(back.to ? 'capsule' : 'circle'),
-        controlSize('large'),
-        ...(ios ? [accessibilityLabel(back.to ? `Back to ${back.to}` : 'Back')] : []),
-      ]}
+      onPress={back.onPress}
     >
-      <Row alignment="center" spacing={4}>
-        <Icon name="chevron.left" size={16} color={theme.accent} />
-        {back.to ? (
-          <Text
-            numberOfLines={1}
-            textStyle={{ fontSize: 17, fontWeight: '500' }}
-            modifiers={[foregroundStyle(theme.accent)]}
-          >
-            {back.to}
-          </Text>
-        ) : null}
-      </Row>
-    </Button>
+      <Icon name="chevron.left" size={17} color={theme.accent} />
+      {back.to ? (
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 17, fontWeight: '500' }}
+          modifiers={[foregroundStyle(theme.accent), frame({ maxWidth: 180 })]}
+        >
+          {back.to}
+        </Text>
+      ) : null}
+    </BarButton>
   );
 }
 
-// A page's door out on iPhone Duo: its app's mark and name, with the arrow that says it leaves.
 function DoorPill({ door }: { door: Door }) {
   return (
+    <BarButton shape="capsule" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
+      <PlaceTile place={door.place} size={22} />
+      <Text
+        numberOfLines={1}
+        textStyle={{ fontSize: 15, fontWeight: '600' }}
+        modifiers={[foregroundStyle(theme.text)]}
+      >
+        {PLACES[door.place]}
+      </Text>
+      <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+    </BarButton>
+  );
+}
+
+// Not buttonStyle('glass'): its padding grows each control past BAR by a different amount.
+export function BarButton({
+  shape,
+  label,
+  testID,
+  onPress,
+  children,
+}: {
+  shape: 'circle' | 'capsule';
+  label: string;
+  testID?: string;
+  onPress: () => void;
+  children: ReactNode;
+}) {
+  return (
     <Button
-      onPress={door.onPress}
-      modifiers={[
-        buttonStyle('glass'),
-        buttonBorderShape('capsule'),
-        controlSize('large'),
-        ...(ios ? [accessibilityLabel(`Open in ${PLACES[door.place]}`)] : []),
-      ]}
+      onPress={onPress}
+      testID={testID}
+      modifiers={[buttonStyle('plain'), ...(ios ? [accessibilityLabel(label)] : [])]}
     >
-      <Row alignment="center" spacing={7}>
-        <PlaceTile place={door.place} size={22} />
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
-          {PLACES[door.place]}
-        </Text>
-        <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+      <Row
+        alignment="center"
+        spacing={shape === 'circle' ? 0 : 6}
+        modifiers={[
+          ...(shape === 'circle'
+            ? [frame({ width: BAR, height: BAR })]
+            : [padding({ leading: 13, trailing: 15 }), frame({ height: BAR })]),
+          glass(shape),
+          contentShape(shape === 'circle' ? shapes.circle() : shapes.capsule()),
+        ]}
+      >
+        {children}
       </Row>
     </Button>
   );

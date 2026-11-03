@@ -86,13 +86,14 @@ export type Duo = {
 
 // Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 // buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
-// clear of the home indicator. Open, the fold cuts it into two pages (`fold`, within `area`).
+// clear of the home indicator, or ends at the fold. Open, the fold cuts it into two pages (`fold`,
+// within `area`).
 export type Page = {
   area: Rect;
   fold?: Fold;
   inset: { left: number; right: number };
   top: number;
-  foot: number;
+  foot: number | 'fold';
 };
 
 // The fold within Tasks: the pages sit side by side (`row`) or one over the other (`column`), the
@@ -556,7 +557,7 @@ function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; first?: Pa
     tasks: { ...page, fold: cut(row ? 'row' : 'column', fold, area) },
     first: row
       ? { ...page, area: { ...area, width: fold.x - area.x } }
-      : { ...page, area: { ...area, height: fold.y - area.y }, foot: 0 },
+      : { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }
 

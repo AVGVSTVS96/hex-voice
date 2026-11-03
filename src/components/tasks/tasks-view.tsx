@@ -50,29 +50,18 @@ export type TasksProps = {
   onOpenCall: (id: string) => void;
 };
 
-// Tasks in the phone's sheet or iPad's pane, holding its own pages. Its title sits on the
-// toolbar's line where there is one beside it (`line`), and its foot keeps clear of the home
-// indicator (`foot`).
 export function TasksView({
   width,
-  line,
+  toolbarLine,
   foot = 0,
   ...view
-}: TasksProps & { width: number; line?: number; foot?: number }) {
+}: TasksProps & { width: number; toolbarLine?: number; foot?: number }) {
   const pages = usePages({ open: view.open, at: view.at, shape: shapeOf(width, undefined) });
   return (
-    <Tasks
-      {...view}
-      pages={pages}
-      line={line}
-      room={{ width, height: 0, top: 0, foot, inset: { left: 0, right: 0 }, paged: false }}
-    />
+    <Tasks {...view} pages={pages} toolbarLine={toolbarLine} room={{ width, foot, paged: false }} />
   );
 }
 
-// Everything hex has going: the list, and a topic's page a level down from it, a thread's
-// messages below that and its steps below those. Each level's page sits where its spot puts it
-// (`spotOf`) and takes its Back from there; whoever holds `pages` can take Tasks back a level.
 export function Tasks({
   open,
   haptics,
@@ -82,21 +71,21 @@ export function Tasks({
   at,
   pages,
   room,
-  line,
-}: TasksProps & { pages: Pages; room: Room; line?: number }) {
+  toolbarLine,
+}: TasksProps & { pages: Pages; room: Room; toolbarLine?: number }) {
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState(false);
   const task = useTask(pages.task, version);
-  const traced = useTask(pages.trace, version);
+  const traced = useTask(pages.stepsOf, version);
   const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
   const opened = task ?? tasks?.find((row) => row.id === pages.task);
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
   const said = useChat(
-    open && opened && (pages.shape !== 'one' || pages.path.includes('task')) ? opened.id : null,
+    open && opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
   );
 
   const answer = (ask: Ask, option: AskOption) => {
@@ -126,9 +115,9 @@ export function Tasks({
     if (tile.kind === 'call') onOpenCall(tile.call);
     else void Linking.openURL(tile.url);
   };
-  const openTrace = (id: string) => {
+  const openSteps = (id: string) => {
     tick();
-    pages.go({ to: 'trace', id });
+    pages.go({ to: 'steps', id });
   };
   const write = (write: boolean) => {
     tick();
@@ -140,21 +129,18 @@ export function Tasks({
   };
 
   const spot = (level: Level) => spotOf(level, pages, room, typing);
-  // Back is named on iPhone Duo for the page it goes to, and leaving Tasks for the call.
-  const nameOf = (to: Level | 'call') =>
-    to === 'call'
-      ? 'Call'
-      : to === 'list'
-        ? 'Tasks'
-        : to === 'task'
-          ? (opened?.name ?? '')
-          : to === 'thread'
-            ? ((opened?.place || opened?.name) ?? '')
-            : '';
+  const names: Record<Level | 'call', string> = {
+    call: 'Call',
+    list: 'Tasks',
+    topic: opened?.name ?? 'Topic',
+    thread: (opened?.place || opened?.name) ?? 'Thread',
+    steps: 'Steps',
+    check: 'Last check',
+  };
   const chromeOf = ({ bar, back }: Spot): Chrome => ({
     bar,
     back: back && {
-      to: room.paged ? nameOf(back) : '',
+      to: room.paged ? names[back] : undefined,
       onPress:
         back === 'call'
           ? pages.back
@@ -180,7 +166,7 @@ export function Tasks({
       pages={pages}
       spot={spot('list')}
       paged={room.paged}
-      line={line}
+      toolbarLine={toolbarLine}
       tasks={tasks}
       offline={offline}
       yours={yours}
@@ -193,7 +179,7 @@ export function Tasks({
   );
   const levels = [
     page(
-      'task',
+      'topic',
       opened ? (
         <Detail
           task={opened}
@@ -201,15 +187,15 @@ export function Tasks({
           answered={yours.answered}
           threads={threads}
           missing={missing}
-          width={spot('task').width}
-          onTrace={openTrace}
+          width={spot('topic').width}
+          onSteps={openSteps}
           onAnswer={answer}
           onUndo={undo}
           onTalk={() => talk(opened)}
           onOpen={openThread}
           onOpenTask={(id) => {
             tick();
-            pages.go({ to: 'task', id });
+            pages.go({ to: 'topic', id });
           }}
           messages={
             <Messages
@@ -219,7 +205,7 @@ export function Tasks({
               onWrite={() => write(true)}
             />
           }
-          foot={spot('task').foot}
+          foot={spot('topic').foot}
         />
       ) : (
         <Spacer />
@@ -232,11 +218,14 @@ export function Tasks({
           thread={opened}
           chat={said.chat}
           pending={said.pending}
-          focus={pages.writes}
+          focus={pages.focusComposer}
           foot={spot('thread').foot}
-          onTyping={setTyping}
+          onTyping={(on) => {
+            setTyping(on);
+            if (on) pages.go({ to: 'composerFocused' });
+          }}
           onOpen={openThread}
-          onSteps={() => openTrace(opened.id)}
+          onSteps={() => openSteps(opened.id)}
           onSend={said.send}
           onRetry={said.retry}
           onStop={() => {
@@ -250,7 +239,7 @@ export function Tasks({
       ),
     ),
     page(
-      'trace',
+      'steps',
       traced ? <Trace task={traced} onOpen={(link) => openLink(link, 't3')} /> : <Spacer />,
     ),
     page('check', <LastCheck check={check} />),
@@ -282,14 +271,14 @@ export function Tasks({
         </ZStack>
       </Row>
     );
+  const atFold =
+    room.paged && room.fold
+      ? frame({ width: room.width, height: room.height, alignment: 'topLeading' })
+      : undefined;
   return (
     <ZStack
-      alignment={room.fold ? 'topLeading' : 'top'}
-      modifiers={
-        room.fold
-          ? [frame({ width: room.width, height: room.height, alignment: 'topLeading' }), clipped()]
-          : fill
-      }
+      alignment={atFold ? 'topLeading' : 'top'}
+      modifiers={atFold ? [atFold, clipped()] : fill}
     >
       {page('list', list)}
       {levels}
@@ -297,10 +286,8 @@ export function Tasks({
   );
 }
 
-// A level's page where its spot puts it, sliding there when it moves. In a sheet or iPad's pane
-// it's drawn on the sheet's color over the page below it; on iPhone Duo it draws nothing behind
-// its content, which stays inside its page, clear of the hinge and the column's buttons, and fades
-// as it leaves.
+// On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
+// covering the page below it.
 function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; children: ReactNode }) {
   const { frame: size, offset: at, pad } = spot;
   return (
