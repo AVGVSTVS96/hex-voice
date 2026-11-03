@@ -69,12 +69,7 @@ type ColumnControls = { right: number; bottom: number; axis: 'row' | 'column'; s
 // - over: the pane comes in over the call (iPhone Duo)
 // - sheet: Tasks rises as a sheet (phone)
 // - page: Tasks is a place of its own over the call (iPhone Duo, see `Duo`)
-// A pane that starts `below` a bar leaves that bar, and the buttons in it, uncovered and in place.
-export type Pane = {
-  width: number;
-  place: 'slide' | 'beside' | 'over' | 'sheet' | 'page';
-  below?: number;
-};
+export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet' | 'page' };
 
 // iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
 // call sits in the bar beside the system's status items: its orb with its time, down the side
@@ -172,10 +167,8 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   return {
     ...layout,
     tasks: { width: frame.content.width, place: 'page' },
-    // Open on its side, Calls is a page under the band, as Tasks is.
-    ...(frame.column
-      ? {}
-      : { calls: { width: frame.content.width, place: 'over', below: frame.top } }),
+    // Open on its side the call yields its leading edge to Calls, as on iPad.
+    ...(frame.column ? {} : { calls: { width: LIST, place: 'beside' } }),
     duo: {
       partlyOpen: !!pose.fold?.active,
       ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
@@ -354,7 +347,7 @@ function single(frame: Frame): Layout {
     besideCalls: below,
     besideTasks: below,
     footer: { ...inset, bottom: window.height - dock + DOCKED / 2 + 18 },
-    calls: { width: Math.min(content.width - 72, LIST), place: 'over' },
+    calls: { width: Math.min(content.width - 72, LIST), place: 'slide' },
   };
 }
 
@@ -499,7 +492,7 @@ function split(frame: Frame, fold?: Rect): Layout {
     footer: { ...words, bottom: agentBottom + AGENT },
     agent: { ...words, bottom: agentBottom },
     lift: { calls: 0, tasks: 0 },
-    calls: { width: fold ? pane : LIST, place: fold ? 'over' : 'beside' },
+    calls: { width: fold ? pane : LIST, place: 'beside' },
     tasks: { width: TASKS, place: 'sheet' },
     pulls: false,
   };
