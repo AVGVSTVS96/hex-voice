@@ -5,7 +5,8 @@
 #   scripts/duo build [ref]           bundles and builds it, printing any compile errors
 #   scripts/duo shoot [ref] [states]  each state in the states file (the ref's scripts/duo-states
 #                                     by default) in each pose, dark and light
-#   scripts/duo tap [ref]             uitests/ in each pose, dark and light: XCUITest really taps
+#   scripts/duo tap [ref] [taps]      the tap script (the ref's scripts/duo-taps by default) in
+#                                     each pose, dark and light: XCUITest really taps
 #   scripts/duo phone [update]        the real Duo's screen, once it runs that OTA update if given
 #
 # POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
@@ -22,6 +23,8 @@ mac=${HEX_VOICE_MAC:-mac}
 folder=Developer/hex-voice-sim
 sim="hexvoice Duo"
 bundle=com.shahidy.hexvoice
+# The app under check talks to scripts/duo-hex.mjs here, which never passes a write on to hex.
+hexport=8799
 
 # A pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in degrees.
 POSES=${POSES:-cover-up cover-side open-up open-side}
@@ -65,8 +68,12 @@ mac_build() {
   ls -t apps | tail -n +4 | sed 's|^|apps/|' | xargs rm -rf
 }
 
-# The commit's bundle in its runtime's build, which never looks for an OTA update.
+# The commit's bundle in its runtime's build, which never looks for an OTA update, talking to
+# the read-only stand-in for hex for as long as this check runs.
 mac_install() {
+  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport exec node harness/duo-hex.mjs) &
+  standin=$!
+  trap 'kill "$standin"' EXIT
   rm -rf stage shots && mkdir stage shots
   cp -cR "apps/$1.app" stage/hex.app
   rsync -a js/ stage/hex.app/
@@ -179,12 +186,14 @@ mac_shoot() {
   date +%s >last-use
 }
 
-# Runs uitests/ in each pose and appearance: each step the tests print ("duo-step <name>") is
-# shot as shots/<pose>-<name>-<appearance>.png, failures go to notes.txt, and the accessibility
-# tree the tests keep lands beside them.
+# Plays the tap script it reads (uitests/DuoTests.swift has its commands) in each pose and
+# appearance: each "shoot <name>" is shot as shots/<pose>-<name>-<appearance>.png, "pose <pose>"
+# moves the Duo there without relaunching the app, failures go to notes.txt, and the
+# accessibility tree at the end lands beside the shots.
 mac_tap() {
-  local tests=~/$folder/build/uitests pose hinge orientation display appearance result line
+  local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line
   mac_install "$1"
+  taps=$(cat)
   (cd harness/uitests && xcodegen generate -q)
   xcodebuild build-for-testing -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
     -destination "id=$id" -derivedDataPath "$tests" -quiet >"$tests.log" 2>&1 || {
@@ -192,19 +201,20 @@ mac_tap() {
     die "the UI tests didn't build"
   }
   for pose in $POSES; do
-    place "$pose"
     for appearance in $APPEARANCES; do
+      place "$pose"
       xcrun simctl ui "$id" appearance "$appearance"
       result=$tests/$pose-$appearance.xcresult
       rm -rf "$result" "$tests/attachments"
-      xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
-        -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
+      TEST_RUNNER_DUO_TAPS=$taps xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
+        -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | while IFS= read -r line; do
         case $line in
           *"duo-step "*)
             xcrun simctl io "$id" screenshot --display="$display" \
               "shots/$pose-${line##*duo-step }-$appearance.png" >/dev/null 2>&1
             ;;
+          *"duo-pose "*) place "${line##*duo-pose }" ;;
           *error:* | *XCTAssert* | *failed*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
       done || true
@@ -243,14 +253,19 @@ prepare() {
   title=$(git -C "$verify" log --oneline -1 | cut -c1-80)
   runtime=$(runtime_version "$verify")
   rm -rf "$home/js" && mkdir -p "$home/js"
-  (cd "$verify" && npx expo export:embed --platform ios --dev false --minify true \
+  (cd "$verify" && EXPO_PUBLIC_HEX_URL=http://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
+    npx expo export:embed --platform ios --dev false --minify true \
     --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
     --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
     tail -20 "$home/js.log" >&2
     die "$title didn't bundle"
   }
+  (set -a && . "$release/.env.local" &&
+    ! grep -qF -e "$EXPO_PUBLIC_HEX_TOKEN" -e "$EXPO_PUBLIC_HEX_URL" "$home/js/main.jsbundle") ||
+    die "$title's bundle can reach hex itself, so it isn't checked"
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
-    "$repo/uitests" "$mac:$folder/harness/"
+    "$repo/scripts/duo-hex.mjs" "$repo/uitests" "$mac:$folder/harness/"
+  rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
   rsync -a --delete "$home/js/" "$mac:$folder/js/"
   ssh "$mac" test -d "$folder/apps/$runtime.app" || {
     echo "building $title's native code for the simulator"
@@ -289,7 +304,9 @@ shoot() {
 
 tap() {
   echo "tapping through $title"
-  ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac tap $runtime" </dev/null
+  { if [ -n "${1:-}" ]; then cat "$1"; else
+    git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
+  fi; } | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac tap $runtime"
   collect "$shots/$commit/tap"
 }
 
@@ -307,8 +324,11 @@ phone() {
   }
   file=$shots/phone/$(date +%m%d-%H%M%S).png
   mkdir -p "$shots/phone"
-  ssh "$mac" xcrun devicectl device capture screenshot --device "$DUO_UDID" --destination /tmp/duo-phone.png \
-    >/dev/null || die "couldn't screenshot the Duo; is it unlocked and near the Mac?"
+  # The cover is the Duo's primary display even while it's open and off, so this shoots the lit one.
+  ssh "$mac" "xcrun devicectl device info displays --device $DUO_UDID --json-output /tmp/duo-displays.json >/dev/null &&
+    xcrun devicectl device capture screenshot --device $DUO_UDID --destination /tmp/duo-phone.png \
+      --display-unique-id \$(jq -r '.result.displays[] | select(.active) | .uniqueId' /tmp/duo-displays.json) >/dev/null" ||
+    die "couldn't screenshot the Duo; is it unlocked and near the Mac?"
   scp -q "$mac:/tmp/duo-phone.png" "$file" && ssh "$mac" rm /tmp/duo-phone.png
   [ "$(magick "$file" -format '%[fx:maxima]' info:)" != 0 ] || die "the Duo's screen was black ($file): off, or the app is stuck"
   echo "$file"
@@ -326,10 +346,10 @@ case ${1:-} in
     prepare "${2:-}"
     case $1 in
       shoot) shoot "${3:-}" ;;
-      tap) tap ;;
+      tap) tap "${3:-}" ;;
     esac
     echo "took $((SECONDS - start))s"
     ;;
   phone) phone "${2:-}" ;;
-  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] | phone [update]" ;;
+  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | phone [update]" ;;
 esac
