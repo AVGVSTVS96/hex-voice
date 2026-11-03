@@ -1,11 +1,10 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   background,
   clipShape,
   contentShape,
-  foregroundStyle,
   frame,
   opacity,
   padding,
@@ -16,11 +15,12 @@ import { useState } from 'react';
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Hairline, SectionHead, ios } from '@/components/tasks/parts';
+import { Hairline, SectionHead } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskId, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 const GLYPH: Record<Place, SFSymbol> = {
   telegram: 'paperplane.fill',
@@ -85,7 +85,7 @@ function Solid({
       modifiers={[
         frame({ width: size, height: size }),
         background(color),
-        clipShape('roundedRectangle', size * 0.27),
+        clipShape('roundedRectangle', size * metrics.tileCorner),
       ]}
     >
       <Icon name={glyph} size={size * 0.5} color={ink} />
@@ -104,7 +104,7 @@ function Ghost({ place, size }: { place: Place; size: number }) {
             content: ink,
             style: { lineWidth: 1 },
             shape: 'roundedRectangle',
-            cornerRadius: size * 0.27,
+            cornerRadius: size * metrics.tileCorner,
           }),
           opacity(0.35),
         ]}
@@ -157,40 +157,32 @@ export function Places({
           >
             <Row
               alignment="center"
-              spacing={12}
+              spacing={space[3]}
               onPress={
                 opens ? () => (thread.link ? onOpen(thread) : onOpenTask(thread.id)) : undefined
               }
               modifiers={[
                 padding({
                   leading: metrics.list.inset,
-                  trailing: metrics.list.inset - 4,
-                  top: 11,
-                  bottom: 11,
+                  trailing: metrics.list.inset - space[1],
+                  top: metrics.list.place,
+                  bottom: metrics.list.place,
                 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
                 contentShape(shapes.rectangle()),
-                ...(ios ? [accessibilityLabel(`${thread.place}, ${note}`)] : []),
+                accessibilityLabel(`${thread.place}, ${note}`),
               ]}
             >
               <PlaceTile place={place} />
               <Column
                 alignment="start"
-                spacing={1}
+                spacing={space[0.25]}
                 modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                <Text
-                  numberOfLines={1}
-                  textStyle={{ fontSize: 15, fontWeight: '500' }}
-                  modifiers={[foregroundStyle(theme.text)]}
-                >
+                <Text numberOfLines={1} variant="subheadline" weight="medium">
                   {thread.place}
                 </Text>
-                <Text
-                  numberOfLines={1}
-                  textStyle={{ fontSize: 13 }}
-                  modifiers={[foregroundStyle(gone ? theme.danger : theme.secondary)]}
-                >
+                <Text numberOfLines={1} variant="footnote" tone={gone ? 'danger' : 'secondary'}>
                   {note}
                 </Text>
               </Column>
@@ -209,10 +201,10 @@ export function Places({
       {rest > 0 ? (
         <Text
           onPress={() => setEvery(true)}
-          textStyle={{ fontSize: 13 }}
+          variant="footnote"
+          tone="accent"
           modifiers={[
-            foregroundStyle(theme.accent),
-            padding({ leading: metrics.list.inset + 40, top: 10, bottom: 4 }),
+            padding({ leading: metrics.list.inset + space[10], top: space[2.5], bottom: space[1] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >
