@@ -477,13 +477,15 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     }
     pane.set(settle(tasksOpen ? 1 : 0));
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-  // The call is a card, and while a pane sits beside it its corners round off against that pane,
-  // with a hairline at its edge. Calls always sits beside it, sliding it aside or taking its leading
-  // edge, and its top too where Calls starts below a band, so the band stays whole over both; Tasks
-  // does where it takes its trailing edge, and as a sheet or a page it covers the call instead,
-  // which leaves no edge to round. Where
-  // a pane takes an edge, what's on the call stays put in the window, so only the words move over
-  // into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
+  // The call is a card, and while a pane sits beside it its corners round off against that pane.
+  // Calls always sits beside it, sliding it aside or taking its leading edge, and its top too where
+  // Calls starts below a band, so the band stays whole over both; Tasks does where it takes its
+  // trailing edge, and as a sheet or a page it covers the call instead, which leaves no edge to
+  // round. Where a pane takes an edge, what's on the call stays put in the window, so only the words
+  // move over into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
+  // A card that still reaches the screen's top and foot wears no hairline: there it would only line
+  // the screen's edges, which reads as a 1px gap along the top and bottom of the app.
+  const lined = list.place === 'slide' || list.below !== undefined;
   const cardStyle = useAnimatedStyle(() => {
     const d = drawer.get();
     const t = pane.get();
@@ -494,7 +496,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       left: (list.place === 'beside' ? d * list.width : 0) + slid,
       right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
       borderRadius: radius.card * yielded,
-      borderWidth: yielded > 0 ? StyleSheet.hairlineWidth : 0,
+      borderWidth: lined && yielded > 0 ? StyleSheet.hairlineWidth : 0,
     };
   });
   const stageStyle = useAnimatedStyle(() => ({
