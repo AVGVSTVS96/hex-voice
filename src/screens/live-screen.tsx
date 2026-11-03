@@ -1090,9 +1090,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
         style={[
           { top: toolbar.y },
-          toolbar.axis === 'column'
-            ? { left: toolbar.x, right: width - toolbar.x - toolbar.width }
-            : toolbarStyle,
+          toolbar.axis === 'column' ? pinned(toolbar, width) : toolbarStyle,
         ]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
@@ -1141,6 +1139,12 @@ function useEndedCall(
     });
     started.current = null;
   }, [status]);
+}
+
+// A side column keeps its own width at the edge it's on. iOS grows the screen before the call
+// screen lays out again as the Duo opens, so a column held by both edges would stretch across it.
+function pinned({ x, width }: { x: number; width: number }, screen: number) {
+  return x < screen / 2 ? { left: x, width } : { right: screen - x - width, width };
 }
 
 const FADE = [{ color: theme.background }, { color: 'transparent' }];
