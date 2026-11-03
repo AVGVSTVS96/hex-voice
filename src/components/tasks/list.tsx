@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { List } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -6,7 +6,6 @@ import {
   background,
   clipShape,
   contentShape,
-  foregroundStyle,
   frame,
   listStyle,
   padding,
@@ -26,7 +25,6 @@ import {
   Loading,
   UNREACHED,
   asks,
-  ios,
   listRow,
   type Feel,
 } from '@/components/tasks/parts';
@@ -51,6 +49,8 @@ import {
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 const TABS_WITH_BAR = 600;
 
@@ -306,10 +306,10 @@ export function ListPage({
 function Behind({ width }: { width: number }) {
   return (
     <Text
-      textStyle={{ fontSize: 13 }}
+      variant="footnote"
+      tone="tertiary"
       modifiers={[
-        foregroundStyle(theme.tertiary),
-        padding({ top: 6, bottom: 6 }),
+        padding({ top: space[1.5], bottom: space[1.5] }),
         frame({ maxWidth: Infinity }),
         ...listRow(width, { top: false, bottom: false }),
       ]}
@@ -323,24 +323,26 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
   return (
     <Row
       alignment="center"
-      spacing={9}
+      spacing={metrics.pill.gap}
       onPress={onPress}
       modifiers={[
-        frame({ height: 52 }),
+        frame({ height: metrics.pill.height }),
         frame({ maxWidth: Infinity }),
         background(theme.prominent),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
-        padding({ leading: 16, trailing: 16, top: 12, bottom: Math.max(16, foot) }),
-        ...(ios ? [accessibilityLabel(`Go through ${asks(count)} with hex, on a call`)] : []),
+        padding({
+          leading: space[4],
+          trailing: space[4],
+          top: space[3],
+          bottom: Math.max(space[4], foot),
+        }),
+        accessibilityLabel(`Go through ${asks(count)} with hex, on a call`),
       ]}
     >
       <Spacer flexible />
       <Icon name="waveform" size={16} color={theme.onProminent} />
-      <Text
-        textStyle={{ fontSize: 17, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.onProminent)]}
-      >
+      <Text variant="headline" tone="onProminent">
         {`Go through ${asks(count)} with hex`}
       </Text>
       <Spacer flexible />
