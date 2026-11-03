@@ -271,7 +271,6 @@ export function fitsOneLine(options: AskOption[], width: number, size = SIZE) {
   return ((words + BETWEEN * (options.length - 1)) * size) / SIZE <= width;
 }
 
-// The task a row opens, when it has one.
 // The page a project opens on: its leading thread's, or, with none to show (what's stuck, what
 // finished), a page of its own rows.
 export function pageOf(topic: Topic) {
@@ -289,6 +288,7 @@ export function tracksOf(name: string, tasks: TaskRow[]): Turn[][] {
   return tasks.flatMap((task) => (task.name === name && task.track?.length ? [task.track] : []));
 }
 
+// The task a row opens, when it has one.
 export function taskOf(entry: Entry) {
   if (entry.kind === 'ask') return entry.ask.task;
   if (entry.kind === 'task') return entry.task.id;
