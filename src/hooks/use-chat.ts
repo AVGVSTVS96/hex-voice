@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
 import { useWatch } from '@/hooks/use-watch';
+import { useFailures, failure } from '@/hooks/use-failures';
 import { tasksAPI } from '@/live/api';
+import { Refused } from '@/live/api-client';
 import { arrived, newKey, type Sending } from '@/live/chat';
 import type { Chat } from '@/live/tasks';
 
@@ -11,6 +13,7 @@ import type { Chat } from '@/live/tasks';
 export function useChat(id: string | null) {
   const [seen, setSeen] = useState<{ id: string; chat: Chat }>();
   const [sending, setSending] = useState<Sending[]>([]);
+  const tries = useFailures();
   useWatch<Chat>(
     id,
     (after, signal) => tasksAPI.chat(id!, after, signal),
@@ -21,14 +24,14 @@ export function useChat(id: string | null) {
   const pending = sending.filter((sent) => sent.id === id && !(chat && arrived(chat, sent)));
 
   const deliver = (sent: Sending) => {
-    setSending((now) => [...now.filter(({ key }) => key !== sent.key), { ...sent, failed: false }]);
-    tasksAPI
-      .send(sent.id, sent.text, sent.key)
-      .catch(() =>
-        setSending((now) =>
-          now.map((each) => (each.key === sent.key ? { ...each, failed: true } : each)),
-        ),
-      );
+    setSending((now) => [
+      ...now.filter(({ key }) => key !== sent.key),
+      { ...sent, failed: undefined },
+    ]);
+    tasksAPI.send(sent.id, sent.text, sent.key).catch((error: unknown) => {
+      const failed = { why: failure('Not sent', error), again: !(error instanceof Refused) };
+      setSending((now) => now.map((each) => (each.key === sent.key ? { ...each, failed } : each)));
+    });
   };
 
   return {
@@ -36,6 +39,7 @@ export function useChat(id: string | null) {
     pending,
     send: (text: string) => id && deliver({ id, key: newKey(), text, total: chat?.total ?? 0 }),
     retry: deliver,
-    stop: () => id && tasksAPI.stop(id).catch(() => {}),
+    stop: () => id && tries.attempt(id, 'Not stopped', () => tasksAPI.stop(id)),
+    failed: id ? tries.failed[id] : undefined,
   };
 }

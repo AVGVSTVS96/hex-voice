@@ -21,7 +21,7 @@ import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
-import { Faded, SectionHead, ios } from '@/components/tasks/parts';
+import { Failure, Faded, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
@@ -88,6 +88,7 @@ export function ThreadPage({
   onRetry,
   onStop,
   onTalk,
+  failed,
 }: {
   thread: TaskRow | Task;
   beside?: boolean;
@@ -101,6 +102,8 @@ export function ThreadPage({
   onRetry: (sent: Sending) => void;
   onStop: () => void;
   onTalk: () => void;
+  // Why the last Stop didn't go through.
+  failed?: string;
 }) {
   const place = PLACES[placeOf(thread.app)];
   const running = thread.running;
@@ -198,6 +201,9 @@ export function ThreadPage({
           onPress={onSteps}
           label={`Working: ${doing ?? ''}. Shows its steps`}
         />
+      ) : null}
+      {failed ? (
+        <Failure text={failed} modifiers={[padding({ leading: INSET, trailing: INSET, top: 8 })]} />
       ) : null}
       {chat?.sends ? (
         <Composer

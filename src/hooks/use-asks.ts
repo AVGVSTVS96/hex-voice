@@ -1,42 +1,55 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 
 import { keepDraft } from '@/hooks/use-draft';
+import { useFailures } from '@/hooks/use-failures';
 import { useWatch } from '@/hooks/use-watch';
 import { asksAPI } from '@/live/api';
-import { openAsks, yours, type Ask, type AskOption } from '@/live/asks';
+import { failedOn, openAsks, yours, type Ask, type AskOption } from '@/live/asks';
 
 // Everything waiting on you, live while the sheet is open. An answer folds its card where it sits
-// and goes to hex; the card stays folded there with Undo until the sheet closes, and opens again if
-// hex couldn't take the answer.
+// and goes to hex; the card stays folded there with Undo until the sheet closes. Whatever hex
+// couldn't take says why on the item it was about, and an answer that didn't land opens again.
 export function useAsks(open: boolean) {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const [offline, setOffline] = useState(false);
+  const tries = useFailures();
   useWatch(open, asksAPI.list, (list) => dispatch({ type: 'list', list }), setOffline);
   useEffect(() => {
-    if (!open) dispatch({ type: 'close' });
+    if (open) return;
+    dispatch({ type: 'close' });
+    tries.clear();
   }, [open]);
+  const list = useMemo(
+    () => state.list && failedOn(state.list, tries.failed),
+    [state.list, tries.failed],
+  );
 
   const answer = (ask: Ask, option: AskOption) => {
     dispatch({ type: 'answer', id: ask.id, label: option.label });
-    asksAPI.answer(ask.id, option.label).then(
-      () => keepDraft(`ask:${ask.id}`, ''),
-      () => dispatch({ type: 'failed', id: ask.id }),
-    );
+    const sent = tries.attempt(ask.id, 'Not answered', () => asksAPI.answer(ask.id, option.label));
+    void sent.then((landed) => {
+      if (landed) keepDraft(`ask:${ask.id}`, '');
+      else dispatch({ type: 'failed', id: ask.id });
+    });
   };
   const undo = (id: string) => {
+    const label = state.answered[id];
+    if (!label) return;
     dispatch({ type: 'undo', id });
-    void asksAPI.undo(id).catch(() => {});
+    void tries
+      .attempt(id, 'Not undone', () => asksAPI.undo(id))
+      .then((undone) => undone || dispatch({ type: 'answer', id, label }));
   };
   return {
-    list: state.list,
-    shown: state.list?.asks ?? [],
+    list,
+    shown: list?.asks ?? [],
     answered: state.answered,
     open: openAsks(state),
     offline,
     answer,
     undo,
-    act: (id: string) => asksAPI.act(id).catch(() => {}),
-    read: (id: string) => asksAPI.read(id).catch(() => {}),
+    act: (id: string) => tries.attempt(id, 'Not sent', () => asksAPI.act(id)),
+    read: (id: string) => tries.attempt(id, 'Not marked read', () => asksAPI.read(id)),
   };
 }
 

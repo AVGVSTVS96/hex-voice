@@ -17,6 +17,9 @@ type Request = {
   timeoutMs?: number;
 };
 
+// hex heard the request and said no, so sending the same thing again gets the same answer.
+export class Refused extends Error {}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -54,7 +57,9 @@ function createHexClient(options: Options) {
           const error = isRecord(result) ? result.error : undefined;
           if (isRecord(error) && typeof error.message === 'string') message = error.message;
         } catch {}
-        throw new Error(message.slice(0, 300) || `hex answered HTTP ${response.status}.`);
+        message = message.slice(0, 300) || `hex answered HTTP ${response.status}.`;
+        message = message[0]!.toUpperCase() + message.slice(1);
+        throw response.status < 500 ? new Refused(message) : new Error(message);
       }
       return JSON.parse(text) as unknown;
     } catch (error) {

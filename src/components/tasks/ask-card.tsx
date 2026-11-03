@@ -15,12 +15,12 @@ import {
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useState } from 'react';
-import { Linking } from 'react-native';
 
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
 import { useDraft } from '@/hooks/use-draft';
-import { GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
+import { openURL, useFailures } from '@/hooks/use-failures';
+import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import type { Ask, AskLink, AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { motion, rowsKey } from '@/motion';
@@ -82,6 +82,7 @@ export function YourCall({
                 <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.text)]}>
                   {said}
                 </Text>
+                {ask.failed ? <Failure text={ask.failed} /> : null}
               </Column>
               <Text
                 textStyle={{ fontSize: 15, fontWeight: '600' }}
@@ -169,6 +170,7 @@ function AskCard({
           </Text>
         ) : null}
         {ask.links?.length ? <Links links={ask.links} /> : null}
+        {ask.failed ? <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} /> : null}
       </Column>
       {writing ? (
         <Composer
@@ -184,33 +186,38 @@ function AskCard({
 }
 
 function Links({ links }: { links: AskLink[] }) {
+  const tries = useFailures();
+  const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (
-    <Row alignment="center" spacing={6} modifiers={[padding({ top: 4 })]}>
-      {links.map((link, i) => (
-        <Row key={link.url} alignment="center" spacing={6}>
-          {i ? (
-            <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-              ·
-            </Text>
-          ) : null}
-          <Row
-            alignment="center"
-            spacing={3}
-            onPress={() => void Linking.openURL(link.url)}
-            modifiers={ios ? [accessibilityLabel(`Open ${link.label}`)] : []}
-          >
-            <Text
-              numberOfLines={1}
-              textStyle={{ fontSize: 15 }}
-              modifiers={[foregroundStyle(theme.secondary)]}
+    <Column alignment="start" spacing={4} modifiers={[padding({ top: 4 })]}>
+      <Row alignment="center" spacing={6}>
+        {links.map((link, i) => (
+          <Row key={link.url} alignment="center" spacing={6}>
+            {i ? (
+              <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+                ·
+              </Text>
+            ) : null}
+            <Row
+              alignment="center"
+              spacing={3}
+              onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
+              modifiers={ios ? [accessibilityLabel(`Open ${link.label}`)] : []}
             >
-              {link.label}
-            </Text>
-            <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+              <Text
+                numberOfLines={1}
+                textStyle={{ fontSize: 15 }}
+                modifiers={[foregroundStyle(theme.secondary)]}
+              >
+                {link.label}
+              </Text>
+              <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+            </Row>
           </Row>
-        </Row>
-      ))}
-    </Row>
+        ))}
+      </Row>
+      {failed ? <Failure text={failed} /> : null}
+    </Column>
   );
 }
 

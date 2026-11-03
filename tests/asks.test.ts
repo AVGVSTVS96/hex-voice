@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createAsksAPI } from '../src/live/api-client';
 import {
   checkLine,
+  failedOn,
   keepInPlace,
   openAsks,
   yours,
@@ -165,4 +166,27 @@ test('held asks go back after the ask they followed, or first when none of those
 test('a pinned section’s heading drops its own emoji, which its mark already says', () => {
   const [done] = pinSections('**🟢 Done:**\n- shipped the band');
   assert.deepEqual([done!.title, done!.mark], ['Done', 'done']);
+});
+
+test('what didn’t go through shows on the item it was about, and nowhere else', () => {
+  const stuck = {
+    id: 's',
+    app: 't3',
+    title: 'Limit',
+    why: '',
+    action: 'Ask',
+    mark: 'paused',
+  } as const;
+  const failed = failedOn(
+    { ...list('a', 'b'), stuck: [{ ...stuck, at: '' }] },
+    {
+      b: 'Not answered · That question is already answered or settled',
+      s: 'Not sent · No General',
+    },
+  );
+  assert.deepEqual(
+    failed.asks.map((one) => one.failed),
+    [undefined, 'Not answered · That question is already answered or settled'],
+  );
+  assert.equal(failed.stuck[0]!.failed, 'Not sent · No General');
 });
