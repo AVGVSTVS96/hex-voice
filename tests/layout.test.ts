@@ -433,6 +433,23 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
   assert.equal(flat.partlyOpen, false);
 });
 
+test('partly open on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
+  const side = screenLayout(
+    duo['partly open on its side'].window,
+    duo['partly open on its side'].insets,
+    duo['partly open on its side'].pose,
+  ).duo!;
+  const typing = side.beside!.typing!;
+  assert.deepEqual(typing.area, { x: 0, y: 82, width: 669, height: 455.5 - 82 });
+  assert.equal(typing.foot, 'fold');
+  const upright = screenLayout(
+    duo['partly open upright'].window,
+    duo['partly open upright'].insets,
+    duo['partly open upright'].pose,
+  ).duo!;
+  assert.equal(upright.beside!.typing, undefined);
+});
+
 // Flat, the fold is a line down its middle; partly open, its whole frame.
 const hingeOf = ({ active, ...fold }: Box & { active: boolean }): Box =>
   active

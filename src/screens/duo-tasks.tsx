@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Keyboard, StyleSheet } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -23,7 +23,8 @@ import { theme } from '@/theme';
 // while the Duo is partly open, where it starts that way. The switch in the bar picks otherwise
 // until the call ends or the Duo folds or flattens. `dock` settles from 0 to 1 as the call moves
 // into the bar, `covers` as Tasks covers the orb's page, `hides` as it covers the words, and
-// `aside` as the words move to the page before the fold.
+// `aside` as the words move to the page before the fold. While the keyboard is up there Tasks types
+// on that page instead (`above`), and the call's own page steps aside for it.
 export function useDuoTasks(
   duo: Duo | undefined,
   open: boolean,
@@ -37,14 +38,17 @@ export function useDuoTasks(
   const offered = available && open;
   const docked = !!duo && open && onCall;
   const beside = offered && (chosen?.beside ?? partlyOpen);
+  const above = useKeyboardUp() && beside && !!duo?.beside?.typing;
+  const callBeside = beside && !above;
   const dock = useSettle(docked, reducedMotion);
-  const covers = useSettle(!!duo && open && !beside, reducedMotion);
-  const hides = useSettle(!!duo && open && !(beside && docked), reducedMotion);
-  const aside = useSettle(beside && docked, reducedMotion);
+  const covers = useSettle(!!duo && open && !callBeside, reducedMotion);
+  const hides = useSettle(!!duo && open && !(callBeside && docked), reducedMotion);
+  const aside = useSettle(callBeside && docked, reducedMotion);
   const offer = useSettle(offered, reducedMotion);
   return {
     docked,
     beside,
+    above,
     offered,
     toggleBeside: () => setChosen({ partlyOpen, beside: !beside }),
     dock,
@@ -59,6 +63,19 @@ export function useDuoTasks(
 export function uncovered(covers: number) {
   'worklet';
   return 1 - Math.min(1, 2 * covers);
+}
+
+function useKeyboardUp() {
+  const [up, setUp] = useState(() => Keyboard.isVisible());
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardWillShow', () => setUp(true));
+    const hidden = Keyboard.addListener('keyboardWillHide', () => setUp(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+  return up;
 }
 
 function useSettle(on: boolean, reducedMotion: boolean) {
@@ -101,7 +118,9 @@ export function DuoTasks({
     <>
       <TasksPage
         {...tasks}
-        page={(state.beside && duo.beside?.tasks) || duo.tasks}
+        page={
+          (state.above && duo.beside?.typing) || (state.beside && duo.beside?.tasks) || duo.tasks
+        }
         style={pageStyle}
       />
       {onCall && (
