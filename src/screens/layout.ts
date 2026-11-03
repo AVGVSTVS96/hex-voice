@@ -581,8 +581,8 @@ function besideColumn(
 
 // iPhone Duo open on its side, its toolbar in the band along the top (see `Duo`). Tasks takes the
 // screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
-// at its trailing end whether Tasks is open or not; with Tasks open the call buttons come in just
-// before that pair, and before them sit the words' switch, then the orb with its time after it.
+// at its trailing end, and the call buttons just before that pair, whether Tasks is open or not.
+// With Tasks open on a call, before them sit the words' switch, then the orb with its time.
 function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   const { window, insets, toolbar, top } = frame;
   const {

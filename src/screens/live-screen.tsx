@@ -741,8 +741,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         }
       : {},
   );
-  // Open on its side, the toolbar runs across the top; with Tasks open, the call buttons join it.
-  const inRow = !!duo?.call.controls && tasksOpen;
+  // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
+  // whether Tasks is open or not.
+  const inRow = !!duo?.call.controls;
   const toolbarPlace =
     toolbar.axis === 'row'
       ? { top: toolbar.y, right: width - toolbar.x - toolbar.width }
