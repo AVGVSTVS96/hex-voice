@@ -70,6 +70,7 @@ export function Messages({
           alignment="center"
           spacing={0}
           onPress={onWrite}
+          testID="thread-write"
           modifiers={[
             padding({ leading: 18, trailing: 6 }),
             frame({ height: 44 }),
@@ -309,6 +310,7 @@ function Composer({
         alignment="center"
         spacing={0}
         onPress={send}
+        testID="thread-send"
         modifiers={[
           frame({ width: FIELD, height: FIELD }),
           background(lit ? theme.prominent : theme.surface),

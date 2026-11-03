@@ -8,9 +8,13 @@ import XCTest
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
 //   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
 //   selected <query>      checks the element is selected; unselected checks it isn't
+//   type <query> <text>   taps the element and types the text on the software keyboard
+//   above-keyboard <query> checks the keyboard is up and the element shows whole above it
+//   mark <query>          remembers where the element is; still <query> checks it hasn't moved
 // The accessibility tree at the end is kept beside the shots.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
+    var marked: [String: CGRect] = [:]
 
     override func setUp() {
         continueAfterFailure = true
@@ -43,6 +47,23 @@ final class DuoTests: XCTestCase {
                 sleep(command == "shoot" ? 3 : 5)
             case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")
             case "unselected": XCTAssertFalse(element(argument).isSelected, "\(argument) is still selected")
+            case "type":
+                let parts = argument.split(separator: " ", maxSplits: 1).map(String.init)
+                let field = element(parts[0])
+                field.tap()
+                field.typeText(parts.count > 1 ? parts[1] : "")
+            case "above-keyboard":
+                let keyboard = app.keyboards.firstMatch
+                XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "the keyboard isn't up")
+                let frame = element(argument).frame
+                XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
+                XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
+            case "mark": marked[argument] = element(argument).frame
+            case "still":
+                let was = try XCTUnwrap(marked[argument], "\(argument) wasn't marked")
+                let now = element(argument).frame
+                XCTAssertEqual(now.minY, was.minY, accuracy: 1, "\(argument) moved from \(was) to \(now)")
+                XCTAssertEqual(now.minX, was.minX, accuracy: 1, "\(argument) moved from \(was) to \(now)")
             default: XCTFail("unknown tap command: \(line)")
             }
         }

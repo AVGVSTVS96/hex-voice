@@ -248,24 +248,21 @@ export function Tasks({
     page('check', <LastCheck check={check} />),
   ];
 
-  const fill = [frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }), clipped()];
+  const fill = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo(), clipped()];
   if (pages.shape === 'columns')
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
         <Column
           alignment="start"
           spacing={0}
-          modifiers={[
-            frame({ width: spot('list').width }),
-            frame({ maxHeight: Infinity, alignment: 'top' }),
-          ]}
+          modifiers={[frame({ width: spot('list').width, alignment: 'top' }), upTo()]}
         >
           {list}
         </Column>
         <Column
           alignment="start"
           spacing={0}
-          modifiers={[frame({ width: 1 }), frame({ maxHeight: Infinity }), background(theme.edge)]}
+          modifiers={[frame({ width: 1 }), upTo(), background(theme.edge)]}
         >
           <Spacer />
         </Column>
@@ -281,7 +278,8 @@ export function Tasks({
       modifiers={
         atFold
           ? [
-              frame({ width: atFold.width, height: atFold.height, alignment: 'topLeading' }),
+              frame({ maxWidth: Infinity, alignment: 'topLeading' }),
+              upTo(Infinity, 'topLeading'),
               clipped(),
             ]
           : fill
@@ -289,22 +287,22 @@ export function Tasks({
     >
       {page('list', list)}
       {levels}
-      {atFold?.fold.band === 0 && (
-        <Seam fold={atFold.fold} width={atFold.width} height={atFold.height} />
-      )}
+      {atFold?.fold.band === 0 && <Seam fold={atFold.fold} />}
     </ZStack>
   );
 }
 
 // Open flat, the pages meet at the fold with a hairline between them, as a split view's columns do.
-function Seam({ fold, width, height }: { fold: Fold; width: number; height: number }) {
+function Seam({ fold }: { fold: Fold }) {
   const row = fold.axis === 'row';
   return (
     <Column
       alignment="start"
       spacing={0}
       modifiers={[
-        frame(row ? { width: 1, height } : { width, height: 1 }),
+        ...(row
+          ? [frame({ width: 1 }), upTo()]
+          : [frame({ height: 1 }), frame({ maxWidth: Infinity })]),
         background(theme.edge),
         offset(row ? { x: fold.at, y: 0 } : { x: 0, y: fold.at }),
         accessibilityHidden(true),
@@ -325,11 +323,9 @@ function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; childre
       spacing={0}
       modifiers={[
         padding({ top: pad.top, leading: pad.leading, trailing: pad.trailing }),
-        frame(
-          size
-            ? { ...size, alignment: 'top' }
-            : { maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' },
-        ),
+        ...(size
+          ? [frame({ width: size.width, alignment: 'top' }), upTo(size.height)]
+          : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
         ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
         offset(at),
         animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.height : 0)),
@@ -339,4 +335,11 @@ function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; childre
       {children}
     </Column>
   );
+}
+
+// A height is the most a page may take, never a fixed size. The keyboard shortens the Host it
+// covers, and a page taller than its Host is centered in it: pushed half the keyboard up off the
+// top, with its foot, where you type and send, still under the keyboard.
+function upTo(height = Infinity, alignment: 'top' | 'topLeading' = 'top') {
+  return frame({ minHeight: 0, maxHeight: height, alignment });
 }

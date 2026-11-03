@@ -352,6 +352,7 @@ function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => 
       <TextInput
         autoFocus
         multiline
+        testID="ask-input"
         placeholder={`Your answer or a note for ${topic}`}
         placeholderTextColor={theme.tertiary}
         cursorColor={theme.accent}

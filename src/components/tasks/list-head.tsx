@@ -223,6 +223,7 @@ export function Search({
         <Icon name="magnifyingglass" size={14} color={theme.secondary} />
         <TextInput
           autoFocus
+          testID="tasks-search-field"
           defaultValue={query}
           placeholder="Tasks, topics, asks"
           placeholderTextColor={theme.tertiary}

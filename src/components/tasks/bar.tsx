@@ -83,6 +83,7 @@ export function Header({
       <Spacer flexible />
       <Column alignment="center" spacing={1}>
         <Text
+          testID="page-title"
           numberOfLines={1}
           textStyle={{ fontSize: 17, fontWeight: '600' }}
           modifiers={[foregroundStyle(theme.text)]}
@@ -147,6 +148,7 @@ export function PageBar({
       >
         {backButton}
         <Text
+          testID="page-title"
           numberOfLines={1}
           textStyle={{ fontSize: 19, fontWeight: '700' }}
           modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
@@ -187,6 +189,7 @@ export function PageBar({
         </Row>
       ) : null}
       <Text
+        testID="page-title"
         numberOfLines={2}
         textStyle={{ fontSize: 28, fontWeight: '700' }}
         modifiers={[
