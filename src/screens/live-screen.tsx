@@ -577,9 +577,13 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     const w = rail ? wide.get() : 0;
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
     const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
+    const { rest, open } = controlsAt;
+    const p = Math.min(1, Math.max(0, progress.get()));
+    const x = rest.x + (open.x - rest.x) * p;
+    const y = rest.y + (open.y - rest.y) * p;
     return {
-      left: toward(controlsAt.open.x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
-      top: toward(controlsAt.open.y, controlsAt.calls.y, tasksY, d, t) - CONTROLS / 2,
+      left: toward(x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
+      top: toward(y, controlsAt.calls.y, tasksY, d, t) - CONTROLS / 2,
     };
   });
 

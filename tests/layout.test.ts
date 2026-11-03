@@ -95,6 +95,19 @@ test('iPad landscape puts the orb with its buttons under it on the leading half,
   assert.equal(layout.pulls, false);
 });
 
+test('before a call, iPad rests the orb in the middle with its buttons under it, not beside an empty page', () => {
+  for (const size of [iPads['11-inch landscape'], iPads['11-inch portrait']]) {
+    const layout = screenLayout(size, pad, { regular: true });
+    assert.ok(layout.controls !== 'inline' && 'center' in layout.controls);
+    const { rest } = layout.controls.center;
+    assert.equal(layout.orb.rest.x, size.width / 2);
+    assert.equal(rest.x, size.width / 2);
+    assert.ok(rest.y - 32 > layout.orb.rest.y + layout.orb.size / 2, 'buttons sit under the orb');
+    const middle = Math.abs(layout.orb.rest.y - size.height / 2);
+    assert.ok(middle < size.height * 0.12, `orb rests near the middle (${layout.orb.rest.y})`);
+  }
+});
+
 test('iPad portrait stacks the orb over the words, always shown, with no pull-down', () => {
   const layout = screenLayout(iPads['11-inch portrait'], pad, { regular: true });
   assert.equal(layout.kind, 'stacked');
