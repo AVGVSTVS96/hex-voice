@@ -938,6 +938,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                   </Text>
                 )}
                 <WrapUp
+                  key={last.id}
                   center={!split}
                   summary={wrapUp.summary}
                   waiting={wrapUp.waiting}
