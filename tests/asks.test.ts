@@ -181,3 +181,16 @@ test('an answer that missed a place says how many still ask it, on that ask alon
   assert.equal(unreached(1), 'One place was out of reach and still asks it');
   assert.equal(unreached(2), '2 places were out of reach and still ask it');
 });
+
+test('an answer still missing a place stays folded through the sheet closing, and the rest go', () => {
+  let state = yours({ answered: {} }, { type: 'list', list: list('a', 'b', 'c') });
+  state = yours(state, { type: 'answer', id: 'a', label: 'Yes' });
+  state = yours(state, { type: 'answer', id: 'b', label: 'Not needed' });
+  state = yours(state, { type: 'close', keep: ['a', 'c'] });
+  assert.deepEqual(ids(state), ['a', 'c']);
+  assert.deepEqual(state.answered, { a: 'Yes' });
+  assert.deepEqual(
+    openAsks(state).map((one) => one.id),
+    ['c'],
+  );
+});

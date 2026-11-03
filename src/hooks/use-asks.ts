@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { hex } from '@/hex';
-import { keepDraft } from '@/hooks/use-draft';
+import { keepDraft, sentDraft } from '@/hooks/use-draft';
 import { useFailures } from '@/hooks/use-failures';
 import { useKept } from '@/hooks/use-kept';
 import { useWatch } from '@/hooks/use-watch';
@@ -30,7 +30,7 @@ export async function answerAsk(ask: Ask, option: AskOption) {
 // goes.
 export async function noteAsk(ask: Ask, text: string) {
   await hex.asks.note(ask.id, text);
-  keepDraft(`ask:${ask.id}`, '');
+  sentDraft(`ask:${ask.id}`, text);
 }
 
 // On a call, the voice starts going through your asks with you.
@@ -39,16 +39,25 @@ export const raiseAsks = () => hex.asks.talk();
 // Everything waiting on you, live while the sheet is open. An answer or a not needed folds its card
 // where it sits and goes to hex; the card stays folded there with Undo until the sheet closes.
 // Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
-// again, and one that missed a place says so until it's sent again.
+// again, and one that missed a place stays folded, through the sheet closing, and says so until
+// it's sent again or undone.
 export function useAsks(open: boolean) {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const tries = useFailures();
   const [missed, setMissed] = useState<Record<string, number>>({});
-  // Each ask's latest answer, so Send again sends it the same way and an Undo tapped while it's on
-  // its way reaches hex after it.
-  const answers = useRef(new Map<AskId, { send: () => Promise<Sent>; landed: Promise<boolean> }>());
   const reached = (id: AskId, sent?: Sent) =>
     setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
+  // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
+  // one before it is done, and only the latest you did may change how its card shows.
+  const queue = useRef(new Map<AskId, { last: Promise<unknown>; turn: number }>());
+  const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<unknown>) => {
+    const now = queue.current.get(id) ?? { last: Promise.resolve(), turn: 0 };
+    const turn = now.turn + 1;
+    const latest = () => queue.current.get(id)?.turn === turn;
+    queue.current.set(id, { last: now.last.then(() => work(latest)), turn });
+  };
+  // What went out for each ask and hasn't been taken back, sent the same way by Send again.
+  const out = useRef(new Map<AskId, () => Promise<Sent>>());
   const [kept, keep] = useKept('asks', AskList);
   useEffect(() => {
     if (kept && !state.list) dispatch({ type: 'list', list: kept });
@@ -59,9 +68,8 @@ export function useAsks(open: boolean) {
   });
   useEffect(() => {
     if (open) return;
-    dispatch({ type: 'close' });
+    dispatch({ type: 'close', keep: Object.keys(missed) });
     tries.clear();
-    setMissed({});
   }, [open]);
   const list = useMemo(
     () => state.list && failedOn(state.list, tries.failed, missed),
@@ -70,20 +78,21 @@ export function useAsks(open: boolean) {
 
   const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
     dispatch({ type: 'answer', id: ask.id, label });
-    const landed = tries.attempt(ask.id, what, async () => reached(ask.id, await send()));
-    answers.current.set(ask.id, { send, landed });
-    void landed.then((ok) => {
-      if (!ok) dispatch({ type: 'failed', id: ask.id });
+    inTurn(ask.id, async (latest) => {
+      if (await tries.attempt(ask.id, what, async () => reached(ask.id, await send())))
+        out.current.set(ask.id, send);
+      else if (latest()) dispatch({ type: 'failed', id: ask.id });
     });
   };
   const undo = (id: AskId) => {
     const label = state.answered[id];
     if (!label) return;
     dispatch({ type: 'undo', id });
-    void answers.current.get(id)?.landed.then(async (landed) => {
-      if (!landed) return;
-      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) reached(id);
-      else dispatch({ type: 'answer', id, label });
+    reached(id);
+    inTurn(id, async (latest) => {
+      if (!out.current.has(id)) return;
+      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) out.current.delete(id);
+      else if (latest()) dispatch({ type: 'answer', id, label });
     });
   };
   return {
@@ -99,11 +108,12 @@ export function useAsks(open: boolean) {
     // What went out stands, so sending it again only reaches the places it missed, and it stays
     // folded whether or not they answer this time.
     again: (ask: Ask) => {
-      const last = answers.current.get(ask.id);
-      if (last)
-        void tries.attempt(ask.id, 'Not sent again', async () =>
-          reached(ask.id, await last.send()),
-        );
+      const send = out.current.get(ask.id);
+      if (!send) return;
+      reached(ask.id);
+      inTurn(ask.id, () =>
+        tries.attempt(ask.id, 'Not sent again', async () => reached(ask.id, await send())),
+      );
     },
     undo,
     act: (id: string) => tries.attempt(id, 'Not sent', () => hex.asks.act(id)),

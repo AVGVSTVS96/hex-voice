@@ -119,15 +119,16 @@ export type AskList = Omit<z.infer<typeof AskList>, 'asks' | 'stuck' | 'fresh'> 
 };
 
 // What's yours as this phone shows it: hex's list, with each ask answered here held in its place,
-// folded to what you said, until the sheet closes, so Undo stays in reach. An undone ask (null)
-// stays put until hex lists it as open again.
+// folded to what you said, until the sheet closes, so Undo stays in reach. Closing keeps the ones
+// it's told to, like an answer still missing a place. An undone ask (null) stays put until hex
+// lists it as open again.
 export type Yours = { list?: AskList; answered: Record<string, string | null> };
 export type YoursAction =
   | { type: 'list'; list: AskList }
   | { type: 'answer'; id: string; label: string }
   | { type: 'undo'; id: string }
   | { type: 'failed'; id: string }
-  | { type: 'close' };
+  | { type: 'close'; keep?: string[] };
 
 export function yours(state: Yours, action: YoursAction): Yours {
   const { list, answered } = state;
@@ -146,11 +147,16 @@ export function yours(state: Yours, action: YoursAction): Yours {
       return { list, answered: { ...answered, [action.id]: null } };
     case 'failed':
       return { list, answered: without(answered, [action.id]) };
-    case 'close':
+    case 'close': {
+      const kept = new Set(action.keep?.filter((id) => answered[id]));
       return {
-        list: list && { ...list, asks: list.asks.filter((ask) => !answered[ask.id]) },
-        answered: {},
+        list: list && {
+          ...list,
+          asks: list.asks.filter((ask) => !answered[ask.id] || kept.has(ask.id)),
+        },
+        answered: Object.fromEntries(Object.entries(answered).filter(([id]) => kept.has(id))),
       };
+    }
   }
 }
 
