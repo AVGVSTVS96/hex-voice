@@ -127,7 +127,7 @@ export function Tasks({
     onTalk(thread);
   };
 
-  const spot = (level: Level) => spotOf(level, pages, room, typing);
+  const spot = (level: Level) => spotOf(level, pages, room);
   // Pages stay mounted as they leave, so a field on one that's gone or closed would keep the
   // keyboard up with nothing on screen to type in or swipe.
   const typedOnGone = typing !== null && (!open || !spot(typing).shown);
@@ -179,7 +179,7 @@ export function Tasks({
       pages={pages}
       spot={spot('list')}
       paged={room.paged}
-      wide={pages.shape === 'columns' || (room.paged && room.fold?.axis === 'row')}
+      wide={pages.shape !== 'one'}
       tasks={tasks}
       offline={offline}
       yours={yours}
