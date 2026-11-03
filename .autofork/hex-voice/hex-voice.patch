@@ -95594,22 +95594,27 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +esac
 diff --git a/scripts/duo-hex.mjs b/scripts/duo-hex.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..c06fdc5f4ca8b57973005f085182f08e6304e8a5
+index 0000000000000000000000000000000000000000..a5f81910656be70491caa6c3fc3ff89ec2161336
 --- /dev/null
 +++ b/scripts/duo-hex.mjs
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,31 @@
 +// Stands in for hex's voice server while scripts/duo checks the app, on the Mac beside the
 +// simulator. Reads go to the real server, so the screens show his real tasks. Every write
-+// (answering, undoing, acting, starting a call) is answered here and dropped, so a check can
++// (answering, noting, undoing, acting, starting a call) is answered here and dropped, so a check can
 +// never answer or act for him. The app under check only knows this address and a dummy token.
 +import { createServer } from 'node:http';
 +
 +const { DUO_HEX_PORT, EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
++// hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
++const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
++const NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
 +
 +createServer(async (request, response) => {
 +  if (request.method !== 'GET') {
 +    request.resume();
-+    response.writeHead(204).end();
++    if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))
++      response.writeHead(200, { 'content-type': 'application/json' }).end(NOTHING);
++    else response.writeHead(204).end();
 +    return;
 +  }
 +  try {
@@ -96567,21 +96572,22 @@ index 0000000000000000000000000000000000000000..b5d36111ae49087446328d1cf8df01d5
 +});
 diff --git a/src/components/call-ask.tsx b/src/components/call-ask.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..a76a23d8e135aa00143a0892323e158db96acd1b
+index 0000000000000000000000000000000000000000..fc1c8defd6d6fea30564dcaff8e2c18fe8356ed7
 --- /dev/null
 +++ b/src/components/call-ask.tsx
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,163 @@
 +import { useState } from 'react';
 +import { Pressable, StyleSheet, Text, View } from 'react-native';
 +
 +import { failure, openURL } from '@/hooks/use-failures';
 +import type { CallCard } from '@/live/agents';
 +import type { AskOption } from '@/live/asks';
++import { reachedBy } from '@/live/inbox';
 +import { circle, radius, theme } from '@/theme';
 +
 +// An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 +// open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
-+// was sent where.
++// was sent where and what that reached, as hex recorded it, and an undo opens it again.
 +export function CallAsk({
 +  card,
 +  onAnswer,
@@ -96592,17 +96598,22 @@ index 0000000000000000000000000000000000000000..a76a23d8e135aa00143a0892323e158d
 +  onOpenTask: () => void;
 +}) {
 +  const { ask } = card;
-+  // What you tapped, marked at once while hex takes it, sent once it has, and why if it didn't.
++  // What you tapped, marked at once while hex takes it, sent once it has until hex's record of the
++  // call says so, and why if it didn't.
 +  const [sending, setSending] = useState<string>();
 +  const [sent, setSent] = useState<string>();
 +  const [failed, setFailed] = useState<string>();
++  if (card.answer && sent) setSent(undefined);
 +  const answer = card.answer ?? sent;
 +  const choose = (option: AskOption) => {
 +    if (sending) return;
 +    setSending(option.label);
 +    setFailed(undefined);
 +    onAnswer(option).then(
-+      () => setSent(option.label),
++      () => {
++        setSending(undefined);
++        setSent(option.label);
++      },
 +      (error: unknown) => {
 +        setSending(undefined);
 +        setFailed(failure('Not sent', error));
@@ -96617,11 +96628,7 @@ index 0000000000000000000000000000000000000000..a76a23d8e135aa00143a0892323e158d
 +        </View>
 +        <Text style={styles.sentText}>
 +          {`Sent ${answer} to ${ask.topic}`}
-+          <Text style={styles.quiet}>
-+            {ask.places.some((place) => place.app === 'telegram' && place.link)
-+              ? ' and cleared its Telegram buttons'
-+              : ''}
-+          </Text>
++          <Text style={styles.quiet}>{reachedBy(ask, card.sent)}</Text>
 +        </Text>
 +      </View>
 +    );
@@ -98598,10 +98605,10 @@ index 0000000000000000000000000000000000000000..bceb3537a99286c5200b58543b52a510
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d503a77c451
+index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7092f4459
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,413 @@
+@@ -0,0 +1,474 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
 +import { Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -98622,10 +98629,11 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +
 +import { Mark } from '@/components/tasks/mark';
 +import { Typing } from '@/components/tasks/pages';
++import { noteAsk } from '@/hooks/use-asks';
 +import { useDraft } from '@/hooks/use-draft';
 +import { openURL, useFailures } from '@/hooks/use-failures';
 +import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-+import type { Ask, AskLink, AskOption } from '@/live/asks';
++import { unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
 +import { fitsOneLine } from '@/live/inbox';
 +import { motion, rowsKey } from '@/motion';
 +import { radius, theme } from '@/theme';
@@ -98648,12 +98656,14 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +  width,
 +  onAnswer,
 +  onUndo,
++  onAgain,
 +}: {
 +  asks: Ask[];
 +  answered: Record<string, string | null>;
 +  width: number;
 +  onAnswer: Answer;
 +  onUndo: (ask: Ask) => void;
++  onAgain: (ask: Ask) => void;
 +}) {
 +  const open = asks.filter((ask) => !answered[ask.id]).length;
 +  return (
@@ -98690,6 +98700,7 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +                <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.text)]}>
 +                  {said}
 +                </Text>
++                {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
 +                {ask.failed ? <Failure text={ask.failed} /> : null}
 +              </Column>
 +              <Text
@@ -98733,6 +98744,21 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +}) {
 +  const [writing, setWriting] = useState(false);
 +  const [whole, setWhole] = useState(false);
++  // A note leaves the ask open, so the card stays and says it went, or why it didn't.
++  const notes = useFailures();
++  const [noting, setNoting] = useState(false);
++  const [noted, setNoted] = useState(false);
++  const note = (text: string) => {
++    setNoting(true);
++    void notes
++      .attempt('note', 'Note not sent', () => noteAsk(ask, text))
++      .then((sent) => {
++        setNoting(false);
++        setNoted(sent);
++        if (sent) setWriting(false);
++      });
++  };
++  const failed = ask.failed ?? notes.failed.note;
 +  return (
 +    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
 +      <Column
@@ -98788,13 +98814,23 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +          </Text>
 +        ) : null}
 +        {ask.links?.length ? <Links links={ask.links} /> : null}
-+        {ask.failed ? <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} /> : null}
++        {failed ? (
++          <Failure text={failed} modifiers={[padding({ top: 4 })]} />
++        ) : noted ? (
++          <Text
++            textStyle={{ fontSize: 13, lineHeight: 18 }}
++            modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
++          >
++            {`Note sent to ${ask.topic}`}
++          </Text>
++        ) : null}
 +      </Column>
 +      {writing ? (
 +        <Composer
 +          draft={`ask:${ask.id}`}
 +          topic={ask.topic}
-+          onSend={(label) => onAnswer(ask, { label })}
++          onNote={noting ? undefined : note}
++          onAnswer={(label) => onAnswer(ask, { label })}
 +        />
 +      ) : (
 +        <Answers ask={ask} width={width} onAnswer={onAnswer} />
@@ -98952,66 +98988,98 @@ index 0000000000000000000000000000000000000000..6ef5f8b933a36f2997d2280952274d50
 +  );
 +}
 +
++// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
++// instead is the deliberate second step.
 +function Composer({
 +  draft,
 +  topic,
-+  onSend,
++  onNote,
++  onAnswer,
 +}: {
 +  draft: string;
 +  topic: string;
-+  onSend: (text: string) => void;
++  onNote?: (text: string) => void;
++  onAnswer: (text: string) => void;
 +}) {
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
 +  const typing = useContext(Typing);
-+  const note = text.trim();
++  const words = text.trim();
 +  return (
-+    <Row
-+      alignment="end"
-+      spacing={10}
-+      modifiers={[
-+        padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
-+        frame({ minHeight: ROW - 8 }),
-+        frame({ maxWidth: Infinity, alignment: 'leading' }),
-+        background(theme.surface),
-+        clipShape('roundedRectangle', radius.control),
-+        strokeBorder({
-+          content: theme.edge,
-+          style: { lineWidth: 1 },
-+          shape: 'roundedRectangle',
-+          cornerRadius: radius.control,
-+        }),
-+        padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
-+      ]}
-+    >
-+      <TextInput
-+        autoFocus
-+        multiline
-+        testID="ask-input"
-+        onFocus={() => typing(true)}
-+        onBlur={() => typing(false)}
-+        defaultValue={first}
-+        placeholder={`Your answer or a note for ${topic}`}
-+        placeholderTextColor={theme.tertiary}
-+        cursorColor={theme.accent}
-+        onChangeText={(now) => {
-+          setText(now);
-+          keep(now);
-+        }}
-+        textStyle={{ fontSize: 17 }}
++    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
++      <Row
++        alignment="end"
++        spacing={10}
 +        modifiers={[
-+          foregroundStyle(theme.text),
-+          padding({ top: 6, bottom: 6 }),
++          padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
++          frame({ minHeight: ROW - 8 }),
 +          frame({ maxWidth: Infinity, alignment: 'leading' }),
++          background(theme.surface),
++          clipShape('roundedRectangle', radius.control),
++          strokeBorder({
++            content: theme.edge,
++            style: { lineWidth: 1 },
++            shape: 'roundedRectangle',
++            cornerRadius: radius.control,
++          }),
++          padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
 +        ]}
-+      />
-+      <Icon
-+        name="arrow.up.circle.fill"
-+        size={30}
-+        color={note ? theme.accent : theme.tertiary}
-+        onPress={note ? () => onSend(note) : undefined}
-+        modifiers={ios ? [accessibilityLabel(`Send to ${topic}`)] : []}
-+      />
++      >
++        <TextInput
++          autoFocus
++          multiline
++          testID="ask-input"
++          onFocus={() => typing(true)}
++          onBlur={() => typing(false)}
++          defaultValue={first}
++          placeholder={`A note for ${topic}`}
++          placeholderTextColor={theme.tertiary}
++          cursorColor={theme.accent}
++          onChangeText={(now) => {
++            setText(now);
++            keep(now);
++          }}
++          textStyle={{ fontSize: 17 }}
++          modifiers={[
++            foregroundStyle(theme.text),
++            padding({ top: 6, bottom: 6 }),
++            frame({ maxWidth: Infinity, alignment: 'leading' }),
++          ]}
++        />
++        <Icon
++          name="arrow.up.circle.fill"
++          size={30}
++          color={words && onNote ? theme.accent : theme.tertiary}
++          onPress={words && onNote ? () => onNote(words) : undefined}
++          modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
++        />
++      </Row>
++      <Text
++        textStyle={{ fontSize: 15, fontWeight: '600' }}
++        onPress={words ? () => onAnswer(words) : undefined}
++        modifiers={[
++          foregroundStyle(words ? theme.accent : theme.tertiary),
++          padding({ leading: INSET, trailing: INSET, top: 4, bottom: 10 }),
++        ]}
++      >
++        Answer with this
++      </Text>
++    </Column>
++  );
++}
++
++// An answer that couldn't reach every place, and the way to finish it.
++export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => void }) {
++  return (
++    <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
++      <Failure text={unreached(missed)} />
++      <Text
++        textStyle={{ fontSize: 13, fontWeight: '600' }}
++        onPress={onAgain}
++        modifiers={[foregroundStyle(theme.accent), padding({ top: 6, bottom: 6 })]}
++      >
++        Send again
++      </Text>
 +    </Row>
 +  );
 +}
@@ -99877,10 +99945,10 @@ index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04
 +}
 diff --git a/src/components/tasks/list.tsx b/src/components/tasks/list.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..8b259c29f83c96673c136f1ed87432c5c471e4fc
+index 0000000000000000000000000000000000000000..3d4e6bca21ac8701ca959b20f17a0245d64a5543
 --- /dev/null
 +++ b/src/components/tasks/list.tsx
-@@ -0,0 +1,331 @@
+@@ -0,0 +1,339 @@
 +import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 +import { List } from '@expo/ui/swift-ui';
 +import {
@@ -100034,6 +100102,14 @@ index 0000000000000000000000000000000000000000..8b259c29f83c96673c136f1ed87432c5
 +    onOpenTile,
 +    onAnswer,
 +    onUndo,
++    onDismiss: (ask: Ask) => {
++      feel.tap();
++      yours.dismiss(ask);
++    },
++    onAgain: (ask: Ask) => {
++      feel.tap();
++      yours.again(ask);
++    },
 +    onAct: (id: string) => {
 +      feel.tap();
 +      void yours.act(id);
@@ -101150,10 +101226,10 @@ index 0000000000000000000000000000000000000000..65d11051a11e9ce5cee937039692f9da
 +}
 diff --git a/src/components/tasks/rows.tsx b/src/components/tasks/rows.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec94e6c8044
+index 0000000000000000000000000000000000000000..1c45c0177b1ecd8291b65ecc4b0212544a3152da
 --- /dev/null
 +++ b/src/components/tasks/rows.tsx
-@@ -0,0 +1,487 @@
+@@ -0,0 +1,505 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { Button, SwipeActions } from '@expo/ui/swift-ui';
 +import {
@@ -101169,13 +101245,13 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +} from '@expo/ui/swift-ui/modifiers';
 +import type { ReactNode } from 'react';
 +
-+import { InlineAnswers } from '@/components/tasks/ask-card';
++import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 +import { Dots } from '@/components/tasks/inbox';
 +import { Lane, laneWidth } from '@/components/tasks/lane';
 +import { Mark, type MarkState } from '@/components/tasks/mark';
 +import { Failure, GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 +import { TileIcon, swipeLook } from '@/components/tasks/places';
-+import type { Ask, AskOption } from '@/live/asks';
++import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 +import {
 +  PLACES,
 +  STUCK,
@@ -101200,6 +101276,8 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +  onOpenTile: (tile: Tile) => void;
 +  onAnswer: (ask: Ask, option: AskOption) => void;
 +  onUndo: (ask: Ask) => void;
++  onDismiss: (ask: Ask) => void;
++  onAgain: (ask: Ask) => void;
 +  onAct: (id: string) => void;
 +  onRead: (id: string) => void;
 +};
@@ -101234,6 +101312,7 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +            width={actions.width}
 +            first={first}
 +            onUndo={() => actions.onUndo(ask)}
++            onAgain={() => actions.onAgain(ask)}
 +          />
 +        );
 +      const pick = ask.options.find((option) => option.pick);
@@ -101243,6 +101322,7 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +        <Swiped
 +          {...swiped}
 +          lead={pick && { label: pick.label, onPress: () => actions.onAnswer(ask, pick) }}
++          away={{ label: NOT_NEEDED, onPress: () => actions.onDismiss(ask) }}
 +        >
 +          <Shell
 +            mark="needs"
@@ -101330,6 +101410,7 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +  first,
 +  selected,
 +  lead,
++  away,
 +  trail,
 +  onTile,
 +  children,
@@ -101338,6 +101419,8 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +  first: boolean;
 +  selected: boolean;
 +  lead?: Swipe;
++  // Puts it away without an answer, at the trailing edge, where iOS puts the one that clears a row.
++  away?: Swipe;
 +  trail: Tile[];
 +  onTile: (tile: Tile) => void;
 +  children: ReactNode;
@@ -101355,8 +101438,16 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +          />
 +        </SwipeActions.Actions>
 +      ) : null}
-+      {trail.length ? (
++      {away || trail.length ? (
 +        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
++          {away ? (
++            <Button
++              label={away.label}
++              systemImage="xmark"
++              onPress={away.onPress}
++              modifiers={[tint(theme.secondary)]}
++            />
++          ) : null}
 +          {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
 +          {[...trail].reverse().map((tile, i) => {
 +            const { color, glyph } = swipeLook(tile);
@@ -101499,12 +101590,14 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +  width,
 +  first,
 +  onUndo,
++  onAgain,
 +}: {
 +  ask: Ask;
 +  label: string;
 +  width: number;
 +  first: boolean;
 +  onUndo: () => void;
++  onAgain: () => void;
 +}) {
 +  return (
 +    <Row
@@ -101536,6 +101629,7 @@ index 0000000000000000000000000000000000000000..15f02aa879e983300acee7f1794fbec9
 +        >
 +          {`${label} → ${ask.topic}`}
 +        </Text>
++        {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
 +        {ask.failed ? <Failure text={ask.failed} /> : null}
 +      </Column>
 +      <Text
@@ -101891,10 +101985,10 @@ index 0000000000000000000000000000000000000000..659b081c4a5324748df4d48d30be2ca0
 +}
 diff --git a/src/components/tasks/task-page.tsx b/src/components/tasks/task-page.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e2a35ac74
+index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2dafd3588c78
 --- /dev/null
 +++ b/src/components/tasks/task-page.tsx
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,324 @@
 +import { Column, Icon, Row, ScrollView, Text } from '@expo/ui';
 +import {
 +  accessibilityLabel,
@@ -101942,6 +102036,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +  onSteps,
 +  onAnswer,
 +  onUndo,
++  onAgain,
 +  onTalk,
 +  onOpen,
 +  onOpenTask,
@@ -101960,6 +102055,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +  onSteps: (id: TaskId) => void;
 +  onAnswer: (ask: Ask, option: AskOption) => void;
 +  onUndo: (ask: Ask) => void;
++  onAgain: (ask: Ask) => void;
 +  onTalk: () => void;
 +  onOpen: (thread: TaskRow) => void;
 +  onOpenTask: (id: TaskId) => void;
@@ -102023,6 +102119,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +                  width={width}
 +                  onAnswer={onAnswer}
 +                  onUndo={onUndo}
++                  onAgain={onAgain}
 +                />
 +              ) : null}
 +              {working.length ? (
@@ -102101,6 +102198,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +  rows,
 +  onAnswer,
 +  onUndo,
++  onAgain,
 +}: {
 +  topic: string;
 +  asks: Ask[];
@@ -102110,6 +102208,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +  rows?: ReactNode[];
 +  onAnswer: (ask: Ask, option: AskOption) => void;
 +  onUndo: (ask: Ask) => void;
++  onAgain: (ask: Ask) => void;
 +}) {
 +  const open = asks.filter((ask) => !answered[ask.id]).length;
 +  const others = rows?.length ?? 0;
@@ -102140,6 +102239,7 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +                width={width}
 +                onAnswer={onAnswer}
 +                onUndo={onUndo}
++                onAgain={onAgain}
 +              />
 +            ) : null}
 +            {rows}
@@ -102215,10 +102315,10 @@ index 0000000000000000000000000000000000000000..be24d1736a531ee6df0911769ebc392e
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..5bdb43ecea16d664494c6c2e1f1c58523cad7e6e
+index 0000000000000000000000000000000000000000..cc318869141f881f4de5fd6cd55a308bdbb57d47
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,486 @@
+@@ -0,0 +1,497 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -102347,6 +102447,10 @@ index 0000000000000000000000000000000000000000..5bdb43ecea16d664494c6c2e1f1c5852
 +    tick();
 +    yours.undo(ask.id);
 +  };
++  const again = (ask: Ask) => {
++    tap();
++    yours.again(ask);
++  };
 +  // A link to an app that isn't installed fails without a word from iOS, so its place says so.
 +  const openLink = (link: string, place: Place) => {
 +    tap();
@@ -102466,6 +102570,7 @@ index 0000000000000000000000000000000000000000..5bdb43ecea16d664494c6c2e1f1c5852
 +          onSteps={openSteps}
 +          onAnswer={answer}
 +          onUndo={undo}
++          onAgain={again}
 +          onTalk={() => talk(opened)}
 +          onOpen={openThread}
 +          onOpenTask={(id) => {
@@ -102507,6 +102612,11 @@ index 0000000000000000000000000000000000000000..5bdb43ecea16d664494c6c2e1f1c5852
 +                onOpenTile={openTile}
 +                onAnswer={answer}
 +                onUndo={undo}
++                onDismiss={(ask) => {
++                  tap();
++                  yours.dismiss(ask);
++                }}
++                onAgain={again}
 +                onAct={(id) => {
 +                  tap();
 +                  void yours.act(id);
@@ -102519,6 +102629,7 @@ index 0000000000000000000000000000000000000000..5bdb43ecea16d664494c6c2e1f1c5852
 +            ))}
 +          onAnswer={answer}
 +          onUndo={undo}
++          onAgain={again}
 +        />
 +      ) : (
 +        <Nothing loaded={!!tasks} />
@@ -104924,14 +105035,14 @@ index 0000000000000000000000000000000000000000..c039e5f236e687e2d3a2b00ed4aa061a
 +});
 diff --git a/src/hex/api.ts b/src/hex/api.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e6c73672c007e60550b260220bc035235c67ae9f
+index 0000000000000000000000000000000000000000..21373abe167b5fb6ffb6215d2f161311e8b879fd
 --- /dev/null
 +++ b/src/hex/api.ts
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,72 @@
 +import * as z from 'zod/mini';
 +
 +import { AgentActivity } from '../live/agents';
-+import { AskList, Check, type AskId } from '../live/asks';
++import { AskList, Check, Sent, type AskId } from '../live/asks';
 +import { CallId, CallList, CallRecord } from '../live/calls';
 +import { Chat, TaskCounts, TaskList, TaskOrPage, type TaskId } from '../live/tasks';
 +import type { SessionAPI } from '../live/types';
@@ -104988,7 +105099,11 @@ index 0000000000000000000000000000000000000000..e6c73672c007e60550b260220bc03523
 +    asks: {
 +      list: (after?: number, signal?: AbortSignal) => request('/asks', AskList, { after, signal }),
 +      check: () => request('/asks/check', Check),
-+      answer: (id: AskId, label: string) => send(`/asks/${enc(id)}/answer`, { body: { label } }),
++      answer: (id: AskId, label: string) =>
++        request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),
++      note: (id: AskId, text: string) =>
++        request(`/asks/${enc(id)}/note`, Sent, { method: 'POST', body: { text } }),
++      dismiss: (id: AskId) => request(`/asks/${enc(id)}/dismiss`, Sent, { method: 'POST' }),
 +      undo: (id: AskId) => send(`/asks/${enc(id)}/undo`),
 +      act: (id: string) => send(`/stuck/${enc(id)}/act`),
 +      read: (id: string) => send(`/fresh/${enc(id)}/read`),
@@ -105212,10 +105327,10 @@ index 0000000000000000000000000000000000000000..62a4faf38a0627b9ef5b9ac58750ed57
 +}
 diff --git a/src/hooks/use-asks.ts b/src/hooks/use-asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b2a70e0fd3b89befab2d7b2d9b70f9d3c0c0174b
+index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e749b07965
 --- /dev/null
 +++ b/src/hooks/use-asks.ts
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,129 @@
 +import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 +
 +import { hex } from '@/hex';
@@ -105225,6 +105340,7 @@ index 0000000000000000000000000000000000000000..b2a70e0fd3b89befab2d7b2d9b70f9d3
 +import { useWatch } from '@/hooks/use-watch';
 +import {
 +  AskList,
++  NOT_NEEDED,
 +  failedOn,
 +  openAsks,
 +  yours,
@@ -105232,26 +105348,40 @@ index 0000000000000000000000000000000000000000..b2a70e0fd3b89befab2d7b2d9b70f9d3
 +  type AskId,
 +  type AskOption,
 +  type Check,
++  type Sent,
 +} from '@/live/asks';
 +
 +// The one way to answer an ask, from Tasks or its card on a call: once hex has it, what you'd
-+// started typing on it goes.
++// started typing on it goes, and you get back what the answer reached.
 +export async function answerAsk(ask: Ask, option: AskOption) {
-+  await hex.asks.answer(ask.id, option.label);
++  const sent = await hex.asks.answer(ask.id, option.label);
++  keepDraft(`ask:${ask.id}`, '');
++  return sent;
++}
++
++// Your own words to the ask's thread. The ask stays open everywhere, so here only what you wrote
++// goes.
++export async function noteAsk(ask: Ask, text: string) {
++  await hex.asks.note(ask.id, text);
 +  keepDraft(`ask:${ask.id}`, '');
 +}
 +
 +// On a call, the voice starts going through your asks with you.
 +export const raiseAsks = () => hex.asks.talk();
 +
-+// Everything waiting on you, live while the sheet is open. An answer folds its card where it sits
-+// and goes to hex; the card stays folded there with Undo until the sheet closes. Whatever hex
-+// couldn't take says why on the item it was about, and an answer that didn't land opens again.
++// Everything waiting on you, live while the sheet is open. An answer or a not needed folds its card
++// where it sits and goes to hex; the card stays folded there with Undo until the sheet closes.
++// Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
++// again, and one that missed a place says so until it's sent again.
 +export function useAsks(open: boolean) {
 +  const [state, dispatch] = useReducer(yours, { answered: {} });
 +  const tries = useFailures();
-+  // Each ask's latest answer, so an Undo tapped while it's on its way reaches hex after it.
-+  const answers = useRef(new Map<AskId, Promise<boolean>>());
++  const [missed, setMissed] = useState<Record<string, number>>({});
++  // Each ask's latest answer, so Send again sends it the same way and an Undo tapped while it's on
++  // its way reaches hex after it.
++  const answers = useRef(new Map<AskId, { send: () => Promise<Sent>; landed: Promise<boolean> }>());
++  const reached = (id: AskId, sent?: Sent) =>
++    setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
 +  const [kept, keep] = useKept('asks', AskList);
 +  useEffect(() => {
 +    if (kept && !state.list) dispatch({ type: 'list', list: kept });
@@ -105264,27 +105394,29 @@ index 0000000000000000000000000000000000000000..b2a70e0fd3b89befab2d7b2d9b70f9d3
 +    if (open) return;
 +    dispatch({ type: 'close' });
 +    tries.clear();
++    setMissed({});
 +  }, [open]);
 +  const list = useMemo(
-+    () => state.list && failedOn(state.list, tries.failed),
-+    [state.list, tries.failed],
++    () => state.list && failedOn(state.list, tries.failed, missed),
++    [state.list, tries.failed, missed],
 +  );
 +
-+  const answer = (ask: Ask, option: AskOption) => {
-+    dispatch({ type: 'answer', id: ask.id, label: option.label });
-+    const sent = tries.attempt(ask.id, 'Not answered', () => answerAsk(ask, option));
-+    answers.current.set(ask.id, sent);
-+    void sent.then((landed) => {
-+      if (!landed) dispatch({ type: 'failed', id: ask.id });
++  const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
++    dispatch({ type: 'answer', id: ask.id, label });
++    const landed = tries.attempt(ask.id, what, async () => reached(ask.id, await send()));
++    answers.current.set(ask.id, { send, landed });
++    void landed.then((ok) => {
++      if (!ok) dispatch({ type: 'failed', id: ask.id });
 +    });
 +  };
 +  const undo = (id: AskId) => {
 +    const label = state.answered[id];
 +    if (!label) return;
 +    dispatch({ type: 'undo', id });
-+    void answers.current.get(id)?.then(async (landed) => {
-+      if (landed && !(await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))))
-+        dispatch({ type: 'answer', id, label });
++    void answers.current.get(id)?.landed.then(async (landed) => {
++      if (!landed) return;
++      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) reached(id);
++      else dispatch({ type: 'answer', id, label });
 +    });
 +  };
 +  return {
@@ -105294,7 +105426,18 @@ index 0000000000000000000000000000000000000000..b2a70e0fd3b89befab2d7b2d9b70f9d3
 +    open: openAsks(state),
 +    offline: watching === 'offline',
 +    current: watching === 'current',
-+    answer,
++    answer: (ask: Ask, option: AskOption) =>
++      settle(ask, option.label, 'Not answered', () => answerAsk(ask, option)),
++    dismiss: (ask: Ask) => settle(ask, NOT_NEEDED, 'Not put away', () => hex.asks.dismiss(ask.id)),
++    // What went out stands, so sending it again only reaches the places it missed, and it stays
++    // folded whether or not they answer this time.
++    again: (ask: Ask) => {
++      const last = answers.current.get(ask.id);
++      if (last)
++        void tries.attempt(ask.id, 'Not sent again', async () =>
++          reached(ask.id, await last.send()),
++        );
++    },
 +    undo,
 +    act: (id: string) => tries.attempt(id, 'Not sent', () => hex.asks.act(id)),
 +    read: (id: string) => tries.attempt(id, 'Not marked read', () => hex.asks.read(id)),
@@ -106199,13 +106342,13 @@ index 0000000000000000000000000000000000000000..48860935e9e0e4c308a5d17fb8e94ac2
 +}
 diff --git a/src/live/agents.ts b/src/live/agents.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..88a9db6f3de1fd484db448b15232f17baa78bfa7
+index 0000000000000000000000000000000000000000..358f3ca9a0722d1e5271300ea760c1bdf267cc18
 --- /dev/null
 +++ b/src/live/agents.ts
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,68 @@
 +import * as z from 'zod/mini';
 +
-+import { Ask } from './asks';
++import { Ask, Sent } from './asks';
 +import { CallId } from './calls';
 +
 +const AgentTask = z.object({
@@ -106216,8 +106359,14 @@ index 0000000000000000000000000000000000000000..88a9db6f3de1fd484db448b15232f17b
 +  line: z.optional(z.string()),
 +});
 +export type AgentTask = z.infer<typeof AgentTask>;
-+// An ask hex put on screen during the call, with the answer once it has one.
-+const CallCard = z.object({ at: z.number(), ask: Ask, answer: z.optional(z.string()) });
++// An ask hex put on screen during the call, with the answer once it has one and what that reached,
++// until an undo takes it back.
++const CallCard = z.object({
++  at: z.number(),
++  ask: Ask,
++  answer: z.optional(z.string()),
++  sent: z.optional(Sent),
++});
 +export type CallCard = z.infer<typeof CallCard>;
 +export const AgentActivity = z.object({
 +  version: z.number(),
@@ -106455,10 +106604,10 @@ index bb3a17e3dc12851778dd2b2998412a63be471f94..00000000000000000000000000000000
 -});
 diff --git a/src/live/asks.ts b/src/live/asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..42040b431c6133f9dbd21aeda4d88e30bc93e155
+index 0000000000000000000000000000000000000000..0211fc7ecb0f5615c3a41a04e959567052da7eb3
 --- /dev/null
 +++ b/src/live/asks.ts
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,203 @@
 +import * as z from 'zod/mini';
 +
 +import { CallId, timeOfDay } from './calls';
@@ -106502,9 +106651,30 @@ index 0000000000000000000000000000000000000000..42040b431c6133f9dbd21aeda4d88e30
 +  places: z.array(AskPlace),
 +  tag: z.optional(z.string()),
 +});
-+// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` is
-+// this app's, never hex's: what you did to it here that didn't go through, and why.
-+export type Ask = z.infer<typeof Ask> & { failed?: string };
++// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
++// `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
++// how many places an answer from here couldn't reach, which still ask it.
++export type Ask = z.infer<typeof Ask> & { failed?: string; missed?: number };
++// What an answer, a note or a not needed reached: the hex thread it told and that thread's name, how
++// many open copies of the ask (buttons or polls) it sent an answer or settle to, and how many copies
++// or threads it couldn't reach because their app's hub was down. Hubs don't confirm, so `settled`
++// means sent to.
++export const Sent = z.object({
++  thread: z.string(),
++  topic: z.string(),
++  settled: z.number(),
++  missed: z.number(),
++});
++export type Sent = z.infer<typeof Sent>;
++
++// What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
++export const NOT_NEEDED = 'Not needed';
++
++// The places an answer couldn't reach, which still ask it until it's sent again.
++export const unreached = (missed: number) =>
++  missed === 1
++    ? 'One place was out of reach and still asks it'
++    : `${missed} places were out of reach and still ask it`;
 +export const Stuck = z.object({
 +  id: z.string(),
 +  app: z.string(),
@@ -106594,13 +106764,20 @@ index 0000000000000000000000000000000000000000..42040b431c6133f9dbd21aeda4d88e30
 +  }
 +}
 +
-+// hex's list with what didn't go through on each item it's about.
-+export function failedOn(list: AskList, failed: Record<string, string>): AskList {
++// hex's list with what didn't go through on each item it's about, and on each ask an answer from
++// here left open somewhere, how many places still ask it.
++export function failedOn(
++  list: AskList,
++  failed: Record<string, string>,
++  missed: Record<string, number> = {},
++): AskList {
 +  const on = <T extends { id: string }>(item: T) =>
 +    failed[item.id] ? { ...item, failed: failed[item.id] } : item;
 +  return {
 +    ...list,
-+    asks: list.asks.map(on),
++    asks: list.asks.map((ask) =>
++      missed[ask.id] ? { ...on(ask), missed: missed[ask.id] } : on(ask),
++    ),
 +    stuck: list.stuck.map(on),
 +    fresh: list.fresh.map(on),
 +  };
@@ -106775,10 +106952,10 @@ index 0000000000000000000000000000000000000000..de31afd3235e594c9f74f2e58356dd36
 +export default createLiveActivity('CallActivity', CallActivity);
 diff --git a/src/live/calls.ts b/src/live/calls.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8aed3f960edcf85f5c4857256856e0d91a7b9171
+index 0000000000000000000000000000000000000000..c1ef9220d82ebc9caa48114c7a0097d7764a87c0
 --- /dev/null
 +++ b/src/live/calls.ts
-@@ -0,0 +1,247 @@
+@@ -0,0 +1,250 @@
 +import type { SFSymbol } from 'sf-symbols-typescript';
 +import * as z from 'zod/mini';
 +
@@ -106840,10 +107017,13 @@ index 0000000000000000000000000000000000000000..8aed3f960edcf85f5c4857256856e0d9
 +});
 +export type CallTask = z.infer<typeof CallTask>;
 +// hex's exact words to the voice (say, note), things that happened to the call itself, and the asks
-+// it put on screen with their answers.
++// it put on screen with their answers and the undos that took one back.
 +const CallMark = z.object({
 +  at: z.number(),
-+  kind: z.catch(z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered']), 'note'),
++  kind: z.catch(
++    z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered', 'undone']),
++    'note',
++  ),
 +  text: z.string(),
 +});
 +export type CallMark = z.infer<typeof CallMark>;
@@ -107126,11 +107306,19 @@ index 0000000000000000000000000000000000000000..3be79e23a02aa6a82ef1e728529abe1a
 +};
 diff --git a/src/live/inbox.ts b/src/live/inbox.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a82014f0263096c83e20fbb2bccdbd6d1e04df7e
+index 0000000000000000000000000000000000000000..9b05470e2e11ee5f684329ef00e20b16a08b076f
 --- /dev/null
 +++ b/src/live/inbox.ts
-@@ -0,0 +1,305 @@
-+import type { Ask, AskList, AskOption, Fresh, Stuck } from './asks';
+@@ -0,0 +1,326 @@
++import {
++  unreached,
++  type Ask,
++  type AskList,
++  type AskOption,
++  type Fresh,
++  type Stuck,
++  type Sent,
++} from './asks';
 +import { startOfDay, type TaskId, type TaskRow, type Turn } from './tasks';
 +
 +// Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
@@ -107434,6 +107622,19 @@ index 0000000000000000000000000000000000000000..a82014f0263096c83e20fbb2bccdbd6d
 +  if (entry.kind === 'ask') return entry.ask.task;
 +  if (entry.kind === 'task') return entry.task.id;
 +  return undefined;
++}
++
++// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, named
++// by the apps the ask was asked in, only when it cleared some, and the places it couldn't reach.
++export function reachedBy(ask: Ask, sent: Sent | undefined) {
++  if (!sent) return '';
++  const apps = [...new Set(ask.places.map((place) => placeOf(place.app)))]
++    .filter((place) => place === 'telegram' || place === 'discord')
++    .map((place) => PLACES[place]);
++  const cleared = sent.settled
++    ? ` and cleared its ${apps.length ? `${apps.join(' and ')} ` : ''}buttons`
++    : '';
++  return sent.missed ? `${cleared}. ${unreached(sent.missed)}` : cleared;
 +}
 diff --git a/src/live/lane.ts b/src/live/lane.ts
 new file mode 100644
@@ -112806,10 +113007,10 @@ index e517c4697a24271f6c4111862388ef344f1fb72d..00000000000000000000000000000000
 -});
 diff --git a/tests/asks.test.ts b/tests/asks.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..abe3f1936b704cf725a8a0c91cf899685b91e4f6
+index 0000000000000000000000000000000000000000..d33e4627806233f13d5c3225c2a897d91c15a8e3
 --- /dev/null
 +++ b/tests/asks.test.ts
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,183 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -112820,6 +113021,7 @@ index 0000000000000000000000000000000000000000..abe3f1936b704cf725a8a0c91cf89968
 +  failedOn,
 +  keepInPlace,
 +  openAsks,
++  unreached,
 +  yours,
 +  Ask,
 +  type AskList,
@@ -112978,6 +113180,19 @@ index 0000000000000000000000000000000000000000..abe3f1936b704cf725a8a0c91cf89968
 +    [undefined, 'Not answered · That question is already answered or settled'],
 +  );
 +  assert.equal(failed.stuck[0]!.failed, 'Not sent · No General');
++});
++
++test('an answer that missed a place says how many still ask it, on that ask alone', () => {
++  const shown = failedOn(list('a', 'b'), { a: 'Not sent again · Cannot reach hex' }, { a: 2 });
++  assert.deepEqual(
++    shown.asks.map((one) => [one.failed, one.missed]),
++    [
++      ['Not sent again · Cannot reach hex', 2],
++      [undefined, undefined],
++    ],
++  );
++  assert.equal(unreached(1), 'One place was out of reach and still asks it');
++  assert.equal(unreached(2), '2 places were out of reach and still ask it');
 +});
 diff --git a/tests/call.test.ts b/tests/call.test.ts
 new file mode 100644
@@ -113502,10 +113717,10 @@ index 0000000000000000000000000000000000000000..5c947e39f1167297a37d159b68de6c9e
 +});
 diff --git a/tests/contract.test.ts b/tests/contract.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..037d7dbc1fcfa06576db4449a55fa4f93af09a55
+index 0000000000000000000000000000000000000000..d0d7b6626ab4d9c41ff7cc94ae5a4d6c75ea094a
 --- /dev/null
 +++ b/tests/contract.test.ts
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,110 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
 +import test from 'node:test';
@@ -113593,6 +113808,28 @@ index 0000000000000000000000000000000000000000..037d7dbc1fcfa06576db4449a55fa4f9
 +  assert.ok(!('steps' in page) && !('running' in page));
 +  assert.equal(TaskOrPage.parse(real('task')).kind, 'task');
 +  assert.equal(TaskOrPage.safeParse({ ...(real('task') as object), steps: 'none' }).success, false);
++});
++
++test('an ask answered on a call says what its answer reached, and the undo that took one back shows nothing', () => {
++  const [ask] = AskList.parse(real('asks')).asks;
++  const sent = { thread: 'telegram:-1001:2583', topic: 'voiceapp', settled: 1, missed: 0 };
++  const { asks } = AgentActivity.parse({
++    ...(real('activity') as object),
++    asks: [{ at: 1, ask, answer: 'Yes', sent }],
++  });
++  assert.deepEqual(asks?.[0]?.sent, sent);
++  const record = CallRecord.parse({
++    ...(real('call') as object),
++    moments: [
++      { at: 1, kind: 'answered', text: 'Yes', sent },
++      { at: 2, kind: 'undone', text: 'Yes' },
++    ],
++  });
++  assert.deepEqual(
++    record.moments?.map((moment) => moment.kind),
++    ['answered', 'undone'],
++  );
++  assert.equal(timeline(record).filter((moment) => moment.kind === 'mark').length, 0);
 +});
 diff --git a/tests/demo-call.test.ts b/tests/demo-call.test.ts
 new file mode 100644
@@ -115134,10 +115371,10 @@ index 0000000000000000000000000000000000000000..a071ce8a0feb8dde8ab18b0165366446
 +}
 diff --git a/tests/hex.test.ts b/tests/hex.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1644e4852a900048d67e263ba71145f34c64ce7a
+index 0000000000000000000000000000000000000000..5f9ba4fc38f089cbb7baaea3aba3ae267d9fc461
 --- /dev/null
 +++ b/tests/hex.test.ts
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,221 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -115318,7 +115555,6 @@ index 0000000000000000000000000000000000000000..1644e4852a900048d67e263ba71145f3
 +  await hex.tasks.talk(thread);
 +  await hex.tasks.send(thread, 'Ship it', 'app-1');
 +  await hex.tasks.stop(thread);
-+  await hex.asks.answer(AskId.parse('telegram:-100:1:7'), 'Deep');
 +  await hex.asks.undo(AskId.parse('check:music'));
 +  await hex.asks.act('t3-limit');
 +  await hex.asks.read('fresh-1');
@@ -115332,13 +115568,33 @@ index 0000000000000000000000000000000000000000..1644e4852a900048d67e263ba71145f3
 +      'POST /tasks/telegram%3A-100%3A908/talk',
 +      'POST /tasks/telegram%3A-100%3A908/chat {"text":"Ship it","key":"app-1"}',
 +      'POST /tasks/telegram%3A-100%3A908/stop',
-+      'POST /asks/telegram%3A-100%3A1%3A7/answer {"label":"Deep"}',
 +      'POST /asks/check%3Amusic/undo',
 +      'POST /stuck/t3-limit/act',
 +      'POST /fresh/fresh-1/read',
 +      'POST /asks/talk',
 +    ],
 +  );
++});
++
++test('an answer, a note and a not needed each go to their ask and say what they reached', async () => {
++  const seen: { url: string; init?: RequestInit }[] = [];
++  const reached = { thread: 'telegram:-100:1', topic: 'hex', settled: 2, missed: 1 };
++  const hex = answering(reached, seen);
++  const ask = AskId.parse('telegram:-100:1:7');
++  assert.deepEqual(await hex.asks.answer(ask, 'Deep'), reached);
++  assert.deepEqual(await hex.asks.note(ask, 'Only if it ships today'), reached);
++  assert.deepEqual(await hex.asks.dismiss(ask), reached);
++  assert.deepEqual(
++    seen.map(({ url, init }) =>
++      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${init?.body ?? ''}`.trim(),
++    ),
++    [
++      'POST /asks/telegram%3A-100%3A1%3A7/answer {"label":"Deep"}',
++      'POST /asks/telegram%3A-100%3A1%3A7/note {"text":"Only if it ships today"}',
++      'POST /asks/telegram%3A-100%3A1%3A7/dismiss',
++    ],
++  );
++  await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/);
 +});
 diff --git a/tests/http.test.ts b/tests/http.test.ts
 deleted file mode 100644
@@ -115441,10 +115697,10 @@ index 9dd18c87f9f6b1803889689f7450ea51ef06bf17..00000000000000000000000000000000
 -});
 diff --git a/tests/inbox.test.ts b/tests/inbox.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..31f605716b2bbd0eb847f63dbf4ecde33419c490
+index 0000000000000000000000000000000000000000..f8b206d38e6baa3a69ecd30aa1b88b288c543bdb
 --- /dev/null
 +++ b/tests/inbox.test.ts
-@@ -0,0 +1,491 @@
+@@ -0,0 +1,513 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -115459,6 +115715,7 @@ index 0000000000000000000000000000000000000000..31f605716b2bbd0eb847f63dbf4ecde3
 +  topicIn,
 +  inboxEntries,
 +  picksOf,
++  reachedBy,
 +  search,
 +  stageCounts,
 +  taskOf,
@@ -115935,6 +116192,27 @@ index 0000000000000000000000000000000000000000..31f605716b2bbd0eb847f63dbf4ecde3
 +  const stuck = { name: 'Stuck', entries: [], marks: [] };
 +  assert.equal(topicIn(pageOf(stuck)), 'Stuck');
 +  assert.equal(topicIn(entry.task.id), undefined);
++});
++
++test('an answer says it cleared buttons only when hex says it settled some, and what it missed', () => {
++  const asked = ask('a', 'pick', {
++    places: [
++      { app: 'telegram', place: 'General', link: 'https://t.me/c/1/2' },
++      { app: 'voice', place: 'Desk setup', call: 'call_1' },
++    ],
++  });
++  const sent = { thread: 'telegram:-1:2', topic: 'hex', settled: 0, missed: 0 };
++  assert.equal(reachedBy(asked, undefined), '');
++  assert.equal(reachedBy(asked, sent), '');
++  assert.equal(reachedBy(asked, { ...sent, settled: 1 }), ' and cleared its Telegram buttons');
++  assert.equal(
++    reachedBy(asked, { ...sent, settled: 1, missed: 1 }),
++    ' and cleared its Telegram buttons. One place was out of reach and still asks it',
++  );
++  assert.equal(
++    reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
++    '. 2 places were out of reach and still ask it',
++  );
 +});
 diff --git a/tests/lane.test.ts b/tests/lane.test.ts
 new file mode 100644
