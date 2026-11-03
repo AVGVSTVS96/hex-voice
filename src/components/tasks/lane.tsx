@@ -1,71 +1,49 @@
 import { Capsule, Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
-import {
-  accessibilityHidden,
-  foregroundStyle,
-  frame,
-  offset,
-  strokeBorder,
-} from '@expo/ui/swift-ui/modifiers';
+import { accessibilityHidden, foregroundStyle, frame, offset } from '@expo/ui/swift-ui/modifiers';
 
 import { laneOf } from '@/live/lane';
-import { LANE_TICKS, laneX, type Turn } from '@/live/tasks';
+import type { Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
 const HEIGHT = 9;
 const BAR = 4;
-const DOT = 4;
-const RING = 7;
+// The shortest run is still a bar, never a dot.
+const SHORTEST = 6;
+const FAILED = 5;
 
-// A project's last week at a glance: mint where it worked, a grey dot where a run ended (red if it
-// failed), a mint ring where it last asked for you, and faint ticks an hour and a day back.
+// A project's last week at a glance, on a thin line: mint where it worked, red where a run failed.
+// A quiet project is the line alone.
 export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; now: number }) {
-  const { spans, ends, asked } = laneOf(tracks, now, width);
+  const { spans, failures } = laneOf(tracks, now, width);
   return (
     <ZStack
       alignment="leading"
       modifiers={[frame({ width, height: HEIGHT }), accessibilityHidden(true)]}
     >
       <Rectangle modifiers={[frame({ width, height: 1 }), foregroundStyle(theme.edge)]} />
-      {LANE_TICKS.map((age) => (
-        <Rectangle
-          key={`tick:${age}`}
-          modifiers={[
-            frame({ width: 1, height: 5 }),
-            foregroundStyle(theme.edge),
-            offset({ x: laneX(now - age, now, width) - 0.5 }),
-          ]}
-        />
-      ))}
-      {spans.map((span) => (
-        <Capsule
-          key={`span:${span.from}`}
-          modifiers={[
-            frame({ width: Math.max(BAR, span.to - span.from), height: BAR }),
-            foregroundStyle(theme.accent),
-            offset({ x: Math.min(span.from, width - BAR) }),
-          ]}
-        />
-      ))}
-      {ends.map((end) => (
+      {spans.map((span) => {
+        const length = Math.max(SHORTEST, span.to - span.from);
+        return (
+          <Capsule
+            key={`span:${span.from}`}
+            modifiers={[
+              frame({ width: length, height: BAR }),
+              foregroundStyle(theme.accent),
+              offset({ x: Math.min(span.from, width - length) }),
+            ]}
+          />
+        );
+      })}
+      {failures.map((x) => (
         <Circle
-          key={`end:${end.x}`}
+          key={`failed:${x}`}
           modifiers={[
-            frame({ width: DOT, height: DOT }),
-            foregroundStyle(end.failed ? theme.danger : theme.secondary),
-            offset({ x: Math.min(end.x, width) - DOT / 2 }),
+            frame({ width: FAILED, height: FAILED }),
+            foregroundStyle(theme.danger),
+            offset({ x: Math.min(x, width - FAILED / 2) - FAILED / 2 }),
           ]}
         />
       ))}
-      {asked === undefined ? null : (
-        <Circle
-          modifiers={[
-            frame({ width: RING, height: RING }),
-            foregroundStyle(theme.sheet),
-            strokeBorder({ content: theme.accent, style: { lineWidth: 1.5 }, shape: 'circle' }),
-            offset({ x: Math.min(asked, width - RING / 2) - RING / 2 }),
-          ]}
-        />
-      )}
     </ZStack>
   );
 }

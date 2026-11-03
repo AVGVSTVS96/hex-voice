@@ -1,16 +1,17 @@
-import { Column, RNHostView, Spacer, Text } from '@expo/ui';
-import { TabView, ZStack } from '@expo/ui/swift-ui';
+import { Column, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
+  accessibilityHidden,
   foregroundStyle,
   frame,
-  indexViewStyle,
   onTapGesture,
+  padding,
   shapes,
   tabViewStyle,
 } from '@expo/ui/swift-ui/modifiers';
-import { View, useColorScheme } from 'react-native';
+import { View } from 'react-native';
 
 import { theme } from '@/theme';
 
@@ -30,7 +31,6 @@ export function SelectionCarousel({
   label,
   testID,
 }: SelectionCarouselProps) {
-  const scheme = useColorScheme();
   const totalHeight = height + previewHeight;
   // A static page prevents both swipe and page-dot changes during a call.
   if (!enabled) {
@@ -56,9 +56,7 @@ export function SelectionCarousel({
       testID={testID}
       modifiers={[
         frame({ width, height: totalHeight }),
-        tabViewStyle({ type: 'page', indexDisplayMode: 'always' }),
-        // iOS draws the dots white, so on a light ground they sit on its translucent backdrop.
-        indexViewStyle({ backgroundDisplayMode: scheme === 'light' ? 'always' : 'never' }),
+        tabViewStyle({ type: 'page', indexDisplayMode: 'never' }),
         accessibilityLabel(label),
       ]}
     >
@@ -77,22 +75,55 @@ export function SelectionCarousel({
     </TabView>
   );
 
-  if (!preview) return pager;
+  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground.
+  const dots = (
+    <Row
+      alignment="center"
+      spacing={DOT}
+      modifiers={[padding({ bottom: (38 - DOT) / 2 }), accessibilityHidden(true)]}
+    >
+      {options.map((option) => (
+        <Circle
+          key={option.id}
+          modifiers={[
+            frame({ width: DOT, height: DOT }),
+            foregroundStyle(option.id === value ? theme.text : theme.tertiary),
+          ]}
+        />
+      ))}
+    </Row>
+  );
   return (
-    <ZStack alignment="top" modifiers={[frame({ width, height: totalHeight })]}>
-      <RNHostView matchContents>
-        <View
-          pointerEvents="none"
-          style={{ width, height: previewHeight, alignItems: 'center', justifyContent: 'center' }}
+    <ZStack alignment="bottom" modifiers={[frame({ width, height: totalHeight })]}>
+      {preview ? (
+        <Column
+          alignment="center"
+          spacing={0}
+          modifiers={[frame({ width, height: totalHeight, alignment: 'top' })]}
         >
-          {preview}
-        </View>
-      </RNHostView>
+          <RNHostView matchContents>
+            <View
+              pointerEvents="none"
+              style={{
+                width,
+                height: previewHeight,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {preview}
+            </View>
+          </RNHostView>
+        </Column>
+      ) : null}
       {/* The transparent pager covers the preview, so the entire control swipes. */}
       {pager}
+      {dots}
     </ZStack>
   );
 }
+
+const DOT = 7;
 
 function SelectionPage({
   option,
