@@ -3,26 +3,24 @@ import { useEffect, useEffectEvent } from 'react';
 import { AppState } from 'react-native';
 
 // New JS arrives over the air (scripts/ship-js). The app looks for it each time it comes to the
-// front and downloads it in the background, then restarts into it only while no call is live:
-// right away if the app is in front with no call, otherwise the next time it comes to the front.
+// front and downloads it in the background. It restarts into it only as you come back to the app
+// from elsewhere with no call live, never while you're in it, so a restart can't take the page
+// you're on from under you. Coming back from Control Center or a banner isn't coming back.
 export function useAppUpdates(callLive: boolean) {
   const { isUpdatePending } = Updates.useUpdates();
 
   const apply = useEffectEvent(() => {
-    if (isUpdatePending && !callLive && AppState.currentState === 'active') {
-      void Updates.reloadAsync();
-    }
+    if (isUpdatePending && !callLive) void Updates.reloadAsync();
   });
 
   useEffect(() => {
-    if (isUpdatePending) apply();
-  }, [isUpdatePending]);
-
-  useEffect(() => {
     if (!Updates.isEnabled) return;
+    let last = AppState.currentState;
     const listener = AppState.addEventListener('change', (state) => {
+      const back = last === 'background' && state === 'active';
+      last = state;
       if (state !== 'active') return;
-      apply();
+      if (back) apply();
       void download();
     });
     return () => listener.remove();
