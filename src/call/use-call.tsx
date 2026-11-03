@@ -8,10 +8,15 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
+import { callOf, isHere } from '@/call/call';
 import { hex } from '@/hex';
+import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
+import type { CallId } from '@/live/calls';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
+import type { CallAbout } from '@/live/types';
+import type { LiveVoice } from '@/live/voices';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
 const Session = createContext<LiveSession | null>(null);
@@ -52,4 +57,27 @@ export function useSession() {
     session.getSnapshot,
   );
   return { ...snapshot, start: session.start, stop: session.stop, toggleMute: session.toggleMute };
+}
+
+// The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
+// /activity), followed word by word until it ends.
+export function useCall(held: CallId | null) {
+  const session = use(Session)!;
+  const snapshot = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getSnapshot,
+  );
+  const here = isHere(snapshot.status);
+  const elsewhere = useCallElsewhere(
+    held && !here && held !== snapshot.callId ? held : undefined,
+    here,
+  );
+  const call = callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving });
+  return {
+    call,
+    start: (voice: LiveVoice, about?: CallAbout) => session.start(voice, about),
+    end: () => (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop()),
+    toggleMute: session.toggleMute,
+  };
 }

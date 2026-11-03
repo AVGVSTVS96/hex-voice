@@ -1,39 +1,35 @@
 import { addUserInteractionListener, after, type LiveActivity } from 'expo-widgets';
 import { useEffect, useEffectEvent, useRef } from 'react';
 
+import type { Call } from '@/call/call';
 import CallActivity, { type CallActivityProps } from '@/live/call-activity';
-import { ENDINGS, clock, type CallEnding } from '@/live/calls';
-import type { LiveStatus } from '@/live/types';
-
-type Call = {
-  status: LiveStatus;
-  muted: boolean;
-  ending: CallEnding | null;
-  elapsedSeconds: number;
-  orb: string;
-  toggleMute: () => void;
-  stop: () => Promise<void>;
-};
+import { ENDINGS, clock } from '@/live/calls';
 
 // An ended call stays on the lock screen with how it ended, long enough to glance at.
 const LINGER = 2 * 60_000;
 
-export function useCallActivity({
-  status,
-  muted,
-  ending,
-  elapsedSeconds,
-  orb,
-  toggleMute,
-  stop,
-}: Call) {
+// A call on this phone shows on the Lock Screen and in the Dynamic Island while it connects and
+// lasts, with mute and End.
+export function useCallActivity(
+  call: Call,
+  orb: string,
+  { toggleMute, end }: { toggleMute: () => void; end: () => Promise<void> },
+) {
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
-  const live = status === 'connecting' || status === 'connected';
+  const state =
+    call.kind !== 'here'
+      ? undefined
+      : call.phase !== 'live'
+        ? call.phase
+        : call.mic.muted
+          ? 'muted'
+          : 'live';
+  const last = call.kind === 'none' ? call.last : undefined;
 
   const onControl = useEffectEvent((target: string) => {
     if (target === 'mute') toggleMute();
-    if (target === 'end') void stop();
+    if (target === 'end') void end();
   });
 
   useEffect(() => {
@@ -48,16 +44,17 @@ export function useCallActivity({
   }, []);
 
   useEffect(() => {
-    if (status === 'disconnecting') return;
-    if (!live) {
+    if (state === 'ending') return;
+    if (!state) {
       const current = activity.current;
       activity.current = null;
       if (current) {
+        const ending = last?.ending;
         const outcome = ending && ENDINGS[ending];
         const line = !outcome
           ? 'Call ended'
           : since.current && ending !== 'no-connect'
-            ? `${outcome.line} · ${clock(elapsedSeconds * 1000)}`
+            ? `${outcome.line} · ${clock((last?.seconds ?? 0) * 1000)}`
             : outcome.line;
         void current
           .end(after(new Date(Date.now() + LINGER)), {
@@ -72,12 +69,8 @@ export function useCallActivity({
       since.current = 0;
       return;
     }
-    if (status === 'connected' && !since.current) since.current = Date.now();
-    const props: CallActivityProps = {
-      orb,
-      since: since.current,
-      state: status === 'connecting' ? 'connecting' : muted ? 'muted' : 'live',
-    };
+    if (state !== 'connecting' && !since.current) since.current = Date.now();
+    const props: CallActivityProps = { orb, since: since.current, state };
     if (activity.current) {
       void activity.current.update(props).catch(() => {});
       return;
@@ -87,5 +80,5 @@ export function useCallActivity({
     } catch (error) {
       console.warn('[hex] The call could not show a Live Activity.', error);
     }
-  }, [live, status, muted, orb, ending]);
+  }, [state, orb, last?.ending]);
 }
