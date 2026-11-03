@@ -19,6 +19,7 @@ import { Linking } from 'react-native';
 
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
+import { useDraft } from '@/hooks/use-draft';
 import { GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import type { Ask, AskLink, AskOption } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
@@ -170,7 +171,11 @@ function AskCard({
         {ask.links?.length ? <Links links={ask.links} /> : null}
       </Column>
       {writing ? (
-        <Composer topic={ask.topic} onSend={(label) => onAnswer(ask, { label })} />
+        <Composer
+          draft={`ask:${ask.id}`}
+          topic={ask.topic}
+          onSend={(label) => onAnswer(ask, { label })}
+        />
       ) : (
         <Answers ask={ask} width={width} onAnswer={onAnswer} />
       )}
@@ -328,8 +333,17 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   );
 }
 
-function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => void }) {
-  const [text, setText] = useState('');
+function Composer({
+  draft,
+  topic,
+  onSend,
+}: {
+  draft: string;
+  topic: string;
+  onSend: (text: string) => void;
+}) {
+  const { first, keep } = useDraft(draft);
+  const [text, setText] = useState(first);
   const typing = useContext(Typing);
   const note = text.trim();
   return (
@@ -357,10 +371,14 @@ function Composer({ topic, onSend }: { topic: string; onSend: (text: string) => 
         testID="ask-input"
         onFocus={() => typing(true)}
         onBlur={() => typing(false)}
+        defaultValue={first}
         placeholder={`Your answer or a note for ${topic}`}
         placeholderTextColor={theme.tertiary}
         cursorColor={theme.accent}
-        onChangeText={setText}
+        onChangeText={(now) => {
+          setText(now);
+          keep(now);
+        }}
         textStyle={{ fontSize: 17 }}
         modifiers={[
           foregroundStyle(theme.text),

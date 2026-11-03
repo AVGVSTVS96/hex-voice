@@ -18,6 +18,7 @@ import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard } from 'react-native';
 
 import { Header, PageBar, Talk } from '@/components/tasks/bar';
+import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
 import { Faded, SectionHead, ios } from '@/components/tasks/parts';
@@ -202,6 +203,8 @@ export function ThreadPage({
       ) : null}
       {chat?.sends ? (
         <Composer
+          key={thread.id}
+          draft={`thread:${thread.id}`}
           title={title}
           working={running && !pending.some((sent) => !sent.failed)}
           focus={focus}
@@ -222,6 +225,7 @@ export function ThreadPage({
 // Send turns into Stop while the thread works and you've nothing typed, though not before what you
 // just sent reaches it, so a second tap on Send can't stop the turn you steered.
 function Composer({
+  draft,
   title,
   working,
   focus,
@@ -230,6 +234,7 @@ function Composer({
   onStop,
   onTalk,
 }: {
+  draft: string;
   title: string;
   working: boolean;
   focus: boolean;
@@ -239,7 +244,8 @@ function Composer({
   onTalk: () => void;
 }) {
   const input = useRef<TextInputRef>(null);
-  const [text, setText] = useState('');
+  const { first, keep } = useDraft(draft);
+  const [text, setText] = useState(first);
   const [typing, setTyping] = useState(false);
   const typingHere = useContext(Typing);
   useEffect(() => {
@@ -255,6 +261,7 @@ function Composer({
     if (!words) return;
     onSend(words);
     setText('');
+    keep('');
     input.current?.clear();
   };
   return (
@@ -280,10 +287,14 @@ function Composer({
         <TextInput
           ref={input}
           multiline
+          defaultValue={first}
           placeholder={`Message ${title}`}
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
-          onChangeText={setText}
+          onChangeText={(now) => {
+            setText(now);
+            keep(now);
+          }}
           onFocus={() => {
             setTyping(true);
             typingHere(true);
