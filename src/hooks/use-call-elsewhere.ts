@@ -42,10 +42,15 @@ export function useCallElsewhere(live: string | undefined, here: boolean) {
     return () => controller.abort();
   }, [follow, active]);
 
-  const hangUp = () => {
+  const hangUp = async () => {
     if (!call || call.ended) return;
     setLeaving(true);
-    sessionAPI.close(call.id).catch(() => setLeaving(false));
+    try {
+      await sessionAPI.close(call.id);
+    } catch (error) {
+      setLeaving(false);
+      throw error;
+    }
   };
 
   return { call, live: !!call && !call.ended, leaving, hangUp };
