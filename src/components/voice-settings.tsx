@@ -169,7 +169,7 @@ export function VoiceSettings({
   const preview = pages
     ? Math.max(
         SHORT_PREVIEW,
-        Math.min(BESIDE.preview, pages.first.height - PERSONA_PAGE - BAR - 2 * SHEET_TOP),
+        Math.min(BESIDE.preview, pages.first.height - PERSONA_PAGE - BAR - SHEET_TOP),
       )
     : beside
       ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
@@ -225,8 +225,13 @@ export function VoiceSettings({
 
   // On the open Duo's second page, the rows and the voices push over each other the same way, each
   // as tall as the page lets it be.
+  // On its side the rows start just past the fold; held wide they sit midway down their page.
   const slide = (shown: boolean, away: number) => [
-    frame({ maxWidth: Infinity, maxHeight: Infinity }),
+    frame({
+      maxWidth: Infinity,
+      maxHeight: Infinity,
+      alignment: place?.split.axis === 'column' ? 'top' : 'center',
+    }),
     background(theme.sheet),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
@@ -408,7 +413,10 @@ export function VoiceSettings({
           <Column
             alignment="center"
             spacing={metrics.groupSpacing}
-            modifiers={slide(!onVoicePage, -pages.second.width / 3)}
+            modifiers={[
+              ...(place.split.axis === 'row' ? [] : [padding({ top: SHEET_TOP })]),
+              ...slide(!onVoicePage, -pages.second.width / 3),
+            ]}
           >
             {rows}
           </Column>

@@ -1070,6 +1070,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         style={[{ top: toolbar.y }, toolbarStyle]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
+        settingsOpen={!!duo?.settings && settingsOpen}
         onCalls={() => {
           setSettingsOpen(false);
           toggleDrawer();
