@@ -7,7 +7,6 @@ import { Ask, Fresh, Stuck } from '../src/live/asks';
 import {
   fitsOneLine,
   headlineOf,
-  timeOf,
   pageOf,
   topicIn,
   inboxEntries,
@@ -465,20 +464,6 @@ test('a row opens the task it came from, when it has one', () => {
 test('an entry’s headline is what it asks or says', () => {
   const entries = stream({ tasks: [row('voiceapp', 'needs', at(3), { line: 'Plug the Duo in' })] });
   assert.deepEqual(entries.map(headlineOf), ['Plug the Duo in']);
-});
-
-test('an entry’s time is its own or its task’s, never a made-up one', () => {
-  const [entry] = stream({ tasks: [row('voiceapp', 'working', at(3))] });
-  assert.ok(entry?.kind === 'task');
-  assert.equal(timeOf(entry), Date.parse(at(3)));
-  assert.equal(timeOf({ ...entry, at: '' }), Date.parse(entry.task.at));
-  const epoch = new Date(0).toISOString();
-  assert.equal(
-    timeOf({ ...entry, at: epoch, task: { ...entry.task, at: epoch, since: at(5) } }),
-    Date.parse(at(5)),
-    'a Claude session’s epoch is no time: its start stands in',
-  );
-  assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '', since: '' } }), undefined);
 });
 
 test('a project opens on its leading thread, or on a page of its own when it has none', () => {

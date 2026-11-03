@@ -25,7 +25,6 @@ import {
   STUCK,
   fitsOneLine,
   headlineOf,
-  timeOf,
   opens,
   type Entry,
   type Stage,
@@ -440,12 +439,9 @@ export function ProjectRow({
   selected: boolean;
   onOpen: () => void;
 }) {
-  const [newest] = [...topic.entries].sort(
-    (a, b) => (timeOf(b) ?? -Infinity) - (timeOf(a) ?? -Infinity),
-  );
+  const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
   const count = topic.entries.length;
-  const when = timeOf(newest);
   // Mint means it waits on you, so only Needs you counts in mint.
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
@@ -498,7 +494,7 @@ export function ProjectRow({
         >
           {headlineOf(newest)}
         </Text>
-        {when === undefined ? null : <Meta text={clock(new Date(when))} />}
+        <Meta text={clock(new Date(newest.at))} />
       </Row>
     </Column>
   );

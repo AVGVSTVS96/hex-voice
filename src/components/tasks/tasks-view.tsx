@@ -46,7 +46,7 @@ import {
   type Stage,
   type Tile,
 } from '@/live/inbox';
-import { movedAt, type TaskId, type TaskRow } from '@/live/tasks';
+import type { TaskId, TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
@@ -399,7 +399,7 @@ export function Tasks({
 
 function newestOf(rows: TaskRow[]) {
   return rows.reduce<TaskRow | undefined>(
-    (newest, row) => (!newest || movedAt(row) > movedAt(newest) ? row : newest),
+    (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
     undefined,
   );
 }

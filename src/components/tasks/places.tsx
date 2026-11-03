@@ -18,7 +18,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
-import { clock, movedAt, type TaskId, type TaskRow } from '@/live/tasks';
+import { clock, type TaskId, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 
 const GLYPH: Record<Place, SFSymbol> = {
@@ -132,7 +132,7 @@ export function Places({
 }) {
   const others = threads
     .filter((thread) => thread.id !== task.id)
-    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || movedAt(b) - movedAt(a));
+    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
   const all = [task, ...others];
   const [every, setEvery] = useState(false);
   const shown = every ? all : all.slice(0, SHOWN);
@@ -146,7 +146,7 @@ export function Places({
         const opens = !!thread.link || thread.id !== task.id;
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
-          : `${PLACES[place]} · ${clock(new Date(movedAt(thread)))}${thread.link ? '' : ' · no link'}`;
+          : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
         return (
           <Column
             key={thread.id}
