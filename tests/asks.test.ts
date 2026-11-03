@@ -161,3 +161,8 @@ test('held asks go back after the ask they followed, or first when none of those
     ['x', 'y', 'b', 'c'],
   );
 });
+
+test('a pinned section’s heading drops its own emoji, which its mark already says', () => {
+  const [done] = pinSections('**🟢 Done:**\n- shipped the band');
+  assert.deepEqual([done!.title, done!.mark], ['Done', 'done']);
+});
