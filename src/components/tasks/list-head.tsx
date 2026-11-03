@@ -19,6 +19,34 @@ import { INSET, ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
 
+// Held wide, folds the list to one row per project, or back out to every task.
+// In Quiet, already one row per project, it stays in place but does nothing.
+export function CollapseButton({
+  collapsed,
+  disabled,
+  onPress,
+}: {
+  collapsed: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <BarButton
+      shape="circle"
+      disabled={disabled}
+      label={collapsed ? 'Show every task' : 'Show projects only'}
+      testID="tasks-collapse"
+      onPress={onPress}
+    >
+      <Icon
+        name={collapsed ? 'rectangle.expand.vertical' : 'rectangle.compress.vertical'}
+        size={17}
+        color={theme.text}
+      />
+    </BarButton>
+  );
+}
+
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
     <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>

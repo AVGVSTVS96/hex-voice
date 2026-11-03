@@ -4,6 +4,8 @@ import test from 'node:test';
 import type { Ask, Fresh, Stuck } from '../src/live/asks';
 import {
   fitsOneLine,
+  headlineOf,
+  timeOf,
   inboxEntries,
   picksOf,
   search,
@@ -435,4 +437,17 @@ test('a row opens the task it came from, when it has one', () => {
     entries.map((entry) => taskOf(entry)),
     ['telegram:autofork', undefined, 'telegram:voiceapp', undefined],
   );
+});
+
+test('an entry’s headline is what it asks or says', () => {
+  const entries = stream({ tasks: [row('voiceapp', 'needs', at(3), { line: 'Plug the Duo in' })] });
+  assert.deepEqual(entries.map(headlineOf), ['Plug the Duo in']);
+});
+
+test('an entry’s time is its own or its task’s, never a made-up one', () => {
+  const [entry] = stream({ tasks: [row('voiceapp', 'working', at(3))] });
+  assert.ok(entry?.kind === 'task');
+  assert.equal(timeOf(entry), Date.parse(at(3)));
+  assert.equal(timeOf({ ...entry, at: '' }), Date.parse(entry.task.at));
+  assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '' } }), undefined);
 });

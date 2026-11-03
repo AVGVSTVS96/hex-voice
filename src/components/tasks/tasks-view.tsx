@@ -180,6 +180,7 @@ export function Tasks({
       pages={pages}
       spot={spot('list')}
       paged={room.paged}
+      wide={pages.shape === 'columns' || (room.paged && room.fold?.axis === 'row')}
       tasks={tasks}
       offline={offline}
       yours={yours}
