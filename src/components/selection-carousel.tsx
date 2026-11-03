@@ -1,4 +1,4 @@
-import { Column, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Column, RNHostView, Row, Spacer } from '@expo/ui';
 import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
@@ -6,7 +6,6 @@ import {
   contentShape,
   foregroundStyle,
   frame,
-  padding,
   shapes,
   tabViewStyle,
 } from '@expo/ui/swift-ui/modifiers';
@@ -14,6 +13,8 @@ import type { ReactElement } from 'react';
 import { View } from 'react-native';
 
 import { theme } from '@/theme';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 type SelectionOption = { id: string; label: string; description: string };
 
@@ -91,7 +92,7 @@ export function SelectionCarousel({
   // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground. As
   // iOS's do, each says which page it is and a tap on one goes there.
   const dots = (
-    <Row alignment="center" spacing={0} modifiers={[padding({ bottom: (38 - REACH) / 2 })]}>
+    <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.pageDots })]}>
       {options.map((option, i) => {
         const current = option.id === value;
         return (
@@ -169,22 +170,22 @@ function SelectionPage({
   return (
     <Column
       alignment="center"
-      spacing={8}
-      style={{ width, height, paddingHorizontal: 16, paddingTop: previewHeight, paddingBottom: 38 }}
+      spacing={space[2]}
+      style={{
+        width,
+        height,
+        paddingHorizontal: space[4],
+        paddingTop: previewHeight,
+        paddingBottom: metrics.pageDots,
+      }}
       onPress={onPress}
       testID={testID}
     >
       <Spacer flexible />
-      <Text
-        textStyle={{ fontSize: 32, fontWeight: '600', textAlign: 'center' }}
-        modifiers={[foregroundStyle(theme.text)]}
-      >
+      <Text variant="display" align="center">
         {option.label}
       </Text>
-      <Text
-        textStyle={{ fontSize: 16, textAlign: 'center' }}
-        modifiers={[foregroundStyle(theme.secondary)]}
-      >
+      <Text variant="callout" tone="secondary" align="center">
         {option.description}
       </Text>
       <Spacer flexible />

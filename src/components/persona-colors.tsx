@@ -38,7 +38,8 @@ export function PersonaColors({
   const light = useColorScheme() === 'light';
   const inner = width - 2 * metrics.rowInset;
   const size = Math.min(MAX_SWATCH, Math.floor((inner - MIN_GAP * (SLOTS - 1)) / SLOTS));
-  const layout = { width, size, gap: (inner - SLOTS * size) / (SLOTS - 1) };
+  const gap = (inner - SLOTS * size) / (SLOTS - 1);
+  const layout = { width, size, gap };
 
   if (persona === 'opal')
     return (
