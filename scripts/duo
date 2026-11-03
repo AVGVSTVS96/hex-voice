@@ -313,8 +313,9 @@ tap() {
   collect "$shots/$commit/tap"
 }
 
-# The Duo's screen as he sees it. Given an OTA update id, it waits until a device next asks for
-# updates while running it, so hex has just come to the front, and past its splash screen.
+# The Duo's lit screen. Given an OTA update id, it first waits until a device asks for updates
+# while running it. That proves the update is on a device, not that hex is in front: the iPad
+# asks too, and so does hex in the background, so the shot is often another app.
 phone() {
   set -a && . "$release/.env.local" && set +a
   local since file
