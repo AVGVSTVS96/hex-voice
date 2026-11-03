@@ -19,17 +19,17 @@ const unmigrated = new Set([
   'src/components/tasks/list.tsx',
   'src/components/tasks/rows.tsx',
   'src/components/tasks/tasks-view.tsx',
-  'src/components/tasks/trace.tsx',
   'src/components/voice-settings.tsx',
   'src/live/call-activity.tsx',
   'src/screens/duo-tasks.tsx',
 ]);
 
-// A token, a value React Native or SwiftUI was given by its parent, or a constant made of those.
+// A token, a value React Native or SwiftUI was given by its parent, or a constant made of those,
+// halved to center one on another.
 const token = /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\)|hairline)/g;
 
 function raw(value: string, constants: Map<string, string>, strict: boolean): boolean {
-  const rest = value.replace(token, '');
+  const rest = value.replace(token, '').replace(/\/\s*2\b/g, '');
   if (strict && rest.trim()) return true;
   if ([...rest.matchAll(/(?<![\w$.])\d*\.?\d+/g)].some(([number]) => Number(number) !== 0))
     return true;

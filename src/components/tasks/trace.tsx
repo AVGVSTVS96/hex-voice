@@ -1,9 +1,8 @@
-import { Column, Icon, Row, ScrollView, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, ScrollView, Spacer } from '@expo/ui';
 import { Background, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
-  font,
   foregroundStyle,
   frame,
   monospacedDigit,
@@ -12,12 +11,11 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState, type ReactNode } from 'react';
-import type { ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, Waiting, ios } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -37,7 +35,8 @@ import {
 } from '@/live/tasks';
 import type { Answered } from '@/hooks/use-watch';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space, type Tone } from '@/ui/tokens';
 
 // Each kind of step's icon, as shadcn's Trace marks what a line did.
 export const KIND: Record<StepKind, SFSymbol> = {
@@ -53,10 +52,10 @@ export const KIND: Record<StepKind, SFSymbol> = {
   tool: 'wrench.and.screwdriver',
 };
 const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
-const TEXT = metrics.list.inset - 2 + metrics.list.mark + metrics.list.gap;
+const TEXT = metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap;
 // An open agent's rail runs from just under its mark to the middle of its last line.
-const RAIL_TOP = 30;
-const RAIL_FOOT = 18;
+const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
+const RAIL_FOOT = space[2] + metrics.list.line / 2;
 
 // Steps before hex has answered with the task: its bar and back, over the spinner.
 export function StepsLoading(answered: Answered) {
@@ -95,7 +94,7 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
             <Sections>
               {task.plan.length ? (
                 <Column key="plan" alignment="start" spacing={0}>
@@ -105,7 +104,7 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                       key={`${i} ${item.text}`}
                       lead={<Mark state={PLANNED[item.state]} />}
                       text={item.text}
-                      color={item.state === 'pending' ? theme.secondary : undefined}
+                      tone={item.state === 'pending' ? 'secondary' : undefined}
                     />
                   ))}
                 </Column>
@@ -179,13 +178,13 @@ export function Steps({
             }
           >
             {opened && step.detail ? (
-              <Output lines={[step.detail]} wraps={4} color={theme.secondary} />
+              <Output lines={[step.detail]} wraps={4} tone="secondary" />
             ) : null}
             {opened && step.result ? (
               <Output
                 lines={step.result.split('\n').slice(0, 6)}
                 wraps={1}
-                color={step.state === 'failed' ? theme.danger : theme.tertiary}
+                tone={step.state === 'failed' ? 'danger' : 'tertiary'}
               />
             ) : null}
           </TraceLine>
@@ -195,18 +194,16 @@ export function Steps({
   );
 }
 
-function Output({ lines, wraps, color }: { lines: string[]; wraps: number; color: ColorValue }) {
+function Output({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: Tone }) {
   return (
-    <Column alignment="start" spacing={0} modifiers={[padding({ top: 4 })]}>
+    <Column alignment="start" spacing={0} modifiers={[padding({ top: space[1] })]}>
       {lines.map((line, i) => (
         <Text
           key={i}
           numberOfLines={wraps}
-          modifiers={[
-            font({ design: 'monospaced', size: 13 }),
-            foregroundStyle(color),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+          variant="snippet"
+          tone={tone}
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {line}
         </Text>
@@ -230,7 +227,7 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
         <TraceLine
           lead={<Mark state={agent.state} />}
           text={agent.label}
-          color={agent.state === 'stopped' ? theme.secondary : undefined}
+          tone={agent.state === 'stopped' ? 'secondary' : undefined}
           time={meta}
           onPress={() => setOpen(!open)}
           label={`${agent.label}, ${meta || agent.state}${newest ? `: ${newest}` : ''}. ${open ? 'Hides' : 'Shows'} what it did`}
@@ -243,14 +240,19 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             spacing={0}
             onPress={() => setWhole(!whole)}
             modifiers={[
-              padding({ leading: TEXT, trailing: metrics.list.inset - 2, top: -8, bottom: 8 }),
+              padding({
+                leading: TEXT,
+                trailing: metrics.list.inset - space[0.5],
+                top: -space[2],
+                bottom: space[2],
+              }),
               contentShape(shapes.rectangle()),
             ]}
           >
             <Under
               text={result}
               lines={whole ? 0 : 3}
-              color={agent.state === 'failed' ? theme.danger : theme.secondary}
+              tone={agent.state === 'failed' ? 'danger' : 'secondary'}
             />
           </Row>
         ) : null}
@@ -261,7 +263,7 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
           <TraceLine
             lead={null}
             text="Open in T3 Code ↗"
-            color={theme.secondary}
+            tone="secondary"
             onPress={() => onOpen(link)}
           />
         ) : null}
@@ -273,7 +275,7 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
               frame({ width: 1 }),
               foregroundStyle(theme.edge),
               padding({
-                leading: metrics.list.inset - 2 + metrics.list.mark / 2,
+                leading: metrics.list.inset - space[0.5] + metrics.list.mark / 2,
                 top: RAIL_TOP,
                 bottom: RAIL_FOOT,
               }),
@@ -293,7 +295,7 @@ function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
       <TraceLine
         lead={<Mark state="stopped" />}
         text={words}
-        color={theme.tertiary}
+        tone="tertiary"
         chevron={open ? 'chevron.down' : 'chevron.right'}
         onPress={() => setOpen(!open)}
         label={`${words}. ${open ? 'Hides' : 'Shows'} them`}
@@ -306,17 +308,19 @@ function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
 function Under({
   text,
   lines = 1,
-  color = theme.secondary,
+  tone = 'secondary',
 }: {
   text: string;
   lines?: number;
-  color?: ColorValue;
+  tone?: Tone;
 }) {
   return (
     <Text
       numberOfLines={lines || undefined}
-      textStyle={{ fontSize: 15, lineHeight: 20 }}
-      modifiers={[foregroundStyle(color), frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      variant="subheadline"
+      tone={tone}
+      paragraph
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     >
       {text}
     </Text>
@@ -328,7 +332,7 @@ export function TraceLine({
   text,
   lines = 1,
   time,
-  color = theme.text,
+  tone = 'text',
   indent = 0,
   after,
   chevron,
@@ -340,7 +344,7 @@ export function TraceLine({
   text: string;
   lines?: number;
   time?: string;
-  color?: ColorValue;
+  tone?: Tone;
   indent?: number;
   after?: ReactNode;
   chevron?: 'chevron.down' | 'chevron.right';
@@ -355,49 +359,47 @@ export function TraceLine({
       onPress={onPress}
       modifiers={[
         padding({
-          leading: metrics.list.inset - 2 + indent,
-          trailing: metrics.list.inset - 2,
-          top: 8,
-          bottom: 8,
+          leading: metrics.list.inset - space[0.5] + indent,
+          trailing: metrics.list.inset - space[0.5],
+          top: space[2],
+          bottom: space[2],
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
-        ...(ios && label ? [accessibilityLabel(label)] : []),
+        ...(label ? [accessibilityLabel(label)] : []),
       ]}
     >
       <Row
         alignment="center"
         spacing={0}
-        modifiers={[frame({ width: metrics.list.mark, height: 20 })]}
+        modifiers={[frame({ width: metrics.list.mark, height: metrics.list.line })]}
       >
         {lead}
       </Row>
       <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text
           numberOfLines={lines || undefined}
-          textStyle={{ fontSize: 15, lineHeight: 20 }}
-          modifiers={[foregroundStyle(color), frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          variant="subheadline"
+          tone={tone}
+          paragraph
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {text}
         </Text>
         {children}
       </Column>
       {time ? (
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 13, lineHeight: 20 }}
-          modifiers={[monospacedDigit(), foregroundStyle(theme.tertiary)]}
-        >
+        <Text numberOfLines={1} variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
           {time}
         </Text>
       ) : null}
       {after ? (
-        <Row alignment="center" spacing={0} modifiers={[frame({ height: 20 })]}>
+        <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
           {after}
         </Row>
       ) : null}
       {chevron ? (
-        <Row alignment="center" spacing={0} modifiers={[frame({ height: 20 })]}>
+        <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
           <Icon name={chevron} size={11} color={theme.tertiary} />
         </Row>
       ) : null}
@@ -410,9 +412,9 @@ function Quiet({ text }: { text: string }) {
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: metrics.list.inset, top: 6 })]}
+      modifiers={[padding({ leading: metrics.list.inset, top: space[1.5] })]}
     >
-      <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+      <Text variant="subheadline" tone="tertiary">
         {text}
       </Text>
       <Spacer flexible />
