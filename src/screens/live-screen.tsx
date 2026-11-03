@@ -783,7 +783,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         <TasksPane
           {...tasks}
           top={insets.top}
-          toolbar={layout.toolbar.y + TOOL / 2}
           foot={insets.bottom}
           width={paneWidth}
           style={paneStyle}

@@ -1,35 +1,29 @@
-import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, Row, Text } from '@expo/ui';
 import { Button } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
-  buttonBorderShape,
   buttonStyle,
   contentShape,
-  controlSize,
   foregroundStyle,
   frame,
-  labelStyle,
-  layoutPriority,
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { createContext, useContext, type ReactNode } from 'react';
 
-import type { Bar } from '@/components/tasks/pages';
 import { INSET, ios } from '@/components/tasks/parts';
 import { PlaceTile } from '@/components/tasks/places';
 import { glass } from '@/components/voice-control';
 import { PLACES, type Place } from '@/live/inbox';
 import { theme } from '@/theme';
 
-const HEADER = 36;
 // iOS 26's bar buttons: 44pt glass, a circle for a symbol and a capsule for a name.
 export const BAR = 44;
 
 export type Back = { to?: string; onPress: () => void };
 
-export type Chrome = { bar: Bar; back?: Back };
-export const PageChrome = createContext<Chrome>({ bar: 'center' });
+export type Chrome = { back?: Back };
+export const PageChrome = createContext<Chrome>({});
 export const useChrome = () => useContext(PageChrome);
 
 export type Door = { place: Place; onPress: () => void };
@@ -43,79 +37,14 @@ export function Header({
   subtitle: string;
   door?: Door;
 }) {
-  const { bar, back } = useChrome();
-  if (bar !== 'center')
-    return (
-      <PageBar
-        title={title}
-        subtitle={subtitle}
-        back={back}
-        trailing={door ? <DoorPill door={door} /> : undefined}
-      />
-    );
+  const { back } = useChrome();
   return (
-    <Row
-      alignment="center"
-      spacing={12}
-      modifiers={[
-        frame({ minHeight: HEADER }),
-        padding({ top: 14, leading: 16, trailing: 16 }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      {back ? (
-        <Button
-          label="Back"
-          systemImage="chevron.left"
-          onPress={back.onPress}
-          testID="task-back"
-          modifiers={[
-            labelStyle('iconOnly'),
-            buttonStyle('glass'),
-            buttonBorderShape('circle'),
-            controlSize('regular'),
-          ]}
-        />
-      ) : (
-        <Spacer style={{ width: HEADER }} />
-      )}
-      <Spacer flexible />
-      <Column alignment="center" spacing={1}>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 17, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text
-            numberOfLines={1}
-            textStyle={{ fontSize: 13 }}
-            modifiers={[foregroundStyle(theme.secondary)]}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
-      </Column>
-      <Spacer flexible />
-      {door ? (
-        <Row
-          alignment="center"
-          spacing={0}
-          onPress={door.onPress}
-          modifiers={[
-            frame({ width: 36, height: 36 }),
-            contentShape(shapes.rectangle()),
-            ...(ios ? [accessibilityLabel(`Open in ${PLACES[door.place]}`)] : []),
-          ]}
-        >
-          <PlaceTile place={door.place} size={30} />
-        </Row>
-      ) : (
-        <Spacer style={{ width: HEADER }} />
-      )}
-    </Row>
+    <PageBar
+      title={title}
+      subtitle={subtitle}
+      back={back}
+      trailing={door ? <DoorPill door={door} /> : undefined}
+    />
   );
 }
 

@@ -1,18 +1,12 @@
 import { Column, Icon, Row, ScrollView, Text, TextInput } from '@expo/ui';
-import { Button, Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
+import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
-  background,
-  buttonBorderShape,
-  buttonStyle,
-  clipShape,
   contentShape,
-  controlSize,
   foregroundStyle,
   frame,
   glassEffect,
-  labelStyle,
   monospacedDigit,
   padding,
   shapes,
@@ -23,54 +17,7 @@ import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
 import { INSET, ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
-import { radius, theme } from '@/theme';
-
-export function ListHead({
-  toolbarLine,
-  onSearch,
-}: {
-  toolbarLine?: number;
-  onSearch: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={12}
-      modifiers={[
-        padding({
-          leading: INSET,
-          trailing: INSET - 4,
-          top: toolbarLine === undefined ? 22 : Math.max(8, toolbarLine - 20),
-          bottom: 12,
-        }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 28, fontWeight: '700' }}
-        modifiers={[
-          foregroundStyle(theme.text),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
-      >
-        Tasks
-      </Text>
-      <Button
-        label="Search"
-        systemImage="magnifyingglass"
-        onPress={onSearch}
-        testID="tasks-search"
-        modifiers={[
-          labelStyle('iconOnly'),
-          buttonStyle('glass'),
-          buttonBorderShape('circle'),
-          controlSize('regular'),
-        ]}
-      />
-    </Row>
-  );
-}
+import { theme } from '@/theme';
 
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
@@ -192,12 +139,10 @@ export function Tabs({
 
 export function Search({
   query,
-  glass,
   onChange,
   onCancel,
 }: {
   query: string;
-  glass: boolean;
   onChange: (query: string) => void;
   onCancel: () => void;
 }) {
@@ -205,9 +150,9 @@ export function Search({
   return (
     <Row
       alignment="center"
-      spacing={glass ? 10 : 12}
+      spacing={10}
       modifiers={[
-        padding({ leading: 16, trailing: glass ? INSET - 4 : INSET, top: 18, bottom: 10 }),
+        padding({ leading: 16, trailing: INSET - 4, top: 18, bottom: 10 }),
         frame({ maxWidth: Infinity }),
       ]}
     >
@@ -215,12 +160,10 @@ export function Search({
         alignment="center"
         spacing={8}
         modifiers={[
-          padding({ leading: glass ? 14 : 12, trailing: glass ? 14 : 12 }),
-          frame({ height: glass ? BAR : 40 }),
+          padding({ leading: 14, trailing: 14 }),
+          frame({ height: BAR }),
           frame({ maxWidth: Infinity }),
-          ...(glass
-            ? [glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' })]
-            : [background(theme.surface), clipShape('roundedRectangle', radius.control)]),
+          glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' }),
         ]}
       >
         <Icon name="magnifyingglass" size={14} color={theme.secondary} />
@@ -241,19 +184,9 @@ export function Search({
           ]}
         />
       </Row>
-      {glass ? (
-        <BarButton shape="circle" label="Cancel" testID="tasks-search-cancel" onPress={onCancel}>
-          <Icon name="xmark" size={17} color={theme.text} />
-        </BarButton>
-      ) : (
-        <Text
-          onPress={onCancel}
-          textStyle={{ fontSize: 16, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.accent)]}
-        >
-          Cancel
-        </Text>
-      )}
+      <BarButton shape="circle" label="Cancel" testID="tasks-search-cancel" onPress={onCancel}>
+        <Icon name="xmark" size={17} color={theme.text} />
+      </BarButton>
     </Row>
   );
 }

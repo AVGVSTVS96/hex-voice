@@ -55,14 +55,11 @@ export type TasksProps = {
 
 export function TasksView({
   width,
-  toolbarLine,
   foot = 0,
   ...view
-}: TasksProps & { width: number; toolbarLine?: number; foot?: number }) {
+}: TasksProps & { width: number; foot?: number }) {
   const pages = usePages({ open: view.open, at: view.at, shape: shapeOf(width, undefined) });
-  return (
-    <Tasks {...view} pages={pages} toolbarLine={toolbarLine} room={{ width, foot, paged: false }} />
-  );
+  return <Tasks {...view} pages={pages} room={{ width, foot, paged: false }} />;
 }
 
 export function Tasks({
@@ -74,8 +71,7 @@ export function Tasks({
   at,
   pages,
   room,
-  toolbarLine,
-}: TasksProps & { pages: Pages; room: Room; toolbarLine?: number }) {
+}: TasksProps & { pages: Pages; room: Room }) {
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
@@ -145,10 +141,9 @@ export function Tasks({
     steps: 'Steps',
     check: 'Last check',
   };
-  const chromeOf = ({ bar, back }: Spot): Chrome => ({
-    bar,
+  const chromeOf = ({ back }: Spot): Chrome => ({
     back: back && {
-      to: room.paged ? names[back] : undefined,
+      to: names[back],
       onPress:
         back === 'call'
           ? pages.back
@@ -180,7 +175,6 @@ export function Tasks({
       pages={pages}
       spot={spot('list')}
       paged={room.paged}
-      toolbarLine={toolbarLine}
       tasks={tasks}
       offline={offline}
       yours={yours}
