@@ -508,12 +508,21 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-  // The bar sits in the window, so a card that yields an edge never moves it. Only a card that
-  // slides aside takes it along, so Calls never ends up under its buttons.
+  // The bar sits in the window. A column down the side never moves. A bar along the top spans the
+  // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
+  // begins, unless Calls starts below it, which leaves the band whole.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
-  const toolbarStyle = useAnimatedStyle(() => ({
-    left: toolbar.x + (list.place === 'slide' ? drawer.get() * list.width : 0),
-  }));
+  const toolbarStyle = useAnimatedStyle(() => {
+    if (toolbar.axis === 'column') return { left: toolbar.x };
+    const d = drawer.get();
+    const slid = list.place === 'slide' ? d * list.width : 0;
+    const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
+    const tasks = side.place === 'beside' ? pane.get() * paneW.get() : 0;
+    return {
+      left: toolbar.x + calls + slid,
+      right: width - toolbar.x - toolbar.width + tasks - slid,
+    };
+  });
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
   // style only for the shared values it reads directly, not ones a helper worklet reads for it.
@@ -754,10 +763,6 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
   // whether Tasks is open or not.
   const inRow = !!duo?.call.controls;
-  const toolbarPlace =
-    toolbar.axis === 'row'
-      ? { top: toolbar.y, right: width - toolbar.x - toolbar.width }
-      : { top: toolbar.y };
   const sidebar = (
     <GestureDetector gesture={sidebarClose}>
       <Animated.View
@@ -1035,7 +1040,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       <ScreenToolbar
         axis={toolbar.axis}
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-        style={[toolbarPlace, toolbarStyle]}
+        style={[{ top: toolbar.y }, toolbarStyle]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
         onCalls={toggleDrawer}
