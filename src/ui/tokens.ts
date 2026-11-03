@@ -36,8 +36,8 @@ export type TextStyle = {
   textStyle?:
     'title' | 'title2' | 'headline' | 'body' | 'callout' | 'subheadline' | 'footnote' | 'caption';
   fontSize: number;
-  // React Native's whole line box.
-  lineHeight: number;
+  // React Native's whole line box. A style without one keeps the font's own.
+  lineHeight?: number;
   // SwiftUI's gap between a paragraph's lines. A label, or a style without one, keeps the font's
   // own leading.
   lineSpacing?: number;
@@ -63,6 +63,8 @@ export const type = {
   itemDetail: { fontSize: 14, lineHeight: 19, lineSpacing: 5 },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
+  // A count that stands for itself, like what the last check read.
+  stat: { fontSize: 26, weight: 'semibold' },
   // The one name a carousel's page shows.
   display: { fontSize: 32, lineHeight: 38, weight: 'semibold' },
   // Under the call: how the last one ended, and what didn't go through.
@@ -95,6 +97,7 @@ export function labelOf(variant: TextVariant, weight?: Weight) {
 export const space = {
   0.25: 1,
   0.5: 2,
+  0.75: 3,
   1: 4,
   1.5: 6,
   2: 8,
