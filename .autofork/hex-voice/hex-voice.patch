@@ -98862,10 +98862,10 @@ index 0000000000000000000000000000000000000000..bceb3537a99286c5200b58543b52a510
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f11937d70
+index 0000000000000000000000000000000000000000..3d5df9c67c179a532bef761ef466fe70cfd6d052
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,478 @@
+@@ -0,0 +1,506 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
 +import { Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -98890,7 +98890,7 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +import { useDraft } from '@/hooks/use-draft';
 +import { openURL, useFailures } from '@/hooks/use-failures';
 +import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-+import { unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
++import { NOT_NEEDED, unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
 +import { fitsOneLine } from '@/live/inbox';
 +import { motion, rowsKey } from '@/motion';
 +import { radius, theme } from '@/theme';
@@ -98914,6 +98914,7 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +  onAnswer,
 +  onUndo,
 +  onAgain,
++  onDismiss,
 +}: {
 +  asks: Ask[];
 +  answered: Record<string, string | null>;
@@ -98921,6 +98922,7 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +  onAnswer: Answer;
 +  onUndo: (ask: Ask) => void;
 +  onAgain: (ask: Ask) => void;
++  onDismiss: (ask: Ask) => void;
 +}) {
 +  const open = asks.filter((ask) => !answered[ask.id]).length;
 +  return (
@@ -98980,7 +98982,13 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +            modifiers={[frame({ maxWidth: Infinity })]}
 +          >
 +            {i ? <Hairline /> : null}
-+            <AskCard ask={ask} first={i === 0} width={width} onAnswer={onAnswer} />
++            <AskCard
++              ask={ask}
++              first={i === 0}
++              width={width}
++              onAnswer={onAnswer}
++              onDismiss={onDismiss}
++            />
 +          </Column>
 +        );
 +      })}
@@ -98993,11 +99001,13 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +  first,
 +  width,
 +  onAnswer,
++  onDismiss,
 +}: {
 +  ask: Ask;
 +  first: boolean;
 +  width: number;
 +  onAnswer: Answer;
++  onDismiss: (ask: Ask) => void;
 +}) {
 +  const [writing, setWriting] = useState(false);
 +  const [whole, setWhole] = useState(false);
@@ -99090,6 +99100,7 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +          sending={noting}
 +          onNote={note}
 +          onAnswer={(label) => onAnswer(ask, { label })}
++          onDismiss={() => onDismiss(ask)}
 +        />
 +      ) : (
 +        <Answers ask={ask} width={width} onAnswer={onAnswer} />
@@ -99248,19 +99259,22 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +}
 +
 +// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-+// instead is the deliberate second step. Neither goes while a note is on its way.
++// instead is the deliberate second step, and Not needed puts the ask away with no answer at all.
++// None of them goes while a note is on its way.
 +function Composer({
 +  draft,
 +  topic,
 +  sending,
 +  onNote,
 +  onAnswer,
++  onDismiss,
 +}: {
 +  draft: string;
 +  topic: string;
 +  sending: boolean;
 +  onNote: (text: string) => void;
 +  onAnswer: (text: string) => void;
++  onDismiss: () => void;
 +}) {
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
@@ -99315,16 +99329,30 @@ index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f
 +          modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
 +        />
 +      </Row>
-+      <Text
-+        textStyle={{ fontSize: 15, fontWeight: '600' }}
-+        onPress={words ? () => onAnswer(words) : undefined}
++      <Row
++        alignment="center"
++        spacing={0}
 +        modifiers={[
-+          foregroundStyle(words ? theme.accent : theme.tertiary),
 +          padding({ leading: INSET, trailing: INSET, top: 4, bottom: 10 }),
++          frame({ maxWidth: Infinity }),
 +        ]}
 +      >
-+        Answer with this
-+      </Text>
++        <Text
++          textStyle={{ fontSize: 15, fontWeight: '600' }}
++          onPress={words ? () => onAnswer(words) : undefined}
++          modifiers={[foregroundStyle(words ? theme.accent : theme.tertiary)]}
++        >
++          Answer with this
++        </Text>
++        <Spacer flexible />
++        <Text
++          textStyle={{ fontSize: 15, fontWeight: '500' }}
++          onPress={sending ? undefined : onDismiss}
++          modifiers={[foregroundStyle(sending ? theme.tertiary : theme.secondary)]}
++        >
++          {NOT_NEEDED}
++        </Text>
++      </Row>
 +    </Column>
 +  );
 +}
@@ -102220,10 +102248,10 @@ index 0000000000000000000000000000000000000000..659b081c4a5324748df4d48d30be2ca0
 +}
 diff --git a/src/components/tasks/task-page.tsx b/src/components/tasks/task-page.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2dafd3588c78
+index 0000000000000000000000000000000000000000..e939a39141d6916b8e46b53db8562aae5cf1b144
 --- /dev/null
 +++ b/src/components/tasks/task-page.tsx
-@@ -0,0 +1,324 @@
+@@ -0,0 +1,330 @@
 +import { Column, Icon, Row, ScrollView, Text } from '@expo/ui';
 +import {
 +  accessibilityLabel,
@@ -102272,6 +102300,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +  onAnswer,
 +  onUndo,
 +  onAgain,
++  onDismiss,
 +  onTalk,
 +  onOpen,
 +  onOpenTask,
@@ -102291,6 +102320,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +  onAnswer: (ask: Ask, option: AskOption) => void;
 +  onUndo: (ask: Ask) => void;
 +  onAgain: (ask: Ask) => void;
++  onDismiss: (ask: Ask) => void;
 +  onTalk: () => void;
 +  onOpen: (thread: TaskRow) => void;
 +  onOpenTask: (id: TaskId) => void;
@@ -102355,6 +102385,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +                  onAnswer={onAnswer}
 +                  onUndo={onUndo}
 +                  onAgain={onAgain}
++                  onDismiss={onDismiss}
 +                />
 +              ) : null}
 +              {working.length ? (
@@ -102434,6 +102465,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +  onAnswer,
 +  onUndo,
 +  onAgain,
++  onDismiss,
 +}: {
 +  topic: string;
 +  asks: Ask[];
@@ -102444,6 +102476,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +  onAnswer: (ask: Ask, option: AskOption) => void;
 +  onUndo: (ask: Ask) => void;
 +  onAgain: (ask: Ask) => void;
++  onDismiss: (ask: Ask) => void;
 +}) {
 +  const open = asks.filter((ask) => !answered[ask.id]).length;
 +  const others = rows?.length ?? 0;
@@ -102475,6 +102508,7 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +                onAnswer={onAnswer}
 +                onUndo={onUndo}
 +                onAgain={onAgain}
++                onDismiss={onDismiss}
 +              />
 +            ) : null}
 +            {rows}
@@ -102550,10 +102584,10 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5cdd1d986
+index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d5bf6f70a
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,491 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -102686,6 +102720,10 @@ index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5
 +    tap();
 +    yours.again(ask);
 +  };
++  const dismiss = (ask: Ask) => {
++    tap();
++    yours.dismiss(ask);
++  };
 +  // A link to an app that isn't installed fails without a word from iOS, so its place says so.
 +  const openLink = (link: string, place: Place) => {
 +    tap();
@@ -102807,6 +102845,7 @@ index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5
 +          onAnswer={answer}
 +          onUndo={undo}
 +          onAgain={again}
++          onDismiss={dismiss}
 +          onTalk={() => talk(opened)}
 +          onOpen={openThread}
 +          onOpenTask={(id) => {
@@ -102848,10 +102887,7 @@ index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5
 +                onOpenTile={openTile}
 +                onAnswer={answer}
 +                onUndo={undo}
-+                onDismiss={(ask) => {
-+                  tap();
-+                  yours.dismiss(ask);
-+                }}
++                onDismiss={dismiss}
 +                onAgain={again}
 +                onAct={(id) => {
 +                  tap();
@@ -102866,6 +102902,7 @@ index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5
 +          onAnswer={answer}
 +          onUndo={undo}
 +          onAgain={again}
++          onDismiss={dismiss}
 +        />
 +      ) : (
 +        <Nothing loaded={!!tasks} />
