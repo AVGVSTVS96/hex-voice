@@ -1,16 +1,27 @@
-import { RNHostView } from '@expo/ui';
-import { useEffect, useRef } from 'react';
-import { ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
+import { Column, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
+import {
+  accessibilityAddTraits,
+  accessibilityLabel,
+  contentShape,
+  foregroundStyle,
+  frame,
+  padding,
+  shapes,
+  tabViewStyle,
+} from '@expo/ui/swift-ui/modifiers';
+import type { ReactElement } from 'react';
+import { View } from 'react-native';
 
-import { circle, theme } from '@/theme';
+import { theme } from '@/theme';
 
-import type { SelectionCarouselProps } from './selection-carousel.types';
+type SelectionOption = { id: string; label: string; description: string };
 
-// iOS uses Expo UI's SwiftUI page control. This is the web/Android fallback.
 export function SelectionCarousel({
   options,
   value,
   onChange,
+  onPress,
   width,
   height = 180,
   preview,
@@ -19,99 +30,164 @@ export function SelectionCarousel({
   disabledHint,
   label,
   testID,
-}: SelectionCarouselProps) {
-  const scroll = useRef<ScrollViewInstance>(null);
-  const index = Math.max(
-    0,
-    options.findIndex((option) => option.id === value),
-  );
-  useEffect(() => {
-    scroll.current?.scrollTo({ x: index * width, animated: false });
-  }, [index, width]);
-  const dotStart = Math.max(0, Math.min(index - 3, options.length - 7));
+}: {
+  options: readonly SelectionOption[];
+  value: string;
+  onChange: (value: string) => void;
+  onPress?: () => void;
+  width: number;
+  height?: number;
+  preview?: ReactElement;
+  previewHeight?: number;
+  enabled?: boolean;
+  disabledHint?: string;
+  label: string;
+  testID: string;
+}) {
+  const totalHeight = height + previewHeight;
+  // A static page prevents both swipe and page-dot changes during a call.
+  if (!enabled) {
+    const selected = options.find((option) => option.id === value) ?? options[0];
+    return (
+      <SelectionPage
+        option={{ ...selected, description: disabledHint ?? selected.description }}
+        width={width}
+        height={height}
+        testID={`${testID}-locked`}
+      />
+    );
+  }
 
-  return (
-    <RNHostView matchContents>
-      <View style={{ width, height: height + previewHeight }} testID={testID}>
-        {preview && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 0,
-              width,
-              height: previewHeight,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+  // The pager reports each change, which lands halfway through a swipe, and is handed back the page
+  // it's on, so a swipe never waits on JavaScript; a tapped dot hands it another.
+  const pager = (
+    <TabView
+      selection={value}
+      onSelectionChange={(next) => {
+        if (next !== value && options.some((option) => option.id === next)) onChange(next);
+      }}
+      testID={testID}
+      modifiers={[
+        frame({ width, height: totalHeight }),
+        tabViewStyle({ type: 'page', indexDisplayMode: 'never' }),
+        accessibilityLabel(label),
+      ]}
+    >
+      {options.map((option) => (
+        <TabView.Tab key={option.id} value={option.id}>
+          <SelectionPage
+            option={option}
+            width={width}
+            height={totalHeight}
+            previewHeight={previewHeight}
+            onPress={onPress}
+            testID={`${testID}-${option.id}`}
+          />
+        </TabView.Tab>
+      ))}
+    </TabView>
+  );
+
+  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground. As
+  // iOS's do, each says which page it is and a tap on one goes there.
+  const dots = (
+    <Row alignment="center" spacing={0} modifiers={[padding({ bottom: (38 - REACH) / 2 })]}>
+      {options.map((option, i) => {
+        const current = option.id === value;
+        return (
+          <Row
+            key={option.id}
+            alignment="center"
+            spacing={0}
+            onPress={current ? undefined : () => onChange(option.id)}
+            modifiers={[
+              frame({ width: DOT * 2, height: REACH }),
+              contentShape(shapes.rectangle()),
+              accessibilityLabel(`${option.label}, ${i + 1} of ${options.length}`),
+              ...(current ? [accessibilityAddTraits(['isSelected'])] : []),
+            ]}
           >
-            {preview}
-          </View>
-        )}
-        <ScrollView
-          ref={scroll}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEnabled={enabled}
-          accessibilityLabel={label}
-          contentOffset={{ x: index * width, y: 0 }}
-          onMomentumScrollEnd={(event) => {
-            const next = options[Math.round(event.nativeEvent.contentOffset.x / width)];
-            if (enabled && next && next.id !== value) onChange(next.id);
-          }}
-        >
-          {options.map((option) => (
-            <View
-              key={option.id}
-              style={[
-                styles.page,
-                { width, height: height + previewHeight, paddingTop: previewHeight },
+            <Circle
+              modifiers={[
+                frame({ width: DOT, height: DOT }),
+                foregroundStyle(current ? theme.text : theme.tertiary),
               ]}
+            />
+          </Row>
+        );
+      })}
+    </Row>
+  );
+  return (
+    <ZStack alignment="bottom" modifiers={[frame({ width, height: totalHeight })]}>
+      {preview ? (
+        <Column
+          alignment="center"
+          spacing={0}
+          modifiers={[frame({ width, height: totalHeight, alignment: 'top' })]}
+        >
+          <RNHostView matchContents>
+            <View
+              pointerEvents="none"
+              style={{
+                width,
+                height: previewHeight,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <Text style={styles.name}>{option.label}</Text>
-              <Text style={styles.description}>
-                {!enabled && disabledHint ? disabledHint : option.description}
-              </Text>
+              {preview}
             </View>
-          ))}
-        </ScrollView>
-        {enabled && (
-          <View pointerEvents="none" style={styles.dots}>
-            {options.slice(dotStart, dotStart + 7).map((option) => (
-              <View
-                key={option.id}
-                style={[
-                  styles.dot,
-                  { backgroundColor: option.id === value ? theme.text : theme.tertiary },
-                ]}
-              />
-            ))}
-          </View>
-        )}
-      </View>
-    </RNHostView>
+          </RNHostView>
+        </Column>
+      ) : null}
+      {/* The transparent pager covers the preview, so the entire control swipes. */}
+      {pager}
+      {dots}
+    </ZStack>
   );
 }
 
-const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 38,
-    gap: 8,
-  },
-  name: { color: theme.text, fontSize: 32, fontWeight: '600', textAlign: 'center' },
-  description: { color: theme.secondary, fontSize: 16, textAlign: 'center' },
-  dots: {
-    position: 'absolute',
-    bottom: 15,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  dot: circle(7),
-});
+const DOT = 7;
+const REACH = 30;
+
+function SelectionPage({
+  option,
+  width,
+  height,
+  previewHeight = 0,
+  onPress,
+  testID,
+}: {
+  option: SelectionOption;
+  width: number;
+  height: number;
+  previewHeight?: number;
+  onPress?: () => void;
+  testID: string;
+}) {
+  return (
+    <Column
+      alignment="center"
+      spacing={8}
+      style={{ width, height, paddingHorizontal: 16, paddingTop: previewHeight, paddingBottom: 38 }}
+      onPress={onPress}
+      testID={testID}
+    >
+      <Spacer flexible />
+      <Text
+        textStyle={{ fontSize: 32, fontWeight: '600', textAlign: 'center' }}
+        modifiers={[foregroundStyle(theme.text)]}
+      >
+        {option.label}
+      </Text>
+      <Text
+        textStyle={{ fontSize: 16, textAlign: 'center' }}
+        modifiers={[foregroundStyle(theme.secondary)]}
+      >
+        {option.description}
+      </Text>
+      <Spacer flexible />
+    </Column>
+  );
+}
