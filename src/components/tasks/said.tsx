@@ -50,12 +50,16 @@ export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
         <Spacer flexible />
         <Text
           modifiers={[
-            ...(sent.failed ? [onTapGesture(onRetry)] : []),
+            ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
             font({ size: 13, weight: sent.failed ? 'medium' : 'regular' }),
             foregroundStyle(sent.failed ? theme.danger : theme.tertiary),
           ]}
         >
-          {sent.failed ? 'Not sent · Tap to try again' : 'Sending'}
+          {!sent.failed
+            ? 'Sending'
+            : sent.failed.again
+              ? 'Not sent · Tap to try again'
+              : sent.failed.why}
         </Text>
       </Row>
     </Column>

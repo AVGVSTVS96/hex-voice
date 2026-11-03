@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createSessionAPI } from '../src/live/api-client';
+import { Refused, createAsksAPI, createSessionAPI } from '../src/live/api-client';
 
 const hexUrl = 'https://hex.example:8790';
 
@@ -60,6 +60,20 @@ test('shows hex’s and OpenAI’s errors as they are', async () => {
     fetch: async () => Response.json({ session: {} }),
   });
   await assert.rejects(incomplete.create('offer'), /invalid connection/);
+});
+
+test('hex turning a request down is a refusal in its own words; its own failure is not', async () => {
+  const answering = (response: Response) =>
+    createAsksAPI({ hexUrl, fetch: async () => response }).answer('a', 'Yes');
+  await assert.rejects(
+    answering(new Response('that question is already answered or settled', { status: 409 })),
+    (error) =>
+      error instanceof Refused && error.message === 'That question is already answered or settled',
+  );
+  await assert.rejects(
+    answering(new Response('hub is down', { status: 502 })),
+    (error) => !(error instanceof Refused) && (error as Error).message === 'Hub is down',
+  );
 });
 
 test('an unreachable hex points at Tailscale', async () => {

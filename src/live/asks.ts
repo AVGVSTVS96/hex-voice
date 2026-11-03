@@ -9,7 +9,8 @@ export type AskLink = { label: string; url: string };
 // (`app: 'voice'`, opened in Calls by `call`). Without a link we know it's from there but can't open
 // it. hex sends the ones that open first, then the rest, each newest first.
 export type AskPlace = { app: string; place: string; task?: string; call?: string; link?: string };
-// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`).
+// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` is
+// this app's, never hex's: what you did to it here that didn't go through, and why.
 export type Ask = {
   id: string;
   kind: AskKind;
@@ -23,6 +24,7 @@ export type Ask = {
   links?: AskLink[];
   places: AskPlace[];
   tag?: string;
+  failed?: string;
 };
 export type Stuck = {
   id: string;
@@ -34,6 +36,7 @@ export type Stuck = {
   at: string;
   request?: string;
   sent?: string;
+  failed?: string;
 };
 export type Fresh = {
   id: string;
@@ -43,6 +46,7 @@ export type Fresh = {
   line: string;
   at: string;
   read: boolean;
+  failed?: string;
 };
 export type CheckSummary = { at: string; why: string; fixed: number; flagged: number };
 export type CheckNote = { title: string; text: string; did?: string };
@@ -95,6 +99,18 @@ export function yours(state: Yours, action: YoursAction): Yours {
         answered: {},
       };
   }
+}
+
+// hex's list with what didn't go through on each item it's about.
+export function failedOn(list: AskList, failed: Record<string, string>): AskList {
+  const on = <T extends { id: string }>(item: T) =>
+    failed[item.id] ? { ...item, failed: failed[item.id] } : item;
+  return {
+    ...list,
+    asks: list.asks.map(on),
+    stuck: list.stuck.map(on),
+    fresh: list.fresh.map(on),
+  };
 }
 
 // The asks still open, for the counts: the folded ones are already off your plate.

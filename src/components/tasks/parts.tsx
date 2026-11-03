@@ -216,3 +216,19 @@ export function Empty({ text, width }: { text: string; width: number }) {
     </Text>
   );
 }
+
+// What you did here that didn't go through, and why, quietly where you did it.
+export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
+  return (
+    <Text
+      textStyle={{ fontSize: 13, lineHeight: 18 }}
+      modifiers={[
+        foregroundStyle(theme.danger),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ...modifiers,
+      ]}
+    >
+      {text}
+    </Text>
+  );
+}

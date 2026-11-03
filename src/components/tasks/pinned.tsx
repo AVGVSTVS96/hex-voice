@@ -11,10 +11,10 @@ import {
   textSelection,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
-import { Linking } from 'react-native';
 
 import { Mark } from '@/components/tasks/mark';
-import { GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
+import { Failure, GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
+import { openURL, useFailures } from '@/hooks/use-failures';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { radius, theme } from '@/theme';
 
@@ -62,6 +62,7 @@ function Section({ section }: { section: PinSection }) {
 }
 
 function Line({ line }: { line: PinLine }) {
+  const tries = useFailures();
   if (line.kind === 'code')
     return (
       <Text
@@ -99,7 +100,7 @@ function Line({ line }: { line: PinLine }) {
     <Row
       alignment="start"
       spacing={GAP}
-      onPress={url ? () => void Linking.openURL(url) : undefined}
+      onPress={url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined}
       modifiers={[
         padding({ leading: INSET - 2, trailing: INSET, top: 8, bottom: 8 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
@@ -107,15 +108,22 @@ function Line({ line }: { line: PinLine }) {
       ]}
     >
       <Mark state={line.mark === 'done' ? 'read' : line.mark} />
-      <Text
-        textStyle={{ fontSize: 15, lineHeight: 20 }}
-        modifiers={[
-          foregroundStyle(line.mark === 'done' ? theme.secondary : theme.text),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
+      <Column
+        alignment="start"
+        spacing={2}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        {line.text}
-      </Text>
+        <Text
+          textStyle={{ fontSize: 15, lineHeight: 20 }}
+          modifiers={[
+            foregroundStyle(line.mark === 'done' ? theme.secondary : theme.text),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {line.text}
+        </Text>
+        {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
+      </Column>
       {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}
     </Row>
   );
