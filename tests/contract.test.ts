@@ -13,7 +13,7 @@ import {
   callName,
   timeline,
 } from '../src/live/calls';
-import { Chat, STATE_WORDS, Task, TaskCounts, TaskList, stepMark } from '../src/live/tasks';
+import { Chat, STATE_WORDS, TaskCounts, TaskList, TaskOrPage, stepMark } from '../src/live/tasks';
 
 // tests/fixtures holds real answers from hex's voice server, scrubbed (tests/fixtures/capture.mts).
 const real = (name: string): unknown =>
@@ -25,7 +25,8 @@ test('every answer hex gives today reads in this app', () => {
     ['call', CallRecord],
     ['tasks', TaskList],
     ['tasks-summary', TaskCounts],
-    ['task', Task],
+    ['task', TaskOrPage],
+    ['page', TaskOrPage],
     ['chat', Chat],
     ['asks', AskList],
     ['check', Check],
@@ -67,12 +68,21 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
   }).tasks;
   assert.equal(STATE_WORDS[row!.state], 'idle');
 
-  const task = Task.parse({
+  const task = TaskOrPage.parse({
     ...(real('task') as object),
     steps: [
       { at: '2026-11-03T08:00:00.000Z', kind: 'browse', text: 'Opened a page', state: 'odd' },
     ],
   });
+  assert.ok(task.kind === 'task');
   assert.equal(task.steps[0]!.kind, 'tool');
   assert.equal(stepMark(task.steps[0]!), undefined);
+});
+
+test('a thread off the board reads as a page to read, and a task with a broken field never passes for one', () => {
+  const page = TaskOrPage.parse(real('page'));
+  assert.equal(page.kind, 'page');
+  assert.ok(!('steps' in page) && !('running' in page));
+  assert.equal(TaskOrPage.parse(real('task')).kind, 'task');
+  assert.equal(TaskOrPage.safeParse({ ...(real('task') as object), steps: 'none' }).success, false);
 });

@@ -86,6 +86,32 @@ export const Task = z.object({
   agents: z.array(AgentTrail),
 });
 export type Task = z.infer<typeof Task>;
+// A thread off the board, closed or quiet past a week: a page to read, with nothing to act on.
+const Page = z.object({
+  id: TaskId,
+  app: z.string(),
+  name: z.string(),
+  place: z.string(),
+  at: z.optional(z.string()),
+  line: z.optional(z.string()),
+  link: z.optional(z.string()),
+  pin: z.optional(z.string()),
+  state: z.optional(z.never()),
+});
+// What hex has for one thread: its task while it's on the board, else its page, which has no
+// state.
+export const TaskOrPage = z.union([
+  z.pipe(
+    Task,
+    z.transform((task) => ({ ...task, kind: 'task' as const })),
+  ),
+  z.pipe(
+    Page,
+    z.transform((page) => ({ ...page, kind: 'page' as const })),
+  ),
+]);
+export type TaskOrPage = z.output<typeof TaskOrPage>;
+export type TaskPage = Extract<TaskOrPage, { kind: 'page' }>;
 export const TaskList = z.object({ version: z.number(), tasks: z.array(TaskRow) });
 export type TaskList = z.infer<typeof TaskList>;
 // A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
