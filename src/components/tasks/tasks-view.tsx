@@ -47,7 +47,7 @@ import {
   type Tile,
 } from '@/live/inbox';
 import type { TaskId, TaskRow } from '@/live/tasks';
-import { motion } from '@/motion';
+import { motion, rowsKey } from '@/motion';
 import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
 
@@ -203,10 +203,11 @@ export function Tasks({
     setTyping((was) => (on ? level : was === level ? null : was));
     if (on) pages.go({ to: 'composerFocused' });
   };
+  const moved = rowsKey([...pages.path, pages.task ?? '', pages.stepsOf ?? '']);
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (
-      <PageAt key={level} spot={at} paged={room.paged}>
+      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
         <PageChrome.Provider value={chromeOf(at)}>
           <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
         </PageChrome.Provider>
@@ -445,7 +446,19 @@ const DIM = 0.7;
 
 // On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
 // covering the page below it.
-function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; children: ReactNode }) {
+// A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
+// changes, as the Duo turns, folds or opens.
+function PageAt({
+  spot,
+  paged,
+  moved,
+  children,
+}: {
+  spot: Spot;
+  paged: boolean;
+  moved: number;
+  children: ReactNode;
+}) {
   const { frame: size, offset: at, pad } = spot;
   return (
     <Column
@@ -458,7 +471,7 @@ function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; childre
           : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
         ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
         offset(at),
-        animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.maxHeight : 0)),
+        animation(motion.page, moved),
         accessibilityHidden(!spot.shown),
       ]}
     >

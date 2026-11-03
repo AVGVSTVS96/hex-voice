@@ -535,9 +535,9 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
   // begins, unless Calls starts below it, which leaves the band whole.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
+  // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
+  // moves with Calls and Tasks.
   const toolbarStyle = useAnimatedStyle(() => {
-    if (toolbar.axis === 'column')
-      return { left: toolbar.x, right: width - toolbar.x - toolbar.width };
     const d = drawer.get();
     const slid = list.place === 'slide' ? d * list.width : 0;
     const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
@@ -1089,7 +1089,12 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
       <ScreenToolbar
         axis={toolbar.axis}
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-        style={[{ top: toolbar.y }, toolbarStyle]}
+        style={[
+          { top: toolbar.y },
+          toolbar.axis === 'column'
+            ? { left: toolbar.x, right: width - toolbar.x - toolbar.width }
+            : toolbarStyle,
+        ]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
         settingsOpen={!!duo?.settings && settingsOpen}
