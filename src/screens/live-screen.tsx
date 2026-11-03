@@ -404,7 +404,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       }),
   );
 
-  const drawer = useSharedValue(0);
+  const drawer = useSharedValue(drawerOpen ? 1 : 0);
   const drawerFrom = useSharedValue(0);
   const onDrawer = (open: boolean) => {
     setDrawerOpen(open);

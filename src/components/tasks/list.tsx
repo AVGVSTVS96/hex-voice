@@ -208,7 +208,6 @@ export function ListPage({
             ),
           ]}
         >
-          <Edge width={width} />
           {!searching && stage === 'needs' && picks.length > 1 ? (
             <PicksRow
               picks={picks}
@@ -249,7 +248,7 @@ export function ListPage({
             <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
           ) : null}
           {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
-          <Edge width={width} />
+          <End width={width} />
         </List>
       </Faded>
       {goThrough}
@@ -257,8 +256,9 @@ export function ListPage({
   );
 }
 
-// The room the list leaves at its ends, so at rest no row sits in the fade.
-function Edge({ width }: { width: number }) {
+// The room the list leaves at its end, so its last row scrolls clear of the fade. A List row is
+// never shorter than iOS's minimum row height, whatever its frame says.
+function End({ width }: { width: number }) {
   return (
     <Spacer
       modifiers={[frame({ height: FADE }), ...listRow(width, { top: false, bottom: false })]}

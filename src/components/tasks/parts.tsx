@@ -28,9 +28,9 @@ export const INSET = 20;
 export const MARK = 16;
 export const GAP = 10;
 const HAIRLINE = 1 / PixelRatio.get();
-// How far scrolled content fades out before it meets a bar, and the room a scroll view's content
-// leaves at that end so nothing at rest sits in the fade.
-export const FADE = 18;
+// How far scrolled content fades out before it meets a bar: less than a row's own top padding, so
+// nothing at rest sits in it.
+export const FADE = 12;
 
 export function feel(haptics: boolean) {
   const on = ios && haptics;
