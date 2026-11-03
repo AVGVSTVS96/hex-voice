@@ -10,10 +10,10 @@
 #
 # POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
 # hinge at 110°, upright) and APPEARANCES dark, light or both. Shots land in
-# $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt
-# naming each state the app wasn't running in, which is how a crash or a JS error shows in a
-# release build. ref defaults to main, and a run that waited behind another checks the newest
-# main, or nothing when that commit was already shot. The JS is bundled here; the Mac builds the
+# $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt naming each
+# state the app wasn't running in (how a crash or a JS error shows in a release build) or the
+# screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
+# newest main, or nothing when that commit was already shot. The JS is bundled here; the Mac builds the
 # app for the simulator only when the commit's native fingerprint has no build yet, keeping the
 # last three, and its simulator shuts down after half an hour unused.
 . "$(dirname "$0")/release.sh"
@@ -120,6 +120,19 @@ place() {
     placed=$hinge
   }
   hub orientation "$orientation"
+  sleep 1
+  hub orientation "$orientation"
+}
+
+# Whether a shot has the shape its pose turns the screen to: the open screen is wide upright and
+# tall on its side, the cover the other way round.
+turned() {
+  local width height
+  read -r width height < <(sips -g pixelWidth -g pixelHeight "$1" | awk '/pixel/ { printf "%s ", $2 }')
+  case $display:${pose##*-} in
+    3:up | 1:side) [ "$width" -gt "$height" ] ;;
+    *) [ "$width" -lt "$height" ] ;;
+  esac
 }
 
 running() {
@@ -130,13 +143,14 @@ running() {
 # launching with its arguments, if it has any), in each pose, then is shot in each appearance.
 # A pose the app reports (?report=pose) lands beside the shots as <pose>-<state>.json.
 mac_shoot() {
-  local states pose hinge orientation display state url arguments appearance file
+  local states pose hinge orientation display state url arguments appearance file prefs
   mac_install "$1"
+  prefs=$(xcrun simctl get_app_container "$id" "$bundle" data)/Library/Preferences/$bundle
   states=$(cat)
   for pose in $POSES; do
     while read -r -u 4 state url arguments; do
       xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
-      xcrun simctl spawn "$id" defaults delete "$bundle" HexPose >/dev/null 2>&1 || true
+      xcrun simctl spawn "$id" defaults delete "$prefs" HexPose >/dev/null 2>&1 || true
       place "$pose"
       if [ -n "$arguments" ]; then
         # shellcheck disable=SC2086
@@ -146,13 +160,19 @@ mac_shoot() {
       xcrun simctl openurl "$id" "$url"
       sleep "${SETTLE:-5}"
       running || echo "$pose $state: the app wasn't running" >>shots/notes.txt
-      xcrun simctl spawn "$id" defaults read "$bundle" HexPose 2>/dev/null </dev/null |
+      xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
         jq . >"shots/$pose-$state.json" 2>/dev/null || rm -f "shots/$pose-$state.json"
       for appearance in $APPEARANCES; do
         xcrun simctl ui "$id" appearance "$appearance"
         sleep 1.5
         file=shots/$pose-$state-$appearance.png
         xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
+        turned "$file" || {
+          hub orientation "$orientation"
+          sleep 2
+          xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
+          turned "$file" || echo "$pose $state $appearance: the screen didn't turn to $pose" >>shots/notes.txt
+        }
       done
     done 4<<<"$states"
   done
