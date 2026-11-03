@@ -35,7 +35,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -58,6 +58,7 @@ import { PersonaColors } from '@/components/persona-colors';
 import { SelectionCarousel } from '@/components/selection-carousel';
 import { Group, Separator, SettingRow, groupHeight } from '@/components/settings-list';
 import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
+import { useViewport } from '@/hooks/use-viewport';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
@@ -145,7 +146,7 @@ export function VoiceSettings({
   personaEnabled,
   preferences,
 }: Props) {
-  const window = useWindowDimensions();
+  const screen = useViewport();
   const phone = sheet === 'phone';
   const insets = useSafeAreaInsets();
   // The system sizes the sheet, and its content lays out to the width the sheet gets. The width
@@ -157,7 +158,7 @@ export function VoiceSettings({
   // the second page's width and the persona to the first's.
   const pages = place && pagesOf(place);
   const width = pages ? pages.second.width : (given ?? 0);
-  const room = window.height - insets.top - SHEET_GAP;
+  const room = screen.height - insets.top - SHEET_GAP;
   const beside =
     !pages &&
     (width >= BESIDE.from ||

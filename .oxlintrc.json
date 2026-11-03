@@ -37,6 +37,11 @@
           {
             "name": "expo/fetch",
             "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+          },
+          {
+            "name": "react-native",
+            "importNames": ["useWindowDimensions", "Dimensions"],
+            "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
           }
         ]
       }
@@ -56,7 +61,18 @@
       "files": ["src/hex/**"],
       "rules": {
         "no-restricted-globals": "off",
-        "no-restricted-imports": "off"
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react-native",
+                "importNames": ["useWindowDimensions", "Dimensions"],
+                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -73,6 +89,11 @@
               {
                 "name": "@/hex",
                 "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["useWindowDimensions", "Dimensions"],
+                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
               }
             ],
             "patterns": [
@@ -95,6 +116,37 @@
               {
                 "name": "expo/fetch",
                 "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["useWindowDimensions", "Dimensions"],
+                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/call/pose-report.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "expo/fetch",
+                "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+              },
+              {
+                "name": "@/hex",
+                "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/hex/*"],
+                "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
               }
             ]
           }
