@@ -299,7 +299,8 @@ export function Tasks({
 
 // A level's page where its spot puts it, sliding there when it moves. In a sheet or iPad's pane
 // it's drawn on the sheet's color over the page below it; on iPhone Duo it draws nothing behind
-// its content, which keeps clear of the hinge and the column's buttons, and fades as it leaves.
+// its content, which stays inside its page, clear of the hinge and the column's buttons, and fades
+// as it leaves.
 function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; children: ReactNode }) {
   const { frame: size, offset: at, pad } = spot;
   return (
@@ -313,7 +314,7 @@ function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; childre
             ? { ...size, alignment: 'top' }
             : { maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' },
         ),
-        paged ? opacity(spot.shown ? 1 : 0) : background(theme.sheet),
+        ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
         offset(at),
         animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.height : 0)),
         accessibilityHidden(!spot.shown),
