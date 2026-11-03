@@ -288,7 +288,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
   // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
-  const { docked, dock, covers, hides, aside } = duoTasks;
+  const { docked, dock, covers, aside } = duoTasks;
   // Where the call's words and the lines under them go when they take the page before the fold.
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
@@ -551,7 +551,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
   const linesStyle = useAnimatedStyle(() => {
     const { t } = besideness(drawer.get(), pane.get());
-    return { opacity: (1 - wide.get() * t) * uncovered(hides.get()) };
+    return { opacity: (1 - wide.get() * t) * uncovered(covers.get()) };
   });
   const wordsStyle = useAnimatedStyle(() => {
     const { d, t } = besideness(drawer.get(), pane.get());
@@ -673,7 +673,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     return {
       bottom:
         footerHeight.get() + 18 + lift.calls * d + lift.tasks * t + before.raise * aside.get(),
-      opacity: shown * (1 - wide.get() * t) * uncovered(hides.get()),
+      opacity: shown * (1 - wide.get() * t) * uncovered(covers.get()),
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });

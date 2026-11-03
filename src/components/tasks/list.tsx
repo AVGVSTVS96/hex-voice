@@ -42,7 +42,7 @@ import { theme } from '@/theme';
 
 const TABS_WITH_BAR = 600;
 
-// Held wide, the list shows every task or folds each project to one row.
+// Held wide, the list folds each project to one row, or shows every task.
 type Listing = 'tasks' | 'projects';
 const isListing = (value: unknown): value is Listing => value === 'tasks' || value === 'projects';
 
@@ -88,7 +88,7 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
-  const folding = useSavedPreference('tasks.list', 'tasks', isListing);
+  const folding = useSavedPreference('tasks.list', 'projects', isListing);
   const projects = wide && folding.value === 'projects';
   const entries = useMemo(
     () => inboxEntries(tasks ?? [], yours.list, yours.shown),

@@ -78,14 +78,12 @@ export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 // iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
 // call sits in the bar beside the system's status items: its orb with its time, down the side
 // column or across the top band, where the call buttons join them (`controls`) and the tools
-// gather at the band's leading end. Open, the call can take the page before the fold while Tasks
-// keeps the one after it (`beside`), switched by a button in the bar: there the orb waits, and on a
-// call its words show (`words`, risen `raise` from where they end). That's how iOS's overlay
-// arrangement places a view over another, and so it's where the Duo starts while partly open.
-// On its side the keyboard takes the page after the fold, so while you type there Tasks moves to
-// the page before it (`typing`), the way a laptop keeps what you write above its keys.
+// gather at the band's leading end. Open on a call, a button in the bar can give the call's words
+// the page before the fold while Tasks keeps the one after it (`beside`). Folding never does it: a
+// fold only pulls Tasks' pages apart to either side of it, as Apple asks. On its side the keyboard
+// takes the page after the fold, so while you type there Tasks moves to the page before it
+// (`typing`), the way a laptop keeps what you write above its keys.
 export type Duo = {
-  partlyOpen: boolean;
   tasks: Page;
   beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
   call: {
@@ -170,10 +168,7 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
         : single(frame);
   if (!pose.bar && !fold) return layout;
   const before = fold && wordsBefore(frame, layout, fold);
-  const duo = {
-    partlyOpen: !!fold && partly(fold),
-    ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
-  };
+  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
   // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
   const calls = frame.column
     ? layout.calls
@@ -208,7 +203,7 @@ function roomFor(
   frame: Frame,
   layout: Layout,
   calls: CallsPlacement,
-  duo: Omit<Duo, 'partlyOpen'> & { partlyOpen: boolean },
+  duo: Duo,
 ): NonNullable<Layout['orb']['dock']> {
   const from = frame.content.x + calls.width;
   const to = frame.column ? frame.column.x : frame.window.width;
@@ -569,11 +564,7 @@ function stacked(frame: Frame, fold: Rect): Layout {
 // iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
 // buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
 // switch sit as one group midway between the tools and the call buttons.
-function besideColumn(
-  frame: Frame,
-  column: NonNullable<Frame['column']>,
-  before?: Before,
-): Omit<Duo, 'partlyOpen'> {
+function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before?: Before): Duo {
   const { window, insets, toolbar } = frame;
   const gaps = toolbar.gaps ?? COLUMN_GAPS;
   const sizes = column.controls.sizes ?? SIZES;
@@ -615,7 +606,7 @@ function besideColumn(
 // screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
 // at its trailing end, and the call buttons just before that pair, whether Tasks is open or not.
 // With Tasks open on a call, before them sit the words' switch, then the orb with its time.
-function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
+function belowBand(frame: Frame, before?: Before): Duo {
   const { window, insets, toolbar, top } = frame;
   const {
     tasks,
