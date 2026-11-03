@@ -93,7 +93,8 @@ const PHRASE = [
   { level: 0, pitch: 0, tone: 0 },
 ];
 const PREVIEW_ORB = 160;
-const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 660 };
+// Side by side from `from` wide, or from `tight` wide where the page stacked can't fit the height.
+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 660, tight: 540 };
 // The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
 const SHORT_PREVIEW = 120;
 const SHEET_GAP = 24;
@@ -138,19 +139,21 @@ export function VoiceSettings({
   // content, or the window's width runs under iPhone Duo's side column.
   const [given, setGiven] = useState<number>();
   const width = given ?? 0;
-  const beside = width >= BESIDE.from;
+  const room = window.height - insets.top - SHEET_GAP;
+  const beside =
+    width >= BESIDE.from ||
+    (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW);
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
   const preview = beside
-    ? BESIDE.preview
-    : Math.max(
-        SHORT_PREVIEW,
-        Math.min(ORB, window.height - insets.top - SHEET_GAP - (APPEARANCE_HEIGHT - ORB)),
-      );
-  const appearanceHeight = beside ? BESIDE.height : APPEARANCE_HEIGHT - ORB + preview;
+    ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
+    : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
+  const appearanceHeight = beside
+    ? Math.min(BESIDE.height, room)
+    : APPEARANCE_HEIGHT - ORB + preview;
   const detents = [{ height: appearanceHeight }, { height: VOICE_HEIGHT }];
-  const orbSize = beside ? BESIDE.orb : Math.min(PREVIEW_ORB, preview - 30);
+  const orbSize = Math.min(beside ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
