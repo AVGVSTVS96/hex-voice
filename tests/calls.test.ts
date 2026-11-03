@@ -9,6 +9,7 @@ import {
   clock,
   endedSeconds,
   liveEntries,
+  putBack,
   timeline,
   transcriptText,
   type CallSummary,
@@ -171,4 +172,13 @@ test('a call shows when the phone took its audio and the time-limit warning, and
     transcriptText(call),
     'Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]',
   );
+});
+
+test('a call that wouldn’t delete goes back where it sat, newest first', () => {
+  const at = (id: string, day: number) => call(id, new Date(2026, 9, day, 9).toISOString());
+  const [c, b, a] = [at('c', 14), at('b', 13), at('a', 12)];
+  const ids = (calls: CallSummary[]) => calls.map(({ id }) => id);
+  assert.deepEqual(ids(putBack([c, a], b)), ['c', 'b', 'a']);
+  assert.deepEqual(ids(putBack([b, a], c)), ['c', 'b', 'a']);
+  assert.deepEqual(ids(putBack([c, b], a)), ['c', 'b', 'a']);
 });

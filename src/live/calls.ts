@@ -21,6 +21,8 @@ export type CallSummary = {
   seconds: number;
   tasks: number;
   preview: string;
+  // This app's, never hex's: why deleting it here didn't go through.
+  failed?: string;
 };
 
 export type CallTurn = { who: 'you' | 'voice'; at: number; text: string };
@@ -161,6 +163,12 @@ export function dayLabel(iso: string, now = new Date()) {
     day: 'numeric',
     year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
   });
+}
+
+// A call back among the others, newest first, where it sat before.
+export function putBack(calls: CallSummary[], call: CallSummary) {
+  const at = calls.findIndex((one) => one.started < call.started);
+  return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
 }
 
 export function byDay(calls: CallSummary[], now = new Date()) {
