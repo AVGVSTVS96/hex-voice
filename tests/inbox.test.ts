@@ -449,5 +449,11 @@ test('an entry’s time is its own or its task’s, never a made-up one', () => 
   assert.ok(entry?.kind === 'task');
   assert.equal(timeOf(entry), Date.parse(at(3)));
   assert.equal(timeOf({ ...entry, at: '' }), Date.parse(entry.task.at));
-  assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '' } }), undefined);
+  const epoch = new Date(0).toISOString();
+  assert.equal(
+    timeOf({ ...entry, at: epoch, task: { ...entry.task, at: epoch, since: at(5) } }),
+    Date.parse(at(5)),
+    'a Claude session’s epoch is no time: its start stands in',
+  );
+  assert.equal(timeOf({ ...entry, at: '', task: { ...entry.task, at: '', since: '' } }), undefined);
 });

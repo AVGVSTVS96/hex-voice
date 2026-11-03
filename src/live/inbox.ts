@@ -205,12 +205,18 @@ export function search(entries: Entry[], query: string) {
   });
 }
 
-// When an entry last moved, from its own time or its task's, or nothing when neither is real.
+// When an entry last moved, from its own time or its task's, or nothing when neither is real. hex
+// sends a Claude session's last move as the epoch, so a thread's start stands in for it.
 export function timeOf(entry: Entry): number | undefined {
-  const own = Date.parse(entry.at);
-  if (!Number.isNaN(own)) return own;
-  const task = entry.kind === 'task' ? Date.parse(entry.task.at) : NaN;
-  return Number.isNaN(task) ? undefined : task;
+  return (
+    real(entry.at) ??
+    (entry.kind === 'task' ? (real(entry.task.at) ?? real(entry.task.since)) : undefined)
+  );
+}
+
+function real(at: string) {
+  const time = Date.parse(at);
+  return time > 0 ? time : undefined;
 }
 
 // What an entry asks or says, in one line: the question, the stuck thing, what's new.

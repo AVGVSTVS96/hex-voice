@@ -87,11 +87,12 @@ export interface TasksAPI {
   stop(id: string): Promise<void>;
 }
 
-// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
+// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11". A
+// Claude session's finish comes from hex as the epoch, so its start stands in.
 export function taskTime(task: TaskRow, now = new Date()) {
   if (task.state === 'working') return duration(now.getTime() - Date.parse(task.since));
-  const at = new Date(task.state === 'needs' ? task.since : task.at);
-  return clock(at, now);
+  const finished = Date.parse(task.at) > 0 ? task.at : task.since;
+  return clock(new Date(task.state === 'needs' ? task.since : finished), now);
 }
 
 export function clock(at: Date, now = new Date()) {
