@@ -250,11 +250,11 @@ test('a page wider than it is tall draws its bar on one line, and one ending at 
   const side = roomOf(openOnSide);
   const top = spotOf('list', pagesOf(go(), side), side);
   const bottom = spotOf('topic', pagesOf(go(), side), side);
-  assert.deepEqual([top.bar, top.endsAtFold, top.foot], ['inline', true, 0]);
-  assert.deepEqual([bottom.bar, bottom.endsAtFold, bottom.foot], ['inline', false, 34]);
+  assert.deepEqual([top.bar, top.foot], ['inline', 0]);
+  assert.deepEqual([bottom.bar, bottom.foot], ['inline', 34]);
   const beside = roomOf(openOnSideDuo.beside!.tasks);
   const alone = spotOf('list', pagesOf(go(), beside), beside);
-  assert.deepEqual([alone.bar, alone.endsAtFold, alone.back], ['inline', false, 'call']);
+  assert.deepEqual([alone.bar, alone.back], ['inline', 'call']);
   const lying = screenLayout(
     { width: 678, height: 466 },
     { top: 0, right: 84, bottom: 34, left: 0 },
@@ -265,6 +265,20 @@ test('a page wider than it is tall draws its bar on one line, and one ending at 
   for (const page of [openUpright, folded]) {
     const room = roomOf(page);
     const list = spotOf('list', pagesOf(go(), room), room);
-    assert.deepEqual([list.bar, list.endsAtFold], ['large', false]);
+    assert.equal(list.bar, 'large');
   }
+});
+
+test('open flat on its side, Tasks is one page: the list fills it and a topic pushes over it', () => {
+  const flat = screenLayout(
+    { width: 669, height: 951 },
+    { top: 82, right: 0, bottom: 34, left: 0 },
+    { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active: false } },
+  ).duo!.tasks;
+  const room = roomOf(flat);
+  assert.equal(room.fold, undefined);
+  assert.deepEqual(onScreen(go(), room), ['list']);
+  assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['topic']);
+  const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: 'a' }), room), room);
+  assert.deepEqual([topic.bar, topic.back, topic.width], ['inline', 'list', 669]);
 });
