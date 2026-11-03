@@ -128,8 +128,7 @@ running() {
 
 # Reads "<state> <url> [launch argument…]" lines: each state opens cold from its URL (after
 # launching with its arguments, if it has any), in each pose, then is shot in each appearance.
-# Shots taken on its side are turned to read upright, and a pose the app reports (?report=pose)
-# lands beside them as <pose>-<state>.json.
+# A pose the app reports (?report=pose) lands beside the shots as <pose>-<state>.json.
 mac_shoot() {
   local states pose hinge orientation display state url arguments appearance file
   mac_install "$1"
@@ -154,7 +153,6 @@ mac_shoot() {
         sleep 1.5
         file=shots/$pose-$state-$appearance.png
         xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
-        case $orientation in landscape-right) sips -r 90 "$file" >/dev/null ;; esac
       done
     done 4<<<"$states"
   done
