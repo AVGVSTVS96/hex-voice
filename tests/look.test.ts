@@ -18,7 +18,6 @@ const unmigrated = new Set([
   'src/components/tasks/ask-card.tsx',
   'src/components/tasks/inbox.tsx',
   'src/components/tasks/last-check.tsx',
-  'src/components/tasks/list-head.tsx',
   'src/components/tasks/list.tsx',
   'src/components/tasks/pinned.tsx',
   'src/components/tasks/places.tsx',
