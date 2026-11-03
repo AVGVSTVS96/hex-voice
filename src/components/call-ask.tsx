@@ -23,7 +23,6 @@ export function CallAsk({
   const [sending, setSending] = useState<string>();
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
-  const [whole, setWhole] = useState(false);
   const answer = card.answer ?? sent;
   const choose = (option: AskOption) => {
     if (sending) return;
@@ -59,22 +58,10 @@ export function CallAsk({
         <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
           <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
         </Pressable>
-        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
-      </View>
-      <View style={styles.asked}>
         <Text selectable style={styles.question}>
           {ask.question}
         </Text>
-        {ask.context ? (
-          <Text
-            numberOfLines={whole ? undefined : 2}
-            onPress={() => setWhole(!whole)}
-            accessibilityHint={whole ? undefined : 'Shows all of it'}
-            style={styles.context}
-          >
-            {ask.context}
-          </Text>
-        ) : null}
+        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
       </View>
       <View style={styles.options}>
         {ask.options.map((option) => (
@@ -130,11 +117,9 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
+  head: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 2 },
   topic: { color: theme.secondary, fontSize: 15, fontWeight: '600' },
-  asked: { gap: 4, paddingHorizontal: 2 },
-  question: { color: theme.text, fontSize: 17, lineHeight: 23 },
-  context: { color: theme.secondary, fontSize: 15, lineHeight: 20 },
+  question: { flex: 1, color: theme.tertiary, fontSize: 15 },
   tag: {
     color: theme.text,
     fontSize: 13,
