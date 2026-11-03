@@ -12,6 +12,8 @@ type Props = {
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
+  // On the open Duo settings is a place like Tasks, lit while it's open.
+  settingsOpen?: boolean;
   onCalls: () => void;
   onTasks: () => void;
   onSettings: () => void;
@@ -27,6 +29,7 @@ export function ScreenToolbar({
   style,
   callsOpen,
   tasks,
+  settingsOpen = false,
   onCalls,
   onTasks,
   onSettings,
@@ -62,6 +65,7 @@ export function ScreenToolbar({
             icon="settings"
             label="Voice and appearance settings"
             testID="voice-settings-button"
+            selected={settingsOpen}
             onPress={onSettings}
           />
         </Group>
