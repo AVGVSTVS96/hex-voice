@@ -3,10 +3,14 @@ import { AppState } from 'react-native';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
 import { sessionAPI } from '@/live/api';
+import { demoAPI, demoTransport } from '@/live/demo-call';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
-export function useLiveSession() {
-  const [session] = useState(() => new LiveSession(createTransport, sessionAPI));
+// A demo session plays a pretend call (src/live/demo-call.ts) and starts at once.
+export function useLiveSession(demo = false) {
+  const [session] = useState(() =>
+    demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, sessionAPI),
+  );
   const snapshot = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
@@ -20,6 +24,7 @@ export function useLiveSession() {
       if (state === 'background' && process.env.EXPO_OS !== 'ios') void session.stop();
     };
     onAppStateChange(AppState.currentState);
+    if (demo) void session.start();
     const listener = AppState.addEventListener('change', onAppStateChange);
     const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) =>
       session.interrupt(began),
@@ -29,6 +34,6 @@ export function useLiveSession() {
       interruptions?.remove();
       void session.stop();
     };
-  }, [session]);
+  }, [session, demo]);
   return { ...snapshot, start: session.start, stop: session.stop, toggleMute: session.toggleMute };
 }

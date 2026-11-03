@@ -1,7 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  Settings,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -80,7 +88,9 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
 // upright as it always has; iPad and iPhone Duo turn to fit however they're held.
-export default function LiveScreen() {
+export type Opening = { tasks?: TasksAt; demoCall: boolean; reportPose: boolean };
+
+export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const upright = pose && !PAD && !pose.bar && !pose.fold;
   useEffect(() => {
@@ -99,20 +109,31 @@ export default function LiveScreen() {
           }
         />
       )}
-      {pose && <CallScreen pose={pose} />}
+      {pose && opening.reportPose && <PoseReport pose={pose} />}
+      {pose && <CallScreen pose={pose} opening={opening} />}
     </View>
   );
 }
 
-function CallScreen({ pose }: { pose: Pose }) {
-  const session = useLiveSession();
+// Writes the window, safe area and pose to the app's defaults (HexPose), where scripts/duo reads them.
+function PoseReport({ pose }: { pose: Pose }) {
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  useEffect(() => {
+    Settings.set({ HexPose: JSON.stringify({ window, insets, pose }) });
+  }, [window, insets, pose]);
+  return null;
+}
+
+function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
+  const session = useLiveSession(opening.demoCall);
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [tasksOpen, setTasksOpen] = useState(false);
-  const [tasksAt, setTasksAt] = useState<TasksAt>({});
+  const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
+  const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
