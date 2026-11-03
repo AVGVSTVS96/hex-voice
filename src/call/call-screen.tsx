@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, Settings, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -20,6 +20,7 @@ import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
 import { useGlide } from '@/call/glide';
 import { CallPersona, useOrbLife } from '@/call/orb';
+import { PoseReport } from '@/call/pose-report';
 import { useCall } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
@@ -44,6 +45,7 @@ import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
+import { useViewport, Viewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { activityOrb } from '@/live/activity-orb';
 import type { TaskRow } from '@/live/tasks';
@@ -52,7 +54,7 @@ import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
-import { logPose, startPoseLog } from '@/screens/pose-log';
+import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { radius, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
@@ -106,29 +108,17 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
           }
         />
       )}
-      {pose && size && opening.reportPose && <PoseReport pose={pose} size={size} />}
-      {pose && size && <CallScreen pose={pose} size={size} opening={opening} />}
+      {pose && size && (
+        <Viewport value={size}>
+          {opening.reportPose && <PoseReport pose={pose} />}
+          <CallScreen pose={pose} opening={opening} />
+        </Viewport>
+      )}
     </View>
   );
 }
 
-// Writes the window, the size the screen lays out at, the safe area and the pose to the app's
-// defaults (HexPose), where scripts/duo reads them, and starts the timed log of them and of where
-// the screen's parts were laid out (HexPoseLog), so a check can see what changed between shots.
-function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
-  const window = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  useEffect(startPoseLog, []);
-  useEffect(() => {
-    Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose }) });
-    logPose('pose', { window, size, insets, pose });
-  }, [window, size, insets, pose]);
-  return null;
-}
-
-type Size = { width: number; height: number };
-
-function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; opening: Opening }) {
+function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -137,6 +127,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
   const insets = useSafeAreaInsets();
+  const screen = useViewport();
   const { width, height } = screen;
   const layout = screenLayout(screen, insets, pose);
   const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
