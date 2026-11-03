@@ -686,7 +686,11 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   });
 
   // What an action on a call couldn't do shows in the footer's error line while that call lasts.
-  const callNow = onCall ? (session.callId ?? away?.id) : undefined;
+  const callNow = voiceLocked
+    ? (session.callId ?? undefined)
+    : elsewhere.live
+      ? away?.id
+      : undefined;
   const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
   const tried = (what: string, action: Promise<unknown>) => {
     const call = callNow;
