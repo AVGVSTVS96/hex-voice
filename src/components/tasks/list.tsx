@@ -10,6 +10,7 @@ import {
   frame,
   listStyle,
   padding,
+  scrollClipDisabled,
   scrollContentBackground,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
@@ -19,7 +20,7 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { ListHead, Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, FADE, Faded, ios, listRow, type Feel } from '@/components/tasks/parts';
+import { Empty, Faded, ios, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -200,6 +201,7 @@ export function ListPage({
           modifiers={[
             listStyle('plain'),
             scrollContentBackground('hidden'),
+            scrollClipDisabled(),
             ...(paged ? [] : [background(theme.sheet)]),
             frame({ maxWidth: Infinity, maxHeight: Infinity }),
             animation(
@@ -248,21 +250,10 @@ export function ListPage({
             <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
           ) : null}
           {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
-          <End width={width} />
         </List>
       </Faded>
       {goThrough}
     </Column>
-  );
-}
-
-// The room the list leaves at its end, so its last row scrolls clear of the fade. A List row is
-// never shorter than iOS's minimum row height, whatever its frame says.
-function End({ width }: { width: number }) {
-  return (
-    <Spacer
-      modifiers={[frame({ height: FADE }), ...listRow(width, { top: false, bottom: false })]}
-    />
   );
 }
 

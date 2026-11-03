@@ -6,12 +6,13 @@ import {
   frame,
   monospacedDigit,
   padding,
+  scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
-import { Header, useChrome } from '@/components/tasks/bar';
+import { Header } from '@/components/tasks/bar';
 import { laneWidth } from '@/components/tasks/lane';
 import { Mark } from '@/components/tasks/mark';
 import {
@@ -80,8 +81,6 @@ export function Detail({
     (one) => one.state === 'working',
   );
   const apps = [...new Set(threads.map((one) => PLACES[placeOf(one.app)]))];
-  const door =
-    useChrome().bar === 'center' ? undefined : [task, ...threads].find((one) => one.link);
   return (
     <Column
       alignment="center"
@@ -95,12 +94,14 @@ export function Detail({
             ? `${threads.length} threads · ${apps.join(', ')}`
             : `${PLACES[placeOf(task.app)]} · ${STATE_WORDS[task.state]}`
         }
-        door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
         <ScrollView
           showsIndicators={false}
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+          modifiers={[
+            scrollClipDisabled(),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+          ]}
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
             <Sections>
