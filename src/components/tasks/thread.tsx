@@ -129,9 +129,7 @@ export function ThreadPage({
               : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
           }
           door={
-            thread.link && chat?.sends
-              ? { place: placeOf(thread.app), onPress: () => onOpen(thread) }
-              : undefined
+            thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
           }
         />
       )}
