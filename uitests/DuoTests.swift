@@ -19,7 +19,8 @@ import XCTest
 //   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
 //   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 //   no-keyboard           checks the keyboard has gone
-// The accessibility tree at the end is kept beside the shots.
+//   tree <name>           keeps the accessibility tree as it is now, as <name>
+// The accessibility tree at the end is kept beside the shots too.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
     var marked: [String: CGRect] = [:]
@@ -31,8 +32,12 @@ final class DuoTests: XCTestCase {
     }
 
     override func tearDown() {
+        keepTree(nil)
+    }
+
+    private func keepTree(_ name: String?) {
         let tree = XCTAttachment(string: app.debugDescription)
-        tree.name = "tree"
+        tree.name = name.map { "tree-\($0)" } ?? "tree"
         tree.lifetime = .keepAlways
         add(tree)
     }
@@ -63,6 +68,7 @@ final class DuoTests: XCTestCase {
                 print("duo-\(command == "shoot" ? "step" : "pose") \(argument)")
                 sleep(command == "shoot" ? 3 : 5)
             case "snap": print("duo-step \(argument)")
+            case "tree": keepTree(argument)
             case "frame": print("duo-frame \(argument) \(element(argument).frame)")
             case "wait": usleep(UInt32((Double(argument) ?? 1) * 1_000_000))
             case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")

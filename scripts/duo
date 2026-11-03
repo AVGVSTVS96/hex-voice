@@ -221,9 +221,11 @@ mac_tap() {
         esac
       done || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
-      cp "$tests/attachments/$(jq -r '.[].attachments[] | select(.suggestedHumanReadableName |
-        startswith("tree_")) | .exportedFileName' "$tests/attachments/manifest.json" | head -1)" \
-        "shots/$pose-tree-$appearance.txt"
+      jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
+        "\(.exportedFileName) \(.suggestedHumanReadableName | sub("_[0-9]+_[0-9A-F-]+.*$"; ""))"' \
+        "$tests/attachments/manifest.json" | while read -r exported name; do
+        cp "$tests/attachments/$exported" "shots/$pose-$name-$appearance.txt"
+      done
     done
   done
   date +%s >last-use
