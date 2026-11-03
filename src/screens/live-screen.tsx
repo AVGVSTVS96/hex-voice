@@ -512,7 +512,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // begins, unless Calls starts below it, which leaves the band whole.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
   const toolbarStyle = useAnimatedStyle(() => {
-    if (toolbar.axis === 'column') return { left: toolbar.x };
+    if (toolbar.axis === 'column')
+      return { left: toolbar.x, right: width - toolbar.x - toolbar.width };
     const d = drawer.get();
     const slid = list.place === 'slide' ? d * list.width : 0;
     const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
