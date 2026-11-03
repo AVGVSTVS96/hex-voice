@@ -17,7 +17,7 @@ import {
 import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard } from 'react-native';
 
-import { Header, Talk } from '@/components/tasks/bar';
+import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
 import { Faded, SectionHead, ios } from '@/components/tasks/parts';
@@ -72,8 +72,8 @@ export function Messages({
 
 // Its current step shows only while its session is in a turn: a thread can stay at work between
 // them, waiting on work it handed off, with nothing running to show or stop. `beside` its topic's
-// page, that page carries the heading, Talk it through and the way out to its app, so this one is
-// only the conversation and its composer.
+// page, that page carries the topic's name and the way out to its app, so this one is headed only
+// "Messages" and holds the conversation and its composer.
 export function ThreadPage({
   thread,
   beside = false,
@@ -115,7 +115,12 @@ export function ThreadPage({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      {beside ? null : (
+      {beside ? (
+        <PageBar
+          title="Messages"
+          subtitle={chat?.total ? `${chat.total} message${chat.total === 1 ? '' : 's'}` : undefined}
+        />
+      ) : (
         <Header
           title={title}
           subtitle={
