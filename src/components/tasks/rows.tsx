@@ -135,6 +135,7 @@ export function EntryRow({
             tiles={entry.tiles}
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
+            {stuck.why ? <Why text={stuck.why} /> : null}
             <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
           </Shell>
         </Swiped>
@@ -296,6 +297,19 @@ function Meta({ text }: { text: string }) {
       numberOfLines={1}
       textStyle={{ fontSize: 13 }}
       modifiers={[foregroundStyle(theme.tertiary)]}
+    >
+      {text}
+    </Text>
+  );
+}
+
+// Why something is stuck, under what it is.
+function Why({ text }: { text: string }) {
+  return (
+    <Text
+      numberOfLines={3}
+      textStyle={{ fontSize: 14, lineHeight: 19 }}
+      modifiers={[foregroundStyle(theme.secondary), padding({ top: 2 })]}
     >
       {text}
     </Text>
