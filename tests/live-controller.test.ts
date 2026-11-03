@@ -526,6 +526,22 @@ test('backgrounding preserves the live transport and captions while pausing visu
   }
 });
 
+test('a call hung up from the Lock Screen after a quiet stretch keeps its full length', async () => {
+  const h = harness();
+  try {
+    await h.session.start();
+    h.session.setAppActive(false);
+    h.clock.now += 200_000;
+    const stop = h.session.stop();
+    assert.equal(h.session.getSnapshot().elapsedSeconds, 200);
+    h.transports[0].emit({ type: 'session.closed' });
+    await stop;
+    assert.equal(h.session.getSnapshot().elapsedSeconds, 200);
+  } finally {
+    await h.cleanup();
+  }
+});
+
 test('a muted microphone stays muted when returning from the background', async () => {
   const h = harness();
   try {
