@@ -1,4 +1,4 @@
-import { Button, Image, ProgressView } from '@expo/ui/swift-ui';
+import { Button, Image, Menu, ProgressView } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -11,6 +11,7 @@ import {
   shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
+import type { ReactNode } from 'react';
 
 import { theme } from '@/theme';
 import { Host } from '@/ui/host';
@@ -27,6 +28,7 @@ const symbols = {
   'mic-off': 'mic.slash',
   close: 'xmark',
   waveform: 'waveform',
+  more: 'ellipsis',
 } as const;
 
 type Props = {
@@ -76,14 +78,7 @@ export function GlassButton({
       : selected
         ? theme.accent
         : theme.text;
-  const diameter = metrics[size];
-  const face = [
-    frame({ width: diameter, height: diameter }),
-    ...(selected
-      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
-      : []),
-    contentShape(shapes.circle()),
-  ];
+  const look = face(size, selected);
   return (
     <Button
       onPress={onPress}
@@ -97,17 +92,51 @@ export function GlassButton({
       ]}
     >
       {loading ? (
-        <ProgressView modifiers={[tint(color), ...face]} />
+        <ProgressView modifiers={[tint(color), ...look]} />
       ) : (
         <Image
           systemName={symbols[icon]}
           size={metrics.symbol[prominent ? 'prominent' : 'regular']}
           color={color}
-          modifiers={face}
+          modifiers={look}
         />
       )}
     </Button>
   );
+}
+
+// A GlassButton that opens a menu of `children`.
+export function GlassMenu({
+  icon,
+  label,
+  children,
+}: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) {
+  return (
+    <Menu
+      label={
+        <Image
+          systemName={symbols[icon]}
+          size={metrics.symbol.regular}
+          color={theme.text}
+          modifiers={face('tool', false)}
+        />
+      }
+      modifiers={[accessibilityLabel(label), glass('circle')]}
+    >
+      {children}
+    </Menu>
+  );
+}
+
+function face(size: GlassSize, selected: boolean) {
+  const diameter = metrics[size];
+  return [
+    frame({ width: diameter, height: diameter }),
+    ...(selected
+      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
+      : []),
+    contentShape(shapes.circle()),
+  ];
 }
 
 // A GlassButton that React Native lays out, in a Host of its own.
