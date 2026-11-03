@@ -147,7 +147,6 @@ function AskCard({
         if (sent) setWriting(false);
       });
   };
-  const failed = ask.failed ?? notes.failed.note;
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Column
@@ -203,8 +202,8 @@ function AskCard({
           </Text>
         ) : null}
         {ask.links?.length ? <Links links={ask.links} /> : null}
-        {failed ? (
-          <Failure text={failed} modifiers={[padding({ top: 4 })]} />
+        {notes.failed.note ? (
+          <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
         ) : noted ? (
           <Text
             textStyle={{ fontSize: 13, lineHeight: 18 }}
@@ -212,13 +211,16 @@ function AskCard({
           >
             {`Note sent to ${ask.topic}`}
           </Text>
+        ) : ask.failed ? (
+          <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} />
         ) : null}
       </Column>
       {writing ? (
         <Composer
           draft={`ask:${ask.id}`}
           topic={ask.topic}
-          onNote={noting ? undefined : note}
+          sending={noting}
+          onNote={note}
           onAnswer={(label) => onAnswer(ask, { label })}
         />
       ) : (
@@ -378,22 +380,24 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
 }
 
 // What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-// instead is the deliberate second step.
+// instead is the deliberate second step. Neither goes while a note is on its way.
 function Composer({
   draft,
   topic,
+  sending,
   onNote,
   onAnswer,
 }: {
   draft: string;
   topic: string;
-  onNote?: (text: string) => void;
+  sending: boolean;
+  onNote: (text: string) => void;
   onAnswer: (text: string) => void;
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const typing = useContext(Typing);
-  const words = text.trim();
+  const words = sending ? '' : text.trim();
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Row
@@ -438,8 +442,8 @@ function Composer({
         <Icon
           name="arrow.up.circle.fill"
           size={30}
-          color={words && onNote ? theme.accent : theme.tertiary}
-          onPress={words && onNote ? () => onNote(words) : undefined}
+          color={words ? theme.accent : theme.tertiary}
+          onPress={words ? () => onNote(words) : undefined}
           modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
         />
       </Row>
