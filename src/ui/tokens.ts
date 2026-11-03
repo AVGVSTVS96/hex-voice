@@ -197,6 +197,8 @@ export const metrics = {
     place: 11,
     // A step's first line, which its mark, time and chevron center on.
     line: 20,
+    // The gap between a row's time, its count and its tiles.
+    meta: 7,
   },
 } as const;
 

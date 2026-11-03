@@ -1,9 +1,8 @@
-import { Column, Row, Spacer, Text } from '@expo/ui';
+import { Column, Row, Spacer } from '@expo/ui';
 import { Button, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
-  foregroundStyle,
   frame,
   layoutPriority,
   monospacedDigit,
@@ -17,7 +16,7 @@ import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
-import { Failure, ios, listRow } from '@/components/tasks/parts';
+import { Failure, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 import {
@@ -34,7 +33,8 @@ import {
 } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 export type RowActions = {
   width: number;
@@ -51,8 +51,8 @@ export type RowActions = {
 };
 
 // The room an ask's choices have under its line.
-const LEADING = metrics.list.inset - 2;
-const TRAILING = metrics.list.inset - 4;
+const LEADING = metrics.list.inset - space[0.5];
+const TRAILING = metrics.list.inset - space[1];
 const choicesWidth = (width: number) =>
   width - LEADING - metrics.list.mark - metrics.list.gap - TRAILING;
 
@@ -106,7 +106,7 @@ export function EntryRow({
                 ask={ask}
                 size={15}
                 onAnswer={actions.onAnswer}
-                modifiers={[padding({ top: 4 })]}
+                modifiers={[padding({ top: space[1] })]}
               />
             ) : null}
             {ask.failed ? <Failure text={ask.failed} /> : null}
@@ -261,13 +261,18 @@ function Shell({
       spacing={metrics.list.gap}
       onPress={onPress}
       modifiers={[
-        padding({ leading: LEADING, trailing: TRAILING, top: 11, bottom: 12 }),
+        padding({
+          leading: LEADING,
+          trailing: TRAILING,
+          top: metrics.list.row.top,
+          bottom: metrics.list.row.bottom,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
-        ...(ios ? [accessibilityLabel(label)] : []),
+        accessibilityLabel(label),
       ]}
     >
-      <Column alignment="center" spacing={0} modifiers={[padding({ top: 2 })]}>
+      <Column alignment="center" spacing={0} modifiers={[padding({ top: space[0.5] })]}>
         <Mark state={mark} />
       </Column>
       <Column
@@ -275,18 +280,20 @@ function Shell({
         spacing={0}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Row alignment="start" spacing={10} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Row alignment="start" spacing={space[2.5]} modifiers={[frame({ maxWidth: Infinity })]}>
           <Text
             numberOfLines={2}
-            textStyle={{ fontSize: 15, lineHeight: 20 }}
-            modifiers={[
-              foregroundStyle(theme.text),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
-            ]}
+            variant="subheadline"
+            paragraph
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {line}
           </Text>
-          <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
+          <Row
+            alignment="center"
+            spacing={metrics.list.meta}
+            modifiers={[padding({ top: space[0.25] })]}
+          >
             {meta ? <Meta text={meta} /> : null}
             <Meta text={time} />
             <Tiles tiles={tiles} />
@@ -303,7 +310,7 @@ function Shell({
 function Tiles({ tiles }: { tiles: Tile[] }) {
   const looks = new Map(tiles.map((tile) => [lookOf(tile), tile]));
   return (
-    <Row alignment="center" spacing={4}>
+    <Row alignment="center" spacing={space[1]}>
       {[...looks].map(([look, tile]) => (
         <TileIcon key={look} tile={tile} size={14} />
       ))}
@@ -315,11 +322,7 @@ const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(til
 
 function Meta({ text }: { text: string }) {
   return (
-    <Text
-      numberOfLines={1}
-      textStyle={{ fontSize: 13 }}
-      modifiers={[foregroundStyle(theme.tertiary)]}
-    >
+    <Text numberOfLines={1} variant="footnote" tone="tertiary">
       {text}
     </Text>
   );
@@ -330,8 +333,10 @@ function Why({ text }: { text: string }) {
   return (
     <Text
       numberOfLines={3}
-      textStyle={{ fontSize: 14, lineHeight: 19 }}
-      modifiers={[foregroundStyle(theme.secondary), padding({ top: 2 })]}
+      variant="itemDetail"
+      tone="secondary"
+      paragraph
+      modifiers={[padding({ top: space[0.5] })]}
     >
       {text}
     </Text>
@@ -342,11 +347,10 @@ function Action({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
     <Text
       onPress={onPress}
-      textStyle={{ fontSize: 15, fontWeight: '600' }}
-      modifiers={[
-        foregroundStyle(onPress ? theme.accent : theme.tertiary),
-        padding({ top: 8, bottom: 2 }),
-      ]}
+      variant="subheadline"
+      weight="semibold"
+      tone={onPress ? 'accent' : 'tertiary'}
+      modifiers={[padding({ top: space[2], bottom: space[0.5] })]}
     >
       {label}
     </Text>
@@ -373,7 +377,12 @@ function Folded({
       alignment="center"
       spacing={metrics.list.gap}
       modifiers={[
-        padding({ leading: LEADING, trailing: metrics.list.inset, top: 11, bottom: 12 }),
+        padding({
+          leading: LEADING,
+          trailing: metrics.list.inset,
+          top: metrics.list.row.top,
+          bottom: metrics.list.row.bottom,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         ...listRow(width, { top: !first }),
       ]}
@@ -381,33 +390,26 @@ function Folded({
       <Mark state="done" />
       <Column
         alignment="start"
-        spacing={1}
+        spacing={space[0.25]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
+        <Text numberOfLines={1} variant="subheadline" tone="secondary">
           {ask.question}
         </Text>
-        <Text
-          numberOfLines={2}
-          textStyle={{ fontSize: 15 }}
-          modifiers={[foregroundStyle(theme.text)]}
-        >
+        <Text numberOfLines={2} variant="subheadline">
           {`${label} → ${ask.topic}`}
         </Text>
         {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
         {ask.failed ? <Failure text={ask.failed} /> : null}
       </Column>
       <Text
-        textStyle={{ fontSize: 15, fontWeight: '600' }}
+        variant="subheadline"
+        weight="semibold"
+        tone="accent"
         onPress={onUndo}
         modifiers={[
-          foregroundStyle(theme.accent),
-          padding({ leading: 8, top: 6, bottom: 6 }),
-          ...(ios ? [accessibilityLabel(`Undo ${label}`)] : []),
+          padding({ leading: space[2], top: space[1.5], bottom: space[1.5] }),
+          accessibilityLabel(`Undo ${label}`),
         ]}
       >
         Undo
@@ -450,37 +452,34 @@ export function ProjectRow({
   return (
     <Column
       alignment="start"
-      spacing={3}
+      spacing={space[0.75]}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
-        padding({ leading: metrics.list.inset, trailing: TRAILING, top: 11, bottom: 12 }),
+        padding({
+          leading: metrics.list.inset,
+          trailing: TRAILING,
+          top: metrics.list.row.top,
+          bottom: metrics.list.row.bottom,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         ...listRow(width, { selected }),
-        ...(ios
-          ? [accessibilityLabel(`${topic.name}, ${counted}: ${headlineOf(newest)}. Opens it`)]
-          : []),
+        accessibilityLabel(`${topic.name}, ${counted}: ${headlineOf(newest)}. Opens it`),
       ]}
     >
-      <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 16, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
-        >
+      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Text numberOfLines={1} variant="callout" weight="semibold" modifiers={[layoutPriority(1)]}>
           {topic.name}
         </Text>
         {topic.marks.length ? <Dots marks={topic.marks} /> : null}
         <Spacer flexible />
         {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
         <Text
-          textStyle={{ fontSize: 15, fontWeight: '600' }}
-          modifiers={[
-            monospacedDigit(),
-            foregroundStyle(needs ? theme.accent : theme.tertiary),
-            frame({ minWidth: 22, alignment: 'trailing' }),
-          ]}
+          variant="subheadline"
+          weight="semibold"
+          tone={needs ? 'accent' : 'tertiary'}
+          modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
         >
           {String(count)}
         </Text>
@@ -492,11 +491,9 @@ export function ProjectRow({
       >
         <Text
           numberOfLines={1}
-          textStyle={{ fontSize: 14 }}
-          modifiers={[
-            foregroundStyle(theme.secondary),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+          variant="itemDetail"
+          tone="secondary"
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {headlineOf(newest)}
         </Text>
