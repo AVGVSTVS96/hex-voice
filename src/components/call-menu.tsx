@@ -1,8 +1,6 @@
-import { Column, Spacer } from '@expo/ui';
-import { Button, Image, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
-import { contentShape, shapes } from '@expo/ui/swift-ui/modifiers';
+import { Button, Label, ShareLink } from '@expo/ui/swift-ui';
 
-import { circle, theme } from '@/theme';
+import { GlassMenu } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
 import { metrics } from '@/ui/tokens';
 
@@ -11,23 +9,7 @@ type Props = { transcript?: string; title: string; onDelete?: () => void };
 export function CallMenu({ transcript, title, onDelete }: Props) {
   return (
     <Host matchContents style={{ width: metrics.tool, height: metrics.tool }}>
-      <Menu
-        label={
-          <Column
-            alignment="center"
-            spacing={0}
-            style={{
-              ...circle(metrics.tool),
-              backgroundColor: theme.surface,
-            }}
-            modifiers={[contentShape(shapes.circle())]}
-          >
-            <Spacer flexible />
-            <Image systemName="ellipsis" size={20} color={theme.text} />
-            <Spacer flexible />
-          </Column>
-        }
-      >
+      <GlassMenu icon="more" label="Call actions">
         {transcript !== undefined && (
           <ShareLink item={transcript} subject={title}>
             <Label title="Share transcript" systemImage="square.and.arrow.up" />
@@ -36,7 +18,7 @@ export function CallMenu({ transcript, title, onDelete }: Props) {
         {onDelete && (
           <Button label="Delete call" systemImage="trash" role="destructive" onPress={onDelete} />
         )}
-      </Menu>
+      </GlassMenu>
     </Host>
   );
 }
