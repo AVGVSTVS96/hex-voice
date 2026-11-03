@@ -75,6 +75,9 @@ mac_install() {
   (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport exec node harness/duo-hex.mjs) &
   standin=$!
   trap 'kill "$standin"' EXIT
+  # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
+  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 -o /dev/null "http://127.0.0.1:$hexport/tasks/summary" ||
+    die "hex didn't answer a read in 10 s, so the screens would be empty: nothing was checked"
   rm -rf stage shots && mkdir stage shots
   cp -cR "apps/$1.app" stage/hex.app
   rsync -a js/ stage/hex.app/
