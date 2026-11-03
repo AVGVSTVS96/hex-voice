@@ -1,7 +1,7 @@
 import XCTest
 
 // Taps the installed hex app (scripts/duo tap installs the commit under test) the way he does on
-// the Duo. Each step keeps a screenshot named for it, and the run keeps the accessibility tree.
+// the Duo. scripts/duo screenshots each step, and the run keeps the accessibility tree.
 final class DuoTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
 
@@ -54,11 +54,11 @@ final class DuoTests: XCTestCase {
         add(tree)
     }
 
+    // XCUITest can't capture the Duo's open screen, so scripts/duo shoots the display when it
+    // reads the step, while the test holds still.
     private func keep(_ step: String) {
         sleep(1)
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = step
-        shot.lifetime = .keepAlways
-        add(shot)
+        print("duo-step \(step)")
+        sleep(3)
     }
 }

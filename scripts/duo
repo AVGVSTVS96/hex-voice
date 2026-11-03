@@ -179,10 +179,11 @@ mac_shoot() {
   date +%s >last-use
 }
 
-# Runs uitests/ in each pose and appearance; each step's screenshot becomes
-# shots/<pose>-<step>-<appearance>.png, and failures go to notes.txt.
+# Runs uitests/ in each pose and appearance: each step the tests print ("duo-step <name>") is
+# shot as shots/<pose>-<name>-<appearance>.png, failures go to notes.txt, and the accessibility
+# tree the tests keep lands beside them.
 mac_tap() {
-  local tests=~/$folder/build/uitests pose hinge orientation display appearance result exported name
+  local tests=~/$folder/build/uitests pose hinge orientation display appearance result line
   mac_install "$1"
   (cd harness/uitests && xcodegen generate -q)
   xcodebuild build-for-testing -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
@@ -198,16 +199,19 @@ mac_tap() {
       rm -rf "$result" "$tests/attachments"
       xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
         -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
-        -collect-test-diagnostics never 2>&1 |
-        grep -E 'error:|XCTAssert|failed' | sed "s|^|$pose $appearance: |" >>shots/notes.txt || true
+        -collect-test-diagnostics never 2>&1 | while IFS= read -r line; do
+        case $line in
+          *"duo-step "*)
+            xcrun simctl io "$id" screenshot --display="$display" \
+              "shots/$pose-${line##*duo-step }-$appearance.png" >/dev/null 2>&1
+            ;;
+          *error:* | *XCTAssert* | *failed*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
+        esac
+      done || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
-      jq -r '.[].attachments[] | select(.suggestedHumanReadableName | test("^[a-z-]+_")) |
-        "\(.exportedFileName) \(.suggestedHumanReadableName)"' \
-        "$tests/attachments/manifest.json" | while read -r exported name; do
-        name=${name%%_[0-9]*_*}
-        name=${name%.*}
-        cp "$tests/attachments/$exported" "shots/$pose-$name-$appearance.${exported##*.}"
-      done
+      cp "$tests/attachments/$(jq -r '.[].attachments[] | select(.suggestedHumanReadableName |
+        startswith("tree_")) | .exportedFileName' "$tests/attachments/manifest.json" | head -1)" \
+        "shots/$pose-tree-$appearance.txt"
     done
   done
   date +%s >last-use
