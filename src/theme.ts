@@ -1,6 +1,6 @@
 import { DynamicColorIOS, StyleSheet, type ColorValue } from 'react-native';
 
-import { color, type Tone } from '@/ui/tokens';
+import { color, metrics, type Tone } from '@/ui/tokens';
 
 // iOS picks the side of each color that matches the system's appearance.
 export const theme = Object.fromEntries(
@@ -18,6 +18,8 @@ export const radius = {
   bubble: 20,
   // A row or button you press, and a field you type in.
   control: 14,
+  // A thread's composer, as round as a capsule while it holds one line.
+  field: metrics.field / 2,
   // A tag or a block of code inside something else.
   inner: 12,
 } as const;

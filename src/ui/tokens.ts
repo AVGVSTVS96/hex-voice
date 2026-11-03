@@ -168,6 +168,8 @@ export const metrics = {
   emptyTop: 130,
   // Between the wrap-up, how the last call ended and what didn't go through, under the call.
   footerGap: 22,
+  // A thread's composer: its field's least height, and its send button's.
+  field: 50,
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
