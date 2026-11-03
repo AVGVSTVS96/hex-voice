@@ -479,16 +479,17 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     }
     pane.set(settle(tasksOpen ? 1 : 0));
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-  // The call is a card, and while Calls or Tasks is open its corners round off against them, with
-  // a hairline at its edge. That's its look in every pose; where it goes is placement's alone: Calls
-  // slides it aside or takes its leading edge, Tasks takes its trailing edge or comes over it. Where
+  // The call is a card, and while a pane sits beside it its corners round off against that pane,
+  // with a hairline at its edge. Calls always sits beside it, sliding it aside or taking its leading
+  // edge; Tasks does where it takes its trailing edge, and as a sheet or a page it covers the call
+  // instead, which leaves no edge to round. Where
   // a pane takes an edge, what's on the call stays put in the window, so only the words move over
   // into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
   const cardStyle = useAnimatedStyle(() => {
     const d = drawer.get();
     const t = pane.get();
     const slid = list.place === 'slide' ? d * list.width : 0;
-    const yielded = Math.min(1, Math.max(d, t) * 4);
+    const yielded = Math.min(1, Math.max(d, side.place === 'beside' ? t : 0) * 4);
     return {
       left: (list.place === 'beside' ? d * list.width : 0) + slid,
       right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
