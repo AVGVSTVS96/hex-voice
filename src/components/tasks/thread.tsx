@@ -104,6 +104,8 @@ export function ThreadPage({
   const place = PLACES[placeOf(thread.app)];
   const running = thread.running;
   const title = thread.place || thread.name;
+  // Its back names the topic, so the topic's own thread is headed for what it holds.
+  const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
   const turns = chat?.turns ?? [];
   const first = (chat?.total ?? 0) - turns.length;
   // What it's doing now, past what it said: that's in the conversation already.
@@ -122,7 +124,7 @@ export function ThreadPage({
         />
       ) : (
         <Header
-          title={title}
+          title={heading}
           subtitle={
             running
               ? `working for ${taskTime(thread)}`
