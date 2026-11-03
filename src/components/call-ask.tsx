@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { CallCard } from '@/live/agents';
@@ -13,10 +14,23 @@ export function CallAsk({
   onOpenTask,
 }: {
   card: CallCard;
-  onAnswer: (option: AskOption) => void;
+  onAnswer: (option: AskOption) => Promise<unknown>;
   onOpenTask: () => void;
 }) {
   const { ask, answer } = card;
+  // What you tapped, marked at once while hex takes it, and why if it didn't.
+  const [sending, setSending] = useState<string>();
+  const [failed, setFailed] = useState<string>();
+  const [whole, setWhole] = useState(false);
+  const choose = (option: AskOption) => {
+    if (sending) return;
+    setSending(option.label);
+    setFailed(undefined);
+    onAnswer(option).then(undefined, (error: unknown) => {
+      setSending(undefined);
+      setFailed(error instanceof Error ? error.message : 'That didn’t reach hex. Tap it again.');
+    });
+  };
   if (answer)
     return (
       <View style={styles.sent}>
@@ -39,10 +53,22 @@ export function CallAsk({
         <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
           <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
         </Pressable>
-        <Text numberOfLines={1} style={styles.question}>
+        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
+      </View>
+      <View style={styles.asked}>
+        <Text selectable style={styles.question}>
           {ask.question}
         </Text>
-        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
+        {ask.context ? (
+          <Text
+            numberOfLines={whole ? undefined : 2}
+            onPress={() => setWhole(!whole)}
+            accessibilityHint={whole ? undefined : 'Shows all of it'}
+            style={styles.context}
+          >
+            {ask.context}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.options}>
         {ask.options.map((option) => (
@@ -50,11 +76,12 @@ export function CallAsk({
             key={option.label}
             accessibilityRole="button"
             accessibilityLabel={option.pick ? `${option.label}, hex’s pick` : option.label}
-            onPress={() => onAnswer(option)}
+            accessibilityState={{ selected: sending === option.label, disabled: !!sending }}
+            onPress={() => choose(option)}
             style={({ pressed }) => [
               styles.option,
               option.pick && styles.pick,
-              pressed && styles.pressed,
+              (pressed || (sending && sending !== option.label)) && styles.pressed,
             ]}
           >
             <Text style={styles.optionText}>{option.label}</Text>
@@ -75,7 +102,13 @@ export function CallAsk({
           ))}
         </View>
       ) : null}
-      <Text style={styles.hint}>Tap, or just say it</Text>
+      {failed ? (
+        <Text accessibilityRole="alert" style={[styles.hint, styles.failed]}>
+          {failed}
+        </Text>
+      ) : (
+        <Text style={styles.hint}>{sending ? `Sending ${sending}…` : 'Tap, or just say it'}</Text>
+      )}
     </View>
   );
 }
@@ -91,7 +124,9 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
   topic: { color: theme.secondary, fontSize: 15, fontWeight: '600' },
-  question: { flex: 1, color: theme.tertiary, fontSize: 15 },
+  asked: { gap: 4, paddingHorizontal: 2 },
+  question: { color: theme.text, fontSize: 17, lineHeight: 23 },
+  context: { color: theme.secondary, fontSize: 15, lineHeight: 20 },
   tag: {
     color: theme.text,
     fontSize: 13,
@@ -119,6 +154,7 @@ const styles = StyleSheet.create({
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 2 },
   link: { color: theme.secondary, fontSize: 15 },
   hint: { color: theme.tertiary, fontSize: 13, textAlign: 'center' },
+  failed: { color: theme.danger },
   sent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 24 },
   check: {
     ...circle(26),
