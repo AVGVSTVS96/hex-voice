@@ -69,7 +69,8 @@ mac_build() {
 }
 
 # The commit's bundle in its runtime's build, which never looks for an OTA update, talking to
-# the read-only stand-in for hex for as long as this check runs.
+# the read-only stand-in for hex for as long as this check runs. It installs fresh, so nothing a
+# run left saved (a collapsed list, a chosen voice) changes what the next run sees.
 mac_install() {
   (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport exec node harness/duo-hex.mjs) &
   standin=$!
@@ -80,7 +81,7 @@ mac_install() {
   plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
   codesign -f -s - stage/hex.app 2>/dev/null
   mac_simulator
-  xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
+  xcrun simctl uninstall "$id" "$bundle" 2>/dev/null || true
   xcrun simctl install "$id" stage/hex.app
 }
 
@@ -278,17 +279,18 @@ prepare() {
   }
 }
 
-# Copies the Mac's shots to $1 with a sheet per pose, dark beside light.
+# Copies the Mac's shots to $1 with a sheet per pose, dark beside light, adds this run's notes
+# to the commit's notes.txt and prints them.
 collect() {
-  local out=$1 pose
+  local out=$1 pose notes
   mkdir -p "$out"
   rsync -a --exclude=notes.txt "$mac:$folder/shots/" "$out/"
-  ssh "$mac" cat "$folder/shots/notes.txt" 2>/dev/null >>"$out/notes.txt" || true
+  notes=$(ssh "$mac" cat "$folder/shots/notes.txt" 2>/dev/null || true)
   for pose in $POSES; do
     montage -label '%t' -pointsize 28 -tile 2x -geometry 640x640+12+12 -background '#222' -fill white \
       "$out/$pose"-*.png "$out/sheet-$pose.png" 2>/dev/null || true
   done
-  [ ! -s "$out/notes.txt" ] || cat "$out/notes.txt"
+  [ -z "$notes" ] || { echo "$notes" >>"$out/notes.txt"; echo "$notes"; }
   echo "shots: $out"
 }
 
