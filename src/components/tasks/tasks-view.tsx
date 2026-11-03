@@ -423,49 +423,24 @@ function Nothing({ loaded }: { loaded: boolean }) {
   );
 }
 
-// On its side partly open, a break across Tasks where the fold is: what scrolls passes under it,
-// dimmed, softening into it as under a bar, so a row resting there still reads as a row, and it
-// takes the taps there so nothing is pressed in the fold.
+// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
+// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
+// and nowhere else.
 function Gap({ gap }: { gap: Fold }) {
-  // The ramp is steps of the ground's own color, so it matches it in either appearance.
-  const ramp = (rising: boolean) =>
-    Array.from({ length: STEPS }, (_, i) => (
-      <Rectangle
-        key={`${rising}:${i}`}
-        modifiers={[
-          frame({ height: SOFT / STEPS }),
-          frame({ maxWidth: Infinity }),
-          foregroundStyle(theme.sheet),
-          opacity((DIM * (rising ? i + 1 : STEPS - i)) / (STEPS + 1)),
-        ]}
-      />
-    ));
   return (
-    <Column
-      alignment="center"
-      spacing={0}
+    <Rectangle
       modifiers={[
-        offset({ x: 0, y: gap.at - SOFT }),
+        frame({ height: gap.band }),
         frame({ maxWidth: Infinity }),
+        foregroundStyle(theme.sheet),
+        opacity(DIM),
+        offset({ x: 0, y: gap.at }),
         accessibilityHidden(true),
       ]}
-    >
-      {ramp(true)}
-      <Rectangle
-        modifiers={[
-          frame({ height: gap.band }),
-          frame({ maxWidth: Infinity }),
-          foregroundStyle(theme.sheet),
-          opacity(DIM),
-        ]}
-      />
-      {ramp(false)}
-    </Column>
+    />
   );
 }
 
-const SOFT = 16;
-const STEPS = 8;
 const DIM = 0.7;
 
 // On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
