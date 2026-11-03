@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
-import { Mask, Rectangle } from '@expo/ui/swift-ui';
+import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
+  accessibilityLabel,
   alignmentGuide,
   foregroundStyle,
   frame,
@@ -214,6 +215,24 @@ export function Empty({ text, width }: { text: string; width: number }) {
     >
       {text}
     </Text>
+  );
+}
+
+// Until hex first answers: the system's spinner where the rows will be.
+export function Loading({ width }: { width: number }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={0}
+      modifiers={[
+        padding({ top: 48, bottom: 48 }),
+        frame({ maxWidth: Infinity }),
+        ...listRow(width, { top: false, bottom: false }),
+        accessibilityLabel('Loading'),
+      ]}
+    >
+      <ProgressView />
+    </Row>
   );
 }
 

@@ -1,5 +1,5 @@
-import { Column, Row, Spacer } from '@expo/ui';
-import { Rectangle, ZStack } from '@expo/ui/swift-ui';
+import { Column, Row, Spacer, Text } from '@expo/ui';
+import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityHidden,
   animation,
@@ -292,7 +292,7 @@ export function Tasks({
           onUndo={undo}
         />
       ) : (
-        <Spacer />
+        <Nothing loaded={!!tasks} />
       ),
     ),
     page(
@@ -382,6 +382,25 @@ function newestOf(rows: TaskRow[]) {
   return rows.reduce<TaskRow | undefined>(
     (newest, row) => (!newest || movedAt(row) > movedAt(newest) ? row : newest),
     undefined,
+  );
+}
+
+// The page beside the list before a project is open: hex still loading, or nothing picked yet.
+function Nothing({ loaded }: { loaded: boolean }) {
+  return (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
+    >
+      {loaded ? (
+        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+          Pick a project
+        </Text>
+      ) : (
+        <ProgressView />
+      )}
+    </Column>
   );
 }
 
