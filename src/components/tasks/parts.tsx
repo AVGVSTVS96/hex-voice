@@ -20,8 +20,6 @@ import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
-export const ios = process.env.EXPO_OS === 'ios';
-
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
 
