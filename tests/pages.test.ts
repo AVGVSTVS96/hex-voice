@@ -22,17 +22,17 @@ const openUpright = screenLayout(
   { width: 951, height: 669 },
   { top: 0, right: 84, bottom: 21, left: 0 },
   { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
-).page!;
+).duo!.tasks;
 const openOnSide = screenLayout(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
   { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
-).page!;
+).duo!.tasks;
 const folded = screenLayout(
   { width: 466, height: 678 },
   { top: 0, right: 84, bottom: 34, left: 0 },
   { regular: false, bar: 'right' },
-).page!;
+).duo!.tasks;
 
 const roomOf = (page: Page, inset = { left: 0, right: 0 }): Room => ({
   width: page.area.width,
