@@ -19,3 +19,4 @@ schemes:
         DuoTests: all
     test:
       targets: [DuoTests]
+      captureScreenshotsAutomatically: false

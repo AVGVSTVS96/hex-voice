@@ -38,6 +38,7 @@ scripts/duo phone [update]        a screenshot of his real Duo, once hex runs th
 ```
 
 - UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
+- Open on its side, XCUITest misplaces elements and its screenshots come back black, so a tap there that fails isn't proof the app is broken; check that pose with shots and on his Duo.
 - A state is a line in `scripts/duo-states` (or the file you pass): its name, a URL that opens the app straight into it, and any launch arguments. Shots show the simulator's real status bar.
 - The JS is bundled on the server and dropped into a simulator build of the commit's native fingerprint, so a JS change never rebuilds native code. Shots land in `~/.local/share/hex-voice/shots/<commit>/`, with one sheet per pose.
 
