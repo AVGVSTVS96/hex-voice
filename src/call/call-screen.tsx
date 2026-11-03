@@ -798,7 +798,7 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
         {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
         {!drawerOpen && !(duo && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
-            <View style={[styles.edge, { left: layout.content.x }]} />
+            <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
         {drawerOpen && list.place !== 'beside' && (
