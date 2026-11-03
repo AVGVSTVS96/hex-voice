@@ -750,7 +750,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     <CallControls
       status={elsewhere.live ? (elsewhere.leaving ? 'disconnecting' : 'connected') : session.status}
       canMute={!elsewhere.live}
-      muted={session.muted}
+      muted={session.muted || session.interrupted}
       failed={!!session.error}
       ready={voiceLoaded}
       axis="row"

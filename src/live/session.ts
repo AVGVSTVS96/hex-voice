@@ -281,8 +281,11 @@ export class LiveSession {
       void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
   };
 
+  // iOS doesn't always say when it hands the audio back (Siri, some declined calls), so a tap on the
+  // microphone while paused is the way back.
   toggleMute = () => {
     if (this.snapshot.status !== 'connected' || !this.transport) return;
+    if (this.snapshot.interrupted) return this.interrupt(false);
     clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
     if (muted) this.transport.setMuted(true);
