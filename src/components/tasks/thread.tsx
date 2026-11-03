@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer, Text, TextInput, type TextInputRef } from '@expo/ui';
 import { ScrollView } from '@expo/ui/swift-ui';
 import {
+  accessibilityIdentifier,
   accessibilityLabel,
   background,
   clipShape,
@@ -9,10 +10,12 @@ import {
   defaultScrollAnchor,
   foregroundStyle,
   frame,
+  onTapGesture,
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useEffect, useRef, useState } from 'react';
+import { Keyboard } from 'react-native';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
@@ -146,11 +149,20 @@ export function ThreadPage({
           showsIndicators={false}
           modifiers={[
             defaultScrollAnchor('bottom'),
+            accessibilityIdentifier('thread-messages'),
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
             clipped(),
           ]}
         >
-          <Column alignment="start" spacing={18} modifiers={[padding({ top: 20, bottom: 20 })]}>
+          <Column
+            alignment="start"
+            spacing={18}
+            modifiers={[
+              padding({ top: 20, bottom: 20 }),
+              contentShape(shapes.rectangle()),
+              onTapGesture(Keyboard.dismiss),
+            ]}
+          >
             {first > 0 ? (
               <Text
                 textStyle={{ fontSize: 13 }}

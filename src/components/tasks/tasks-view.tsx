@@ -9,9 +9,10 @@ import {
   offset,
   opacity,
   padding,
+  scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState, type ReactNode } from 'react';
-import { Linking } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Linking } from 'react-native';
 
 import { PageChrome, type Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
@@ -130,6 +131,12 @@ export function Tasks({
   };
 
   const spot = (level: Level) => spotOf(level, pages, room, typing);
+  // Pages stay mounted as they leave, so a field on one that's gone or closed would keep the
+  // keyboard up with nothing on screen to type in or swipe.
+  const typedOnGone = typing !== null && (!open || !spot(typing).shown);
+  useEffect(() => {
+    if (typedOnGone) Keyboard.dismiss();
+  }, [typedOnGone]);
   const names: Record<Level | 'call', string> = {
     call: 'Call',
     list: 'Tasks',
@@ -251,7 +258,13 @@ export function Tasks({
     page('check', <LastCheck check={check} />),
   ];
 
-  const fill = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo(), clipped()];
+  // A drag down any of Tasks' scrolling content pulls the keyboard down with it, as iOS apps do.
+  const fill = [
+    frame({ maxWidth: Infinity, alignment: 'top' }),
+    upTo(),
+    clipped(),
+    scrollDismissesKeyboard('interactively'),
+  ];
   if (pages.shape === 'columns')
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
@@ -284,6 +297,7 @@ export function Tasks({
               frame({ maxWidth: Infinity, alignment: 'topLeading' }),
               upTo(Infinity, 'topLeading'),
               clipped(),
+              scrollDismissesKeyboard('interactively'),
             ]
           : fill
       }
