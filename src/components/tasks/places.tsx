@@ -113,7 +113,6 @@ function Ghost({ place, size }: { place: Place; size: number }) {
   );
 }
 
-// Places show where a topic lives once there's more than one, or one it can open.
 export const hasPlaces = (task: TaskRow, threads: TaskRow[]) =>
   !!task.link || threads.some((thread) => thread.id !== task.id);
 
