@@ -1,4 +1,4 @@
-import type { Pose, Rect } from '../../modules/pose';
+import type { Pose, Rect, Region } from '../../modules/pose';
 
 export const GUTTER = 24;
 export const TOOL = 48;
@@ -97,7 +97,7 @@ export type Page = {
 };
 
 // The fold within Tasks: the pages sit side by side (`row`) or one over the other (`column`), the
-// first `at` long, then the fold's band.
+// first `at` long, then the fold's band: none open flat, the fold's whole frame partly folded.
 export type Fold = { axis: 'row' | 'column'; at: number; band: number };
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
@@ -147,19 +147,31 @@ export type Inbox = {
 
 export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   const frame = frameFor(window, insets, pose);
-  if (pose.regular && !pose.fold && !pose.bar) return pad(frame);
+  const fold = pose.fold && divide(pose.fold);
+  if (pose.regular && !fold && !pose.bar) return pad(frame);
   const layout =
     pose.regular && window.width > window.height
-      ? split(frame, pose)
-      : pose.fold && pose.fold.width > pose.fold.height
-        ? stacked(frame, pose.fold)
+      ? split(frame, fold)
+      : fold && fold.width > fold.height
+        ? stacked(frame, fold)
         : single(frame);
-  if (!pose.bar && !pose.fold) return layout;
+  if (!pose.bar && !fold) return layout;
   return {
     ...layout,
     tasks: { width: frame.content.width, place: 'page' },
-    duo: frame.column ? besideColumn(frame, frame.column, pose.fold) : belowBand(frame, pose.fold),
+    duo: frame.column ? besideColumn(frame, frame.column, fold) : belowBand(frame, fold),
   };
+}
+
+// What the fold takes from the screen. iOS reports it as a division region that's active only
+// while the Duo is partly open; then content keeps to either side of its frame, which already
+// holds the margins controls and text keep from the hinge. Open flat it's inactive and nothing
+// keeps off it, so the two sides meet at its middle.
+function divide(fold: Region): Rect {
+  if (fold.active) return fold;
+  return fold.height > fold.width
+    ? { x: fold.x + fold.width / 2, y: fold.y, width: 0, height: fold.height }
+    : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
 }
 
 type Frame = {
@@ -432,10 +444,9 @@ function measure(from: number, to: number): Span {
 }
 
 // iPhone Duo open: the orb on the page before the fold, the words on the page after it.
-function split(frame: Frame, pose: Pose): Layout {
+function split(frame: Frame, fold?: Rect): Layout {
   const { window, insets, bottomInset, content, toolbar } = frame;
   const controls = frame.column?.controls;
-  const fold = pose.fold;
   const pane = fold ? fold.x - content.x : content.width / 2;
   const page = fold ? fold.x + fold.width + 8 : content.x + pane;
   const right = content.x + content.width - GUTTER;

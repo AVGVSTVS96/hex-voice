@@ -36,6 +36,7 @@ import type { Ask, AskOption } from '@/live/asks';
 import { placeOf, type Place, type Stage, type Tile } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
+import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
 
 // Every opening passes a new one, which restarts the pages and the list's tab.
@@ -270,18 +271,44 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const atFold =
-    room.paged && room.fold
-      ? frame({ width: room.width, height: room.height, alignment: 'topLeading' })
-      : undefined;
+  const atFold = room.paged && room.fold ? { ...room, fold: room.fold } : undefined;
   return (
     <ZStack
       alignment={atFold ? 'topLeading' : 'top'}
-      modifiers={atFold ? [atFold, clipped()] : fill}
+      modifiers={
+        atFold
+          ? [
+              frame({ width: atFold.width, height: atFold.height, alignment: 'topLeading' }),
+              clipped(),
+            ]
+          : fill
+      }
     >
       {page('list', list)}
       {levels}
+      {atFold?.fold.band === 0 && (
+        <Seam fold={atFold.fold} width={atFold.width} height={atFold.height} />
+      )}
     </ZStack>
+  );
+}
+
+// Open flat, the pages meet at the fold with a hairline between them, as a split view's columns do.
+function Seam({ fold, width, height }: { fold: Fold; width: number; height: number }) {
+  const row = fold.axis === 'row';
+  return (
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        frame(row ? { width: 1, height } : { width, height: 1 }),
+        background(theme.edge),
+        offset(row ? { x: fold.at, y: 0 } : { x: 0, y: fold.at }),
+        accessibilityHidden(true),
+      ]}
+    >
+      <Spacer />
+    </Column>
   );
 }
 
