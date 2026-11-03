@@ -61,11 +61,14 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { metrics, theme } from '@/theme';
 
-// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights.
-// Where the width is regular the system sizes it as a page. Either way its content lays out to the
-// width the sheet gets, the carousel beside the rows where that's wide enough.
+// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
+// the width is regular it's a centered form sheet, and a page sheet where the call is split across
+// the screen (iPad landscape, iPhone Duo open upright). Either way its content lays out to the width
+// the sheet gets, the carousel beside the rows where that's wide enough.
+export type SettingsSheet = 'phone' | 'form' | 'page';
+
 type Props = {
-  phone: boolean;
+  sheet: SettingsSheet;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -96,7 +99,7 @@ const PHRASE = [
 ];
 const PREVIEW_ORB = 160;
 // Side by side from `from` wide, or from `tight` wide where the page stacked can't fit the height.
-const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 660, tight: 540 };
+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 600, tight: 540 };
 // The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
 const SHORT_PREVIEW = 120;
 const SHEET_GAP = 24;
@@ -121,7 +124,7 @@ const APPEARANCE_HEIGHT =
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
 export function VoiceSettings({
-  phone,
+  sheet,
   isPresented,
   onDismiss,
   voice,
@@ -134,6 +137,7 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const window = useWindowDimensions();
+  const phone = sheet === 'phone';
   const insets = useSafeAreaInsets();
   // The system sizes the sheet, and its content lays out to the width the sheet gets. The width
   // flows one way, from the sheet to the content: a sheet fitted to its content's width chases its
@@ -332,7 +336,7 @@ export function VoiceSettings({
             }),
             ...(phone
               ? []
-              : [presentationSizing('page', { fitted: { horizontal: false, vertical: true } })]),
+              : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
             presentationBackground(theme.sheet),
           ]}
         >

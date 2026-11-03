@@ -77,7 +77,7 @@ export function EntryRow({
             mark="needs"
             line={ask.question}
             time={clock(new Date(entry.at))}
-            tiles={badges(entry)}
+            tiles={entry.tiles}
             label={`${entry.topic} asks: ${ask.question}`}
             onPress={() => actions.onOpen(ask.task, entry.id)}
           >
@@ -104,7 +104,7 @@ export function EntryRow({
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
             meta={agents ? `${agents} agent${agents === 1 ? '' : 's'}` : undefined}
-            tiles={badges(entry)}
+            tiles={entry.tiles}
             label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
             onPress={() => actions.onOpen(task.id, entry.id)}
           />
@@ -120,7 +120,7 @@ export function EntryRow({
             mark={stuck.mark}
             line={stuck.title}
             time={clock(new Date(entry.at))}
-            tiles={badges(entry)}
+            tiles={entry.tiles}
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
             <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
@@ -137,7 +137,7 @@ export function EntryRow({
             mark={fresh.read ? 'read' : 'done'}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
-            tiles={badges(entry)}
+            tiles={entry.tiles}
             label={`${fresh.title}, finished: ${fresh.line}`}
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
@@ -261,17 +261,6 @@ function Shell({
       </Column>
     </Row>
   );
-}
-
-// A row's badges say where else it lives: never its own place, and each place once.
-function badges({ place, tiles }: Entry): Tile[] {
-  const seen = new Set<string>();
-  return tiles.filter((tile) => {
-    const key = tile.kind === 'app' ? tile.place : tile.kind;
-    if ((tile.kind === 'app' && tile.place === place) || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 function Tiles({ tiles }: { tiles: Tile[] }) {
@@ -419,7 +408,7 @@ export function QuietRow({
       </Column>
       <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
         <Meta text={taskTime(entry.task)} />
-        <Tiles tiles={badges(entry)} />
+        <Tiles tiles={entry.tiles} />
       </Row>
     </Row>
   );

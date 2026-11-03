@@ -18,6 +18,8 @@ import { theme } from '@/theme';
 const symbols = {
   settings: 'slider.horizontal.3',
   transcript: 'text.bubble',
+  'beside-row': 'rectangle.split.2x1',
+  'beside-column': 'rectangle.split.1x2',
   calls: 'clock.arrow.circlepath',
   tasks: 'list.bullet',
   mic: 'mic',

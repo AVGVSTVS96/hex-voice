@@ -114,6 +114,8 @@ export function DuoTasks({
   const offerStyle = useAnimatedStyle(() => ({ opacity: state.offer.get() }));
   const { time } = duo.call;
   const button = duo.beside?.button;
+  // The switch shows what it does: the call and Tasks side by side, or one over the other.
+  const stacks = !!duo.beside && duo.beside.tasks.area.y > duo.tasks.area.y;
   return (
     <>
       <TasksPage
@@ -148,7 +150,7 @@ export function DuoTasks({
           ]}
         >
           <VoiceControl
-            icon="transcript"
+            icon={stacks ? 'beside-column' : 'beside-row'}
             label={onCall ? 'Transcript beside Tasks' : 'Call beside Tasks'}
             testID="transcript-beside-button"
             selected={state.beside}
