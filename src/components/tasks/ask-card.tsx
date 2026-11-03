@@ -8,6 +8,7 @@ import {
   contentShape,
   foregroundStyle,
   frame,
+  lineLimit,
   padding,
   shapes,
   strokeBorder,
@@ -101,7 +102,7 @@ export function YourCall({
 }
 
 // An ask on its topic's page: its question, with a pencil at its end to write your own, what it
-// unblocks, the pages it points to, then its answers, on one line when they fit the page and as
+// unblocks (four lines of it until you tap it open), the pages it points to, then its answers, on one line when they fit the page and as
 // rows when they don't. The pencil swaps the answers for a composer.
 function AskCard({
   ask,
@@ -115,6 +116,7 @@ function AskCard({
   onAnswer: Answer;
 }) {
   const [writing, setWriting] = useState(false);
+  const [whole, setWhole] = useState(false);
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Column
@@ -158,7 +160,13 @@ function AskCard({
         {ask.context ? (
           <Text
             textStyle={{ fontSize: 15, lineHeight: 20 }}
-            modifiers={[foregroundStyle(theme.secondary)]}
+            onPress={() => setWhole(!whole)}
+            modifiers={[
+              foregroundStyle(theme.secondary),
+              whole ? lineLimit() : lineLimit(4),
+              animation(motion.list, whole),
+              ...(ios ? [accessibilityLabel(whole ? 'Show less' : 'Show all')] : []),
+            ]}
           >
             {ask.context}
           </Text>
