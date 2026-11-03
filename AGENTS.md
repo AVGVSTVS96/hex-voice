@@ -35,6 +35,3 @@ Keep the architecture and code clean, and bring each part you touch a step close
 
 Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
 
-## Commits
-
-One line, lowercase, plain words, no conventional commit prefixes.
