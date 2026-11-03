@@ -96572,10 +96572,10 @@ index 0000000000000000000000000000000000000000..b5d36111ae49087446328d1cf8df01d5
 +});
 diff --git a/src/components/call-ask.tsx b/src/components/call-ask.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..fc1c8defd6d6fea30564dcaff8e2c18fe8356ed7
+index 0000000000000000000000000000000000000000..4ccffc36c7688ec5c02cadd22e3861e7968c4503
 --- /dev/null
 +++ b/src/components/call-ask.tsx
-@@ -0,0 +1,163 @@
+@@ -0,0 +1,166 @@
 +import { useState } from 'react';
 +import { Pressable, StyleSheet, Text, View } from 'react-native';
 +
@@ -96603,7 +96603,10 @@ index 0000000000000000000000000000000000000000..fc1c8defd6d6fea30564dcaff8e2c18f
 +  const [sending, setSending] = useState<string>();
 +  const [sent, setSent] = useState<string>();
 +  const [failed, setFailed] = useState<string>();
-+  if (card.answer && sent) setSent(undefined);
++  if (card.answer && (sent || failed)) {
++    setSent(undefined);
++    setFailed(undefined);
++  }
 +  const answer = card.answer ?? sent;
 +  const choose = (option: AskOption) => {
 +    if (sending) return;
@@ -98605,10 +98608,10 @@ index 0000000000000000000000000000000000000000..bceb3537a99286c5200b58543b52a510
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7092f4459
+index 0000000000000000000000000000000000000000..06a8c1ba907aaf879abec5907317963f11937d70
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,474 @@
+@@ -0,0 +1,478 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
 +import { Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -98758,7 +98761,6 @@ index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7
 +        if (sent) setWriting(false);
 +      });
 +  };
-+  const failed = ask.failed ?? notes.failed.note;
 +  return (
 +    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
 +      <Column
@@ -98814,8 +98816,8 @@ index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7
 +          </Text>
 +        ) : null}
 +        {ask.links?.length ? <Links links={ask.links} /> : null}
-+        {failed ? (
-+          <Failure text={failed} modifiers={[padding({ top: 4 })]} />
++        {notes.failed.note ? (
++          <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
 +        ) : noted ? (
 +          <Text
 +            textStyle={{ fontSize: 13, lineHeight: 18 }}
@@ -98823,13 +98825,16 @@ index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7
 +          >
 +            {`Note sent to ${ask.topic}`}
 +          </Text>
++        ) : ask.failed ? (
++          <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} />
 +        ) : null}
 +      </Column>
 +      {writing ? (
 +        <Composer
 +          draft={`ask:${ask.id}`}
 +          topic={ask.topic}
-+          onNote={noting ? undefined : note}
++          sending={noting}
++          onNote={note}
 +          onAnswer={(label) => onAnswer(ask, { label })}
 +        />
 +      ) : (
@@ -98989,22 +98994,24 @@ index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7
 +}
 +
 +// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-+// instead is the deliberate second step.
++// instead is the deliberate second step. Neither goes while a note is on its way.
 +function Composer({
 +  draft,
 +  topic,
++  sending,
 +  onNote,
 +  onAnswer,
 +}: {
 +  draft: string;
 +  topic: string;
-+  onNote?: (text: string) => void;
++  sending: boolean;
++  onNote: (text: string) => void;
 +  onAnswer: (text: string) => void;
 +}) {
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
 +  const typing = useContext(Typing);
-+  const words = text.trim();
++  const words = sending ? '' : text.trim();
 +  return (
 +    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
 +      <Row
@@ -99049,8 +99056,8 @@ index 0000000000000000000000000000000000000000..610bba0556c4bbd7e9600209f6d87be7
 +        <Icon
 +          name="arrow.up.circle.fill"
 +          size={30}
-+          color={words && onNote ? theme.accent : theme.tertiary}
-+          onPress={words && onNote ? () => onNote(words) : undefined}
++          color={words ? theme.accent : theme.tertiary}
++          onPress={words ? () => onNote(words) : undefined}
 +          modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
 +        />
 +      </Row>
@@ -105327,14 +105334,14 @@ index 0000000000000000000000000000000000000000..62a4faf38a0627b9ef5b9ac58750ed57
 +}
 diff --git a/src/hooks/use-asks.ts b/src/hooks/use-asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e749b07965
+index 0000000000000000000000000000000000000000..ab280aa84a3108363f783fe3eff7fc0509189e24
 --- /dev/null
 +++ b/src/hooks/use-asks.ts
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,139 @@
 +import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 +
 +import { hex } from '@/hex';
-+import { keepDraft } from '@/hooks/use-draft';
++import { keepDraft, sentDraft } from '@/hooks/use-draft';
 +import { useFailures } from '@/hooks/use-failures';
 +import { useKept } from '@/hooks/use-kept';
 +import { useWatch } from '@/hooks/use-watch';
@@ -105363,7 +105370,7 @@ index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e7
 +// goes.
 +export async function noteAsk(ask: Ask, text: string) {
 +  await hex.asks.note(ask.id, text);
-+  keepDraft(`ask:${ask.id}`, '');
++  sentDraft(`ask:${ask.id}`, text);
 +}
 +
 +// On a call, the voice starts going through your asks with you.
@@ -105372,16 +105379,25 @@ index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e7
 +// Everything waiting on you, live while the sheet is open. An answer or a not needed folds its card
 +// where it sits and goes to hex; the card stays folded there with Undo until the sheet closes.
 +// Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
-+// again, and one that missed a place says so until it's sent again.
++// again, and one that missed a place stays folded, through the sheet closing, and says so until
++// it's sent again or undone.
 +export function useAsks(open: boolean) {
 +  const [state, dispatch] = useReducer(yours, { answered: {} });
 +  const tries = useFailures();
 +  const [missed, setMissed] = useState<Record<string, number>>({});
-+  // Each ask's latest answer, so Send again sends it the same way and an Undo tapped while it's on
-+  // its way reaches hex after it.
-+  const answers = useRef(new Map<AskId, { send: () => Promise<Sent>; landed: Promise<boolean> }>());
 +  const reached = (id: AskId, sent?: Sent) =>
 +    setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
++  // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
++  // one before it is done, and only the latest you did may change how its card shows.
++  const queue = useRef(new Map<AskId, { last: Promise<unknown>; turn: number }>());
++  const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<unknown>) => {
++    const now = queue.current.get(id) ?? { last: Promise.resolve(), turn: 0 };
++    const turn = now.turn + 1;
++    const latest = () => queue.current.get(id)?.turn === turn;
++    queue.current.set(id, { last: now.last.then(() => work(latest)), turn });
++  };
++  // What went out for each ask and hasn't been taken back, sent the same way by Send again.
++  const out = useRef(new Map<AskId, () => Promise<Sent>>());
 +  const [kept, keep] = useKept('asks', AskList);
 +  useEffect(() => {
 +    if (kept && !state.list) dispatch({ type: 'list', list: kept });
@@ -105392,9 +105408,8 @@ index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e7
 +  });
 +  useEffect(() => {
 +    if (open) return;
-+    dispatch({ type: 'close' });
++    dispatch({ type: 'close', keep: Object.keys(missed) });
 +    tries.clear();
-+    setMissed({});
 +  }, [open]);
 +  const list = useMemo(
 +    () => state.list && failedOn(state.list, tries.failed, missed),
@@ -105403,20 +105418,21 @@ index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e7
 +
 +  const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
 +    dispatch({ type: 'answer', id: ask.id, label });
-+    const landed = tries.attempt(ask.id, what, async () => reached(ask.id, await send()));
-+    answers.current.set(ask.id, { send, landed });
-+    void landed.then((ok) => {
-+      if (!ok) dispatch({ type: 'failed', id: ask.id });
++    inTurn(ask.id, async (latest) => {
++      if (await tries.attempt(ask.id, what, async () => reached(ask.id, await send())))
++        out.current.set(ask.id, send);
++      else if (latest()) dispatch({ type: 'failed', id: ask.id });
 +    });
 +  };
 +  const undo = (id: AskId) => {
 +    const label = state.answered[id];
 +    if (!label) return;
 +    dispatch({ type: 'undo', id });
-+    void answers.current.get(id)?.landed.then(async (landed) => {
-+      if (!landed) return;
-+      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) reached(id);
-+      else dispatch({ type: 'answer', id, label });
++    reached(id);
++    inTurn(id, async (latest) => {
++      if (!out.current.has(id)) return;
++      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) out.current.delete(id);
++      else if (latest()) dispatch({ type: 'answer', id, label });
 +    });
 +  };
 +  return {
@@ -105432,11 +105448,12 @@ index 0000000000000000000000000000000000000000..3c7092c42a05a8fa416dea58616796e7
 +    // What went out stands, so sending it again only reaches the places it missed, and it stays
 +    // folded whether or not they answer this time.
 +    again: (ask: Ask) => {
-+      const last = answers.current.get(ask.id);
-+      if (last)
-+        void tries.attempt(ask.id, 'Not sent again', async () =>
-+          reached(ask.id, await last.send()),
-+        );
++      const send = out.current.get(ask.id);
++      if (!send) return;
++      reached(ask.id);
++      inTurn(ask.id, () =>
++        tries.attempt(ask.id, 'Not sent again', async () => reached(ask.id, await send())),
++      );
 +    },
 +    undo,
 +    act: (id: string) => tries.attempt(id, 'Not sent', () => hex.asks.act(id)),
@@ -105829,10 +105846,10 @@ index 0000000000000000000000000000000000000000..01114d83e68fdd0b1367b97c21182a03
 +}
 diff --git a/src/hooks/use-draft.ts b/src/hooks/use-draft.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..6664e881ceb428e23f21af57aead9d54161b546c
+index 0000000000000000000000000000000000000000..0e31bfa1234d41e3fe31bc0f325b38780d4b66b6
 --- /dev/null
 +++ b/src/hooks/use-draft.ts
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,27 @@
 +import { useState } from 'react';
 +import { Settings } from 'react-native';
 +
@@ -105849,6 +105866,11 @@ index 0000000000000000000000000000000000000000..6664e881ceb428e23f21af57aead9d54
 +export function keepDraft(where: string, text: string) {
 +  const { [where]: _, ...rest } = saved();
 +  Settings.set({ [KEY]: text.trim() ? { ...rest, [where]: text } : rest });
++}
++
++// Once what you typed has gone, its draft goes too, unless you've typed more since.
++export function sentDraft(where: string, text: string) {
++  if (saved()[where]?.trim() === text.trim()) keepDraft(where, '');
 +}
 +
 +export function useDraft(where: string) {
@@ -106604,10 +106626,10 @@ index bb3a17e3dc12851778dd2b2998412a63be471f94..00000000000000000000000000000000
 -});
 diff --git a/src/live/asks.ts b/src/live/asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0211fc7ecb0f5615c3a41a04e959567052da7eb3
+index 0000000000000000000000000000000000000000..e3f5a587f8a6d14eca94a7b62088067110af2b4e
 --- /dev/null
 +++ b/src/live/asks.ts
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,209 @@
 +import * as z from 'zod/mini';
 +
 +import { CallId, timeOfDay } from './calls';
@@ -106729,15 +106751,16 @@ index 0000000000000000000000000000000000000000..0211fc7ecb0f5615c3a41a04e9595670
 +};
 +
 +// What's yours as this phone shows it: hex's list, with each ask answered here held in its place,
-+// folded to what you said, until the sheet closes, so Undo stays in reach. An undone ask (null)
-+// stays put until hex lists it as open again.
++// folded to what you said, until the sheet closes, so Undo stays in reach. Closing keeps the ones
++// it's told to, like an answer still missing a place. An undone ask (null) stays put until hex
++// lists it as open again.
 +export type Yours = { list?: AskList; answered: Record<string, string | null> };
 +export type YoursAction =
 +  | { type: 'list'; list: AskList }
 +  | { type: 'answer'; id: string; label: string }
 +  | { type: 'undo'; id: string }
 +  | { type: 'failed'; id: string }
-+  | { type: 'close' };
++  | { type: 'close'; keep?: string[] };
 +
 +export function yours(state: Yours, action: YoursAction): Yours {
 +  const { list, answered } = state;
@@ -106756,11 +106779,16 @@ index 0000000000000000000000000000000000000000..0211fc7ecb0f5615c3a41a04e9595670
 +      return { list, answered: { ...answered, [action.id]: null } };
 +    case 'failed':
 +      return { list, answered: without(answered, [action.id]) };
-+    case 'close':
++    case 'close': {
++      const kept = new Set(action.keep?.filter((id) => answered[id]));
 +      return {
-+        list: list && { ...list, asks: list.asks.filter((ask) => !answered[ask.id]) },
-+        answered: {},
++        list: list && {
++          ...list,
++          asks: list.asks.filter((ask) => !answered[ask.id] || kept.has(ask.id)),
++        },
++        answered: Object.fromEntries(Object.entries(answered).filter(([id]) => kept.has(id))),
 +      };
++    }
 +  }
 +}
 +
@@ -107306,10 +107334,10 @@ index 0000000000000000000000000000000000000000..3be79e23a02aa6a82ef1e728529abe1a
 +};
 diff --git a/src/live/inbox.ts b/src/live/inbox.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..9b05470e2e11ee5f684329ef00e20b16a08b076f
+index 0000000000000000000000000000000000000000..5ff0762f29f60dc5e89363956c19a2f4302d24ec
 --- /dev/null
 +++ b/src/live/inbox.ts
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,329 @@
 +import {
 +  unreached,
 +  type Ask,
@@ -107624,13 +107652,16 @@ index 0000000000000000000000000000000000000000..9b05470e2e11ee5f684329ef00e20b16
 +  return undefined;
 +}
 +
-+// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, named
-+// by the apps the ask was asked in, only when it cleared some, and the places it couldn't reach.
++// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, only
++// when it cleared some, and the places it couldn't reach. hex counts them without saying which, so
++// they're named by the apps the ask was asked in only when it reached them all.
 +export function reachedBy(ask: Ask, sent: Sent | undefined) {
 +  if (!sent) return '';
-+  const apps = [...new Set(ask.places.map((place) => placeOf(place.app)))]
-+    .filter((place) => place === 'telegram' || place === 'discord')
-+    .map((place) => PLACES[place]);
++  const apps = sent.missed
++    ? []
++    : [...new Set(ask.places.map((place) => placeOf(place.app)))]
++        .filter((place) => place === 'telegram' || place === 'discord')
++        .map((place) => PLACES[place]);
 +  const cleared = sent.settled
 +    ? ` and cleared its ${apps.length ? `${apps.join(' and ')} ` : ''}buttons`
 +    : '';
@@ -113007,10 +113038,10 @@ index e517c4697a24271f6c4111862388ef344f1fb72d..00000000000000000000000000000000
 -});
 diff --git a/tests/asks.test.ts b/tests/asks.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..d33e4627806233f13d5c3225c2a897d91c15a8e3
+index 0000000000000000000000000000000000000000..e8deb1e9207f4a9c50fc62cfa9a97baa019b4a7d
 --- /dev/null
 +++ b/tests/asks.test.ts
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,196 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -113193,6 +113224,19 @@ index 0000000000000000000000000000000000000000..d33e4627806233f13d5c3225c2a897d9
 +  );
 +  assert.equal(unreached(1), 'One place was out of reach and still asks it');
 +  assert.equal(unreached(2), '2 places were out of reach and still ask it');
++});
++
++test('an answer still missing a place stays folded through the sheet closing, and the rest go', () => {
++  let state = yours({ answered: {} }, { type: 'list', list: list('a', 'b', 'c') });
++  state = yours(state, { type: 'answer', id: 'a', label: 'Yes' });
++  state = yours(state, { type: 'answer', id: 'b', label: 'Not needed' });
++  state = yours(state, { type: 'close', keep: ['a', 'c'] });
++  assert.deepEqual(ids(state), ['a', 'c']);
++  assert.deepEqual(state.answered, { a: 'Yes' });
++  assert.deepEqual(
++    openAsks(state).map((one) => one.id),
++    ['c'],
++  );
 +});
 diff --git a/tests/call.test.ts b/tests/call.test.ts
 new file mode 100644
@@ -115697,7 +115741,7 @@ index 9dd18c87f9f6b1803889689f7450ea51ef06bf17..00000000000000000000000000000000
 -});
 diff --git a/tests/inbox.test.ts b/tests/inbox.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..f8b206d38e6baa3a69ecd30aa1b88b288c543bdb
+index 0000000000000000000000000000000000000000..07ef9a77770d3234edc2147952a919b00ee1b314
 --- /dev/null
 +++ b/tests/inbox.test.ts
 @@ -0,0 +1,513 @@
@@ -116194,7 +116238,7 @@ index 0000000000000000000000000000000000000000..f8b206d38e6baa3a69ecd30aa1b88b28
 +  assert.equal(topicIn(entry.task.id), undefined);
 +});
 +
-+test('an answer says it cleared buttons only when hex says it settled some, and what it missed', () => {
++test('an answer says it cleared buttons only when hex says it settled some, names where only when it missed none, and says what it missed', () => {
 +  const asked = ask('a', 'pick', {
 +    places: [
 +      { app: 'telegram', place: 'General', link: 'https://t.me/c/1/2' },
@@ -116207,7 +116251,7 @@ index 0000000000000000000000000000000000000000..f8b206d38e6baa3a69ecd30aa1b88b28
 +  assert.equal(reachedBy(asked, { ...sent, settled: 1 }), ' and cleared its Telegram buttons');
 +  assert.equal(
 +    reachedBy(asked, { ...sent, settled: 1, missed: 1 }),
-+    ' and cleared its Telegram buttons. One place was out of reach and still asks it',
++    ' and cleared its buttons. One place was out of reach and still asks it',
 +  );
 +  assert.equal(
 +    reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
