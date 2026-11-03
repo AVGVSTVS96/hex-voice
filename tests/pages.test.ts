@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import {
   START,
-  leaves,
+  backLeavesTasks,
   levelsOf,
   move,
   shapeOf,
@@ -16,25 +16,28 @@ import {
 } from '../src/components/tasks/pages';
 import { screenLayout, type Page } from '../src/screens/layout';
 
-const LEVELS: Level[] = ['list', 'task', 'thread', 'trace', 'check'];
+const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
 
 const openUpright = screenLayout(
   { width: 951, height: 669 },
   { top: 0, right: 84, bottom: 21, left: 0 },
   { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
 ).duo!.tasks;
-const openOnSide = screenLayout(
+const openOnSideDuo = screenLayout(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
   { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
-).duo!.tasks;
+).duo!;
+const openOnSide = openOnSideDuo.tasks;
 const folded = screenLayout(
   { width: 466, height: 678 },
   { top: 0, right: 84, bottom: 34, left: 0 },
   { regular: false, bar: 'right' },
 ).duo!.tasks;
 
-const roomOf = (page: Page, inset = { left: 0, right: 0 }): Room => ({
+type PagedRoom = Extract<Room, { paged: true }>;
+
+const roomOf = (page: Page, inset = { left: 0, right: 0 }): PagedRoom => ({
   width: page.area.width,
   height: page.area.height,
   fold: page.fold,
@@ -43,25 +46,18 @@ const roomOf = (page: Page, inset = { left: 0, right: 0 }): Room => ({
   inset,
   paged: true,
 });
-const sheet: Room = {
-  width: 440,
-  height: 0,
-  top: 0,
-  foot: 34,
-  inset: { left: 0, right: 0 },
-  paged: false,
-};
+const sheet: Room = { width: 440, foot: 34, paged: false };
 
 const go = (...moves: Move[]) => moves.reduce(move, START);
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
-  const shape = shapeOf(room.width, room.fold);
+  const shape = shapeOf(room.width, room.paged ? room.fold : undefined);
   return { levels: levelsOf(stack, shape), shape, closes };
 };
-const onScreen = (stack: Stack, room: Room) => {
+const onScreen = (stack: Stack, room: PagedRoom) => {
   const pages = pagesOf(stack, room);
   return LEVELS.filter((level) => spotOf(level, pages, room).shown);
 };
-const box = (level: Level, stack: Stack, room: Room) => {
+const box = (level: Level, stack: Stack, room: PagedRoom) => {
   const spot = spotOf(level, pagesOf(stack, room), room);
   const { width, height } = spot.frame ?? { width: room.width, height: room.height };
   return { x: spot.offset.x, y: spot.offset.y, width, height };
@@ -71,9 +67,9 @@ const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
 
 const stacks: [string, Stack][] = [
   ['the list', go()],
-  ['a topic', go({ to: 'task', id: 'a' })],
-  ['a thread', go({ to: 'task', id: 'a' }, { to: 'thread' })],
-  ['its steps', go({ to: 'task', id: 'a' }, { to: 'thread' }, { to: 'trace', id: 'a' })],
+  ['a topic', go({ to: 'topic', id: 'a' })],
+  ['a thread', go({ to: 'topic', id: 'a' }, { to: 'thread' })],
+  ['its steps', go({ to: 'topic', id: 'a' }, { to: 'thread' }, { to: 'steps', id: 'a' })],
   ['the last check', go({ to: 'check' })],
 ];
 
@@ -86,45 +82,47 @@ test('the Duo pages split at its fold, folded it shows one at a time', () => {
 
 test('open, the Duo shows the deepest two levels, each step down sliding both along', () => {
   const room = roomOf(openUpright);
-  assert.deepEqual(onScreen(go(), room), ['list', 'task']);
-  assert.deepEqual(onScreen(go({ to: 'task', id: 'a' }), room), ['list', 'task']);
-  assert.deepEqual(onScreen(stacks[2]![1], room), ['task', 'thread']);
-  assert.deepEqual(onScreen(stacks[3]![1], room), ['thread', 'trace']);
+  assert.deepEqual(onScreen(go(), room), ['list', 'topic']);
+  assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['list', 'topic']);
+  assert.deepEqual(onScreen(stacks[2]![1], room), ['topic', 'thread']);
+  assert.deepEqual(onScreen(stacks[3]![1], room), ['thread', 'steps']);
 });
 
-test('back goes a level up, and from the list leaves for the call', () => {
+test('back goes a level up, and from the list backLeavesTasks for the call', () => {
   const cases: [Shape, Stack, Level[] | 'call'][] = [
     ['one', go(), 'call'],
-    ['one', go({ to: 'task', id: 'a' }), ['list']],
-    ['one', go({ to: 'task', id: 'a' }, { to: 'thread' }), ['list', 'task']],
+    ['one', go({ to: 'topic', id: 'a' }), ['list']],
+    ['one', go({ to: 'topic', id: 'a' }, { to: 'thread' }), ['list', 'topic']],
     ['one', go({ to: 'check' }), ['list']],
     ['fold', go(), 'call'],
-    ['fold', go({ to: 'task', id: 'a' }), 'call'],
+    ['fold', go({ to: 'topic', id: 'a' }), 'call'],
     ['fold', go({ to: 'check' }), 'call'],
-    ['fold', go({ to: 'task', id: 'a' }, { to: 'thread' }), ['list', 'task']],
-    ['fold', stacks[3]![1], ['list', 'task', 'thread']],
-    ['columns', go({ to: 'task', id: 'a' }), 'call'],
-    ['columns', go({ to: 'check' }), ['list', 'task']],
+    ['fold', go({ to: 'topic', id: 'a' }, { to: 'thread' }), ['list', 'topic']],
+    ['fold', stacks[3]![1], ['list', 'topic', 'thread']],
+    ['columns', go({ to: 'topic', id: 'a' }), 'call'],
+    ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
   for (const [shape, stack, after] of cases) {
-    const result = leaves(stack, shape) ? 'call' : levelsOf(move(stack, { to: 'back' }), shape);
+    const result = backLeavesTasks(stack, shape)
+      ? 'call'
+      : levelsOf(move(stack, { to: 'back' }), shape);
     assert.deepEqual(result, after, `${shape} from ${levelsOf(stack, shape).join(' > ')}`);
   }
 });
 
 test('Tasks opened on a topic goes back to the list before the call', () => {
   const stack = go({ to: 'start', at: { task: 'a' } });
-  assert.deepEqual(levelsOf(stack, 'one'), ['list', 'task']);
-  assert.equal(leaves(stack, 'one'), false);
-  assert.equal(leaves(move(stack, { to: 'back' }), 'one'), true);
+  assert.deepEqual(levelsOf(stack, 'one'), ['list', 'topic']);
+  assert.equal(backLeavesTasks(stack, 'one'), false);
+  assert.equal(backLeavesTasks(move(stack, { to: 'back' }), 'one'), true);
 });
 
 test('the leading page has Back named for where it goes, the list’s for the call', () => {
   const room = roomOf(openUpright);
   const backOf = (level: Level, stack: Stack) => spotOf(level, pagesOf(stack, room), room).back;
   assert.equal(backOf('list', go()), 'call');
-  assert.equal(backOf('task', go()), undefined);
-  assert.equal(backOf('task', stacks[2]![1]), 'list');
+  assert.equal(backOf('topic', go()), undefined);
+  assert.equal(backOf('topic', stacks[2]![1]), 'list');
   assert.equal(backOf('thread', stacks[2]![1]), undefined);
   const one = roomOf(folded);
   assert.equal(spotOf('list', pagesOf(go(), one), one).back, 'call');
@@ -195,7 +193,7 @@ test('content keeps its inset from the screen edges and none at the hinge', () =
   const room = roomOf(openUpright, inset);
   const pages = pagesOf(go(), room);
   const list = spotOf('list', pages, room);
-  const task = spotOf('task', pages, room);
+  const task = spotOf('topic', pages, room);
   assert.deepEqual([list.pad.leading, list.pad.trailing], [12, 0]);
   assert.deepEqual([task.pad.leading, task.pad.trailing], [0, 30]);
   assert.equal(list.width, openUpright.fold!.at - 12);
@@ -221,15 +219,15 @@ test('beside the transcript, Tasks lays out one page wide with the list’s Back
   assert.equal(pages.shape, 'one');
   const list = spotOf('list', pages, room);
   assert.deepEqual([list.shown, list.back, list.width, list.bar], [true, 'call', 423, 'large']);
-  const deeper = pagesOf(go({ to: 'task', id: 'a' }), room);
+  const deeper = pagesOf(go({ to: 'topic', id: 'a' }), room);
   assert.equal(spotOf('list', deeper, room).offset.x, -455);
-  assert.equal(spotOf('task', deeper, room).back, 'list');
+  assert.equal(spotOf('topic', deeper, room).back, 'list');
 });
 
 test('the phone’s sheet keeps its look: a page waits a third behind, Back unnamed in a center bar', () => {
-  const pages = pagesOf(go({ to: 'task', id: 'a' }), sheet, false);
+  const pages = pagesOf(go({ to: 'topic', id: 'a' }), sheet, false);
   const list = spotOf('list', pages, sheet);
-  const task = spotOf('task', pages, sheet);
+  const task = spotOf('topic', pages, sheet);
   assert.equal(list.offset.x, -440 / 3);
   assert.equal(list.back, undefined);
   assert.deepEqual([task.offset.x, task.bar, task.back], [0, 'center', 'list']);
@@ -238,9 +236,35 @@ test('the phone’s sheet keeps its look: a page waits a third behind, Back unna
 
 test('a thread you write to on pages one over the other takes both', () => {
   const room = roomOf(openOnSide);
-  const pages = pagesOf(go({ to: 'task', id: 'a' }, { to: 'thread', write: true }), room);
+  const pages = pagesOf(go({ to: 'topic', id: 'a' }, { to: 'thread', write: true }), room);
   const thread = spotOf('thread', pages, room, true);
   assert.deepEqual([thread.offset.y, thread.frame?.height], [0, room.height]);
-  assert.equal(spotOf('task', pages, room, true).shown, false);
-  assert.equal(go({ to: 'thread', write: true }).writes, 1);
+  assert.equal(spotOf('topic', pages, room, true).shown, false);
+  const writing = go({ to: 'thread', write: true });
+  assert.equal(writing.focusComposer, true);
+  assert.equal(move(writing, { to: 'composerFocused' }).focusComposer, false);
+  assert.equal(move(writing, { to: 'back' }).focusComposer, false);
+});
+
+test('a page wider than it is tall draws its bar on one line, and one ending at the fold says so', () => {
+  const side = roomOf(openOnSide);
+  const top = spotOf('list', pagesOf(go(), side), side);
+  const bottom = spotOf('topic', pagesOf(go(), side), side);
+  assert.deepEqual([top.bar, top.endsAtFold, top.foot], ['inline', true, 0]);
+  assert.deepEqual([bottom.bar, bottom.endsAtFold, bottom.foot], ['inline', false, 34]);
+  const beside = roomOf(openOnSideDuo.beside!.tasks);
+  const alone = spotOf('list', pagesOf(go(), beside), beside);
+  assert.deepEqual([alone.bar, alone.endsAtFold, alone.back], ['inline', true, 'call']);
+  const lying = screenLayout(
+    { width: 678, height: 466 },
+    { top: 0, right: 84, bottom: 34, left: 0 },
+    { regular: false, bar: 'right' },
+  ).duo!.tasks;
+  const lyingRoom = roomOf(lying);
+  assert.equal(spotOf('list', pagesOf(go(), lyingRoom), lyingRoom).bar, 'inline');
+  for (const page of [openUpright, folded]) {
+    const room = roomOf(page);
+    const list = spotOf('list', pagesOf(go(), room), room);
+    assert.deepEqual([list.bar, list.endsAtFold], ['large', false]);
+  }
 });

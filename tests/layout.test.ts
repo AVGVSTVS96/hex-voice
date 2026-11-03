@@ -368,7 +368,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
   assert.deepEqual(tasks.fold, { axis: 'column', at: 455.5 - 82, band: 40 });
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 82, width: 669, height: 455.5 - 82 });
-  assert.equal(beside!.tasks.foot, 0, 'the top page stops at the fold');
+  assert.equal(beside!.tasks.foot, 'fold', 'the top page stops at the fold');
   assert.deepEqual(call.controls, { right: 669 - 523, top: toolbar.y });
 });
 

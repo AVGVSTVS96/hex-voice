@@ -9,15 +9,13 @@ import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view
 import type { Page } from '@/screens/layout';
 import { theme } from '@/theme';
 
-// How far in from Tasks' leading edge a swipe goes back, and how far or fast it has to travel.
-const EDGE = 16;
-const SWIPE = 48;
-const FLICK = 400;
+// Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
+const BACK_EDGE_WIDTH = 16;
+const BACK_SWIPE_DISTANCE = 48;
+const BACK_FLICK_SPEED = 400;
 
-// Tasks on iPad: a pane down the trailing edge that stays open beside the call, the way Calls
-// stays open down the leading one. Its title sits on the toolbar's line (`toolbar` is that line's
-// height), and its list runs to the screen's foot, under the buttons that float clear of the
-// home indicator (`foot`).
+// Tasks on iPad: a pane down the trailing edge that stays open beside the call. `toolbar` is the
+// height of the toolbar's line its title sits on.
 export function TasksPane({
   top,
   toolbar,
@@ -40,16 +38,13 @@ export function TasksPane({
       style={[styles.pane, { width, paddingTop: top }, style]}
     >
       <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
-        <TasksView {...view} width={width} line={toolbar - top} foot={foot} />
+        <TasksView {...view} width={width} toolbarLine={toolbar - top} foot={foot} />
       </Host>
     </Animated.View>
   );
 }
 
-// Tasks on iPhone Duo: a place of its own beside the call's column, split into pages at the fold
-// while the Duo is open (`page`), drawn clear over the screen's backdrop. Back on its list, or a
-// swipe in from its leading edge on any page, goes back a level, and from the list to the call
-// (`onClose`). It takes no touches while it's closed, since it sits over the call.
+// Tasks on iPhone Duo. It sits over the call, so it takes no touches while it's closed.
 export function TasksPage({
   page,
   onClose,
@@ -72,7 +67,7 @@ export function TasksPage({
     .activeOffsetX(12)
     .failOffsetY([-14, 14])
     .onEnd(({ translationX, velocityX }) => {
-      if (translationX > SWIPE || velocityX > FLICK) scheduleOnRN(back);
+      if (translationX > BACK_SWIPE_DISTANCE || velocityX > BACK_FLICK_SPEED) scheduleOnRN(back);
     });
   return (
     <Animated.View
@@ -112,5 +107,5 @@ const styles = StyleSheet.create({
   pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },
   page: { position: 'absolute' },
   fill: { flex: 1 },
-  edge: { position: 'absolute', top: 0, bottom: 0, left: 0, width: EDGE },
+  edge: { position: 'absolute', top: 0, bottom: 0, left: 0, width: BACK_EDGE_WIDTH },
 });

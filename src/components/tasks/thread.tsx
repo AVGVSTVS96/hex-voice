@@ -118,7 +118,7 @@ export function ThreadPage({
   thread: TaskRow | Task;
   chat: Chat | undefined;
   pending: Sending[];
-  focus: number;
+  focus: boolean;
   foot?: number;
   onTyping?: (typing: boolean) => void;
   onOpen: (thread: TaskRow) => void;
@@ -235,8 +235,7 @@ export function ThreadPage({
 
 // Where you write to the thread, as tall as the pills it takes the place of. Send turns into Stop
 // while the thread works and you've nothing typed, though not before what you just sent reaches
-// it, so a second tap on Send can't stop the turn you steered. `focus` counts the times you asked
-// to write, so each one brings the keyboard up.
+// it, so a second tap on Send can't stop the turn you steered.
 function Composer({
   title,
   working,
@@ -248,7 +247,7 @@ function Composer({
 }: {
   title: string;
   working: boolean;
-  focus: number;
+  focus: boolean;
   foot: number;
   onSend: (text: string) => void;
   onStop: () => void;

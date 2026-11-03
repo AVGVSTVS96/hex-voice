@@ -44,7 +44,7 @@ export function Detail({
   threads,
   missing,
   width,
-  onTrace,
+  onSteps,
   onAnswer,
   onUndo,
   onTalk,
@@ -59,7 +59,7 @@ export function Detail({
   threads: TaskRow[];
   missing: Set<Place>;
   width: number;
-  onTrace: (id: string) => void;
+  onSteps: (id: string) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
   onTalk: () => void;
@@ -128,7 +128,7 @@ export function Detail({
                 <Run
                   key={thread.id}
                   thread={thread.id === task.id && full ? full : thread}
-                  onPress={() => onTrace(thread.id)}
+                  onPress={() => onSteps(thread.id)}
                 />
               ))}
             </Column>
@@ -136,7 +136,7 @@ export function Detail({
           {full && lastRun(full) ? (
             <Column alignment="start" spacing={0}>
               <SectionHead title="Last run" />
-              <Run thread={full} onPress={() => onTrace(full.id)} />
+              <Run thread={full} onPress={() => onSteps(full.id)} />
             </Column>
           ) : null}
           {full?.pin ? <Pinned text={full.pin} /> : null}

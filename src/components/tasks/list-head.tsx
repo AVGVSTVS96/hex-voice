@@ -18,14 +18,18 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 
-import { BackButton, type Back } from '@/components/tasks/bar';
+import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 import { INSET, ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
 
-// The list's head in a sheet or iPad's pane: its title and search. The title sits on the toolbar's
-// line where there is one beside it (`line`), and under the grabber in a sheet.
-export function ListHead({ line, onSearch }: { line?: number; onSearch: () => void }) {
+export function ListHead({
+  toolbarLine,
+  onSearch,
+}: {
+  toolbarLine?: number;
+  onSearch: () => void;
+}) {
   return (
     <Row
       alignment="center"
@@ -34,7 +38,7 @@ export function ListHead({ line, onSearch }: { line?: number; onSearch: () => vo
         padding({
           leading: INSET,
           trailing: INSET - 4,
-          top: line === undefined ? 22 : Math.max(8, line - 20),
+          top: toolbarLine === undefined ? 22 : Math.max(8, toolbarLine - 20),
           bottom: 12,
         }),
         frame({ maxWidth: Infinity }),
@@ -50,31 +54,31 @@ export function ListHead({ line, onSearch }: { line?: number; onSearch: () => vo
       >
         Tasks
       </Text>
-      <SearchButton onPress={onSearch} />
+      <Button
+        label="Search"
+        systemImage="magnifyingglass"
+        onPress={onSearch}
+        testID="tasks-search"
+        modifiers={[
+          labelStyle('iconOnly'),
+          buttonStyle('glass'),
+          buttonBorderShape('circle'),
+          controlSize('regular'),
+        ]}
+      />
     </Row>
   );
 }
 
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
-    <Button
-      label="Search"
-      systemImage="magnifyingglass"
-      onPress={onPress}
-      testID="tasks-search"
-      modifiers={[
-        labelStyle('iconOnly'),
-        buttonStyle('glass'),
-        buttonBorderShape('circle'),
-        controlSize('regular'),
-      ]}
-    />
+    <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
+      <Icon name="magnifyingglass" size={17} color={theme.text} />
+    </BarButton>
   );
 }
 
-// The stages as tabs, each with its count: words, the chosen one in text with a mint rule under it
-// that sits on the line across the list. What needs you counts in mint whichever tab is open.
-// Where the list has no room for its title, its Back leads the tabs and search sits at their end.
+// Where the list draws its bar inline, Back leads the tabs and search ends them instead.
 export function Tabs({
   counts,
   stage,
@@ -185,8 +189,6 @@ export function Tabs({
   );
 }
 
-// Search: on iPhone Duo's pages as iOS 26 draws it, the field on Liquid Glass and a glass button
-// that puts it away; in a sheet or iPad's pane, a filled field and Cancel.
 export function Search({
   query,
   glass,
@@ -212,7 +214,7 @@ export function Search({
         spacing={8}
         modifiers={[
           padding({ leading: glass ? 14 : 12, trailing: glass ? 14 : 12 }),
-          frame({ height: glass ? 44 : 40 }),
+          frame({ height: glass ? BAR : 40 }),
           frame({ maxWidth: Infinity }),
           ...(glass
             ? [glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' })]
@@ -235,18 +237,9 @@ export function Search({
         />
       </Row>
       {glass ? (
-        <Button
-          label="Cancel"
-          systemImage="xmark"
-          onPress={onCancel}
-          testID="tasks-search-cancel"
-          modifiers={[
-            labelStyle('iconOnly'),
-            buttonStyle('glass'),
-            buttonBorderShape('circle'),
-            controlSize('large'),
-          ]}
-        />
+        <BarButton shape="circle" label="Cancel" testID="tasks-search-cancel" onPress={onCancel}>
+          <Icon name="xmark" size={17} color={theme.text} />
+        </BarButton>
       ) : (
         <Text
           onPress={onCancel}
