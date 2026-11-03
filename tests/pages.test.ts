@@ -73,9 +73,9 @@ const stacks: [string, Stack][] = [
   ['the last check', go({ to: 'check' })],
 ];
 
-test('the Duo pages split at its fold, folded it shows one at a time', () => {
+test('the Duo pages split at its fold held wide, on its side and folded it shows one at a time', () => {
   assert.equal(shapeOf(openUpright.area.width, openUpright.fold), 'fold');
-  assert.equal(shapeOf(openOnSide.area.width, openOnSide.fold), 'fold');
+  assert.equal(shapeOf(openOnSide.area.width, openOnSide.fold), 'one');
   assert.equal(shapeOf(folded.area.width, folded.fold), 'one');
   assert.equal(shapeOf(1000, undefined), 'columns');
 });
@@ -175,10 +175,7 @@ test('on the Duo pages cross only while one fades, and never sit on the hinge, s
           }
     const fold = room.fold;
     if (!fold) continue;
-    const hinge =
-      fold.axis === 'row'
-        ? { x: fold.at, y: 0, width: fold.band, height: room.height }
-        : { x: 0, y: fold.at, width: room.width, height: fold.band };
+    const hinge = { x: fold.at, y: 0, width: fold.band, height: room.height };
     for (const [at, stack] of stacks)
       for (const level of LEVELS)
         assert.ok(
@@ -234,44 +231,32 @@ test('the phone’s sheet: a page waits a third behind, and Back goes a level up
   assert.equal(spotOf('thread', pages, sheet).offset.x, 440);
 });
 
-test('on pages one over the other, the lower page you type in takes both, the upper one stays', () => {
-  const room = roomOf(openOnSide);
+test('writing focuses the composer once, and going back lets it go', () => {
   const writing = go({ to: 'topic', id: 'a' }, { to: 'thread', write: true });
-  const thread = spotOf('thread', pagesOf(writing, room), room, 'thread');
-  assert.deepEqual([thread.offset.y, thread.frame?.maxHeight], [0, room.height]);
-  assert.equal(spotOf('topic', pagesOf(writing, room), room, 'thread').shown, false);
-  const topic = go({ to: 'topic', id: 'a' });
-  const answering = spotOf('topic', pagesOf(topic, room), room, 'topic');
-  assert.deepEqual([answering.offset.y, answering.frame?.maxHeight], [0, room.height]);
-  const searching = (level: Level) => spotOf(level, pagesOf(topic, room), room, 'list');
-  assert.deepEqual([searching('list').offset.y, searching('list').shown], [0, true]);
-  assert.deepEqual(
-    [searching('topic').offset.y, searching('topic').shown],
-    [spotOf('topic', pagesOf(topic, room), room).offset.y, true],
-  );
   assert.equal(writing.focusComposer, true);
   assert.equal(move(writing, { to: 'composerFocused' }).focusComposer, false);
   assert.equal(move(writing, { to: 'back' }).focusComposer, false);
 });
 
 test('a page ending at the fold keeps nothing clear below it, and Back always says where it goes', () => {
-  const side = roomOf(openOnSide);
-  assert.equal(spotOf('list', pagesOf(go(), side), side).foot, 0);
-  assert.equal(spotOf('topic', pagesOf(go(), side), side).foot, 34);
+  const typing = roomOf(openOnSideDuo.beside!.typing!);
+  assert.equal(spotOf('list', pagesOf(go(), typing), typing).foot, 0);
   const beside = roomOf(openOnSideDuo.beside!.tasks);
   assert.equal(spotOf('list', pagesOf(go(), beside), beside).back, 'call');
 });
 
-test('open flat on its side, Tasks is one page: the list fills it and a topic pushes over it', () => {
-  const flat = screenLayout(
-    { width: 669, height: 951 },
-    { top: 82, right: 0, bottom: 34, left: 0 },
-    { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active: false } },
-  ).duo!.tasks;
-  const room = roomOf(flat);
-  assert.equal(room.fold, undefined);
-  assert.deepEqual(onScreen(go(), room), ['list']);
-  assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['topic']);
-  const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: 'a' }), room), room);
-  assert.deepEqual([topic.back, topic.width], ['list', 669]);
+test('on its side, flat or partly open, Tasks is one page: the list fills it and a topic pushes over it', () => {
+  for (const active of [false, true]) {
+    const page = screenLayout(
+      { width: 669, height: 951 },
+      { top: 82, right: 0, bottom: 34, left: 0 },
+      { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
+    ).duo!.tasks;
+    const room = roomOf(page);
+    assert.equal(room.fold, undefined);
+    assert.deepEqual(onScreen(go(), room), ['list']);
+    assert.deepEqual(onScreen(go({ to: 'topic', id: 'a' }), room), ['topic']);
+    const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: 'a' }), room), room);
+    assert.deepEqual([topic.back, topic.width], ['list', 669]);
+  }
 });

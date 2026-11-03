@@ -95,8 +95,8 @@ export type Duo = {
 
 // Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 // buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
-// clear of the home indicator, or ends at the fold. Open, the fold cuts it into two pages (`fold`,
-// within `area`).
+// clear of the home indicator, or ends at the fold. Held wide, the fold cuts it into two pages side
+// by side (`fold`, within `area`).
 export type Page = {
   area: Rect;
   fold?: Fold;
@@ -105,9 +105,9 @@ export type Page = {
   foot: number | 'fold';
 };
 
-// The fold within Tasks: the pages sit side by side (`row`) or one over the other (`column`), the
-// first `at` long, then the fold's band: none open flat, the fold's whole frame partly folded.
-export type Fold = { axis: 'row' | 'column'; at: number; band: number };
+// The fold within Tasks: the first page `at` wide, then the fold's band: none open flat, the fold's
+// whole frame partly folded.
+export type Fold = { at: number; band: number };
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
 export type Beside<T> = { open: T; calls: T; tasks: T };
@@ -637,26 +637,27 @@ function belowBand(frame: Frame, before?: Before): Duo {
   };
 }
 
-// Tasks over a page's area, and the page after the fold, the one it keeps when the call takes the
-// one before it. Open upright the fold cuts Tasks into two pages side by side, a list beside its
-// topic, as a split view does on a wide screen; partly open it cuts it on its side too, along the
-// hinge, and also gives the page before the fold, where it types. Open flat on its side there's
-// nothing to cut along: the screen is one tall page, and Tasks takes it whole.
+// Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
+// take the one before it. Held wide the fold cuts Tasks into two pages side by side, a list beside
+// its topic, as a split view does on a wide screen, and folding only parts them. On its side the
+// screen is one tall page at every angle, and Tasks takes it whole: a fold there never splits it
+// into other pages. The page before the fold is where it types beside the call's words.
 function paged(
   page: Omit<Page, 'fold'>,
   fold?: Rect,
 ): { tasks: Page; after?: Page; before?: Page } {
   if (!fold) return { tasks: page };
   const { area } = page;
-  const row = fold.height > fold.width;
   const end = { x: fold.x + fold.width, y: fold.y + fold.height };
+  if (fold.height > fold.width)
+    return {
+      tasks: { ...page, fold: { at: fold.x - area.x, band: fold.width } },
+      after: { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } },
+    };
   return {
-    tasks:
-      row || fold.height > 0 ? { ...page, fold: cut(row ? 'row' : 'column', fold, area) } : page,
-    after: row
-      ? { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } }
-      : { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
-    before: row ? undefined : { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
+    tasks: page,
+    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
+    before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }
 
@@ -673,10 +674,4 @@ function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before
   }
   const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
   return { fold, words: { ...words, top: frame.top + 12, raise } };
-}
-
-function cut(axis: Fold['axis'], fold: Rect, area: Rect): Fold {
-  return axis === 'row'
-    ? { axis, at: fold.x - area.x, band: fold.width }
-    : { axis, at: fold.y - area.y, band: fold.height };
 }

@@ -140,13 +140,8 @@ function footOf(foot: number | 'fold') {
 // A field on a page says when it's being typed in, so that page can make room above the keyboard.
 export const Typing = createContext<(on: boolean) => void>(() => {});
 
-export function spotOf(
-  level: Level,
-  pages: Placing,
-  room: Room,
-  typing: Level | null = null,
-): Spot {
-  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold, typing);
+export function spotOf(level: Level, pages: Placing, room: Room): Spot {
+  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -189,49 +184,40 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
   };
 }
 
-// On pages stacked one over the other the keyboard covers the lower one, so a page you type in
-// there takes both, and the Host shortens it to end above the keyboard.
+// Held wide, the deepest level takes the page after the fold and the one before it the page
+// before; deeper ones wait off the leading edge, shallower ones off the trailing edge.
 function spotAtFold(
   level: Level,
   { levels, closes }: Placing,
   room: Extract<Room, { paged: true }>,
   fold: Fold,
-  typing: Level | null,
 ): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const row = fold.axis === 'row';
-  const size = row ? room.width : room.height;
-  const second = { at: fold.at + fold.band, length: size - fold.at - fold.band };
-  const alone = !row && typing !== null && typing === levels.at(-1);
-  const { at, length, shown } =
-    alone && front
-      ? { at: 0, length: size, shown: true }
-      : front
-        ? { ...second, shown: true }
-        : i === levels.length - 2 && !alone
-          ? { at: 0, length: fold.at, shown: true }
-          : i >= 0
-            ? { at: -second.at, length: fold.at, shown: false }
-            : { ...second, at: size, shown: false };
-  const leading = shown && at <= 0;
+  const second = { at: fold.at + fold.band, width: room.width - fold.at - fold.band };
+  const { at, width, shown } = front
+    ? { ...second, shown: true }
+    : i === levels.length - 2
+      ? { at: 0, width: fold.at, shown: true }
+      : i >= 0
+        ? { at: -second.at, width: fold.at, shown: false }
+        : { ...second, at: room.width, shown: false };
   const { inset } = room;
-  const pad = !row
-    ? { leading: inset.left, trailing: inset.right }
-    : at <= 0
-      ? { leading: inset.left, trailing: 0 }
-      : { leading: 0, trailing: inset.right };
-  const top = !row && at > 0 ? 0 : room.top;
-  const frame = row
-    ? { width: length, maxHeight: room.height }
-    : { width: room.width, maxHeight: length };
+  const pad =
+    at <= 0 ? { leading: inset.left, trailing: 0 } : { leading: 0, trailing: inset.right };
   return {
-    frame,
-    offset: row ? { x: at, y: 0 } : { x: 0, y: at },
+    frame: { width, maxHeight: room.height },
+    offset: { x: at, y: 0 },
     shown,
-    width: frame.width - pad.leading - pad.trailing,
-    pad: { top, ...pad },
-    ...footOf(!row && at <= 0 && !(alone && front) ? 'fold' : room.foot),
-    back: !leading ? undefined : level === 'list' ? (closes ? 'call' : undefined) : levels[i - 1],
+    width: width - pad.leading - pad.trailing,
+    pad: { top: room.top, ...pad },
+    ...footOf(room.foot),
+    back: !(shown && at <= 0)
+      ? undefined
+      : level === 'list'
+        ? closes
+          ? 'call'
+          : undefined
+        : levels[i - 1],
   };
 }
