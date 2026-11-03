@@ -1,6 +1,7 @@
 import type { CallEnding, CallId } from './calls';
 import type {
   CallAbout,
+  Levels,
   LiveEvent,
   LiveSnapshot,
   LiveTransport,
@@ -13,20 +14,23 @@ const initialSnapshot = (): LiveSnapshot => ({
   status: 'idle',
   error: null,
   muted: false,
-  inputLevel: 0,
-  outputLevel: 0,
   elapsedSeconds: 0,
   transcript: [],
   callId: null,
   ending: null,
   interrupted: false,
 });
+const SILENT: Levels = { input: 0, output: 0 };
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
 
 export class LiveSession {
   private snapshot = initialSnapshot();
   private listeners = new Set<() => void>();
+  // Levels change several times a second, so they have their own listeners and the snapshot
+  // changes only when the call does.
+  private levels = SILENT;
+  private levelListeners = new Set<() => void>();
   private transport: LiveTransport | null = null;
   private sessionId: CallId | null = null;
   private generation = 0;
@@ -59,6 +63,19 @@ export class LiveSession {
   private update(change: Partial<LiveSnapshot>) {
     this.snapshot = { ...this.snapshot, ...change };
     this.listeners.forEach((listener) => listener());
+  }
+  getLevels = () => this.levels;
+  subscribeLevels = (listener: () => void) => {
+    this.levelListeners.add(listener);
+    return () => {
+      this.levelListeners.delete(listener);
+    };
+  };
+  private hear(change: Partial<Levels>) {
+    const levels = { ...this.levels, ...change };
+    if (levels.input === this.levels.input && levels.output === this.levels.output) return;
+    this.levels = levels;
+    this.levelListeners.forEach((listener) => listener());
   }
 
   start = async (voice: LiveVoice = DEFAULT_VOICE, about?: CallAbout) => {
@@ -216,7 +233,7 @@ export class LiveSession {
       this.startStats();
       void this.poll();
     } else {
-      this.update({ inputLevel: 0, outputLevel: 0 });
+      this.hear(SILENT);
     }
   };
 
@@ -243,9 +260,9 @@ export class LiveSession {
     try {
       const stats = await transport.stats();
       if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) return;
-      this.update({
-        inputLevel: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
-        outputLevel: Math.min(1, stats.outputLevel * 5),
+      this.hear({
+        input: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
+        output: Math.min(1, stats.outputLevel * 5),
       });
       if (
         typeof __DEV__ !== 'undefined' &&
@@ -281,7 +298,8 @@ export class LiveSession {
         event_id: `interruption-${++this.nextCommand}`,
       });
     }
-    this.update({ interrupted: began, inputLevel: 0 });
+    this.update({ interrupted: began });
+    this.hear({ input: 0 });
     if (this.sessionId)
       void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
   };
@@ -297,7 +315,8 @@ export class LiveSession {
     clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
     if (muted) this.transport.setMuted(true);
-    this.update({ muted, inputLevel: 0 });
+    this.update({ muted });
+    this.hear({ input: 0 });
     const id = `mute-${++this.nextCommand}`;
     this.muteCommand = { id, muted };
     this.muteTimer = setTimeout(() => {
@@ -333,7 +352,8 @@ export class LiveSession {
     this.statsPending = null;
     const transport = this.transport;
     const id = this.sessionId;
-    this.update({ status: 'disconnecting', inputLevel: 0, outputLevel: 0 });
+    this.update({ status: 'disconnecting' });
+    this.hear(SILENT);
     // Silence capture immediately; session.close preserves final usage events.
     transport?.setMuted(true);
     this.closing = Promise.resolve().then(async () => {

@@ -250,9 +250,38 @@ test('keeps both audio directions active during assistant speech and overlapping
         { role: 'assistant', text: 'Sure, tell me more.' },
       ],
     );
-    assert.ok(snapshot.inputLevel > 0 && snapshot.outputLevel > 0);
+    const levels = h.session.getLevels();
+    assert.ok(levels.input > 0 && levels.output > 0);
     assert.deepEqual(transport.muteChanges, []);
     assert.deepEqual(transport.commands, []);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test('audio levels move without changing the call, so the call screen redraws only for the call', async () => {
+  const h = harness();
+  try {
+    await h.session.start();
+    const call = h.session.getSnapshot();
+    let calls = 0;
+    let levels = 0;
+    const stopCalls = h.session.subscribe(() => calls++);
+    const stopLevels = h.session.subscribeLevels(() => levels++);
+    await h.clock.fire(120);
+    h.transports[0].statsResult = async () => ({
+      inputLevel: 0.02,
+      outputLevel: 0.1,
+      sentPackets: 2,
+      receivedPackets: 2,
+    });
+    await h.clock.fire(120);
+    stopCalls();
+    stopLevels();
+    assert.equal(h.session.getSnapshot(), call);
+    assert.equal(calls, 0);
+    assert.equal(levels, 2);
+    assert.deepEqual(h.session.getLevels(), { input: 0.1, output: 0.5 });
   } finally {
     await h.cleanup();
   }
@@ -554,7 +583,7 @@ test('a muted microphone stays muted when returning from the background', async 
     h.session.setAppActive(true);
     await settle();
     assert.equal(h.session.getSnapshot().muted, true);
-    assert.equal(h.session.getSnapshot().inputLevel, 0);
+    assert.equal(h.session.getLevels().input, 0);
     assert.deepEqual(transport.muteChanges, [true]);
     assert.equal(transport.commands.length, 1);
   } finally {
@@ -594,8 +623,7 @@ test('a stats result arriving in the background does not restore visual levels',
     h.session.setAppActive(false);
     pending.resolve({ inputLevel: 0.2, outputLevel: 0.3, sentPackets: 10, receivedPackets: 20 });
     await settle();
-    assert.equal(h.session.getSnapshot().inputLevel, 0);
-    assert.equal(h.session.getSnapshot().outputLevel, 0);
+    assert.deepEqual(h.session.getLevels(), { input: 0, output: 0 });
     assert.equal(h.session.getSnapshot().status, 'connected');
   } finally {
     await h.cleanup();
@@ -612,7 +640,7 @@ test('an earlier stalled stats operation cannot block a new session', async () =
     await h.session.start();
     await h.clock.fire(120);
     assert.equal(h.transports[1].statsCalls, 1);
-    assert.ok(h.session.getSnapshot().outputLevel > 0);
+    assert.ok(h.session.getLevels().output > 0);
   } finally {
     await h.cleanup();
   }

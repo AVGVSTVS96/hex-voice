@@ -2,6 +2,7 @@ import {
   createContext,
   use,
   useEffect,
+  useEffectEvent,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -15,7 +16,7 @@ import type { CallId } from '@/live/calls';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
-import type { CallAbout } from '@/live/types';
+import type { CallAbout, Levels } from '@/live/types';
 import type { LiveVoice } from '@/live/voices';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
@@ -49,16 +50,6 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
   return <Session value={session}>{children}</Session>;
 }
 
-export function useSession() {
-  const session = use(Session)!;
-  const snapshot = useSyncExternalStore(
-    session.subscribe,
-    session.getSnapshot,
-    session.getSnapshot,
-  );
-  return { ...snapshot, start: session.start, stop: session.stop, toggleMute: session.toggleMute };
-}
-
 // The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
 // /activity), followed word by word until it ends.
 export function useCall(held: CallId | null) {
@@ -80,4 +71,11 @@ export function useCall(held: CallId | null) {
     end: () => (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop()),
     toggleMute: session.toggleMute,
   };
+}
+
+// The call's audio levels as they change, outside React's renders.
+export function useLevels(hear: (levels: Levels) => void) {
+  const session = use(Session)!;
+  const take = useEffectEvent(hear);
+  useEffect(() => session.subscribeLevels(() => take(session.getLevels())), [session]);
 }
