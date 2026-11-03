@@ -78,10 +78,12 @@ export type Pane = { width: number; place: 'slide' | 'beside' | 'over' | 'sheet'
 // keeps the one after it (`beside`), switched by a button in the bar: there the orb waits, and on a
 // call its words show (`words`, risen `raise` from where they end). That's how iOS's overlay
 // arrangement places a view over another, and so it's where the Duo starts while partly open.
+// On its side the keyboard takes the page after the fold, so while you type there Tasks moves to
+// the page before it (`typing`), the way a laptop keeps what you write above its keys.
 export type Duo = {
   partlyOpen: boolean;
   tasks: Page;
-  beside?: { tasks: Page; words: Words & { raise: number }; button: Place };
+  beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
   call: {
     orb: Required<Spot>;
     time: Place & { width: number; align: 'center' | 'left' };
@@ -558,7 +560,11 @@ function besideColumn(
 // before that pair, and before them sit the words' switch, then the orb with its time after it.
 function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   const { window, insets, toolbar, top } = frame;
-  const { tasks, after } = paged(
+  const {
+    tasks,
+    after,
+    before: above,
+  } = paged(
     {
       area: { x: 0, y: top, width: window.width, height: window.height - top },
       inset: FLUSH,
@@ -574,7 +580,7 @@ function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
   const time = (after ? button.x - TOOL / 2 - 10 : mute - 14) - TIME_WIDTH;
   return {
     tasks,
-    beside: after && before && { tasks: after, words: before.words, button },
+    beside: after && before && { tasks: after, typing: above, words: before.words, button },
     call: {
       orb: { x: time - 6 - CALL_ORB / 2, y: middle, size: CALL_ORB },
       time: { x: time, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
@@ -586,9 +592,12 @@ function belowBand(frame: Frame, before?: Before): Omit<Duo, 'partlyOpen'> {
 // Tasks over a page's area, and the page after the fold, the one it keeps when the call takes the
 // one before it. Open upright the fold cuts Tasks into two pages side by side, a list beside its
 // topic, as a split view does on a wide screen; partly open it cuts it on its side too, along the
-// hinge. Open flat on its side there's nothing to cut along: the screen is one tall page, and Tasks
-// takes it whole.
-function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; after?: Page } {
+// hinge, and also gives the page before the fold, where it types. Open flat on its side there's
+// nothing to cut along: the screen is one tall page, and Tasks takes it whole.
+function paged(
+  page: Omit<Page, 'fold'>,
+  fold?: Rect,
+): { tasks: Page; after?: Page; before?: Page } {
   if (!fold) return { tasks: page };
   const { area } = page;
   const row = fold.height > fold.width;
@@ -599,6 +608,7 @@ function paged(page: Omit<Page, 'fold'>, fold?: Rect): { tasks: Page; after?: Pa
     after: row
       ? { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } }
       : { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
+    before: row ? undefined : { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }
 
