@@ -491,7 +491,7 @@ test('a project opens on its leading thread, or on a page of its own when it has
   assert.equal(topicIn(entry.task.id), undefined);
 });
 
-test('an answer says it cleared buttons only when hex says it settled some, and what it missed', () => {
+test('an answer says it cleared buttons only when hex says it settled some, names where only when it missed none, and says what it missed', () => {
   const asked = ask('a', 'pick', {
     places: [
       { app: 'telegram', place: 'General', link: 'https://t.me/c/1/2' },
@@ -504,7 +504,7 @@ test('an answer says it cleared buttons only when hex says it settled some, and 
   assert.equal(reachedBy(asked, { ...sent, settled: 1 }), ' and cleared its Telegram buttons');
   assert.equal(
     reachedBy(asked, { ...sent, settled: 1, missed: 1 }),
-    ' and cleared its Telegram buttons. One place was out of reach and still asks it',
+    ' and cleared its buttons. One place was out of reach and still asks it',
   );
   assert.equal(
     reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
