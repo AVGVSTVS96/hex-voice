@@ -59,7 +59,7 @@ const onScreen = (stack: Stack, room: PagedRoom) => {
 };
 const box = (level: Level, stack: Stack, room: PagedRoom) => {
   const spot = spotOf(level, pagesOf(stack, room), room);
-  const { width, height } = spot.frame ?? { width: room.width, height: room.height };
+  const { width, maxHeight: height } = spot.frame ?? { width: room.width, maxHeight: room.height };
   return { x: spot.offset.x, y: spot.offset.y, width, height };
 };
 const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
@@ -238,7 +238,7 @@ test('a thread you write to on pages one over the other takes both', () => {
   const room = roomOf(openOnSide);
   const pages = pagesOf(go({ to: 'topic', id: 'a' }, { to: 'thread', write: true }), room);
   const thread = spotOf('thread', pages, room, true);
-  assert.deepEqual([thread.offset.y, thread.frame?.height], [0, room.height]);
+  assert.deepEqual([thread.offset.y, thread.frame?.maxHeight], [0, room.height]);
   assert.equal(spotOf('topic', pages, room, true).shown, false);
   const writing = go({ to: 'thread', write: true });
   assert.equal(writing.focusComposer, true);

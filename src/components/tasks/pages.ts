@@ -119,8 +119,9 @@ export type Room =
 
 export type Bar = 'center' | 'large' | 'inline';
 
+// `frame` is a page's width and the most it may be tall: the keyboard can shorten it.
 export type Spot = {
-  frame?: { width: number; height: number };
+  frame?: { width: number; maxHeight: number };
   offset: { x: number; y: number };
   shown: boolean;
   width: number;
@@ -224,8 +225,8 @@ function spotAtFold(
       : { leading: 0, trailing: inset.right };
   const top = !row && at > 0 ? 0 : room.top;
   const frame = row
-    ? { width: length, height: room.height }
-    : { width: room.width, height: length };
+    ? { width: length, maxHeight: room.height }
+    : { width: room.width, maxHeight: length };
   return {
     frame,
     offset: row ? { x: at, y: 0 } : { x: 0, y: at },
@@ -233,7 +234,7 @@ function spotAtFold(
     width: frame.width - pad.leading - pad.trailing,
     pad: { top, ...pad },
     ...footOf(!row && at <= 0 && !(alone && front) ? 'fold' : room.foot),
-    bar: barOf(room, frame.width, frame.height - top),
+    bar: barOf(room, frame.width, frame.maxHeight - top),
     back: !leading ? undefined : level === 'list' ? (closes ? 'call' : undefined) : levels[i - 1],
   };
 }

@@ -324,11 +324,11 @@ function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; childre
       modifiers={[
         padding({ top: pad.top, leading: pad.leading, trailing: pad.trailing }),
         ...(size
-          ? [frame({ width: size.width, alignment: 'top' }), upTo(size.height)]
+          ? [frame({ width: size.width, alignment: 'top' }), upTo(size.maxHeight)]
           : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
         ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
         offset(at),
-        animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.height : 0)),
+        animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.maxHeight : 0)),
         accessibilityHidden(!spot.shown),
       ]}
     >
