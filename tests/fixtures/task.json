@@ -8,165 +8,75 @@
   "state": "working",
   "running": true,
   "line": "line",
-  "since": "2026-11-03T17:15:12.585Z",
-  "at": "2026-11-03T17:15:25.608Z",
-  "agents": [],
+  "since": "2026-11-03T19:01:42.782Z",
+  "at": "2026-11-03T19:01:48.745Z",
+  "agents": [
+    {
+      "id": "id-31",
+      "label": "label",
+      "state": "working",
+      "via": "claude",
+      "since": "2026-11-03T15:20:13.919Z",
+      "who": "Opus 5.5",
+      "line": "line",
+      "steps": [
+        {
+          "kind": "say",
+          "text": "text",
+          "at": "2026-11-03T18:58:43.077Z"
+        },
+        {
+          "kind": "say",
+          "text": "text",
+          "at": "2026-11-03T18:54:51.178Z"
+        }
+      ]
+    }
+  ],
   "steps": [
-    {
-      "kind": "run",
-      "text": "text",
-      "detail": "detail",
-      "id": "id-43",
-      "at": "2026-11-03T17:15:11.980Z",
-      "state": "running"
-    },
-    {
-      "kind": "say",
-      "text": "text",
-      "at": "2026-11-02T17:00:21.458Z"
-    },
     {
       "kind": "tool",
       "text": "text",
       "detail": "detail",
       "id": "id-44",
-      "at": "2026-11-02T17:00:15.749Z",
+      "at": "2026-11-03T19:01:49.581Z",
       "state": "done",
       "result": "result",
-      "end": "2026-11-02T17:00:18.323Z"
+      "end": "2026-11-03T19:01:53.714Z"
+    },
+    {
+      "kind": "say",
+      "text": "text",
+      "at": "2026-11-03T17:42:28.237Z"
+    },
+    {
+      "kind": "run",
+      "text": "text",
+      "detail": "detail",
+      "id": "id-45",
+      "at": "2026-11-03T16:44:15.964Z",
+      "state": "done",
+      "result": "result",
+      "end": "2026-11-03T16:44:20.514Z"
     }
   ],
   "plan": [],
   "lately": [],
   "track": [
     {
-      "at": "2026-10-27T17:15:32.323Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-10-28T16:00:10.209Z",
+      "at": "2026-11-03T15:19:31.172Z",
       "state": "working"
     },
     {
-      "at": "2026-10-28T16:02:05.115Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-10-29T16:00:13.341Z",
+      "at": "2026-11-03T19:01:42.782Z",
       "state": "working"
     },
     {
-      "at": "2026-10-29T16:00:37.608Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-10-30T16:00:14.595Z",
-      "state": "working"
-    },
-    {
-      "at": "2026-10-30T16:17:58.260Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-10-31T16:00:11.443Z",
-      "state": "working"
-    },
-    {
-      "at": "2026-10-31T16:10:50.677Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-11-01T17:00:09.226Z",
-      "state": "working"
-    },
-    {
-      "at": "2026-11-01T17:00:21.917Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-11-02T17:00:09.698Z",
-      "state": "working"
-    },
-    {
-      "at": "2026-11-02T17:00:22.847Z",
-      "state": "done"
-    },
-    {
-      "at": "2026-11-03T17:15:12.585Z",
+      "at": "2026-11-03T19:01:48.745Z",
       "state": "working"
     }
   ],
   "link": "https://example.com/30",
-  "asks": [
-    {
-      "id": "id-45",
-      "kind": "yesno",
-      "task": "id-28",
-      "at": "2026-10-22T03:06:00.000Z",
-      "question": "question",
-      "context": "context",
-      "app": "telegram",
-      "topic": "topic",
-      "options": [
-        {
-          "label": "label",
-          "pick": true
-        },
-        {
-          "label": "label"
-        }
-      ],
-      "links": [
-        {
-          "label": "label",
-          "url": "https://example.com/46"
-        }
-      ],
-      "places": [
-        {
-          "app": "telegram",
-          "place": "place",
-          "task": "id-28",
-          "link": "https://example.com/47"
-        }
-      ]
-    },
-    {
-      "id": "id-48",
-      "kind": "pick",
-      "task": "id-28",
-      "at": "2026-10-15T07:47:23.596Z",
-      "question": "question",
-      "context": "context",
-      "app": "telegram",
-      "topic": "topic",
-      "options": [
-        {
-          "label": "label",
-          "pick": true
-        },
-        {
-          "label": "label"
-        },
-        {
-          "label": "label"
-        }
-      ],
-      "links": [
-        {
-          "label": "label",
-          "url": "https://example.com/49"
-        }
-      ],
-      "places": [
-        {
-          "app": "telegram",
-          "place": "place",
-          "task": "id-28",
-          "link": "https://example.com/50"
-        }
-      ]
-    }
-  ],
+  "asks": [],
   "pin": "pin"
 }

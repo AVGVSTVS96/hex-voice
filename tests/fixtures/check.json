@@ -1,17 +1,17 @@
 {
-  "at": "2026-11-03T11:54:07.772Z",
+  "at": "2026-11-03T18:56:06.943Z",
   "why": "why",
   "read": {
-    "pinned posts": 41,
-    "questions": 22,
+    "pinned posts": 43,
+    "questions": 29,
     "T3 items": 3,
-    "calls": 4
+    "calls": 10
   },
   "asks": [
     {
-      "id": "id-54",
+      "id": "id-46",
       "kind": "do",
-      "task": "task-55",
+      "task": "task-47",
       "at": "2026-11-03T07:29:00.000Z",
       "question": "question",
       "context": "context",
@@ -27,22 +27,22 @@
       "from": [
         {
           "app": "telegram",
-          "thread": "thread-94",
+          "thread": "thread-104",
           "message": 4947
         },
         {
           "app": "telegram",
-          "thread": "thread-94",
+          "thread": "thread-104",
           "message": 4956
         },
         {
           "app": "telegram",
-          "thread": "thread-94",
+          "thread": "thread-104",
           "message": 4978
         },
         {
           "app": "telegram",
-          "thread": "thread-94",
+          "thread": "thread-104",
           "message": 2603
         }
       ],
@@ -73,7 +73,7 @@
   ],
   "stuck": [
     {
-      "id": "id-93",
+      "id": "id-102",
       "title": "title",
       "why": "why",
       "action": "action",

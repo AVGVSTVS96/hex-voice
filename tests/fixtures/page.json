@@ -1,39 +1,56 @@
 {
-  "id": "id-90",
-  "app": "discord",
-  "thread": "thread-91",
+  "id": "id-105",
+  "app": "telegram",
+  "thread": "thread-106",
   "name": "name",
   "where": "where",
   "place": "place",
-  "at": "2026-10-24T18:02:11.000Z",
+  "at": "2026-10-17T00:57:52.134Z",
   "line": "line",
-  "link": "https://example.com/94",
+  "link": "https://example.com/107",
   "asks": [
     {
-      "id": "id-92",
-      "kind": "yesno",
-      "task": "id-90",
-      "at": "2026-11-03T17:03:14.182Z",
+      "id": "id-108",
+      "kind": "do",
+      "task": "id-105",
+      "at": "2026-10-18T09:29:07.596Z",
       "question": "question",
+      "context": "context",
+      "tag": "unblocks 1",
       "app": "telegram",
       "topic": "topic",
       "options": [
         {
-          "label": "label",
-          "value": "value",
-          "pick": true
+          "label": "label"
         },
         {
+          "label": "label"
+        }
+      ],
+      "links": [
+        {
           "label": "label",
-          "value": "value"
+          "url": "https://example.com/109"
         }
       ],
       "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "id-90",
-          "link": "https://example.com/93"
+          "task": "task-78",
+          "link": "https://example.com/98"
+        },
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "id-105",
+          "link": "https://example.com/110"
+        },
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-50",
+          "link": "https://example.com/111"
         }
       ]
     }
