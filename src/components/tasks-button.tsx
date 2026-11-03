@@ -19,7 +19,7 @@ import { motion } from '@/motion';
 import { TOOL } from '@/screens/layout';
 import { theme } from '@/theme';
 
-const RING = 56;
+const RING = TOOL;
 const DOT = 14;
 const LINE = 2;
 const ARC = (Math.PI * (RING - LINE)) / 4;
