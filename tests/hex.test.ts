@@ -178,7 +178,6 @@ test('each tap goes to hex where it belongs, by id', async () => {
   await hex.tasks.talk(thread);
   await hex.tasks.send(thread, 'Ship it', 'app-1');
   await hex.tasks.stop(thread);
-  await hex.asks.answer(AskId.parse('telegram:-100:1:7'), 'Deep');
   await hex.asks.undo(AskId.parse('check:music'));
   await hex.asks.act('t3-limit');
   await hex.asks.read('fresh-1');
@@ -192,11 +191,31 @@ test('each tap goes to hex where it belongs, by id', async () => {
       'POST /tasks/telegram%3A-100%3A908/talk',
       'POST /tasks/telegram%3A-100%3A908/chat {"text":"Ship it","key":"app-1"}',
       'POST /tasks/telegram%3A-100%3A908/stop',
-      'POST /asks/telegram%3A-100%3A1%3A7/answer {"label":"Deep"}',
       'POST /asks/check%3Amusic/undo',
       'POST /stuck/t3-limit/act',
       'POST /fresh/fresh-1/read',
       'POST /asks/talk',
     ],
   );
+});
+
+test('an answer, a note and a not needed each go to their ask and say what they reached', async () => {
+  const seen: { url: string; init?: RequestInit }[] = [];
+  const reached = { thread: 'telegram:-100:1', topic: 'hex', settled: 2, missed: 1 };
+  const hex = answering(reached, seen);
+  const ask = AskId.parse('telegram:-100:1:7');
+  assert.deepEqual(await hex.asks.answer(ask, 'Deep'), reached);
+  assert.deepEqual(await hex.asks.note(ask, 'Only if it ships today'), reached);
+  assert.deepEqual(await hex.asks.dismiss(ask), reached);
+  assert.deepEqual(
+    seen.map(({ url, init }) =>
+      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${init?.body ?? ''}`.trim(),
+    ),
+    [
+      'POST /asks/telegram%3A-100%3A1%3A7/answer {"label":"Deep"}',
+      'POST /asks/telegram%3A-100%3A1%3A7/note {"text":"Only if it ships today"}',
+      'POST /asks/telegram%3A-100%3A1%3A7/dismiss',
+    ],
+  );
+  await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/);
 });

@@ -41,9 +41,21 @@ export const Ask = z.object({
   places: z.array(AskPlace),
   tag: z.optional(z.string()),
 });
-// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` is
-// this app's, never hex's: what you did to it here that didn't go through, and why.
-export type Ask = z.infer<typeof Ask> & { failed?: string };
+// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
+// `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
+// how many places an answer from here couldn't reach, which still ask it.
+export type Ask = z.infer<typeof Ask> & { failed?: string; missed?: number };
+// What an answer, a note or a not needed reached: the hex thread it told and that thread's name, how
+// many open copies of the ask (buttons or polls) it sent an answer or settle to, and how many copies
+// or threads it couldn't reach because their app's hub was down. Hubs don't confirm, so `settled`
+// means sent to.
+export const Sent = z.object({
+  thread: z.string(),
+  topic: z.string(),
+  settled: z.number(),
+  missed: z.number(),
+});
+export type Sent = z.infer<typeof Sent>;
 export const Stuck = z.object({
   id: z.string(),
   app: z.string(),

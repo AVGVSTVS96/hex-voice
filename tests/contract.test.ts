@@ -86,3 +86,25 @@ test('a thread off the board reads as a page to read, and a task with a broken f
   assert.equal(TaskOrPage.parse(real('task')).kind, 'task');
   assert.equal(TaskOrPage.safeParse({ ...(real('task') as object), steps: 'none' }).success, false);
 });
+
+test('an ask answered on a call says what its answer reached, and the undo that took one back shows nothing', () => {
+  const [ask] = AskList.parse(real('asks')).asks;
+  const sent = { thread: 'telegram:-1001:2583', topic: 'voiceapp', settled: 1, missed: 0 };
+  const { asks } = AgentActivity.parse({
+    ...(real('activity') as object),
+    asks: [{ at: 1, ask, answer: 'Yes', sent }],
+  });
+  assert.deepEqual(asks?.[0]?.sent, sent);
+  const record = CallRecord.parse({
+    ...(real('call') as object),
+    moments: [
+      { at: 1, kind: 'answered', text: 'Yes', sent },
+      { at: 2, kind: 'undone', text: 'Yes' },
+    ],
+  });
+  assert.deepEqual(
+    record.moments?.map((moment) => moment.kind),
+    ['answered', 'undone'],
+  );
+  assert.equal(timeline(record).filter((moment) => moment.kind === 'mark').length, 0);
+});

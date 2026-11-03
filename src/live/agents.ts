@@ -1,6 +1,6 @@
 import * as z from 'zod/mini';
 
-import { Ask } from './asks';
+import { Ask, Sent } from './asks';
 import { CallId } from './calls';
 
 const AgentTask = z.object({
@@ -11,8 +11,14 @@ const AgentTask = z.object({
   line: z.optional(z.string()),
 });
 export type AgentTask = z.infer<typeof AgentTask>;
-// An ask hex put on screen during the call, with the answer once it has one.
-const CallCard = z.object({ at: z.number(), ask: Ask, answer: z.optional(z.string()) });
+// An ask hex put on screen during the call, with the answer once it has one and what that reached,
+// until an undo takes it back.
+const CallCard = z.object({
+  at: z.number(),
+  ask: Ask,
+  answer: z.optional(z.string()),
+  sent: z.optional(Sent),
+});
 export type CallCard = z.infer<typeof CallCard>;
 export const AgentActivity = z.object({
   version: z.number(),
