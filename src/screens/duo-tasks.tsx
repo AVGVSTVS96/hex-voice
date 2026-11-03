@@ -19,41 +19,37 @@ import { TIME, TOOL, type Duo } from '@/screens/layout';
 import { theme } from '@/theme';
 
 // iPhone Duo's Tasks as the call screen sees it. While it's open on a call the call is docked in
-// the bar. Open, the call can take the page before the fold, beside Tasks: on a call, or before one
-// while the Duo is partly open, where it starts that way. The switch in the bar picks otherwise
-// until the call ends or the Duo folds or flattens. `dock` settles from 0 to 1 as the call moves
-// into the bar, `covers` as Tasks covers the orb's page, `hides` as it covers the words, and
-// `aside` as the words move to the page before the fold. While the keyboard is up there Tasks types
-// on that page instead (`above`), and the call's own page steps aside for it.
+// the bar, and open, the switch in the bar can give the call's words the page before the fold,
+// beside Tasks, until the call ends. Folding changes none of it. `dock` settles from 0 to 1 as the
+// call moves into the bar, `covers` as Tasks covers the call's pages, and `aside` as the words move
+// to the page before the fold. While the keyboard is up there Tasks
+// types on that page instead (`above`), and the call's own page steps aside for it.
 export function useDuoTasks(
   duo: Duo | undefined,
   open: boolean,
   onCall: boolean,
   reducedMotion: boolean,
 ) {
-  const partlyOpen = !!duo?.partlyOpen;
-  const [chosen, setChosen] = useState<{ partlyOpen: boolean; beside: boolean }>();
-  const available = !!duo?.beside && (onCall || partlyOpen);
-  if (chosen && (chosen.partlyOpen !== partlyOpen || !available)) setChosen(undefined);
+  const [chosen, setChosen] = useState(false);
+  const available = !!duo?.beside && onCall;
+  if (chosen && !available) setChosen(false);
   const offered = available && open;
   const docked = !!duo && open && onCall;
-  const beside = offered && (chosen?.beside ?? partlyOpen);
+  const beside = offered && chosen;
   const above = useKeyboardUp() && beside && !!duo?.beside?.typing;
   const callBeside = beside && !above;
   const dock = useSettle(docked, reducedMotion);
   const covers = useSettle(!!duo && open && !callBeside, reducedMotion);
-  const hides = useSettle(!!duo && open && !(callBeside && docked), reducedMotion);
-  const aside = useSettle(callBeside && docked, reducedMotion);
+  const aside = useSettle(callBeside, reducedMotion);
   const offer = useSettle(offered, reducedMotion);
   return {
     docked,
     beside,
     above,
     offered,
-    toggleBeside: () => setChosen({ partlyOpen, beside: !beside }),
+    toggleBeside: () => setChosen(!beside),
     dock,
     covers,
-    hides,
     aside,
     offer,
   };
@@ -87,8 +83,8 @@ function useSettle(on: boolean, reducedMotion: boolean) {
   return value;
 }
 
-// Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call its
-// page beside Tasks, lit while it has it. Tasks fades in where it sits as `pane` opens it: moved by a
+// Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call's
+// words their page beside Tasks, lit while they have it. Tasks fades in where it sits as `pane` opens it: moved by a
 // transform, its Host would keep telling iOS accessibility where it started.
 export function DuoTasks({
   duo,
@@ -151,7 +147,7 @@ export function DuoTasks({
         >
           <VoiceControl
             icon={stacks ? 'beside-column' : 'beside-row'}
-            label={onCall ? 'Transcript beside Tasks' : 'Call beside Tasks'}
+            label="Transcript beside Tasks"
             testID="transcript-beside-button"
             selected={state.beside}
             onPress={state.toggleBeside}
