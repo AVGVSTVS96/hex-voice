@@ -95143,10 +95143,10 @@ index 0000000000000000000000000000000000000000..ec3b5e2b53ff2f92c62c62893e72364f
 +};
 diff --git a/scripts/devicehub.c b/scripts/devicehub.c
 new file mode 100644
-index 0000000000000000000000000000000000000000..2fd3d51a6076518d6fae5be5e8a15ab4a86449b3
+index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f256ff9d5
 --- /dev/null
 +++ b/scripts/devicehub.c
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,75 @@
 +// Posts the private HID events Xcode's Device Hub sends to a simulator: the iPhone Duo's hinge (0 shut, 180 flat) and
 +// the device's orientation, which turns the Duo's screens where an app's own rotation request doesn't. Runs inside the
 +// simulator (`xcrun simctl spawn`); `scripts/duo` builds it. Undocumented, so a new Xcode may change it.
@@ -95198,7 +95198,9 @@ index 0000000000000000000000000000000000000000..2fd3d51a6076518d6fae5be5e8a15ab4
 +int main(int argc, char **argv) {
 +    client = IOHIDEventSystemClientCreateWithType(NULL, 4, NULL);
 +    if (argc >= 3 && !strcmp(argv[1], "hinge") && client) {
-+        double to = fmin(fmax(atof(argv[2]), 0), 180), from = 180 - to;
++        // Sweeps from the angle the hinge is at, when given; a sweep from the far side passes through
++        // the closed Duo, which moves the app to the cover for a moment.
++        double to = fmin(fmax(atof(argv[2]), 0), 180), from = argc >= 4 ? fmin(fmax(atof(argv[3]), 0), 180) : 180 - to;
 +        for (int step = 1; step <= 36; step++) {
 +            double t = step / 36.0;
 +            hinge(from + (to - from) * (1 - pow(1 - t, 3)));
@@ -95217,18 +95219,18 @@ index 0000000000000000000000000000000000000000..2fd3d51a6076518d6fae5be5e8a15ab4
 +        usleep(100000);
 +        return 0;
 +    }
-+    fprintf(stderr, "usage: devicehub hinge <0-180> | devicehub orientation portrait|landscape-left|landscape-right\n");
++    fprintf(stderr, "usage: devicehub hinge <0-180> [from] | devicehub orientation portrait|landscape-left|landscape-right\n");
 +    return 64;
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a45af69987
+index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d2349d6ad
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,366 @@
+@@ -0,0 +1,444 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
-+# iOS 27.1), and screenshots the real Duo.
++# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
 +#
 +#   scripts/duo build [ref]           bundles and builds it, printing any compile errors
 +#   scripts/duo shoot [ref] [states]  each state in the states file (the ref's scripts/duo-states
@@ -95242,20 +95244,33 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +# $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt naming each
 +# state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 +# screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
-+# newest main, or nothing when that commit was already shot. The JS is bundled here; the Mac builds the
++# newest main, or nothing when that commit was already shot. DEVICE=ipad borrows hex keyboard's
++# "hexkb look iPad Pro 11" in place of the Duo, so only one is ever booted; its poses are up and
++# side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
++# last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
++# while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
++# ANSWERS=<file of answers by path> answers those paths from the file, its shots in kept/<file>/. The JS is bundled here; the Mac builds the
 +# app for the simulator only when the commit's native fingerprint has no build yet, keeping the
-+# last three, and its simulator shuts down after half an hour unused.
++# last three, and its simulator is booted only while a check runs.
 +. "$(dirname "$0")/release.sh"
 +
 +mac=${HEX_VOICE_MAC:-mac}
 +folder=Developer/hex-voice-sim
-+sim="hexvoice Duo"
++DEVICE=${DEVICE:-duo}
++HEX=${HEX:-live}
++ipad="hexkb look iPad Pro 11"
++case $DEVICE in
++  duo) sim="hexvoice Duo" ;;
++  ipad) sim=$ipad ;;
++  *) echo "DEVICE is duo or ipad" >&2 && exit 1 ;;
++esac
 +bundle=com.shahidy.hexvoice
 +# The app under check talks to scripts/duo-hex.mjs here, which never passes a write on to hex.
 +hexport=8799
 +
-+# A pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in degrees.
-+POSES=${POSES:-cover-up cover-side open-up open-side}
++# A Duo pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in
++# degrees. The iPad's are up and side.
++if [ "$DEVICE" = ipad ]; then POSES=${POSES:-up side}; else POSES=${POSES:-cover-up cover-side open-up open-side}; fi
 +APPEARANCES=${APPEARANCES:-dark light}
 +
 +# Sets hinge, orientation and the simulator display that shows the pose.
@@ -95263,6 +95278,7 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +  case ${1%-*} in
 +    cover) hinge=0 display=1 ;;
 +    open) hinge=180 display=3 ;;
++    up | side) hinge='' display='' ;;
 +    *) hinge=${1%-*} display=3 ;;
 +  esac
 +  case ${1##*-} in
@@ -95300,13 +95316,18 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +# the read-only stand-in for hex for as long as this check runs. It installs fresh, so nothing a
 +# run left saved (a collapsed list, a chosen voice) changes what the next run sees.
 +mac_install() {
-+  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport exec node harness/duo-hex.mjs) &
++  rm -f hex-down
++  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport DUO_HEX_ANSWERS=$PWD/answers.json DUO_HEX_DOWN=$PWD/hex-down \
++    DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
++    exec node harness/duo-hex.mjs) &
 +  standin=$!
-+  trap 'kill "$standin"' EXIT
++  trap 'kill "$standin"; xcrun simctl shutdown "$id" 2>/dev/null' EXIT
 +  # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
 +  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 -o /dev/null "http://127.0.0.1:$hexport/tasks/summary" ||
-+    die "hex didn't answer a read in 10 s, so the screens would be empty: nothing was checked"
++    die "hex didn't answer a read in 10 s (with HEX=kept: none is kept), so the screens would be empty: nothing was checked"
 +  rm -rf stage shots && mkdir stage shots
++  [ "$HEX" != kept ] || echo "answered from hex's reads kept $(date -r answers.json '+%b %-d %H:%M')" >>shots/notes.txt
++  [ ! -f harness/also.json ] || echo "and $(jq -r 'keys | join(", ")' harness/also.json) from the run's own answers" >>shots/notes.txt
 +  cp -cR "apps/$1.app" stage/hex.app
 +  rsync -a js/ stage/hex.app/
 +  plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
@@ -95318,11 +95339,12 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +
 +mac_simulator() {
 +  local runtime=com.apple.CoreSimulator.SimRuntime.iOS-27-1 other
-+  id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" --arg runtime "$runtime" \
-+    '.devices[$runtime][]? | select(.name == $name and .isAvailable) | .udid' | head -1)
-+  [ -n "$id" ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
-+  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" \
-+    '.devices[][] | select((.name | startswith("hexvoice")) and .udid != $id) | .udid'); do
++  id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" \
++    '.devices[][] | select(.name == $name and .isAvailable) | .udid' | head -1)
++  [ -n "$id" ] || [ "$DEVICE" != duo ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
++  [ -n "$id" ] || die "the Mac has no \"$sim\" simulator"
++  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" --arg ipad "$ipad" \
++    '.devices[][] | select(((.name | startswith("hexvoice")) or .name == $ipad) and .udid != $id) | .udid'); do
 +    xcrun simctl shutdown "$other"
 +  done
 +  # iOS asks "Open in hex?" for each link until the scheme is approved, and reads approvals at boot.
@@ -95336,6 +95358,7 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +      "$approvals" >/dev/null
 +  }
 +  xcrun simctl bootstatus "$id" -b >/dev/null
++  rm -f build/hinge
 +  xcrun simctl status_bar "$id" clear
 +  [ build/devicehub -nt harness/devicehub.c ] || {
 +    mkdir -p build
@@ -95343,20 +95366,21 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +      harness/devicehub.c -framework IOKit -framework CoreFoundation
 +    codesign -f -s - build/devicehub 2>/dev/null
 +  }
-+  date +%s >last-use
-+  nohup bash -c "sleep 1800; [ \$(( \$(date +%s) - \$(cat last-use) )) -ge 1800 ] && xcrun simctl shutdown $id" \
-+    >/dev/null 2>&1 </dev/null &
 +}
 +
 +hub() { xcrun simctl spawn "$id" "$PWD/build/devicehub" "$@" </dev/null; }
 +
-+# Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds.
++# Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds, and
++# sweeps from where it is (kept in build/hinge since the simulator booted), never through the closed Duo.
 +place() {
++  local at
 +  pose_of "$1"
-+  [ "$hinge" = "${placed:-}" ] || {
-+    hub hinge "$hinge"
++  at=$(cat build/hinge 2>/dev/null || true)
++  [ -z "$hinge" ] || [ "$hinge" = "$at" ] || {
++    hub hinge "$hinge" ${at:+"$at"}
++    [ -z "${burst:-}" ] || shoot_burst
 +    sleep 3
-+    placed=$hinge
++    echo "$hinge" >build/hinge
 +  }
 +  hub orientation "$orientation"
 +  sleep 1
@@ -95364,14 +95388,47 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +}
 +
 +# Whether a shot has the shape its pose turns the screen to: the open screen is wide upright and
-+# tall on its side, the cover the other way round.
++# tall on its side, the cover and the iPad the other way round.
 +turned() {
 +  local width height
 +  read -r width height < <(sips -g pixelWidth -g pixelHeight "$1" | awk '/pixel/ { printf "%s ", $2 }')
 +  case $display:${pose##*-} in
-+    3:up | 1:side) [ "$width" -gt "$height" ] ;;
++    3:up | 1:side | :side) [ "$width" -gt "$height" ] ;;
 +    *) [ "$width" -lt "$height" ] ;;
 +  esac
++}
++
++ms() { perl -MTime::HiRes=time -e 'printf "%d", time * 1000'; }
++
++# Three shots as fast as the simulator gives them once the hinge has settled, to catch a frame
++# drawn for the wrong window, each named by its ms after and the clock's ms (the clock the app's
++# HexPoseLog stamps its changes with), then that log as it stands just after.
++shoot_burst() {
++  local start=$(ms) now i
++  for i in 1 2 3; do
++    now=$(ms)
++    xcrun simctl io "$id" screenshot ${display:+--display=$display} "$burst-$((now - start))ms-at$now.png" >/dev/null 2>&1
++  done
++  xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null | jq . >"$burst-log.json" 2>/dev/null ||
++    rm -f "$burst-log.json"
++  burst=
++}
++
++# Places a pose mid-check and, when the screen hasn't turned to it, says so and turns it again from
++# upright, as a shot whose shape is wrong does.
++place_turned() {
++  local pose=$1
++  place "$pose"
++  sleep 2
++  xcrun simctl io "$id" screenshot ${display:+--display=$display} build/turn.png >/dev/null 2>&1
++  turned build/turn.png && return
++  echo "$pose: the screen hadn't turned to $pose (the app may have locked it), so it was turned again" >>shots/notes.txt
++  hub orientation portrait
++  sleep 1
++  hub orientation "$orientation"
++  sleep 2
++  xcrun simctl io "$id" screenshot ${display:+--display=$display} build/turn.png >/dev/null 2>&1
++  turned build/turn.png || echo "$pose: the screen didn't turn to $pose" >>shots/notes.txt
 +}
 +
 +running() {
@@ -95405,28 +95462,31 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +        xcrun simctl ui "$id" appearance "$appearance"
 +        sleep 1.5
 +        file=shots/$pose-$state-$appearance.png
-+        xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
++        xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
 +        turned "$file" || {
 +          hub orientation portrait
 +          sleep 1
 +          hub orientation "$orientation"
 +          sleep 2
-+          xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
++          xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
 +          turned "$file" || echo "$pose $state $appearance: the screen didn't turn to $pose" >>shots/notes.txt
 +        }
 +      done
 +    done 4<<<"$states"
 +  done
-+  date +%s >last-use
 +}
 +
 +# Plays the tap script it reads (uitests/DuoTests.swift has its commands) in each pose and
 +# appearance: each "shoot <name>" is shot as shots/<pose>-<name>-<appearance>.png, "pose <pose>"
-+# moves the Duo there without relaunching the app, failures go to notes.txt, and the
++# moves the Duo there without relaunching the app (turning it again if the screen didn't turn), a
++# step opened with ?report=pose keeps the pose the app had as <pose>-<name>-<appearance>.json and its
++# last changes as …-log.json, "pose-burst <pose>" also shoots three frames right as the hinge lands,
++# failures go to notes.txt, and the
 +# accessibility tree at the end lands beside the shots.
 +mac_tap() {
-+  local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line
++  local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line prefs step
 +  mac_install "$1"
++  prefs=$(xcrun simctl get_app_container "$id" "$bundle" data)/Library/Preferences/$bundle
 +  taps=$(cat)
 +  (cd harness/uitests && xcodegen generate -q)
 +  xcodebuild build-for-testing -project harness/uitests/DuoTests.xcodeproj -scheme DuoTests \
@@ -95436,22 +95496,38 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +  }
 +  for pose in $POSES; do
 +    for appearance in $APPEARANCES; do
-+      place "$pose"
++      place_turned "$pose"
 +      xcrun simctl ui "$id" appearance "$appearance"
 +      result=$tests/$pose-$appearance.xcresult
 +      rm -rf "$result" "$tests/attachments"
 +      TEST_RUNNER_DUO_TAPS=$taps xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
 +        -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
-+        -collect-test-diagnostics never 2>&1 | while IFS= read -r line; do
++        -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
 +        case $line in
 +          *"duo-step "*)
-+            xcrun simctl io "$id" screenshot --display="$display" \
-+              "shots/$pose-${line##*duo-step }-$appearance.png" >/dev/null 2>&1
++            step=${line##*duo-step }
++            xcrun simctl io "$id" screenshot ${display:+--display=$display} \
++              "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
++            xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
++              jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
++            xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
++              jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
 +            ;;
-+          *"duo-pose "*) place "${line##*duo-pose }" ;;
++          *"duo-snap "*)
++            xcrun simctl io "$id" screenshot ${display:+--display=$display} \
++              "shots/$pose-${line##*duo-snap }-$appearance.png" >/dev/null 2>&1 &
++            ;;
++          *"duo-pose "*) place_turned "${line##*duo-pose }" ;;
++          *"duo-burst "*)
++            bursts=$((${bursts:-0} + 1))
++            burst=shots/$pose-burst$bursts-${line##*duo-burst }-$appearance
++            place_turned "${line##*duo-burst }"
++            ;;
++          *"duo-hex down"*) touch hex-down ;;
++          *"duo-hex up"*) rm -f hex-down ;;
 +          *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
 +        esac
-+      done || true
++      done; wait; } || true
 +      xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
 +      jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
 +        "\(.exportedFileName) \(.suggestedHumanReadableName | sub("_[0-9]+_[0-9A-F-]+.*$"; ""))"' \
@@ -95460,7 +95536,6 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +      done
 +    done
 +  done
-+  date +%s >last-use
 +}
 +
 +[ "${1:-}" = mac ] && {
@@ -95502,6 +95577,7 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +  rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
 +    "$repo/scripts/duo-hex.mjs" "$repo/uitests" "$mac:$folder/harness/"
 +  rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
++  [ -z "${ANSWERS:-}" ] || rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
 +  rsync -a --delete "$home/js/" "$mac:$folder/js/"
 +  ssh "$mac" test -d "$folder/apps/$runtime.app" || {
 +    echo "building $title's native code for the simulator"
@@ -95527,25 +95603,25 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +
 +shoot() {
 +  local states=${1:-}
-+  [ -n "$states" ] || [ ! -f "$shots/$commit/done" ] || {
-+    echo "$title was already shot: $shots/$commit"
++  [ -n "$states" ] || [ ! -f "$out/done" ] || {
++    echo "$title was already shot: $out"
 +    return
 +  }
 +  echo "shooting $title"
 +  { if [ -n "$states" ]; then cat "$states"; else
 +    git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
 +  fi; } |
-+    grep -v -e '^#' -e '^$' | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac shoot $runtime"
-+  collect "$shots/$commit"
-+  echo "$title" >"$shots/$commit/done"
++    grep -v -e '^#' -e '^$' | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac shoot $runtime"
++  collect "$out"
++  echo "$title" >"$out/done"
 +}
 +
 +tap() {
 +  echo "tapping through $title"
 +  { if [ -n "${1:-}" ]; then cat "$1"; else
 +    git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-+  fi; } | ssh "$mac" "POSES='$POSES' APPEARANCES='$APPEARANCES' $folder/harness/duo mac tap $runtime"
-+  collect "$shots/$commit/tap"
++  fi; } | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac tap $runtime"
++  collect "$out/tap"
 +}
 +
 +# The Duo's lit screen. Given an OTA update id, it first waits until a device asks for updates
@@ -95583,6 +95659,10 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +    }
 +    start=$SECONDS
 +    prepare "${2:-}"
++    out=$shots/$commit
++    [ "$DEVICE" = duo ] || out=$out/$DEVICE
++    [ "$HEX" = live ] || out=$out/$HEX
++    [ -z "${ANSWERS:-}" ] || out=$out/$(basename "$ANSWERS" .json)
 +    case $1 in
 +      shoot) shoot "${3:-}" ;;
 +      tap) tap "${3:-}" ;;
@@ -95594,20 +95674,35 @@ index 0000000000000000000000000000000000000000..2643be9d24f0c795a1efbbaa0f58f1a4
 +esac
 diff --git a/scripts/duo-hex.mjs b/scripts/duo-hex.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..a5f81910656be70491caa6c3fc3ff89ec2161336
+index 0000000000000000000000000000000000000000..b20eafaf2dcece3d0069ce467a3eb37834f91919
 --- /dev/null
 +++ b/scripts/duo-hex.mjs
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,64 @@
 +// Stands in for hex's voice server while scripts/duo checks the app, on the Mac beside the
-+// simulator. Reads go to the real server, so the screens show his real tasks. Every write
++// simulator. Reads go to the real server, so the screens show his real tasks, and each answer is
++// kept in DUO_HEX_ANSWERS by path. With DUO_HEX_REPLAY set, reads are answered from that file
++// instead, so both sides of a before/after see the same lists and a check runs while hex is slow;
++// a watch (?after=) then gets no answer, as hex gives none until something changes. DUO_HEX_ALSO
++// names a file of a run's own answers by path, which replay gives ahead of the kept ones. While
++// the file DUO_HEX_DOWN exists, every read is dropped, as when hex can't be reached. Every write
 +// (answering, noting, undoing, acting, starting a call) is answered here and dropped, so a check can
 +// never answer or act for him. The app under check only knows this address and a dummy token.
++import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 +import { createServer } from 'node:http';
 +
-+const { DUO_HEX_PORT, EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
++const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOWN } = process.env;
++const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 +// hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
 +const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
 +const NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
++const answers = existsSync(DUO_HEX_ANSWERS)
++  ? JSON.parse(readFileSync(DUO_HEX_ANSWERS, 'utf8'))
++  : {};
++const also = Object.fromEntries(
++  Object.entries(DUO_HEX_ALSO ? JSON.parse(readFileSync(DUO_HEX_ALSO, 'utf8')) : {}).map(
++    ([path, answer]) => [path, JSON.stringify(answer)],
++  ),
++);
 +
 +createServer(async (request, response) => {
 +  if (request.method !== 'GET') {
@@ -95617,14 +95712,32 @@ index 0000000000000000000000000000000000000000..a5f81910656be70491caa6c3fc3ff89e
 +    else response.writeHead(204).end();
 +    return;
 +  }
++  if (DUO_HEX_DOWN && existsSync(DUO_HEX_DOWN)) {
++    request.socket.destroy();
++    return;
++  }
++  const url = new URL(request.url, 'http://hex');
++  const watch = url.searchParams.has('after');
++  if (DUO_HEX_REPLAY) {
++    if (watch) return;
++    const kept = also[url.pathname] ?? answers[url.pathname];
++    if (kept === undefined) response.writeHead(404).end();
++    else response.writeHead(200, { 'content-type': 'application/json' }).end(kept);
++    return;
++  }
 +  try {
 +    const upstream = await fetch(EXPO_PUBLIC_HEX_URL + request.url, {
 +      headers: { authorization: `Bearer ${EXPO_PUBLIC_HEX_TOKEN}` },
 +    });
++    const body = Buffer.from(await upstream.arrayBuffer());
 +    response.writeHead(upstream.status, {
 +      'content-type': upstream.headers.get('content-type') ?? 'application/json',
 +    });
-+    response.end(Buffer.from(await upstream.arrayBuffer()));
++    response.end(body);
++    if (upstream.ok && !watch) {
++      answers[url.pathname] = body.toString();
++      writeFileSync(DUO_HEX_ANSWERS, JSON.stringify(answers));
++    }
 +  } catch {
 +    response.writeHead(502).end();
 +  }
@@ -97714,18 +97827,20 @@ index 7fc429c8dc95d67c50d83773ae4b24ef048120e3..f3fcf2994b9e77989307053730ee2cb5
  
  The native renderer loads files only when requested and shares at most six decoded files for the app process lifetime. Each rendered view has its own state machine and data model. Switching variants remounts only that view, and a cancelled load cannot update its replacement. The call controller and microphone are independent of this visual.
 diff --git a/src/components/persona/index.tsx b/src/components/persona/index.tsx
-index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46a02fb172 100644
+index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..33a031870e1052a992e4d5d9372c687dc55a043d 100644
 --- a/src/components/persona/index.tsx
 +++ b/src/components/persona/index.tsx
-@@ -12,7 +12,7 @@ import {
+@@ -12,8 +12,8 @@ import {
    type RiveFile,
  } from '@rive-app/react-native';
  import { useEffect, useRef, useState } from 'react';
 -import { Text, View } from 'react-native';
-+import { Text, View, useColorScheme } from 'react-native';
- import { useReducedMotion } from 'react-native-reanimated';
+-import { useReducedMotion } from 'react-native-reanimated';
++import { StyleSheet, Text, View, useColorScheme } from 'react-native';
++import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
  
  import { theme } from '@/theme';
+ import {
 @@ -23,13 +23,17 @@ import {
    type PersonaProps,
  } from './animation';
@@ -97746,21 +97861,61 @@ index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46
  
  function loadFile(variant: PersonaVariant) {
    let promise = fileCache.get(variant);
-@@ -45,6 +49,10 @@ function loadFile(variant: PersonaVariant) {
+@@ -45,26 +49,68 @@ function loadFile(variant: PersonaVariant) {
    return promise;
  }
  
++// Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
++export function preloadPersonas(variants: readonly PersonaVariant[]) {
++  for (const variant of variants) void loadFile(variant).catch(() => {});
++}
++
 +function sameColor(a: number, b: number) {
 +  return [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
 +}
 +
  export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
-   // Give the new file a fresh native view and discard any previous visual error.
-   return <PersonaRenderer key={variant} variant={variant} {...props} />;
-@@ -54,17 +62,20 @@ function PersonaRenderer({
+-  // Give the new file a fresh native view and discard any previous visual error.
+-  return <PersonaRenderer key={variant} variant={variant} {...props} />;
++  // The persona on screen stays until the next one's file is read, then the two cross-fade, so a
++  // change never shows an empty space or pops; each gets a fresh native view, which drops any
++  // earlier error.
++  const [shown, setShown] = useState(variant);
++  const reducedMotion = useReducedMotion();
++  useEffect(() => {
++    let active = true;
++    void loadFile(variant)
++      .catch(() => undefined)
++      .then(() => {
++        if (active) setShown(variant);
++      });
++    return () => {
++      active = false;
++    };
++  }, [variant]);
++  const size = props.size ?? SIZE;
++  return (
++    <View style={{ width: size, height: size }}>
++      <Animated.View
++        key={shown}
++        entering={reducedMotion ? undefined : FadeIn.duration(SWAP)}
++        exiting={reducedMotion ? undefined : FadeOut.duration(SWAP)}
++        style={StyleSheet.absoluteFill}
++      >
++        <PersonaRenderer variant={shown} {...props} />
++      </Animated.View>
++    </View>
++  );
+ }
+ 
++const SIZE = 320;
++const SWAP = 150;
++
+ function PersonaRenderer({
    variant,
    state = 'idle',
-   size = 320,
+-  size = 320,
++  size = SIZE,
 +  color = DEFAULT_PERSONA_COLOR,
 +  palette,
  }: PersonaProps & { variant: PersonaVariant }) {
@@ -97783,7 +97938,7 @@ index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46
  
    useEffect(() => {
      let active = true;
-@@ -82,7 +93,7 @@ function PersonaRenderer({
+@@ -82,7 +128,7 @@ function PersonaRenderer({
  
    useEffect(() => {
      if (!riveViewRef) return;
@@ -97792,7 +97947,7 @@ index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46
      let cancelled = false;
      let frame = 0;
      const pause = () => {
-@@ -100,7 +111,10 @@ function PersonaRenderer({
+@@ -100,7 +146,10 @@ function PersonaRenderer({
          for (const { name, value } of personaInputValues(state)) {
            riveViewRef.setBooleanInputValue(name, value);
          }
@@ -97804,7 +97959,7 @@ index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46
          riveViewRef.playIfNeeded();
          initialized.current = true;
          if (reducedMotion) {
-@@ -118,7 +132,18 @@ function PersonaRenderer({
+@@ -118,7 +167,18 @@ function PersonaRenderer({
        cancelled = true;
        cancelAnimationFrame(frame);
      };
@@ -97824,7 +97979,7 @@ index f6e65d7ae85cd04f61aa38d52e29d3d2fb88f850..77916a408785dc3582b98835b9666d46
  
    return (
      <View
-@@ -127,11 +152,12 @@ function PersonaRenderer({
+@@ -127,11 +187,12 @@ function PersonaRenderer({
        importantForAccessibility="no-hide-descendants"
        style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
      >
@@ -97999,12 +98154,12 @@ index 148c485d3c9fa713a03434a8c9994adf64f757b2..ac2fa14ac281101926738db1a6bc953f
 +}
 diff --git a/src/components/screen-toolbar.tsx b/src/components/screen-toolbar.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7e6e0e42f
+index 0000000000000000000000000000000000000000..6207c40a01dffaf8b8e67bc67af9fb55485bcb34
 --- /dev/null
 +++ b/src/components/screen-toolbar.tsx
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,83 @@
 +import { HStack, Host, VStack } from '@expo/ui/swift-ui';
-+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
++import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 +import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 +
 +import { TasksButton } from '@/components/tasks-button';
@@ -98013,10 +98168,13 @@ index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7
 +
 +type Props = {
 +  axis: 'row' | 'column';
++  onLayout?: ViewProps['onLayout'];
 +  gaps?: { tools: number; group: number };
 +  style?: StyleProp<AnimatedStyle<ViewStyle>>;
 +  callsOpen: boolean;
 +  tasks: { needs: number; working: number; open: boolean };
++  // On the open Duo settings is a place like Tasks, lit while it's open.
++  settingsOpen?: boolean;
 +  onCalls: () => void;
 +  onTasks: () => void;
 +  onSettings: () => void;
@@ -98028,10 +98186,12 @@ index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7
 +// side column with the two set apart (`gaps` apart, where the column is short).
 +export function ScreenToolbar({
 +  axis,
++  onLayout,
 +  gaps,
 +  style,
 +  callsOpen,
 +  tasks,
++  settingsOpen = false,
 +  onCalls,
 +  onTasks,
 +  onSettings,
@@ -98042,6 +98202,7 @@ index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7
 +  return (
 +    <Animated.View
 +      pointerEvents="box-none"
++      onLayout={onLayout}
 +      style={[styles[axis], gaps && { gap: gaps.tools }, style]}
 +    >
 +      <VoiceControl
@@ -98067,6 +98228,7 @@ index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7
 +            icon="settings"
 +            label="Voice and appearance settings"
 +            testID="voice-settings-button"
++            selected={settingsOpen}
 +            onPress={onSettings}
 +          />
 +        </Group>
@@ -98080,18 +98242,23 @@ index 0000000000000000000000000000000000000000..adbf5ec43a4585ee3a856d27a85d36b7
 +  column: { position: 'absolute', alignItems: 'center', gap: 32 },
 +});
 diff --git a/src/components/selection-carousel.ios.tsx b/src/components/selection-carousel.ios.tsx
-index f01881b29109afa40679f3ba31261c83be3e3458..f57fb77eb08c29e4c5e3ac31fdb4f8e23b9427e2 100644
+index f01881b29109afa40679f3ba31261c83be3e3458..e5d375534ff3ea2f904e5c3919679675cacdf7a3 100644
 --- a/src/components/selection-carousel.ios.tsx
 +++ b/src/components/selection-carousel.ios.tsx
-@@ -2,18 +2,25 @@ import { Column, RNHostView, Spacer, Text } from '@expo/ui';
- import { TabView, ZStack } from '@expo/ui/swift-ui';
+@@ -1,19 +1,27 @@
+-import { Column, RNHostView, Spacer, Text } from '@expo/ui';
+-import { TabView, ZStack } from '@expo/ui/swift-ui';
++import { Column, RNHostView, Row, Spacer, Text } from '@expo/ui';
++import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
  import {
++  accessibilityAddTraits,
    accessibilityLabel,
 +  contentShape,
 +  foregroundStyle,
    frame,
-   indexViewStyle,
+-  indexViewStyle,
 +  onTapGesture,
++  padding,
 +  shapes,
    tabViewStyle,
  } from '@expo/ui/swift-ui/modifiers';
@@ -98109,16 +98276,15 @@ index f01881b29109afa40679f3ba31261c83be3e3458..f57fb77eb08c29e4c5e3ac31fdb4f8e2
    width,
    height = 180,
    preview,
-@@ -37,12 +44,13 @@ export function SelectionCarousel({
+@@ -37,18 +45,18 @@ export function SelectionCarousel({
      );
    }
  
-+  // The pager owns its page and reports each change, which lands halfway through a swipe, so the
-+  // swipe never waits on JavaScript to confirm the page it's already on.
++  // The pager reports each change, which lands halfway through a swipe, and is handed back the page
++  // it's on, so a swipe never waits on JavaScript; a tapped dot hands it another.
    const pager = (
      <TabView
--      selection={value}
-+      defaultSelection={value}
+       selection={value}
        onSelectionChange={(next) => {
 -        if (enabled && next !== value && options.some((option) => option.id === next))
 -          onChange(next);
@@ -98126,6 +98292,13 @@ index f01881b29109afa40679f3ba31261c83be3e3458..f57fb77eb08c29e4c5e3ac31fdb4f8e2
        }}
        testID={testID}
        modifiers={[
+         frame({ width, height: totalHeight }),
+-        tabViewStyle({ type: 'page', indexDisplayMode: 'always' }),
+-        indexViewStyle({ backgroundDisplayMode: 'never' }),
++        tabViewStyle({ type: 'page', indexDisplayMode: 'never' }),
+         accessibilityLabel(label),
+       ]}
+     >
 @@ -59,6 +67,7 @@ export function SelectionCarousel({
              width={width}
              height={totalHeight}
@@ -98134,7 +98307,84 @@ index f01881b29109afa40679f3ba31261c83be3e3458..f57fb77eb08c29e4c5e3ac31fdb4f8e2
              testID={`${testID}-${option.id}`}
            />
          </TabView.Tab>
-@@ -88,12 +97,14 @@ function SelectionPage({
+@@ -66,34 +75,82 @@ export function SelectionCarousel({
+     </TabView>
+   );
+ 
+-  if (!preview) return pager;
++  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground. As
++  // iOS's do, each says which page it is and a tap on one goes there.
++  const dots = (
++    <Row alignment="center" spacing={0} modifiers={[padding({ bottom: (38 - REACH) / 2 })]}>
++      {options.map((option, i) => {
++        const current = option.id === value;
++        return (
++          <Row
++            key={option.id}
++            alignment="center"
++            spacing={0}
++            onPress={current ? undefined : () => onChange(option.id)}
++            modifiers={[
++              frame({ width: DOT * 2, height: REACH }),
++              contentShape(shapes.rectangle()),
++              accessibilityLabel(`${option.label}, ${i + 1} of ${options.length}`),
++              ...(current ? [accessibilityAddTraits(['isSelected'])] : []),
++            ]}
++          >
++            <Circle
++              modifiers={[
++                frame({ width: DOT, height: DOT }),
++                foregroundStyle(current ? theme.text : theme.tertiary),
++              ]}
++            />
++          </Row>
++        );
++      })}
++    </Row>
++  );
+   return (
+-    <ZStack alignment="top" modifiers={[frame({ width, height: totalHeight })]}>
+-      <RNHostView matchContents>
+-        <View
+-          pointerEvents="none"
+-          style={{ width, height: previewHeight, alignItems: 'center', justifyContent: 'center' }}
++    <ZStack alignment="bottom" modifiers={[frame({ width, height: totalHeight })]}>
++      {preview ? (
++        <Column
++          alignment="center"
++          spacing={0}
++          modifiers={[frame({ width, height: totalHeight, alignment: 'top' })]}
+         >
+-          {preview}
+-        </View>
+-      </RNHostView>
++          <RNHostView matchContents>
++            <View
++              pointerEvents="none"
++              style={{
++                width,
++                height: previewHeight,
++                alignItems: 'center',
++                justifyContent: 'center',
++              }}
++            >
++              {preview}
++            </View>
++          </RNHostView>
++        </Column>
++      ) : null}
+       {/* The transparent pager covers the preview, so the entire control swipes. */}
+       {pager}
++      {dots}
+     </ZStack>
+   );
+ }
+ 
++const DOT = 7;
++const REACH = 30;
++
+ function SelectionPage({
+   option,
    width,
    height,
    previewHeight = 0,
@@ -98149,7 +98399,7 @@ index f01881b29109afa40679f3ba31261c83be3e3458..f57fb77eb08c29e4c5e3ac31fdb4f8e2
    testID: string;
  }) {
    return (
-@@ -101,13 +112,20 @@ function SelectionPage({
+@@ -101,13 +158,20 @@ function SelectionPage({
        alignment="center"
        spacing={8}
        style={{ width, height, paddingHorizontal: 16, paddingTop: previewHeight, paddingBottom: 38 }}
@@ -98430,10 +98680,10 @@ index 0000000000000000000000000000000000000000..8b3c592cfe10b309248c719ea74c6906
 +}
 diff --git a/src/components/tasks-pane.tsx b/src/components/tasks-pane.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..816916798a68fc0ab7ffd8f03e4be60ab983dd30
+index 0000000000000000000000000000000000000000..e6f08eef7e9fcd4f9a77b60ac2ed339f6dd4ffa2
 --- /dev/null
 +++ b/src/components/tasks-pane.tsx
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,112 @@
 +import { Host } from '@expo/ui/swift-ui';
 +import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 +import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -98443,6 +98693,7 @@ index 0000000000000000000000000000000000000000..816916798a68fc0ab7ffd8f03e4be60a
 +import { shapeOf, usePages } from '@/components/tasks/pages';
 +import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
 +import type { Page } from '@/screens/layout';
++import { logPose } from '@/screens/pose-log';
 +import { theme } from '@/theme';
 +
 +// Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
@@ -98504,6 +98755,9 @@ index 0000000000000000000000000000000000000000..816916798a68fc0ab7ffd8f03e4be60a
 +  return (
 +    <Animated.View
 +      testID="tasks-page"
++      onLayout={({ nativeEvent: { layout } }) =>
++        logPose('tasks', { ...layout, shape: pages.shape })
++      }
 +      pointerEvents={view.open ? 'auto' : 'none'}
 +      accessibilityElementsHidden={!view.open}
 +      importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
@@ -99526,78 +99780,56 @@ index 0000000000000000000000000000000000000000..61d3fe849e333524470633475d40c5de
 +}
 diff --git a/src/components/tasks/lane.tsx b/src/components/tasks/lane.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..826a0e4c5bbf5922c79f5f286020a0f95494e261
+index 0000000000000000000000000000000000000000..4c9dfa59b9fc875043b01ae7358efcbdfb3609e8
 --- /dev/null
 +++ b/src/components/tasks/lane.tsx
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,53 @@
 +import { Capsule, Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
-+import {
-+  accessibilityHidden,
-+  foregroundStyle,
-+  frame,
-+  offset,
-+  strokeBorder,
-+} from '@expo/ui/swift-ui/modifiers';
++import { accessibilityHidden, foregroundStyle, frame, offset } from '@expo/ui/swift-ui/modifiers';
 +
 +import { laneOf } from '@/live/lane';
-+import { LANE_TICKS, laneX, type Turn } from '@/live/tasks';
++import type { Turn } from '@/live/tasks';
 +import { theme } from '@/theme';
 +
 +const HEIGHT = 9;
 +const BAR = 4;
-+const DOT = 4;
-+const RING = 7;
++// The shortest run is still a bar, never a dot.
++const SHORTEST = 6;
++const FAILED = 5;
 +
-+// A project's last week at a glance: mint where it worked, a grey dot where a run ended (red if it
-+// failed), a mint ring where it last asked for you, and faint ticks an hour and a day back.
++// A project's last week at a glance, on a thin line: mint where it worked, red where a run failed.
++// A quiet project is the line alone.
 +export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; now: number }) {
-+  const { spans, ends, asked } = laneOf(tracks, now, width);
++  const { spans, failures } = laneOf(tracks, now, width);
 +  return (
 +    <ZStack
 +      alignment="leading"
 +      modifiers={[frame({ width, height: HEIGHT }), accessibilityHidden(true)]}
 +    >
 +      <Rectangle modifiers={[frame({ width, height: 1 }), foregroundStyle(theme.edge)]} />
-+      {LANE_TICKS.map((age) => (
-+        <Rectangle
-+          key={`tick:${age}`}
-+          modifiers={[
-+            frame({ width: 1, height: 5 }),
-+            foregroundStyle(theme.edge),
-+            offset({ x: laneX(now - age, now, width) - 0.5 }),
-+          ]}
-+        />
-+      ))}
-+      {spans.map((span) => (
-+        <Capsule
-+          key={`span:${span.from}`}
-+          modifiers={[
-+            frame({ width: Math.max(BAR, span.to - span.from), height: BAR }),
-+            foregroundStyle(theme.accent),
-+            offset({ x: Math.min(span.from, width - BAR) }),
-+          ]}
-+        />
-+      ))}
-+      {ends.map((end) => (
++      {spans.map((span) => {
++        const length = Math.max(SHORTEST, span.to - span.from);
++        return (
++          <Capsule
++            key={`span:${span.from}`}
++            modifiers={[
++              frame({ width: length, height: BAR }),
++              foregroundStyle(theme.accent),
++              offset({ x: Math.min(span.from, width - length) }),
++            ]}
++          />
++        );
++      })}
++      {failures.map((x) => (
 +        <Circle
-+          key={`end:${end.x}`}
++          key={`failed:${x}`}
 +          modifiers={[
-+            frame({ width: DOT, height: DOT }),
-+            foregroundStyle(end.failed ? theme.danger : theme.secondary),
-+            offset({ x: Math.min(end.x, width) - DOT / 2 }),
++            frame({ width: FAILED, height: FAILED }),
++            foregroundStyle(theme.danger),
++            offset({ x: Math.min(x, width - FAILED / 2) - FAILED / 2 }),
 +          ]}
 +        />
 +      ))}
-+      {asked === undefined ? null : (
-+        <Circle
-+          modifiers={[
-+            frame({ width: RING, height: RING }),
-+            foregroundStyle(theme.sheet),
-+            strokeBorder({ content: theme.accent, style: { lineWidth: 1.5 }, shape: 'circle' }),
-+            offset({ x: Math.min(asked, width - RING / 2) - RING / 2 }),
-+          ]}
-+        />
-+      )}
 +    </ZStack>
 +  );
 +}
@@ -102318,10 +102550,10 @@ index 0000000000000000000000000000000000000000..9b3b119b823ddd0ca361c8ee0abe2daf
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee4a1a8fb0
+index 0000000000000000000000000000000000000000..ea40acc2e47a73ba2c7ec4727a29e4a5cdd1d986
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,497 @@
+@@ -0,0 +1,488 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -102371,7 +102603,7 @@ index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee
 +  type Tile,
 +} from '@/live/inbox';
 +import type { TaskId, TaskRow } from '@/live/tasks';
-+import { motion } from '@/motion';
++import { motion, rowsKey } from '@/motion';
 +import type { Fold } from '@/screens/layout';
 +import { theme } from '@/theme';
 +
@@ -102527,10 +102759,11 @@ index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee
 +    setTyping((was) => (on ? level : was === level ? null : was));
 +    if (on) pages.go({ to: 'composerFocused' });
 +  };
++  const moved = rowsKey([...pages.path, pages.task ?? '', pages.stepsOf ?? '']);
 +  const page = (level: Level, children: ReactNode) => {
 +    const at = spot(level);
 +    return (
-+      <PageAt key={level} spot={at} paged={room.paged}>
++      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
 +        <PageChrome.Provider value={chromeOf(at)}>
 +          <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
 +        </PageChrome.Provider>
@@ -102747,51 +102980,41 @@ index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee
 +  );
 +}
 +
-+// On its side partly open, a break across Tasks where the fold is: what scrolls passes under it,
-+// softening into it as under a bar, and it takes the taps there so nothing is pressed in the fold.
++// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
++// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
++// and nowhere else.
 +function Gap({ gap }: { gap: Fold }) {
-+  // The ramp is steps of the ground's own color, so it matches it in either appearance.
-+  const ramp = (rising: boolean) =>
-+    Array.from({ length: STEPS }, (_, i) => (
-+      <Rectangle
-+        key={`${rising}:${i}`}
-+        modifiers={[
-+          frame({ height: SOFT / STEPS }),
-+          frame({ maxWidth: Infinity }),
-+          foregroundStyle(theme.sheet),
-+          opacity((rising ? i + 1 : STEPS - i) / (STEPS + 1)),
-+        ]}
-+      />
-+    ));
 +  return (
-+    <Column
-+      alignment="center"
-+      spacing={0}
++    <Rectangle
 +      modifiers={[
-+        offset({ x: 0, y: gap.at - SOFT }),
++        frame({ height: gap.band }),
 +        frame({ maxWidth: Infinity }),
++        foregroundStyle(theme.sheet),
++        opacity(DIM),
++        offset({ x: 0, y: gap.at }),
 +        accessibilityHidden(true),
 +      ]}
-+    >
-+      {ramp(true)}
-+      <Rectangle
-+        modifiers={[
-+          frame({ height: gap.band }),
-+          frame({ maxWidth: Infinity }),
-+          foregroundStyle(theme.sheet),
-+        ]}
-+      />
-+      {ramp(false)}
-+    </Column>
++    />
 +  );
 +}
 +
-+const SOFT = 16;
-+const STEPS = 8;
++const DIM = 0.7;
 +
 +// On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
 +// covering the page below it.
-+function PageAt({ spot, paged, children }: { spot: Spot; paged: boolean; children: ReactNode }) {
++// A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
++// changes, as the Duo turns, folds or opens.
++function PageAt({
++  spot,
++  paged,
++  moved,
++  children,
++}: {
++  spot: Spot;
++  paged: boolean;
++  moved: number;
++  children: ReactNode;
++}) {
 +  const { frame: size, offset: at, pad } = spot;
 +  return (
 +    <Column
@@ -102804,7 +103027,7 @@ index 0000000000000000000000000000000000000000..4b9f1ff0a802eac9834c7c5b0f5e1aee
 +          : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
 +        ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
 +        offset(at),
-+        animation(motion.page, (at.x + at.y) * 4096 + (size ? size.width + size.maxHeight : 0)),
++        animation(motion.page, moved),
 +        accessibilityHidden(!spot.shown),
 +      ]}
 +    >
@@ -104226,10 +104449,10 @@ index 18e1ea17794f8ff3ed32b73efbc43af88f90fcfe..00000000000000000000000000000000
 -  );
 -}
 diff --git a/src/components/voice-settings.tsx b/src/components/voice-settings.tsx
-index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff7997d98b689 100644
+index b84218e0163ac1e308cc90bad2a6687a999d8861..c71dfe82314cea2c1b1ae7826d0867fd07a0e533 100644
 --- a/src/components/voice-settings.tsx
 +++ b/src/components/voice-settings.tsx
-@@ -1,19 +1,74 @@
+@@ -1,19 +1,79 @@
 -import { BottomSheet, Button, Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
 -import { accessibilityLabel } from '@expo/ui/swift-ui/modifiers';
 +import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
@@ -104268,8 +104491,9 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +  tint,
 +} from '@expo/ui/swift-ui/modifiers';
  import * as Haptics from 'expo-haptics';
- import { useState } from 'react';
+-import { useState } from 'react';
 -import { useWindowDimensions } from 'react-native';
++import { useEffect, useState, type ReactNode } from 'react';
 +import { StyleSheet, View, useWindowDimensions } from 'react-native';
 +import { useSafeAreaInsets } from 'react-native-safe-area-context';
 +import Animated, {
@@ -104278,9 +104502,12 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +  useSharedValue,
 +  withSequence,
 +  withSpring,
++  withTiming,
 +} from 'react-native-reanimated';
  
- import { Persona } from '@/components/persona';
+-import { Persona } from '@/components/persona';
++import { Persona, preloadPersonas } from '@/components/persona';
++import { PageBar } from '@/components/tasks/bar';
  import {
    PERSONA_VARIANTS,
    isPersonaVariant,
@@ -104294,6 +104521,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +import { useVoicePreview } from '@/hooks/use-voice-preview';
  import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 +import { heard, motion } from '@/motion';
++import type { Settings } from '@/screens/layout';
 +import { metrics, theme } from '@/theme';
 +
 +// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
@@ -104304,10 +104532,12 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
  
  type Props = {
 +  sheet: SettingsSheet;
++  // On the open Duo, settings is a place of its own instead of a sheet (see `Settings`).
++  place?: Settings;
    isPresented: boolean;
    onDismiss: () => void;
    voice: LiveVoice;
-@@ -23,11 +78,53 @@ type Props = {
+@@ -23,11 +83,56 @@ type Props = {
    persona: PersonaVariant;
    onPersonaChange: (persona: PersonaVariant) => void;
    personaEnabled: boolean;
@@ -104345,6 +104575,8 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +const VOICE_CAROUSEL = 180;
 +const HEADER_TOP = 14;
 +const HEADER = 44;
++// The bar over the persona's page on the open Duo.
++const BAR = 60;
 +
 +const APPEARANCE_HEIGHT =
 +  SHEET_TOP +
@@ -104359,10 +104591,11 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
  
  export function VoiceSettings({
 +  sheet,
++  place,
    isPresented,
    onDismiss,
    voice,
-@@ -37,118 +134,326 @@ export function VoiceSettings({
+@@ -37,119 +142,474 @@ export function VoiceSettings({
    persona,
    onPersonaChange,
    personaEnabled,
@@ -104379,17 +104612,28 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +  // own measurement, and one held to a width we pick gets capped by the system narrower than its
 +  // content, or the window's width runs under iPhone Duo's side column.
 +  const [given, setGiven] = useState<number>();
-+  const width = given ?? 0;
++  // On the open Duo the persona has the first page and the rows the second, so the rows lay out to
++  // the second page's width and the persona to the first's.
++  const pages = place && pagesOf(place);
++  const width = pages ? pages.second.width : (given ?? 0);
 +  const room = window.height - insets.top - SHEET_GAP;
 +  const beside =
-+    width >= BESIDE.from ||
-+    (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW);
++    !pages &&
++    (width >= BESIDE.from ||
++      (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
 +  const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-+  const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
++  const carouselWidth = pages
++    ? Math.min(pages.first.width - 2 * metrics.gutter, BESIDE.carousel + 80)
++    : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
 +  const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-+  const preview = beside
-+    ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
-+    : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
++  const preview = pages
++    ? Math.max(
++        SHORT_PREVIEW,
++        Math.min(BESIDE.preview, pages.first.height - PERSONA_PAGE - BAR - SHEET_TOP),
++      )
++    : beside
++      ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
++      : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
 +  const appearanceHeight = beside
 +    ? Math.min(BESIDE.height, room)
 +    : APPEARANCE_HEIGHT - ORB + preview;
@@ -104399,7 +104643,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +  const detents = phone
 +    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
 +    : [{ height: appearanceHeight }];
-+  const orbSize = Math.min(beside ? BESIDE.orb : PREVIEW_ORB, preview - 30);
++  const orbSize = Math.min(beside || pages ? BESIDE.orb : PREVIEW_ORB, preview - 30);
 +  const [onVoicePage, setOnVoicePage] = useState(false);
 +  const [take, setTake] = useState(0);
    const selectedVoice = VOICES.find((option) => option.id === voice)!;
@@ -104426,11 +104670,11 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +
 +  const haptic = (enabled = preferences.haptics) => {
 +    if (ios && enabled) void Haptics.selectionAsync();
-   };
++  };
 +  const showVoices = (show: boolean) => {
 +    haptic();
 +    setOnVoicePage(show);
-+  };
+   };
 +  // The voice page slides in from the right edge while the first page drifts a third of the way
 +  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
 +  // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
@@ -104445,11 +104689,33 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +    accessibilityHidden(!shown),
 +  ];
 +
++  // On the open Duo's second page, the rows and the voices push over each other the same way, each
++  // as tall as the page lets it be.
++  // On its side the rows start just past the fold; held wide they sit midway down their page.
++  const slide = (shown: boolean, away: number) => [
++    frame({
++      maxWidth: Infinity,
++      maxHeight: Infinity,
++      alignment: place?.split.axis === 'column' ? 'top' : 'center',
++    }),
++    background(theme.sheet),
++    offset({ x: shown ? 0 : away }),
++    animation(motion.page, onVoicePage),
++    accessibilityHidden(!shown),
++  ];
++  useEffect(() => {
++    if (isPresented) preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
++  }, [isPresented]);
++  // Leaving settings there leaves the voices too, as dismissing the sheet does.
++  useEffect(() => {
++    if (!isPresented) setOnVoicePage(false);
++  }, [isPresented]);
++
 +  const carousel = (
 +    <SelectionCarousel
 +      options={PERSONA_VARIANTS}
 +      value={persona}
-+      width={beside ? carouselWidth : contentWidth}
++      width={beside || pages ? carouselWidth : contentWidth}
 +      height={PERSONA_PAGE}
 +      preview={
 +        isPresented ? (
@@ -104553,6 +104819,82 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +      </Group>
 +    </>
 +  );
++
++  const voices = (
++    <>
++      <Row
++        alignment="center"
++        spacing={0}
++        style={{ width: contentWidth, height: HEADER }}
++        modifiers={[padding({ top: HEADER_TOP })]}
++      >
++        <NativeButton
++          label="Back"
++          systemImage="chevron.left"
++          onPress={() => showVoices(false)}
++          testID="voice-back"
++          modifiers={[
++            labelStyle('iconOnly'),
++            buttonStyle('glass'),
++            buttonBorderShape('circle'),
++            controlSize('large'),
++          ]}
++        />
++        <Spacer flexible />
++        <Text
++          textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
++          modifiers={[foregroundStyle(theme.text)]}
++        >
++          Voice
++        </Text>
++        <Spacer flexible />
++        <Spacer style={{ width: HEADER }} />
++      </Row>
++      <SelectionCarousel
++        options={voiceOptions}
++        value={voice}
++        width={contentWidth}
++        height={VOICE_CAROUSEL}
++        enabled={voiceEnabled}
++        disabledHint={
++          voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
++        }
++        label="Voice"
++        testID="voice-carousel"
++        onPress={() => setTake((count) => count + 1)}
++        onChange={(next) => {
++          if (!voiceEnabled || !isLiveVoice(next)) return;
++          haptic();
++          onVoiceChange(next);
++        }}
++      />
++    </>
++  );
++
++  if (pages && place)
++    return (
++      <SettingsPlace place={place} pages={pages} shown={isPresented} onBack={onDismiss}>
++        {carousel}
++        <ZStack
++          alignment="center"
++          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity }), clipped()]}
++        >
++          <Column
++            alignment="center"
++            spacing={metrics.groupSpacing}
++            modifiers={[
++              ...(place.split.axis === 'row' ? [] : [padding({ top: SHEET_TOP })]),
++              ...slide(!onVoicePage, -pages.second.width / 3),
++            ]}
++          >
++            {rows}
++          </Column>
++          <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, pages.second.width)}>
++            {voices}
++          </Column>
++        </ZStack>
++      </SettingsPlace>
++    );
  
    return (
 -    <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
@@ -104736,52 +105078,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
 +                spacing={0}
 +                modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
 +              >
-+                <Row
-+                  alignment="center"
-+                  spacing={0}
-+                  style={{ width: contentWidth, height: HEADER }}
-+                  modifiers={[padding({ top: HEADER_TOP })]}
-+                >
-+                  <NativeButton
-+                    label="Back"
-+                    systemImage="chevron.left"
-+                    onPress={() => showVoices(false)}
-+                    testID="voice-back"
-+                    modifiers={[
-+                      labelStyle('iconOnly'),
-+                      buttonStyle('glass'),
-+                      buttonBorderShape('circle'),
-+                      controlSize('large'),
-+                    ]}
-+                  />
-+                  <Spacer flexible />
-+                  <Text
-+                    textStyle={{ fontSize: metrics.body, fontWeight: '600' }}
-+                    modifiers={[foregroundStyle(theme.text)]}
-+                  >
-+                    Voice
-+                  </Text>
-+                  <Spacer flexible />
-+                  <Spacer style={{ width: HEADER }} />
-+                </Row>
-+                <SelectionCarousel
-+                  options={voiceOptions}
-+                  value={voice}
-+                  width={contentWidth}
-+                  height={VOICE_CAROUSEL}
-+                  enabled={voiceEnabled}
-+                  disabledHint={
-+                    voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
-+                  }
-+                  label="Voice"
-+                  testID="voice-carousel"
-+                  onPress={() => setTake((count) => count + 1)}
-+                  onChange={(next) => {
-+                    if (!voiceEnabled || !isLiveVoice(next)) return;
-+                    haptic();
-+                    onVoiceChange(next);
-+                  }}
-+                />
++                {voices}
 +              </Column>
 +            )}
 +          </ZStack>
@@ -104789,6 +105086,90 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..2cffe41ac183ff7ca47ac1bf1e5ff799
        </BottomSheet>
      </Host>
    );
+ }
++
++// The open Duo's settings pages: how wide and tall the persona's (first) and the rows' (second)
++// are, either side of the fold's band.
++function pagesOf({ area, split }: Settings) {
++  const row = split.axis === 'row';
++  const rest = (row ? area.width : area.height) - split.at - split.band;
++  return {
++    first: row ? { width: split.at, height: area.height } : { width: area.width, height: split.at },
++    second: row ? { width: rest, height: area.height } : { width: area.width, height: rest },
++  };
++}
++
++// Settings on the open Duo, over the call where Tasks would be: the persona on the first page under
++// a bar back to the call, the rows on the second, meeting at the fold flat and parting around it
++// partly open. It fades in where it sits, never moved by a transform (its Host would keep telling
++// accessibility where it started).
++function SettingsPlace({
++  place: { area, split },
++  pages,
++  shown,
++  onBack,
++  children: [persona, second],
++}: {
++  place: Settings;
++  pages: ReturnType<typeof pagesOf>;
++  shown: boolean;
++  onBack: () => void;
++  children: [ReactNode, ReactNode];
++}) {
++  const fade = useAnimatedStyle(() => ({
++    opacity: withTiming(shown ? 1 : 0, { duration: motion.toolbar }),
++  }));
++  const Pages = split.axis === 'row' ? Row : Column;
++  return (
++    <Animated.View
++      testID="settings-place"
++      pointerEvents={shown ? 'auto' : 'none'}
++      accessibilityElementsHidden={!shown}
++      importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
++      style={[
++        { position: 'absolute', left: area.x, top: area.y, width: area.width, height: area.height },
++        { backgroundColor: theme.sheet },
++        fade,
++      ]}
++    >
++      <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
++        <Pages
++          alignment="start"
++          spacing={split.band}
++          modifiers={[
++            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
++            accessibilityElement('contain'),
++            accessibilityIdentifier('voice-settings-sheet'),
++          ]}
++        >
++          <Column
++            alignment="center"
++            spacing={0}
++            modifiers={[
++              frame({ width: pages.first.width }),
++              frame({ maxHeight: pages.first.height, alignment: 'top' }),
++            ]}
++          >
++            <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
++            <Spacer flexible />
++            {persona}
++            <Spacer flexible />
++          </Column>
++          <Column
++            alignment="center"
++            spacing={0}
++            modifiers={[
++              frame({ width: pages.second.width }),
++              frame({ maxHeight: pages.second.height, alignment: 'top' }),
++            ]}
++          >
++            {second}
++          </Column>
++        </Pages>
++      </Host>
++    </Animated.View>
++  );
++}
 diff --git a/src/components/voice-settings.web.tsx b/src/components/voice-settings.web.tsx
 deleted file mode 100644
 index b45322acc909ffd9c75d87ed9df075ee225890dd..0000000000000000000000000000000000000000
@@ -107651,42 +108032,32 @@ index 0000000000000000000000000000000000000000..89ebb47d8ae92b24466a7850a4657553
 +}
 diff --git a/src/live/lane.ts b/src/live/lane.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..025963d08c004f86d812b74c746dfbf7e28c9a3f
+index 0000000000000000000000000000000000000000..c6a3758f57e106c99cafc021623ebb47c68a8532
 --- /dev/null
 +++ b/src/live/lane.ts
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,42 @@
 +import { laneX, type Turn } from './tasks';
 +
-+// A project's last week as one lane `width` wide, now at the right: when any of its threads worked
-+// (`spans`), where each run ended (`ends`, failed ones marked), and when it last asked for you
-+// (`asked`). All its threads share the one lane, so stretches that touch merge and marks too close
-+// to tell apart keep only the newest, and nothing ever draws over anything else.
-+export type Lane = {
-+  spans: { from: number; to: number }[];
-+  ends: { x: number; failed: boolean }[];
-+  asked?: number;
-+};
++// A project's last week as one lane `width` wide, now at the right, with two kinds of mark: when
++// any of its threads worked (`spans`) and where a run failed (`failures`). All its threads share
++// the one lane, so stretches close enough to read as one merge, and failures too close to tell
++// apart keep the newest.
++export type Lane = { spans: { from: number; to: number }[]; failures: number[] };
 +
-+// Closer than this, two stretches read as one and two marks as a smudge.
-+const JOIN = 3;
++const JOIN = 5;
 +const APART = 7;
 +
 +export function laneOf(tracks: Turn[][], now: number, width: number): Lane {
 +  const x = (at: string) => laneX(Date.parse(at), now, width);
 +  const spans: Lane['spans'] = [];
-+  const ends: Lane['ends'] = [];
-+  let asked: number | undefined;
++  const failures: number[] = [];
 +  for (const track of tracks)
 +    track.forEach((turn, i) => {
-+      const from = x(turn.at);
 +      const next = track[i + 1];
-+      if (turn.state === 'working') spans.push({ from, to: next ? x(next.at) : width });
-+      else if (turn.state === 'needs' && track[i - 1]?.state !== 'needs')
-+        asked = Math.max(asked ?? -Infinity, from);
-+      else if (turn.state === 'done' || turn.state === 'failed')
-+        ends.push({ x: from, failed: turn.state === 'failed' });
++      if (turn.state === 'working') spans.push({ from: x(turn.at), to: next ? x(next.at) : width });
++      else if (turn.state === 'failed') failures.push(x(turn.at));
 +    });
-+  return { spans: merged(spans), ends: apart(ends, asked), asked };
++  return { spans: merged(spans), failures: apart(failures) };
 +}
 +
 +function merged(spans: Lane['spans']) {
@@ -107699,18 +108070,11 @@ index 0000000000000000000000000000000000000000..025963d08c004f86d812b74c746dfbf7
 +  return out;
 +}
 +
-+// Newest first, each mark keeps clear of the one after it and of the ask's ring.
-+function apart(ends: Lane['ends'], asked?: number) {
-+  const out: Lane['ends'] = [];
-+  for (const end of [...ends].sort((a, b) => b.x - a.x)) {
-+    const near = (x: number) => Math.abs(x - end.x) < APART;
-+    if (asked !== undefined && near(asked)) continue;
++function apart(xs: number[]) {
++  const out: number[] = [];
++  for (const x of [...xs].sort((a, b) => b - a)) {
 +    const last = out.at(-1);
-+    if (last && near(last.x)) {
-+      if (end.failed) last.failed = true;
-+      continue;
-+    }
-+    out.push({ ...end });
++    if (last === undefined || last - x >= APART) out.push(x);
 +  }
 +  return out;
 +}
@@ -109198,10 +109562,10 @@ index 0000000000000000000000000000000000000000..a6a86aad96738ff54e3fb57ab45c69af
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..bf9590dff1cf8105f484d0e16f1343ba439e1712
+index 0000000000000000000000000000000000000000..3d47537b37404ff9adb91876f64a9f266502dd3c
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,680 @@
+@@ -0,0 +1,700 @@
 +import type { Pose, Rect, Region } from '../../modules/pose';
 +
 +export const GUTTER = 24;
@@ -109289,6 +109653,7 @@ index 0000000000000000000000000000000000000000..bf9590dff1cf8105f484d0e16f1343ba
 +// (`typing`), the way a laptop keeps what you write above its keys.
 +export type Duo = {
 +  tasks: Page;
++  settings?: Settings;
 +  beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
 +  call: {
 +    orb: Required<Spot>;
@@ -109296,6 +109661,12 @@ index 0000000000000000000000000000000000000000..bf9590dff1cf8105f484d0e16f1343ba
 +    controls?: { right: number; top: number };
 +  };
 +};
++
++// Settings on the open Duo is a place of its own over the call, like Tasks, not a sheet: iOS moves
++// a sheet off an active fold, and the layout follows the screen, not the fold. Its two pages, the
++// persona's and the rows', sit beside each other held wide and one over the other on its side,
++// the first `at` long, then the fold's band: none open flat, its whole frame partly open.
++export type Settings = { area: Rect; split: { axis: 'row' | 'column'; at: number; band: number } };
 +
 +// Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 +// buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
@@ -109374,7 +109745,10 @@ index 0000000000000000000000000000000000000000..bf9590dff1cf8105f484d0e16f1343ba
 +        : single(frame);
 +  if (!pose.bar && !fold) return layout;
 +  const before = fold && wordsBefore(frame, layout, fold);
-+  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
++  const placed = frame.column
++    ? besideColumn(frame, frame.column, before)
++    : belowBand(frame, before);
++  const duo = fold ? { ...placed, settings: settingsOf(placed.tasks.area, fold) } : placed;
 +  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
 +  const calls = frame.column
 +    ? layout.calls
@@ -109882,11 +110256,21 @@ index 0000000000000000000000000000000000000000..bf9590dff1cf8105f484d0e16f1343ba
 +  const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
 +  return { fold, words: { ...words, top: frame.top + 12, raise } };
 +}
++
++function settingsOf(area: Rect, fold: Rect): Settings {
++  return {
++    area,
++    split:
++      fold.height > fold.width
++        ? { axis: 'row', at: fold.x - area.x, band: fold.width }
++        : { axis: 'column', at: fold.y - area.y, band: fold.height },
++  };
++}
 diff --git a/src/screens/live-screen.tsx b/src/screens/live-screen.tsx
-index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667d4cd6d3f 100644
+index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b4d25acad 100644
 --- a/src/screens/live-screen.tsx
 +++ b/src/screens/live-screen.tsx
-@@ -1,157 +1,1175 @@
+@@ -1,120 +1,1070 @@
  import * as Haptics from 'expo-haptics';
 -import { useState } from 'react';
 -import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -109965,6 +110349,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +import { heard, motion } from '@/motion';
 +import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 +import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
++import { logPose, startPoseLog } from '@/screens/pose-log';
 +import { orbRest } from '@/screens/orb-rest';
 +import { metrics, radius, theme } from '@/theme';
 +import { PoseView, type Pose } from '../../modules/pose';
@@ -109989,10 +110374,14 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +  reportPose: boolean;
 +};
 +
-+// The screen lays itself out for the device's pose, so it waits for the first one. A phone stays
-+// upright as it always has; iPad and iPhone Duo turn to fit however they're held.
++// The screen lays itself out for the device's pose and the size it's drawn at, so it waits for the
++// first of each. The size is the screen's own, as laid out: React Native's window size can report
++// another screen's for a moment while iPhone Duo unfolds, and the call screen would lay out for the
++// cover across the open screen. A phone stays upright as it always has; iPad and iPhone Duo turn
++// to fit however they're held.
 +export default function LiveScreen({ opening }: { opening: Opening }) {
 +  const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
++  const [size, setSize] = useState<Size>();
 +  const upright = pose && !PAD && !pose.bar && !pose.fold;
 +  useEffect(() => {
 +    if (upright === undefined) return;
@@ -110001,7 +110390,16 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +      : ScreenOrientation.unlockAsync());
 +  }, [upright]);
 +  return (
-+    <View style={styles.root}>
++    <View
++      style={styles.root}
++      onLayout={({ nativeEvent: { layout } }) =>
++        setSize((was) =>
++          was?.width === layout.width && was.height === layout.height
++            ? was
++            : { width: layout.width, height: layout.height },
++        )
++      }
++    >
 +      {PoseView && (
 +        <PoseView
 +          style={StyleSheet.absoluteFill}
@@ -110010,23 +110408,29 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          }
 +        />
 +      )}
-+      {pose && opening.reportPose && <PoseReport pose={pose} />}
-+      {pose && <CallScreen pose={pose} opening={opening} />}
++      {pose && size && opening.reportPose && <PoseReport pose={pose} size={size} />}
++      {pose && size && <CallScreen pose={pose} size={size} opening={opening} />}
 +    </View>
 +  );
 +}
 +
-+// Writes the window, safe area and pose to the app's defaults (HexPose), where scripts/duo reads them.
-+function PoseReport({ pose }: { pose: Pose }) {
++// Writes the window, the size the screen lays out at, the safe area and the pose to the app's
++// defaults (HexPose), where scripts/duo reads them, and starts the timed log of them and of where
++// the screen's parts were laid out (HexPoseLog), so a check can see what changed between shots.
++function PoseReport({ pose, size }: { pose: Pose; size: Size }) {
 +  const window = useWindowDimensions();
 +  const insets = useSafeAreaInsets();
++  useEffect(startPoseLog, []);
 +  useEffect(() => {
-+    Settings.set({ HexPose: JSON.stringify({ window, insets, pose }) });
-+  }, [window, insets, pose]);
++    Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose }) });
++    logPose('pose', { window, size, insets, pose });
++  }, [window, size, insets, pose]);
 +  return null;
 +}
 +
-+function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
++type Size = { width: number; height: number };
++
++function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; opening: Opening }) {
 +  const session = useLiveSession(opening.demoCall);
    const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
    const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
@@ -110038,8 +110442,9 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +  const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
 +  const counts = useTaskCounts();
    const insets = useSafeAreaInsets();
-   const { width, height } = useWindowDimensions();
-+  const layout = screenLayout({ width, height }, insets, pose);
+-  const { width, height } = useWindowDimensions();
++  const { width, height } = screen;
++  const layout = screenLayout(screen, insets, pose);
 +  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
 +  const split = layout.kind === 'split';
 +  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
@@ -110414,9 +110819,9 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +  // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
 +  // begins, unless Calls starts below it, which leaves the band whole.
 +  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
++  // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
++  // moves with Calls and Tasks.
 +  const toolbarStyle = useAnimatedStyle(() => {
-+    if (toolbar.axis === 'column')
-+      return { left: toolbar.x, right: width - toolbar.x - toolbar.width };
 +    const d = drawer.get();
 +    const slid = list.place === 'slide' ? d * list.width : 0;
 +    const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
@@ -110628,7 +111033,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +  // A sheet steps aside for the call it starts; a pane stays open beside it.
 +  const stepAside = () => {
 +    if (!panes) setTasksOpen(false);
-+  };
+   };
 +  // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
 +  const talkAbout = (task: TaskRow) => {
 +    stepAside();
@@ -110648,7 +111053,19 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          calls.remove(shown.id);
 +        }
 +      : undefined;
-+
+ 
+-  return (
+-    <View style={styles.screen}>
+-      <View accessible accessibilityLabel={status} style={styles.center}>
+-        <Persona variant={variant} state={personaState} size={personaSize} />
+-      </View>
+-      <View style={[styles.toolbar, { top: insets.top + 12 }]}>
+-        <VoiceControl
+-          icon="captions"
+-          label="Show transcript"
+-          testID="transcript-button"
+-          onPress={() => setSheet('transcript')}
+-          size={48}
 +  // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
 +  const goThrough = () => {
 +    stepAside();
@@ -110710,7 +111127,13 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +            if (id === viewing) leaveCall();
 +            calls.remove(id);
 +          }}
-+        />
+         />
+-        <VoiceControl
+-          icon="settings"
+-          label="Voice and appearance settings"
+-          testID="voice-settings-button"
+-          onPress={() => setSheet('settings')}
+-          size={48}
 +      </Animated.View>
 +    </GestureDetector>
 +  );
@@ -110722,20 +111145,9 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +    onTalk: talkAbout,
 +    onGoThrough: goThrough,
 +    onOpenCall: openCallFromTasks,
-   };
- 
-   return (
--    <View style={styles.screen}>
--      <View accessible accessibilityLabel={status} style={styles.center}>
--        <Persona variant={variant} state={personaState} size={personaSize} />
--      </View>
--      <View style={[styles.toolbar, { top: insets.top + 12 }]}>
--        <VoiceControl
--          icon="captions"
--          label="Show transcript"
--          testID="transcript-button"
--          onPress={() => setSheet('transcript')}
--          size={48}
++  };
++
++  return (
 +    <>
 +      {sidebar}
 +      {panes && !duo && (
@@ -110746,19 +111158,54 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          width={paneWidth}
 +          style={paneStyle}
          />
--        <VoiceControl
--          icon="settings"
--          label="Voice and appearance settings"
--          testID="voice-settings-button"
--          onPress={() => setSheet('settings')}
--          size={48}
+-      </View>
+-      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 20) + 14 }]}>
+-        {session.error && (
+-          <Text accessibilityRole="alert" style={styles.error}>
+-            {session.error}
+-          </Text>
+-        )}
+-        <View style={styles.controls}>
+-          <VoiceControl
+-            icon={session.muted ? 'mic-off' : 'mic'}
+-            label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
+-            testID="session-mute-button"
+-            disabled={!connected}
+-            selected={session.muted}
+-            size={60}
+-            onPress={() => {
+-              if (process.env.EXPO_OS === 'ios') void Haptics.selectionAsync();
+-              session.toggleMute();
+-            }}
+-          />
+-          <VoiceControl
+-            icon={connected || connecting ? 'close' : 'waveform'}
+-            label={
+-              disconnecting
+-                ? 'Ending conversation'
+-                : connecting
+-                  ? 'Cancel connection'
+-                  : connected
+-                    ? 'End conversation'
+-                    : session.error
+-                      ? 'Retry conversation'
+-                      : 'Start conversation'
+-            }
+-            testID="session-primary-button"
+-            prominent
+-            size={64}
+-            loading={connecting || disconnecting}
+-            disabled={disconnecting || !voiceLoaded}
+-            onPress={onPrimaryPress}
 +      )}
 +      <Animated.View style={[styles.card, cardStyle]}>
 +        {duo && (
 +          <Animated.View
 +            pointerEvents="none"
 +            style={[styles.fill, styles.backdrop, backdropStyle]}
-+          />
+           />
+-        </View>
+-      </View>
 +        )}
 +        <Animated.View style={[styles.stage, { width }, stageStyle]}>
 +          <GestureDetector gesture={screenDrag}>
@@ -110937,80 +111384,11 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          )}
 +        </Animated.View>
 +        {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
-+        <VoiceSettings
-+          sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
-+          isPresented={settingsOpen}
-+          onDismiss={() => setSettingsOpen(false)}
-+          voice={voice}
-+          onVoiceChange={setVoice}
-+          voiceEnabled={voiceLoaded && !voiceLocked}
-+          voiceLocked={voiceLocked}
-+          persona={variant}
-+          onPersonaChange={setVariant}
-+          personaEnabled={personaLoaded}
-+          preferences={preferences}
-         />
--      </View>
--      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 20) + 14 }]}>
--        {session.error && (
--          <Text accessibilityRole="alert" style={styles.error}>
--            {session.error}
--          </Text>
 +        {!drawerOpen && !(duo && tasksOpen) && (
 +          <GestureDetector gesture={edgeOpen}>
 +            <View style={[styles.edge, { left: layout.content.x }]} />
 +          </GestureDetector>
-         )}
--        <View style={styles.controls}>
--          <VoiceControl
--            icon={session.muted ? 'mic-off' : 'mic'}
--            label={session.muted ? 'Unmute microphone' : 'Mute microphone'}
--            testID="session-mute-button"
--            disabled={!connected}
--            selected={session.muted}
--            size={60}
--            onPress={() => {
--              if (process.env.EXPO_OS === 'ios') void Haptics.selectionAsync();
--              session.toggleMute();
--            }}
--          />
--          <VoiceControl
--            icon={connected || connecting ? 'close' : 'waveform'}
--            label={
--              disconnecting
--                ? 'Ending conversation'
--                : connecting
--                  ? 'Cancel connection'
--                  : connected
--                    ? 'End conversation'
--                    : session.error
--                      ? 'Retry conversation'
--                      : 'Start conversation'
--            }
--            testID="session-primary-button"
--            prominent
--            size={64}
--            loading={connecting || disconnecting}
--            disabled={disconnecting || !voiceLoaded}
--            onPress={onPrimaryPress}
--          />
--        </View>
--      </View>
--      <VoiceSettings
--        isPresented={sheet === 'settings'}
--        onDismiss={() => setSheet(null)}
--        voice={voice}
--        onVoiceChange={setVoice}
--        voiceEnabled={voiceLoaded && !voiceLocked}
--        voiceLocked={voiceLocked}
--        persona={variant}
--        onPersonaChange={setVariant}
--        personaEnabled={personaLoaded}
--      />
--      <TranscriptSheet
--        isPresented={sheet === 'transcript'}
--        onDismiss={() => setSheet(null)}
--        entries={session.transcript}
++        )}
 +        {drawerOpen && list.place !== 'beside' && (
 +          <GestureDetector gesture={peekClose}>
 +            <View
@@ -111030,6 +111408,26 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          pane={pane}
 +        />
 +      )}
+       <VoiceSettings
+-        isPresented={sheet === 'settings'}
+-        onDismiss={() => setSheet(null)}
++        sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
++        place={duo?.settings}
++        isPresented={settingsOpen}
++        onDismiss={() => setSettingsOpen(false)}
+         voice={voice}
+         onVoiceChange={setVoice}
+         voiceEnabled={voiceLoaded && !voiceLocked}
+@@ -122,36 +1072,139 @@ export default function LiveScreen() {
+         persona={variant}
+         onPersonaChange={setVariant}
+         personaEnabled={personaLoaded}
++        preferences={preferences}
+       />
+-      <TranscriptSheet
+-        isPresented={sheet === 'transcript'}
+-        onDismiss={() => setSheet(null)}
+-        entries={session.transcript}
 +      {duo?.call.controls && inRow
 +        ? callControls({
 +            sizes: { mute: TOOL, call: TOOL, gap: GAP },
@@ -111041,14 +111439,28 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..9e45e4585c8883cae17e7f8a4b4c3667
 +          })
 +        : null}
 +      <ScreenToolbar
++        onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
 +        axis={toolbar.axis}
 +        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-+        style={[{ top: toolbar.y }, toolbarStyle]}
++        style={[
++          { top: toolbar.y },
++          toolbar.axis === 'column'
++            ? { left: toolbar.x, right: width - toolbar.x - toolbar.width }
++            : toolbarStyle,
++        ]}
 +        callsOpen={drawerOpen}
 +        tasks={{ ...counts, open: tasksOpen }}
-+        onCalls={toggleDrawer}
-+        onTasks={toggleTasks}
-+        onSettings={() => setSettingsOpen(true)}
++        settingsOpen={!!duo?.settings && settingsOpen}
++        onCalls={() => {
++          setSettingsOpen(false);
++          toggleDrawer();
++        }}
++        onTasks={() => {
++          setSettingsOpen(false);
++          toggleTasks();
++        }}
++        // On the open Duo settings is a place like Tasks, so its button opens and closes it.
++        onSettings={() => setSettingsOpen((open) => (duo?.settings ? !open : true))}
        />
 -    </View>
 +      {controlsColumn && controls}
@@ -111180,6 +111592,29 @@ index 0000000000000000000000000000000000000000..87f893fc410c0d60ab9181fc31534183
 +  const half = (size * scale) / 2;
 +  const y = Math.min(Math.max(center, room.top + MARGIN + half), room.bottom - MARGIN - half);
 +  return { y, scale };
++}
+diff --git a/src/screens/pose-log.ts b/src/screens/pose-log.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..f8fdfac3c5698ec1eaba28ca79f90fffb1c1bebd
+--- /dev/null
++++ b/src/screens/pose-log.ts
+@@ -0,0 +1,17 @@
++import { Settings } from 'react-native';
++
++// What the screen saw and laid out, with the time of each, for scripts/duo's checks to line up
++// against their shots (HexPoseLog). It records only once a check asks for the pose report.
++const KEPT = 60;
++let entries: object[] = [];
++let recording = false;
++
++export function startPoseLog() {
++  recording = true;
++}
++
++export function logPose(what: string, data: object) {
++  if (!recording) return;
++  entries = [...entries.slice(-(KEPT - 1)), { at: Date.now(), what, ...data }];
++  Settings.set({ HexPoseLog: JSON.stringify(entries) });
 +}
 diff --git a/src/server/close-session.ts b/src/server/close-session.ts
 deleted file mode 100644
@@ -116221,10 +116656,10 @@ index 0000000000000000000000000000000000000000..79956cae692676e314f3790bcfd880dd
 +});
 diff --git a/tests/lane.test.ts b/tests/lane.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7d3c421105906bf2bcce4c80f6e070025bb5c1a1
+index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a784e8e970e
 --- /dev/null
 +++ b/tests/lane.test.ts
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,33 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -116235,42 +116670,35 @@ index 0000000000000000000000000000000000000000..7d3c421105906bf2bcce4c80f6e07002
 +const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
 +const turn = (minutes: number, state: Turn['state']): Turn => ({ at: ago(minutes), state });
 +
-+test('a project’s threads share one lane: touching work merges, and no two marks crowd', () => {
++test('a lane has two kinds of mark: where its threads worked, and where a run failed', () => {
 +  const lane = laneOf(
 +    [
 +      [turn(30, 'working'), turn(20, 'done'), turn(19.9, 'working'), turn(10, 'done')],
-+      [turn(25, 'working'), turn(10.05, 'failed')],
++      [turn(25, 'working'), turn(12, 'failed'), turn(11.9, 'needs')],
 +    ],
 +    NOW,
 +    120,
 +  );
-+  assert.equal(lane.spans.length, 1, 'overlapping work from two threads is one stretch');
-+  for (const [i, end] of lane.ends.entries())
-+    for (const other of lane.ends.slice(i + 1))
-+      assert.ok(Math.abs(end.x - other.x) >= 7, 'marks keep apart');
-+  assert.ok(
-+    lane.ends.some((end) => end.failed),
-+    'a failure folded into a nearby mark still shows',
-+  );
++  assert.equal(lane.spans.length, 1, 'work from two threads that touches is one stretch');
++  assert.equal(lane.failures.length, 1, 'the failure is its one other mark');
++  assert.deepEqual(Object.keys(lane).sort(), ['failures', 'spans']);
 +});
 +
-+test('the ring marks only the newest time it asked, and nothing sits on it', () => {
-+  const lane = laneOf(
-+    [[turn(600, 'needs'), turn(500, 'working'), turn(5, 'done'), turn(4.9, 'needs')]],
-+    NOW,
-+    120,
-+  );
-+  assert.ok(lane.asked !== undefined && lane.asked > 100, 'the latest ask, near now');
-+  assert.ok(lane.ends.every((end) => Math.abs(end.x - lane.asked!) >= 7));
-+  const idle = laneOf([[turn(60, 'idle')]], NOW, 120);
-+  assert.deepEqual(idle, { spans: [], ends: [], asked: undefined });
++test('failures too close to tell apart keep the newest, and a quiet project is the line alone', () => {
++  const lane = laneOf([[turn(10, 'failed'), turn(9.99, 'failed'), turn(600, 'failed')]], NOW, 120);
++  for (const [i, x] of lane.failures.entries())
++    for (const other of lane.failures.slice(i + 1)) assert.ok(Math.abs(x - other) >= 7);
++  assert.deepEqual(laneOf([[turn(60, 'idle'), turn(30, 'done')]], NOW, 120), {
++    spans: [],
++    failures: [],
++  });
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..9fc5e9d10c483cd1288f6ca18dfb9517cf192f96
+index 0000000000000000000000000000000000000000..fcf218a43f1233e21501c60fb3d2fd243e5c4fa7
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,593 @@
+@@ -0,0 +1,613 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -116863,6 +117291,26 @@ index 0000000000000000000000000000000000000000..9fc5e9d10c483cd1288f6ca18dfb9517
 +    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
 +    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
 +  }
++});
++
++test('on the open Duo settings is a place whose two pages part only around the fold', () => {
++  const at = (name: keyof typeof duo) => {
++    const { window, insets, pose } = duo[name];
++    return screenLayout(window, insets, pose).duo?.settings;
++  };
++  const flat = at('open upright')!;
++  const folded = at('partly open upright')!;
++  assert.deepEqual(folded.area, flat.area, 'the same room flat and folded');
++  assert.deepEqual(flat.split, { axis: 'row', at: 475.5, band: 0 });
++  assert.equal(folded.split.axis, 'row');
++  assert.equal(folded.split.at + folded.split.band / 2, 475.5, 'parting evenly about the hinge');
++  const side = at('open on its side')!;
++  const sideFolded = at('partly open on its side')!;
++  assert.deepEqual(sideFolded.area, side.area);
++  assert.equal(side.split.axis, 'column', 'on its side, one over the other');
++  assert.equal(side.split.band, 0);
++  assert.equal(sideFolded.split.band, 40);
++  assert.equal(at('folded upright'), undefined, 'folded, settings stays the phone’s sheet');
 +});
 diff --git a/tests/lint.test.ts b/tests/lint.test.ts
 new file mode 100644
@@ -120621,10 +121069,10 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..8adcc3d117b75c3a413089d7e2d58d0690147e36
+index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff9fee07cb
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,149 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
@@ -120634,11 +121082,16 @@ index 0000000000000000000000000000000000000000..8adcc3d117b75c3a413089d7e2d58d06
 +//   tap <query>           taps the element whose id is the query, or whose label holds it
 +//   tap-at <x> <y>        taps that point of the window
 +//   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
-+//   scroll <query>        swipes up on that element, so its rows run under the bars
++//   swipe-left <query>    swipes left across the row, pager or list holding that element: a row's swipe
++//                         actions, a pager's next page
++//   scroll [query]        swipes up the list holding that element (or the list on screen), so its
++//                         rows run under the bars
 +//   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
-+//   snap <name>           has it screenshot right away and goes on, to catch what moves
++//   snap <name>           has it screenshot right away and goes on, to catch what moves (two snaps a
++//                         wait 0.1 apart are shot about 100 ms apart)
 +//   wait <seconds>        waits
 +//   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
++//   pose-burst <pose>     the same, with three shots as fast as they come once the hinge lands
 +//   frame <query>         notes where accessibility puts that element
 +//   selected <query>      checks the element is selected; unselected checks it isn't
 +//   type <query> <text>   taps the element and types the text on the software keyboard
@@ -120647,7 +121100,10 @@ index 0000000000000000000000000000000000000000..8adcc3d117b75c3a413089d7e2d58d06
 +//   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 +//   no-keyboard           checks the keyboard has gone
 +//   tree <name>           keeps the accessibility tree as it is now, as <name>
-+// The accessibility tree at the end is kept beside the shots too.
++//   absent <id>           checks no element has that id
++//   hex down|up           has the stand-in drop every read from now on, as when hex can't be reached, or answer again
++// A line whose element isn't there fails and is skipped, and the script goes on. The
++// accessibility tree at the end is kept beside the shots too.
 +final class DuoTests: XCTestCase {
 +    let app = XCUIApplication(bundleIdentifier: "com.shahidy.hexvoice")
 +    var marked: [String: CGRect] = [:]
@@ -120681,47 +121137,56 @@ index 0000000000000000000000000000000000000000..8adcc3d117b75c3a413089d7e2d58d06
 +                XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: argument)))
 +                XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
 +            case "open": app.open(try XCTUnwrap(URL(string: argument)))
-+            case "tap": element(argument).tap()
++            case "tap": element(argument)?.tap()
 +            case "tap-at":
 +                let point = argument.split(separator: " ").compactMap { Double($0) }
 +                app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
 +                    .withOffset(CGVector(dx: point[0], dy: point[1])).tap()
 +            case "swipe-back":
-+                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
++                element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
 +                    .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
-+            case "scroll": element(argument).swipeUp()
-+            case "shoot", "pose":
++            case "swipe-left": element(argument).map { holder($0, rows: true) }?.swipeLeft()
++            case "scroll": (argument.isEmpty ? app.collectionViews.firstMatch : element(argument).map { holder($0, rows: false) })?.swipeUp()
++            case "shoot", "pose", "pose-burst":
 +                sleep(1)
-+                print("duo-\(command == "shoot" ? "step" : "pose") \(argument)")
-+                sleep(command == "shoot" ? 3 : 5)
-+            case "snap": print("duo-step \(argument)")
++                print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
++                sleep(command == "shoot" ? 3 : 9)
++            case "snap": print("duo-snap \(argument)")
++            case "hex":
++                print("duo-hex \(argument)")
++                sleep(1)
 +            case "tree": keepTree(argument)
-+            case "frame": print("duo-frame \(argument) \(element(argument).frame)")
++            case "absent":
++                XCTAssertFalse(app.descendants(matching: .any)[argument].exists, "\(argument) is there")
++            case "frame": element(argument).map { print("duo-frame \(argument) \($0.frame)") }
 +            case "wait": usleep(UInt32((Double(argument) ?? 1) * 1_000_000))
-+            case "selected": XCTAssertTrue(element(argument).isSelected, "\(argument) isn't selected")
-+            case "unselected": XCTAssertFalse(element(argument).isSelected, "\(argument) is still selected")
++            case "selected": element(argument).map { XCTAssertTrue($0.isSelected, "\(argument) isn't selected") }
++            case "unselected": element(argument).map { XCTAssertFalse($0.isSelected, "\(argument) is still selected") }
 +            case "type":
 +                let parts = argument.split(separator: " ", maxSplits: 1).map(String.init)
-+                let field = element(parts[0])
++                guard let field = element(parts[0]) else { break }
 +                field.tap()
 +                field.typeText(parts.count > 1 ? parts[1] : "")
 +            case "above-keyboard":
 +                let keyboard = app.keyboards.firstMatch
 +                XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "the keyboard isn't up")
-+                let frame = element(argument).frame
++                guard let frame = element(argument)?.frame else { break }
 +                XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
 +                XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
 +            case "swipe-down":
-+                element(argument).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
++                element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
 +                    .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
 +            case "no-keyboard":
 +                let gone = NSPredicate(format: "exists == false")
 +                let wait = XCTNSPredicateExpectation(predicate: gone, object: app.keyboards.firstMatch)
 +                XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 5), .completed, "the keyboard is still up")
-+            case "mark": marked[argument] = element(argument).frame
++            case "mark": marked[argument] = element(argument)?.frame
 +            case "still":
-+                let was = try XCTUnwrap(marked[argument], "\(argument) wasn't marked")
-+                let now = element(argument).frame
++                guard let was = marked[argument] else {
++                    XCTFail("\(argument) wasn't marked")
++                    break
++                }
++                guard let now = element(argument)?.frame else { break }
 +                XCTAssertEqual(now.minY, was.minY, accuracy: 1, "\(argument) moved from \(was) to \(now)")
 +                XCTAssertEqual(now.minX, was.minX, accuracy: 1, "\(argument) moved from \(was) to \(now)")
 +                XCTAssertEqual(now.width, was.width, accuracy: 1, "\(argument) resized from \(was) to \(now)")
@@ -120731,14 +121196,30 @@ index 0000000000000000000000000000000000000000..8adcc3d117b75c3a413089d7e2d58d06
 +        }
 +    }
 +
-+    // Pages that have left stay in the tree off screen, so the first match on screen wins.
-+    private func element(_ query: String) -> XCUIElement {
-+        let matches = app.descendants(matching: .any)
-+            .matching(NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query))
-+        XCTAssertTrue(matches.firstMatch.waitForExistence(timeout: 10), "nothing matches \(query)")
++    // Pages that have left stay in the tree off screen, and rows scrolled under a bar can't be
++    // touched, so the first match that can be wins, then the first on screen.
++    private func element(_ query: String) -> XCUIElement? {
++        let matches = app.descendants(matching: .any).matching(predicate(for: query))
++        guard matches.firstMatch.waitForExistence(timeout: 10) else {
++            XCTFail("nothing matches \(query), so its line was skipped")
++            return nil
++        }
 +        let screen = app.windows.firstMatch.frame
-+        return matches.allElementsBoundByIndex.first { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
-+            ?? matches.firstMatch
++        let onScreen = matches.allElementsBoundByIndex.filter { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
++        return onScreen.first { $0.isHittable } ?? onScreen.first ?? matches.firstMatch
++    }
++
++    // The smallest list or scroll view under the element, or with rows the smallest row too.
++    private func holder(_ inside: XCUIElement, rows: Bool) -> XCUIElement {
++        let point = CGPoint(x: inside.frame.midX, y: inside.frame.midY)
++        let around = (app.collectionViews.allElementsBoundByIndex + app.scrollViews.allElementsBoundByIndex
++            + (rows ? app.cells.allElementsBoundByIndex : []))
++            .filter { $0.frame.contains(point) }
++        return around.min { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height } ?? inside
++    }
++
++    private func predicate(for query: String) -> NSPredicate {
++        NSPredicate(format: "identifier == %@ OR label CONTAINS %@", query, query)
 +    }
 +}
 diff --git a/uitests/project.yml b/uitests/project.yml
