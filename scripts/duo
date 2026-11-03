@@ -262,7 +262,7 @@ prepare() {
   runtime=$(runtime_version "$verify")
   rm -rf "$home/js" && mkdir -p "$home/js"
   (cd "$verify" && EXPO_PUBLIC_HEX_URL=http://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
-    npx expo export:embed --platform ios --dev false --minify true \
+    turn npx expo export:embed --platform ios --dev false --minify true \
     --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
     --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
     tail -20 "$home/js.log" >&2
