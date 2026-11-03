@@ -46,6 +46,12 @@ scripts/duo phone [update]        a screenshot of his real Duo, once hex runs th
 
 Keep the architecture and code clean, and bring each part you touch a step closer to pstack's principles (https://github.com/cursor/plugins/tree/main/pstack): clean organization and compartmentalization, clean call stacks, no indirection, workarounds or band-aids.
 
+Layout breaks here when JS and SwiftUI both place the same view, so where iOS already places something, let it:
+
+- A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
+- Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
+- Prove layout on the real renderer: `scripts/duo tap` can `type` into a field, check it's `above-keyboard`, and `mark` a view then check it holds `still`.
+
 ## Checks
 
 Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
