@@ -12,8 +12,8 @@ import {
   type RiveFile,
 } from '@rive-app/react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
+import { StyleSheet, Text, View, useColorScheme } from 'react-native';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
 import { theme } from '@/theme';
 import {
@@ -59,9 +59,11 @@ function sameColor(a: number, b: number) {
 }
 
 export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
-  // The persona on screen stays until the next one's file is read, so a change never shows an
-  // empty space while it loads; each gets a fresh native view, which drops any earlier error.
+  // The persona on screen stays until the next one's file is read, then the two cross-fade, so a
+  // change never shows an empty space or pops; each gets a fresh native view, which drops any
+  // earlier error.
   const [shown, setShown] = useState(variant);
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
     let active = true;
     void loadFile(variant)
@@ -73,13 +75,28 @@ export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
       active = false;
     };
   }, [variant]);
-  return <PersonaRenderer key={shown} variant={shown} {...props} />;
+  const size = props.size ?? SIZE;
+  return (
+    <View style={{ width: size, height: size }}>
+      <Animated.View
+        key={shown}
+        entering={reducedMotion ? undefined : FadeIn.duration(SWAP)}
+        exiting={reducedMotion ? undefined : FadeOut.duration(SWAP)}
+        style={StyleSheet.absoluteFill}
+      >
+        <PersonaRenderer variant={shown} {...props} />
+      </Animated.View>
+    </View>
+  );
 }
+
+const SIZE = 320;
+const SWAP = 150;
 
 function PersonaRenderer({
   variant,
   state = 'idle',
-  size = 320,
+  size = SIZE,
   color = DEFAULT_PERSONA_COLOR,
   palette,
 }: PersonaProps & { variant: PersonaVariant }) {
