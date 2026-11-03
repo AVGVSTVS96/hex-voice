@@ -38,3 +38,26 @@ test('the ring marks only the newest time it asked, and nothing sits on it', () 
   const idle = laneOf([[turn(60, 'idle')]], NOW, 120);
   assert.deepEqual(idle, { spans: [], ends: [], asked: undefined });
 });
+
+test('a run’s end inside a stretch of work isn’t marked, unless it failed', () => {
+  const lane = laneOf(
+    [[turn(120, 'working'), turn(60, 'done'), turn(59.5, 'working'), turn(30, 'done')]],
+    NOW,
+    120,
+  );
+  const [span] = lane.spans;
+  assert.ok(span);
+  assert.ok(
+    lane.ends.every((end) => end.x < span.from - 3 || end.x > span.to + 3),
+    'no grey dot sits on the mint',
+  );
+  const failed = laneOf(
+    [[turn(120, 'working'), turn(60, 'failed'), turn(59.5, 'working')]],
+    NOW,
+    120,
+  );
+  assert.ok(
+    failed.ends.some((end) => end.failed),
+    'a failure inside it still shows',
+  );
+});

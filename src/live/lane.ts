@@ -2,8 +2,9 @@ import { laneX, type Turn } from './tasks';
 
 // A project's last week as one lane `width` wide, now at the right: when any of its threads worked
 // (`spans`), where each run ended (`ends`, failed ones marked), and when it last asked for you
-// (`asked`). All its threads share the one lane, so stretches that touch merge and marks too close
-// to tell apart keep only the newest, and nothing ever draws over anything else.
+// (`asked`). All its threads share the one lane, so stretches that touch merge, a run's end inside
+// a stretch isn't marked, and marks too close to tell apart keep only the newest, so nothing draws
+// over anything else.
 export type Lane = {
   spans: { from: number; to: number }[];
   ends: { x: number; failed: boolean }[];
@@ -29,7 +30,14 @@ export function laneOf(tracks: Turn[][], now: number, width: number): Lane {
       else if (turn.state === 'done' || turn.state === 'failed')
         ends.push({ x: from, failed: turn.state === 'failed' });
     });
-  return { spans: merged(spans), ends: apart(ends, asked), asked };
+  const work = merged(spans);
+  // A run that ends inside a stretch of work says nothing the stretch doesn't, so only a failure
+  // shows there.
+  const loose = ends.filter(
+    (end) =>
+      end.failed || !work.some((span) => end.x >= span.from - JOIN && end.x <= span.to + JOIN),
+  );
+  return { spans: work, ends: apart(loose, asked), asked };
 }
 
 function merged(spans: Lane['spans']) {
