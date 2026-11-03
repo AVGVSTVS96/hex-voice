@@ -14,7 +14,9 @@ import { useState, type ReactNode } from 'react';
 import type { ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { GAP, Header, INSET, MARK, Mark, SectionHead, ios, useBar } from '@/components/tasks/parts';
+import { Header, useChrome } from '@/components/tasks/bar';
+import { Mark } from '@/components/tasks/mark';
+import { GAP, INSET, MARK, SectionHead, ios } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -58,18 +60,8 @@ const RAIL_FOOT = 18;
 // it got, the agents it handed work to, who's at work first, then its steps newest first, each a
 // line with what it did and how long it took, thoughts in their own words. Agents and steps open
 // into what they did and what came back.
-export function Trace({
-  task,
-  onBack,
-  back,
-  onOpen,
-}: {
-  task: Task;
-  onBack?: () => void;
-  back?: string;
-  onOpen: (link: string) => void;
-}) {
-  const named = useBar() !== 'center';
+export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
+  const named = useChrome().bar !== 'center';
   const working = task.state === 'working';
   const done = task.plan.filter((item) => item.state === 'done').length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -83,8 +75,6 @@ export function Trace({
       <Header
         title={named ? 'Steps' : task.place || task.name}
         subtitle={`${named ? `${task.place || task.name} · ` : ''}${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
-        onBack={onBack}
-        back={back}
       />
       <ScrollView
         showsIndicators={false}

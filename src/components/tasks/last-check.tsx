@@ -7,33 +7,22 @@ import {
   padding,
 } from '@expo/ui/swift-ui/modifiers';
 
-import { GAP, Header, INSET, Mark, SectionHead } from '@/components/tasks/parts';
+import { Header } from '@/components/tasks/bar';
+import { Mark } from '@/components/tasks/mark';
+import { GAP, INSET, SectionHead } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import { theme } from '@/theme';
 
 // What hex's last check read, what it fixed on its own, and what it wants you to look at.
-export function LastCheck({
-  check,
-  onBack,
-  back,
-}: {
-  check?: Check;
-  onBack?: () => void;
-  back?: string;
-}) {
+export function LastCheck({ check }: { check?: Check }) {
   return (
     <Column
       alignment="center"
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      <Header
-        title="Last check"
-        subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : ' '}
-        onBack={onBack}
-        back={back}
-      />
+      <Header title="Last check" subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : ' '} />
       <ScrollView
         showsIndicators={false}
         modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
