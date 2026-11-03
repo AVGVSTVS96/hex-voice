@@ -179,6 +179,16 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   return {
     ...layout,
     calls,
+    // Beside Calls on its side, the words keep to the room the call has left.
+    ...(frame.column
+      ? {}
+      : {
+          besideCalls: {
+            ...layout.words,
+            x: LIST + GUTTER,
+            width: Math.min(frame.content.width - LIST - 2 * GUTTER, WORDS),
+          },
+        }),
     tasks: { width: frame.content.width, place: 'page' },
     // Where Calls comes in beside the call, the orb's place is under it, so the orb docks in the
     // bar, at the spot it takes when Tasks opens on a call.

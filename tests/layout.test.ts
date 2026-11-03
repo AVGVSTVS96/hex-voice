@@ -551,3 +551,12 @@ test('open on its side, Calls comes in under the band, which stays whole above i
     assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
   }
 });
+
+test('open on its side, beside Calls the words keep to the room the call has left', () => {
+  for (const name of ['open on its side', 'partly open on its side'] as const) {
+    const { window, insets, pose } = duo[name];
+    const { calls, besideCalls } = screenLayout(window, insets, pose);
+    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
+    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
+  }
+});
