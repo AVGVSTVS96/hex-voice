@@ -226,7 +226,7 @@ export function BackButton({ back }: { back: Back }) {
         <Text
           numberOfLines={1}
           textStyle={{ fontSize: 17, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.accent), frame({ maxWidth: 180 })]}
+          modifiers={[foregroundStyle(theme.accent)]}
         >
           {back.to}
         </Text>
