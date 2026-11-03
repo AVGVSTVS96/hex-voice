@@ -28,7 +28,7 @@ import {
   Typing,
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
-import { Detail } from '@/components/tasks/task-page';
+import { Asked, Detail } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
@@ -82,8 +82,21 @@ export function Tasks({
   const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
-  const opened = task ?? tasks?.find((row) => row.id === pages.task);
+  // An ask whose thread has left the board opens its topic's newest thread still on it, or else
+  // the topic's asks alone.
+  const asked = yours.shown.find((ask) => ask.task === pages.task);
+  const opened =
+    task ??
+    tasks?.find((row) => row.id === pages.task) ??
+    (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
+  const topic = opened?.name ?? asked?.topic;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
+  // The ask you tapped leads its topic's.
+  const topicAsks = topic
+    ? yours.shown
+        .filter((ask) => ask.topic === topic)
+        .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
+    : [];
   const said = useChat(
     open && opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
   );
@@ -105,6 +118,13 @@ export function Tasks({
     );
   };
   const openThread = (thread: TaskRow) => openLink(thread.link!, placeOf(thread.app));
+  // Where an ask was asked, as its topic's way there when no thread of it is left to open.
+  const doorOf = (ask: Ask) => {
+    const where = ask.places.find((one) => one.link);
+    if (!where?.link) return undefined;
+    const place = placeOf(where.app);
+    return { place, onPress: () => openLink(where.link!, place) };
+  };
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
       if (tile.link) openLink(tile.link, tile.place);
@@ -199,7 +219,7 @@ export function Tasks({
       opened ? (
         <Detail
           task={opened}
-          asks={yours.shown.filter((ask) => ask.topic === opened.name)}
+          asks={topicAsks}
           answered={yours.answered}
           threads={threads}
           missing={missing}
@@ -227,6 +247,16 @@ export function Tasks({
           answering={typing === 'topic'}
           onWrite={!paired && said.chat?.sends ? () => write(true) : undefined}
           foot={spot('topic').foot}
+        />
+      ) : asked ? (
+        <Asked
+          topic={asked.topic}
+          asks={topicAsks}
+          answered={yours.answered}
+          width={spot('topic').width}
+          door={doorOf(asked)}
+          onAnswer={answer}
+          onUndo={undo}
         />
       ) : (
         <Spacer />
@@ -310,6 +340,13 @@ export function Tasks({
       {page('list', list)}
       {levels}
     </ZStack>
+  );
+}
+
+function newestOf(rows: TaskRow[]) {
+  return rows.reduce<TaskRow | undefined>(
+    (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
+    undefined,
   );
 }
 

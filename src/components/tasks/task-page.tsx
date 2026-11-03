@@ -12,7 +12,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
-import { Header, Talk } from '@/components/tasks/bar';
+import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
@@ -187,6 +187,56 @@ export function Detail({
           <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
         </Foot>
       )}
+    </Column>
+  );
+}
+
+// A topic whose threads have all left the board still opens on its asks, with its way back and a
+// door to where they were asked.
+export function Asked({
+  topic,
+  asks,
+  answered,
+  width,
+  door,
+  onAnswer,
+  onUndo,
+}: {
+  topic: string;
+  asks: Ask[];
+  answered: Record<string, string | null>;
+  width: number;
+  door?: Door;
+  onAnswer: (ask: Ask, option: AskOption) => void;
+  onUndo: (ask: Ask) => void;
+}) {
+  const open = asks.filter((ask) => !answered[ask.id]).length;
+  return (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      <Header title={topic} subtitle={`${open} need${open === 1 ? 's' : ''} you`} door={door} />
+      <Faded>
+        <ScrollView
+          showsIndicators={false}
+          modifiers={[
+            scrollClipDisabled(),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+          ]}
+        >
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+            <YourCall
+              asks={asks}
+              answered={answered}
+              width={width}
+              onAnswer={onAnswer}
+              onUndo={onUndo}
+            />
+          </Column>
+        </ScrollView>
+      </Faded>
     </Column>
   );
 }
