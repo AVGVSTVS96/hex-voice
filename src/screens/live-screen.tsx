@@ -969,6 +969,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
           </Animated.View>
           <AnimatedPressable
             pointerEvents={agent ? 'auto' : 'none'}
+            accessibilityElementsHidden={!agent}
+            importantForAccessibility={agent ? 'auto' : 'no-hide-descendants'}
             onPress={() => openTasks({ stage: 'working' })}
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
