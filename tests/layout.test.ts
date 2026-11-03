@@ -51,7 +51,7 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
     sizes: { mute: 60, call: 64, gap: 12 },
   });
   assert.equal(layout.orb.rest.x, 191);
-  assert.deepEqual(layout.calls, { width: 310, place: 'over' });
+  assert.deepEqual(layout.calls, { width: 310, place: 'slide' });
   assert.equal(layout.tasks.place, 'page');
 });
 
@@ -194,7 +194,7 @@ test('iPhone Duo open flat splits at the middle of the fold, with its bars down 
   assert.equal(layout.kind, 'split');
   assert.deepEqual(layout.orb.read, { x: 237.5, y: 334.5 });
   assert.equal(layout.words.x, 483);
-  assert.deepEqual(layout.calls, { width: 475, place: 'over' });
+  assert.deepEqual(layout.calls, { width: 475, place: 'beside' });
   assert.deepEqual(layout.besideCalls, { x: 483, width: 951 - 84 - 24 - 483, top: 72 });
   assert.equal(layout.tasks.place, 'page');
 });
@@ -509,17 +509,12 @@ test('before a call the orb rests in the middle open flat, and on its page partl
   }
 });
 
-test('open on its side, Calls is a page under the band, which keeps its buttons in place', () => {
-  for (const name of ['open on its side', 'partly open on its side'] as const) {
-    const { window, insets, pose } = duo[name];
-    const { calls, toolbar } = screenLayout(window, insets, pose);
-    assert.deepEqual(calls, { width: window.width, place: 'over', below: insets.top }, name);
-    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
+test('on iPhone Duo Calls never lies over the call: the call yields it an edge and rounds off against it', () => {
+  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+    const { calls } = screenLayout(window, insets, pose);
+    assert.notEqual(calls.place, 'over', name);
   }
   const { window, insets, pose } = duo['open upright'];
-  assert.equal(
-    screenLayout(window, insets, pose).calls.below,
-    undefined,
-    'upright, beside the column',
-  );
+  const { calls } = screenLayout(window, insets, pose);
+  assert.deepEqual(calls, { width: 475.5, place: 'beside' }, 'open upright, the leading page');
 });
