@@ -85,6 +85,7 @@ export function TasksPage({
             width: area.width,
             height: area.height,
             fold,
+            gap: page.gap,
             top: page.top,
             foot: page.foot,
             inset: page.inset,
