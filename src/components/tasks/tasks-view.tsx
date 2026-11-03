@@ -1,10 +1,11 @@
 import { Column, Row, Spacer } from '@expo/ui';
-import { ZStack } from '@expo/ui/swift-ui';
+import { Rectangle, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityHidden,
   animation,
   background,
   clipped,
+  foregroundStyle,
   frame,
   offset,
   opacity,
@@ -39,6 +40,7 @@ import type { Ask, AskOption } from '@/live/asks';
 import { inboxEntries, placeOf, topicIn, type Place, type Stage, type Tile } from '@/live/inbox';
 import { movedAt, type TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
+import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
 
 const NAMED_BACK = 420;
@@ -371,6 +373,7 @@ export function Tasks({
     >
       {page('list', list)}
       {levels}
+      {room.paged && room.gap ? <Gap gap={room.gap} /> : null}
     </ZStack>
   );
 }
@@ -381,6 +384,48 @@ function newestOf(rows: TaskRow[]) {
     undefined,
   );
 }
+
+// On its side partly open, a break across Tasks where the fold is: what scrolls passes under it,
+// softening into it as under a bar, and it takes the taps there so nothing is pressed in the fold.
+function Gap({ gap }: { gap: Fold }) {
+  // The ramp is steps of the ground's own color, so it matches it in either appearance.
+  const ramp = (rising: boolean) =>
+    Array.from({ length: STEPS }, (_, i) => (
+      <Rectangle
+        key={`${rising}:${i}`}
+        modifiers={[
+          frame({ height: SOFT / STEPS }),
+          frame({ maxWidth: Infinity }),
+          foregroundStyle(theme.sheet),
+          opacity((rising ? i + 1 : STEPS - i) / (STEPS + 1)),
+        ]}
+      />
+    ));
+  return (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={[
+        offset({ x: 0, y: gap.at - SOFT }),
+        frame({ maxWidth: Infinity }),
+        accessibilityHidden(true),
+      ]}
+    >
+      {ramp(true)}
+      <Rectangle
+        modifiers={[
+          frame({ height: gap.band }),
+          frame({ maxWidth: Infinity }),
+          foregroundStyle(theme.sheet),
+        ]}
+      />
+      {ramp(false)}
+    </Column>
+  );
+}
+
+const SOFT = 16;
+const STEPS = 8;
 
 // On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
 // covering the page below it.

@@ -405,6 +405,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
   assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
+  assert.equal(tasks.gap, undefined, 'and runs straight through it');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
   assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
   assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
@@ -435,6 +436,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open on its side'].pose,
   ).duo!;
   assert.equal(side.tasks.fold, undefined, 'on its side Tasks stays one page');
+  assert.deepEqual(side.tasks.gap, { at: 455.5 - 82, band: 40 }, 'broken only where the fold is');
   assert.equal(side.beside!.tasks.area.y, 495.5);
 });
 

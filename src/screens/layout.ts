@@ -96,10 +96,12 @@ export type Duo = {
 // Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 // buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
 // clear of the home indicator, or ends at the fold. Held wide, the fold cuts it into two pages side
-// by side (`fold`, within `area`).
+// by side (`fold`, within `area`). On its side partly open it stays one page with a break across
+// it where the fold's frame is (`gap`), which what scrolls passes under.
 export type Page = {
   area: Rect;
   fold?: Fold;
+  gap?: Fold;
   inset: { left: number; right: number };
   top: number;
   foot: number | 'fold';
@@ -641,7 +643,8 @@ function belowBand(frame: Frame, before?: Before): Duo {
 // take the one before it. Held wide the fold cuts Tasks into two pages side by side, a list beside
 // its topic, as a split view does on a wide screen, and folding only parts them. On its side the
 // screen is one tall page at every angle, and Tasks takes it whole: a fold there never splits it
-// into other pages. The page before the fold is where it types beside the call's words.
+// into other pages, it only breaks it where the fold is. The page before the fold is where it
+// types beside the call's words.
 function paged(
   page: Omit<Page, 'fold'>,
   fold?: Rect,
@@ -655,7 +658,7 @@ function paged(
       after: { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } },
     };
   return {
-    tasks: page,
+    tasks: fold.height > 0 ? { ...page, gap: { at: fold.y - area.y, band: fold.height } } : page,
     after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
     before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };

@@ -112,6 +112,7 @@ export type Room =
       width: number;
       height: number;
       fold?: Fold;
+      gap?: Fold;
       top: number;
       foot: number | 'fold';
       inset: Inset;
