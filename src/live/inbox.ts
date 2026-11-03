@@ -170,7 +170,7 @@ export function inboxEntries(
 // The shown entries cut into their topics, in the stream's order. Each topic's marks and lanes
 // come from all it has going, so a topic reads the same on every tab. Its marks put what needs
 // you first; what just finished is news of a thread, not one, so it has none.
-export function topicsOf(shown: Entry[], all: Entry[], tasks: TaskRow[]): Topic[] {
+export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
   const names = [...new Set(shown.map((entry) => entry.topic))];
   return names.map((name) => {
     const threads = new Map<string, Stage>();

@@ -100,7 +100,10 @@ test('an answer, an undo and a stuck item’s action each go to hex with the app
     ],
   );
   assert.equal(calls[0]!.init?.body, JSON.stringify({ label: 'Deep' }));
-  assert.equal((calls[0]!.init?.headers as Record<string, string>).Authorization, 'Bearer secret');
+  assert.equal(
+    (calls[0]!.init?.headers as Record<string, string> | undefined)?.Authorization,
+    'Bearer secret',
+  );
 });
 
 const list = (...ids: string[]): AskList => ({

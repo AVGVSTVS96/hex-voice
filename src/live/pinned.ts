@@ -60,7 +60,7 @@ function headingOf(line: string) {
   const bold = line.match(/^\*\*([^*]+)\*\*:?$/);
   if (bold) return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
   const bare = plain(line);
-  if (bare.length <= 60 && /:$/.test(bare) && !BULLET.test(line))
+  if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line))
     return bare.slice(0, -1).replace(EMOJI, '').trim();
   return undefined;
 }

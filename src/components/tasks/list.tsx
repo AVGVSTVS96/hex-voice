@@ -108,7 +108,7 @@ export function ListPage({
       query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
     [entries, stage, query],
   );
-  const topics = useMemo(() => topicsOf(shown, entries, tasks ?? []), [shown, entries, tasks]);
+  const topics = useMemo(() => topicsOf(shown, entries), [shown, entries]);
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
   const first = shown.map(taskOf).find(Boolean);
