@@ -13,6 +13,7 @@ import {
   accessibilityLabel,
   animation,
   background,
+  clipped,
   buttonBorderShape,
   buttonStyle,
   controlSize,
@@ -342,10 +343,12 @@ export function VoiceSettings({
                       maxHeight: Infinity,
                       alignment: 'bottom',
                     }),
+                    clipped(),
                   ]
                 : [
                     frame({ height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
                     frame({ maxWidth: Infinity }),
+                    clipped(),
                     animation(motion.page, onVoicePage),
                   ]
             }
