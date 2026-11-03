@@ -14,7 +14,7 @@ import { useState, type ReactNode } from 'react';
 import type { ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { GAP, Header, INSET, MARK, Mark, SectionHead, ios } from '@/components/tasks/parts';
+import { GAP, Header, INSET, MARK, Mark, SectionHead, ios, useBar } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -61,12 +61,15 @@ const RAIL_FOOT = 18;
 export function Trace({
   task,
   onBack,
+  back,
   onOpen,
 }: {
   task: Task;
   onBack?: () => void;
+  back?: string;
   onOpen: (link: string) => void;
 }) {
+  const named = useBar() !== 'center';
   const working = task.state === 'working';
   const done = task.plan.filter((item) => item.state === 'done').length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -78,9 +81,10 @@ export function Trace({
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       <Header
-        title={task.place || task.name}
-        subtitle={`${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
+        title={named ? 'Steps' : task.place || task.name}
+        subtitle={`${named ? `${task.place || task.name} · ` : ''}${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
         onBack={onBack}
+        back={back}
       />
       <ScrollView
         showsIndicators={false}

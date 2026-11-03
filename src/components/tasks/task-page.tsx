@@ -21,6 +21,7 @@ import {
   SectionHead,
   ios,
   laneWidth,
+  useBar,
 } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
@@ -52,6 +53,7 @@ export function Detail({
   missing,
   width,
   onBack,
+  back,
   onTrace,
   onAnswer,
   onUndo,
@@ -68,6 +70,7 @@ export function Detail({
   missing: Set<Place>;
   width: number;
   onBack?: () => void;
+  back?: string;
   onTrace: (id: string) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
@@ -84,6 +87,8 @@ export function Detail({
     (one) => one.state === 'working',
   );
   const apps = [...new Set(threads.map((one) => PLACES[placeOf(one.app)]))];
+  // On iPhone Duo's pages the bar holds the way out to the topic's app; the foot keeps its menu.
+  const door = useBar() === 'center' ? undefined : [task, ...threads].find((one) => one.link);
   return (
     <Column
       alignment="center"
@@ -98,6 +103,8 @@ export function Detail({
             : `${PLACES[placeOf(task.app)]} · ${STATE_WORDS[task.state]}`
         }
         onBack={onBack}
+        back={back}
+        door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <ScrollView
         showsIndicators={false}

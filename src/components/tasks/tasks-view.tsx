@@ -8,10 +8,11 @@ import {
   frame,
   listStyle,
   offset,
+  padding,
   scrollContentBackground,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Linking } from 'react-native';
 
 import {
@@ -24,7 +25,7 @@ import {
   TopicHead,
 } from '@/components/tasks/inbox';
 import { LastCheck } from '@/components/tasks/last-check';
-import { Empty, ios, listRow } from '@/components/tasks/parts';
+import { BarStyle, Empty, ios, listRow, type Bar } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import { Detail } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
@@ -47,6 +48,7 @@ import {
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
+import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
 
 // Where Tasks opens: on a task's own page, or on a stage's tab. Every opening brings a new one.
@@ -64,10 +66,17 @@ export type TasksProps = {
 // The pages pushed beside or over the list: a topic's page, a thread's messages and its steps
 // (from the topic's page), and what the last check did.
 type Pushed = 'task' | 'thread' | 'trace' | 'check';
+type Slot = Pushed | 'list';
+// Where a page sits along iPhone Duo's pages, how long it is, and whether it's on screen.
+type Spot = { at: number; length: number; shown: boolean };
 
 // Wide enough for the list and a topic's page side by side, as C has it on a big iPad: Tasks on
 // a 13-inch beside a call, or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
+// On iPhone Duo's pages, a page shorter than this draws its bar on one line, and a list shorter
+// than SHORT_LIST drops its title and keeps search at the tabs' end.
+const SHORT_PAGE = 520;
+const SHORT_LIST = 360;
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
@@ -79,18 +88,33 @@ const EMPTY: Record<Stage, string> = {
 // and what's quiet, each cut into its topics with their lanes. An ask answers in its row when its
 // choices fit one line; anything else steps down to its topic's page, and a thread there down to
 // its steps and thinking. The phone holds it in a sheet and iPad in a pane; each opening starts
-// fresh.
+// fresh. On iPhone Duo it's a place of its own (`paged`, `height` tall with `top` taken at its
+// top): one page at a time folded, and open, a page each side of the `fold` showing the deepest
+// two levels, list and topic, topic and thread, thread and steps, each step down sliding both
+// along. Open on its side, a thread you write to takes both pages while the keyboard is up.
 export function TasksView({
   open,
   at,
   width,
+  height = 0,
   line,
   haptics,
   onTalk,
   onGoThrough,
   onOpenCall,
   foot,
-}: TasksProps & { width: number; line?: number; foot?: number }) {
+  top = 0,
+  fold,
+  paged = false,
+}: TasksProps & {
+  width: number;
+  height?: number;
+  line?: number;
+  foot?: number;
+  top?: number;
+  fold?: Fold;
+  paged?: boolean;
+}) {
   const { tasks, version, offline } = useTasks(open);
   const yours = useAsks(open);
   const [stage, setStage] = useState<Stage>('needs');
@@ -101,11 +125,18 @@ export function TasksView({
   const [picked, setPicked] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [writing, setWriting] = useState(0);
+  const [typing, setTyping] = useState(false);
   const task = useTask(taskId, version);
   const traced = useTask(traceId, version);
   const check = useCheck(path.includes('check') ? yours.list?.check?.at : undefined);
-  const columns = width >= COLUMNS;
-  const listWidth = columns ? Math.round(Math.min(440, Math.max(360, width * 0.42))) : width;
+  const columns = !fold && width >= COLUMNS;
+  // With a page beside the list, a topic's page is always up: the list and a topic, open or not.
+  const beside = columns || !!fold;
+  const listWidth = columns
+    ? Math.round(Math.min(440, Math.max(360, width * 0.42)))
+    : fold?.axis === 'row'
+      ? fold.at
+      : width;
   const pageWidth = columns ? width - listWidth - 1 : width;
 
   const entries = useMemo(
@@ -137,9 +168,9 @@ export function TasksView({
   // until you open another. Its row is the one you tapped, or its first.
   const first = shown.map(taskOf).find((id) => id && tasks?.some((row) => row.id === id));
   useEffect(() => {
-    if (columns && open && !taskId && first) setTaskId(first);
-  }, [columns, open, taskId, first]);
-  const selected = columns
+    if (beside && open && !taskId && first) setTaskId(first);
+  }, [beside, open, taskId, first]);
+  const selected = beside
     ? ((
         shown.find((entry) => entry.id === picked && taskOf(entry) === taskId) ??
         shown.find((entry) => taskOf(entry) === taskId)
@@ -209,26 +240,86 @@ export function TasksView({
   const chooseStage = (next: Stage) => {
     tick();
     setStage(next);
-    if (columns) setTaskId(null);
+    if (beside) setTaskId(null);
   };
 
-  const front = path.at(-1) ?? (columns ? 'task' : 'list');
+  const stack: Slot[] = ['list', ...path];
+  if (beside && stack.length === 1) stack.push('task');
+  const front = stack.at(-1)!;
   const x = (slot: Pushed | 'list') => {
     if (columns && slot === 'list') return 0;
     if (slot === front) return 0;
     const behind = slot === 'list' || path.includes(slot) || (columns && slot === 'task');
     return behind ? -pageWidth / 3 : pageWidth;
   };
-  const page = (slot: Pushed | 'list') => [
-    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-    background(theme.sheet),
-    offset({ x: x(slot) }),
-    animation(motion.page, x(slot)),
-    accessibilityHidden(x(slot) !== 0),
-  ];
   const opened = task ?? tasks?.find((row) => row.id === taskId);
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
-  const said = useChat(open && opened && (columns || path.includes('task')) ? opened.id : null);
+  const said = useChat(open && opened && (beside || path.includes('task')) ? opened.id : null);
+  // iPhone Duo's pages: the front page on the second, the one below it on the first; the rest wait
+  // a third of a page behind the first, or past the second. A thread you write to on the pages
+  // stacked one over the other takes both.
+  const size = fold?.axis === 'row' ? width : height;
+  const alone = fold?.axis === 'column' && typing && front === 'thread';
+  const spot = (slot: Slot): Spot => {
+    if (!fold) return { at: 0, length: size, shown: slot === front };
+    const second = { at: fold.at + fold.band, length: size - fold.at - fold.band };
+    const i = stack.indexOf(slot);
+    if (alone && slot === front) return { at: 0, length: size, shown: true };
+    if (i === stack.length - 1) return { ...second, shown: true };
+    if (i === stack.length - 2 && !alone) return { at: 0, length: fold.at, shown: true };
+    if (i >= 0) return { at: -fold.at / 3, length: fold.at, shown: false };
+    return { at: size, length: second.length, shown: false };
+  };
+  const lengthOf = (slot: Slot) => (fold ? spot(slot).length : size);
+  const tall = (slot: Slot) => (fold?.axis === 'column' ? lengthOf(slot) : height);
+  const bar = (slot: Slot): Bar =>
+    !paged ? 'center' : tall(slot) - top < SHORT_PAGE ? 'inline' : 'large';
+  // Pages that reach the foot keep clear of the home indicator; the one above the fold doesn't.
+  const footOf = (slot: Slot) =>
+    fold?.axis === 'column' && spot(slot).at <= 0 && !(alone && slot === front) ? 0 : foot;
+  const topOf = (slot: Slot) => (fold?.axis === 'column' && spot(slot).at > 0 ? 0 : top);
+  const widthOf = (slot: Slot) =>
+    fold?.axis === 'row' ? lengthOf(slot) : slot === 'list' ? listWidth : pageWidth;
+  const page = (slot: Slot) => {
+    if (fold) {
+      const { at, length, shown } = spot(slot);
+      const row = fold.axis === 'row';
+      return [
+        padding({ top: topOf(slot) }),
+        frame({ width: row ? length : width, height: row ? height : length, alignment: 'top' }),
+        background(theme.sheet),
+        offset(row ? { x: at } : { y: at }),
+        animation(motion.page, at * 4096 + length),
+        accessibilityHidden(!shown),
+      ];
+    }
+    return [
+      padding({ top }),
+      frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+      background(theme.sheet),
+      offset({ x: x(slot) }),
+      animation(motion.page, x(slot)),
+      accessibilityHidden(x(slot) !== 0),
+    ];
+  };
+  // Back goes a level up, named on iPhone Duo for the page it goes to. Beside the list (iPad) a
+  // topic's page has none, and on the Duo's open pages only the first page has one.
+  const nameOf = (slot: Slot | undefined) =>
+    slot === 'list'
+      ? 'Tasks'
+      : slot === 'task'
+        ? (opened?.name ?? '')
+        : slot === 'thread'
+          ? ((opened?.place || opened?.name) ?? '')
+          : '';
+  const backFor = (slot: Slot) => {
+    if (slot === 'list' || (columns && slot === 'task')) return {};
+    if (fold && !(spot(slot).shown && spot(slot).at <= 0)) return {};
+    return { onBack: back, back: paged ? nameOf(stack[stack.indexOf(slot) - 1]) : undefined };
+  };
+  const styled = (slot: Slot, children: ReactNode) => (
+    <BarStyle.Provider value={bar(slot)}>{children}</BarStyle.Provider>
+  );
   const actions = {
     width: listWidth,
     selected,
@@ -247,6 +338,11 @@ export function TasksView({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
+  const short = paged && tall('list') - top < SHORT_LIST;
+  const startSearch = () => {
+    tick();
+    setQuery('');
+  };
   const goThrough = query === null && stage === 'needs' && yours.open.length > 0;
 
   const list = (
@@ -267,14 +363,14 @@ export function TasksView({
           />
         ) : (
           <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-            <ListHead
-              line={line}
-              onSearch={() => {
-                tick();
-                setQuery('');
-              }}
+            {short ? null : <ListHead line={line} onSearch={startSearch} />}
+            <Tabs
+              counts={counts}
+              stage={stage}
+              offline={unreachable}
+              onChange={chooseStage}
+              onSearch={short ? startSearch : undefined}
             />
-            <Tabs counts={counts} stage={stage} offline={unreachable} onChange={chooseStage} />
           </Column>
         )}
         <List
@@ -330,7 +426,7 @@ export function TasksView({
       {goThrough ? (
         <GoThrough
           count={yours.open.length}
-          foot={foot}
+          foot={footOf('list')}
           onPress={() => {
             tick();
             onGoThrough();
@@ -344,77 +440,103 @@ export function TasksView({
     <>
       <Column alignment="center" spacing={0} modifiers={page('task')}>
         {opened ? (
-          <Detail
-            task={opened}
-            asks={yours.shown.filter((ask) => ask.topic === opened.name)}
-            answered={yours.answered}
-            threads={threads}
-            missing={missing}
-            width={pageWidth}
-            onBack={columns ? undefined : back}
-            onTrace={openTrace}
-            onAnswer={answer}
-            onUndo={undo}
-            onTalk={() => {
-              tick();
-              onTalk(opened);
-            }}
-            onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
-            onOpenTask={openTask}
-            messages={
-              <Messages
-                thread={opened}
-                chat={said.chat}
-                onOpen={() => openThread()}
-                onWrite={() => openThread(true)}
-              />
-            }
-            foot={foot}
-          />
+          styled(
+            'task',
+            <Detail
+              task={opened}
+              asks={yours.shown.filter((ask) => ask.topic === opened.name)}
+              answered={yours.answered}
+              threads={threads}
+              missing={missing}
+              width={widthOf('task')}
+              {...backFor('task')}
+              onTrace={openTrace}
+              onAnswer={answer}
+              onUndo={undo}
+              onTalk={() => {
+                tick();
+                onTalk(opened);
+              }}
+              onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
+              onOpenTask={openTask}
+              messages={
+                <Messages
+                  thread={opened}
+                  chat={said.chat}
+                  onOpen={() => openThread()}
+                  onWrite={() => openThread(true)}
+                />
+              }
+              foot={footOf('task')}
+            />,
+          )
         ) : (
           <Spacer />
         )}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('thread')}>
         {opened ? (
-          <ThreadPage
-            thread={opened}
-            chat={said.chat}
-            pending={said.pending}
-            focus={writing}
-            foot={foot}
-            onBack={back}
-            onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
-            onSteps={() => openTrace(opened.id)}
-            onSend={said.send}
-            onRetry={said.retry}
-            onStop={() => {
-              tap();
-              void said.stop();
-            }}
-            onTalk={() => {
-              tick();
-              onTalk(opened);
-            }}
-          />
+          styled(
+            'thread',
+            <ThreadPage
+              thread={opened}
+              chat={said.chat}
+              pending={said.pending}
+              focus={writing}
+              foot={footOf('thread')}
+              {...backFor('thread')}
+              onTyping={setTyping}
+              onOpen={(thread) => openLink(thread.link!, placeOf(thread.app))}
+              onSteps={() => openTrace(opened.id)}
+              onSend={said.send}
+              onRetry={said.retry}
+              onStop={() => {
+                tap();
+                void said.stop();
+              }}
+              onTalk={() => {
+                tick();
+                onTalk(opened);
+              }}
+            />,
+          )
         ) : (
           <Spacer />
         )}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('trace')}>
         {traced ? (
-          <Trace task={traced} onBack={back} onOpen={(link) => openLink(link, 't3')} />
+          styled(
+            'trace',
+            <Trace task={traced} {...backFor('trace')} onOpen={(link) => openLink(link, 't3')} />,
+          )
         ) : (
           <Spacer />
         )}
       </Column>
       <Column alignment="center" spacing={0} modifiers={page('check')}>
-        <LastCheck check={check} onBack={back} />
+        {styled('check', <LastCheck check={check} {...backFor('check')} />)}
       </Column>
     </>
   );
 
   const fill = [frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }), clipped()];
+  if (fold)
+    return (
+      <ZStack
+        alignment="topLeading"
+        modifiers={[
+          frame({ width, height, alignment: 'topLeading' }),
+          background(theme.background),
+          clipped(),
+        ]}
+      >
+        <Column alignment="center" spacing={0} modifiers={page('list')}>
+          {styled('list', list)}
+        </Column>
+        {pages}
+      </ZStack>
+    );
   if (columns)
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
@@ -443,7 +565,7 @@ export function TasksView({
   return (
     <ZStack alignment="top" modifiers={fill}>
       <Column alignment="center" spacing={0} modifiers={page('list')}>
-        {list}
+        {styled('list', list)}
       </Column>
       {pages}
     </ZStack>

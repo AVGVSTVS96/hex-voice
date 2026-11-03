@@ -12,6 +12,7 @@ type Props = {
   ready: boolean;
   axis: 'row' | 'column';
   mute?: boolean;
+  sizes?: { mute: number; call: number; gap: number };
   style?: ViewStyle;
   onMute: () => void;
   onPrimary: () => void;
@@ -19,7 +20,8 @@ type Props = {
 
 // Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
 // column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
-// iPad inbox's rail, before any call, the call button waits alone.
+// iPad inbox's rail, before any call, the call button waits alone. `sizes` draws them smaller,
+// where they share iPhone Duo's toolbar or a short column.
 export function CallControls({
   status,
   canMute,
@@ -28,6 +30,7 @@ export function CallControls({
   ready,
   axis,
   mute = true,
+  sizes = { mute: MUTE, call: CONTROLS, gap: GAP },
   style,
   onMute,
   onPrimary,
@@ -36,7 +39,10 @@ export function CallControls({
   const connecting = status === 'connecting';
   const disconnecting = status === 'disconnecting';
   return (
-    <View pointerEvents="box-none" style={[styles[axis], style]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles[axis], { gap: sizes.gap }, axis === 'row' && { height: sizes.call }, style]}
+    >
       {mute && (
         <VoiceControl
           icon={muted ? 'mic-off' : 'mic'}
@@ -44,7 +50,7 @@ export function CallControls({
           testID="session-mute-button"
           disabled={!connected || !canMute}
           selected={muted}
-          size={MUTE}
+          size={sizes.mute}
           onPress={onMute}
         />
       )}
@@ -63,7 +69,7 @@ export function CallControls({
         }
         testID="session-primary-button"
         prominent
-        size={CONTROLS}
+        size={sizes.call}
         loading={connecting || disconnecting}
         disabled={disconnecting || !ready}
         onPress={onPrimary}

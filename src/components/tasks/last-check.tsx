@@ -13,7 +13,15 @@ import { timeOfDay } from '@/live/calls';
 import { theme } from '@/theme';
 
 // What hex's last check read, what it fixed on its own, and what it wants you to look at.
-export function LastCheck({ check, onBack }: { check?: Check; onBack: () => void }) {
+export function LastCheck({
+  check,
+  onBack,
+  back,
+}: {
+  check?: Check;
+  onBack?: () => void;
+  back?: string;
+}) {
   return (
     <Column
       alignment="center"
@@ -24,6 +32,7 @@ export function LastCheck({ check, onBack }: { check?: Check; onBack: () => void
         title="Last check"
         subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : ' '}
         onBack={onBack}
+        back={back}
       />
       <ScrollView
         showsIndicators={false}

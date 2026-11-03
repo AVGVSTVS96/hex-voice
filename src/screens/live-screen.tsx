@@ -26,7 +26,7 @@ import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
 import { Persona, type PersonaState } from '@/components/persona';
 import { ScreenToolbar } from '@/components/screen-toolbar';
-import { TasksPane } from '@/components/tasks-pane';
+import { TasksPage, TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import { opalPaletteInput } from '@/components/persona/variants';
@@ -41,6 +41,7 @@ import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
+import { useNow } from '@/hooks/use-now';
 import { useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { useWrapUp } from '@/hooks/use-wrap-up';
@@ -54,13 +55,14 @@ import {
   ENDINGS,
   SOURCES,
   callLength,
+  clock,
   endedSeconds,
   liveEntries,
   transcriptText,
   type CallSummary,
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { CONTROLS, DOCKED, TOOL, screenLayout } from '@/screens/layout';
+import { CONTROLS, DOCKED, GAP, TIME, TOOL, screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -136,8 +138,10 @@ function CallScreen({ pose }: { pose: Pose }) {
     setShowing((now) => ({ pulled: now.pulled || call !== null, call }));
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = useCall(shown);
-  // On iPad, Tasks is a pane like Calls, and one of the two is open at a time.
+  // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
+  // page of its own beside the call's column, and the call goes on in the column.
   const panes = side.place !== 'sheet';
+  const page = layout.page;
   const reducedMotion = useReducedMotion();
   const connected = session.status === 'connected';
   const connecting = session.status === 'connecting';
@@ -233,7 +237,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   const [footer, setFooter] = useState(
     layout.footer.bottom + (layout.controls === 'inline' ? CONTROLS : 0),
   );
-  const overSheet = tasksOpen && onCall && !pose.regular;
+  const overSheet = tasksOpen && onCall && side.place === 'sheet';
   const rest = orbRest(
     {
       top: orb.room.top,
@@ -253,6 +257,24 @@ function CallScreen({ pose }: { pose: Pose }) {
     restScale.set(settle(rest.scale));
     footerHeight.set(settle(footer));
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
+  // With Tasks open on iPhone Duo during a call, the orb moves into the column, small, still
+  // answering the voice, with the call's time under it; tapping it closes Tasks for the call.
+  const docked = !!page && tasksOpen && onCall;
+  const closeTasks = () => {
+    tick();
+    setTasksOpen(false);
+  };
+  const dock = useSharedValue(docked ? 1 : 0);
+  useEffect(() => {
+    const to = docked ? 1 : 0;
+    dock.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
+  }, [docked, reducedMotion, dock]);
+  const now = useNow(docked && !connected && !!away);
+  const callSeconds = connected
+    ? session.elapsedSeconds
+    : away
+      ? Math.max(0, Math.floor((now.getTime() - Date.parse(away.started)) / 1000))
+      : 0;
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
   const progress = useSharedValue(reading ? 1 : 0);
@@ -337,11 +359,15 @@ function CallScreen({ pose }: { pose: Pose }) {
   // into its place. Tapping the orb comes back to it: from the words on the phone, from a past call
   // beside it.
   const orbGesture = Gesture.Race(
-    drag().enabled(pulls && reading),
+    drag().enabled(pulls && reading && !docked),
     Gesture.Tap()
-      .enabled(pulls ? reading : viewing !== null)
+      .enabled(docked || (pulls ? reading : viewing !== null))
       .onEnd(() => {
         'worklet';
+        if (docked) {
+          scheduleOnRN(closeTasks);
+          return;
+        }
         if (!pulls) {
           scheduleOnRN(showCall, null);
           return;
@@ -433,7 +459,10 @@ function CallScreen({ pose }: { pose: Pose }) {
   const cardStyle = useAnimatedStyle(() => {
     const d = drawer.get();
     const t = pane.get();
-    const open = Math.max(list.place === 'over' ? 0 : d, side.place === 'sheet' ? 0 : t);
+    const open = Math.max(
+      list.place === 'over' ? 0 : d,
+      side.place === 'sheet' || side.place === 'page' ? 0 : t,
+    );
     const slid = list.place === 'slide' ? d : 0;
     return {
       left: list.place === 'beside' ? d * list.width : 0,
@@ -554,12 +583,19 @@ function CallScreen({ pose }: { pose: Pose }) {
       at = toward(at, orb.dock.calls.y, tasks.y, beside.d, beside.t);
       visual = toward(visual, orb.dock.calls.size, tasks.size, beside.d, beside.t);
     }
+    if (page) {
+      const k = dock.get();
+      const spot = page.call.orb;
+      x += (spot.x - x) * k;
+      at += (spot.y - at) * k;
+      visual += (spot.size - visual) * k;
+    }
     visual *= 1 + 0.025 * breath.get();
     return {
       opacity:
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
-        (split && !orb.dock ? 1 - Math.max(drawer.get(), pane.get()) : 1),
+        (split && !orb.dock ? 1 - Math.max(drawer.get(), page ? 0 : pane.get()) : 1),
       transform: [
         { translateX: x - size / 2 },
         { translateY: at - size / 2 },
@@ -568,6 +604,7 @@ function CallScreen({ pose }: { pose: Pose }) {
       ],
     };
   });
+  const timeStyle = useAnimatedStyle(() => ({ opacity: dock.get() }));
   const dockStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP),
   }));
@@ -605,11 +642,7 @@ function CallScreen({ pose }: { pose: Pose }) {
     setTasksOpen(true);
     if (panes && drawerOpen) settleDrawer(false);
   };
-  const toggleTasks = () => {
-    if (!tasksOpen) return openTasks();
-    tick();
-    setTasksOpen(false);
-  };
+  const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
   // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
     if (!panes) setTasksOpen(false);
@@ -647,26 +680,35 @@ function CallScreen({ pose }: { pose: Pose }) {
     : { id: session.callId, end: session.ending, seconds: session.elapsedSeconds };
   const ending = last.end && !onCall && !viewing ? ENDINGS[last.end] : undefined;
   const wrapUp = useWrapUp(last.id, !!ending && last.end !== 'no-connect');
-  const controls = (
+  const callControls = (place: Partial<Parameters<typeof CallControls>[0]>) => (
     <CallControls
       status={elsewhere.live ? (elsewhere.leaving ? 'disconnecting' : 'connected') : session.status}
       canMute={!elsewhere.live}
       muted={session.muted}
       failed={!!session.error}
       ready={voiceLoaded}
-      axis={controlsColumn?.axis ?? 'row'}
+      axis="row"
       mute={!inboxShown}
-      style={
-        controlsColumn && {
-          position: 'absolute',
-          right: controlsColumn.right,
-          bottom: controlsColumn.bottom,
-        }
-      }
       onMute={onMute}
       onPrimary={onPrimaryPress}
+      {...place}
     />
   );
+  const controls = callControls(
+    controlsColumn
+      ? {
+          axis: controlsColumn.axis,
+          sizes: controlsColumn.sizes,
+          style: {
+            position: 'absolute',
+            right: controlsColumn.right,
+            bottom: controlsColumn.bottom,
+          },
+        }
+      : {},
+  );
+  // Open on its side, the toolbar runs across the top; with Tasks open, the call buttons join it.
+  const inRow = !!page?.controls && tasksOpen;
   const toolbarPlace =
     toolbar.axis === 'row'
       ? { top: toolbar.y, right: width - toolbar.x - toolbar.width }
@@ -706,7 +748,7 @@ function CallScreen({ pose }: { pose: Pose }) {
   return (
     <>
       {list.place !== 'over' && sidebar}
-      {panes && (
+      {panes && !page && (
         <TasksPane
           {...tasks}
           top={insets.top}
@@ -785,6 +827,7 @@ function CallScreen({ pose }: { pose: Pose }) {
                 <Animated.View
                   accessible
                   accessibilityLabel={status}
+                  accessibilityHint={docked ? 'Closes Tasks for the call' : undefined}
                   style={[styles.orb, { width: size, height: size }, orbStyle]}
                 >
                   <Persona
@@ -871,8 +914,35 @@ function CallScreen({ pose }: { pose: Pose }) {
             </Animated.View>
           )}
         </Animated.View>
+        {page && <TasksPage {...tasks} page={page} style={paneStyle} />}
+        {page && onCall && (
+          <Animated.Text
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[
+              styles.time,
+              {
+                left: page.call.time.x,
+                top: page.call.time.y,
+                width: page.call.time.width,
+                textAlign: page.call.time.align,
+              },
+              timeStyle,
+            ]}
+          >
+            {clock(callSeconds * 1000)}
+          </Animated.Text>
+        )}
+        {page?.controls && inRow
+          ? callControls({
+              sizes: { mute: TOOL, call: TOOL, gap: GAP },
+              style: { position: 'absolute', right: page.controls.right, top: page.controls.top },
+            })
+          : null}
         <ScreenToolbar
           axis={toolbar.axis}
+          gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
+          gathered={inRow}
           style={[toolbarPlace, toolbarStyle]}
           callsOpen={drawerOpen}
           tasks={{ ...counts, open: tasksOpen }}
@@ -895,7 +965,7 @@ function CallScreen({ pose }: { pose: Pose }) {
           personaEnabled={personaLoaded}
           preferences={preferences}
         />
-        {!drawerOpen && (
+        {!drawerOpen && !(page && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
             <View style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
@@ -1002,6 +1072,14 @@ const styles = StyleSheet.create({
   },
   orb: { position: 'absolute', left: 0, top: 0 },
   dock: { position: 'absolute' },
+  time: {
+    position: 'absolute',
+    height: TIME,
+    color: theme.secondary,
+    fontSize: 12,
+    lineHeight: TIME,
+    fontVariant: ['tabular-nums'],
+  },
   footer: { position: 'absolute', bottom: 0, gap: 22 },
   agent: { position: 'absolute', height: AGENT_ROW },
   controls: {

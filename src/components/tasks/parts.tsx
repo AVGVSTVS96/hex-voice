@@ -10,8 +10,10 @@ import {
   contentShape,
   controlSize,
   foregroundStyle,
+  fixedSize,
   frame,
   labelStyle,
+  layoutPriority,
   listRowBackground,
   listRowInsets,
   listRowSeparator,
@@ -22,10 +24,12 @@ import {
   strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { PixelRatio, View, type ColorValue } from 'react-native';
 
 import { Arc } from '@/components/agent-line';
+import { PlaceTile } from '@/components/tasks/places';
+import { PLACES, type Place } from '@/live/inbox';
 import { LANE_TICKS, laneX, type TaskState, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
@@ -36,6 +40,17 @@ export const MARK = 16;
 export const GAP = 10;
 const HEADER = 36;
 const HAIRLINE = 1 / PixelRatio.get();
+
+// How a page's bar is drawn: centered under a sheet's grabber or in iPad's pane, and on iPhone
+// Duo's pages, where Tasks is a place of its own, as iOS draws a page's: Back named for where it
+// goes over the page's name set large (`large`), or all on one line where the page is short
+// (`inline`).
+export type Bar = 'center' | 'large' | 'inline';
+export const BarStyle = createContext<Bar>('center');
+export const useBar = () => useContext(BarStyle);
+
+// Where a page opens in its app, as its bar holds it.
+export type Door = { place: Place; onPress: () => void };
 
 // What every row of a list `width` wide wears: no inset of its own, the sheet behind it, and a
 // separator that runs edge to edge.
@@ -55,13 +70,41 @@ export function Header({
   title,
   subtitle,
   onBack,
-  trailing,
+  back = '',
+  door,
 }: {
   title: string;
   subtitle: string;
   onBack?: () => void;
-  trailing?: ReactNode;
+  back?: string;
+  door?: Door;
 }) {
+  const bar = useBar();
+  if (bar !== 'center')
+    return (
+      <PageBar
+        bar={bar}
+        title={title}
+        subtitle={subtitle}
+        onBack={onBack}
+        back={back === title ? '' : back}
+        door={door}
+      />
+    );
+  const trailing = door ? (
+    <Row
+      alignment="center"
+      spacing={0}
+      onPress={door.onPress}
+      modifiers={[
+        frame({ width: 36, height: 36 }),
+        contentShape(shapes.rectangle()),
+        ...(ios ? [accessibilityLabel(`Open in ${PLACES[door.place]}`)] : []),
+      ]}
+    >
+      <PlaceTile place={door.place} size={30} />
+    </Row>
+  ) : undefined;
   return (
     <Row
       alignment="center"
@@ -372,8 +415,12 @@ export function Pill({
         <Icon name={icon} size={16} color={prominent ? theme.onProminent : theme.text} />
       ) : null}
       <Text
+        numberOfLines={1}
         textStyle={{ fontSize: 16, fontWeight: '600' }}
-        modifiers={[foregroundStyle(prominent ? theme.onProminent : theme.text)]}
+        modifiers={[
+          foregroundStyle(prominent ? theme.onProminent : theme.text),
+          fixedSize({ horizontal: true, vertical: false }),
+        ]}
       >
         {label}
       </Text>
@@ -401,5 +448,153 @@ export function Empty({ text, width }: { text: string; width: number }) {
     >
       {text}
     </Text>
+  );
+}
+
+function PageBar({
+  bar,
+  title,
+  subtitle,
+  onBack,
+  back,
+  door,
+}: {
+  bar: Exclude<Bar, 'center'>;
+  title: string;
+  subtitle: string;
+  onBack?: () => void;
+  back: string;
+  door?: Door;
+}) {
+  const backButton = onBack ? (
+    <Row
+      alignment="center"
+      spacing={3}
+      onPress={onBack}
+      testID="task-back"
+      modifiers={[
+        frame({ minWidth: 30, minHeight: 40, alignment: 'leading' }),
+        contentShape(shapes.rectangle()),
+        ...(ios ? [accessibilityLabel(back ? `Back to ${back}` : 'Back')] : []),
+      ]}
+    >
+      <Icon name="chevron.left" size={19} color={theme.accent} />
+      {back ? (
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 17, fontWeight: '500' }}
+          modifiers={[foregroundStyle(theme.accent)]}
+        >
+          {back}
+        </Text>
+      ) : null}
+    </Row>
+  ) : null;
+  const doorPill = door ? <DoorPill door={door} /> : null;
+  if (bar === 'inline')
+    return (
+      <Row
+        alignment="center"
+        spacing={12}
+        modifiers={[
+          padding({ leading: INSET - 4, trailing: 16, top: 8, bottom: 8 }),
+          frame({ minHeight: 56 }),
+          frame({ maxWidth: Infinity }),
+        ]}
+      >
+        {backButton}
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 19, fontWeight: '700' }}
+          modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
+        >
+          {title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 14 }}
+          modifiers={[
+            foregroundStyle(theme.secondary),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {subtitle}
+        </Text>
+        {doorPill}
+      </Row>
+    );
+  return (
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[
+        padding({ leading: INSET, trailing: 16, top: 8, bottom: 10 }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+      ]}
+    >
+      {backButton || doorPill ? (
+        <Row
+          alignment="center"
+          spacing={12}
+          modifiers={[frame({ height: 40 }), frame({ maxWidth: Infinity })]}
+        >
+          {backButton}
+          <Spacer flexible />
+          {doorPill}
+        </Row>
+      ) : null}
+      <Text
+        numberOfLines={2}
+        textStyle={{ fontSize: 28, fontWeight: '700' }}
+        modifiers={[
+          foregroundStyle(theme.text),
+          padding({ top: 2 }),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ]}
+      >
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 15 }}
+          modifiers={[
+            foregroundStyle(theme.secondary),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+    </Column>
+  );
+}
+
+// A page's door out on iPhone Duo: its app's mark and name, with the arrow that says it leaves.
+function DoorPill({ door }: { door: Door }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={7}
+      onPress={door.onPress}
+      modifiers={[
+        padding({ leading: 6, trailing: 12 }),
+        frame({ height: 34 }),
+        background(theme.surface),
+        clipShape('capsule'),
+        contentShape(shapes.capsule()),
+        ...(ios ? [accessibilityLabel(`Open in ${PLACES[door.place]}`)] : []),
+      ]}
+    >
+      <PlaceTile place={door.place} size={22} />
+      <Text
+        numberOfLines={1}
+        textStyle={{ fontSize: 15, fontWeight: '600' }}
+        modifiers={[foregroundStyle(theme.text)]}
+      >
+        {PLACES[door.place]}
+      </Text>
+      <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+    </Row>
   );
 }
