@@ -542,3 +542,12 @@ test('on iPhone Duo, where Calls comes in beside the call, the orb docks in the 
     assert.deepEqual(orb.dock?.calls, duoLayout!.call.orb, name);
   }
 });
+
+test('open on its side, Calls comes in under the band, which stays whole above it', () => {
+  for (const name of ['open on its side', 'partly open on its side'] as const) {
+    const { window, insets, pose } = duo[name];
+    const { calls, toolbar } = screenLayout(window, insets, pose);
+    assert.equal(calls.below, insets.top, name);
+    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
+  }
+});
