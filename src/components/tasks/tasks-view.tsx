@@ -291,6 +291,11 @@ export function Tasks({
                 onOpenTile={openTile}
                 onAnswer={answer}
                 onUndo={undo}
+                onDismiss={(ask) => {
+                  tap();
+                  yours.dismiss(ask);
+                }}
+                onAgain={again}
                 onAct={(id) => {
                   tap();
                   void yours.act(id);

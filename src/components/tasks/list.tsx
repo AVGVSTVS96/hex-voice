@@ -151,6 +151,14 @@ export function ListPage({
     onOpenTile,
     onAnswer,
     onUndo,
+    onDismiss: (ask: Ask) => {
+      feel.tap();
+      yours.dismiss(ask);
+    },
+    onAgain: (ask: Ask) => {
+      feel.tap();
+      yours.again(ask);
+    },
     onAct: (id: string) => {
       feel.tap();
       void yours.act(id);

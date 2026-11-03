@@ -13,13 +13,13 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 
-import { InlineAnswers } from '@/components/tasks/ask-card';
+import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
 import { Failure, GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
-import type { Ask, AskOption } from '@/live/asks';
+import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 import {
   PLACES,
   STUCK,
@@ -44,6 +44,8 @@ export type RowActions = {
   onOpenTile: (tile: Tile) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
+  onDismiss: (ask: Ask) => void;
+  onAgain: (ask: Ask) => void;
   onAct: (id: string) => void;
   onRead: (id: string) => void;
 };
@@ -78,6 +80,7 @@ export function EntryRow({
             width={actions.width}
             first={first}
             onUndo={() => actions.onUndo(ask)}
+            onAgain={() => actions.onAgain(ask)}
           />
         );
       const pick = ask.options.find((option) => option.pick);
@@ -87,6 +90,7 @@ export function EntryRow({
         <Swiped
           {...swiped}
           lead={pick && { label: pick.label, onPress: () => actions.onAnswer(ask, pick) }}
+          away={{ label: NOT_NEEDED, onPress: () => actions.onDismiss(ask) }}
         >
           <Shell
             mark="needs"
@@ -174,6 +178,7 @@ function Swiped({
   first,
   selected,
   lead,
+  away,
   trail,
   onTile,
   children,
@@ -182,6 +187,8 @@ function Swiped({
   first: boolean;
   selected: boolean;
   lead?: Swipe;
+  // Puts it away without an answer, at the trailing edge, where iOS puts the one that clears a row.
+  away?: Swipe;
   trail: Tile[];
   onTile: (tile: Tile) => void;
   children: ReactNode;
@@ -199,8 +206,16 @@ function Swiped({
           />
         </SwipeActions.Actions>
       ) : null}
-      {trail.length ? (
+      {away || trail.length ? (
         <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+          {away ? (
+            <Button
+              label={away.label}
+              systemImage="xmark"
+              onPress={away.onPress}
+              modifiers={[tint(theme.secondary)]}
+            />
+          ) : null}
           {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
           {[...trail].reverse().map((tile, i) => {
             const { color, glyph } = swipeLook(tile);
@@ -343,12 +358,14 @@ function Folded({
   width,
   first,
   onUndo,
+  onAgain,
 }: {
   ask: Ask;
   label: string;
   width: number;
   first: boolean;
   onUndo: () => void;
+  onAgain: () => void;
 }) {
   return (
     <Row
@@ -380,6 +397,7 @@ function Folded({
         >
           {`${label} → ${ask.topic}`}
         </Text>
+        {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
         {ask.failed ? <Failure text={ask.failed} /> : null}
       </Column>
       <Text
