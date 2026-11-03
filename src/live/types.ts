@@ -16,14 +16,15 @@ export type LiveSnapshot = {
   status: LiveStatus;
   error: string | null;
   muted: boolean;
-  inputLevel: number;
-  outputLevel: number;
   elapsedSeconds: number;
   transcript: TranscriptEntry[];
   callId: CallId | null;
   ending: CallEnding | null;
   interrupted: boolean;
 };
+
+// How loud the microphone and hex's voice are, 0 to 1, several times a second during a call.
+export type Levels = { input: number; output: number };
 
 // The events this app acts on, of all the voice service sends over the data channel.
 const LiveEvent = z.discriminatedUnion('type', [
