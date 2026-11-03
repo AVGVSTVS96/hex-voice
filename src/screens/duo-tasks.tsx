@@ -87,9 +87,10 @@ export function DuoTasks({
   seconds: number;
   pane: SharedValue<number>;
 }) {
+  // A fade only: a layer transform over the SwiftUI host leaves its controls' accessibility frames
+  // where the slide began, so VoiceOver and taps by element miss ‹ Call.
   const pageStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pane.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP),
-    transform: [{ translateX: (1 - pane.get()) * 48 }],
   }));
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
   const offerStyle = useAnimatedStyle(() => ({ opacity: state.offer.get() }));
