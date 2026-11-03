@@ -227,16 +227,6 @@ function roomFor(
   return { calls: rest, read: frame.column ? duo.call.orb : undefined, tasks: duo.call.orb };
 }
 
-// The pose as the screen keeps it. iPhone Duo's inner screen is regular wide and always reports
-// its fold, active or not, but while the hinge moves iOS can send a pose without it for a moment,
-// and the screen would lay out for another device, or lock upright as a phone. So a regular pose
-// that loses the fold keeps the last one, and the side column with it, until iOS reports them
-// again. The cover screen is compact and iPad has no fold, so neither is held to one.
-export function steady(was: Pose | undefined, pose: Pose): Pose {
-  if (!was?.fold || pose.fold || !pose.regular) return pose;
-  return { ...pose, bar: pose.bar ?? was.bar, fold: was.fold };
-}
-
 // What the fold takes from the screen. iOS reports it as a division region that's active only
 // while the Duo is partly open; then content keeps to either side of its frame, which already
 // holds the margins controls and text keep from the hinge. Open flat it's inactive and nothing
