@@ -14,14 +14,13 @@ import {
   scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard } from 'react-native';
 
-import { Header } from '@/components/tasks/bar';
+import { Header, Talk } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Typing } from '@/components/tasks/pages';
-import { Faded, Pill, SectionHead, ios } from '@/components/tasks/parts';
-import { OpenIn } from '@/components/tasks/places';
+import { Faded, SectionHead, ios } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
@@ -35,12 +34,10 @@ export function Messages({
   thread,
   chat,
   onOpen,
-  onWrite,
 }: {
   thread: TaskRow;
   chat: Chat;
   onOpen: () => void;
-  onWrite: () => void;
 }) {
   const last = chat.turns.slice(-2);
   return (
@@ -69,29 +66,6 @@ export function Messages({
           />
         ))}
       </Column>
-      {chat.sends ? (
-        <Row
-          alignment="center"
-          spacing={0}
-          onPress={onWrite}
-          testID="thread-write"
-          modifiers={[
-            padding({ leading: 18, trailing: 6 }),
-            frame({ height: 44 }),
-            frame({ maxWidth: Infinity }),
-            background(theme.surface),
-            clipShape('capsule'),
-            contentShape(shapes.capsule()),
-            padding({ leading: 16, trailing: 16, top: 8 }),
-            ...(ios ? [accessibilityLabel(`Message ${thread.place}`)] : []),
-          ]}
-        >
-          <Text textStyle={{ fontSize: 16 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-            {`Message ${thread.place || thread.name}`}
-          </Text>
-          <Spacer flexible />
-        </Row>
-      ) : null}
     </Column>
   );
 }
@@ -144,7 +118,11 @@ export function ThreadPage({
       {beside ? null : (
         <Header
           title={title}
-          subtitle={`${place} · ${running ? `working for ${taskTime(thread)}` : STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]}`}
+          subtitle={
+            running
+              ? `working for ${taskTime(thread)}`
+              : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
+          }
           door={
             thread.link && chat?.sends
               ? { place: placeOf(thread.app), onPress: () => onOpen(thread) }
@@ -226,19 +204,12 @@ export function ThreadPage({
           foot={foot}
           onSend={onSend}
           onStop={onStop}
+          onTalk={onTalk}
         />
-      ) : beside ? null : (
-        <Row
-          alignment="center"
-          spacing={10}
-          modifiers={[
-            padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(14, foot) }),
-            frame({ maxWidth: Infinity }),
-          ]}
-        >
-          <Pill label="Talk it through" icon="waveform" prominent onPress={onTalk} />
-          <OpenIn task={thread} threads={[thread]} onOpen={onOpen} />
-        </Row>
+      ) : (
+        <Foot foot={foot}>
+          <Talk alone onPress={onTalk} />
+        </Foot>
       )}
     </Column>
   );
@@ -253,6 +224,7 @@ function Composer({
   foot,
   onSend,
   onStop,
+  onTalk,
 }: {
   title: string;
   working: boolean;
@@ -260,6 +232,7 @@ function Composer({
   foot: number;
   onSend: (text: string) => void;
   onStop: () => void;
+  onTalk: () => void;
 }) {
   const input = useRef<TextInputRef>(null);
   const [text, setText] = useState('');
@@ -342,6 +315,49 @@ function Composer({
           color={lit ? theme.onProminent : theme.tertiary}
         />
       </Row>
+      {typing ? null : <Talk alone={false} onPress={onTalk} />}
+    </Row>
+  );
+}
+
+// A page's foot: its composer, or the field that opens one, and Talk it through.
+export function Foot({ foot, children }: { foot: number; children: ReactNode }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={8}
+      modifiers={[
+        padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(14, foot) }),
+        frame({ maxWidth: Infinity }),
+      ]}
+    >
+      {children}
+    </Row>
+  );
+}
+
+// The composer's field as a way into the conversation, where its messages aren't on screen.
+export function WriteField({ title, onPress }: { title: string; onPress: () => void }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={0}
+      onPress={onPress}
+      testID="thread-write"
+      modifiers={[
+        padding({ leading: 18, trailing: 18 }),
+        frame({ height: FIELD }),
+        frame({ maxWidth: Infinity }),
+        background(theme.surface),
+        clipShape('roundedRectangle', FIELD / 2),
+        contentShape(shapes.rectangle()),
+        ...(ios ? [accessibilityLabel(`Message ${title}`)] : []),
+      ]}
+    >
+      <Text textStyle={{ fontSize: 17 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        {`Message ${title}`}
+      </Text>
+      <Spacer flexible />
     </Row>
   );
 }

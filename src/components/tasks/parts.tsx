@@ -1,20 +1,14 @@
 import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 import { Mask, Rectangle } from '@expo/ui/swift-ui';
 import {
-  accessibilityLabel,
   alignmentGuide,
-  background,
-  clipShape,
-  contentShape,
   foregroundStyle,
-  fixedSize,
   frame,
   listRowBackground,
   listRowInsets,
   listRowSeparator,
   listRowSeparatorTint,
   padding,
-  shapes,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
@@ -197,50 +191,6 @@ export function Hairline() {
         foregroundStyle(theme.edge),
       ]}
     />
-  );
-}
-
-export function Pill({
-  label,
-  icon,
-  prominent = false,
-  onPress,
-}: {
-  label: string;
-  icon?: 'waveform';
-  prominent?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={8}
-      onPress={onPress}
-      modifiers={[
-        frame({ height: 50 }),
-        frame({ maxWidth: Infinity }),
-        background(prominent ? theme.prominent : theme.surface),
-        clipShape('capsule'),
-        contentShape(shapes.capsule()),
-        ...(ios ? [accessibilityLabel(label)] : []),
-      ]}
-    >
-      <Spacer flexible />
-      {icon ? (
-        <Icon name={icon} size={16} color={prominent ? theme.onProminent : theme.text} />
-      ) : null}
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 16, fontWeight: '600' }}
-        modifiers={[
-          foregroundStyle(prominent ? theme.onProminent : theme.text),
-          fixedSize({ horizontal: true, vertical: false }),
-        ]}
-      >
-        {label}
-      </Text>
-      <Spacer flexible />
-    </Row>
   );
 }
 

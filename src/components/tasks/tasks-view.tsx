@@ -221,10 +221,11 @@ export function Tasks({
                 thread={opened}
                 chat={said.chat}
                 onOpen={() => write(false)}
-                onWrite={() => write(true)}
               />
             ) : undefined
           }
+          beside={paired}
+          onWrite={!paired && said.chat?.sends ? () => write(true) : undefined}
           foot={spot('topic').foot}
         />
       ) : (

@@ -251,6 +251,30 @@ function DoorPill({ door }: { door: Door }) {
   );
 }
 
+// Talk a topic through with hex: a secondary glass button at a page's foot, a circle beside the
+// composer or named on its own. The call's own button stays the one prominent one.
+export function Talk({ alone, onPress }: { alone: boolean; onPress: () => void }) {
+  return (
+    <BarButton
+      shape={alone ? 'capsule' : 'circle'}
+      label="Talk it through with hex"
+      testID="talk-it-through"
+      onPress={onPress}
+    >
+      <Icon name="waveform" size={17} color={theme.text} />
+      {alone ? (
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 16, fontWeight: '600' }}
+          modifiers={[foregroundStyle(theme.text)]}
+        >
+          Talk it through
+        </Text>
+      ) : null}
+    </BarButton>
+  );
+}
+
 // Not buttonStyle('glass'): its padding grows each control past BAR by a different amount.
 export function BarButton({
   shape,
