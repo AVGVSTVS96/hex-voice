@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
+import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
 import { Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -22,7 +22,7 @@ import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { Failure, Hairline, SectionHead, ios } from '@/components/tasks/parts';
+import { Failure, Hairline, SectionHead } from '@/components/tasks/parts';
 import {
   NOT_NEEDED,
   unreached,
@@ -35,18 +35,17 @@ import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { labelOf, metrics, space, type } from '@/ui/tokens';
 
 // Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
 // on one line where they fit.
 const ROW = 40;
-const QUESTION = 16;
-const ANSWER = 15;
 // How much of the thread's own words show before a tap shows them all.
 const SAID = 6;
 // The pencil takes taps across 44 points but only the question's first line of height.
-const PENCIL = 44;
-const LINE = 21;
+const PENCIL = metrics.bar.button;
+const LINE = type.question.lineHeight;
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
@@ -87,10 +86,10 @@ export function YourCall({
               spacing={metrics.list.gap}
               modifiers={[
                 padding({
-                  leading: metrics.list.inset - 2,
+                  leading: metrics.list.inset - space[0.5],
                   trailing: metrics.list.inset,
-                  top: 10,
-                  bottom: 14,
+                  top: space[2.5],
+                  bottom: space[3.5],
                 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
@@ -98,25 +97,22 @@ export function YourCall({
               <Mark state="done" />
               <Column
                 alignment="start"
-                spacing={1}
+                spacing={space[0.25]}
                 modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.secondary)]}>
+                <Text variant="subheadline" tone="secondary">
                   {ask.question}
                 </Text>
-                <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.text)]}>
-                  {said}
-                </Text>
+                <Text variant="subheadline">{said}</Text>
                 {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
                 {ask.failed ? <Failure text={ask.failed} /> : null}
               </Column>
               <Text
-                textStyle={{ fontSize: 15, fontWeight: '600' }}
+                variant="subheadline"
+                weight="semibold"
+                tone="accent"
                 onPress={() => onUndo(ask)}
-                modifiers={[
-                  foregroundStyle(theme.accent),
-                  ...(ios ? [accessibilityLabel(`Undo ${said}`)] : []),
-                ]}
+                modifiers={[accessibilityLabel(`Undo ${said}`)]}
               >
                 Undo
               </Text>
@@ -186,27 +182,29 @@ function AskCard({
         alignment="start"
         spacing={0}
         modifiers={[
-          padding({ leading: metrics.list.inset, top: first ? 2 : 12, bottom: open ? 6 : 12 }),
+          padding({
+            leading: metrics.list.inset,
+            top: first ? space[0.5] : space[3],
+            bottom: open ? space[1.5] : space[3],
+          }),
           frame({ maxWidth: Infinity }),
         ]}
       >
         <Column
           alignment="start"
-          spacing={3}
+          spacing={space[0.75]}
           onPress={() => setOpen(!open)}
           testID="ask-card"
           modifiers={[
             frame({ maxWidth: Infinity, alignment: 'leading' }),
             contentShape(shapes.rectangle()),
-            ...(ios
-              ? [accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`)]
-              : []),
+            accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
           ]}
         >
           <Text
-            textStyle={{ fontSize: QUESTION, lineHeight: LINE, fontWeight: '600' }}
+            variant="question"
+            paragraph
             modifiers={[
-              foregroundStyle(theme.text),
               open ? lineLimit() : lineLimit(2),
               frame({ maxWidth: Infinity, alignment: 'leading' }),
             ]}
@@ -215,9 +213,10 @@ function AskCard({
           </Text>
           {ask.context ? (
             <Text
-              textStyle={{ fontSize: 14, lineHeight: 19 }}
+              variant="itemDetail"
+              tone="secondary"
+              paragraph
               modifiers={[
-                foregroundStyle(theme.secondary),
                 open ? lineLimit() : lineLimit(1),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
@@ -234,9 +233,7 @@ function AskCard({
             onPress={() => setWriting(!writing)}
             modifiers={[
               padding({ top: (LINE - PENCIL) / 2, bottom: (LINE - PENCIL) / 2 }),
-              ...(ios
-                ? [accessibilityLabel(writing ? 'Close your answer' : 'Write your own')]
-                : []),
+              accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
             ]}
           >
             <Spacer flexible />
@@ -248,10 +245,11 @@ function AskCard({
           </Row>
         ) : (
           <Text
-            textStyle={{ fontSize: 13, lineHeight: LINE }}
+            variant="footnote"
+            tone="tertiary"
             modifiers={[
               monospacedDigit(),
-              foregroundStyle(theme.tertiary),
+              frame({ minHeight: LINE }),
               padding({ leading: metrics.list.gap, trailing: metrics.list.inset }),
             ]}
           >
@@ -262,20 +260,26 @@ function AskCard({
       {open ? (
         <Column
           alignment="start"
-          spacing={3}
+          spacing={space[0.75]}
           modifiers={[
-            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, bottom: 6 }),
+            padding({
+              leading: metrics.list.inset,
+              trailing: metrics.list.inset,
+              bottom: space[1.5],
+            }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >
           {words ? <Said words={words} /> : null}
           {ask.links?.length ? <Links links={ask.links} /> : null}
           {notes.failed.note ? (
-            <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
+            <Failure text={notes.failed.note} modifiers={[padding({ top: space[1] })]} />
           ) : noted ? (
             <Text
-              textStyle={{ fontSize: 13, lineHeight: 18 }}
-              modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
+              variant="footnote"
+              tone="secondary"
+              paragraph
+              modifiers={[padding({ top: space[1] })]}
             >
               {`Note sent to ${ask.topic}`}
             </Text>
@@ -289,7 +293,7 @@ function AskCard({
             padding({
               leading: metrics.list.inset,
               trailing: metrics.list.inset,
-              bottom: open ? 6 : 12,
+              bottom: open ? space[1.5] : space[3],
             }),
           ]}
         />
@@ -317,26 +321,24 @@ function Said({ words }: { words: Words }) {
   return (
     <Column
       alignment="start"
-      spacing={2}
+      spacing={space[0.5]}
       onPress={() => setWhole(!whole)}
       modifiers={[
-        padding({ top: 8, bottom: 2 }),
+        padding({ top: space[2], bottom: space[0.5] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         animation(motion.list, whole),
-        ...(ios ? [accessibilityLabel(`From ${words.place}: ${words.text}`)] : []),
+        accessibilityLabel(`From ${words.place}: ${words.text}`),
       ]}
     >
-      <Text
-        textStyle={{ fontSize: 13, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.secondary)]}
-      >
+      <Text variant="footnote" weight="semibold" tone="secondary">
         {`From ${words.place}${when}`}
       </Text>
       <Text
-        textStyle={{ fontSize: 14, lineHeight: 19 }}
+        variant="itemDetail"
+        tone="secondary"
+        paragraph
         modifiers={[
-          foregroundStyle(theme.secondary),
           whole ? lineLimit() : lineLimit(SAID),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
@@ -351,26 +353,22 @@ function Links({ links }: { links: AskLink[] }) {
   const tries = useFailures();
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (
-    <Column alignment="start" spacing={4} modifiers={[padding({ top: 4 })]}>
-      <Row alignment="center" spacing={6}>
+    <Column alignment="start" spacing={space[1]} modifiers={[padding({ top: space[1] })]}>
+      <Row alignment="center" spacing={space[1.5]}>
         {links.map((link, i) => (
-          <Row key={link.url} alignment="center" spacing={6}>
+          <Row key={link.url} alignment="center" spacing={space[1.5]}>
             {i ? (
-              <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+              <Text variant="subheadline" tone="tertiary">
                 ·
               </Text>
             ) : null}
             <Row
               alignment="center"
-              spacing={3}
+              spacing={space[0.75]}
               onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
-              modifiers={ios ? [accessibilityLabel(`Open ${link.label}`)] : []}
+              modifiers={[accessibilityLabel(`Open ${link.label}`)]}
             >
-              <Text
-                numberOfLines={1}
-                textStyle={{ fontSize: 15 }}
-                modifiers={[foregroundStyle(theme.secondary)]}
-              >
+              <Text numberOfLines={1} variant="subheadline" tone="secondary">
                 {link.label}
               </Text>
               <Icon name="arrow.up.right" size={11} color={theme.secondary} />
@@ -385,41 +383,37 @@ function Links({ links }: { links: AskLink[] }) {
 
 export function InlineAnswers({
   ask,
-  size,
   onAnswer,
   modifiers,
 }: {
   ask: Ask;
-  size: 15 | 17;
   onAnswer: Answer;
   modifiers: ModifierConfig[];
 }) {
-  const gap = size - 1;
   return (
-    <Row alignment="center" spacing={gap} modifiers={modifiers}>
+    <Row alignment="center" spacing={space[3.5]} modifiers={modifiers}>
       {ask.options.map((option, i) => (
-        <Row key={option.label} alignment="center" spacing={gap}>
+        <Row key={option.label} alignment="center" spacing={space[3.5]}>
           {i ? (
             <Rectangle
-              modifiers={[frame({ width: 1, height: gap }), foregroundStyle(theme.edge)]}
+              modifiers={[frame({ width: 1, height: space[3.5] }), foregroundStyle(theme.edge)]}
             />
           ) : null}
           <Row
             alignment="center"
-            spacing={Math.round(size / 3)}
+            spacing={space[1.25]}
             onPress={() => onAnswer(ask, option)}
             modifiers={[
-              padding({ top: 6, bottom: 4 }),
-              ...(ios
-                ? [accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label)]
-                : []),
+              padding({ top: space[1.5], bottom: space[1] }),
+              accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
             ]}
           >
-            {option.pick ? <Icon name="checkmark" size={size - 3} color={theme.accent} /> : null}
+            {option.pick ? <Icon name="checkmark" size={12} color={theme.accent} /> : null}
             <Text
               numberOfLines={1}
-              textStyle={{ fontSize: size, fontWeight: option.pick ? '600' : '500' }}
-              modifiers={[foregroundStyle(option.pick ? theme.accent : theme.secondary)]}
+              variant="subheadline"
+              weight={option.pick ? 'semibold' : 'medium'}
+              tone={option.pick ? 'accent' : 'secondary'}
             >
               {option.label}
             </Text>
@@ -432,18 +426,17 @@ export function InlineAnswers({
 
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   if (!ask.options.length) return null;
-  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, ANSWER))
+  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, type.subheadline.fontSize))
     return (
       <InlineAnswers
         ask={ask}
-        size={ANSWER}
         onAnswer={onAnswer}
         modifiers={[
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
             top: 0,
-            bottom: 10,
+            bottom: space[2.5],
           }),
         ]}
       />
@@ -452,7 +445,7 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
     <Column
       alignment="start"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity }), padding({ bottom: 4 })]}
+      modifiers={[frame({ maxWidth: Infinity }), padding({ bottom: space[1] })]}
     >
       {ask.options.map((option) => (
         <Choice key={option.label} option={option} onPress={() => onAnswer(ask, option)} />
@@ -465,16 +458,19 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   return (
     <Row
       alignment="center"
-      spacing={12}
+      spacing={space[3]}
       onPress={onPress}
       modifiers={[
-        padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset,
+          top: space[1.5],
+          bottom: space[1.5],
+        }),
         frame({ minHeight: ROW }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
-        ...(ios
-          ? [accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label)]
-          : []),
+        accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
       ]}
     >
       {option.pick ? (
@@ -483,19 +479,16 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
         <Spacer style={{ width: 14 }} />
       )}
       <Text
-        textStyle={{ fontSize: ANSWER, lineHeight: 20, fontWeight: option.pick ? '500' : '400' }}
-        modifiers={[
-          foregroundStyle(option.pick ? theme.accent : theme.text),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
+        variant="subheadline"
+        weight={option.pick ? 'medium' : 'regular'}
+        tone={option.pick ? 'accent' : 'text'}
+        paragraph
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         {option.label}
       </Text>
       {option.pick ? (
-        <Text
-          textStyle={{ fontSize: 12, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.accent)]}
-        >
+        <Text variant="caption" weight="medium" tone="accent">
           hex’s pick
         </Text>
       ) : null}
@@ -531,9 +524,14 @@ function Composer({
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Row
         alignment="end"
-        spacing={10}
+        spacing={space[2.5]}
         modifiers={[
-          padding({ leading: 14, trailing: 6, top: 6, bottom: 6 }),
+          padding({
+            leading: space[3.5],
+            trailing: space[1.5],
+            top: space[1.5],
+            bottom: space[1.5],
+          }),
           frame({ minHeight: ROW - 8 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
@@ -545,10 +543,10 @@ function Composer({
             cornerRadius: radius.control,
           }),
           padding({
-            leading: metrics.list.inset - 6,
-            trailing: metrics.list.inset - 6,
-            top: 6,
-            bottom: 6,
+            leading: metrics.list.inset - space[1.5],
+            trailing: metrics.list.inset - space[1.5],
+            top: space[1.5],
+            bottom: space[1.5],
           }),
         ]}
       >
@@ -567,10 +565,10 @@ function Composer({
             setText(now);
             keep(now);
           }}
-          textStyle={{ fontSize: 17 }}
+          textStyle={labelOf('body')}
           modifiers={[
             foregroundStyle(theme.text),
-            padding({ top: 6, bottom: 6 }),
+            padding({ top: space[1.5], bottom: space[1.5] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         />
@@ -579,7 +577,7 @@ function Composer({
           size={30}
           color={words ? theme.accent : theme.tertiary}
           onPress={words ? () => onNote(words) : undefined}
-          modifiers={ios ? [accessibilityLabel(`Send a note to ${topic}`)] : []}
+          modifiers={[accessibilityLabel(`Send a note to ${topic}`)]}
         />
       </Row>
       <Row
@@ -589,31 +587,29 @@ function Composer({
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
-            top: 4,
-            bottom: 10,
+            top: space[1],
+            bottom: space[2.5],
           }),
           frame({ maxWidth: Infinity }),
         ]}
       >
         <Row
           alignment="center"
-          spacing={5}
+          spacing={space[1.25]}
           onPress={words ? () => onAnswer(words) : undefined}
-          modifiers={ios ? [accessibilityLabel('Answer with this')] : []}
+          modifiers={[accessibilityLabel('Answer with this')]}
         >
           <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
-          <Text
-            textStyle={{ fontSize: 15, fontWeight: '600' }}
-            modifiers={[foregroundStyle(words ? theme.text : theme.tertiary)]}
-          >
+          <Text variant="subheadline" weight="semibold" tone={words ? 'text' : 'tertiary'}>
             Answer with this
           </Text>
         </Row>
         <Spacer flexible />
         <Text
-          textStyle={{ fontSize: 15, fontWeight: '400' }}
+          variant="subheadline"
+          weight="regular"
+          tone={sending ? 'tertiary' : 'secondary'}
           onPress={sending ? undefined : onDismiss}
-          modifiers={[foregroundStyle(sending ? theme.tertiary : theme.secondary)]}
         >
           {NOT_NEEDED}
         </Text>
@@ -625,12 +621,14 @@ function Composer({
 // An answer that couldn't reach every place, and the way to finish it.
 export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => void }) {
   return (
-    <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Failure text={unreached(missed)} />
       <Text
-        textStyle={{ fontSize: 13, fontWeight: '600' }}
+        variant="footnote"
+        weight="semibold"
+        tone="accent"
         onPress={onAgain}
-        modifiers={[foregroundStyle(theme.accent), padding({ top: 6, bottom: 6 })]}
+        modifiers={[padding({ top: space[1.5], bottom: space[1.5] })]}
       >
         Send again
       </Text>
