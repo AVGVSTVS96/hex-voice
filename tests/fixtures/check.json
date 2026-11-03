@@ -1,0 +1,86 @@
+{
+  "at": "2026-11-03T11:54:07.772Z",
+  "why": "why",
+  "read": {
+    "pinned posts": 41,
+    "questions": 22,
+    "T3 items": 3,
+    "calls": 4
+  },
+  "asks": [
+    {
+      "id": "id-54",
+      "kind": "do",
+      "task": "task-55",
+      "at": "2026-11-03T07:29:00.000Z",
+      "question": "question",
+      "context": "context",
+      "options": [
+        {
+          "label": "label"
+        },
+        {
+          "label": "label"
+        }
+      ],
+      "tag": "unblocks 1",
+      "from": [
+        {
+          "app": "telegram",
+          "thread": "thread-94",
+          "message": 4947
+        },
+        {
+          "app": "telegram",
+          "thread": "thread-94",
+          "message": 4956
+        },
+        {
+          "app": "telegram",
+          "thread": "thread-94",
+          "message": 4978
+        },
+        {
+          "app": "telegram",
+          "thread": "thread-94",
+          "message": 2603
+        }
+      ],
+      "refs": []
+    }
+  ],
+  "fixed": [
+    {
+      "title": "title",
+      "text": "text",
+      "did": "did"
+    },
+    {
+      "title": "title",
+      "text": "text",
+      "did": "did"
+    }
+  ],
+  "flagged": [
+    {
+      "title": "title",
+      "text": "text"
+    },
+    {
+      "title": "title",
+      "text": "text"
+    }
+  ],
+  "stuck": [
+    {
+      "id": "id-93",
+      "title": "title",
+      "why": "why",
+      "action": "action",
+      "mark": "failed",
+      "at": "2026-10-29T00:58:00.000Z",
+      "request": "request"
+    }
+  ],
+  "inputs": "inputs"
+}

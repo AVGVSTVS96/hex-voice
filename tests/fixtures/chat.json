@@ -1,0 +1,24 @@
+{
+  "version": 1793726132416,
+  "sends": true,
+  "total": 91,
+  "turns": [
+    {
+      "from": "hex",
+      "text": "text"
+    },
+    {
+      "from": "me",
+      "text": "text"
+    },
+    {
+      "from": "hex",
+      "text": "text"
+    },
+    {
+      "from": "hex",
+      "text": "text"
+    }
+  ],
+  "waiting": []
+}

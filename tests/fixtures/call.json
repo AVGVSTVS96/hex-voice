@@ -1,0 +1,100 @@
+{
+  "id": "id-14",
+  "started": "2026-10-13T15:20:12.736Z",
+  "from": "app",
+  "claude": "claude-15",
+  "voice": "marin",
+  "usage": {
+    "seconds": 7209,
+    "dollars": 0,
+    "context": 0.401390625
+  },
+  "ended": "2026-10-13T17:20:11.630Z",
+  "end": "expired",
+  "reason": "reason",
+  "turns": [
+    {
+      "who": "you",
+      "at": 3000,
+      "text": "text"
+    },
+    {
+      "who": "voice",
+      "at": 4000,
+      "text": "text"
+    },
+    {
+      "who": "you",
+      "at": 12800,
+      "text": "text"
+    },
+    {
+      "who": "voice",
+      "at": 14200,
+      "text": "text"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "id-20",
+      "state": "running",
+      "text": "text",
+      "to": "to",
+      "agent": "agent-21",
+      "at": 90924
+    },
+    {
+      "id": "id-20",
+      "state": "done",
+      "text": "text",
+      "to": "to",
+      "agent": "agent-21",
+      "at": 596812
+    },
+    {
+      "id": "id-22",
+      "state": "running",
+      "text": "text",
+      "agent": "agent-23",
+      "at": 527504
+    },
+    {
+      "id": "id-22",
+      "state": "done",
+      "text": "text",
+      "agent": "agent-23",
+      "at": 759574
+    }
+  ],
+  "moments": [
+    {
+      "at": 5179,
+      "kind": "note",
+      "text": "text"
+    },
+    {
+      "at": 172487,
+      "kind": "say",
+      "text": "text"
+    },
+    {
+      "at": 588530,
+      "kind": "paused",
+      "text": "text"
+    },
+    {
+      "at": 592982,
+      "kind": "resumed",
+      "text": "text"
+    },
+    {
+      "at": 200164,
+      "kind": "answered",
+      "text": "text",
+      "ask": "ask-24"
+    }
+  ],
+  "title": "title",
+  "summary": "summary",
+  "waiting": ["waiting", "waiting", "waiting", "waiting", "waiting", "waiting"]
+}
