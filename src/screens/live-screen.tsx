@@ -71,7 +71,7 @@ import {
 } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { CONTROLS, DOCKED, GAP, TOOL, screenLayout } from '@/screens/layout';
+import { CONTROLS, DOCKED, GAP, TOOL, screenLayout, steady } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { metrics, radius, theme } from '@/theme';
 import { PoseView, type Pose } from '../../modules/pose';
@@ -111,7 +111,7 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
         <PoseView
           style={StyleSheet.absoluteFill}
           onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) =>
-            setPose({ regular, bar, fold, occlusions })
+            setPose((was) => steady(was, { regular, bar, fold, occlusions }))
           }
         />
       )}

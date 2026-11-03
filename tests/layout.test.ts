@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
-import { screenLayout, type Layout } from '../src/screens/layout';
+import { screenLayout, steady, type Layout } from '../src/screens/layout';
 
 const phone = { top: 62, right: 0, bottom: 34, left: 0 };
 
@@ -610,4 +610,17 @@ test('on the open Duo settings is a place whose two pages part only around the f
   assert.equal(side.split.band, 0);
   assert.equal(sideFolded.split.band, 40);
   assert.equal(at('folded upright'), undefined, 'folded, settings stays the phone’s sheet');
+});
+
+test('a pose that loses the fold for a moment while the hinge moves keeps the last one', () => {
+  const open = duo['partly open upright'].pose;
+  const lost = steady(open, { regular: true });
+  assert.deepEqual(lost.fold, open.fold, 'the fold stands');
+  assert.equal(lost.bar, 'right', 'and the side column with it');
+  const flat = duo['open upright'].pose;
+  assert.deepEqual(steady(open, flat), flat, 'a real report replaces it');
+  const cover = duo['folded upright'].pose;
+  assert.deepEqual(steady(open, cover), cover, 'closed, the cover’s pose has no fold');
+  const pad = { regular: true };
+  assert.deepEqual(steady(pad, pad), pad, 'iPad never had one');
 });
