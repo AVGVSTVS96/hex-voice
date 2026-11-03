@@ -1,4 +1,4 @@
-import { Column, Row, Text } from '@expo/ui';
+import { Column, Row, Spacer, Text } from '@expo/ui';
 import { Button, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -14,6 +14,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { InlineAnswers } from '@/components/tasks/ask-card';
+import { Dots } from '@/components/tasks/inbox';
+import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
 import { GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
@@ -30,7 +32,7 @@ import {
   type Tile,
   type Topic,
 } from '@/live/inbox';
-import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
+import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
 export type RowActions = {
@@ -390,78 +392,27 @@ function Folded({
   );
 }
 
-export function QuietRow({
-  topic,
-  width,
-  onOpen,
-}: {
-  topic: Topic;
-  width: number;
-  onOpen: (task: string, entry: string) => void;
-}) {
-  const [entry] = topic.entries;
-  if (entry?.kind !== 'task') return null;
-  return (
-    <Row
-      alignment="start"
-      spacing={GAP}
-      onPress={() => onOpen(entry.task.id, entry.id)}
-      modifiers={[
-        padding({ leading: LEADING, trailing: TRAILING, top: 11, bottom: 12 }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        ...listRow(width),
-        ...(ios ? [accessibilityLabel(`${topic.name}, quiet: ${entry.task.line}`)] : []),
-      ]}
-    >
-      <Column alignment="center" spacing={0} modifiers={[padding({ top: 2 })]}>
-        <Mark state="idle" />
-      </Column>
-      <Column
-        alignment="start"
-        spacing={1}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15, fontWeight: '500' }}
-          modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
-        >
-          {topic.name}
-        </Text>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
-          {entry.task.line || STATE_WORDS[entry.task.state]}
-        </Text>
-      </Column>
-      <Row alignment="center" spacing={7} modifiers={[padding({ top: 1 })]}>
-        <Meta text={taskTime(entry.task)} />
-        <Tiles tiles={entry.tiles} />
-      </Row>
-    </Row>
-  );
-}
-
 const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   working: 'working',
   done: 'done',
   quiet: 'quiet',
 };
 
-// A project, collapsed to one row: its name, the newest thing in it, how many and when. Opens on
-// the page beside the list.
+// A project as one row in the list: its name and how its threads stand, its week on a lane, how
+// many it has here, then the newest thing in it and when. Opens its page.
 export function ProjectRow({
   topic,
   stage,
+  tracks,
+  now,
   width,
   selected,
   onOpen,
 }: {
   topic: Topic;
   stage: Stage;
+  tracks: Turn[][];
+  now: number;
   width: number;
   selected: boolean;
   onOpen: () => void;
@@ -476,9 +427,9 @@ export function ProjectRow({
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
-    <Row
-      alignment="center"
-      spacing={GAP}
+    <Column
+      alignment="start"
+      spacing={3}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
@@ -491,35 +442,41 @@ export function ProjectRow({
           : []),
       ]}
     >
-      <Column
-        alignment="start"
-        spacing={2}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
+      <Row alignment="center" spacing={8} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text
           numberOfLines={1}
           textStyle={{ fontSize: 16, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.text)]}
+          modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
         >
           {topic.name}
         </Text>
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 14 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
-          {headlineOf(newest)}
-        </Text>
-      </Column>
-      <Column alignment="end" spacing={2}>
+        {topic.marks.length ? <Dots marks={topic.marks} /> : null}
+        <Spacer flexible />
+        {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
         <Text
           textStyle={{ fontSize: 15, fontWeight: '600' }}
-          modifiers={[monospacedDigit(), foregroundStyle(needs ? theme.accent : theme.tertiary)]}
+          modifiers={[
+            monospacedDigit(),
+            foregroundStyle(needs ? theme.accent : theme.tertiary),
+            frame({ minWidth: 22, alignment: 'trailing' }),
+          ]}
         >
           {String(count)}
         </Text>
+      </Row>
+      <Row alignment="center" spacing={GAP} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Text
+          numberOfLines={1}
+          textStyle={{ fontSize: 14 }}
+          modifiers={[
+            foregroundStyle(theme.secondary),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {headlineOf(newest)}
+        </Text>
         {when === undefined ? null : <Meta text={clock(new Date(when))} />}
-      </Column>
-    </Row>
+      </Row>
+    </Column>
   );
 }

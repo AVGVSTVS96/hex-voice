@@ -1,5 +1,5 @@
 import type { Ask, AskList, AskOption, Fresh, Stuck } from './asks';
-import { startOfDay, type TaskRow } from './tasks';
+import { startOfDay, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
 // stuck, then what's working, then what finished today, then the rest, quiet. Tasks shows it a
@@ -272,6 +272,23 @@ export function fitsOneLine(options: AskOption[], width: number, size = SIZE) {
 }
 
 // The task a row opens, when it has one.
+// The page a project opens on: its leading thread's, or, with none to show (what's stuck, what
+// finished), a page of its own rows.
+export function pageOf(topic: Topic) {
+  return topic.entries.map(taskOf).find(Boolean) ?? `${TOPIC}${topic.name}`;
+}
+
+export function topicIn(page: string | null) {
+  return page?.startsWith(TOPIC) ? page.slice(TOPIC.length) : undefined;
+}
+
+const TOPIC = 'topic:';
+
+// Each of a project's threads' last week, for its lane.
+export function tracksOf(name: string, tasks: TaskRow[]): Turn[][] {
+  return tasks.flatMap((task) => (task.name === name && task.track?.length ? [task.track] : []));
+}
+
 export function taskOf(entry: Entry) {
   if (entry.kind === 'ask') return entry.ask.task;
   if (entry.kind === 'task') return entry.task.id;

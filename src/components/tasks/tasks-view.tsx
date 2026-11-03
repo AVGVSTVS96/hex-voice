@@ -11,7 +11,7 @@ import {
   padding,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Keyboard, Linking } from 'react-native';
 
 import { PageChrome, type Chrome } from '@/components/tasks/bar';
@@ -28,6 +28,7 @@ import {
   Typing,
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
+import { EntryRow } from '@/components/tasks/rows';
 import { Asked, Detail } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { Trace } from '@/components/tasks/trace';
@@ -35,7 +36,7 @@ import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
-import { placeOf, type Place, type Stage, type Tile } from '@/live/inbox';
+import { inboxEntries, placeOf, topicIn, type Place, type Stage, type Tile } from '@/live/inbox';
 import { movedAt, type TaskRow } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
@@ -77,11 +78,16 @@ export function Tasks({
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
-  const task = useTask(pages.task, version);
+  // A project with no thread to show has a page of its own, with nothing to fetch.
+  const task = useTask(topicIn(pages.task) ? null : pages.task, version);
   const traced = useTask(pages.stepsOf, version);
   const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
+  const entries = useMemo(
+    () => inboxEntries(tasks ?? [], yours.list, yours.shown),
+    [tasks, yours.list, yours.shown],
+  );
   // An ask whose thread has left the board opens its topic's newest thread still on it, or else
   // the topic's asks alone.
   const asked = yours.shown.find((ask) => ask.task === pages.task);
@@ -89,7 +95,8 @@ export function Tasks({
     task ??
     tasks?.find((row) => row.id === pages.task) ??
     (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
-  const topic = opened?.name ?? asked?.topic;
+  const alone = opened || asked ? undefined : topicIn(pages.task);
+  const topic = opened?.name ?? asked?.topic ?? alone;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
   // The ask you tapped leads its topic's.
   const topicAsks = topic
@@ -199,7 +206,6 @@ export function Tasks({
       pages={pages}
       spot={spot('list')}
       paged={room.paged}
-      wide={pages.shape !== 'one'}
       tasks={tasks}
       offline={offline}
       yours={yours}
@@ -248,13 +254,36 @@ export function Tasks({
           onWrite={!paired && said.chat?.sends ? () => write(true) : undefined}
           foot={spot('topic').foot}
         />
-      ) : asked ? (
+      ) : topic ? (
         <Asked
-          topic={asked.topic}
+          topic={topic}
           asks={topicAsks}
           answered={yours.answered}
           width={spot('topic').width}
-          door={doorOf(asked)}
+          door={asked && doorOf(asked)}
+          rows={entries
+            .filter((entry) => entry.topic === topic && entry.kind !== 'ask')
+            .map((entry, i) => (
+              <EntryRow
+                key={entry.id}
+                entry={entry}
+                first={i === 0}
+                width={spot('topic').width}
+                answered={yours.answered}
+                onOpen={(id) => pages.go({ to: 'topic', id })}
+                onOpenTile={openTile}
+                onAnswer={answer}
+                onUndo={undo}
+                onAct={(id) => {
+                  tap();
+                  void yours.act(id);
+                }}
+                onRead={(id) => {
+                  tick();
+                  void yours.read(id);
+                }}
+              />
+            ))}
           onAnswer={answer}
           onUndo={undo}
         />

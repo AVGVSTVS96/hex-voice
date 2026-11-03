@@ -191,7 +191,8 @@ export function Detail({
   );
 }
 
-// A topic whose threads have all left the board still opens on its asks, with its way back and a
+// A project with no thread to show (its threads left the board, or it's what's stuck or what
+// finished) still opens on what it has: its asks, then its other rows, with its way back and a
 // door to where they were asked.
 export function Asked({
   topic,
@@ -199,6 +200,7 @@ export function Asked({
   answered,
   width,
   door,
+  rows,
   onAnswer,
   onUndo,
 }: {
@@ -207,17 +209,23 @@ export function Asked({
   answered: Record<string, string | null>;
   width: number;
   door?: Door;
+  rows?: ReactNode[];
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
+  const others = rows?.length ?? 0;
   return (
     <Column
       alignment="center"
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      <Header title={topic} subtitle={`${open} need${open === 1 ? 's' : ''} you`} door={door} />
+      <Header
+        title={topic}
+        subtitle={open ? `${open} need${open === 1 ? 's' : ''} you` : `${others} here`}
+        door={door}
+      />
       <Faded>
         <ScrollView
           showsIndicators={false}
@@ -227,13 +235,16 @@ export function Asked({
           ]}
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
-            <YourCall
-              asks={asks}
-              answered={answered}
-              width={width}
-              onAnswer={onAnswer}
-              onUndo={onUndo}
-            />
+            {asks.length ? (
+              <YourCall
+                asks={asks}
+                answered={answered}
+                width={width}
+                onAnswer={onAnswer}
+                onUndo={onUndo}
+              />
+            ) : null}
+            {rows}
           </Column>
         </ScrollView>
       </Faded>

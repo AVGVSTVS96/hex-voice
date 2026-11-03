@@ -55,7 +55,7 @@ export function TopicHead({
   );
 }
 
-function Dots({ marks }: { marks: Stage[] }) {
+export function Dots({ marks }: { marks: Stage[] }) {
   return (
     <Row alignment="center" spacing={3}>
       {marks.slice(0, MARKS).map((stage, i) => (
