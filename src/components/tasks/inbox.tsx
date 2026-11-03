@@ -1,4 +1,4 @@
-import { Icon, Row, Spacer, Text } from '@expo/ui';
+import { Icon, Row, Spacer } from '@expo/ui';
 import { Button, Circle, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -12,11 +12,12 @@ import {
 import { useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { asks, ios, listRow } from '@/components/tasks/parts';
+import { asks, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
 import type { Stage, Topic } from '@/live/inbox';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { Text } from '@/ui/text';
+import { metrics, space } from '@/ui/tokens';
 
 const MARKS = 6;
 
@@ -32,25 +33,26 @@ export function TopicHead({
   return (
     <Row
       alignment="center"
-      spacing={8}
+      spacing={space[2]}
       onPress={onPress}
       modifiers={[
         padding({
           leading: metrics.list.inset,
-          trailing: metrics.list.inset - 4,
-          top: 14,
-          bottom: 2,
+          trailing: metrics.list.inset - space[1],
+          top: space[3.5],
+          bottom: space[0.5],
         }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
         ...listRow(width, { bottom: false }),
-        ...(ios && onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
+        ...(onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
       ]}
     >
       <Text
         numberOfLines={1}
-        textStyle={{ fontSize: 15, fontWeight: '600' }}
-        modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
+        variant="subheadline"
+        weight="semibold"
+        modifiers={[layoutPriority(1)]}
       >
         {topic.name}
       </Text>
@@ -63,12 +65,12 @@ export function TopicHead({
 
 export function Dots({ marks }: { marks: Stage[] }) {
   return (
-    <Row alignment="center" spacing={3}>
+    <Row alignment="center" spacing={metrics.dots.gap}>
       {marks.slice(0, MARKS).map((stage, i) => (
         <Circle
           key={i}
           modifiers={[
-            frame({ width: 6, height: 6 }),
+            frame({ width: metrics.dots.size, height: metrics.dots.size }),
             foregroundStyle(
               stage === 'needs'
                 ? theme.accent
@@ -105,44 +107,33 @@ function Strip({
   return (
     <Row
       alignment="center"
-      spacing={10}
+      spacing={metrics.list.gap}
       onPress={onPress}
       modifiers={[
         padding({
-          leading: metrics.list.inset - 2,
+          leading: metrics.list.inset - space[0.5],
           trailing: metrics.list.inset,
-          top: 12,
-          bottom: 12,
+          top: space[3],
+          bottom: space[3],
         }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
         ...listRow(width),
-        ...(ios ? [accessibilityLabel(label)] : []),
+        accessibilityLabel(label),
       ]}
     >
       <Mark state={mark} />
-      <Text
-        numberOfLines={1}
-        textStyle={{ fontSize: 15, fontWeight: '500' }}
-        modifiers={[foregroundStyle(theme.text), layoutPriority(1)]}
-      >
+      <Text numberOfLines={1} variant="subheadline" weight="medium" modifiers={[layoutPriority(1)]}>
         {title}
       </Text>
       {detail ? (
-        <Text
-          numberOfLines={1}
-          textStyle={{ fontSize: 15 }}
-          modifiers={[foregroundStyle(theme.secondary)]}
-        >
+        <Text numberOfLines={1} variant="subheadline" tone="secondary">
           {detail}
         </Text>
       ) : null}
       <Spacer flexible />
       {action ? (
-        <Text
-          textStyle={{ fontSize: 15, fontWeight: '600' }}
-          modifiers={[foregroundStyle(theme.accent)]}
-        >
+        <Text variant="subheadline" weight="semibold" tone="accent">
           {action}
         </Text>
       ) : (
