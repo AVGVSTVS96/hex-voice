@@ -29,7 +29,7 @@ push main ─┬─ npm run ship:js      JS only: over the air, on both devices 
 
 ## Checking on the Duo
 
-One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. It keeps one simulator on the Mac, "hexvoice Duo" on iOS 27.1. Never boot another or copy the app to the Mac.
+One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. It keeps one simulator booted on the Mac, "hexvoice Duo" on iOS 27.1. To see another device, like the iPad, it shuts the Duo down first and boots it again after, so only one is ever booted. Never copy the app to the Mac.
 
 ```
 scripts/duo shoot [ref] [states]  each state (scripts/duo-states) × the Duo's 4 poses × dark and light
