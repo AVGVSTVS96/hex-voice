@@ -1,4 +1,4 @@
-import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
 import {
   BottomSheet,
   Button as NativeButton,
@@ -32,7 +32,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -129,11 +129,13 @@ export function VoiceSettings({
   preferences,
 }: Props) {
   const window = useWindowDimensions();
-  // Where the width is regular the system picks the sheet's width (a form sheet on iPad, an
-  // edge-attached sheet on iPhone Duo's inner screen), so the pages fit the width it gives.
-  const [given, setGiven] = useState<number>();
+  // Where the width is regular the sheet fits its content, so the content sets the width and
+  // never reads it back from the sheet: a width measured from a sheet sized to its content settles
+  // wherever the two last met, a different width each time it opens.
   const width =
-    fit === 'phone' ? window.width : (given ?? (fit === 'centered' ? CENTERED : BESIDE.width));
+    fit === 'phone'
+      ? window.width
+      : Math.min(fit === 'centered' ? CENTERED : BESIDE.width, window.width - 2 * metrics.gutter);
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.45);
   const rowsWidth = fit === 'beside' ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
@@ -315,9 +317,7 @@ export function VoiceSettings({
                 else onDismiss();
               },
             }),
-            ...(fit === 'phone'
-              ? []
-              : [presentationSizing('fitted', { fitted: { horizontal: false, vertical: true } })]),
+            ...(fit === 'phone' ? [] : [presentationSizing('fitted')]),
             presentationBackground(theme.sheet),
           ]}
         >
@@ -334,21 +334,11 @@ export function VoiceSettings({
                     }),
                   ]
                 : [
-                    frame({ height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
-                    frame({ maxWidth: Infinity }),
+                    frame({ width, height: onVoicePage ? VOICE_HEIGHT : appearanceHeight }),
                     animation(motion.page, onVoicePage),
                   ]
             }
           >
-            {fit !== 'phone' && (
-              <RNHostView>
-                <View
-                  pointerEvents="none"
-                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
-                  style={StyleSheet.absoluteFill}
-                />
-              </RNHostView>
-            )}
             {fit === 'beside' ? (
               <Row
                 alignment="center"
