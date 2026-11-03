@@ -8,9 +8,9 @@ import {
   type PresentationDetent,
 } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
 
 import { TasksView, type TasksProps } from '@/components/tasks/tasks-view';
+import { useViewport } from '@/hooks/use-viewport';
 import { theme } from '@/theme';
 
 // Tasks on the phone and iPhone Duo. Before a call it opens full height; on a call it opens half
@@ -21,7 +21,7 @@ export function TasksSheet({
   onCall,
   ...view
 }: TasksProps & { onDismiss: () => void; onCall: boolean }) {
-  const { width } = useWindowDimensions();
+  const { width } = useViewport();
   const [detent, setDetent] = useState<PresentationDetent>(onCall ? 'medium' : 'large');
   useEffect(() => {
     if (view.open) setDetent(onCall ? 'medium' : 'large');
