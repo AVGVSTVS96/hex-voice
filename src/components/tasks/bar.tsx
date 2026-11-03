@@ -13,11 +13,12 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { createContext, useContext, type ReactNode } from 'react';
 
-import { INSET, ios } from '@/components/tasks/parts';
+import { ios } from '@/components/tasks/parts';
 import { PlaceTile } from '@/components/tasks/places';
 import { glass } from '@/ui/glass-button';
 import { PLACES, type Place } from '@/live/inbox';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 // iOS 26's bar buttons: 44pt glass, a circle for a symbol and a capsule for a name.
 export const BAR = 44;
@@ -68,7 +69,7 @@ export function PageBar({
       alignment="center"
       spacing={12}
       modifiers={[
-        padding({ leading: INSET - 4, trailing: 16, top: 6, bottom: 6 }),
+        padding({ leading: metrics.list.inset - 4, trailing: 16, top: 6, bottom: 6 }),
         frame({ minHeight: BAR + 12 }),
         frame({ maxWidth: Infinity }),
       ]}

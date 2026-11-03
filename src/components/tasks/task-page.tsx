@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
@@ -32,6 +32,7 @@ import {
   type TaskId,
 } from '@/live/tasks';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const PREVIEW = 3;
 
@@ -114,7 +115,11 @@ export function Detail({
                     textStyle={{ fontSize: 17, lineHeight: 22 }}
                     modifiers={[
                       foregroundStyle(theme.text),
-                      padding({ leading: INSET, trailing: INSET, bottom: 6 }),
+                      padding({
+                        leading: metrics.list.inset,
+                        trailing: metrics.list.inset,
+                        bottom: 6,
+                      }),
                       frame({ maxWidth: Infinity, alignment: 'leading' }),
                     ]}
                   >
@@ -288,13 +293,18 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
     >
       <Row
         alignment="center"
-        spacing={GAP}
+        spacing={metrics.list.gap}
         modifiers={[
-          padding({ leading: INSET - 2, trailing: INSET - 2, top: 4, bottom: 2 }),
+          padding({
+            leading: metrics.list.inset - 2,
+            trailing: metrics.list.inset - 2,
+            top: 4,
+            bottom: 2,
+          }),
           frame({ maxWidth: Infinity }),
         ]}
       >
-        <PlaceTile place={placeOf(thread.app)} size={MARK} />
+        <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
         <Text
           numberOfLines={1}
           textStyle={{ fontSize: 15, fontWeight: '600' }}

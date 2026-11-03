@@ -10,11 +10,12 @@ import {
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, GAP, INSET, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import type { Answered } from '@/hooks/use-watch';
 import { radius, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
   return (
@@ -73,7 +74,7 @@ function Read({ read }: { read: Record<string, number> }) {
         frame({ maxWidth: Infinity }),
         background(theme.group),
         clipShape('roundedRectangle', radius.group),
-        padding({ leading: INSET, trailing: INSET }),
+        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
       ]}
     >
       {Object.entries(read).map(([what, count]) => (
@@ -105,9 +106,14 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
   return (
     <Row
       alignment="start"
-      spacing={GAP}
+      spacing={metrics.list.gap}
       modifiers={[
-        padding({ leading: INSET - 2, trailing: INSET, top: 10, bottom: 10 }),
+        padding({
+          leading: metrics.list.inset - 2,
+          trailing: metrics.list.inset,
+          top: 10,
+          bottom: 10,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
     >

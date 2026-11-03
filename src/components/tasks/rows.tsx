@@ -17,7 +17,7 @@ import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
-import { Failure, GAP, INSET, MARK, ios, listRow } from '@/components/tasks/parts';
+import { Failure, ios, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 import {
@@ -34,6 +34,7 @@ import {
 } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 export type RowActions = {
   width: number;
@@ -50,9 +51,10 @@ export type RowActions = {
 };
 
 // The room an ask's choices have under its line.
-const LEADING = INSET - 2;
-const TRAILING = INSET - 4;
-const choicesWidth = (width: number) => width - LEADING - MARK - GAP - TRAILING;
+const LEADING = metrics.list.inset - 2;
+const TRAILING = metrics.list.inset - 4;
+const choicesWidth = (width: number) =>
+  width - LEADING - metrics.list.mark - metrics.list.gap - TRAILING;
 
 export function EntryRow({
   entry,
@@ -256,7 +258,7 @@ function Shell({
   return (
     <Row
       alignment="start"
-      spacing={GAP}
+      spacing={metrics.list.gap}
       onPress={onPress}
       modifiers={[
         padding({ leading: LEADING, trailing: TRAILING, top: 11, bottom: 12 }),
@@ -369,9 +371,9 @@ function Folded({
   return (
     <Row
       alignment="center"
-      spacing={GAP}
+      spacing={metrics.list.gap}
       modifiers={[
-        padding({ leading: LEADING, trailing: INSET, top: 11, bottom: 12 }),
+        padding({ leading: LEADING, trailing: metrics.list.inset, top: 11, bottom: 12 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         ...listRow(width, { top: !first }),
       ]}
@@ -452,7 +454,7 @@ export function ProjectRow({
       onPress={onOpen}
       testID="project-row"
       modifiers={[
-        padding({ leading: INSET, trailing: TRAILING, top: 11, bottom: 12 }),
+        padding({ leading: metrics.list.inset, trailing: TRAILING, top: 11, bottom: 12 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         ...listRow(width, { selected }),
@@ -483,7 +485,11 @@ export function ProjectRow({
           {String(count)}
         </Text>
       </Row>
-      <Row alignment="center" spacing={GAP} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Row
+        alignment="center"
+        spacing={metrics.list.gap}
+        modifiers={[frame({ maxWidth: Infinity })]}
+      >
         <Text
           numberOfLines={1}
           textStyle={{ fontSize: 14 }}
