@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -18,7 +19,6 @@ import {
   byDay,
   callDetails,
   callName,
-  isNaming,
   timeOfDay,
   type CallSummary,
 } from '@/live/calls';
@@ -61,7 +61,7 @@ export function CallsSidebar({
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
           {offline && (
-            <Text style={styles.offline}>Can’t reach hex. These are kept on this phone.</Text>
+            <Text style={styles.offline}>Can’t reach hex. These are kept on this device.</Text>
           )}
           {byDay(calls ?? []).map((day) => (
             <View key={day.label}>
@@ -105,6 +105,8 @@ function Row({
 }) {
   const x = useSharedValue(0);
   const from = useSharedValue(0);
+  // Swiped open, its delete button is there for VoiceOver too; closed, the row's own action is.
+  const [open, setOpen] = useState(false);
   const remove = () => {
     if (process.env.EXPO_OS === 'ios' && haptics)
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -113,6 +115,7 @@ function Row({
   const settle = (to: number, velocity = 0) => {
     'worklet';
     x.set(withSpring(to, { ...motion.row, velocity }));
+    scheduleOnRN(setOpen, to !== 0);
   };
   const swipe = Gesture.Pan()
     .enabled(!live)
@@ -141,7 +144,6 @@ function Row({
     transform: [{ scale: 0.6 + 0.4 * Math.min(1, -x.get() / ACTION) }],
   }));
 
-  const naming = isNaming(call);
   const ending = call.end && ENDINGS[call.end];
   return (
     <Animated.View
@@ -150,7 +152,13 @@ function Row({
       style={[styles.row, selected && styles.selected]}
     >
       <Animated.View style={[styles.action, action]}>
-        <Pressable accessibilityLabel="Delete call" onPress={remove} style={styles.delete}>
+        <Pressable
+          accessibilityLabel="Delete call"
+          accessibilityElementsHidden={!open}
+          importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+          onPress={remove}
+          style={styles.delete}
+        >
           <Glyph name="trash" size={19} color={theme.onProminent} />
         </Pressable>
       </Animated.View>
@@ -158,7 +166,11 @@ function Row({
         <Animated.View
           accessible
           accessibilityRole="button"
-          accessibilityLabel={`${callName(call)}, ${callDetails(call)}, ${timeOfDay(call.started)}`}
+          accessibilityLabel={`${callName(call)}, ${call.failed ?? callDetails(call)}, ${timeOfDay(call.started)}`}
+          accessibilityActions={live ? [] : [{ name: 'delete', label: 'Delete call' }]}
+          onAccessibilityAction={({ nativeEvent }) => {
+            if (nativeEvent.actionName === 'delete') remove();
+          }}
           style={[styles.slide, selected && styles.selected, slide]}
         >
           <View style={styles.icon}>
@@ -170,12 +182,18 @@ function Row({
             </Text>
             <View style={styles.metaRow}>
               <Text numberOfLines={1} style={styles.meta}>
-                {live ? <Text style={styles.live}>Live now</Text> : callDetails(call)}
-                {!live && ending?.short && (
+                {live ? (
+                  <Text style={styles.live}>Live now</Text>
+                ) : call.failed ? (
+                  <Text style={styles.bad}>{call.failed}</Text>
+                ) : (
+                  callDetails(call)
+                )}
+                {!live && !call.failed && ending?.short && (
                   <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
                 )}
               </Text>
-              <Text style={styles.when}>{live || naming ? 'Now' : timeOfDay(call.started)}</Text>
+              <Text style={styles.when}>{live ? 'Now' : timeOfDay(call.started)}</Text>
             </View>
           </View>
         </Animated.View>

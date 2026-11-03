@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { useFailures } from '@/hooks/use-failures';
 import { useWatch } from '@/hooks/use-watch';
 import { callsAPI } from '@/live/api';
-import type { CallRecord, CallSummary } from '@/live/calls';
+import { putBack, type CallRecord, type CallSummary } from '@/live/calls';
 
 const LIST = 'calls';
 const saved = (id: string) => `call:${id}`;
@@ -26,6 +27,7 @@ export function useCalls() {
   const [calls, setCalls] = useState<CallSummary[]>();
   const [live, setLive] = useState<string>();
   const [offline, setOffline] = useState(false);
+  const tries = useFailures();
 
   useEffect(() => {
     void restore<CallSummary[]>(LIST).then((kept) => {
@@ -51,17 +53,25 @@ export function useCalls() {
     setCalls((current) => [call, ...(current ?? []).filter(({ id }) => id !== call.id)]);
 
   const remove = (id: string) => {
+    const removed = calls?.find((call) => call.id === id);
     setCalls((current) => current?.filter((call) => call.id !== id));
-    void AsyncStorage.removeItem(saved(id)).catch(() => {});
-    callsAPI.remove(id).catch(() =>
-      callsAPI.list().then(
-        (list) => setCalls(list.calls),
-        () => setOffline(true),
-      ),
-    );
+    void tries
+      .attempt(id, 'Not deleted', () => callsAPI.remove(id))
+      .then((deleted) => {
+        if (deleted) void AsyncStorage.removeItem(saved(id)).catch(() => {});
+        else if (removed) setCalls((current) => putBack(current ?? [], removed));
+      });
   };
 
-  return { calls, live, offline, add, remove };
+  // A call that wouldn't delete comes back in its place saying why.
+  const shown = useMemo(
+    () =>
+      calls?.map((call) =>
+        tries.failed[call.id] ? { ...call, failed: tries.failed[call.id] } : call,
+      ),
+    [calls, tries.failed],
+  );
+  return { calls: shown, live, offline, add, remove };
 }
 
 export function useCall(summary: CallSummary | undefined) {
