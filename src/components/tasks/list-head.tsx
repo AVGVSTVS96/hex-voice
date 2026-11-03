@@ -13,7 +13,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, type RefObject } from 'react';
 
-import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
+import { BackButton, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
 import { ios } from '@/components/tasks/parts';
 import { STAGES, type Stage } from '@/live/inbox';
@@ -165,7 +165,7 @@ export function Search({
         spacing={8}
         modifiers={[
           padding({ leading: 14, trailing: 14 }),
-          frame({ height: BAR }),
+          frame({ height: metrics.bar.button }),
           frame({ maxWidth: Infinity }),
           glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' }),
         ]}

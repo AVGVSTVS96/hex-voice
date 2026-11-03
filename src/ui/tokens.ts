@@ -93,6 +93,7 @@ export function labelOf(variant: TextVariant, weight?: Weight) {
 
 // Every gap and padding is a step of this scale, in points: a step is 4pt, so space[2.5] is 10.
 export const space = {
+  0.25: 1,
   0.5: 2,
   1: 4,
   1.5: 6,
@@ -119,7 +120,7 @@ export type GlassSize = keyof typeof glass;
 export const metrics = {
   ...glass,
   // The symbol on a glass button, and on the call button.
-  symbol: { regular: 24, prominent: 27 },
+  symbol: { regular: 24, prominent: 27, bar: 17 },
   // The call buttons at each size: mute, the call button, and the gap between them.
   controls: {
     regular: { mute: 'mute', call: 'call', gap: space[3] },
@@ -155,6 +156,9 @@ export const metrics = {
   emptyTop: 130,
   // Between the wrap-up, how the last call ended and what didn't go through, under the call.
   footerGap: 22,
+  // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
+  // name, a little more after the name so the two look even.
+  bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge. Together with a
   // row's own top padding, nothing at rest sits in the fade.
