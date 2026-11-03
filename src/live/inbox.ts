@@ -312,13 +312,16 @@ export function taskOf(entry: Entry) {
   return undefined;
 }
 
-// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, named
-// by the apps the ask was asked in, only when it cleared some, and the places it couldn't reach.
+// What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, only
+// when it cleared some, and the places it couldn't reach. hex counts them without saying which, so
+// they're named by the apps the ask was asked in only when it reached them all.
 export function reachedBy(ask: Ask, sent: Sent | undefined) {
   if (!sent) return '';
-  const apps = [...new Set(ask.places.map((place) => placeOf(place.app)))]
-    .filter((place) => place === 'telegram' || place === 'discord')
-    .map((place) => PLACES[place]);
+  const apps = sent.missed
+    ? []
+    : [...new Set(ask.places.map((place) => placeOf(place.app)))]
+        .filter((place) => place === 'telegram' || place === 'discord')
+        .map((place) => PLACES[place]);
   const cleared = sent.settled
     ? ` and cleared its ${apps.length ? `${apps.join(' and ')} ` : ''}buttons`
     : '';
