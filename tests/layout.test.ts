@@ -185,17 +185,17 @@ function state(size: { width: number; height: number }) {
   return size.width > size.height ? 'landscape' : 'portrait';
 }
 
-test('iPhone Duo open splits at the fold, with its bars down the side', () => {
+test('iPhone Duo open flat splits at the middle of the fold, with its bars down the side', () => {
   const layout = screenLayout(
     { width: 951, height: 669 },
     { top: 0, right: 84, bottom: 21, left: 0 },
     { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
   );
   assert.equal(layout.kind, 'split');
-  assert.deepEqual(layout.orb.read, { x: 227.5, y: 334.5 });
-  assert.equal(layout.words.x, 503);
-  assert.deepEqual(layout.calls, { width: 455, place: 'over' });
-  assert.deepEqual(layout.besideCalls, { x: 503, width: 951 - 84 - 24 - 503, top: 72 });
+  assert.deepEqual(layout.orb.read, { x: 237.5, y: 334.5 });
+  assert.equal(layout.words.x, 483);
+  assert.deepEqual(layout.calls, { width: 475, place: 'over' });
+  assert.deepEqual(layout.besideCalls, { x: 483, width: 951 - 84 - 24 - 483, top: 72 });
   assert.equal(layout.tasks.place, 'page');
 });
 
@@ -255,6 +255,25 @@ const duo = {
     pose: {
       regular: true,
       fold: { x: 0, y: 455.5, width: 669, height: 40, active: false },
+      occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
+    },
+  },
+  'partly open upright': {
+    window: { width: 951, height: 669 },
+    insets: { top: 0, right: 84, bottom: 34, left: 0 },
+    pose: {
+      regular: true,
+      bar: 'right',
+      fold: { x: 455.5, y: 0, width: 40, height: 669, active: true },
+      occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
+    },
+  },
+  'partly open on its side': {
+    window: { width: 669, height: 951 },
+    insets: { top: 82, right: 0, bottom: 34, left: 0 },
+    pose: {
+      regular: true,
+      fold: { x: 0, y: 455.5, width: 669, height: 40, active: true },
       occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
     },
   },
@@ -344,15 +363,15 @@ test('open upright, Tasks takes both pages, or the leading one while the words k
   const { tasks, beside } = layout.duo!;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
   assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-  assert.deepEqual(tasks.fold, { axis: 'row', at: 455.5, band: 40 });
+  assert.deepEqual(tasks.fold, { axis: 'row', at: 475.5, band: 0 }, 'flat, nothing keeps off it');
   assert.deepEqual(beside!.tasks, {
-    area: { x: 0, y: 0, width: 455.5, height: 669 },
+    area: { x: 0, y: 0, width: 475.5, height: 669 },
     inset: { left: 0, right: 0 },
     top: 0,
     foot: 34,
   });
   assert.deepEqual(layout.besideTasks, layout.words, 'the words keep their page beside Tasks');
-  assert.ok(layout.words.x >= 455.5 + 40, 'past the fold');
+  assert.ok(layout.words.x >= 475.5, 'past the middle of the fold');
 });
 
 test('open on its side, the toolbar sits in the status band level with the status items, and Tasks starts under it', () => {
@@ -366,17 +385,47 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.deepEqual(tasks.fold, { axis: 'column', at: 455.5 - 82, band: 40 });
-  assert.deepEqual(beside!.tasks.area, { x: 0, y: 82, width: 669, height: 455.5 - 82 });
+  assert.deepEqual(tasks.fold, { axis: 'column', at: 475.5 - 82, band: 0 });
+  assert.deepEqual(beside!.tasks.area, { x: 0, y: 82, width: 669, height: 475.5 - 82 });
   assert.equal(beside!.tasks.foot, 'fold', 'the top page stops at the fold');
   assert.deepEqual(call.controls, { right: 669 - 523, top: toolbar.y });
 });
 
+test('partly open, Tasks keeps its pages off the fold’s whole frame, margins and all', () => {
+  const upright = screenLayout(
+    duo['partly open upright'].window,
+    duo['partly open upright'].insets,
+    duo['partly open upright'].pose,
+  ).duo!;
+  assert.deepEqual(upright.tasks.fold, { axis: 'row', at: 455.5, band: 40 });
+  assert.equal(upright.beside!.tasks.area.width, 455.5);
+  const side = screenLayout(
+    duo['partly open on its side'].window,
+    duo['partly open on its side'].insets,
+    duo['partly open on its side'].pose,
+  ).duo!;
+  assert.deepEqual(side.tasks.fold, { axis: 'column', at: 455.5 - 82, band: 40 });
+  assert.equal(side.beside!.tasks.area.height, 455.5 - 82);
+});
+
+// Flat, the fold is a line down its middle; partly open, its whole frame.
+const hingeOf = ({ active, ...fold }: Box & { active: boolean }): Box =>
+  active
+    ? fold
+    : fold.height > fold.width
+      ? { x: fold.x + fold.width / 2, y: fold.y, width: 0, height: fold.height }
+      : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
+
 test('open, the orb and the words each keep a page of their own off the fold, so Tasks can share the words page', () => {
-  for (const name of ['open upright', 'open on its side'] as const) {
+  for (const name of [
+    'open upright',
+    'open on its side',
+    'partly open upright',
+    'partly open on its side',
+  ] as const) {
     const { window, insets, pose } = duo[name];
     const layout = screenLayout(window, insets, pose);
-    const { fold } = pose;
+    const fold = hingeOf(pose.fold);
     const row = fold.height > fold.width;
     const words = {
       ...layout.words,
