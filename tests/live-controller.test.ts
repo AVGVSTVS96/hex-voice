@@ -669,6 +669,23 @@ test('a call remembers how it ended: you, hex, or a dropped connection', async (
   }
 });
 
+test('when iOS never hands the audio back, a tap on the microphone ends the pause', async () => {
+  const h = harness();
+  try {
+    await h.session.start();
+    await settle();
+    const transport = h.transports[0];
+    h.session.interrupt(true);
+    h.session.toggleMute();
+    assert.equal(h.session.getSnapshot().interrupted, false);
+    assert.equal(h.session.getSnapshot().muted, false);
+    assert.deepEqual(transport.muteChanges.at(-1), false);
+    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
+  } finally {
+    await h.cleanup();
+  }
+});
+
 test('a phone call or Siri pauses the microphone, tells hex, and gives it back unless you muted', async () => {
   const h = harness();
   const marks: string[] = [];
