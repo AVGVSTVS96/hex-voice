@@ -92,9 +92,10 @@ const threadTile = (place: Place, link?: string): Tile => ({
 
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 
-// The stream, in its order. An ask stands in for the thread that asked it; a thread that needs
-// you some other way keeps its own row. What finished since you looked leads Done until it's read,
-// and a read one from before today has already shown as its thread.
+// The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic
+// while it's on the board; a thread that needs you some other way keeps its own row. What finished
+// since you looked leads Done until it's read, and a read one from before today has already shown
+// as its thread.
 export function inboxEntries(
   tasks: TaskRow[],
   list: Pick<AskList, 'stuck' | 'fresh'> | undefined,
@@ -103,6 +104,7 @@ export function inboxEntries(
 ): Entry[] {
   const today = startOfDay(now);
   const asked = new Set(asks.map((ask) => ask.task));
+  const names = new Map(tasks.map((task) => [task.id, task.name]));
   const stageOf = (task: TaskRow): Stage => {
     if (task.state === 'needs' || task.state === 'working') return task.state;
     return task.state !== 'idle' && Date.parse(task.at) >= today ? 'done' : 'quiet';
@@ -111,7 +113,7 @@ export function inboxEntries(
     ...asks.map((ask): Entry => ({
       kind: 'ask',
       id: ask.id,
-      topic: ask.topic,
+      topic: names.get(ask.task) ?? ask.topic,
       place: placeOf(ask.app),
       tiles: tilesOf(ask),
       stage: 'needs',
