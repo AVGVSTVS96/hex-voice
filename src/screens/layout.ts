@@ -173,7 +173,7 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
     // Open on its side the call yields its leading edge to Calls, as on iPad.
     ...(frame.column ? {} : { calls: { width: LIST, place: 'beside' } }),
     duo: {
-      partlyOpen: !!pose.fold?.active,
+      partlyOpen: !!fold && partly(fold),
       ...(frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before)),
     },
   };
@@ -182,7 +182,8 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
 // What the fold takes from the screen. iOS reports it as a division region that's active only
 // while the Duo is partly open; then content keeps to either side of its frame, which already
 // holds the margins controls and text keep from the hinge. Open flat it's inactive and nothing
-// keeps off it, so the two sides meet at its middle.
+// keeps off it, so the two sides meet at its middle. This is the only place that reads whether
+// it's active; everything after asks `partly()` of what it returns.
 function divide(fold: Region): Rect {
   if (fold.active) return fold;
   return fold.height > fold.width
@@ -190,10 +191,14 @@ function divide(fold: Region): Rect {
     : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
 }
 
+function partly(fold: Rect) {
+  return Math.min(fold.width, fold.height) > 0;
+}
+
 // How far the call's words keep from the fold: flat it's a bare line, so a small gap; partly open
 // its frame already holds the margins, so none more.
 function clear(fold: Rect) {
-  return Math.min(fold.width, fold.height) > 0 ? 0 : 8;
+  return partly(fold) ? 0 : 8;
 }
 
 type Frame = {
@@ -484,7 +489,8 @@ function split(frame: Frame, fold?: Rect): Layout {
     controls: controls ?? { right: GUTTER, bottom: bottomInset, axis: 'row' },
     orb: {
       size: Math.min(pane * 0.62, window.height * 0.42, 300),
-      rest: fold?.width ? read : { x: content.x + content.width / 2, y: window.height / 2 },
+      rest:
+        fold && partly(fold) ? read : { x: content.x + content.width / 2, y: window.height / 2 },
       room: { top: 0, bottom: window.height },
       read,
     },
