@@ -1,5 +1,5 @@
 {
-  "version": 1793726131193,
+  "version": 1793732516252,
   "tasks": [
     {
       "id": "id-25",
@@ -40,87 +40,97 @@
       "state": "working",
       "running": true,
       "line": "line",
-      "since": "2026-11-03T17:15:12.585Z",
-      "at": "2026-11-03T17:15:25.608Z",
+      "since": "2026-11-03T19:01:42.782Z",
+      "at": "2026-11-03T19:01:48.745Z",
       "track": [
         {
-          "at": "2026-10-27T17:15:31.178Z",
-          "state": "done"
-        },
-        {
-          "at": "2026-10-28T16:00:10.209Z",
+          "at": "2026-11-03T15:19:31.172Z",
           "state": "working"
         },
         {
-          "at": "2026-10-28T16:02:05.115Z",
-          "state": "done"
+          "at": "2026-11-03T19:01:42.782Z",
+          "state": "working"
+        },
+        {
+          "at": "2026-11-03T19:01:48.745Z",
+          "state": "working"
         }
       ],
       "link": "https://example.com/30",
-      "agents": []
+      "agents": [
+        {
+          "id": "id-31",
+          "label": "label",
+          "state": "working",
+          "via": "claude",
+          "since": "2026-11-03T15:20:13.919Z",
+          "who": "Opus 5.5",
+          "line": "line"
+        }
+      ]
     },
     {
-      "id": "id-31",
+      "id": "id-32",
       "app": "telegram",
-      "thread": "thread-32",
+      "thread": "thread-33",
       "name": "name",
       "where": "where",
       "place": "place",
       "state": "done",
       "running": false,
       "line": "line",
-      "since": "2026-11-03T17:15:22.537Z",
-      "at": "2026-11-03T17:15:22.537Z",
+      "since": "2026-11-03T18:47:59.417Z",
+      "at": "2026-11-03T18:47:59.417Z",
       "track": [
         {
-          "at": "2026-10-27T17:15:31.173Z",
-          "state": "done"
-        },
-        {
-          "at": "2026-11-03T07:59:45.857Z",
+          "at": "2026-11-03T00:09:02.600Z",
           "state": "working"
         },
         {
-          "at": "2026-11-03T08:05:46.656Z",
+          "at": "2026-11-03T02:55:07.613Z",
           "state": "done"
+        },
+        {
+          "at": "2026-11-03T05:01:40.359Z",
+          "state": "working"
         }
       ],
-      "link": "https://example.com/33",
+      "link": "https://example.com/34",
       "agents": []
     },
     {
-      "id": "id-34",
+      "id": "id-35",
       "app": "telegram",
-      "thread": "thread-35",
+      "thread": "thread-36",
       "name": "name",
       "where": "where",
       "place": "place",
       "state": "idle",
       "running": false,
       "line": "line",
-      "since": "2026-11-03T17:15:22.669Z",
-      "at": "2026-11-03T17:15:22.669Z",
+      "since": "2026-11-01T09:56:09.886Z",
+      "at": "2026-11-01T09:56:09.886Z",
       "track": [
         {
-          "at": "2026-11-03T04:09:17.429Z",
-          "state": "working"
-        },
-        {
-          "at": "2026-11-03T04:21:04.400Z",
+          "at": "2026-10-27T19:01:56.240Z",
           "state": "done"
         },
         {
-          "at": "2026-11-03T04:55:03.007Z",
+          "at": "2026-10-27T20:09:56.717Z",
           "state": "working"
+        },
+        {
+          "at": "2026-10-27T21:57:30.559Z",
+          "state": "needs"
         }
       ],
-      "link": "https://example.com/36",
+      "link": "https://example.com/37",
       "agents": []
     },
     {
-      "id": "id-37",
+      "id": "id-38",
       "app": "buzz",
-      "thread": "thread-38",
+      "thread": "thread-39",
       "name": "name",
       "where": "where",
       "place": "place",
@@ -131,17 +141,17 @@
       "at": "2026-10-10T09:16:07.618Z",
       "track": [
         {
-          "at": "2026-10-27T17:15:31.158Z",
+          "at": "2026-10-27T19:01:56.231Z",
           "state": "needs"
         }
       ],
-      "link": "https://example.com/39",
+      "link": "https://example.com/40",
       "agents": []
     },
     {
-      "id": "id-40",
+      "id": "id-41",
       "app": "buzz",
-      "thread": "thread-41",
+      "thread": "thread-42",
       "name": "name",
       "where": "where",
       "place": "place",
@@ -152,11 +162,11 @@
       "at": "2026-10-09T23:06:09.915Z",
       "track": [
         {
-          "at": "2026-10-27T17:15:31.157Z",
+          "at": "2026-10-27T19:01:56.230Z",
           "state": "needs"
         }
       ],
-      "link": "https://example.com/42",
+      "link": "https://example.com/43",
       "agents": []
     }
   ]

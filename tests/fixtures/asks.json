@@ -1,38 +1,10 @@
 {
-  "version": 1793726093901,
+  "version": 1793732454687,
   "asks": [
     {
-      "id": "id-51",
-      "kind": "yesno",
-      "task": "task-52",
-      "at": "2026-11-03T17:03:14.182Z",
-      "question": "question",
-      "app": "telegram",
-      "topic": "topic",
-      "options": [
-        {
-          "label": "label",
-          "value": "value",
-          "pick": true
-        },
-        {
-          "label": "label",
-          "value": "value"
-        }
-      ],
-      "places": [
-        {
-          "app": "telegram",
-          "place": "place",
-          "task": "task-52",
-          "link": "https://example.com/53"
-        }
-      ]
-    },
-    {
-      "id": "id-54",
+      "id": "id-46",
       "kind": "do",
-      "task": "task-55",
+      "task": "task-47",
       "at": "2026-11-03T07:29:00.000Z",
       "question": "question",
       "context": "context",
@@ -51,16 +23,50 @@
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-55",
-          "link": "https://example.com/56"
+          "task": "task-47",
+          "link": "https://example.com/48"
         }
       ]
     },
     {
-      "id": "id-57",
+      "id": "id-49",
+      "kind": "yesno",
+      "task": "task-50",
+      "at": "2026-11-03T17:30:13.884Z",
+      "question": "question",
+      "context": "context",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label",
+          "value": "value"
+        },
+        {
+          "label": "label",
+          "value": "value"
+        }
+      ],
+      "links": [
+        {
+          "label": "label",
+          "url": "https://example.com/51"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-50",
+          "link": "https://example.com/52"
+        }
+      ]
+    },
+    {
+      "id": "id-53",
       "kind": "pick",
-      "task": "task-58",
-      "at": "2026-11-03T10:19:29.855Z",
+      "task": "task-50",
+      "at": "2026-11-03T17:03:14.182Z",
       "question": "question",
       "context": "context",
       "app": "telegram",
@@ -80,25 +86,21 @@
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-58",
-          "link": "https://example.com/59"
+          "task": "task-50",
+          "link": "https://example.com/54"
         }
       ]
     },
     {
-      "id": "id-60",
+      "id": "id-55",
       "kind": "look",
-      "task": "task-58",
-      "at": "2026-11-03T11:33:00.000Z",
+      "task": "task-47",
+      "at": "2026-11-03T17:42:00.000Z",
       "question": "question",
       "context": "context",
-      "tag": "unblocks 1",
       "app": "telegram",
       "topic": "topic",
       "options": [
-        {
-          "label": "label"
-        },
         {
           "label": "label"
         },
@@ -113,54 +115,21 @@
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-58",
-          "link": "https://example.com/61"
-        }
-      ]
-    },
-    {
-      "id": "id-62",
-      "kind": "yesno",
-      "task": "task-55",
-      "at": "2026-11-03T04:23:14.542Z",
-      "question": "question",
-      "context": "context",
-      "tag": "unblocks 1",
-      "app": "telegram",
-      "topic": "topic",
-      "options": [
-        {
-          "label": "label",
-          "value": "value"
+          "task": "id-28",
+          "link": "https://example.com/56"
         },
-        {
-          "label": "label",
-          "value": "value"
-        }
-      ],
-      "links": [
-        {
-          "label": "label",
-          "url": "https://example.com/63"
-        },
-        {
-          "label": "label",
-          "url": "https://example.com/64"
-        }
-      ],
-      "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-55",
-          "link": "https://example.com/65"
+          "task": "task-47",
+          "link": "https://example.com/57"
         }
       ]
     },
     {
-      "id": "id-66",
+      "id": "id-58",
       "kind": "pick",
-      "task": "id-34",
+      "task": "task-59",
       "at": "2026-11-03T07:29:40.505Z",
       "question": "question",
       "context": "context",
@@ -197,43 +166,43 @@
       "links": [
         {
           "label": "label",
-          "url": "https://example.com/67"
+          "url": "https://example.com/60"
         },
         {
           "label": "label",
-          "url": "https://example.com/68"
+          "url": "https://example.com/61"
         },
         {
           "label": "label",
-          "url": "https://example.com/69"
+          "url": "https://example.com/62"
         },
         {
           "label": "label",
-          "url": "https://example.com/70"
+          "url": "https://example.com/63"
         },
         {
           "label": "label",
-          "url": "https://example.com/71"
+          "url": "https://example.com/64"
         },
         {
           "label": "label",
-          "url": "https://example.com/72"
+          "url": "https://example.com/65"
         }
       ],
       "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "id-34",
-          "link": "https://example.com/73"
+          "task": "task-59",
+          "link": "https://example.com/66"
         }
       ]
     },
     {
-      "id": "id-74",
+      "id": "id-67",
       "kind": "look",
-      "task": "task-75",
-      "at": "2026-11-03T07:35:00.000Z",
+      "task": "id-32",
+      "at": "2026-11-03T18:47:00.000Z",
       "question": "question",
       "context": "context",
       "tag": "unblocks 1",
@@ -253,26 +222,26 @@
       "links": [
         {
           "label": "label",
-          "url": "https://example.com/76"
+          "url": "https://example.com/68"
         },
         {
           "label": "label",
-          "url": "https://example.com/77"
+          "url": "https://example.com/69"
         }
       ],
       "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-75",
-          "link": "https://example.com/78"
+          "task": "id-32",
+          "link": "https://example.com/70"
         }
       ]
     },
     {
-      "id": "id-79",
+      "id": "id-71",
       "kind": "do",
-      "task": "task-80",
+      "task": "task-72",
       "at": "2026-11-03T04:29:00.000Z",
       "question": "question",
       "context": "context",
@@ -290,22 +259,22 @@
       "links": [
         {
           "label": "label",
-          "url": "https://example.com/81"
+          "url": "https://example.com/73"
         }
       ],
       "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-80",
-          "link": "https://example.com/82"
+          "task": "task-72",
+          "link": "https://example.com/74"
         }
       ]
     },
     {
-      "id": "id-83",
+      "id": "id-75",
       "kind": "do",
-      "task": "task-84",
+      "task": "task-76",
       "at": "2026-10-29T00:43:52.289Z",
       "question": "question",
       "context": "context",
@@ -323,14 +292,19 @@
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-84",
-          "link": "https://example.com/85"
+          "task": "task-76",
+          "link": "https://example.com/77"
         },
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-86",
-          "link": "https://example.com/87"
+          "task": "task-78",
+          "link": "https://example.com/79"
+        },
+        {
+          "app": "voice",
+          "place": "place",
+          "call": "id-1"
         },
         {
           "app": "voice",
@@ -345,14 +319,14 @@
         {
           "app": "voice",
           "place": "place",
-          "call": "call-88"
+          "call": "call-80"
         }
       ]
     },
     {
-      "id": "id-89",
+      "id": "id-81",
       "kind": "do",
-      "task": "task-84",
+      "task": "task-76",
       "at": "2026-11-01T14:32:00.000Z",
       "question": "question",
       "context": "context",
@@ -369,21 +343,26 @@
       "links": [
         {
           "label": "label",
-          "url": "https://example.com/90"
+          "url": "https://example.com/82"
         }
       ],
       "places": [
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-84",
-          "link": "https://example.com/85"
+          "task": "task-76",
+          "link": "https://example.com/77"
         },
         {
           "app": "telegram",
           "place": "place",
-          "task": "task-86",
-          "link": "https://example.com/87"
+          "task": "task-78",
+          "link": "https://example.com/79"
+        },
+        {
+          "app": "voice",
+          "place": "place",
+          "call": "id-1"
         },
         {
           "app": "voice",
@@ -398,7 +377,74 @@
         {
           "app": "voice",
           "place": "place",
-          "call": "call-88"
+          "call": "call-80"
+        },
+        {
+          "app": "voice",
+          "place": "place",
+          "call": "call-83"
+        }
+      ]
+    },
+    {
+      "id": "id-84",
+      "kind": "yesno",
+      "task": "task-85",
+      "at": "2026-11-03T04:21:00.000Z",
+      "question": "question",
+      "context": "context",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label"
+        },
+        {
+          "label": "label"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-85",
+          "link": "https://example.com/86"
+        }
+      ]
+    },
+    {
+      "id": "id-87",
+      "kind": "pick",
+      "task": "task-88",
+      "at": "2026-10-15T07:47:23.596Z",
+      "question": "question",
+      "context": "context",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label",
+          "pick": true
+        },
+        {
+          "label": "label"
+        },
+        {
+          "label": "label"
+        }
+      ],
+      "links": [
+        {
+          "label": "label",
+          "url": "https://example.com/89"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-88",
+          "link": "https://example.com/90"
         },
         {
           "app": "voice",
@@ -406,11 +452,87 @@
           "call": "call-91"
         }
       ]
+    },
+    {
+      "id": "id-92",
+      "kind": "yesno",
+      "task": "task-93",
+      "at": "2026-10-14T04:40:04.142Z",
+      "question": "question",
+      "context": "context",
+      "tag": "money",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label",
+          "pick": true
+        },
+        {
+          "label": "label"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-93",
+          "link": "https://example.com/94"
+        },
+        {
+          "app": "voice",
+          "place": "place",
+          "call": "call-91"
+        }
+      ]
+    },
+    {
+      "id": "id-95",
+      "kind": "yesno",
+      "task": "task-96",
+      "at": "2026-10-18T18:54:42.244Z",
+      "question": "question",
+      "context": "context",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label"
+        },
+        {
+          "label": "label"
+        }
+      ],
+      "links": [
+        {
+          "label": "label",
+          "url": "https://example.com/97"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-78",
+          "link": "https://example.com/98"
+        },
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "task-96",
+          "link": "https://example.com/99"
+        },
+        {
+          "app": "voice",
+          "place": "place",
+          "call": "call-100"
+        }
+      ]
     }
   ],
   "stuck": [
     {
-      "id": "id-92",
+      "id": "id-101",
       "app": "t3",
       "title": "title",
       "why": "why",
@@ -420,7 +542,7 @@
       "request": "request"
     },
     {
-      "id": "id-93",
+      "id": "id-102",
       "title": "title",
       "why": "why",
       "action": "action",
@@ -430,11 +552,22 @@
       "app": "hex"
     }
   ],
-  "fresh": [],
+  "fresh": [
+    {
+      "id": "id-103",
+      "app": "t3",
+      "topic": "topic",
+      "title": "title",
+      "where": "where",
+      "line": "line",
+      "at": "2026-11-03T17:20:33.298Z",
+      "read": false
+    }
+  ],
   "check": {
-    "at": "2026-11-03T11:54:07.772Z",
+    "at": "2026-11-03T18:56:06.943Z",
     "why": "why",
-    "fixed": 4,
-    "flagged": 26
+    "fixed": 3,
+    "flagged": 16
   }
 }

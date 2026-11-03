@@ -1,5 +1,5 @@
 {
-  "version": 1793726095428,
+  "version": 1793732140244,
   "calls": [
     {
       "id": "id-1",
@@ -9,6 +9,9 @@
       "ended": "2026-11-03T16:49:40.768Z",
       "end": "dropped",
       "reason": "reason",
+      "title": "title",
+      "summary": "summary",
+      "waiting": ["waiting", "waiting"],
       "seconds": 0,
       "tasks": 0,
       "preview": "preview"
