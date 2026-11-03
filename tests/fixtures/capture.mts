@@ -119,3 +119,12 @@ write('check', {
   flagged: (check.flagged as Json[]).slice(0, 2),
 });
 write('activity', await read('/activity'));
+
+// An ask whose thread has left the board opens that thread's page.
+const left = (asks.asks as Item[]).find(
+  (ask) => !(tasks.tasks as Item[]).some((row) => row.id === ask.task),
+);
+if (left) {
+  const page = await read(`/tasks/${encodeURIComponent(String(left.task))}`);
+  write('page', { ...page, asks: (page.asks as Json[]).slice(0, 1) });
+}

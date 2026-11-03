@@ -1,0 +1,42 @@
+{
+  "id": "id-90",
+  "app": "discord",
+  "thread": "thread-91",
+  "name": "name",
+  "where": "where",
+  "place": "place",
+  "at": "2026-10-24T18:02:11.000Z",
+  "line": "line",
+  "link": "https://example.com/94",
+  "asks": [
+    {
+      "id": "id-92",
+      "kind": "yesno",
+      "task": "id-90",
+      "at": "2026-11-03T17:03:14.182Z",
+      "question": "question",
+      "app": "telegram",
+      "topic": "topic",
+      "options": [
+        {
+          "label": "label",
+          "value": "value",
+          "pick": true
+        },
+        {
+          "label": "label",
+          "value": "value"
+        }
+      ],
+      "places": [
+        {
+          "app": "telegram",
+          "place": "place",
+          "task": "id-90",
+          "link": "https://example.com/93"
+        }
+      ]
+    }
+  ],
+  "pin": "pin"
+}

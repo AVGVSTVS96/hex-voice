@@ -3,7 +3,7 @@ import * as z from 'zod/mini';
 import { AgentActivity } from '../live/agents';
 import { AskList, Check, type AskId } from '../live/asks';
 import { CallId, CallList, CallRecord } from '../live/calls';
-import { Chat, Task, TaskCounts, TaskList, type TaskId } from '../live/tasks';
+import { Chat, TaskCounts, TaskList, TaskOrPage, type TaskId } from '../live/tasks';
 import type { SessionAPI } from '../live/types';
 
 import type { Client } from './client';
@@ -47,7 +47,7 @@ export function createHex({ request, send }: Client) {
         request('/tasks', TaskList, { after, signal }),
       counts: (after?: number, signal?: AbortSignal) =>
         request('/tasks/summary', TaskCounts, { after, signal }),
-      get: (id: TaskId) => request(`/tasks/${enc(id)}`, Task),
+      get: (id: TaskId) => request(`/tasks/${enc(id)}`, TaskOrPage),
       chat: (id: TaskId, after?: number, signal?: AbortSignal) =>
         request(`/tasks/${enc(id)}/chat`, Chat, { after, signal }),
       talk: (id: TaskId) => send(`/tasks/${enc(id)}/talk`),
