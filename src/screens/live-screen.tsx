@@ -509,10 +509,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     transform: [{ translateX: (drawer.get() - 1) * (list.place === 'over' ? list.width : 48) }],
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
-  const paneStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, pane.get() * 4),
-    transform: [{ translateX: (1 - pane.get()) * 48 }],
-  }));
+  const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
   const dimStyle = useAnimatedStyle(() => ({ opacity: drawer.get() }));
   // Over a full-width screen the list covers the toolbar's leading end, so the toolbar makes way.
   const makesWay = list.place === 'over' && layout.toolbar.axis === 'row';

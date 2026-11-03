@@ -71,7 +71,8 @@ function useSettle(on: boolean, reducedMotion: boolean) {
 }
 
 // Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call its
-// page beside Tasks, lit while it has it. Tasks slides in as `pane` opens it.
+// page beside Tasks, lit while it has it. Tasks fades in where it sits as `pane` opens it: moved by a
+// transform, its Host would keep telling iOS accessibility where it started.
 export function DuoTasks({
   duo,
   tasks,
