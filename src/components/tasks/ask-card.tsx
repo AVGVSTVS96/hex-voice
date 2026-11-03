@@ -22,7 +22,7 @@ import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
+import { Failure, Hairline, SectionHead, ios } from '@/components/tasks/parts';
 import {
   NOT_NEEDED,
   unreached,
@@ -35,6 +35,7 @@ import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 // Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
 // on one line where they fit.
@@ -83,9 +84,14 @@ export function YourCall({
             <Row
               key={ask.id}
               alignment="center"
-              spacing={GAP}
+              spacing={metrics.list.gap}
               modifiers={[
-                padding({ leading: INSET - 2, trailing: INSET, top: 10, bottom: 14 }),
+                padding({
+                  leading: metrics.list.inset - 2,
+                  trailing: metrics.list.inset,
+                  top: 10,
+                  bottom: 14,
+                }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
             >
@@ -180,7 +186,7 @@ function AskCard({
         alignment="start"
         spacing={0}
         modifiers={[
-          padding({ leading: INSET, top: first ? 2 : 12, bottom: open ? 6 : 12 }),
+          padding({ leading: metrics.list.inset, top: first ? 2 : 12, bottom: open ? 6 : 12 }),
           frame({ maxWidth: Infinity }),
         ]}
       >
@@ -246,7 +252,7 @@ function AskCard({
             modifiers={[
               monospacedDigit(),
               foregroundStyle(theme.tertiary),
-              padding({ leading: GAP, trailing: INSET }),
+              padding({ leading: metrics.list.gap, trailing: metrics.list.inset }),
             ]}
           >
             {clock(new Date(ask.at))}
@@ -258,7 +264,7 @@ function AskCard({
           alignment="start"
           spacing={3}
           modifiers={[
-            padding({ leading: INSET, trailing: INSET, bottom: 6 }),
+            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, bottom: 6 }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >
@@ -279,7 +285,13 @@ function AskCard({
       {ask.failed ? (
         <Failure
           text={ask.failed}
-          modifiers={[padding({ leading: INSET, trailing: INSET, bottom: open ? 6 : 12 })]}
+          modifiers={[
+            padding({
+              leading: metrics.list.inset,
+              trailing: metrics.list.inset,
+              bottom: open ? 6 : 12,
+            }),
+          ]}
         />
       ) : null}
       {!open ? null : writing ? (
@@ -420,13 +432,20 @@ export function InlineAnswers({
 
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   if (!ask.options.length) return null;
-  if (fitsOneLine(ask.options, width - 2 * INSET, ANSWER))
+  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, ANSWER))
     return (
       <InlineAnswers
         ask={ask}
         size={ANSWER}
         onAnswer={onAnswer}
-        modifiers={[padding({ leading: INSET, trailing: INSET, top: 0, bottom: 10 })]}
+        modifiers={[
+          padding({
+            leading: metrics.list.inset,
+            trailing: metrics.list.inset,
+            top: 0,
+            bottom: 10,
+          }),
+        ]}
       />
     );
   return (
@@ -449,7 +468,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
       spacing={12}
       onPress={onPress}
       modifiers={[
-        padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
+        padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
         frame({ minHeight: ROW }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
@@ -525,7 +544,12 @@ function Composer({
             shape: 'roundedRectangle',
             cornerRadius: radius.control,
           }),
-          padding({ leading: INSET - 6, trailing: INSET - 6, top: 6, bottom: 6 }),
+          padding({
+            leading: metrics.list.inset - 6,
+            trailing: metrics.list.inset - 6,
+            top: 6,
+            bottom: 6,
+          }),
         ]}
       >
         <TextInput
@@ -562,7 +586,12 @@ function Composer({
         alignment="center"
         spacing={0}
         modifiers={[
-          padding({ leading: INSET, trailing: INSET, top: 4, bottom: 10 }),
+          padding({
+            leading: metrics.list.inset,
+            trailing: metrics.list.inset,
+            top: 4,
+            bottom: 10,
+          }),
           frame({ maxWidth: Infinity }),
         ]}
       >

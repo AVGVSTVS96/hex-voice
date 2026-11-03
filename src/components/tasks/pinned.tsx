@@ -13,10 +13,11 @@ import {
 import { useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { Failure, GAP, INSET, MARK, SectionHead } from '@/components/tasks/parts';
+import { Failure, SectionHead } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { radius, theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 export function Pinned({ text }: { text: string }) {
   const sections = pinSections(text);
@@ -35,10 +36,15 @@ function Section({ section }: { section: PinSection }) {
     return (
       <Row
         alignment="center"
-        spacing={GAP}
+        spacing={metrics.list.gap}
         onPress={() => setOpen(true)}
         modifiers={[
-          padding({ leading: INSET - 2, trailing: INSET, top: 12, bottom: 12 }),
+          padding({
+            leading: metrics.list.inset - 2,
+            trailing: metrics.list.inset,
+            top: 12,
+            bottom: 12,
+          }),
           frame({ maxWidth: Infinity }),
           contentShape(shapes.rectangle()),
         ]}
@@ -75,7 +81,12 @@ function Line({ line }: { line: PinLine }) {
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
           clipShape('roundedRectangle', radius.inner),
-          padding({ leading: INSET - 2 + MARK + GAP, trailing: INSET, top: 4, bottom: 8 }),
+          padding({
+            leading: metrics.list.inset - 2 + metrics.list.mark + metrics.list.gap,
+            trailing: metrics.list.inset,
+            top: 4,
+            bottom: 8,
+          }),
         ]}
       >
         {line.text}
@@ -90,7 +101,7 @@ function Line({ line }: { line: PinLine }) {
         modifiers={[
           foregroundStyle(theme.secondary),
           textSelection(true),
-          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
+          padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
@@ -101,10 +112,10 @@ function Line({ line }: { line: PinLine }) {
     return (
       <Row
         alignment="start"
-        spacing={GAP}
+        spacing={metrics.list.gap}
         onPress={open}
         modifiers={[
-          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
+          padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 6, bottom: 6 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
         ]}
@@ -131,10 +142,15 @@ function Line({ line }: { line: PinLine }) {
   return (
     <Row
       alignment="start"
-      spacing={GAP}
+      spacing={metrics.list.gap}
       onPress={open}
       modifiers={[
-        padding({ leading: INSET - 2, trailing: INSET, top: 8, bottom: 8 }),
+        padding({
+          leading: metrics.list.inset - 2,
+          trailing: metrics.list.inset,
+          top: 8,
+          bottom: 8,
+        }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
       ]}

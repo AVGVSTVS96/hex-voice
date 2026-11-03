@@ -16,10 +16,11 @@ import { useState } from 'react';
 import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
+import { Hairline, SectionHead, ios } from '@/components/tasks/parts';
 import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskId, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const GLYPH: Record<Place, SFSymbol> = {
   telegram: 'paperplane.fill',
@@ -161,7 +162,12 @@ export function Places({
                 opens ? () => (thread.link ? onOpen(thread) : onOpenTask(thread.id)) : undefined
               }
               modifiers={[
-                padding({ leading: INSET, trailing: INSET - 4, top: 11, bottom: 11 }),
+                padding({
+                  leading: metrics.list.inset,
+                  trailing: metrics.list.inset - 4,
+                  top: 11,
+                  bottom: 11,
+                }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
                 contentShape(shapes.rectangle()),
                 ...(ios ? [accessibilityLabel(`${thread.place}, ${note}`)] : []),
@@ -206,7 +212,7 @@ export function Places({
           textStyle={{ fontSize: 13 }}
           modifiers={[
             foregroundStyle(theme.accent),
-            padding({ leading: INSET + 40, top: 10, bottom: 4 }),
+            padding({ leading: metrics.list.inset + 40, top: 10, bottom: 4 }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >

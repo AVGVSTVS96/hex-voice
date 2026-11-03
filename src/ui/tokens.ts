@@ -36,8 +36,11 @@ export type TextStyle = {
   textStyle?:
     'title' | 'title2' | 'headline' | 'body' | 'callout' | 'subheadline' | 'footnote' | 'caption';
   fontSize: number;
-  // React Native's whole line box. SwiftUI keeps its own leading.
+  // React Native's whole line box.
   lineHeight: number;
+  // SwiftUI's gap between a paragraph's lines. A label, or a style without one, keeps the font's
+  // own leading.
+  lineSpacing?: number;
   weight?: Weight;
 };
 
@@ -45,10 +48,10 @@ export const type = {
   title: { textStyle: 'title', fontSize: 28, lineHeight: 34, weight: 'bold' },
   title2: { textStyle: 'title2', fontSize: 22, lineHeight: 28, weight: 'semibold' },
   headline: { textStyle: 'headline', fontSize: 17, lineHeight: 22, weight: 'semibold' },
-  body: { textStyle: 'body', fontSize: 17, lineHeight: 22 },
+  body: { textStyle: 'body', fontSize: 17, lineHeight: 22, lineSpacing: 5 },
   callout: { textStyle: 'callout', fontSize: 16, lineHeight: 23 },
-  subheadline: { textStyle: 'subheadline', fontSize: 15, lineHeight: 22 },
-  footnote: { textStyle: 'footnote', fontSize: 13, lineHeight: 18 },
+  subheadline: { textStyle: 'subheadline', fontSize: 15, lineHeight: 22, lineSpacing: 5 },
+  footnote: { textStyle: 'footnote', fontSize: 13, lineHeight: 18, lineSpacing: 5 },
   caption: { textStyle: 'caption', fontSize: 12, lineHeight: 16 },
   // The call's words, with room between their lines to read along as they come.
   words: { textStyle: 'body', fontSize: 17, lineHeight: 25 },
@@ -57,7 +60,7 @@ export const type = {
   tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
   // A name in a list, like a call's in Calls, and the details under it.
   item: { textStyle: 'callout', fontSize: 16, lineHeight: 21, weight: 'medium' },
-  itemDetail: { fontSize: 14, lineHeight: 19 },
+  itemDetail: { fontSize: 14, lineHeight: 19, lineSpacing: 5 },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
   // The one name a carousel's page shows.
@@ -82,7 +85,7 @@ export function textOf(variant: TextVariant, weight?: Weight) {
 }
 
 // A text style for a React Native label: the variant's size and weight on the font's own line
-// height, as SwiftUI text always is.
+// height, as a SwiftUI label has.
 export function labelOf(variant: TextVariant, weight?: Weight) {
   const { fontSize, fontWeight } = textOf(variant, weight);
   return { fontSize, fontWeight };
@@ -105,6 +108,7 @@ export const space = {
   7.5: 30,
   8: 32,
   10: 40,
+  12: 48,
 } as const;
 
 // A glass button's diameter, by what it is.
@@ -151,6 +155,10 @@ export const metrics = {
   emptyTop: 130,
   // Between the wrap-up, how the last call ended and what didn't go through, under the call.
   footerGap: 22,
+  // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
+  // and how far content fades as it meets a bar and rests in from that edge. Together with a
+  // row's own top padding, nothing at rest sits in the fade.
+  list: { inset: space[5], mark: 16, gap: space[2.5], fade: space[6], rest: space[3] },
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;

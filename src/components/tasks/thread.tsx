@@ -20,13 +20,14 @@ import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
-import { Failure, Faded, INSET, SectionHead, ios } from '@/components/tasks/parts';
+import { Failure, Faded, SectionHead, ios } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
 import { PLACES, placeOf } from '@/live/inbox';
 import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
+import { metrics } from '@/ui/tokens';
 
 const FIELD = 50;
 
@@ -203,7 +204,12 @@ export function ThreadPage({
         />
       ) : null}
       {failed ? (
-        <Failure text={failed} modifiers={[padding({ leading: INSET, trailing: INSET, top: 8 })]} />
+        <Failure
+          text={failed}
+          modifiers={[
+            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: 8 }),
+          ]}
+        />
       ) : null}
       {chat?.sends ? (
         <Composer
