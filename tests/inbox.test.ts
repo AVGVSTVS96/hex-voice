@@ -219,6 +219,23 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
   );
 });
 
+test('an ask sits in the topic of the thread that asked it, and in its own once that thread is off the board', () => {
+  const entries = stream({
+    asks: [
+      ask('g1', 'pick', { task: 'telegram:-100', topic: 'hex' }),
+      ask('o1', 'pick', { task: 'discord:gone', topic: 'Data kit' }),
+    ],
+    tasks: [row('General', 'needs', at(9), { id: 'telegram:-100' })],
+  });
+  assert.deepEqual(
+    topicsOf(entries, entries).map((topic) => [topic.name, ids(topic.entries)]),
+    [
+      ['General', ['g1']],
+      ['Data kit', ['o1']],
+    ],
+  );
+});
+
 test('a topic marks each of its threads once, by its most pressing stage, whichever tab it is in', () => {
   const tasks = [
     row('autofork', 'working', at(9), { id: 't3:autofork', app: 't3' }),
