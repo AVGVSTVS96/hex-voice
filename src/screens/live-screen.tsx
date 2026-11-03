@@ -49,6 +49,7 @@ import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCall, useCalls } from '@/hooks/use-calls';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
+import { failure } from '@/hooks/use-failures';
 import { useNow } from '@/hooks/use-now';
 import { useTaskCounts } from '@/hooks/use-tasks';
 import { useLiveSession } from '@/hooks/use-live-session';
@@ -678,24 +679,24 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     };
   });
 
-  // What an action on the call couldn't do shows in the footer's error line until the next one.
-  const [trouble, setTrouble] = useState<string>();
-  const tried = (action: Promise<unknown>) => {
+  // What an action on a call couldn't do shows in the footer's error line while that call lasts.
+  const callNow = onCall ? (session.callId ?? away?.id) : undefined;
+  const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
+  const tried = (what: string, action: Promise<unknown>) => {
+    const call = callNow;
     setTrouble(undefined);
-    action.catch((error: unknown) =>
-      setTrouble(error instanceof Error ? error.message : 'That didn’t reach hex.'),
-    );
+    action.catch((error: unknown) => setTrouble({ call, why: failure(what, error) }));
   };
+  const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
   const startCall = (about?: string) => {
     if (viewing) leaveCall();
-    setTrouble(undefined);
     void session.start(voice, about);
   };
   const onPrimaryPress = () => {
     if (disconnecting || elsewhere.leaving || !voiceLoaded) return;
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (connected || connecting) void session.stop();
-    else if (elsewhere.live) tried(elsewhere.hangUp());
+    else if (elsewhere.live) tried('Not ended', elsewhere.hangUp());
     else startCall();
   };
   const onMute = () => {
@@ -716,7 +717,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
     stepAside();
-    if (onCall) tried(tasksAPI.talk(task.id));
+    if (onCall) tried('Not sent', tasksAPI.talk(task.id));
     else if (voiceLoaded) startCall(task.id);
   };
   // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
@@ -736,7 +737,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
     stepAside();
-    if (onCall) tried(asksAPI.talk());
+    if (onCall) tried('Not sent', asksAPI.talk());
     else if (voiceLoaded) startCall('asks');
   };
 
@@ -973,9 +974,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
                 Paused while another app has the audio
               </Text>
             ) : null}
-            {trouble || (session.error && !away) ? (
+            {troubleNow || (session.error && !away) ? (
               <Text accessibilityRole="alert" style={[styles.error, split && styles.leadingText]}>
-                {trouble ?? session.error}
+                {troubleNow ?? session.error}
               </Text>
             ) : null}
             {layout.controls === 'inline' && !inRow && controls}
