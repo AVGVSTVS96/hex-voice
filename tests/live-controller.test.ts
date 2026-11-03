@@ -697,6 +697,13 @@ test('when iOS never hands the audio back, a tap on the microphone ends the paus
     assert.equal(h.session.getSnapshot().muted, false);
     assert.deepEqual(transport.muteChanges.at(-1), false);
     assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
+
+    h.session.toggleMute();
+    transport.acknowledge(transport.commands.at(-1)!);
+    h.session.interrupt(true);
+    h.session.toggleMute();
+    assert.equal(h.session.getSnapshot().interrupted, false);
+    assert.equal(h.session.getSnapshot().muted, false, 'muted and paused, one tap unmutes');
   } finally {
     await h.cleanup();
   }
