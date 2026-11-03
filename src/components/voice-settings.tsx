@@ -9,13 +9,15 @@ import {
   ZStack,
 } from '@expo/ui/swift-ui';
 import {
+  accessibilityElement,
   accessibilityHidden,
+  accessibilityIdentifier,
   accessibilityLabel,
   animation,
   background,
-  clipped,
   buttonBorderShape,
   buttonStyle,
+  clipped,
   controlSize,
   foregroundStyle,
   frame,
@@ -310,7 +312,6 @@ export function VoiceSettings({
           if (!presented) onDismiss();
         }}
         onDismiss={() => setOnVoicePage(false)}
-        testID="voice-settings-sheet"
       >
         <SheetContent
           modifiers={[
@@ -337,8 +338,8 @@ export function VoiceSettings({
         >
           <ZStack
             alignment="bottom"
-            modifiers={
-              phone
+            modifiers={[
+              ...(phone
                 ? [
                     frame({
                       maxWidth: Infinity,
@@ -353,8 +354,11 @@ export function VoiceSettings({
                     frame({ maxWidth: Infinity }),
                     clipped(),
                     animation(motion.page, onVoicePage),
-                  ]
-            }
+                  ]),
+              // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
+              accessibilityElement('contain'),
+              accessibilityIdentifier('voice-settings-sheet'),
+            ]}
           >
             <RNHostView>
               <View
