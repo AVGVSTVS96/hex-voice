@@ -45,6 +45,7 @@ export function Detail({
   onSteps,
   onAnswer,
   onUndo,
+  onAgain,
   onTalk,
   onOpen,
   onOpenTask,
@@ -63,6 +64,7 @@ export function Detail({
   onSteps: (id: TaskId) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
+  onAgain: (ask: Ask) => void;
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: TaskId) => void;
@@ -126,6 +128,7 @@ export function Detail({
                   width={width}
                   onAnswer={onAnswer}
                   onUndo={onUndo}
+                  onAgain={onAgain}
                 />
               ) : null}
               {working.length ? (
@@ -204,6 +207,7 @@ export function Asked({
   rows,
   onAnswer,
   onUndo,
+  onAgain,
 }: {
   topic: string;
   asks: Ask[];
@@ -213,6 +217,7 @@ export function Asked({
   rows?: ReactNode[];
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
+  onAgain: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
@@ -243,6 +248,7 @@ export function Asked({
                 width={width}
                 onAnswer={onAnswer}
                 onUndo={onUndo}
+                onAgain={onAgain}
               />
             ) : null}
             {rows}
