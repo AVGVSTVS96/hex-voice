@@ -206,7 +206,7 @@ test('iPhone Duo on a table puts the orb above the fold and the words below it',
     { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
   );
   assert.equal(layout.kind, 'stacked');
-  assert.equal(layout.words.top, 503);
+  assert.equal(layout.words.top, 495, 'right past the fold’s frame, which holds its margins');
   assert.ok(layout.orb.read.y < 455);
   assert.equal(layout.pulls, false);
   assert.equal(layout.tasks.place, 'page');
@@ -410,7 +410,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
   ).duo!;
   assert.deepEqual(upright.tasks.fold, { axis: 'row', at: 455.5, band: 40 });
   assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
-  assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5 - 8);
+  assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
   assert.equal(upright.partlyOpen, true);
   const side = screenLayout(
     duo['partly open on its side'].window,
