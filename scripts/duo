@@ -175,6 +175,8 @@ mac_shoot() {
         file=shots/$pose-$state-$appearance.png
         xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
         turned "$file" || {
+          hub orientation portrait
+          sleep 1
           hub orientation "$orientation"
           sleep 2
           xcrun simctl io "$id" screenshot --display="$display" "$file" >/dev/null 2>&1
