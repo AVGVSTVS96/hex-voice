@@ -18,19 +18,24 @@ export function CallAsk({
   onAnswer: (option: AskOption) => Promise<unknown>;
   onOpenTask: () => void;
 }) {
-  const { ask, answer } = card;
-  // What you tapped, marked at once while hex takes it, and why if it didn't.
+  const { ask } = card;
+  // What you tapped, marked at once while hex takes it, sent once it has, and why if it didn't.
   const [sending, setSending] = useState<string>();
+  const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
   const [whole, setWhole] = useState(false);
+  const answer = card.answer ?? sent;
   const choose = (option: AskOption) => {
     if (sending) return;
     setSending(option.label);
     setFailed(undefined);
-    onAnswer(option).then(undefined, (error: unknown) => {
-      setSending(undefined);
-      setFailed(failure('Not sent', error));
-    });
+    onAnswer(option).then(
+      () => setSent(option.label),
+      (error: unknown) => {
+        setSending(undefined);
+        setFailed(failure('Not sent', error));
+      },
+    );
   };
   if (answer)
     return (
