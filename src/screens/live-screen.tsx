@@ -565,6 +565,13 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         (before.width - words.width) * a,
     };
   });
+  // How far along its way from resting to reading the orb is (`t`), and its sideways share of that
+  // (`arc`), which starts slow so it drops before it slides. What travels with it uses the same two.
+  const glide = (p: number) => {
+    'worklet';
+    const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
+    return { t, arc: t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1 };
+  };
   const controlsAt =
     layout.controls !== 'inline' && 'center' in layout.controls
       ? layout.controls.center
@@ -579,9 +586,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
     const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
     const { rest, open } = controlsAt;
-    const p = Math.min(1, Math.max(0, progress.get()));
-    const x = rest.x + (open.x - rest.x) * p;
-    const y = rest.y + (open.y - rest.y) * p;
+    const along = glide(progress.get());
+    const x = rest.x + (open.x - rest.x) * Math.min(1, along.arc);
+    const y = rest.y + (open.y - rest.y) * Math.min(1, Math.max(0, along.t));
     return {
       left: toward(x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
       top: toward(y, controlsAt.calls.y, tasksY, d, t) - CONTROLS / 2,
@@ -604,8 +611,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // as Calls or Tasks comes in. Side by side, the list covers it.
   const orbStyle = useAnimatedStyle(() => {
     const p = progress.get();
-    const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
-    const arc = t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1;
+    const { t, arc } = glide(p);
     const awake = wake.get();
     const resting = size * (0.86 + 0.14 * awake);
     const fitted = resting * restScale.get();
