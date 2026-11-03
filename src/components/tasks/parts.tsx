@@ -1,5 +1,5 @@
-import { Icon, Row, Spacer, Text } from '@expo/ui';
-import { Rectangle } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
+import { Mask, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   alignmentGuide,
@@ -18,6 +18,7 @@ import {
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
+import { Children, isValidElement, type ReactNode } from 'react';
 import { PixelRatio } from 'react-native';
 
 import { theme } from '@/theme';
@@ -27,6 +28,9 @@ export const INSET = 20;
 export const MARK = 16;
 export const GAP = 10;
 const HAIRLINE = 1 / PixelRatio.get();
+// How far scrolled content fades out before it meets a bar, and the room a scroll view's content
+// leaves at that end so nothing at rest sits in the fade.
+export const FADE = 18;
 
 export function feel(haptics: boolean) {
   const on = ios && haptics;
@@ -94,6 +98,81 @@ export function SectionHead({
         />
       ) : null}
     </Row>
+  );
+}
+
+// iOS's soft scroll edge: what scrolls under a bar fades out instead of being cut mid-line. A mask,
+// so it works on any ground and never takes a touch.
+export function Faded({
+  top = true,
+  bottom = true,
+  children,
+}: {
+  top?: boolean;
+  bottom?: boolean;
+  children: ReactNode;
+}) {
+  const edge = (from: 'top' | 'bottom') => (
+    <Rectangle
+      modifiers={[
+        frame({ height: FADE }),
+        frame({ maxWidth: Infinity }),
+        foregroundStyle({
+          type: 'linearGradient',
+          colors: ['#00000000', '#000000'],
+          startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
+          endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
+        }),
+      ]}
+    />
+  );
+  return (
+    <Mask
+      alignment="top"
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      {children}
+      <Mask.Content>
+        <Column
+          alignment="center"
+          spacing={0}
+          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
+        >
+          {top ? edge('top') : null}
+          <Rectangle
+            modifiers={[
+              frame({ maxWidth: Infinity, maxHeight: Infinity }),
+              foregroundStyle('#000000'),
+            ]}
+          />
+          {bottom ? edge('bottom') : null}
+        </Column>
+      </Mask.Content>
+    </Mask>
+  );
+}
+
+// A page's sections, a hairline between each and the next so it's clear where one ends. Pass each
+// section only when it shows, so none is drawn above the first.
+export function Sections({ children }: { children: ReactNode }) {
+  return (
+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+      {Children.toArray(children).map((section, i) => (
+        <Column
+          key={isValidElement(section) ? section.key : i}
+          alignment="start"
+          spacing={0}
+          modifiers={[frame({ maxWidth: Infinity })]}
+        >
+          {i ? (
+            <Column alignment="start" spacing={0} modifiers={[padding({ top: 20 })]}>
+              <Hairline />
+            </Column>
+          ) : null}
+          {section}
+        </Column>
+      ))}
+    </Column>
   );
 }
 

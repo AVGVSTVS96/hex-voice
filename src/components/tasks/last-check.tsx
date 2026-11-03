@@ -9,7 +9,7 @@ import {
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { GAP, INSET, SectionHead } from '@/components/tasks/parts';
+import { Faded, GAP, INSET, SectionHead, Sections } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import { theme } from '@/theme';
@@ -22,32 +22,36 @@ export function LastCheck({ check }: { check?: Check }) {
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       <Header title="Last check" subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : ' '} />
-      <ScrollView
-        showsIndicators={false}
-        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-      >
-        {check ? (
-          <Column alignment="start" spacing={8} modifiers={[padding({ top: 14, bottom: 40 })]}>
-            <Read read={check.read} />
-            {check.fixed.length ? (
-              <Column alignment="start" spacing={0}>
-                <SectionHead title="Fixed on its own" count={check.fixed.length} />
-                {check.fixed.map((note, i) => (
-                  <NoteRow key={i} note={note} fixed />
-                ))}
-              </Column>
-            ) : null}
-            {check.flagged.length ? (
-              <Column alignment="start" spacing={0}>
-                <SectionHead title="For you to look at" count={check.flagged.length} />
-                {check.flagged.map((note, i) => (
-                  <NoteRow key={i} note={note} />
-                ))}
-              </Column>
-            ) : null}
-          </Column>
-        ) : null}
-      </ScrollView>
+      <Faded>
+        <ScrollView
+          showsIndicators={false}
+          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+        >
+          {check ? (
+            <Column alignment="start" spacing={0} modifiers={[padding({ top: 20, bottom: 40 })]}>
+              <Sections>
+                <Read key="read" read={check.read} />
+                {check.fixed.length ? (
+                  <Column key="fixed" alignment="start" spacing={0}>
+                    <SectionHead title="Fixed on its own" count={check.fixed.length} />
+                    {check.fixed.map((note, i) => (
+                      <NoteRow key={i} note={note} fixed />
+                    ))}
+                  </Column>
+                ) : null}
+                {check.flagged.length ? (
+                  <Column key="flagged" alignment="start" spacing={0}>
+                    <SectionHead title="For you to look at" count={check.flagged.length} />
+                    {check.flagged.map((note, i) => (
+                      <NoteRow key={i} note={note} />
+                    ))}
+                  </Column>
+                ) : null}
+              </Sections>
+            </Column>
+          ) : null}
+        </ScrollView>
+      </Faded>
     </Column>
   );
 }

@@ -14,9 +14,18 @@ import { YourCall } from '@/components/tasks/ask-card';
 import { Header, useChrome } from '@/components/tasks/bar';
 import { laneWidth } from '@/components/tasks/lane';
 import { Mark } from '@/components/tasks/mark';
-import { GAP, INSET, MARK, Pill, SectionHead, ios } from '@/components/tasks/parts';
+import {
+  Faded,
+  GAP,
+  INSET,
+  MARK,
+  Pill,
+  SectionHead,
+  Sections,
+  ios,
+} from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
-import { OpenIn, PlaceTile, Places } from '@/components/tasks/places';
+import { OpenIn, PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, placeOf, type Place } from '@/live/inbox';
@@ -88,81 +97,93 @@ export function Detail({
         }
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
-      <ScrollView
-        showsIndicators={false}
-        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-      >
-        <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
-          {needs ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
-              <Text
-                textStyle={{ fontSize: 17, lineHeight: 22 }}
-                modifiers={[
-                  foregroundStyle(theme.text),
-                  padding({ leading: INSET, trailing: INSET, bottom: 6 }),
-                  frame({ maxWidth: Infinity, alignment: 'leading' }),
-                ]}
-              >
-                {needs}
-              </Text>
-            </Column>
-          ) : null}
-          {messages}
-          <YourCall
-            asks={asks}
-            answered={answered}
-            width={width}
-            onAnswer={onAnswer}
-            onUndo={onUndo}
-          />
-          {working.length ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title="Working" />
-              {working.map((thread) => (
-                <Run
-                  key={thread.id}
-                  thread={thread.id === task.id && full ? full : thread}
-                  onPress={() => onSteps(thread.id)}
+      <Faded>
+        <ScrollView
+          showsIndicators={false}
+          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+        >
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+            <Sections>
+              {needs ? (
+                <Column key="needs" alignment="start" spacing={0}>
+                  <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
+                  <Text
+                    textStyle={{ fontSize: 17, lineHeight: 22 }}
+                    modifiers={[
+                      foregroundStyle(theme.text),
+                      padding({ leading: INSET, trailing: INSET, bottom: 6 }),
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    ]}
+                  >
+                    {needs}
+                  </Text>
+                </Column>
+              ) : null}
+              {messages}
+              {asks.length ? (
+                <YourCall
+                  key="call"
+                  asks={asks}
+                  answered={answered}
+                  width={width}
+                  onAnswer={onAnswer}
+                  onUndo={onUndo}
                 />
-              ))}
-            </Column>
-          ) : null}
-          {full && lastRun(full) ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title="Last run" />
-              <Run thread={full} onPress={() => onSteps(full.id)} />
-            </Column>
-          ) : null}
-          {full?.pin ? <Pinned text={full.pin} /> : null}
-          <Places
-            task={task}
-            threads={threads}
-            missing={missing}
-            lane={laneWidth(width)}
-            onOpen={onOpen}
-            onOpenTask={onOpenTask}
-          />
-          {lately.length ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title="Lately" />
-              {lately.map((moment, i) => (
-                <TraceLine
-                  key={`${moment.at} ${i}`}
-                  lead={
-                    <Mark
-                      state={i === 0 ? moment.state : moment.state === 'failed' ? 'failed' : 'read'}
+              ) : null}
+              {working.length ? (
+                <Column key="working" alignment="start" spacing={0}>
+                  <SectionHead title="Working" />
+                  {working.map((thread) => (
+                    <Run
+                      key={thread.id}
+                      thread={thread.id === task.id && full ? full : thread}
+                      onPress={() => onSteps(thread.id)}
                     />
-                  }
-                  text={moment.text}
-                  color={i > 0 ? theme.secondary : undefined}
-                  time={clock(new Date(moment.at))}
+                  ))}
+                </Column>
+              ) : null}
+              {full && lastRun(full) ? (
+                <Column key="run" alignment="start" spacing={0}>
+                  <SectionHead title="Last run" />
+                  <Run thread={full} onPress={() => onSteps(full.id)} />
+                </Column>
+              ) : null}
+              {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
+              {hasPlaces(task, threads) ? (
+                <Places
+                  key="places"
+                  task={task}
+                  threads={threads}
+                  missing={missing}
+                  lane={laneWidth(width)}
+                  onOpen={onOpen}
+                  onOpenTask={onOpenTask}
                 />
-              ))}
-            </Column>
-          ) : null}
-        </Column>
-      </ScrollView>
+              ) : null}
+              {lately.length ? (
+                <Column key="lately" alignment="start" spacing={0}>
+                  <SectionHead title="Lately" />
+                  {lately.map((moment, i) => (
+                    <TraceLine
+                      key={`${moment.at} ${i}`}
+                      lead={
+                        <Mark
+                          state={
+                            i === 0 ? moment.state : moment.state === 'failed' ? 'failed' : 'read'
+                          }
+                        />
+                      }
+                      text={moment.text}
+                      color={i > 0 ? theme.secondary : undefined}
+                      time={clock(new Date(moment.at))}
+                    />
+                  ))}
+                </Column>
+              ) : null}
+            </Sections>
+          </Column>
+        </ScrollView>
+      </Faded>
       <Row
         alignment="center"
         spacing={10}

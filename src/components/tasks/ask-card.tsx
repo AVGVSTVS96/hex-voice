@@ -45,7 +45,6 @@ export function YourCall({
   onAnswer: Answer;
   onUndo: (ask: Ask) => void;
 }) {
-  if (!asks.length) return null;
   const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
     <Column

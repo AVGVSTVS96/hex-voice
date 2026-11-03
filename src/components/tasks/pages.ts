@@ -132,6 +132,8 @@ export type Spot = {
 };
 
 const FLUSH: Inset = { left: 0, right: 0 };
+// Open flat on its side, the page below the fold's hairline keeps its bar this far off it.
+const SEAM = 10;
 
 // iOS draws a bar on one line where the screen is wider than tall (a landscape iPhone), so a page
 // does the same.
@@ -221,7 +223,7 @@ function spotAtFold(
     : at <= 0
       ? { leading: inset.left, trailing: 0 }
       : { leading: 0, trailing: inset.right };
-  const top = !row && at > 0 ? 0 : room.top;
+  const top = !row && at > 0 ? (fold.band ? 0 : SEAM) : room.top;
   const frame = row
     ? { width: length, height: room.height }
     : { width: room.width, height: length };

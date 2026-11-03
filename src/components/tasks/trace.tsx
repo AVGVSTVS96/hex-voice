@@ -16,7 +16,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header, useChrome } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { GAP, INSET, MARK, SectionHead, ios } from '@/components/tasks/parts';
+import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -71,41 +71,47 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
         title={named ? 'Steps' : task.place || task.name}
         subtitle={`${named ? `${task.place || task.name} · ` : ''}${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
       />
-      <ScrollView
-        showsIndicators={false}
-        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-      >
-        <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
-          {task.plan.length ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title="Plan" count={`${done} of ${task.plan.length}`} />
-              {task.plan.map((item, i) => (
-                <TraceLine
-                  key={`${i} ${item.text}`}
-                  lead={<Mark state={PLANNED[item.state]} />}
-                  text={item.text}
-                  color={item.state === 'pending' ? theme.secondary : undefined}
-                />
-              ))}
-            </Column>
-          ) : null}
-          {shown.length ? (
-            <Column alignment="start" spacing={0}>
-              <SectionHead title="Agents" count={agentCounts(shown)} />
-              {shown.map((agent) => (
-                <Agent key={agent.id} agent={agent} onOpen={onOpen} />
-              ))}
-              {tries.length ? <Tries tries={tries} onOpen={onOpen} /> : null}
-            </Column>
-          ) : null}
-          <SectionHead title="Steps" count={task.steps.length ? 'newest first' : undefined} />
-          {task.steps.length ? (
-            <Steps steps={task.steps} agents={task.agents} />
-          ) : (
-            <Quiet text={working ? 'No steps yet' : 'Steps show while it works'} />
-          )}
-        </Column>
-      </ScrollView>
+      <Faded>
+        <ScrollView
+          showsIndicators={false}
+          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+        >
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: 40 })]}>
+            <Sections>
+              {task.plan.length ? (
+                <Column key="plan" alignment="start" spacing={0}>
+                  <SectionHead title="Plan" count={`${done} of ${task.plan.length}`} />
+                  {task.plan.map((item, i) => (
+                    <TraceLine
+                      key={`${i} ${item.text}`}
+                      lead={<Mark state={PLANNED[item.state]} />}
+                      text={item.text}
+                      color={item.state === 'pending' ? theme.secondary : undefined}
+                    />
+                  ))}
+                </Column>
+              ) : null}
+              {shown.length ? (
+                <Column key="agents" alignment="start" spacing={0}>
+                  <SectionHead title="Agents" count={agentCounts(shown)} />
+                  {shown.map((agent) => (
+                    <Agent key={agent.id} agent={agent} onOpen={onOpen} />
+                  ))}
+                  {tries.length ? <Tries tries={tries} onOpen={onOpen} /> : null}
+                </Column>
+              ) : null}
+              <Column key="steps" alignment="start" spacing={0}>
+                <SectionHead title="Steps" count={task.steps.length ? 'newest first' : undefined} />
+                {task.steps.length ? (
+                  <Steps steps={task.steps} agents={task.agents} />
+                ) : (
+                  <Quiet text={working ? 'No steps yet' : 'Steps show while it works'} />
+                )}
+              </Column>
+            </Sections>
+          </Column>
+        </ScrollView>
+      </Faded>
     </Column>
   );
 }

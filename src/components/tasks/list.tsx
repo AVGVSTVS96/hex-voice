@@ -19,7 +19,7 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { ListHead, Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, ios, listRow, type Feel } from '@/components/tasks/parts';
+import { Empty, FADE, Faded, ios, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, QuietRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -198,68 +198,76 @@ export function ListPage({
             />
           </Column>
         )}
-        <List
-          modifiers={[
-            listStyle('plain'),
-            scrollContentBackground('hidden'),
-            ...(paged ? [] : [background(theme.sheet)]),
-            frame({ maxWidth: Infinity, maxHeight: Infinity }),
-            animation(
-              motion.list,
-              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
-            ),
-          ]}
-        >
-          {!searching && stage === 'needs' && picks.length > 1 ? (
-            <PicksRow
-              picks={picks}
-              width={width}
-              onTake={() => {
-                feel.tap();
-                for (const { ask, option } of picks) yours.answer(ask, option);
-              }}
-            />
-          ) : null}
-          {topics.flatMap((topic) => {
-            if (!searching && stage === 'quiet')
-              return [<QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />];
-            const lead = topic.entries.map(taskOf).find(Boolean);
-            return [
-              <TopicHead
-                key={`${topic.name}:head`}
-                topic={topic}
+        <Faded>
+          <List
+            modifiers={[
+              listStyle('plain'),
+              scrollContentBackground('hidden'),
+              ...(paged ? [] : [background(theme.sheet)]),
+              frame({ maxWidth: Infinity, maxHeight: Infinity }),
+              animation(
+                motion.list,
+                rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
+              ),
+            ]}
+          >
+            <Edge width={width} />
+            {!searching && stage === 'needs' && picks.length > 1 ? (
+              <PicksRow
+                picks={picks}
                 width={width}
-                onPress={lead ? () => openTask(lead) : undefined}
-              />,
-              ...topic.entries.map((entry, i) => (
-                <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
-              )),
-            ];
-          })}
-          {!searching && stage === 'needs' && yours.list?.check ? (
-            <CheckRow
-              check={yours.list.check}
-              width={width}
-              onPress={() => {
-                feel.tick();
-                pages.go({ to: 'check' });
-              }}
-            />
-          ) : null}
-          {loaded && !topics.length ? (
-            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
-          ) : null}
-          {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
-          {goThrough && floats ? (
-            <Spacer
-              modifiers={[frame({ height: 72 }), ...listRow(width, { top: false, bottom: false })]}
-            />
-          ) : null}
-        </List>
+                onTake={() => {
+                  feel.tap();
+                  for (const { ask, option } of picks) yours.answer(ask, option);
+                }}
+              />
+            ) : null}
+            {topics.flatMap((topic) => {
+              if (!searching && stage === 'quiet')
+                return [
+                  <QuietRow key={topic.name} topic={topic} width={width} onOpen={openTask} />,
+                ];
+              const lead = topic.entries.map(taskOf).find(Boolean);
+              return [
+                <TopicHead
+                  key={`${topic.name}:head`}
+                  topic={topic}
+                  width={width}
+                  onPress={lead ? () => openTask(lead) : undefined}
+                />,
+                ...topic.entries.map((entry, i) => (
+                  <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
+                )),
+              ];
+            })}
+            {!searching && stage === 'needs' && yours.list?.check ? (
+              <CheckRow
+                check={yours.list.check}
+                width={width}
+                onPress={() => {
+                  feel.tick();
+                  pages.go({ to: 'check' });
+                }}
+              />
+            ) : null}
+            {loaded && !topics.length ? (
+              <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
+            ) : null}
+            {unreachable ? <Empty text="Can’t reach hex" width={width} /> : null}
+            <Edge width={width} height={goThrough && floats ? 72 : FADE} />
+          </List>
+        </Faded>
         {floats ? null : goThrough}
       </Column>
       {floats ? goThrough : null}
     </ZStack>
+  );
+}
+
+// The room the list leaves at its ends, so at rest no row sits in the fade or under the pill.
+function Edge({ width, height = FADE }: { width: number; height?: number }) {
+  return (
+    <Spacer modifiers={[frame({ height }), ...listRow(width, { top: false, bottom: false })]} />
   );
 }
 
@@ -275,7 +283,7 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
         background(theme.prominent),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
-        padding({ leading: 16, trailing: 16, top: 8, bottom: Math.max(12, foot) }),
+        padding({ leading: 16, trailing: 16, top: 12, bottom: Math.max(16, foot) }),
         ...(ios ? [accessibilityLabel(`Go through ${count} with hex, on a call`)] : []),
       ]}
     >

@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Hairline, Pill, SectionHead, ios } from '@/components/tasks/parts';
+import { Faded, Pill, SectionHead, ios } from '@/components/tasks/parts';
 import { OpenIn } from '@/components/tasks/places';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
@@ -34,11 +34,10 @@ export function Messages({
   onWrite,
 }: {
   thread: TaskRow;
-  chat: Chat | undefined;
+  chat: Chat;
   onOpen: () => void;
   onWrite: () => void;
 }) {
-  if (!chat || (!chat.total && !chat.sends)) return null;
   const last = chat.turns.slice(-2);
   return (
     <Column alignment="start" spacing={0}>
@@ -142,45 +141,45 @@ export function ThreadPage({
           thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
         }
       />
-      <Spacer modifiers={[frame({ height: 8 })]} />
-      <Hairline />
-      <ScrollView
-        showsIndicators={false}
-        modifiers={[
-          defaultScrollAnchor('bottom'),
-          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-          clipped(),
-        ]}
-      >
-        <Column alignment="start" spacing={18} modifiers={[padding({ top: 12, bottom: 20 })]}>
-          {first > 0 ? (
-            <Text
-              textStyle={{ fontSize: 13 }}
-              modifiers={[foregroundStyle(theme.tertiary), frame({ maxWidth: Infinity })]}
-            >
-              {`Earlier messages are in ${place}`}
-            </Text>
-          ) : null}
-          {chat && !turns.length && !pending.length ? (
-            <Text
-              textStyle={{ fontSize: 15 }}
-              modifiers={[
-                foregroundStyle(theme.tertiary),
-                padding({ top: 40 }),
-                frame({ maxWidth: Infinity }),
-              ]}
-            >
-              Nothing said here yet
-            </Text>
-          ) : null}
-          {turns.map((turn, i) => (
-            <Said key={first + i} turn={turn} />
-          ))}
-          {pending.map((sent) => (
-            <Sent key={sent.key} sent={sent} onRetry={() => onRetry(sent)} />
-          ))}
-        </Column>
-      </ScrollView>
+      <Faded>
+        <ScrollView
+          showsIndicators={false}
+          modifiers={[
+            defaultScrollAnchor('bottom'),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+            clipped(),
+          ]}
+        >
+          <Column alignment="start" spacing={18} modifiers={[padding({ top: 20, bottom: 20 })]}>
+            {first > 0 ? (
+              <Text
+                textStyle={{ fontSize: 13 }}
+                modifiers={[foregroundStyle(theme.tertiary), frame({ maxWidth: Infinity })]}
+              >
+                {`Earlier messages are in ${place}`}
+              </Text>
+            ) : null}
+            {chat && !turns.length && !pending.length ? (
+              <Text
+                textStyle={{ fontSize: 15 }}
+                modifiers={[
+                  foregroundStyle(theme.tertiary),
+                  padding({ top: 40 }),
+                  frame({ maxWidth: Infinity }),
+                ]}
+              >
+                Nothing said here yet
+              </Text>
+            ) : null}
+            {turns.map((turn, i) => (
+              <Said key={first + i} turn={turn} />
+            ))}
+            {pending.map((sent) => (
+              <Sent key={sent.key} sent={sent} onRetry={() => onRetry(sent)} />
+            ))}
+          </Column>
+        </ScrollView>
+      </Faded>
       {running ? (
         <TraceLine
           lead={<Mark state="working" />}

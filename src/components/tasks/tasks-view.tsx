@@ -198,12 +198,15 @@ export function Tasks({
             pages.go({ to: 'topic', id });
           }}
           messages={
-            <Messages
-              thread={opened}
-              chat={said.chat}
-              onOpen={() => write(false)}
-              onWrite={() => write(true)}
-            />
+            said.chat && (said.chat.total || said.chat.sends) ? (
+              <Messages
+                key="messages"
+                thread={opened}
+                chat={said.chat}
+                onOpen={() => write(false)}
+                onWrite={() => write(true)}
+              />
+            ) : undefined
           }
           foot={spot('topic').foot}
         />
