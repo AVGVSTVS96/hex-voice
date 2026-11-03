@@ -481,8 +481,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
   // The call is a card, and while a pane sits beside it its corners round off against that pane,
   // with a hairline at its edge. Calls always sits beside it, sliding it aside or taking its leading
-  // edge; Tasks does where it takes its trailing edge, and as a sheet or a page it covers the call
-  // instead, which leaves no edge to round. Where
+  // edge, and its top too where Calls starts below a band, so the band stays whole over both; Tasks
+  // does where it takes its trailing edge, and as a sheet or a page it covers the call instead,
+  // which leaves no edge to round. Where
   // a pane takes an edge, what's on the call stays put in the window, so only the words move over
   // into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
   const cardStyle = useAnimatedStyle(() => {
@@ -491,6 +492,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     const slid = list.place === 'slide' ? d * list.width : 0;
     const yielded = Math.min(1, Math.max(d, side.place === 'beside' ? t : 0) * 4);
     return {
+      top: (list.below ?? 0) * d,
       left: (list.place === 'beside' ? d * list.width : 0) + slid,
       right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
       borderRadius: radius.card * yielded,
@@ -498,6 +500,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     };
   });
   const stageStyle = useAnimatedStyle(() => ({
+    top: -(list.below ?? 0) * drawer.get(),
     left: list.place === 'beside' ? -drawer.get() * list.width : 0,
   }));
   const sidebarStyle = useAnimatedStyle(() => ({
