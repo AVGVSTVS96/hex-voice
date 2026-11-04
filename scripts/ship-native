@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Builds main once and installs it on the iPhone and iPad. The Mac builds it unsigned in one warm
-# folder, so Xcode only rebuilds what changed, and xtool on the server signs and installs it: the
-# free Apple team has one development certificate, and it lives with xtool on the server.
+# folder, so Xcode only rebuilds what changed. The free Apple team has one development certificate,
+# and it's the Mac's, so xtool on the server (Bassim's fork) only makes the profiles for it and
+# signs ad hoc, and scripts/resign signs on the Mac, whose login keychain has the key. Then the Mac
+# installs with devicectl on the devices it reaches by cable or Wi-Fi. Never let xtool revoke the
+# certificate to make its own: that breaks what Xcode signs, hex keyboard included.
 # Runs queue up: one that waited behind another builds the newest main, or nothing when the
 # devices already run it. Installing ends a call the app carries, so installs wait for that call
 # to end; phone, web and Discord calls don't run in the app.
@@ -11,8 +14,8 @@ mac=${HEX_VOICE_MAC:-mac}
 folder=Developer/hex-voice-release
 app=build/Build/Products/Release-iphoneos/hex.app
 
-# Runs on the Mac: builds build/ipa/hex.ipa, ad-hoc signed with the app's and the Live Activity
-# extension's entitlements for xtool to read, and prints its runtime version.
+# Runs on the Mac: builds the app, ad-hoc signed with its and the Live Activity extension's
+# entitlements for xtool to read, and prints its runtime version.
 build() {
   prepare_native
   xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
@@ -25,8 +28,6 @@ build() {
   codesign -f -s - --entitlements ios/ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements \
     "$app/PlugIns/ExpoWidgetsTarget.appex" 2>/dev/null
   codesign -f -s - --entitlements ios/hex/hex.entitlements "$app" 2>/dev/null
-  rm -rf build/ipa && mkdir -p build/ipa/Payload && cp -R "$app" build/ipa/Payload/
-  (cd build/ipa && zip -qry hex.ipa Payload)
   cat "$app/EXUpdates.bundle/fingerprint"
 }
 
@@ -41,23 +42,6 @@ wait_for_no_call() {
     [ -n "$after" ] || echo "waiting for the app's live call to end before installing"
     after=$(jq -r .version <<<"$calls")
   done
-}
-
-# xtool reaches a device over Wi-Fi through netmuxd, or plugged into the Mac through the Mac's
-# usbmuxd, forwarded here over ssh.
-open_sockets() {
-  netmuxd=UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock
-  on_wifi=$(USBMUXD_SOCKET_ADDRESS=$netmuxd xtool devices --no-wait 2>/dev/null || true)
-  mac_usb=$home/mac-usbmuxd.sock
-  rm -f "$mac_usb"
-  ssh -NT -o ExitOnForwardFailure=yes -o StreamLocalBindUnlink=yes \
-    -L "$mac_usb:/var/run/usbmuxd" "$mac" &
-  trap "kill $!" EXIT
-  while [ ! -S "$mac_usb" ]; do sleep 0.2; done
-}
-
-socket_for() {
-  if grep -q "$1" <<<"$on_wifi"; then echo "$netmuxd"; else echo "UNIX:$mac_usb"; fi
 }
 
 if [ "${1:-}" = build ]; then
@@ -95,15 +79,25 @@ echo "building $title on the Mac"
 built=$(ssh "$mac" "$folder/scripts/ship-native build" </dev/null)
 [ "$built" = "$runtime" ] || die "the Mac built runtime $built, but main's runtime is $runtime"
 mkdir -p "$updates/ios/$runtime"
-scp -q "$mac:$folder/build/ipa/hex.ipa" "$home/hex.ipa"
+
+echo "making its profiles with xtool and signing it with the Mac's certificate"
+signed=build/signed/hex.app
+rsync -a --delete "$mac:$folder/$app/" "$home/hex.app/"
+xtool sign "$home/hex.app" </dev/null
+ssh "$mac" "mkdir -p $folder/build/signed"
+rsync -a --delete "$home/hex.app/" "$mac:$folder/$signed/"
+serial=$(python3 -c "
+import glob, os, plistlib, subprocess
+path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key=os.path.getmtime)
+der = plistlib.load(open(path, 'rb'))['certificate']
+print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
+ssh "$mac" sh "$folder/scripts/resign" "$serial" "$folder/$signed" </dev/null
 
 wait_for_no_call
-open_sockets
 failed=
 for device in "${devices[@]}"; do
-  socket=$(socket_for "$device")
-  if USBMUXD_SOCKET_ADDRESS=$socket XTL_KEEP_IDENTIFIERS=1 timeout 5m xtool install \
-    --udid "$device" "$home/hex.ipa" >"$home/install-$device.log" 2>&1; then
+  if timeout 5m ssh "$mac" xcrun devicectl device install app --device "$device" \
+    "$folder/$signed" >"$home/install-$device.log" 2>&1 </dev/null; then
     echo "$commit" >"$home/installed/$device"
     echo "installed $title on $device"
     ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
