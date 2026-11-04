@@ -7,10 +7,14 @@
 // the file DUO_HEX_DOWN exists, every read is dropped, as when hex can't be reached. Every write
 // (answering, noting, undoing, acting, starting a call) is answered here and dropped, so a check can
 // never answer or act for him. The app under check only knows this address and a dummy token.
+// It speaks HTTPS with HTTP/2, as hex does, under a root only the simulator trusts (DUO_HEX_TLS):
+// the app keeps several watches open at once, and over HTTP/1.1 iOS gives a host 4 connections, so
+// every other read would wait behind them.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { createSecureServer } from 'node:http2';
 
-const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOWN } = process.env;
+const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOWN, DUO_HEX_TLS } =
+  process.env;
 const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 // hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
 const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
@@ -24,7 +28,13 @@ const also = Object.fromEntries(
   ),
 );
 
-createServer(async (request, response) => {
+const tls = {
+  key: readFileSync(`${DUO_HEX_TLS}/key.pem`),
+  cert: readFileSync(`${DUO_HEX_TLS}/cert.pem`),
+  allowHTTP1: true,
+};
+
+createSecureServer(tls, async (request, response) => {
   if (request.method !== 'GET') {
     request.resume();
     if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))

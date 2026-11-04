@@ -87,13 +87,16 @@ mac_build() {
 # run left saved (a collapsed list, a chosen voice) changes what the next run sees.
 mac_install() {
   rm -f hex-down
+  mac_tls
   (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport DUO_HEX_ANSWERS=$PWD/answers.json DUO_HEX_DOWN=$PWD/hex-down \
+    DUO_HEX_TLS=$PWD/tls \
     DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
     exec node harness/duo-hex.mjs) &
   standin=$!
   trap 'kill "$standin"; xcrun simctl shutdown "$id" 2>/dev/null' EXIT
   # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
-  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 -o /dev/null "http://127.0.0.1:$hexport/tasks/summary" ||
+  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
+    "https://127.0.0.1:$hexport/tasks/summary" ||
     die "hex didn't answer a read in 10 s (with HEX=kept: none is kept), so the screens would be empty: nothing was checked"
   rm -rf stage shots && mkdir stage shots
   [ "$HEX" != kept ] || echo "answered from hex's reads kept $(date -r answers.json '+%b %-d %H:%M')" >>shots/notes.txt
@@ -103,8 +106,21 @@ mac_install() {
   plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
   codesign -f -s - stage/hex.app 2>/dev/null
   mac_simulator
+  xcrun simctl keychain "$id" add-root-cert tls/ca.pem
   xcrun simctl uninstall "$id" "$bundle" 2>/dev/null || true
   xcrun simctl install "$id" stage/hex.app
+}
+
+# The stand-in's certificate for 127.0.0.1 and the root it hangs from, made once and kept here.
+mac_tls() {
+  [ ! -f tls/cert.pem ] || return 0
+  rm -rf tls && mkdir tls
+  openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=hex-voice-standin -keyout tls/ca-key.pem \
+    -out tls/ca.pem -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign 2>/dev/null
+  openssl req -newkey rsa:2048 -nodes -subj /CN=127.0.0.1 -keyout tls/key.pem -out tls/cert.csr 2>/dev/null
+  printf 'subjectAltName=IP:127.0.0.1\nextendedKeyUsage=serverAuth\nbasicConstraints=CA:FALSE\n' >tls/cert.ext
+  openssl x509 -req -in tls/cert.csr -CA tls/ca.pem -CAkey tls/ca-key.pem -CAcreateserial -days 800 \
+    -extfile tls/cert.ext -out tls/cert.pem 2>/dev/null
 }
 
 mac_simulator() {
@@ -334,7 +350,7 @@ prepare() {
   title=$(git -C "$verify" log --oneline -1 | cut -c1-80)
   runtime=$(runtime_version "$verify")
   rm -rf "$home/js" && mkdir -p "$home/js"
-  (cd "$verify" && EXPO_PUBLIC_HEX_URL=http://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
+  (cd "$verify" && EXPO_PUBLIC_HEX_URL=https://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
     turn npx expo export:embed --platform ios --dev false --minify true \
     --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
     --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
