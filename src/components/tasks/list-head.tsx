@@ -1,4 +1,4 @@
-import { Column, Icon, Row, ScrollView, Text, TextInput } from '@expo/ui';
+import { Column, Icon, Row, ScrollView, Text, TextInput, type TextInputRef } from '@expo/ui';
 import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
@@ -11,7 +11,7 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext } from 'react';
+import { useContext, type RefObject } from 'react';
 
 import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
@@ -139,10 +139,12 @@ export function Tabs({
 }
 
 export function Search({
+  field,
   query,
   onChange,
   onCancel,
 }: {
+  field: RefObject<TextInputRef | null>;
   query: string;
   onChange: (query: string) => void;
   onCancel: () => void;
@@ -169,6 +171,7 @@ export function Search({
       >
         <Icon name="magnifyingglass" size={14} color={theme.secondary} />
         <TextInput
+          ref={field}
           autoFocus
           testID="tasks-search-field"
           onFocus={() => typing(true)}

@@ -15,12 +15,11 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useMemo, useState } from 'react';
-import { Keyboard } from 'react-native';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
-import type { Pages, Spot } from '@/components/tasks/pages';
+import { useField, type Pages, type Spot } from '@/components/tasks/pages';
 import { Empty, Faded, Loading, asks, ios, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
@@ -128,9 +127,10 @@ export function ListPage({
   const [now, setNow] = useState(Date.now);
   useEffect(() => setNow(Date.now()), [tasks]);
 
+  const searchField = useField();
   const openPage = (id: PageId, row?: string) => {
     feel.tick();
-    Keyboard.dismiss();
+    searchField.current?.blur();
     pages.go({ to: 'topic', id, row });
   };
   const chooseStage = (next: Stage) => {
@@ -193,6 +193,7 @@ export function ListPage({
     >
       {searching ? (
         <Search
+          field={searchField}
           query={query}
           onChange={setQuery}
           onCancel={() => {

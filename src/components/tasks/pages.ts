@@ -1,4 +1,5 @@
-import { createContext, useEffect, useReducer } from 'react';
+import type { TextInputRef } from '@expo/ui';
+import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { PageId } from '@/live/inbox';
@@ -142,6 +143,19 @@ function footOf(foot: number | 'fold') {
 
 // A field on a page says when it's being typed in, so that page can make room above the keyboard.
 export const Typing = createContext<(on: boolean) => void>(() => {});
+
+// Whether a field's page shows. Pages stay mounted as they leave, so a field ends its own editing
+// when its page stops showing, rather than keep the keyboard up for a page that's gone.
+export const Showing = createContext(true);
+
+export function useField() {
+  const field = useRef<TextInputRef>(null);
+  const showing = useContext(Showing);
+  useEffect(() => {
+    if (!showing) field.current?.blur();
+  }, [showing]);
+  return field;
+}
 
 export function spotOf(level: Level, pages: Placing, room: Room): Spot {
   if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
