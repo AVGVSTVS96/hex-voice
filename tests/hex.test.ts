@@ -100,11 +100,21 @@ test('hex turning a request down is a refusal in its own words; its own failure 
   await assert.rejects(
     answer(new Response('that question is already answered or settled', { status: 409 })),
     (error) =>
-      error instanceof Refused && error.message === 'That question is already answered or settled',
+      error instanceof Refused &&
+      error.status === 409 &&
+      error.message === 'That question is already answered or settled',
   );
   await assert.rejects(
     answer(new Response('hub is down', { status: 502 })),
     (error) => !(error instanceof Refused) && (error as Error).message === 'Hub is down',
+  );
+});
+
+test("a thread hex has no steps for is refused as not there, so it isn't asked for again", async () => {
+  const hex = hexAt(async () => new Response('no such task', { status: 404 }));
+  await assert.rejects(
+    hex.tasks.get(thread),
+    (error) => error instanceof Refused && error.status === 404,
   );
 });
 

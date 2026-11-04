@@ -122,6 +122,6 @@ export function useAsks(open: boolean) {
 
 // The last check in full, fetched when its page opens and again whenever a new one lands.
 export function useCheck(at: string | undefined) {
-  const { answer, failed } = useAnswer(at ?? null, undefined, () => hex.asks.check());
-  return { check: answer, failed };
+  const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
+  return { check: answer, ...answered };
 }

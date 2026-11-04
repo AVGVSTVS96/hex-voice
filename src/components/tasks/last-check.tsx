@@ -13,9 +13,10 @@ import { Mark } from '@/components/tasks/mark';
 import { Faded, GAP, INSET, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
+import type { Answered } from '@/hooks/use-watch';
 import { radius, theme } from '@/theme';
 
-export function LastCheck({ check, failed }: { check?: Check; failed: boolean }) {
+export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
   return (
     <Column
       alignment="center"
@@ -54,7 +55,7 @@ export function LastCheck({ check, failed }: { check?: Check; failed: boolean })
               </Sections>
             </Column>
           ) : (
-            <Waiting failed={failed} />
+            <Waiting {...answered} gone="This check isn’t there any more." />
           )}
         </ScrollView>
       </Faded>

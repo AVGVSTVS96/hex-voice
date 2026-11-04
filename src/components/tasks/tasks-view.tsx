@@ -345,7 +345,7 @@ export function Tasks({
       traced.task ? (
         <Trace task={traced.task} onOpen={(link) => openLink(link, 't3')} />
       ) : (
-        <StepsLoading failed={traced.failed} />
+        <StepsLoading {...traced} />
       ),
     ),
     page('check', <LastCheck {...checked} />),

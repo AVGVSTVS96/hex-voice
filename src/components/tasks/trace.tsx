@@ -44,6 +44,7 @@ import {
   type TaskAgent,
   type TaskStep,
 } from '@/live/tasks';
+import type { Answered } from '@/hooks/use-watch';
 import { theme } from '@/theme';
 
 // Each kind of step's icon, as shadcn's Trace marks what a line did.
@@ -66,7 +67,7 @@ const RAIL_TOP = 30;
 const RAIL_FOOT = 18;
 
 // Steps before hex has answered with the task: its bar and back, over the spinner.
-export function StepsLoading({ failed }: { failed: boolean }) {
+export function StepsLoading(answered: Answered) {
   return (
     <Column
       alignment="center"
@@ -74,7 +75,7 @@ export function StepsLoading({ failed }: { failed: boolean }) {
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       <Header title="Steps" subtitle=" " />
-      <Waiting failed={failed} />
+      <Waiting {...answered} gone="These steps aren’t there any more." />
     </Column>
   );
 }
