@@ -121106,17 +121106,18 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff9fee07cb
+index 0000000000000000000000000000000000000000..aac4fc175354b6adaae67cb40f2455d4dfb36626
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,170 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
 +// installed hex app, one command a line:
 +//   launch <url>          starts the app afresh from a link
 +//   open <url>            opens a link in the running app
-+//   tap <query>           taps the element whose id is the query, or whose label holds it
++//   tap <query>           taps the element whose id is the query, or whose label holds it; with the
++//                         keyboard up, in the middle of what shows of it above the keyboard
 +//   tap-at <x> <y>        taps that point of the window
 +//   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
 +//   swipe-left <query>    swipes left across the row, pager or list holding that element: a row's swipe
@@ -121135,7 +121136,7 @@ index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff
 +//   above-keyboard <query> checks the keyboard is up and the element shows whole above it
 +//   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
 +//   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
-+//   no-keyboard           checks the keyboard has gone
++//   no-keyboard [name]    checks the keyboard has gone, naming the step in its failure
 +//   tree <name>           keeps the accessibility tree as it is now, as <name>
 +//   absent <id>           checks no element has that id
 +//   hex down|up           has the stand-in drop every read from now on, as when hex can't be reached, or answer again
@@ -121174,7 +121175,7 @@ index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff
 +                XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: argument)))
 +                XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
 +            case "open": app.open(try XCTUnwrap(URL(string: argument)))
-+            case "tap": element(argument)?.tap()
++            case "tap": element(argument).map { tap($0, argument) }
 +            case "tap-at":
 +                let point = argument.split(separator: " ").compactMap { Double($0) }
 +                app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
@@ -121214,9 +121215,13 @@ index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff
 +                element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
 +                    .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
 +            case "no-keyboard":
++                let keyboard = app.keyboards.firstMatch
 +                let gone = NSPredicate(format: "exists == false")
-+                let wait = XCTNSPredicateExpectation(predicate: gone, object: app.keyboards.firstMatch)
-+                XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 5), .completed, "the keyboard is still up")
++                let wait = XCTNSPredicateExpectation(predicate: gone, object: keyboard)
++                if XCTWaiter().wait(for: [wait], timeout: 5) != .completed {
++                    let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
++                    XCTFail("\(argument.isEmpty ? "" : "\(argument): ")the keyboard is still up at \(keyboard.frame) in a \(app.windows.firstMatch.frame) window; focused: \(focused.exists ? focused.identifier : "nothing")")
++                }
 +            case "mark": marked[argument] = element(argument)?.frame
 +            case "still":
 +                guard let was = marked[argument] else {
@@ -121244,6 +121249,22 @@ index 0000000000000000000000000000000000000000..13cf11a36db1b1b1f9d1bcc4922e07ff
 +        let screen = app.windows.firstMatch.frame
 +        let onScreen = matches.allElementsBoundByIndex.filter { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
 +        return onScreen.first { $0.isHittable } ?? onScreen.first ?? matches.firstMatch
++    }
++
++    // With the keyboard up, XCUITest's own tap can land on the keyboard even for a view drawn wholly
++    // above it (a thread's messages, on its side), so it taps the middle of what shows of the view
++    // above the keyboard instead. Anything else, like a row scrolled off screen, XCUITest scrolls to.
++    private func tap(_ element: XCUIElement, _ query: String) {
++        let keyboard = app.keyboards.firstMatch
++        let window = app.windows.firstMatch
++        var shows = element.frame.intersection(window.frame)
++        if keyboard.exists { shows.size.height = max(0, min(shows.height, keyboard.frame.minY - shows.minY)) }
++        guard keyboard.exists, !shows.isEmpty else {
++            element.tap()
++            return
++        }
++        print("duo-frame tapped \(query) at (\(shows.midX), \(shows.midY)) of \(element.frame), keyboard at \(keyboard.frame.minY)")
++        window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
 +    }
 +
 +    // The smallest list or scroll view under the element, or with rows the smallest row too.
