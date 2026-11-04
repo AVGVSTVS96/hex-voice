@@ -98862,10 +98862,10 @@ index 0000000000000000000000000000000000000000..bceb3537a99286c5200b58543b52a510
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3d5df9c67c179a532bef761ef466fe70cfd6d052
+index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f993487dc
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,506 @@
+@@ -0,0 +1,508 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
 +import { Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -98885,7 +98885,7 @@ index 0000000000000000000000000000000000000000..3d5df9c67c179a532bef761ef466fe70
 +import { useContext, useState } from 'react';
 +
 +import { Mark } from '@/components/tasks/mark';
-+import { Typing } from '@/components/tasks/pages';
++import { Typing, useField } from '@/components/tasks/pages';
 +import { noteAsk } from '@/hooks/use-asks';
 +import { useDraft } from '@/hooks/use-draft';
 +import { openURL, useFailures } from '@/hooks/use-failures';
@@ -99279,6 +99279,7 @@ index 0000000000000000000000000000000000000000..3d5df9c67c179a532bef761ef466fe70
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
 +  const typing = useContext(Typing);
++  const field = useField();
 +  const words = sending ? '' : text.trim();
 +  return (
 +    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -99301,6 +99302,7 @@ index 0000000000000000000000000000000000000000..3d5df9c67c179a532bef761ef466fe70
 +        ]}
 +      >
 +        <TextInput
++          ref={field}
 +          autoFocus
 +          multiline
 +          testID="ask-input"
@@ -100013,11 +100015,11 @@ index 0000000000000000000000000000000000000000..175dd2b16e679d4a25176e32aba268a8
 +}
 diff --git a/src/components/tasks/list-head.tsx b/src/components/tasks/list-head.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04be7b17c1
+index 0000000000000000000000000000000000000000..c88201b53ba8721588c15ad889d765fb089613da
 --- /dev/null
 +++ b/src/components/tasks/list-head.tsx
-@@ -0,0 +1,193 @@
-+import { Column, Icon, Row, ScrollView, Text, TextInput } from '@expo/ui';
+@@ -0,0 +1,196 @@
++import { Column, Icon, Row, ScrollView, Text, TextInput, type TextInputRef } from '@expo/ui';
 +import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
 +import {
 +  accessibilityAddTraits,
@@ -100030,7 +100032,7 @@ index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04
 +  padding,
 +  shapes,
 +} from '@expo/ui/swift-ui/modifiers';
-+import { useContext } from 'react';
++import { useContext, type RefObject } from 'react';
 +
 +import { BackButton, BAR, BarButton, type Back } from '@/components/tasks/bar';
 +import { Typing } from '@/components/tasks/pages';
@@ -100158,10 +100160,12 @@ index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04
 +}
 +
 +export function Search({
++  field,
 +  query,
 +  onChange,
 +  onCancel,
 +}: {
++  field: RefObject<TextInputRef | null>;
 +  query: string;
 +  onChange: (query: string) => void;
 +  onCancel: () => void;
@@ -100188,6 +100192,7 @@ index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04
 +      >
 +        <Icon name="magnifyingglass" size={14} color={theme.secondary} />
 +        <TextInput
++          ref={field}
 +          autoFocus
 +          testID="tasks-search-field"
 +          onFocus={() => typing(true)}
@@ -100212,10 +100217,10 @@ index 0000000000000000000000000000000000000000..eab66757e7dcff5bb71363891fd29d04
 +}
 diff --git a/src/components/tasks/list.tsx b/src/components/tasks/list.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3d4e6bca21ac8701ca959b20f17a0245d64a5543
+index 0000000000000000000000000000000000000000..9d1576d3679f1feb02d2ff35e21ea112c615bdbc
 --- /dev/null
 +++ b/src/components/tasks/list.tsx
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,340 @@
 +import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 +import { List } from '@expo/ui/swift-ui';
 +import {
@@ -100233,12 +100238,11 @@ index 0000000000000000000000000000000000000000..3d4e6bca21ac8701ca959b20f17a0245
 +  shapes,
 +} from '@expo/ui/swift-ui/modifiers';
 +import { useEffect, useMemo, useState } from 'react';
-+import { Keyboard } from 'react-native';
 +
 +import { PageBar, useChrome } from '@/components/tasks/bar';
 +import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 +import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
-+import type { Pages, Spot } from '@/components/tasks/pages';
++import { useField, type Pages, type Spot } from '@/components/tasks/pages';
 +import { Empty, Faded, Loading, asks, ios, listRow, type Feel } from '@/components/tasks/parts';
 +import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 +import type { TasksAt } from '@/components/tasks/tasks-view';
@@ -100346,9 +100350,10 @@ index 0000000000000000000000000000000000000000..3d4e6bca21ac8701ca959b20f17a0245
 +  const [now, setNow] = useState(Date.now);
 +  useEffect(() => setNow(Date.now()), [tasks]);
 +
++  const searchField = useField();
 +  const openPage = (id: PageId, row?: string) => {
 +    feel.tick();
-+    Keyboard.dismiss();
++    searchField.current?.blur();
 +    pages.go({ to: 'topic', id, row });
 +  };
 +  const chooseStage = (next: Stage) => {
@@ -100411,6 +100416,7 @@ index 0000000000000000000000000000000000000000..3d4e6bca21ac8701ca959b20f17a0245
 +    >
 +      {searching ? (
 +        <Search
++          field={searchField}
 +          query={query}
 +          onChange={setQuery}
 +          onCancel={() => {
@@ -100642,11 +100648,12 @@ index 0000000000000000000000000000000000000000..e600d58344ae1e5414c5bc9c400f062d
 +}
 diff --git a/src/components/tasks/pages.ts b/src/components/tasks/pages.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b232c4570b929394baf62b1bdf9b779fcd88db97
+index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a794cc7355
 --- /dev/null
 +++ b/src/components/tasks/pages.ts
-@@ -0,0 +1,226 @@
-+import { createContext, useEffect, useReducer } from 'react';
+@@ -0,0 +1,240 @@
++import type { TextInputRef } from '@expo/ui';
++import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 +
 +import type { TasksAt } from '@/components/tasks/tasks-view';
 +import type { PageId } from '@/live/inbox';
@@ -100790,6 +100797,19 @@ index 0000000000000000000000000000000000000000..b232c4570b929394baf62b1bdf9b779f
 +
 +// A field on a page says when it's being typed in, so that page can make room above the keyboard.
 +export const Typing = createContext<(on: boolean) => void>(() => {});
++
++// Whether a field's page shows. Pages stay mounted as they leave, so a field ends its own editing
++// when its page stops showing, rather than keep the keyboard up for a page that's gone.
++export const Showing = createContext(true);
++
++export function useField() {
++  const field = useRef<TextInputRef>(null);
++  const showing = useContext(Showing);
++  useEffect(() => {
++    if (!showing) field.current?.blur();
++  }, [showing]);
++  return field;
++}
 +
 +export function spotOf(level: Level, pages: Placing, room: Room): Spot {
 +  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
@@ -102584,10 +102604,10 @@ index 0000000000000000000000000000000000000000..e939a39141d6916b8e46b53db8562aae
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d5bf6f70a
+index 0000000000000000000000000000000000000000..10cebf6c5140333dc80c3986de56f3737cfabd7b
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,491 @@
+@@ -0,0 +1,488 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -102602,8 +102622,8 @@ index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d
 +  padding,
 +  scrollDismissesKeyboard,
 +} from '@expo/ui/swift-ui/modifiers';
-+import { useEffect, useMemo, useState, type ReactNode } from 'react';
-+import { Keyboard, Linking } from 'react-native';
++import { useMemo, useState, type ReactNode } from 'react';
++import { Linking } from 'react-native';
 +
 +import { PageChrome, type Chrome } from '@/components/tasks/bar';
 +import { LastCheck } from '@/components/tasks/last-check';
@@ -102616,6 +102636,7 @@ index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d
 +  type Pages,
 +  type Room,
 +  type Spot,
++  Showing,
 +  Typing,
 +} from '@/components/tasks/pages';
 +import { feel } from '@/components/tasks/parts';
@@ -102764,12 +102785,6 @@ index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d
 +  };
 +
 +  const spot = (level: Level) => spotOf(level, pages, room);
-+  // Pages stay mounted as they leave, so a field on one that's gone or closed would keep the
-+  // keyboard up with nothing on screen to type in or swipe.
-+  const typedOnGone = typing !== null && (!open || !spot(typing).shown);
-+  useEffect(() => {
-+    if (typedOnGone) Keyboard.dismiss();
-+  }, [typedOnGone]);
 +  const names: Record<Level | 'call', string> = {
 +    call: 'Call',
 +    list: 'Tasks',
@@ -102803,7 +102818,9 @@ index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d
 +    return (
 +      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
 +        <PageChrome.Provider value={chromeOf(at)}>
-+          <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
++          <Showing.Provider value={open && at.shown}>
++            <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
++          </Showing.Provider>
 +        </PageChrome.Provider>
 +      </PageAt>
 +    );
@@ -103081,10 +103098,10 @@ index 0000000000000000000000000000000000000000..d2c60404c80200fcc6c1b10a2858cb2d
 +}
 diff --git a/src/components/tasks/thread.tsx b/src/components/tasks/thread.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce75b5e32f
+index 0000000000000000000000000000000000000000..d33540abb08bc5c3b9ce871346c189d7c26306fc
 --- /dev/null
 +++ b/src/components/tasks/thread.tsx
-@@ -0,0 +1,382 @@
+@@ -0,0 +1,384 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput, type TextInputRef } from '@expo/ui';
 +import { ScrollView } from '@expo/ui/swift-ui';
 +import {
@@ -103101,13 +103118,12 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +  scrollClipDisabled,
 +  shapes,
 +} from '@expo/ui/swift-ui/modifiers';
-+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-+import { Keyboard } from 'react-native';
++import { useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
 +
 +import { Header, PageBar, Talk } from '@/components/tasks/bar';
 +import { useDraft } from '@/hooks/use-draft';
 +import { Mark } from '@/components/tasks/mark';
-+import { Typing } from '@/components/tasks/pages';
++import { Typing, useField } from '@/components/tasks/pages';
 +import { Failure, Faded, INSET, SectionHead, ios } from '@/components/tasks/parts';
 +import { Said, SaidLine, Sent } from '@/components/tasks/said';
 +import { TraceLine } from '@/components/tasks/trace';
@@ -103192,6 +103208,7 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +  // Why the last Stop didn't go through.
 +  failed?: string;
 +}) {
++  const field = useField();
 +  const place = PLACES[placeOf(thread.app)];
 +  const running = thread.running;
 +  const title = thread.place || thread.name;
@@ -103239,7 +103256,7 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +            modifiers={[
 +              padding({ top: 20, bottom: 20 }),
 +              contentShape(shapes.rectangle()),
-+              onTapGesture(() => Keyboard.dismiss()),
++              onTapGesture(() => field.current?.blur()),
 +            ]}
 +          >
 +            {first > 0 ? (
@@ -103295,6 +103312,7 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +      {chat?.sends ? (
 +        <Composer
 +          key={thread.id}
++          field={field}
 +          draft={`thread:${thread.id}`}
 +          title={title}
 +          working={running && !pending.some((sent) => !sent.failed)}
@@ -103316,6 +103334,7 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +// Send turns into Stop while the thread works and you've nothing typed, though not before what you
 +// just sent reaches it, so a second tap on Send can't stop the turn you steered.
 +function Composer({
++  field: input,
 +  draft,
 +  title,
 +  working,
@@ -103325,6 +103344,7 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +  onStop,
 +  onTalk,
 +}: {
++  field: RefObject<TextInputRef | null>;
 +  draft: string;
 +  title: string;
 +  working: boolean;
@@ -103334,7 +103354,6 @@ index 0000000000000000000000000000000000000000..1a9ed0ac1934c76e4fbca100a2b7cfce
 +  onStop: () => void;
 +  onTalk: () => void;
 +}) {
-+  const input = useRef<TextInputRef>(null);
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
 +  const [typing, setTyping] = useState(false);
