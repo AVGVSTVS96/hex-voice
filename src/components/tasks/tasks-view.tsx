@@ -33,7 +33,7 @@ import { feel } from '@/components/tasks/parts';
 import { EntryRow } from '@/components/tasks/rows';
 import { Asked, Detail } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
-import { Trace } from '@/components/tasks/trace';
+import { StepsLoading, Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
@@ -90,9 +90,9 @@ export function Tasks({
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
   // A project with no thread to show has a page of its own, with nothing to fetch.
-  const task = useTask(taskIn(pages.task), version);
+  const { task } = useTask(taskIn(pages.task), version);
   const traced = useTask(pages.stepsOf, version);
-  const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
+  const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
   const entries = useMemo(
@@ -342,9 +342,13 @@ export function Tasks({
     ),
     page(
       'steps',
-      traced ? <Trace task={traced} onOpen={(link) => openLink(link, 't3')} /> : <Spacer />,
+      traced.task ? (
+        <Trace task={traced.task} onOpen={(link) => openLink(link, 't3')} />
+      ) : (
+        <StepsLoading failed={traced.failed} />
+      ),
     ),
-    page('check', <LastCheck check={check} />),
+    page('check', <LastCheck {...checked} />),
   ];
 
   // A drag down any of Tasks' scrolling content pulls the keyboard down with it, as iOS apps do.
