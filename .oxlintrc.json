@@ -7,7 +7,7 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/set-state-in-effect": "off",
-    "react/refs": "off",
+    "react/refs": "error",
     "react/immutability": "off",
     "react-hooks/exhaustive-deps": "off",
     "typescript/switch-exhaustiveness-check": "error",
