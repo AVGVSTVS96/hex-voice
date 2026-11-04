@@ -9,6 +9,7 @@ import {
   foregroundStyle,
   frame,
   lineLimit,
+  monospacedDigit,
   padding,
   shapes,
   strokeBorder,
@@ -18,21 +19,30 @@ import { useContext, useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
-import { noteAsk } from '@/hooks/use-asks';
+import { noteAsk, useWords } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-import { NOT_NEEDED, unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
+import {
+  NOT_NEEDED,
+  unreached,
+  type Ask,
+  type AskLink,
+  type AskOption,
+  type Words,
+} from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
+import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { radius, theme } from '@/theme';
 
-// Compact, so a page of many asks scans: a question, two lines of why, and its choices on one
-// line where they fit.
+// Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
+// on one line where they fit.
 const ROW = 40;
 const QUESTION = 16;
 const ANSWER = 15;
-const CONTEXT = 2;
+// How much of the thread's own words show before a tap shows them all.
+const SAID = 6;
 // The pencil takes taps across 44 points but only the question's first line of height.
 const PENCIL = 44;
 const LINE = 21;
@@ -128,6 +138,8 @@ export function YourCall({
   );
 }
 
+// Folded like a project row, the question and the first line of its background; a tap opens the
+// background whole, the thread's own words, and the answers. Writing on it keeps it open.
 function AskCard({
   ask,
   first,
@@ -141,8 +153,9 @@ function AskCard({
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [writing, setWriting] = useState(false);
-  const [whole, setWhole] = useState(false);
+  const words = useWords(open ? ask.id : null);
   // A note leaves the ask open, so the card stays and says it went, or why it didn't.
   const notes = useFailures();
   const [noting, setNoting] = useState(false);
@@ -158,25 +171,56 @@ function AskCard({
       });
   };
   return (
-    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Column
+    <Column
+      alignment="start"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
+    >
+      <Row
         alignment="start"
-        spacing={3}
+        spacing={0}
         modifiers={[
-          padding({ leading: INSET, trailing: INSET, top: first ? 2 : 12, bottom: 6 }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          padding({ leading: INSET, top: first ? 2 : 12, bottom: open ? 6 : 12 }),
+          frame({ maxWidth: Infinity }),
         ]}
       >
-        <Row alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Column
+          alignment="start"
+          spacing={3}
+          onPress={() => setOpen(!open)}
+          testID="ask-card"
+          modifiers={[
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            contentShape(shapes.rectangle()),
+            ...(ios
+              ? [accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`)]
+              : []),
+          ]}
+        >
           <Text
             textStyle={{ fontSize: QUESTION, lineHeight: LINE, fontWeight: '600' }}
             modifiers={[
               foregroundStyle(theme.text),
+              open ? lineLimit() : lineLimit(2),
               frame({ maxWidth: Infinity, alignment: 'leading' }),
             ]}
           >
             {ask.question}
           </Text>
+          {ask.context ? (
+            <Text
+              textStyle={{ fontSize: 14, lineHeight: 19 }}
+              modifiers={[
+                foregroundStyle(theme.secondary),
+                open ? lineLimit() : lineLimit(1),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+              ]}
+            >
+              {ask.context}
+            </Text>
+          ) : null}
+        </Column>
+        {open ? (
           <Row
             alignment="center"
             spacing={0}
@@ -196,36 +240,49 @@ function AskCard({
               color={writing ? theme.accent : theme.secondary}
             />
           </Row>
-        </Row>
-        {ask.context ? (
+        ) : (
           <Text
-            textStyle={{ fontSize: 14, lineHeight: 19 }}
-            onPress={() => setWhole(!whole)}
+            textStyle={{ fontSize: 13, lineHeight: LINE }}
             modifiers={[
-              foregroundStyle(theme.secondary),
-              whole ? lineLimit() : lineLimit(CONTEXT),
-              animation(motion.list, whole),
-              ...(ios ? [accessibilityLabel(whole ? 'Show less' : 'Show all')] : []),
+              monospacedDigit(),
+              foregroundStyle(theme.tertiary),
+              padding({ leading: GAP, trailing: INSET }),
             ]}
           >
-            {ask.context}
+            {clock(new Date(ask.at))}
           </Text>
-        ) : null}
-        {ask.links?.length ? <Links links={ask.links} /> : null}
-        {notes.failed.note ? (
-          <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
-        ) : noted ? (
-          <Text
-            textStyle={{ fontSize: 13, lineHeight: 18 }}
-            modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
-          >
-            {`Note sent to ${ask.topic}`}
-          </Text>
-        ) : ask.failed ? (
-          <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} />
-        ) : null}
-      </Column>
-      {writing ? (
+        )}
+      </Row>
+      {open ? (
+        <Column
+          alignment="start"
+          spacing={3}
+          modifiers={[
+            padding({ leading: INSET, trailing: INSET, bottom: 6 }),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
+        >
+          {words ? <Said words={words} /> : null}
+          {ask.links?.length ? <Links links={ask.links} /> : null}
+          {notes.failed.note ? (
+            <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
+          ) : noted ? (
+            <Text
+              textStyle={{ fontSize: 13, lineHeight: 18 }}
+              modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
+            >
+              {`Note sent to ${ask.topic}`}
+            </Text>
+          ) : null}
+        </Column>
+      ) : null}
+      {ask.failed ? (
+        <Failure
+          text={ask.failed}
+          modifiers={[padding({ leading: INSET, trailing: INSET, bottom: open ? 6 : 12 })]}
+        />
+      ) : null}
+      {!open ? null : writing ? (
         <Composer
           draft={`ask:${ask.id}`}
           topic={ask.topic}
@@ -237,6 +294,43 @@ function AskCard({
       ) : (
         <Answers ask={ask} width={width} onAnswer={onAnswer} />
       )}
+    </Column>
+  );
+}
+
+// The thread's own words, under where and when they were said: a few lines, all of them on a tap.
+function Said({ words }: { words: Words }) {
+  const [whole, setWhole] = useState(false);
+  const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
+  return (
+    <Column
+      alignment="start"
+      spacing={2}
+      onPress={() => setWhole(!whole)}
+      modifiers={[
+        padding({ top: 8, bottom: 2 }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        contentShape(shapes.rectangle()),
+        animation(motion.list, whole),
+        ...(ios ? [accessibilityLabel(`From ${words.place}: ${words.text}`)] : []),
+      ]}
+    >
+      <Text
+        textStyle={{ fontSize: 13, fontWeight: '600' }}
+        modifiers={[foregroundStyle(theme.secondary)]}
+      >
+        {`From ${words.place}${when}`}
+      </Text>
+      <Text
+        textStyle={{ fontSize: 14, lineHeight: 19 }}
+        modifiers={[
+          foregroundStyle(theme.secondary),
+          whole ? lineLimit() : lineLimit(SAID),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ]}
+      >
+        {words.text}
+      </Text>
     </Column>
   );
 }

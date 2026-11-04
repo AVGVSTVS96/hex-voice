@@ -125,3 +125,8 @@ export function useCheck(at: string | undefined) {
   const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
   return { check: answer, ...answered };
 }
+
+// An ask's thread's own words, asked for while its card is open. Where hex has none, there are none.
+export function useWords(id: AskId | null) {
+  return useAnswer(id, undefined, (open) => hex.asks.words(open)).answer;
+}
