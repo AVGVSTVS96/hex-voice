@@ -484,8 +484,9 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   );
 }
 
-// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-// instead is the deliberate second step, and Not needed puts the ask away with no answer at all.
+// What you write goes to the ask's thread as a note and leaves the ask open: ↑ is the one accent
+// action. Answering with it instead is the deliberate second step, drawn in text and not accent so
+// it never reads as already answered, and Not needed puts the ask away with no answer at all.
 // None of them goes while a note is on its way.
 function Composer({
   draft,
@@ -565,16 +566,23 @@ function Composer({
           frame({ maxWidth: Infinity }),
         ]}
       >
-        <Text
-          textStyle={{ fontSize: 15, fontWeight: '600' }}
+        <Row
+          alignment="center"
+          spacing={5}
           onPress={words ? () => onAnswer(words) : undefined}
-          modifiers={[foregroundStyle(words ? theme.accent : theme.tertiary)]}
+          modifiers={ios ? [accessibilityLabel('Answer with this')] : []}
         >
-          Answer with this
-        </Text>
+          <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
+          <Text
+            textStyle={{ fontSize: 15, fontWeight: '600' }}
+            modifiers={[foregroundStyle(words ? theme.text : theme.tertiary)]}
+          >
+            Answer with this
+          </Text>
+        </Row>
         <Spacer flexible />
         <Text
-          textStyle={{ fontSize: 15, fontWeight: '500' }}
+          textStyle={{ fontSize: 15, fontWeight: '400' }}
           onPress={sending ? undefined : onDismiss}
           modifiers={[foregroundStyle(sending ? theme.tertiary : theme.secondary)]}
         >
