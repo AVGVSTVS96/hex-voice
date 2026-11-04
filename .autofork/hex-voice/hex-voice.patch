@@ -95224,10 +95224,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d2349d6ad
+index 0000000000000000000000000000000000000000..ebe1734b904af62734904d2d43c9493d75920746
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,444 @@
+@@ -0,0 +1,460 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -95317,13 +95317,16 @@ index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d
 +# run left saved (a collapsed list, a chosen voice) changes what the next run sees.
 +mac_install() {
 +  rm -f hex-down
++  mac_tls
 +  (set -a && . harness/.env.local && set +a && DUO_HEX_PORT=$hexport DUO_HEX_ANSWERS=$PWD/answers.json DUO_HEX_DOWN=$PWD/hex-down \
++    DUO_HEX_TLS=$PWD/tls \
 +    DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
 +    exec node harness/duo-hex.mjs) &
 +  standin=$!
 +  trap 'kill "$standin"; xcrun simctl shutdown "$id" 2>/dev/null' EXIT
 +  # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
-+  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 -o /dev/null "http://127.0.0.1:$hexport/tasks/summary" ||
++  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
++    "https://127.0.0.1:$hexport/tasks/summary" ||
 +    die "hex didn't answer a read in 10 s (with HEX=kept: none is kept), so the screens would be empty: nothing was checked"
 +  rm -rf stage shots && mkdir stage shots
 +  [ "$HEX" != kept ] || echo "answered from hex's reads kept $(date -r answers.json '+%b %-d %H:%M')" >>shots/notes.txt
@@ -95333,8 +95336,21 @@ index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d
 +  plutil -replace EXUpdatesEnabled -bool NO stage/hex.app/Expo.plist
 +  codesign -f -s - stage/hex.app 2>/dev/null
 +  mac_simulator
++  xcrun simctl keychain "$id" add-root-cert tls/ca.pem
 +  xcrun simctl uninstall "$id" "$bundle" 2>/dev/null || true
 +  xcrun simctl install "$id" stage/hex.app
++}
++
++# The stand-in's certificate for 127.0.0.1 and the root it hangs from, made once and kept here.
++mac_tls() {
++  [ ! -f tls/cert.pem ] || return 0
++  rm -rf tls && mkdir tls
++  openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=hex-voice-standin -keyout tls/ca-key.pem \
++    -out tls/ca.pem -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign 2>/dev/null
++  openssl req -newkey rsa:2048 -nodes -subj /CN=127.0.0.1 -keyout tls/key.pem -out tls/cert.csr 2>/dev/null
++  printf 'subjectAltName=IP:127.0.0.1\nextendedKeyUsage=serverAuth\nbasicConstraints=CA:FALSE\n' >tls/cert.ext
++  openssl x509 -req -in tls/cert.csr -CA tls/ca.pem -CAkey tls/ca-key.pem -CAcreateserial -days 800 \
++    -extfile tls/cert.ext -out tls/cert.pem 2>/dev/null
 +}
 +
 +mac_simulator() {
@@ -95564,7 +95580,7 @@ index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d
 +  title=$(git -C "$verify" log --oneline -1 | cut -c1-80)
 +  runtime=$(runtime_version "$verify")
 +  rm -rf "$home/js" && mkdir -p "$home/js"
-+  (cd "$verify" && EXPO_PUBLIC_HEX_URL=http://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
++  (cd "$verify" && EXPO_PUBLIC_HEX_URL=https://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
 +    turn npx expo export:embed --platform ios --dev false --minify true \
 +    --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
 +    --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
@@ -95674,10 +95690,10 @@ index 0000000000000000000000000000000000000000..5721b8d46944a2749662e1e20e054f7d
 +esac
 diff --git a/scripts/duo-hex.mjs b/scripts/duo-hex.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..b20eafaf2dcece3d0069ce467a3eb37834f91919
+index 0000000000000000000000000000000000000000..033e1072d9eeefb0cd9251cdcdc1bee919974b18
 --- /dev/null
 +++ b/scripts/duo-hex.mjs
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,74 @@
 +// Stands in for hex's voice server while scripts/duo checks the app, on the Mac beside the
 +// simulator. Reads go to the real server, so the screens show his real tasks, and each answer is
 +// kept in DUO_HEX_ANSWERS by path. With DUO_HEX_REPLAY set, reads are answered from that file
@@ -95687,10 +95703,14 @@ index 0000000000000000000000000000000000000000..b20eafaf2dcece3d0069ce467a3eb378
 +// the file DUO_HEX_DOWN exists, every read is dropped, as when hex can't be reached. Every write
 +// (answering, noting, undoing, acting, starting a call) is answered here and dropped, so a check can
 +// never answer or act for him. The app under check only knows this address and a dummy token.
++// It speaks HTTPS with HTTP/2, as hex does, under a root only the simulator trusts (DUO_HEX_TLS):
++// the app keeps several watches open at once, and over HTTP/1.1 iOS gives a host 4 connections, so
++// every other read would wait behind them.
 +import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-+import { createServer } from 'node:http';
++import { createSecureServer } from 'node:http2';
 +
-+const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOWN } = process.env;
++const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOWN, DUO_HEX_TLS } =
++  process.env;
 +const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 +// hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
 +const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
@@ -95704,7 +95724,13 @@ index 0000000000000000000000000000000000000000..b20eafaf2dcece3d0069ce467a3eb378
 +  ),
 +);
 +
-+createServer(async (request, response) => {
++const tls = {
++  key: readFileSync(`${DUO_HEX_TLS}/key.pem`),
++  cert: readFileSync(`${DUO_HEX_TLS}/cert.pem`),
++  allowHTTP1: true,
++};
++
++createSecureServer(tls, async (request, response) => {
 +  if (request.method !== 'GET') {
 +    request.resume();
 +    if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))
@@ -98862,10 +98888,10 @@ index 0000000000000000000000000000000000000000..bceb3537a99286c5200b58543b52a510
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f993487dc
+index 0000000000000000000000000000000000000000..8016847ed4ebec2cfcbe787179ccb1a901ddb547
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,508 @@
+@@ -0,0 +1,610 @@
 +import { Column, Icon, Row, Spacer, Text, TextInput } from '@expo/ui';
 +import { Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -98877,6 +98903,7 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +  foregroundStyle,
 +  frame,
 +  lineLimit,
++  monospacedDigit,
 +  padding,
 +  shapes,
 +  strokeBorder,
@@ -98886,21 +98913,30 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +
 +import { Mark } from '@/components/tasks/mark';
 +import { Typing, useField } from '@/components/tasks/pages';
-+import { noteAsk } from '@/hooks/use-asks';
++import { noteAsk, useWords } from '@/hooks/use-asks';
 +import { useDraft } from '@/hooks/use-draft';
 +import { openURL, useFailures } from '@/hooks/use-failures';
 +import { Failure, GAP, Hairline, INSET, SectionHead, ios } from '@/components/tasks/parts';
-+import { NOT_NEEDED, unreached, type Ask, type AskLink, type AskOption } from '@/live/asks';
++import {
++  NOT_NEEDED,
++  unreached,
++  type Ask,
++  type AskLink,
++  type AskOption,
++  type Words,
++} from '@/live/asks';
 +import { fitsOneLine } from '@/live/inbox';
++import { clock } from '@/live/tasks';
 +import { motion, rowsKey } from '@/motion';
 +import { radius, theme } from '@/theme';
 +
-+// Compact, so a page of many asks scans: a question, two lines of why, and its choices on one
-+// line where they fit.
++// Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
++// on one line where they fit.
 +const ROW = 40;
 +const QUESTION = 16;
 +const ANSWER = 15;
-+const CONTEXT = 2;
++// How much of the thread's own words show before a tap shows them all.
++const SAID = 6;
 +// The pencil takes taps across 44 points but only the question's first line of height.
 +const PENCIL = 44;
 +const LINE = 21;
@@ -98996,6 +99032,8 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +  );
 +}
 +
++// Folded like a project row, the question and the first line of its background; a tap opens the
++// background whole, the thread's own words, and the answers. Writing on it keeps it open.
 +function AskCard({
 +  ask,
 +  first,
@@ -99009,8 +99047,9 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +  onAnswer: Answer;
 +  onDismiss: (ask: Ask) => void;
 +}) {
++  const [open, setOpen] = useState(false);
 +  const [writing, setWriting] = useState(false);
-+  const [whole, setWhole] = useState(false);
++  const words = useWords(open ? ask.id : null);
 +  // A note leaves the ask open, so the card stays and says it went, or why it didn't.
 +  const notes = useFailures();
 +  const [noting, setNoting] = useState(false);
@@ -99026,25 +99065,56 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +      });
 +  };
 +  return (
-+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-+      <Column
++    <Column
++      alignment="start"
++      spacing={0}
++      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
++    >
++      <Row
 +        alignment="start"
-+        spacing={3}
++        spacing={0}
 +        modifiers={[
-+          padding({ leading: INSET, trailing: INSET, top: first ? 2 : 12, bottom: 6 }),
-+          frame({ maxWidth: Infinity, alignment: 'leading' }),
++          padding({ leading: INSET, top: first ? 2 : 12, bottom: open ? 6 : 12 }),
++          frame({ maxWidth: Infinity }),
 +        ]}
 +      >
-+        <Row alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
++        <Column
++          alignment="start"
++          spacing={3}
++          onPress={() => setOpen(!open)}
++          testID="ask-card"
++          modifiers={[
++            frame({ maxWidth: Infinity, alignment: 'leading' }),
++            contentShape(shapes.rectangle()),
++            ...(ios
++              ? [accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`)]
++              : []),
++          ]}
++        >
 +          <Text
 +            textStyle={{ fontSize: QUESTION, lineHeight: LINE, fontWeight: '600' }}
 +            modifiers={[
 +              foregroundStyle(theme.text),
++              open ? lineLimit() : lineLimit(2),
 +              frame({ maxWidth: Infinity, alignment: 'leading' }),
 +            ]}
 +          >
 +            {ask.question}
 +          </Text>
++          {ask.context ? (
++            <Text
++              textStyle={{ fontSize: 14, lineHeight: 19 }}
++              modifiers={[
++                foregroundStyle(theme.secondary),
++                open ? lineLimit() : lineLimit(1),
++                frame({ maxWidth: Infinity, alignment: 'leading' }),
++              ]}
++            >
++              {ask.context}
++            </Text>
++          ) : null}
++        </Column>
++        {open ? (
 +          <Row
 +            alignment="center"
 +            spacing={0}
@@ -99064,36 +99134,49 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +              color={writing ? theme.accent : theme.secondary}
 +            />
 +          </Row>
-+        </Row>
-+        {ask.context ? (
++        ) : (
 +          <Text
-+            textStyle={{ fontSize: 14, lineHeight: 19 }}
-+            onPress={() => setWhole(!whole)}
++            textStyle={{ fontSize: 13, lineHeight: LINE }}
 +            modifiers={[
-+              foregroundStyle(theme.secondary),
-+              whole ? lineLimit() : lineLimit(CONTEXT),
-+              animation(motion.list, whole),
-+              ...(ios ? [accessibilityLabel(whole ? 'Show less' : 'Show all')] : []),
++              monospacedDigit(),
++              foregroundStyle(theme.tertiary),
++              padding({ leading: GAP, trailing: INSET }),
 +            ]}
 +          >
-+            {ask.context}
++            {clock(new Date(ask.at))}
 +          </Text>
-+        ) : null}
-+        {ask.links?.length ? <Links links={ask.links} /> : null}
-+        {notes.failed.note ? (
-+          <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
-+        ) : noted ? (
-+          <Text
-+            textStyle={{ fontSize: 13, lineHeight: 18 }}
-+            modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
-+          >
-+            {`Note sent to ${ask.topic}`}
-+          </Text>
-+        ) : ask.failed ? (
-+          <Failure text={ask.failed} modifiers={[padding({ top: 4 })]} />
-+        ) : null}
-+      </Column>
-+      {writing ? (
++        )}
++      </Row>
++      {open ? (
++        <Column
++          alignment="start"
++          spacing={3}
++          modifiers={[
++            padding({ leading: INSET, trailing: INSET, bottom: 6 }),
++            frame({ maxWidth: Infinity, alignment: 'leading' }),
++          ]}
++        >
++          {words ? <Said words={words} /> : null}
++          {ask.links?.length ? <Links links={ask.links} /> : null}
++          {notes.failed.note ? (
++            <Failure text={notes.failed.note} modifiers={[padding({ top: 4 })]} />
++          ) : noted ? (
++            <Text
++              textStyle={{ fontSize: 13, lineHeight: 18 }}
++              modifiers={[foregroundStyle(theme.secondary), padding({ top: 4 })]}
++            >
++              {`Note sent to ${ask.topic}`}
++            </Text>
++          ) : null}
++        </Column>
++      ) : null}
++      {ask.failed ? (
++        <Failure
++          text={ask.failed}
++          modifiers={[padding({ leading: INSET, trailing: INSET, bottom: open ? 6 : 12 })]}
++        />
++      ) : null}
++      {!open ? null : writing ? (
 +        <Composer
 +          draft={`ask:${ask.id}`}
 +          topic={ask.topic}
@@ -99105,6 +99188,43 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +      ) : (
 +        <Answers ask={ask} width={width} onAnswer={onAnswer} />
 +      )}
++    </Column>
++  );
++}
++
++// The thread's own words, under where and when they were said: a few lines, all of them on a tap.
++function Said({ words }: { words: Words }) {
++  const [whole, setWhole] = useState(false);
++  const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
++  return (
++    <Column
++      alignment="start"
++      spacing={2}
++      onPress={() => setWhole(!whole)}
++      modifiers={[
++        padding({ top: 8, bottom: 2 }),
++        frame({ maxWidth: Infinity, alignment: 'leading' }),
++        contentShape(shapes.rectangle()),
++        animation(motion.list, whole),
++        ...(ios ? [accessibilityLabel(`From ${words.place}: ${words.text}`)] : []),
++      ]}
++    >
++      <Text
++        textStyle={{ fontSize: 13, fontWeight: '600' }}
++        modifiers={[foregroundStyle(theme.secondary)]}
++      >
++        {`From ${words.place}${when}`}
++      </Text>
++      <Text
++        textStyle={{ fontSize: 14, lineHeight: 19 }}
++        modifiers={[
++          foregroundStyle(theme.secondary),
++          whole ? lineLimit() : lineLimit(SAID),
++          frame({ maxWidth: Infinity, alignment: 'leading' }),
++        ]}
++      >
++        {words.text}
++      </Text>
 +    </Column>
 +  );
 +}
@@ -99258,8 +99378,9 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +  );
 +}
 +
-+// What you write goes to the ask's thread as a note and leaves the ask open; answering with it
-+// instead is the deliberate second step, and Not needed puts the ask away with no answer at all.
++// What you write goes to the ask's thread as a note and leaves the ask open: ↑ is the one accent
++// action. Answering with it instead is the deliberate second step, drawn in text and not accent so
++// it never reads as already answered, and Not needed puts the ask away with no answer at all.
 +// None of them goes while a note is on its way.
 +function Composer({
 +  draft,
@@ -99339,16 +99460,23 @@ index 0000000000000000000000000000000000000000..1ecf995adc3816f0baa990c51a98363f
 +          frame({ maxWidth: Infinity }),
 +        ]}
 +      >
-+        <Text
-+          textStyle={{ fontSize: 15, fontWeight: '600' }}
++        <Row
++          alignment="center"
++          spacing={5}
 +          onPress={words ? () => onAnswer(words) : undefined}
-+          modifiers={[foregroundStyle(words ? theme.accent : theme.tertiary)]}
++          modifiers={ios ? [accessibilityLabel('Answer with this')] : []}
 +        >
-+          Answer with this
-+        </Text>
++          <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
++          <Text
++            textStyle={{ fontSize: 15, fontWeight: '600' }}
++            modifiers={[foregroundStyle(words ? theme.text : theme.tertiary)]}
++          >
++            Answer with this
++          </Text>
++        </Row>
 +        <Spacer flexible />
 +        <Text
-+          textStyle={{ fontSize: 15, fontWeight: '500' }}
++          textStyle={{ fontSize: 15, fontWeight: '400' }}
 +          onPress={sending ? undefined : onDismiss}
 +          modifiers={[foregroundStyle(sending ? theme.tertiary : theme.secondary)]}
 +        >
@@ -101198,10 +101326,10 @@ index 0000000000000000000000000000000000000000..16c5b1562a372927a642c1d988f13891
 +}
 diff --git a/src/components/tasks/pinned.tsx b/src/components/tasks/pinned.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..42300503e437fc7bea3217dfa2c51d63033e4ec9
+index 0000000000000000000000000000000000000000..f62ce895c8467d144abf0ee7578a2f67cb201d38
 --- /dev/null
 +++ b/src/components/tasks/pinned.tsx
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,162 @@
 +import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 +import {
 +  background,
@@ -101285,7 +101413,9 @@ index 0000000000000000000000000000000000000000..42300503e437fc7bea3217dfa2c51d63
 +        {line.text}
 +      </Text>
 +    );
-+  if (line.kind === 'text')
++  const url = line.url;
++  const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
++  if (line.kind === 'text' && !url)
 +    return (
 +      <Text
 +        textStyle={{ fontSize: 15, lineHeight: 20 }}
@@ -101299,12 +101429,42 @@ index 0000000000000000000000000000000000000000..42300503e437fc7bea3217dfa2c51d63
 +        {line.text}
 +      </Text>
 +    );
-+  const url = line.url;
++  if (line.kind === 'text')
++    return (
++      <Row
++        alignment="start"
++        spacing={GAP}
++        onPress={open}
++        modifiers={[
++          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
++          frame({ maxWidth: Infinity, alignment: 'leading' }),
++          contentShape(shapes.rectangle()),
++        ]}
++      >
++        <Column
++          alignment="start"
++          spacing={2}
++          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
++        >
++          <Text
++            textStyle={{ fontSize: 15, lineHeight: 20 }}
++            modifiers={[
++              foregroundStyle(theme.secondary),
++              frame({ maxWidth: Infinity, alignment: 'leading' }),
++            ]}
++          >
++            {line.text}
++          </Text>
++          {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
++        </Column>
++        <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
++      </Row>
++    );
 +  return (
 +    <Row
 +      alignment="start"
 +      spacing={GAP}
-+      onPress={url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined}
++      onPress={open}
 +      modifiers={[
 +        padding({ leading: INSET - 2, trailing: INSET, top: 8, bottom: 8 }),
 +        frame({ maxWidth: Infinity, alignment: 'leading' }),
@@ -105548,14 +105708,14 @@ index 0000000000000000000000000000000000000000..c039e5f236e687e2d3a2b00ed4aa061a
 +});
 diff --git a/src/hex/api.ts b/src/hex/api.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..21373abe167b5fb6ffb6215d2f161311e8b879fd
+index 0000000000000000000000000000000000000000..157269da6a9fc218d1953d7ed2bae20a1cb37a1d
 --- /dev/null
 +++ b/src/hex/api.ts
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,73 @@
 +import * as z from 'zod/mini';
 +
 +import { AgentActivity } from '../live/agents';
-+import { AskList, Check, Sent, type AskId } from '../live/asks';
++import { AskList, Check, Sent, Words, type AskId } from '../live/asks';
 +import { CallId, CallList, CallRecord } from '../live/calls';
 +import { Chat, TaskCounts, TaskList, TaskOrPage, type TaskId } from '../live/tasks';
 +import type { SessionAPI } from '../live/types';
@@ -105612,6 +105772,7 @@ index 0000000000000000000000000000000000000000..21373abe167b5fb6ffb6215d2f161311
 +    asks: {
 +      list: (after?: number, signal?: AbortSignal) => request('/asks', AskList, { after, signal }),
 +      check: () => request('/asks/check', Check),
++      words: (id: AskId) => request(`/asks/${enc(id)}/words`, Words),
 +      answer: (id: AskId, label: string) =>
 +        request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),
 +      note: (id: AskId, text: string) =>
@@ -105847,10 +106008,10 @@ index 0000000000000000000000000000000000000000..62a4faf38a0627b9ef5b9ac58750ed57
 +}
 diff --git a/src/hooks/use-asks.ts b/src/hooks/use-asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3b3a61f97596f4afe7a644e2dc46d6f01d16842d
+index 0000000000000000000000000000000000000000..1fa2bda32264ad7900c51d17c0adc47ef1ad2403
 --- /dev/null
 +++ b/src/hooks/use-asks.ts
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,132 @@
 +import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 +
 +import { hex } from '@/hex';
@@ -105977,6 +106138,11 @@ index 0000000000000000000000000000000000000000..3b3a61f97596f4afe7a644e2dc46d6f0
 +export function useCheck(at: string | undefined) {
 +  const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
 +  return { check: answer, ...answered };
++}
++
++// An ask's thread's own words, asked for while its card is open. Where hex has none, there are none.
++export function useWords(id: AskId | null) {
++  return useAnswer(id, undefined, (open) => hex.asks.words(open)).answer;
 +}
 diff --git a/src/hooks/use-call-activity.ts b/src/hooks/use-call-activity.ts
 new file mode 100644
@@ -107151,10 +107317,10 @@ index bb3a17e3dc12851778dd2b2998412a63be471f94..00000000000000000000000000000000
 -});
 diff --git a/src/live/asks.ts b/src/live/asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3f5a587f8a6d14eca94a7b62088067110af2b4e
+index 0000000000000000000000000000000000000000..ae7159a3d601dc22fdcff3f7ef5a9efe86647c47
 --- /dev/null
 +++ b/src/live/asks.ts
-@@ -0,0 +1,209 @@
+@@ -0,0 +1,213 @@
 +import * as z from 'zod/mini';
 +
 +import { CallId, timeOfDay } from './calls';
@@ -107198,6 +107364,10 @@ index 0000000000000000000000000000000000000000..e3f5a587f8a6d14eca94a7b620880671
 +  places: z.array(AskPlace),
 +  tag: z.optional(z.string()),
 +});
++// Where an ask came from in its thread's own words, read when its card opens: the place as Tasks
++// names it, when it was said there, and the words, as written.
++export const Words = z.object({ place: z.string(), at: z.optional(z.string()), text: z.string() });
++export type Words = z.infer<typeof Words>;
 +// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
 +// `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
 +// how many places an answer from here couldn't reach, which still ask it.
@@ -108307,7 +108477,7 @@ index 0000000000000000000000000000000000000000..46d07c8bddad4e9901cf99ef77bb41c0
 +}
 diff --git a/src/live/pinned.ts b/src/live/pinned.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3fe269924bfe35b736e1099113cfac6ac2623201
+index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30984991f1
 --- /dev/null
 +++ b/src/live/pinned.ts
 @@ -0,0 +1,102 @@
@@ -108317,7 +108487,7 @@ index 0000000000000000000000000000000000000000..3fe269924bfe35b736e1099113cfac6a
 +export type PinLine =
 +  | { kind: 'item'; text: string; mark: PinMark; url?: string }
 +  | { kind: 'code'; text: string }
-+  | { kind: 'text'; text: string };
++  | { kind: 'text'; text: string; url?: string };
 +export type PinSection = { title: string; mark: PinMark; folded: boolean; lines: PinLine[] };
 +
 +const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
@@ -108362,7 +108532,7 @@ index 0000000000000000000000000000000000000000..3fe269924bfe35b736e1099113cfac6a
 +      continue;
 +    }
 +    if (BULLET.test(line)) current.lines.push(item(line.replace(BULLET, ''), current.mark));
-+    else current.lines.push({ kind: 'text', text: plain(line) });
++    else current.lines.push({ kind: 'text', ...linked(line) });
 +  }
 +  if (current.title || current.lines.length) sections.push(current);
 +  return sections;
@@ -108396,14 +108566,14 @@ index 0000000000000000000000000000000000000000..3fe269924bfe35b736e1099113cfac6a
 +    rest = rest.replace(emoji, '');
 +    break;
 +  }
-+  const link = rest.match(LINK);
-+  const url = link?.[2] ?? rest.match(URL)?.[0];
-+  return {
-+    kind: 'item',
-+    text: plain(link ? rest.replace(LINK, '$1') : rest),
-+    mark: own,
-+    ...(url && { url }),
-+  };
++  return { kind: 'item', ...linked(rest), mark: own };
++}
++
++// A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
++function linked(text: string): { text: string; url?: string } {
++  const link = text.match(LINK);
++  const url = link?.[2] ?? text.match(URL)?.[0];
++  return { text: plain(link ? text.replace(LINK, '$1') : text), ...(url && { url }) };
 +}
 +
 +function plain(text: string) {
@@ -110415,10 +110585,10 @@ index 0000000000000000000000000000000000000000..3d47537b37404ff9adb91876f64a9f26
 +  };
 +}
 diff --git a/src/screens/live-screen.tsx b/src/screens/live-screen.tsx
-index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b4d25acad 100644
+index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..eb72b0411ba42d3d2981b0ec3230bcfe079c21dc 100644
 --- a/src/screens/live-screen.tsx
 +++ b/src/screens/live-screen.tsx
-@@ -1,120 +1,1070 @@
+@@ -1,120 +1,1071 @@
  import * as Haptics from 'expo-haptics';
 -import { useState } from 'react';
 -import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -110762,7 +110932,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +  const goal = useSharedValue(reading ? 1 : 0);
 +  const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
 +  const landing = useSharedValue(-1);
-+
+ 
 +  const animateTo = (target: number, velocity = 0) => {
 +    'worklet';
 +    goal.set(target);
@@ -110916,7 +111086,8 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +  };
 +  const leaveCall = () => setShowing({ pulled: false, call: null });
 +
-+  const pane = useSharedValue(0);
++  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
++  const pane = useSharedValue(panes && tasksOpen ? 1 : 0);
 +  const paneWidth = inbox ? inbox.width : side.width;
 +  const paneW = useSharedValue(paneWidth);
 +  const wide = useSharedValue(inbox ? 1 : 0);
@@ -111139,7 +111310,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +      transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
 +    };
 +  });
- 
++
 +  // What an action on a call couldn't do shows in the footer's error line while that call lasts.
 +  const callNow = voiceLocked
 +    ? (session.callId ?? undefined)
@@ -111181,13 +111352,13 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +  // A sheet steps aside for the call it starts; a pane stays open beside it.
 +  const stepAside = () => {
 +    if (!panes) setTasksOpen(false);
-   };
++  };
 +  // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
 +  const talkAbout = (task: TaskRow) => {
 +    stepAside();
 +    if (onCall) tried('Not sent', raiseTask(task.id));
 +    else if (voiceLoaded) startCall({ task: task.id });
-+  };
+   };
 +  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
 +  const openCallFromTasks = (id: string) => {
 +    stepAside();
@@ -111566,7 +111737,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
          voice={voice}
          onVoiceChange={setVoice}
          voiceEnabled={voiceLoaded && !voiceLocked}
-@@ -122,36 +1072,139 @@ export default function LiveScreen() {
+@@ -122,36 +1073,143 @@ export default function LiveScreen() {
          persona={variant}
          onPersonaChange={setVariant}
          personaEnabled={personaLoaded}
@@ -111592,9 +111763,7 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
 +        style={[
 +          { top: toolbar.y },
-+          toolbar.axis === 'column'
-+            ? { left: toolbar.x, right: width - toolbar.x - toolbar.width }
-+            : toolbarStyle,
++          toolbar.axis === 'column' ? pinned(toolbar, width) : toolbarStyle,
 +        ]}
 +        callsOpen={drawerOpen}
 +        tasks={{ ...counts, open: tasksOpen }}
@@ -111644,6 +111813,12 @@ index d5fc8f9f65fc4e233c062c50dcd2be4f94c3f7db..a93b1bdbc97f8a8433cf7745e9eb558b
 +    });
 +    started.current = null;
 +  }, [status]);
++}
++
++// A side column keeps its own width at the edge it's on. iOS grows the screen before the call
++// screen lays out again as the Duo opens, so a column held by both edges would stretch across it.
++function pinned({ x, width }: { x: number; width: number }, screen: number) {
++  return x < screen / 2 ? { left: x, width } : { right: screen - x - width, width };
 +}
 +
 +const FADE = [{ color: theme.background }, { color: 'transparent' }];
@@ -113597,10 +113772,10 @@ index e517c4697a24271f6c4111862388ef344f1fb72d..00000000000000000000000000000000
 -});
 diff --git a/tests/asks.test.ts b/tests/asks.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e8deb1e9207f4a9c50fc62cfa9a97baa019b4a7d
+index 0000000000000000000000000000000000000000..ea68b3ad06a04b8a2ace96e0fffdab263d415760
 --- /dev/null
 +++ b/tests/asks.test.ts
-@@ -0,0 +1,196 @@
+@@ -0,0 +1,206 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -113747,6 +113922,16 @@ index 0000000000000000000000000000000000000000..e8deb1e9207f4a9c50fc62cfa9a97baa
 +test('a pinned section’s heading drops its own emoji, which its mark already says', () => {
 +  const [done] = pinSections('**🟢 Done:**\n- shipped the band');
 +  assert.deepEqual([done!.title, done!.mark], ['Done', 'done']);
++});
++
++test('a pinned text line shows a markdown link’s label and opens its url, as an item does', () => {
++  const [section] = pinSections(
++    'Signed with xtool. [Paper](https://app.paper.design/file/abc)\nNo link here.',
++  );
++  assert.deepEqual(section!.lines, [
++    { kind: 'text', text: 'Signed with xtool. Paper', url: 'https://app.paper.design/file/abc' },
++    { kind: 'text', text: 'No link here.' },
++  ]);
 +});
 +
 +test('what didn’t go through shows on the item it was about, and nowhere else', () => {
