@@ -4,7 +4,7 @@ export type PinMark = 'done' | 'working' | 'needs' | 'failed' | 'idle';
 export type PinLine =
   | { kind: 'item'; text: string; mark: PinMark; url?: string }
   | { kind: 'code'; text: string }
-  | { kind: 'text'; text: string };
+  | { kind: 'text'; text: string; url?: string };
 export type PinSection = { title: string; mark: PinMark; folded: boolean; lines: PinLine[] };
 
 const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
@@ -49,7 +49,7 @@ export function pinSections(text: string): PinSection[] {
       continue;
     }
     if (BULLET.test(line)) current.lines.push(item(line.replace(BULLET, ''), current.mark));
-    else current.lines.push({ kind: 'text', text: plain(line) });
+    else current.lines.push({ kind: 'text', ...linked(line) });
   }
   if (current.title || current.lines.length) sections.push(current);
   return sections;
@@ -83,14 +83,14 @@ function item(text: string, mark: PinMark): PinLine {
     rest = rest.replace(emoji, '');
     break;
   }
-  const link = rest.match(LINK);
-  const url = link?.[2] ?? rest.match(URL)?.[0];
-  return {
-    kind: 'item',
-    text: plain(link ? rest.replace(LINK, '$1') : rest),
-    mark: own,
-    ...(url && { url }),
-  };
+  return { kind: 'item', ...linked(rest), mark: own };
+}
+
+// A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
+function linked(text: string): { text: string; url?: string } {
+  const link = text.match(LINK);
+  const url = link?.[2] ?? text.match(URL)?.[0];
+  return { text: plain(link ? text.replace(LINK, '$1') : text), ...(url && { url }) };
 }
 
 function plain(text: string) {
