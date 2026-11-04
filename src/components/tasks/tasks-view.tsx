@@ -12,8 +12,8 @@ import {
   padding,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Keyboard, Linking } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Linking } from 'react-native';
 
 import { PageChrome, type Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
@@ -26,6 +26,7 @@ import {
   type Pages,
   type Room,
   type Spot,
+  Showing,
   Typing,
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
@@ -174,12 +175,6 @@ export function Tasks({
   };
 
   const spot = (level: Level) => spotOf(level, pages, room);
-  // Pages stay mounted as they leave, so a field on one that's gone or closed would keep the
-  // keyboard up with nothing on screen to type in or swipe.
-  const typedOnGone = typing !== null && (!open || !spot(typing).shown);
-  useEffect(() => {
-    if (typedOnGone) Keyboard.dismiss();
-  }, [typedOnGone]);
   const names: Record<Level | 'call', string> = {
     call: 'Call',
     list: 'Tasks',
@@ -213,7 +208,9 @@ export function Tasks({
     return (
       <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
         <PageChrome.Provider value={chromeOf(at)}>
-          <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
+          <Showing.Provider value={open && at.shown}>
+            <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
+          </Showing.Provider>
         </PageChrome.Provider>
       </PageAt>
     );

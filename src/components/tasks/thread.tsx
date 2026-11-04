@@ -14,13 +14,12 @@ import {
   scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Keyboard } from 'react-native';
+import { useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
 
 import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
-import { Typing } from '@/components/tasks/pages';
+import { Typing, useField } from '@/components/tasks/pages';
 import { Failure, Faded, INSET, SectionHead, ios } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
@@ -105,6 +104,7 @@ export function ThreadPage({
   // Why the last Stop didn't go through.
   failed?: string;
 }) {
+  const field = useField();
   const place = PLACES[placeOf(thread.app)];
   const running = thread.running;
   const title = thread.place || thread.name;
@@ -152,7 +152,7 @@ export function ThreadPage({
             modifiers={[
               padding({ top: 20, bottom: 20 }),
               contentShape(shapes.rectangle()),
-              onTapGesture(() => Keyboard.dismiss()),
+              onTapGesture(() => field.current?.blur()),
             ]}
           >
             {first > 0 ? (
@@ -208,6 +208,7 @@ export function ThreadPage({
       {chat?.sends ? (
         <Composer
           key={thread.id}
+          field={field}
           draft={`thread:${thread.id}`}
           title={title}
           working={running && !pending.some((sent) => !sent.failed)}
@@ -229,6 +230,7 @@ export function ThreadPage({
 // Send turns into Stop while the thread works and you've nothing typed, though not before what you
 // just sent reaches it, so a second tap on Send can't stop the turn you steered.
 function Composer({
+  field: input,
   draft,
   title,
   working,
@@ -238,6 +240,7 @@ function Composer({
   onStop,
   onTalk,
 }: {
+  field: RefObject<TextInputRef | null>;
   draft: string;
   title: string;
   working: boolean;
@@ -247,7 +250,6 @@ function Composer({
   onStop: () => void;
   onTalk: () => void;
 }) {
-  const input = useRef<TextInputRef>(null);
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const [typing, setTyping] = useState(false);

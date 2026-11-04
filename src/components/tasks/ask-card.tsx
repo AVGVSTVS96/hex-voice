@@ -17,7 +17,7 @@ import {
 import { useContext, useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { Typing } from '@/components/tasks/pages';
+import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk } from '@/hooks/use-asks';
 import { useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
@@ -411,6 +411,7 @@ function Composer({
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const typing = useContext(Typing);
+  const field = useField();
   const words = sending ? '' : text.trim();
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -433,6 +434,7 @@ function Composer({
         ]}
       >
         <TextInput
+          ref={field}
           autoFocus
           multiline
           testID="ask-input"
