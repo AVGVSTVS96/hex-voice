@@ -81,7 +81,9 @@ function Line({ line }: { line: PinLine }) {
         {line.text}
       </Text>
     );
-  if (line.kind === 'text')
+  const url = line.url;
+  const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
+  if (line.kind === 'text' && !url)
     return (
       <Text
         textStyle={{ fontSize: 15, lineHeight: 20 }}
@@ -95,12 +97,42 @@ function Line({ line }: { line: PinLine }) {
         {line.text}
       </Text>
     );
-  const url = line.url;
+  if (line.kind === 'text')
+    return (
+      <Row
+        alignment="start"
+        spacing={GAP}
+        onPress={open}
+        modifiers={[
+          padding({ leading: INSET, trailing: INSET, top: 6, bottom: 6 }),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          contentShape(shapes.rectangle()),
+        ]}
+      >
+        <Column
+          alignment="start"
+          spacing={2}
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
+          <Text
+            textStyle={{ fontSize: 15, lineHeight: 20 }}
+            modifiers={[
+              foregroundStyle(theme.secondary),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+            ]}
+          >
+            {line.text}
+          </Text>
+          {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
+        </Column>
+        <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
+      </Row>
+    );
   return (
     <Row
       alignment="start"
       spacing={GAP}
-      onPress={url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined}
+      onPress={open}
       modifiers={[
         padding({ leading: INSET - 2, trailing: INSET, top: 8, bottom: 8 }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),

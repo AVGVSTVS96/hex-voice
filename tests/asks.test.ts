@@ -146,6 +146,16 @@ test('a pinned section’s heading drops its own emoji, which its mark already s
   assert.deepEqual([done!.title, done!.mark], ['Done', 'done']);
 });
 
+test('a pinned text line shows a markdown link’s label and opens its url, as an item does', () => {
+  const [section] = pinSections(
+    'Signed with xtool. [Paper](https://app.paper.design/file/abc)\nNo link here.',
+  );
+  assert.deepEqual(section!.lines, [
+    { kind: 'text', text: 'Signed with xtool. Paper', url: 'https://app.paper.design/file/abc' },
+    { kind: 'text', text: 'No link here.' },
+  ]);
+});
+
 test('what didn’t go through shows on the item it was about, and nowhere else', () => {
   const stuck = {
     id: 's',
