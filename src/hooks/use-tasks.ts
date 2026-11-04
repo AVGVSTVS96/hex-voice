@@ -38,6 +38,6 @@ export function useTaskOrPage(id: TaskId | null, version: number | undefined) {
 
 // A task on the board in full; a thread that's left it has no steps or agents to show.
 export function useTask(id: TaskId | null, version: number | undefined) {
-  const { answer, failed } = useTaskOrPage(id, version);
-  return { task: answer?.kind === 'task' ? answer : undefined, failed };
+  const { answer, ...answered } = useTaskOrPage(id, version);
+  return { task: answer?.kind === 'task' ? answer : undefined, ...answered };
 }

@@ -1,7 +1,14 @@
 import * as z from 'zod/mini';
 
 // hex heard the request and said no, so sending the same thing again gets the same answer.
-export class Refused extends Error {}
+export class Refused extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
 
 export type Config = { url?: string; token?: string; fetch: typeof globalThis.fetch };
 export type Client = ReturnType<typeof createClient>;
@@ -100,5 +107,5 @@ function refusal(status: number, text: string) {
   } catch {}
   message = message.slice(0, 300) || `hex answered HTTP ${status}.`;
   message = message[0]!.toUpperCase() + message.slice(1);
-  return status < 500 ? new Refused(message) : new Error(message);
+  return status < 500 ? new Refused(message, status) : new Error(message);
 }

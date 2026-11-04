@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { Children, isValidElement, type ReactNode } from 'react';
 import { PixelRatio } from 'react-native';
 
+import type { Answered } from '@/hooks/use-watch';
 import { theme } from '@/theme';
 
 export const ios = process.env.EXPO_OS === 'ios';
@@ -236,18 +237,28 @@ export function Loading({ width }: { width: number }) {
   );
 }
 
-// A page's body until hex answers it: the system's spinner, or, while hex can't be reached, that it's
-// trying again, which it does on its own.
-export function Waiting({ failed }: { failed: boolean }) {
+// A page's body until hex answers it: the system's spinner; while hex can't be reached, that it's
+// trying again, which it does on its own; and once hex says no, why, `gone` when there's no such thing.
+export function Waiting({ failed, refused, gone }: Answered & { gone: string }) {
+  const why = refused
+    ? refused.status === 404
+      ? gone
+      : refused.message
+    : failed
+      ? UNREACHED
+      : null;
   return (
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ top: 48, bottom: 48 }), frame({ maxWidth: Infinity })]}
+      modifiers={[
+        padding({ top: 48, bottom: 48, leading: INSET, trailing: INSET }),
+        frame({ maxWidth: Infinity }),
+      ]}
     >
-      {failed ? (
+      {why ? (
         <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-          {UNREACHED}
+          {why}
         </Text>
       ) : (
         <ProgressView modifiers={[accessibilityLabel('Loading')]} />
