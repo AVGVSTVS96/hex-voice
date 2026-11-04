@@ -1,7 +1,7 @@
 import * as z from 'zod/mini';
 
 import { AgentActivity } from '../live/agents';
-import { AskList, Check, Sent, type AskId } from '../live/asks';
+import { AskList, Check, Sent, Words, type AskId } from '../live/asks';
 import { CallId, CallList, CallRecord } from '../live/calls';
 import { Chat, TaskCounts, TaskList, TaskOrPage, type TaskId } from '../live/tasks';
 import type { SessionAPI } from '../live/types';
@@ -58,6 +58,7 @@ export function createHex({ request, send }: Client) {
     asks: {
       list: (after?: number, signal?: AbortSignal) => request('/asks', AskList, { after, signal }),
       check: () => request('/asks/check', Check),
+      words: (id: AskId) => request(`/asks/${enc(id)}/words`, Words),
       answer: (id: AskId, label: string) =>
         request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),
       note: (id: AskId, text: string) =>

@@ -41,6 +41,10 @@ export const Ask = z.object({
   places: z.array(AskPlace),
   tag: z.optional(z.string()),
 });
+// Where an ask came from in its thread's own words, read when its card opens: the place as Tasks
+// names it, when it was said there, and the words, as written.
+export const Words = z.object({ place: z.string(), at: z.optional(z.string()), text: z.string() });
+export type Words = z.infer<typeof Words>;
 // Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
 // `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
 // how many places an answer from here couldn't reach, which still ask it.
