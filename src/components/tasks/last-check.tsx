@@ -10,12 +10,12 @@ import {
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, GAP, INSET, SectionHead, Sections } from '@/components/tasks/parts';
+import { Faded, GAP, INSET, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import { radius, theme } from '@/theme';
 
-export function LastCheck({ check }: { check?: Check }) {
+export function LastCheck({ check, failed }: { check?: Check; failed: boolean }) {
   return (
     <Column
       alignment="center"
@@ -53,7 +53,9 @@ export function LastCheck({ check }: { check?: Check }) {
                 ) : null}
               </Sections>
             </Column>
-          ) : null}
+          ) : (
+            <Waiting failed={failed} />
+          )}
         </ScrollView>
       </Faded>
     </Column>

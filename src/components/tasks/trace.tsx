@@ -17,7 +17,16 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
+import {
+  Faded,
+  GAP,
+  INSET,
+  MARK,
+  SectionHead,
+  Sections,
+  Waiting,
+  ios,
+} from '@/components/tasks/parts';
 import { useNow } from '@/hooks/use-now';
 import { PLACES, placeOf } from '@/live/inbox';
 import {
@@ -55,6 +64,20 @@ const TEXT = INSET - 2 + MARK + GAP;
 // An open agent's rail runs from just under its mark to the middle of its last line.
 const RAIL_TOP = 30;
 const RAIL_FOOT = 18;
+
+// Steps before hex has answered with the task: its bar and back, over the spinner.
+export function StepsLoading({ failed }: { failed: boolean }) {
+  return (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    >
+      <Header title="Steps" subtitle=" " />
+      <Waiting failed={failed} />
+    </Column>
+  );
+}
 
 export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
   const working = task.state === 'working';

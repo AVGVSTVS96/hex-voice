@@ -236,6 +236,28 @@ export function Loading({ width }: { width: number }) {
   );
 }
 
+// A page's body until hex answers it: the system's spinner, or, while hex can't be reached, that it's
+// trying again, which it does on its own.
+export function Waiting({ failed }: { failed: boolean }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={0}
+      modifiers={[padding({ top: 48, bottom: 48 }), frame({ maxWidth: Infinity })]}
+    >
+      {failed ? (
+        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+          {UNREACHED}
+        </Text>
+      ) : (
+        <ProgressView modifiers={[accessibilityLabel('Loading')]} />
+      )}
+    </Row>
+  );
+}
+
+export const UNREACHED = 'Can’t reach hex. Trying again…';
+
 // What you did here that didn't go through, and why, quietly where you did it.
 export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
   return (

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import * as z from 'zod/mini';
 
 import { hex } from '@/hex';
 import { useKept } from '@/hooks/use-kept';
-import { useWatch } from '@/hooks/use-watch';
-import { TaskCounts, TaskRow, type TaskId, type TaskOrPage } from '@/live/tasks';
+import { useAnswer, useWatch } from '@/hooks/use-watch';
+import { TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
 
 // What the Tasks button shows: how many things are yours and how many threads are working. hex
 // answers only when one of the counts moves, so this costs nothing while agents take steps.
@@ -33,23 +33,11 @@ export function useTasks(open: boolean) {
 // One thread in full, fetched again whenever the list moves: its task while it's on the board
 // (what it needs, what it did lately), else the page of one that's left it.
 export function useTaskOrPage(id: TaskId | null, version: number | undefined) {
-  const [found, setFound] = useState<TaskOrPage>();
-  useEffect(() => {
-    if (!id) return;
-    let current = true;
-    hex.tasks.get(id).then(
-      (fresh) => current && setFound(fresh),
-      () => {},
-    );
-    return () => {
-      current = false;
-    };
-  }, [id, version]);
-  return found?.id === id ? found : undefined;
+  return useAnswer(id, version, hex.tasks.get);
 }
 
 // A task on the board in full; a thread that's left it has no steps or agents to show.
 export function useTask(id: TaskId | null, version: number | undefined) {
-  const found = useTaskOrPage(id, version);
-  return found?.kind === 'task' ? found : undefined;
+  const { answer, failed } = useTaskOrPage(id, version);
+  return { task: answer?.kind === 'task' ? answer : undefined, failed };
 }

@@ -20,7 +20,16 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField, type Pages, type Spot } from '@/components/tasks/pages';
-import { Empty, Faded, Loading, asks, ios, listRow, type Feel } from '@/components/tasks/parts';
+import {
+  Empty,
+  Faded,
+  Loading,
+  UNREACHED,
+  asks,
+  ios,
+  listRow,
+  type Feel,
+} from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -282,7 +291,7 @@ export function ListPage({
             <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
           ) : null}
           {unreachable ? (
-            <Empty text="Can’t reach hex. Trying again…" width={width} />
+            <Empty text={UNREACHED} width={width} />
           ) : !loaded ? (
             <Loading width={width} />
           ) : null}

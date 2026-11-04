@@ -56,3 +56,22 @@ const onAppState = (change: () => void) => {
 export function useActive() {
   return useSyncExternalStore(onAppState, () => AppState.currentState === 'active');
 }
+
+// One answer from hex for `key`, asked again when `key` or `fresh` changes and every RETRY while hex
+// can't be reached. The last answer for the same key stays until a newer one comes.
+export function useAnswer<K extends string, T>(
+  key: K | null,
+  fresh: unknown,
+  ask: (key: K) => Promise<T>,
+) {
+  const [got, setGot] = useState<{ key: K; answer: T }>();
+  const watching = useWatch<string, { version?: undefined; got?: { key: K; answer: T } }>(
+    key === null ? null : `${key} ${String(fresh)}`,
+    async () => (key === null ? {} : { got: { key, answer: await ask(key) } }),
+    (answer) => {
+      if (answer.got) setGot(answer.got);
+    },
+  );
+  const answer = got && got.key === key ? got.answer : undefined;
+  return { answer, failed: watching === 'offline' && answer === undefined };
+}

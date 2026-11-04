@@ -4,7 +4,7 @@ import { hex } from '@/hex';
 import { keepDraft, sentDraft } from '@/hooks/use-draft';
 import { useFailures } from '@/hooks/use-failures';
 import { useKept } from '@/hooks/use-kept';
-import { useWatch } from '@/hooks/use-watch';
+import { useAnswer, useWatch } from '@/hooks/use-watch';
 import {
   AskList,
   NOT_NEEDED,
@@ -14,7 +14,6 @@ import {
   type Ask,
   type AskId,
   type AskOption,
-  type Check,
   type Sent,
 } from '@/live/asks';
 
@@ -123,17 +122,6 @@ export function useAsks(open: boolean) {
 
 // The last check in full, fetched when its page opens and again whenever a new one lands.
 export function useCheck(at: string | undefined) {
-  const [check, setCheck] = useState<Check>();
-  useEffect(() => {
-    if (!at) return;
-    let current = true;
-    hex.asks.check().then(
-      (fresh) => current && setCheck(fresh),
-      () => {},
-    );
-    return () => {
-      current = false;
-    };
-  }, [at]);
-  return check?.at === at ? check : undefined;
+  const { answer, failed } = useAnswer(at ?? null, undefined, () => hex.asks.check());
+  return { check: answer, failed };
 }
