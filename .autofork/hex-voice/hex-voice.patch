@@ -99869,10 +99869,10 @@ index 0000000000000000000000000000000000000000..4c9dfa59b9fc875043b01ae7358efcbd
 +}
 diff --git a/src/components/tasks/last-check.tsx b/src/components/tasks/last-check.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..175dd2b16e679d4a25176e32aba268a87364525e
+index 0000000000000000000000000000000000000000..2d821bdc2d6b77c0653549e9ffb95c648d57bb41
 --- /dev/null
 +++ b/src/components/tasks/last-check.tsx
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,143 @@
 +import { Column, Row, ScrollView, Text } from '@expo/ui';
 +import {
 +  background,
@@ -99885,12 +99885,13 @@ index 0000000000000000000000000000000000000000..175dd2b16e679d4a25176e32aba268a8
 +
 +import { Header } from '@/components/tasks/bar';
 +import { Mark } from '@/components/tasks/mark';
-+import { Faded, GAP, INSET, SectionHead, Sections } from '@/components/tasks/parts';
++import { Faded, GAP, INSET, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
 +import type { Check, CheckNote } from '@/live/asks';
 +import { timeOfDay } from '@/live/calls';
++import type { Answered } from '@/hooks/use-watch';
 +import { radius, theme } from '@/theme';
 +
-+export function LastCheck({ check }: { check?: Check }) {
++export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
 +  return (
 +    <Column
 +      alignment="center"
@@ -99928,7 +99929,9 @@ index 0000000000000000000000000000000000000000..175dd2b16e679d4a25176e32aba268a8
 +                ) : null}
 +              </Sections>
 +            </Column>
-+          ) : null}
++          ) : (
++            <Waiting {...answered} gone="This check isn’t there any more." />
++          )}
 +        </ScrollView>
 +      </Faded>
 +    </Column>
@@ -100217,10 +100220,10 @@ index 0000000000000000000000000000000000000000..c88201b53ba8721588c15ad889d765fb
 +}
 diff --git a/src/components/tasks/list.tsx b/src/components/tasks/list.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..9d1576d3679f1feb02d2ff35e21ea112c615bdbc
+index 0000000000000000000000000000000000000000..8742dc360e1512f99f4d3fc3dab75c39413089b5
 --- /dev/null
 +++ b/src/components/tasks/list.tsx
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,349 @@
 +import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 +import { List } from '@expo/ui/swift-ui';
 +import {
@@ -100243,7 +100246,16 @@ index 0000000000000000000000000000000000000000..9d1576d3679f1feb02d2ff35e21ea112
 +import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 +import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 +import { useField, type Pages, type Spot } from '@/components/tasks/pages';
-+import { Empty, Faded, Loading, asks, ios, listRow, type Feel } from '@/components/tasks/parts';
++import {
++  Empty,
++  Faded,
++  Loading,
++  UNREACHED,
++  asks,
++  ios,
++  listRow,
++  type Feel,
++} from '@/components/tasks/parts';
 +import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 +import type { TasksAt } from '@/components/tasks/tasks-view';
 +import type { useAsks } from '@/hooks/use-asks';
@@ -100505,7 +100517,7 @@ index 0000000000000000000000000000000000000000..9d1576d3679f1feb02d2ff35e21ea112
 +            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
 +          ) : null}
 +          {unreachable ? (
-+            <Empty text="Can’t reach hex. Trying again…" width={width} />
++            <Empty text={UNREACHED} width={width} />
 +          ) : !loaded ? (
 +            <Loading width={width} />
 +          ) : null}
@@ -100894,10 +100906,10 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +}
 diff --git a/src/components/tasks/parts.tsx b/src/components/tasks/parts.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..99ccc66859a5c814840ecab23d077be39e34afba
+index 0000000000000000000000000000000000000000..16c5b1562a372927a642c1d988f1389171fab0c3
 --- /dev/null
 +++ b/src/components/tasks/parts.tsx
-@@ -0,0 +1,253 @@
+@@ -0,0 +1,286 @@
 +import { Column, Icon, Row, Spacer, Text } from '@expo/ui';
 +import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -100916,6 +100928,7 @@ index 0000000000000000000000000000000000000000..99ccc66859a5c814840ecab23d077be3
 +import { Children, isValidElement, type ReactNode } from 'react';
 +import { PixelRatio } from 'react-native';
 +
++import type { Answered } from '@/hooks/use-watch';
 +import { theme } from '@/theme';
 +
 +export const ios = process.env.EXPO_OS === 'ios';
@@ -101135,6 +101148,38 @@ index 0000000000000000000000000000000000000000..99ccc66859a5c814840ecab23d077be3
 +    </Row>
 +  );
 +}
++
++// A page's body until hex answers it: the system's spinner; while hex can't be reached, that it's
++// trying again, which it does on its own; and once hex says no, why, `gone` when there's no such thing.
++export function Waiting({ failed, refused, gone }: Answered & { gone: string }) {
++  const why = refused
++    ? refused.status === 404
++      ? gone
++      : refused.message
++    : failed
++      ? UNREACHED
++      : null;
++  return (
++    <Row
++      alignment="center"
++      spacing={0}
++      modifiers={[
++        padding({ top: 48, bottom: 48, leading: INSET, trailing: INSET }),
++        frame({ maxWidth: Infinity }),
++      ]}
++    >
++      {why ? (
++        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
++          {why}
++        </Text>
++      ) : (
++        <ProgressView modifiers={[accessibilityLabel('Loading')]} />
++      )}
++    </Row>
++  );
++}
++
++export const UNREACHED = 'Can’t reach hex. Trying again…';
 +
 +// What you did here that didn't go through, and why, quietly where you did it.
 +export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
@@ -102604,10 +102649,10 @@ index 0000000000000000000000000000000000000000..e939a39141d6916b8e46b53db8562aae
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..10cebf6c5140333dc80c3986de56f3737cfabd7b
+index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca633d78ddf6
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,492 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -102643,7 +102688,7 @@ index 0000000000000000000000000000000000000000..10cebf6c5140333dc80c3986de56f373
 +import { EntryRow } from '@/components/tasks/rows';
 +import { Asked, Detail } from '@/components/tasks/task-page';
 +import { Messages, ThreadPage } from '@/components/tasks/thread';
-+import { Trace } from '@/components/tasks/trace';
++import { StepsLoading, Trace } from '@/components/tasks/trace';
 +import { useAsks, useCheck } from '@/hooks/use-asks';
 +import { useChat } from '@/hooks/use-chat';
 +import { useTask, useTasks } from '@/hooks/use-tasks';
@@ -102700,9 +102745,9 @@ index 0000000000000000000000000000000000000000..10cebf6c5140333dc80c3986de56f373
 +  const [missing, setMissing] = useState<Set<Place>>(new Set());
 +  const [typing, setTyping] = useState<Level | null>(null);
 +  // A project with no thread to show has a page of its own, with nothing to fetch.
-+  const task = useTask(taskIn(pages.task), version);
++  const { task } = useTask(taskIn(pages.task), version);
 +  const traced = useTask(pages.stepsOf, version);
-+  const check = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
++  const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
 +  const touch = feel(haptics);
 +  const { tick, tap } = touch;
 +  const entries = useMemo(
@@ -102952,9 +102997,13 @@ index 0000000000000000000000000000000000000000..10cebf6c5140333dc80c3986de56f373
 +    ),
 +    page(
 +      'steps',
-+      traced ? <Trace task={traced} onOpen={(link) => openLink(link, 't3')} /> : <Spacer />,
++      traced.task ? (
++        <Trace task={traced.task} onOpen={(link) => openLink(link, 't3')} />
++      ) : (
++        <StepsLoading {...traced} />
++      ),
 +    ),
-+    page('check', <LastCheck check={check} />),
++    page('check', <LastCheck {...checked} />),
 +  ];
 +
 +  // A drag down any of Tasks' scrolling content pulls the keyboard down with it, as iOS apps do.
@@ -103488,10 +103537,10 @@ index 0000000000000000000000000000000000000000..d33540abb08bc5c3b9ce871346c189d7
 +}
 diff --git a/src/components/tasks/trace.tsx b/src/components/tasks/trace.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..a6a6c3c7fd69668bb62504ff8e4c4cd84e82c8e5
+index 0000000000000000000000000000000000000000..06a4c6217784d03fdef2d0d1ad99b8694a07dbc6
 --- /dev/null
 +++ b/src/components/tasks/trace.tsx
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,410 @@
 +import { Column, Icon, Row, ScrollView, Spacer, Text } from '@expo/ui';
 +import { Background, Rectangle } from '@expo/ui/swift-ui';
 +import {
@@ -103511,7 +103560,16 @@ index 0000000000000000000000000000000000000000..a6a6c3c7fd69668bb62504ff8e4c4cd8
 +
 +import { Header } from '@/components/tasks/bar';
 +import { Mark } from '@/components/tasks/mark';
-+import { Faded, GAP, INSET, MARK, SectionHead, Sections, ios } from '@/components/tasks/parts';
++import {
++  Faded,
++  GAP,
++  INSET,
++  MARK,
++  SectionHead,
++  Sections,
++  Waiting,
++  ios,
++} from '@/components/tasks/parts';
 +import { useNow } from '@/hooks/use-now';
 +import { PLACES, placeOf } from '@/live/inbox';
 +import {
@@ -103529,6 +103587,7 @@ index 0000000000000000000000000000000000000000..a6a6c3c7fd69668bb62504ff8e4c4cd8
 +  type TaskAgent,
 +  type TaskStep,
 +} from '@/live/tasks';
++import type { Answered } from '@/hooks/use-watch';
 +import { theme } from '@/theme';
 +
 +// Each kind of step's icon, as shadcn's Trace marks what a line did.
@@ -103549,6 +103608,20 @@ index 0000000000000000000000000000000000000000..a6a6c3c7fd69668bb62504ff8e4c4cd8
 +// An open agent's rail runs from just under its mark to the middle of its last line.
 +const RAIL_TOP = 30;
 +const RAIL_FOOT = 18;
++
++// Steps before hex has answered with the task: its bar and back, over the spinner.
++export function StepsLoading(answered: Answered) {
++  return (
++    <Column
++      alignment="center"
++      spacing={0}
++      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
++    >
++      <Header title="Steps" subtitle=" " />
++      <Waiting {...answered} gone="These steps aren’t there any more." />
++    </Column>
++  );
++}
 +
 +export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
 +  const working = task.state === 'working';
@@ -105553,14 +105626,21 @@ index 0000000000000000000000000000000000000000..21373abe167b5fb6ffb6215d2f161311
 +}
 diff --git a/src/hex/client.ts b/src/hex/client.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1b24c8c3f9021955a3d441fa7ec166f85553f4e3
+index 0000000000000000000000000000000000000000..9da0d0060150f026a941e1ad83cc9631dbb51cdb
 --- /dev/null
 +++ b/src/hex/client.ts
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,111 @@
 +import * as z from 'zod/mini';
 +
 +// hex heard the request and said no, so sending the same thing again gets the same answer.
-+export class Refused extends Error {}
++export class Refused extends Error {
++  constructor(
++    message: string,
++    readonly status: number,
++  ) {
++    super(message);
++  }
++}
 +
 +export type Config = { url?: string; token?: string; fetch: typeof globalThis.fetch };
 +export type Client = ReturnType<typeof createClient>;
@@ -105659,7 +105739,7 @@ index 0000000000000000000000000000000000000000..1b24c8c3f9021955a3d441fa7ec166f8
 +  } catch {}
 +  message = message.slice(0, 300) || `hex answered HTTP ${status}.`;
 +  message = message[0]!.toUpperCase() + message.slice(1);
-+  return status < 500 ? new Refused(message) : new Error(message);
++  return status < 500 ? new Refused(message, status) : new Error(message);
 +}
 diff --git a/src/hex/index.ts b/src/hex/index.ts
 new file mode 100644
@@ -105767,17 +105847,17 @@ index 0000000000000000000000000000000000000000..62a4faf38a0627b9ef5b9ac58750ed57
 +}
 diff --git a/src/hooks/use-asks.ts b/src/hooks/use-asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..ab280aa84a3108363f783fe3eff7fc0509189e24
+index 0000000000000000000000000000000000000000..3b3a61f97596f4afe7a644e2dc46d6f01d16842d
 --- /dev/null
 +++ b/src/hooks/use-asks.ts
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,127 @@
 +import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 +
 +import { hex } from '@/hex';
 +import { keepDraft, sentDraft } from '@/hooks/use-draft';
 +import { useFailures } from '@/hooks/use-failures';
 +import { useKept } from '@/hooks/use-kept';
-+import { useWatch } from '@/hooks/use-watch';
++import { useAnswer, useWatch } from '@/hooks/use-watch';
 +import {
 +  AskList,
 +  NOT_NEEDED,
@@ -105787,7 +105867,6 @@ index 0000000000000000000000000000000000000000..ab280aa84a3108363f783fe3eff7fc05
 +  type Ask,
 +  type AskId,
 +  type AskOption,
-+  type Check,
 +  type Sent,
 +} from '@/live/asks';
 +
@@ -105896,19 +105975,8 @@ index 0000000000000000000000000000000000000000..ab280aa84a3108363f783fe3eff7fc05
 +
 +// The last check in full, fetched when its page opens and again whenever a new one lands.
 +export function useCheck(at: string | undefined) {
-+  const [check, setCheck] = useState<Check>();
-+  useEffect(() => {
-+    if (!at) return;
-+    let current = true;
-+    hex.asks.check().then(
-+      (fresh) => current && setCheck(fresh),
-+      () => {},
-+    );
-+    return () => {
-+      current = false;
-+    };
-+  }, [at]);
-+  return check?.at === at ? check : undefined;
++  const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
++  return { check: answer, ...answered };
 +}
 diff --git a/src/hooks/use-call-activity.ts b/src/hooks/use-call-activity.ts
 new file mode 100644
@@ -106464,17 +106532,17 @@ index 1a0b36e0593546770ec9c52bab29bf75192805d3..f84dcd98a5704e2c70bc0429e44287e0
      [key, isValid],
 diff --git a/src/hooks/use-tasks.ts b/src/hooks/use-tasks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..2b8e68bc46a7c754074102ddef6ef9d9bccbd431
+index 0000000000000000000000000000000000000000..c41ad37aeb39be7e035814c32d75b6ef53425910
 --- /dev/null
 +++ b/src/hooks/use-tasks.ts
-@@ -0,0 +1,55 @@
-+import { useEffect, useState } from 'react';
+@@ -0,0 +1,43 @@
++import { useState } from 'react';
 +import * as z from 'zod/mini';
 +
 +import { hex } from '@/hex';
 +import { useKept } from '@/hooks/use-kept';
-+import { useWatch } from '@/hooks/use-watch';
-+import { TaskCounts, TaskRow, type TaskId, type TaskOrPage } from '@/live/tasks';
++import { useAnswer, useWatch } from '@/hooks/use-watch';
++import { TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
 +
 +// What the Tasks button shows: how many things are yours and how many threads are working. hex
 +// answers only when one of the counts moves, so this costs nothing while agents take steps.
@@ -106503,25 +106571,13 @@ index 0000000000000000000000000000000000000000..2b8e68bc46a7c754074102ddef6ef9d9
 +// One thread in full, fetched again whenever the list moves: its task while it's on the board
 +// (what it needs, what it did lately), else the page of one that's left it.
 +export function useTaskOrPage(id: TaskId | null, version: number | undefined) {
-+  const [found, setFound] = useState<TaskOrPage>();
-+  useEffect(() => {
-+    if (!id) return;
-+    let current = true;
-+    hex.tasks.get(id).then(
-+      (fresh) => current && setFound(fresh),
-+      () => {},
-+    );
-+    return () => {
-+      current = false;
-+    };
-+  }, [id, version]);
-+  return found?.id === id ? found : undefined;
++  return useAnswer(id, version, hex.tasks.get);
 +}
 +
 +// A task on the board in full; a thread that's left it has no steps or agents to show.
 +export function useTask(id: TaskId | null, version: number | undefined) {
-+  const found = useTaskOrPage(id, version);
-+  return found?.kind === 'task' ? found : undefined;
++  const { answer, ...answered } = useTaskOrPage(id, version);
++  return { task: answer?.kind === 'task' ? answer : undefined, ...answered };
 +}
 diff --git a/src/hooks/use-voice-preview.ts b/src/hooks/use-voice-preview.ts
 new file mode 100644
@@ -106629,12 +106685,14 @@ index 0000000000000000000000000000000000000000..13b33fe41c77e0d23b55b36d78d9ee19
 +}
 diff --git a/src/hooks/use-watch.ts b/src/hooks/use-watch.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..13fa3fd3a9e1471761e065a0a767e713a5820688
+index 0000000000000000000000000000000000000000..c6172b8b9d8b4f061e58870abf7d5649878fd0ba
 --- /dev/null
 +++ b/src/hooks/use-watch.ts
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,94 @@
 +import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 +import { AppState } from 'react-native';
++
++import { Refused } from '@/hex/client';
 +
 +const RETRY = 2000;
 +
@@ -106691,6 +106749,40 @@ index 0000000000000000000000000000000000000000..13fa3fd3a9e1471761e065a0a767e713
 +export function useActive() {
 +  return useSyncExternalStore(onAppState, () => AppState.currentState === 'active');
 +}
++
++// One answer from hex for `key`, asked again when `key` or `fresh` changes and every RETRY while hex
++// can't be reached. The last answer for the same key stays until a newer one comes. hex refusing it
++// ends the asking, since asking again gets the same answer.
++export function useAnswer<K extends string, T>(
++  key: K | null,
++  fresh: unknown,
++  ask: (key: K) => Promise<T>,
++) {
++  const [got, setGot] = useState<{ key: K; answer?: T; refused?: Refused }>();
++  const watching = useWatch<string, { version?: undefined; got?: typeof got }>(
++    key === null ? null : `${key} ${String(fresh)}`,
++    async () => {
++      if (key === null) return {};
++      try {
++        return { got: { key, answer: await ask(key) } };
++      } catch (error) {
++        if (error instanceof Refused) return { got: { key, refused: error } };
++        throw error;
++      }
++    },
++    (answer) => {
++      if (answer.got) setGot(answer.got);
++    },
++  );
++  const mine = got?.key === key ? got : undefined;
++  return {
++    answer: mine?.answer,
++    refused: mine?.refused,
++    failed: watching === 'offline' && !mine,
++  };
++}
++
++export type Answered = Omit<ReturnType<typeof useAnswer>, 'answer'>;
 diff --git a/src/live/access-token.ts b/src/live/access-token.ts
 deleted file mode 100644
 index 8cffdba40c85b0ec443689cd4d1af9e45e1b1edd..0000000000000000000000000000000000000000
@@ -115882,10 +115974,10 @@ index 0000000000000000000000000000000000000000..a071ce8a0feb8dde8ab18b0165366446
 +}
 diff --git a/tests/hex.test.ts b/tests/hex.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5f9ba4fc38f089cbb7baaea3aba3ae267d9fc461
+index 0000000000000000000000000000000000000000..a7ffebedb5fa0f7d0a96c481b7bac94057bb0572
 --- /dev/null
 +++ b/tests/hex.test.ts
-@@ -0,0 +1,221 @@
+@@ -0,0 +1,231 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -115988,11 +116080,21 @@ index 0000000000000000000000000000000000000000..5f9ba4fc38f089cbb7baaea3aba3ae26
 +  await assert.rejects(
 +    answer(new Response('that question is already answered or settled', { status: 409 })),
 +    (error) =>
-+      error instanceof Refused && error.message === 'That question is already answered or settled',
++      error instanceof Refused &&
++      error.status === 409 &&
++      error.message === 'That question is already answered or settled',
 +  );
 +  await assert.rejects(
 +    answer(new Response('hub is down', { status: 502 })),
 +    (error) => !(error instanceof Refused) && (error as Error).message === 'Hub is down',
++  );
++});
++
++test("a thread hex has no steps for is refused as not there, so it isn't asked for again", async () => {
++  const hex = hexAt(async () => new Response('no such task', { status: 404 }));
++  await assert.rejects(
++    hex.tasks.get(thread),
++    (error) => error instanceof Refused && error.status === 404,
 +  );
 +});
 +
