@@ -482,7 +482,8 @@ function CallScreen({ pose, size: screen, opening }: { pose: Pose; size: Size; o
   };
   const leaveCall = () => setShowing({ pulled: false, call: null });
 
-  const pane = useSharedValue(0);
+  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
+  const pane = useSharedValue(panes && tasksOpen ? 1 : 0);
   const paneWidth = inbox ? inbox.width : side.width;
   const paneW = useSharedValue(paneWidth);
   const wide = useSharedValue(inbox ? 1 : 0);
