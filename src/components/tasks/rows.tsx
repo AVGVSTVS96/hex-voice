@@ -422,8 +422,8 @@ const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   quiet: 'quiet',
 };
 
-// A project as one row in the list: its name, its week on a lane, how many it has here, then the
-// newest thing in it. Opens its page.
+// A project as one row in the list: its name, its week on a lane, how many it has in the stage
+// shown or that a search found, then the newest of them. Opens its page.
 export function ProjectRow({
   topic,
   stage,
@@ -434,7 +434,8 @@ export function ProjectRow({
   onOpen,
 }: {
   topic: Topic;
-  stage: Stage;
+  // Searching, it counts what was found, in every stage.
+  stage?: Stage;
   tracks: Turn[][];
   now: number;
   width: number;
@@ -445,7 +446,7 @@ export function ProjectRow({
   if (!newest) return null;
   const count = topic.entries.length;
   const headline = headlineOf(newest);
-  const counted = `${count} ${stage === 'needs' ? 'waiting' : STAGE_WORDS[stage]}`;
+  const counted = `${count} ${!stage ? 'found' : stage === 'needs' ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
     <Column
       alignment="start"

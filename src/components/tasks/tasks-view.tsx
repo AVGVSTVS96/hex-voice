@@ -232,9 +232,6 @@ export function Tasks({
       current={current}
       yours={yours}
       feel={touch}
-      onAnswer={answer}
-      onUndo={undo}
-      onOpenTile={openTile}
       onGoThrough={onGoThrough}
     />
   );
