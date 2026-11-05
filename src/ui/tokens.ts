@@ -210,6 +210,23 @@ export const metrics = {
   },
 } as const;
 
+// One corner per kind of shape, the same in every pose and screen. Where something sits never
+// changes how it's drawn.
+export const radius = {
+  // The call, rounding off against Calls or Tasks beside it.
+  card: 44,
+  // A grouped panel: settings, an ask on the call, the last check.
+  group: 26,
+  // What you said.
+  bubble: 20,
+  // A row or button you press, and a field you type in.
+  control: 14,
+  // A thread's composer, as round as a capsule while it holds one line.
+  field: metrics.field / 2,
+  // A tag or a block of code inside something else.
+  inner: 12,
+} as const;
+
 export type ControlsSize = keyof typeof metrics.controls;
 export type ToolbarGaps = 'regular' | 'compact';
 
