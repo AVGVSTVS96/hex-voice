@@ -343,7 +343,7 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
       <Spacer flexible />
       <Icon name="waveform" size={16} color={theme.onProminent} />
       <Text variant="headline" tone="onProminent">
-        {`Go through ${asks(count)} with hex`}
+        Go through them with hex
       </Text>
       <Spacer flexible />
     </Row>
