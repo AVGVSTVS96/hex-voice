@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, Rectangle } from '@expo/ui/swift-ui';
+import { HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
 import {
+  accessibilityIdentifier,
   accessibilityLabel,
   animation,
   background,
@@ -10,6 +11,7 @@ import {
   frame,
   lineLimit,
   monospacedDigit,
+  onTapGesture,
   padding,
   shapes,
   strokeBorder,
@@ -190,14 +192,14 @@ function AskCard({
           frame({ maxWidth: Infinity }),
         ]}
       >
-        <Column
-          alignment="start"
+        <VStack
+          alignment="leading"
           spacing={space[0.75]}
-          onPress={() => setOpen(!open)}
-          testID="ask-card"
           modifiers={[
             frame({ maxWidth: Infinity, alignment: 'leading' }),
             contentShape(shapes.rectangle()),
+            onTapGesture(() => setOpen(!open)),
+            accessibilityIdentifier('ask-card'),
             accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
           ]}
         >
@@ -224,7 +226,7 @@ function AskCard({
               {ask.context}
             </Text>
           ) : null}
-        </Column>
+        </VStack>
         {open ? (
           <Row
             alignment="center"
