@@ -54,6 +54,7 @@ Keep the architecture and code clean, and bring each part you touch a step close
 Layout breaks here when JS and SwiftUI both place the same view, so where iOS already places something, let it:
 
 - Every Host is `@/ui/host`'s (lint holds it). It keeps clear of nothing unless it holds a field (`avoids="keyboard"`, Tasks' pages) or presents a sheet (`avoids="system"`), so the keyboard never moves a view it covers.
+- Every React Native ScrollView is `@/ui/scroll`'s (lint holds it), so a drag down any scrolling content lets the keyboard go, as Tasks' SwiftUI scroll views do (`scrollDismissesKeyboard`).
 - A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
 - Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
 - Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `src/ui/tokens.ts` (`radius`, `metrics`, `space`) and `theme.ts`'s `circle` and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
