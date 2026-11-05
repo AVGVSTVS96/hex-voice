@@ -360,10 +360,10 @@ index 0000000000000000000000000000000000000000..6da61de80d992a628f1aa79d67fc7d99
 +  updates: { url: process.env.HEX_UPDATES_URL },
 +});
 diff --git a/app.json b/app.json
-index 4e97a11f64e8b2321398df158738ff3257aa74ad..2e6e34cec00de387af57593ffb5b14daede271fe 100644
+index 4e97a11f64e8b2321398df158738ff3257aa74ad..26a18605d06c19c393872c6fd46de58a041a9008 100644
 --- a/app.json
 +++ b/app.json
-@@ -1,26 +1,27 @@
+@@ -1,26 +1,28 @@
  {
    "expo": {
 -    "name": "Live",
@@ -387,6 +387,7 @@ index 4e97a11f64e8b2321398df158738ff3257aa74ad..2e6e34cec00de387af57593ffb5b14da
 -      "supportsTablet": false,
 +      "bundleIdentifier": "com.shahidy.hexvoice",
 +      "supportsTablet": true,
++      "deploymentTarget": "18.0",
        "infoPlist": {
 -        "NSMicrophoneUsageDescription": "Live uses your microphone for a conversation with GPT-Live 1.",
 +        "NSMicrophoneUsageDescription": "hex listens through your microphone while you talk with it.",
@@ -404,7 +405,7 @@ index 4e97a11f64e8b2321398df158738ff3257aa74ad..2e6e34cec00de387af57593ffb5b14da
        "permissions": [
          "RECORD_AUDIO",
          "MODIFY_AUDIO_SETTINGS",
-@@ -31,26 +32,31 @@
+@@ -31,26 +33,31 @@
        ],
        "blockedPermissions": ["android.permission.CAMERA"]
      },
@@ -88552,6 +88553,430 @@ index 0000000000000000000000000000000000000000..21e3948ec57b9010c85d8a046dc99788
 +    observer = nil
 +  }
 +}
+diff --git a/modules/markdown/expo-module.config.json b/modules/markdown/expo-module.config.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..d86d5488ce5997f84b2c9faf2c522cfd14b1889d
+--- /dev/null
++++ b/modules/markdown/expo-module.config.json
+@@ -0,0 +1,6 @@
++{
++  "platforms": ["apple"],
++  "apple": {
++    "modules": ["MarkdownModule"]
++  }
++}
+diff --git a/modules/markdown/index.tsx b/modules/markdown/index.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..96d5ac83fd4b44529f0240dd62806e2189c0f0db
+--- /dev/null
++++ b/modules/markdown/index.tsx
+@@ -0,0 +1,60 @@
++import { requireNativeView } from 'expo';
++import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
++import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
++import { processColor, type ColorValue, type NativeSyntheticEvent } from 'react-native';
++
++// Markdown as SwiftUI, drawn by Textual, so it sits in the tree Expo UI builds and takes its modifiers.
++// The block form lays out headings, lists, quotes, code and tables. `inline` is one run of words
++// for a preview or a line, folded to `lines`. The look comes from the caller: sizes in points, and
++// the colors of its words, the quiet ones (list marks, quotes), a quote's bar, a code block's
++// ground and links.
++export type MarkdownProps = CommonViewModifierProps & {
++  markdown: string;
++  inline?: boolean;
++  lines?: number;
++  selectable?: boolean;
++  size: number;
++  leading: number;
++  gap: number;
++  radius: number;
++  color: ColorValue;
++  secondary: ColorValue;
++  edge: ColorValue;
++  surface: ColorValue;
++  accent: ColorValue;
++  onLink: (url: string) => void;
++};
++
++type NativeProps = Omit<MarkdownProps, keyof Colors | 'onLink'> & {
++  [Color in keyof Colors]: ReturnType<typeof processColor>;
++} & { onLink: (event: NativeSyntheticEvent<{ url: string }>) => void };
++type Colors = Pick<MarkdownProps, 'color' | 'secondary' | 'edge' | 'surface' | 'accent'>;
++
++const Native =
++  process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Markdown', 'MarkdownView') : null;
++
++export function MarkdownView({
++  modifiers,
++  color,
++  secondary,
++  edge,
++  surface,
++  accent,
++  onLink,
++  ...rest
++}: MarkdownProps) {
++  if (!Native) return null;
++  return (
++    <Native
++      modifiers={modifiers}
++      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
++      color={processColor(color)}
++      secondary={processColor(secondary)}
++      edge={processColor(edge)}
++      surface={processColor(surface)}
++      accent={processColor(accent)}
++      onLink={({ nativeEvent }) => onLink(nativeEvent.url)}
++      {...rest}
++    />
++  );
++}
+diff --git a/modules/markdown/ios/Markdown.podspec b/modules/markdown/ios/Markdown.podspec
+new file mode 100644
+index 0000000000000000000000000000000000000000..d6de2aa1be57c88afdf6fab1e0782fbb15600250
+--- /dev/null
++++ b/modules/markdown/ios/Markdown.podspec
+@@ -0,0 +1,20 @@
++Pod::Spec.new do |s|
++  s.name           = 'Markdown'
++  s.version        = '1.0.0'
++  s.summary        = 'Markdown drawn by Textual inside the SwiftUI tree Expo UI builds'
++  s.author         = ''
++  s.homepage       = 'https://github.com/AVGVSTVS96/hex-voice'
++  s.license        = 'MIT'
++  s.platforms      = { :ios => '18.0' }
++  s.source         = { git: '' }
++  s.static_framework = true
++  s.dependency 'ExpoModulesCore'
++  s.dependency 'ExpoUI'
++  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
++  s.source_files = '**/*.swift'
++  spm_dependency(s,
++    url: 'https://github.com/gonzalezreal/textual',
++    requirement: { kind: 'exactVersion', version: '0.5.0' },
++    products: ['Textual']
++  )
++end
+diff --git a/modules/markdown/ios/MarkdownLook.swift b/modules/markdown/ios/MarkdownLook.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..c81f05cecb0c3652635acce12f85991ed92bca5d
+--- /dev/null
++++ b/modules/markdown/ios/MarkdownLook.swift
+@@ -0,0 +1,136 @@
++import SwiftUI
++import Textual
++
++// How the app draws markdown, from its own colors, sizes and corners rather than Textual's:
++// headings as semibold body words, list marks and quotes in the secondary tone, code on the
++// surface with the inner corner, links in the accent.
++struct Look {
++  var size: CGFloat
++  var leading: CGFloat
++  var gap: CGFloat
++  var radius: CGFloat
++  var color: Color
++  var secondary: Color
++  var edge: Color
++  var surface: Color
++  var accent: Color
++}
++
++extension Look: StructuredText.Style {
++  var inlineStyle: InlineStyle {
++    InlineStyle()
++      .code(.monospaced, .fontScale(0.94))
++      .strong(.fontWeight(.semibold))
++      .link(.foregroundColor(accent))
++  }
++
++  var headingStyle: Heading { Heading(look: self) }
++  var paragraphStyle: Paragraph { Paragraph(look: self) }
++  var blockQuoteStyle: Quote { Quote(look: self) }
++  var codeBlockStyle: Code { Code(look: self) }
++  var listItemStyle: Item { Item(look: self) }
++  var unorderedListMarker: Bullet { Bullet(look: self) }
++  var orderedListMarker: Number { Number(look: self) }
++  var tableStyle: StructuredText.DefaultTableStyle { .default }
++  var tableCellStyle: StructuredText.DefaultTableCellStyle { .default }
++  var thematicBreakStyle: StructuredText.DividerThematicBreakStyle { .divider }
++
++  // Blocks sit a gap apart, and a list's items closer than that.
++  fileprivate func spacing(_ level: Int) -> StructuredText.BlockSpacing {
++    .init(top: level == 0 ? gap : gap * 2 / 3)
++  }
++
++  struct Heading: StructuredText.HeadingStyle {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      configuration.label
++        .fontWeight(.semibold)
++        .lineSpacing(look.leading)
++        .textual.blockSpacing(look.spacing(configuration.indentationLevel))
++    }
++  }
++
++  struct Paragraph: StructuredText.ParagraphStyle {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      configuration.label
++        .lineSpacing(look.leading)
++        .textual.blockSpacing(look.spacing(configuration.indentationLevel))
++    }
++  }
++
++  struct Quote: StructuredText.BlockQuoteStyle {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      configuration.label
++        .foregroundStyle(look.secondary)
++        .padding(.leading, 15)
++        .frame(maxWidth: .infinity, alignment: .leading)
++        .overlay(alignment: .leading) {
++          Rectangle().fill(look.edge).frame(width: 3)
++        }
++    }
++  }
++
++  struct Code: StructuredText.CodeBlockStyle {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      Overflow {
++        configuration.label
++          .lineSpacing(3)
++          .textual.fontScale(0.8)
++          .monospaced()
++          .fixedSize(horizontal: false, vertical: true)
++          .padding(.horizontal, 14)
++          .padding(.vertical, 12)
++      }
++      .background(look.surface)
++      .clipShape(RoundedRectangle(cornerRadius: look.radius, style: .continuous))
++      .textual.blockSpacing(look.spacing(configuration.indentationLevel))
++    }
++  }
++
++  struct Item: StructuredText.ListItemStyle {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      HStack(alignment: .firstTextBaseline, spacing: 8) {
++        configuration.marker.foregroundStyle(look.secondary)
++        configuration.block
++      }
++    }
++  }
++
++  struct Bullet: StructuredText.UnorderedListMarker {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      Text("•").frame(minWidth: 14, alignment: .leading)
++    }
++  }
++
++  struct Number: StructuredText.OrderedListMarker {
++    let look: Look
++    func makeBody(configuration: Configuration) -> some View {
++      Text("\(configuration.ordinal).").monospacedDigit().frame(minWidth: 14, alignment: .leading)
++    }
++  }
++}
++
++extension StructuredText.HighlighterTheme {
++  // Code keeps the words' color, its keywords and strings take the accent, its comments the
++  // secondary tone.
++  init(_ look: Look) {
++    let accent = AnyTextProperty(.foregroundColor(look.accent))
++    let quiet = AnyTextProperty(.foregroundColor(look.secondary))
++    let accented: [TokenType] = [
++      .keyword, .builtin, .className, .function, .functionName, .string, .char, .regex,
++      .attributeValue, .tag, .selector, .atrule, .important, .literal, .boolean,
++    ]
++    let muted: [TokenType] = [.comment, .blockComment, .docComment, .prolog, .punctuation, .operator]
++    self.init(
++      foregroundColor: DynamicColor(look.color),
++      backgroundColor: DynamicColor(look.surface),
++      tokenProperties: Dictionary(
++        uniqueKeysWithValues: accented.map { ($0, accent) } + muted.map { ($0, quiet) })
++    )
++  }
++}
+diff --git a/modules/markdown/ios/MarkdownModule.swift b/modules/markdown/ios/MarkdownModule.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..9eae84472be0b573a95b33378e24c6ed21aface4
+--- /dev/null
++++ b/modules/markdown/ios/MarkdownModule.swift
+@@ -0,0 +1,9 @@
++import ExpoModulesCore
++import ExpoUI
++
++public final class MarkdownModule: Module {
++  public func definition() -> ModuleDefinition {
++    Name("Markdown")
++    ExpoUIView(MarkdownView.self)
++  }
++}
+diff --git a/modules/markdown/ios/MarkdownParsers.swift b/modules/markdown/ios/MarkdownParsers.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..8400c8daf222e0c248d64249ae443380887fc648
+--- /dev/null
++++ b/modules/markdown/ios/MarkdownParsers.swift
+@@ -0,0 +1,87 @@
++import Foundation
++import SwiftUI
++import Textual
++
++// hex writes chat: a line break is a break, and Discord's `-# ` lines are small and secondary.
++struct Chat: MarkupParser {
++  let look: Look
++  var breaks = true
++  private static let mark = "-# "
++
++  func attributedString(for input: String) throws -> AttributedString {
++    var document = try AttributedStringMarkdownParser(baseURL: nil).attributedString(for: chat(input))
++    var prefixes: [Range<AttributedString.Index>] = []
++    var small = false
++    var block: PresentationIntent?
++    var lineStart = true
++    for run in document.runs {
++      let intent = run.presentationIntent
++      if intent != block {
++        block = intent
++        lineStart = true
++        small = false
++      }
++      let text = String(document[run.range].characters)
++      if lineStart, text.hasPrefix(Self.mark), !Self.isCode(intent) {
++        small = true
++        let end = document.characters.index(run.range.lowerBound, offsetBy: Self.mark.count)
++        prefixes.append(run.range.lowerBound..<end)
++      }
++      if small {
++        document[run.range].font = .system(size: look.size * 0.8)
++        document[run.range].foregroundColor = look.secondary
++      }
++      lineStart = run.inlinePresentationIntent?.isDisjoint(with: [.lineBreak, .softBreak]) == false
++      if lineStart { small = false }
++    }
++    for prefix in prefixes.reversed() { document.removeSubrange(prefix) }
++    return document
++  }
++
++  fileprivate static func isCode(_ intent: PresentationIntent?) -> Bool {
++    intent?.components.contains { if case .codeBlock = $0.kind { true } else { false } } == true
++  }
++
++  private func chat(_ input: String) -> String {
++    var fenced = false
++    return input.replacingOccurrences(of: "\r\n", with: "\n")
++      .split(separator: "\n", omittingEmptySubsequences: false)
++      .map { line in
++        let line = String(line)
++        if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
++          fenced.toggle()
++          return line
++        }
++        if fenced || line.trimmingCharacters(in: .whitespaces).isEmpty { return line }
++        return breaks ? line + "  " : line
++      }
++      .joined(separator: "\n")
++  }
++}
++
++// A message as one run of words: its blocks joined, list items by a dot, its code left out.
++// Bold, code and links keep their marks.
++struct Run: MarkupParser {
++  let look: Look
++
++  func attributedString(for input: String) throws -> AttributedString {
++    let document = try Chat(look: look, breaks: false).attributedString(for: input)
++    var words = AttributedString()
++    var block: PresentationIntent?
++    for run in document.runs {
++      let intent = run.presentationIntent
++      if Chat.isCode(intent) { continue }
++      if intent != block {
++        if !words.characters.isEmpty {
++          let item = intent?.components.contains { if case .listItem = $0.kind { true } else { false } }
++          words += AttributedString(item == true ? " · " : " ")
++        }
++        block = intent
++      }
++      var piece = AttributedString(document[run.range])
++      piece.presentationIntent = nil
++      words += piece
++    }
++    return words
++  }
++}
+diff --git a/modules/markdown/ios/MarkdownView.swift b/modules/markdown/ios/MarkdownView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..be5d38ebf8dd51f514d7fd7667675bf6906954a2
+--- /dev/null
++++ b/modules/markdown/ios/MarkdownView.swift
+@@ -0,0 +1,64 @@
++import ExpoModulesCore
++import ExpoUI
++import SwiftUI
++import Textual
++
++final class MarkdownProps: UIBaseViewProps {
++  @Field var markdown: String = ""
++  // One run of words, for a preview or a line: blocks flow together and code is left out.
++  @Field var inline: Bool = false
++  @Field var lines: Int?
++  @Field var selectable: Bool = false
++  @Field var size: CGFloat = 17
++  @Field var leading: CGFloat = 5
++  @Field var gap: CGFloat = 12
++  @Field var radius: CGFloat = 12
++  @Field var color: Color = .primary
++  @Field var secondary: Color = .secondary
++  @Field var edge: Color = .gray
++  @Field var surface: Color = .gray
++  @Field var accent: Color = .accentColor
++  var onLink = EventDispatcher()
++
++  var look: Look {
++    Look(
++      size: size, leading: leading, gap: gap, radius: radius,
++      color: color, secondary: secondary, edge: edge, surface: surface, accent: accent)
++  }
++}
++
++struct MarkdownView: ExpoSwiftUI.View {
++  @ObservedObject var props: MarkdownProps
++
++  var body: some View {
++    words
++      .font(.system(size: props.size))
++      .foregroundStyle(props.color)
++      .frame(maxWidth: .infinity, alignment: .leading)
++      .textual.structuredTextStyle(props.look)
++      .textual.highlighterTheme(.init(props.look))
++      .environment(
++        \.openURL,
++        OpenURLAction { url in
++          props.onLink(["url": url.absoluteString])
++          return .handled
++        })
++  }
++
++  @ViewBuilder private var words: some View {
++    if props.inline {
++      InlineText(props.markdown, parser: Run(look: props.look))
++        .lineSpacing(props.leading)
++        .lineLimit(props.lines)
++        .selecting(props.selectable)
++    } else {
++      StructuredText(props.markdown, parser: Chat(look: props.look)).selecting(props.selectable)
++    }
++  }
++}
++
++extension View {
++  @ViewBuilder fileprivate func selecting(_ selectable: Bool) -> some View {
++    if selectable { textual.textSelection(.enabled) } else { self }
++  }
++}
 diff --git a/modules/pose/expo-module.config.json b/modules/pose/expo-module.config.json
 new file mode 100644
 index 0000000000000000000000000000000000000000..9ed579ce73f96ce081c555808290ed2c47c10615
@@ -95836,6 +96261,150 @@ index 0000000000000000000000000000000000000000..033e1072d9eeefb0cd9251cdcdc1bee9
 +    response.writeHead(502).end();
 +  }
 +}).listen(Number(DUO_HEX_PORT), '127.0.0.1');
+diff --git a/scripts/duo-markdown-states b/scripts/duo-markdown-states
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc060b967ec8cac8a9c00a9cef7b4d8e19ded4b4
+--- /dev/null
++++ b/scripts/duo-markdown-states
+@@ -0,0 +1,3 @@
++# Markdown in each place the app draws it, over invented answers: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo shoot <ref> scripts/duo-markdown-states
++# The topic: its pinned post, and its messages as one-line previews with their marks drawn.
++topic-pinned  hexvoice:///?tasks=md
+diff --git a/scripts/duo-markdown-taps b/scripts/duo-markdown-taps
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d938a2668adcfd42f55c3f7a85849cc937fdb80
+--- /dev/null
++++ b/scripts/duo-markdown-taps
+@@ -0,0 +1,18 @@
++# The same answers as scripts/duo-markdown-states, for what needs a tap: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-markdown-taps
++launch hexvoice:///?tasks=md
++wait 3
++shoot topic
++tap ask-card
++wait 2
++shoot ask-open
++tap From markdown
++wait 1
++shoot ask-words
++tap ask-card
++wait 1
++tap Opens its messages
++wait 2
++shoot thread
++scroll
++wait 1
++shoot thread-more
+diff --git a/scripts/duo-markdown.json b/scripts/duo-markdown.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b27581cfc3d9ed33aa3eec52048e824800695bd
+--- /dev/null
++++ b/scripts/duo-markdown.json
+@@ -0,0 +1,105 @@
++{
++  "/tasks": {
++    "version": 1,
++    "tasks": [
++      {
++        "id": "md",
++        "app": "telegram",
++        "name": "markdown",
++        "place": "markdown",
++        "state": "needs",
++        "running": false,
++        "line": "Pick the font for Said",
++        "since": "2026-11-04T09:21:00.000Z",
++        "at": "2026-11-04T09:21:00.000Z",
++        "track": [],
++        "agents": []
++      }
++    ]
++  },
++  "/tasks/md": {
++    "id": "md",
++    "app": "telegram",
++    "name": "markdown",
++    "place": "markdown",
++    "state": "needs",
++    "running": false,
++    "line": "Pick the font for Said",
++    "since": "2026-11-04T09:21:00.000Z",
++    "at": "2026-11-04T09:21:00.000Z",
++    "track": [],
++    "agents": [],
++    "needs": "Pick the font for Said",
++    "pin": "📌 **Running:** the **Mac** build of `main` is compiling\n- 🔄 The **iPhone** build, [Xcode log](https://example.com/log)\n- ✅ Signed the **iPad** build with `devicectl`\n**Waiting on you**\n- 👉 Plug the **iPad** in, it's *locked*\n```\nnpm run ship:native\n```\n**Known problems**\n- ❌ The `_cache` folder is **full**\n",
++    "lately": [
++      {
++        "at": "2026-11-04T09:21:00.000Z",
++        "state": "needs",
++        "text": "Waiting on a pick"
++      }
++    ],
++    "steps": [],
++    "plan": []
++  },
++  "/tasks/md/chat": {
++    "version": 1,
++    "sends": true,
++    "total": 3,
++    "turns": [
++      {
++        "from": "me",
++        "text": "Is it live?"
++      },
++      {
++        "from": "hex",
++        "text": "## Shipped\n\nBoth builds are **live** on `main`, with the *markdown* drawn by [Textual](https://github.com/gonzalezreal/textual).\n\n- **iPhone**: installed over Wi-Fi\n- **iPad**: waiting for its cable\n  - signing runs out in 7 days\n- `devicectl` did the install\n\n1. Open the app\n2. Open Tasks\n\n> Signing runs out after 7 days, and a native install renews it.\n\n```swift\nstruct Hex: View {\n    // the whole app\n    var body: some View { Text(\"hello, \\(1 + 2)\") }\n}\n```\n\n-# Task t-3 closed."
++      },
++      {
++        "from": "hex",
++        "text": "**Done:** both builds are `live`, see [the log](https://example.com/log).\n\n- one\n- two"
++      }
++    ],
++    "waiting": []
++  },
++  "/asks": {
++    "version": 1,
++    "asks": [
++      {
++        "id": "md-ask",
++        "kind": "do",
++        "task": "md",
++        "at": "2026-11-04T09:21:00.000Z",
++        "app": "telegram",
++        "topic": "markdown",
++        "question": "Get the EDD letters DE 4800 and DE 1326C from your mail",
++        "context": "Going paperless doesn't cover letters EDD already mailed.",
++        "options": [
++          {
++            "label": "Found them"
++          },
++          {
++            "label": "Not there"
++          },
++          {
++            "label": "Later"
++          }
++        ],
++        "places": [
++          {
++            "app": "telegram",
++            "place": "markdown",
++            "task": "md"
++          }
++        ]
++      }
++    ],
++    "stuck": [],
++    "fresh": [],
++    "check": null
++  },
++  "/asks/md-ask/words": {
++    "place": "markdown",
++    "at": "2026-11-04T09:21:00.000Z",
++    "text": "**Leave both as they are: 7 checked, 8 unchecked.**\n\n- **7, federal tax withholding:** this takes 10% of each payment ($45 of $450) for federal tax. Unemployment counts as federally taxable income, so withholding saves you a tax bill in April, see [the IRS](https://www.irs.gov) or run `npm run ship`.\n- **8, direct deposit:** your bank stays as it is, which is *fine*."
++  }
++}
 diff --git a/scripts/duo-states b/scripts/duo-states
 new file mode 100644
 index 0000000000000000000000000000000000000000..768c0ae8af1835b59f713bdcbb507c08ef0d41e9
@@ -99084,6 +99653,68 @@ index 0000000000000000000000000000000000000000..3d3041ff642dde373ee10e9a7fa4e4aa
 +    </Host>
 +  );
 +}
+diff --git a/src/components/markdown.tsx b/src/components/markdown.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7b78dfdd1579b5522a25786741cf1c01d98fa70
+--- /dev/null
++++ b/src/components/markdown.tsx
+@@ -0,0 +1,56 @@
++import { Column, Text } from '@expo/ui';
++import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
++
++import { Failure } from '@/components/tasks/parts';
++import { openURL, useFailures } from '@/hooks/use-failures';
++import { radius, theme } from '@/theme';
++import { space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
++import { MarkdownView } from '../../modules/markdown';
++
++// Markdown in the app's own look, in one of its text styles: words in the text tone or the secondary one, code on the
++// surface with the inner corner, quotes with the edge's bar, links in the accent. `inline` is one
++// run of words, folded to `lines` when given; otherwise it lays out blocks. A link iOS can't open
++// says so beneath.
++export function Markdown({
++  children,
++  tone = 'text',
++  variant = 'body',
++  inline,
++  lines,
++  selectable,
++  modifiers,
++}: {
++  children: string;
++  tone?: 'text' | 'secondary';
++  variant?: TextVariant;
++  inline?: boolean;
++  lines?: number;
++  selectable?: boolean;
++  modifiers?: ModifierConfig[];
++}) {
++  const tries = useFailures();
++  if (process.env.EXPO_OS !== 'ios') return <Text>{children}</Text>;
++  const failed = Object.values(tries.failed)[0];
++  const look: TextStyle = type[variant];
++  return (
++    <Column alignment="start" spacing={space[1]} modifiers={modifiers}>
++      <MarkdownView
++        markdown={children}
++        inline={inline}
++        lines={lines}
++        selectable={selectable}
++        size={look.fontSize}
++        leading={look.lineSpacing ?? 0}
++        gap={space[3]}
++        radius={radius.inner}
++        color={theme[tone]}
++        secondary={theme.secondary}
++        edge={theme.edge}
++        surface={theme.surface}
++        accent={theme.accent}
++        onLink={(url) => void tries.attempt(url, 'Not opened', () => openURL(url))}
++      />
++      {failed ? <Failure text={failed} /> : null}
++    </Column>
++  );
++}
 diff --git a/src/components/past-call-bar.tsx b/src/components/past-call-bar.tsx
 new file mode 100644
 index 0000000000000000000000000000000000000000..fda4a89cd2b414116eb447af4db2431aefb4d680
@@ -100663,13 +101294,14 @@ index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc1179
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..506da223983a26a3ea82c8f31a9b99ebca61e01f
+index 0000000000000000000000000000000000000000..87b6368336a1c9dda7926828bd049f8c6d042ed1
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
 @@ -0,0 +1,638 @@
 +import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
 +import { HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
 +import {
++  accessibilityElement,
 +  accessibilityIdentifier,
 +  accessibilityLabel,
 +  animation,
@@ -100688,6 +101320,7 @@ index 0000000000000000000000000000000000000000..506da223983a26a3ea82c8f31a9b99eb
 +} from '@expo/ui/swift-ui/modifiers';
 +import { useContext, useState } from 'react';
 +
++import { Markdown } from '@/components/markdown';
 +import { Mark } from '@/components/tasks/mark';
 +import { Typing, useField } from '@/components/tasks/pages';
 +import { noteAsk, useWords } from '@/hooks/use-asks';
@@ -100998,23 +101631,21 @@ index 0000000000000000000000000000000000000000..506da223983a26a3ea82c8f31a9b99eb
 +        frame({ maxWidth: Infinity, alignment: 'leading' }),
 +        contentShape(shapes.rectangle()),
 +        animation(motion.list, whole),
-+        accessibilityLabel(`From ${words.place}: ${words.text}`),
++        accessibilityElement('combine'),
 +      ]}
 +    >
 +      <Text variant="footnote" weight="semibold" tone="secondary">
 +        {`From ${words.place}${when}`}
 +      </Text>
-+      <Text
++      <Markdown
++        inline={!whole}
++        lines={whole ? undefined : SAID}
 +        variant="itemDetail"
 +        tone="secondary"
-+        paragraph
-+        modifiers={[
-+          whole ? lineLimit() : lineLimit(SAID),
-+          frame({ maxWidth: Infinity, alignment: 'leading' }),
-+        ]}
++        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +      >
 +        {words.text}
-+      </Text>
++      </Markdown>
 +    </Column>
 +  );
 +}
@@ -103129,10 +103760,10 @@ index 0000000000000000000000000000000000000000..3e6a187c5bce9a552bb6c635539b9b9f
 +}
 diff --git a/src/components/tasks/pinned.tsx b/src/components/tasks/pinned.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4d9c47203
+index 0000000000000000000000000000000000000000..a21b633d497fb13ba131a58d5c5f9d86926a4985
 --- /dev/null
 +++ b/src/components/tasks/pinned.tsx
-@@ -0,0 +1,185 @@
+@@ -0,0 +1,186 @@
 +import { Column, Icon, Row, Spacer } from '@expo/ui';
 +import {
 +  background,
@@ -103145,6 +103776,7 @@ index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4
 +} from '@expo/ui/swift-ui/modifiers';
 +import { useState } from 'react';
 +
++import { Markdown } from '@/components/markdown';
 +import { Mark } from '@/components/tasks/mark';
 +import { Failure, SectionHead } from '@/components/tasks/parts';
 +import { openURL, useFailures } from '@/hooks/use-failures';
@@ -103229,12 +103861,12 @@ index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4
 +  const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
 +  if (line.kind === 'text' && !url)
 +    return (
-+      <Text
++      <Markdown
++        inline
 +        variant="subheadline"
 +        tone="secondary"
-+        paragraph
++        selectable
 +        modifiers={[
-+          textSelection(true),
 +          padding({
 +            leading: metrics.list.inset,
 +            trailing: metrics.list.inset,
@@ -103245,7 +103877,7 @@ index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4
 +        ]}
 +      >
 +        {line.text}
-+      </Text>
++      </Markdown>
 +    );
 +  if (line.kind === 'text')
 +    return (
@@ -103269,14 +103901,14 @@ index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4
 +          spacing={space[0.5]}
 +          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +        >
-+          <Text
++          <Markdown
++            inline
 +            variant="subheadline"
 +            tone="secondary"
-+            paragraph
 +            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +          >
 +            {line.text}
-+          </Text>
++          </Markdown>
 +          {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
 +        </Column>
 +        <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
@@ -103304,14 +103936,14 @@ index 0000000000000000000000000000000000000000..b4d4b84edc55139438673e16f6d87ce4
 +        spacing={space[0.5]}
 +        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +      >
-+        <Text
++        <Markdown
++          inline
 +          variant="subheadline"
 +          tone={line.mark === 'done' ? 'secondary' : 'text'}
-+          paragraph
 +          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +        >
 +          {line.text}
-+        </Text>
++        </Markdown>
 +        {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
 +      </Column>
 +      {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}
@@ -104051,12 +104683,12 @@ index 0000000000000000000000000000000000000000..fd911297dd90adbec4ca778152437ca0
 +}
 diff --git a/src/components/tasks/said.tsx b/src/components/tasks/said.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..0fa72c29d85c4aea58f2bc098f49c8ff8a95c036
+index 0000000000000000000000000000000000000000..ba216ed9487392a72dc932639f29d65a105d7404
 --- /dev/null
 +++ b/src/components/tasks/said.tsx
-@@ -0,0 +1,258 @@
+@@ -0,0 +1,156 @@
 +import { Column, Row, Spacer } from '@expo/ui';
-+import { ScrollView, Text } from '@expo/ui/swift-ui';
++import { Text } from '@expo/ui/swift-ui';
 +import {
 +  background,
 +  clipShape,
@@ -104067,12 +104699,12 @@ index 0000000000000000000000000000000000000000..0fa72c29d85c4aea58f2bc098f49c8ff
 +  textSelection,
 +} from '@expo/ui/swift-ui/modifiers';
 +
++import { Markdown } from '@/components/markdown';
 +import { said, type Sending } from '@/live/chat';
-+import { blocksOf, plainOf, type Block } from '@/live/markdown';
 +import type { ChatTurn } from '@/live/tasks';
 +import { radius, theme } from '@/theme';
 +import { textLook } from '@/ui/text';
-+import { metrics, space, type Tone } from '@/ui/tokens';
++import { metrics, space } from '@/ui/tokens';
 +
 +// Drawn as the call transcript draws a turn.
 +export function Said({ turn }: { turn: ChatTurn }) {
@@ -104081,18 +104713,15 @@ index 0000000000000000000000000000000000000000..0fa72c29d85c4aea58f2bc098f49c8ff
 +  if (one.kind === 'event')
 +    return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
 +  return (
-+    <Column
-+      alignment="start"
-+      spacing={space[3]}
++    <Markdown
++      selectable
 +      modifiers={[
 +        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
 +        frame({ maxWidth: Infinity }),
 +      ]}
 +    >
-+      {blocksOf(one.text).map((block, i) => (
-+        <Piece key={i} block={block} />
-+      ))}
-+    </Column>
++      {one.text}
++    </Markdown>
 +  );
 +}
 +
@@ -104157,20 +104786,15 @@ index 0000000000000000000000000000000000000000..0fa72c29d85c4aea58f2bc098f49c8ff
 +      >
 +        {named ? who : ''}
 +      </Text>
-+      <Text
-+        markdownEnabled
-+        modifiers={[
-+          ...textLook({
-+            variant: 'preview',
-+            tone: one.kind === 'event' ? 'secondary' : 'text',
-+            paragraph: true,
-+          }),
-+          lineLimit(lines),
-+          frame({ maxWidth: Infinity, alignment: 'leading' }),
-+        ]}
++      <Markdown
++        inline
++        lines={lines}
++        variant="preview"
++        tone={one.kind === 'event' ? 'secondary' : 'text'}
++        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +      >
-+        {one.kind === 'hex' ? plainOf(text) : text}
-+      </Text>
++        {text}
++      </Markdown>
 +    </Row>
 +  );
 +}
@@ -104217,100 +104841,6 @@ index 0000000000000000000000000000000000000000..0fa72c29d85c4aea58f2bc098f49c8ff
 +        {text}
 +      </Text>
 +    </Row>
-+  );
-+}
-+
-+function Piece({ block }: { block: Block }) {
-+  switch (block.kind) {
-+    case 'code':
-+      return (
-+        <ScrollView
-+          axes="horizontal"
-+          showsIndicators={false}
-+          modifiers={[
-+            frame({ maxWidth: Infinity, alignment: 'leading' }),
-+            background(theme.surface),
-+            clipShape('roundedRectangle', radius.inner),
-+          ]}
-+        >
-+          <Text
-+            modifiers={[
-+              ...textLook({ variant: 'snippet', paragraph: true }),
-+              textSelection(true),
-+              padding({
-+                leading: space[3.5],
-+                trailing: space[3.5],
-+                top: space[3],
-+                bottom: space[3],
-+              }),
-+            ]}
-+          >
-+            {block.text}
-+          </Text>
-+        </ScrollView>
-+      );
-+    case 'heading':
-+      return <Words text={block.text} weight="semibold" />;
-+    case 'small':
-+      return <Words text={block.text} variant="footnote" tone="secondary" />;
-+    case 'quote':
-+      return (
-+        <Row alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
-+          <Spacer
-+            modifiers={[
-+              frame({ width: 3 }),
-+              frame({ maxHeight: Infinity }),
-+              background(theme.edge),
-+            ]}
-+          />
-+          <Words text={block.text} tone="secondary" />
-+        </Row>
-+      );
-+    case 'list':
-+      return (
-+        <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-+          {block.items.map((item, i) => (
-+            <Row key={i} alignment="start" spacing={space[2]}>
-+              <Text
-+                modifiers={[
-+                  ...textLook({ tone: 'secondary' }),
-+                  frame({ minWidth: 14, alignment: 'leading' }),
-+                ]}
-+              >
-+                {item.mark}
-+              </Text>
-+              <Words text={item.text} />
-+            </Row>
-+          ))}
-+        </Column>
-+      );
-+    case 'text':
-+      return <Words text={block.text} />;
-+  }
-+}
-+
-+function Words({
-+  text,
-+  variant = 'body',
-+  weight = 'regular',
-+  tone = 'text',
-+}: {
-+  text: string;
-+  variant?: 'body' | 'footnote';
-+  weight?: 'regular' | 'semibold';
-+  tone?: Tone;
-+}) {
-+  return (
-+    <Text
-+      markdownEnabled
-+      modifiers={[
-+        ...textLook({ variant, weight, tone, paragraph: true }),
-+        textSelection(true),
-+        frame({ maxWidth: Infinity, alignment: 'leading' }),
-+      ]}
-+    >
-+      {text}
-+    </Text>
 +  );
 +}
 diff --git a/src/components/tasks/task-page.tsx b/src/components/tasks/task-page.tsx
@@ -110185,91 +110715,12 @@ index 0000000000000000000000000000000000000000..c6a3758f57e106c99cafc021623ebb47
 +  }
 +  return out;
 +}
-diff --git a/src/live/markdown.ts b/src/live/markdown.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..46d07c8bddad4e9901cf99ef77bb41c0333a4741
---- /dev/null
-+++ b/src/live/markdown.ts
-@@ -0,0 +1,73 @@
-+// hex's markdown as blocks: paragraphs, headings, lists, quotes, fenced code, and Discord's small
-+// grey lines (`-# `). What's inside a block (bold, code, links) is left for the screen to style.
-+export type Block =
-+  | { kind: 'text'; text: string }
-+  | { kind: 'heading'; text: string }
-+  | { kind: 'code'; text: string }
-+  | { kind: 'list'; items: { mark: string; text: string }[] }
-+  | { kind: 'quote'; text: string }
-+  | { kind: 'small'; text: string };
-+
-+const ITEM = /^\s*([-*•]|\d+[.)])\s+/;
-+
-+export function blocksOf(text: string): Block[] {
-+  const blocks: Block[] = [];
-+  const lines = text.replace(/\r\n/g, '\n').split('\n');
-+  for (let i = 0; i < lines.length; i++) {
-+    const line = lines[i]!;
-+    if (line.startsWith('```')) {
-+      const code: string[] = [];
-+      while (++i < lines.length && !lines[i]!.startsWith('```')) code.push(lines[i]!);
-+      blocks.push({ kind: 'code', text: code.join('\n') });
-+    } else if (!line.trim()) {
-+      continue;
-+    } else if (line.startsWith('-# ')) {
-+      blocks.push({ kind: 'small', text: line.slice(3) });
-+    } else if (/^#{1,6}\s/.test(line)) {
-+      blocks.push({ kind: 'heading', text: line.replace(/^#+\s+/, '') });
-+    } else if (line.startsWith('>')) {
-+      const quote = [line];
-+      while (lines[i + 1]?.startsWith('>')) quote.push(lines[++i]!);
-+      blocks.push({
-+        kind: 'quote',
-+        text: quote.map((said) => said.replace(/^>\s?/, '')).join('\n'),
-+      });
-+    } else if (ITEM.test(line)) {
-+      const items: { mark: string; text: string }[] = [];
-+      for (; i < lines.length && ITEM.test(lines[i]!); i++) {
-+        const mark = lines[i]!.match(ITEM)![1]!;
-+        items.push({ mark: /\d/.test(mark) ? mark : '•', text: lines[i]!.replace(ITEM, '') });
-+      }
-+      i--;
-+      blocks.push({ kind: 'list', items });
-+    } else {
-+      const paragraph = [line];
-+      while (i + 1 < lines.length && startsParagraph(lines[i + 1]!)) paragraph.push(lines[++i]!);
-+      blocks.push({ kind: 'text', text: paragraph.join('\n') });
-+    }
-+  }
-+  return blocks;
-+}
-+
-+const startsParagraph = (line: string) =>
-+  !!line.trim() &&
-+  !line.startsWith('```') &&
-+  !line.startsWith('>') &&
-+  !line.startsWith('-# ') &&
-+  !/^#{1,6}\s/.test(line) &&
-+  !ITEM.test(line);
-+
-+// A message as one run of words for a preview: its paragraphs, headings, quotes and list items
-+// joined, its code left out. Bold, code and links inside stay for the screen to style.
-+export function plainOf(text: string) {
-+  return blocksOf(text)
-+    .map((block) =>
-+      block.kind === 'code'
-+        ? ''
-+        : block.kind === 'list'
-+          ? block.items.map((item) => item.text).join(' · ')
-+          : block.text.replace(/\n/g, ' '),
-+    )
-+    .filter(Boolean)
-+    .join(' ');
-+}
 diff --git a/src/live/pinned.ts b/src/live/pinned.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30984991f1
+index 0000000000000000000000000000000000000000..bc85e97b865e8de453f9618b4e17d3b8c3d4c4dc
 --- /dev/null
 +++ b/src/live/pinned.ts
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,101 @@
 +// A thread's pinned status post, as the app draws it: its sections, each line marked by what the
 +// section says it is, commands set apart to copy, links kept, and Done folded away.
 +export type PinMark = 'done' | 'working' | 'needs' | 'failed' | 'idle';
@@ -110281,11 +110732,14 @@ index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30
 +
 +const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
 +const LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/;
++// A line bold from its title to its end, colon inside: bold the title alone.
++const WHOLE_BOLD = /^(\*\*|__)([^:*_]{1,40}:)(.*?)\1$/;
++const PIN = /^📌\s*/u;
 +const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/;
 +// A heading's own emoji: the section's mark already says what it is.
 +const EMOJI = /^(\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 +const TITLES =
-+  /^(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}:\s*(.+)$/i;
++  /^((?:\*\*|__)?(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(.+)$/i;
 +const EMOJI_MARKS: [RegExp, PinMark][] = [
 +  [/^(✅|☑️|✔️)\s*/u, 'done'],
 +  [/^(❌|⚠️|🔴|🛑)\s*/u, 'failed'],
@@ -110305,10 +110759,10 @@ index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30
 +      current.lines.push({ kind: 'code', text: code.join('\n') });
 +      continue;
 +    }
-+    const line = raw.trim();
++    const line = raw.trim().replace(PIN, '');
 +    if (!line) continue;
-+    const inline = plain(line).match(TITLES);
-+    const heading = inline ? inline[0].slice(0, inline[0].indexOf(':')).trim() : headingOf(line);
++    const inline = line.replace(WHOLE_BOLD, '$1$2$1$3').match(TITLES);
++    const heading = inline ? plain(inline[1]!) : headingOf(line);
 +    if (heading) {
 +      if (current.title || current.lines.length) sections.push(current);
 +      const mark = sectionMark(heading);
@@ -110316,7 +110770,7 @@ index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30
 +        title: heading,
 +        mark,
 +        folded: mark === 'done',
-+        lines: inline ? [item(inline[2]!, mark)] : [],
++        lines: inline ? [item(inline[3]!, mark)] : [],
 +      };
 +      continue;
 +    }
@@ -110362,15 +110816,11 @@ index 0000000000000000000000000000000000000000..bebc66d83b09b14a233f6519399b6f30
 +function linked(text: string): { text: string; url?: string } {
 +  const link = text.match(LINK);
 +  const url = link?.[2] ?? text.match(URL)?.[0];
-+  return { text: plain(link ? text.replace(LINK, '$1') : text), ...(url && { url }) };
++  return { text: (link ? text.replace(LINK, '$1') : text).trim(), ...(url && { url }) };
 +}
 +
 +function plain(text: string) {
-+  return text
-+    .replace(/\*\*|__/g, '')
-+    .replace(/`([^`]+)`/g, '$1')
-+    .replace(/^📌\s*/u, '')
-+    .trim();
++  return text.replace(/\*\*|__/g, '').trim();
 +}
 diff --git a/src/live/session.ts b/src/live/session.ts
 index 8fc1dc541a597a333effe7a61dff8dc92c484e22..8f6462c7950b48fba09074e0b084286314bd8f5c 100644
@@ -114879,10 +115329,10 @@ index e517c4697a24271f6c4111862388ef344f1fb72d..00000000000000000000000000000000
 -});
 diff --git a/tests/asks.test.ts b/tests/asks.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..ea68b3ad06a04b8a2ace96e0fffdab263d415760
+index 0000000000000000000000000000000000000000..6d6b40fd0e49e4bf3d3cdcb1e4eb2069865dbfeb
 --- /dev/null
 +++ b/tests/asks.test.ts
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,224 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -115039,6 +115489,24 @@ index 0000000000000000000000000000000000000000..ea68b3ad06a04b8a2ace96e0fffdab26
 +    { kind: 'text', text: 'Signed with xtool. Paper', url: 'https://app.paper.design/file/abc' },
 +    { kind: 'text', text: 'No link here.' },
 +  ]);
++});
++
++test('a pinned line keeps its bold and code for the screen to draw, and a title ahead of them', () => {
++  const [section] = pinSections(
++    '📌 **Running:** the **Mac** build of `main`\n- **iPad** needs `devicectl`',
++  );
++  assert.deepEqual(
++    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
++    ['Running', ['the **Mac** build of `main`', '**iPad** needs `devicectl`']],
++  );
++});
++
++test('a pinned title bold to the end of its line, colon inside, leaves no stray mark', () => {
++  const [section] = pinSections('**Running: the Mac build**');
++  assert.deepEqual(
++    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
++    ['Running', ['the Mac build']],
++  );
 +});
 +
 +test('what didn’t go through shows on the item it was about, and nowhere else', () => {
@@ -115507,15 +115975,14 @@ index 0000000000000000000000000000000000000000..c43bd10f7e40957cb25a45994e777476
 +});
 diff --git a/tests/chat.test.ts b/tests/chat.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5c947e39f1167297a37d159b68de6c9e024471e8
+index 0000000000000000000000000000000000000000..38133bcbc3d426312e5cf5fbfc9edcb00883d019
 --- /dev/null
 +++ b/tests/chat.test.ts
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,66 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
 +import { arrived, newKey, said } from '../src/live/chat';
-+import { blocksOf, plainOf } from '../src/live/markdown';
 +import { TaskId, type Chat } from '../src/live/tasks';
 +
 +const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns.length): Chat => ({
@@ -115554,29 +116021,6 @@ index 0000000000000000000000000000000000000000..5c947e39f1167297a37d159b68de6c9e
 +  assert.match(newKey(), /^app-[\w-]{8,60}$/);
 +});
 +
-+test("hex's markdown splits into paragraphs, headings, lists, quotes and code", () => {
-+  assert.deepEqual(
-+    blocksOf(
-+      '## Done\n\nShipped it.\nAll green.\n\n- one\n- two\n1. first\n\n> quoted\n\n```\nnpm run check\n```\n-# Task t-3 closed.',
-+    ),
-+    [
-+      { kind: 'heading', text: 'Done' },
-+      { kind: 'text', text: 'Shipped it.\nAll green.' },
-+      {
-+        kind: 'list',
-+        items: [
-+          { mark: '•', text: 'one' },
-+          { mark: '•', text: 'two' },
-+          { mark: '1.', text: 'first' },
-+        ],
-+      },
-+      { kind: 'quote', text: 'quoted' },
-+      { kind: 'code', text: 'npm run check' },
-+      { kind: 'small', text: 'Task t-3 closed.' },
-+    ],
-+  );
-+});
-+
 +test('what you did in a thread reads as an event, and a voice message as your words', () => {
 +  assert.deepEqual(said({ from: 'me', text: '(answered in the app) Ship it?: Yes' }), {
 +    kind: 'event',
@@ -115600,13 +116044,6 @@ index 0000000000000000000000000000000000000000..5c947e39f1167297a37d159b68de6c9e
 +    kind: 'hex',
 +    text: '(aside) done',
 +  });
-+});
-+
-+test('a preview reads a message as one run of words, without its code', () => {
-+  assert.equal(
-+    plainOf('## Shipped\n\n**Live** now:\n\n```\nnpm run ship\n```\n\n- iPhone\n- iPad'),
-+    'Shipped **Live** now: iPhone · iPad',
-+  );
 +});
 diff --git a/tests/contract.test.ts b/tests/contract.test.ts
 new file mode 100644
