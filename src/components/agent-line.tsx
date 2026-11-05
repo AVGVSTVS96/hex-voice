@@ -1,4 +1,4 @@
-import { Host, Icon } from '@expo/ui';
+import { Icon } from '@expo/ui';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -17,6 +17,7 @@ import Animated, {
 import type { AgentLine as Line } from '@/live/agents';
 import { motion } from '@/motion';
 import { circle, theme } from '@/theme';
+import { Host } from '@/ui/host';
 import { space, textOf } from '@/ui/tokens';
 
 const { step, turn, rise } = motion.agent;
