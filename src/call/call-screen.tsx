@@ -73,6 +73,9 @@ export type Opening = {
   tasks?: TasksAt;
   open?: 'settings' | 'calls';
   reportPose: boolean;
+  // Laid out in half the screen for a check (src/screens/split-view.tsx). A half is compact, as iOS
+  // makes a Split View window, though the screen around it is regular.
+  split?: boolean;
 };
 
 // The screen lays itself out for the room its window has: the size it's drawn at and what of the
@@ -107,7 +110,7 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
         <PoseView
           style={StyleSheet.absoluteFill}
           onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) =>
-            setPose({ regular, bar, fold, occlusions })
+            setPose({ regular: regular && !opening.split, bar, fold, occlusions })
           }
         />
       )}
