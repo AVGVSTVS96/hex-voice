@@ -10,7 +10,7 @@ import {
 } from '@/call/stage';
 import { metrics, type ToolbarGaps } from '@/ui/tokens';
 
-import type { Insets, Rect, Region, Room, Size } from '@/screens/window';
+import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 
 const GAP = 12;
 // The toolbar's Tasks and settings, one glass capsule.
@@ -55,8 +55,7 @@ type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGap
 // call sits in the bar beside the system's status items: its orb with its time, down the side
 // column or across the top band, where the call buttons join them (`controls`) and the tools
 // gather at the band's leading end. Open on a call, a button in the bar can give the call's words
-// the page before the fold while Tasks keeps the one after it (`beside`). Folding never does it: a
-// fold only pulls Tasks' pages apart to either side of it, as Apple asks. On its side the keyboard
+// the page before the fold while Tasks keeps the one after it (`beside`). On its side the keyboard
 // takes the page after the fold, so while you type there Tasks moves to the page before it
 // (`typing`), the way a laptop keeps what you write above its keys. Spots are the window's.
 export type Duo = {
@@ -71,20 +70,14 @@ export type Duo = {
 
 // Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
 // the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
-// Held wide, it takes the two panes iOS arranges the screen into as two pages side by side
-// (`panes`, parting within `area`). On its side partly open it stays one page with a break across
-// it where the fold's frame is (`gap`), which what scrolls passes under. Its rows keep their own
-// inset, so its pages run flush to the screen's edges, the fold and the bar's buttons.
+// Held wide, it takes the two sides of the fold as two pages side by side, meeting `panes` from
+// its start. Its rows keep their own inset, so its pages run flush to the screen's edges, the fold
+// and the bar's buttons.
 export type Page = {
   area: Rect;
-  panes?: Parting;
-  gap?: Parting;
+  panes?: number;
   foot: number | 'fold';
 };
-
-// Where Tasks parts: `at` from its start, then a band: between the panes (none open flat, the
-// fold's whole frame partly open), or the fold's frame across it.
-export type Parting = { at: number; band: number };
 
 // The stage's parts are in its box's coordinates; `content` is that box in the window's.
 export type Layout = Stage & {
@@ -105,14 +98,14 @@ export type Inbox = {
 export function screenLayout(room: Room): Layout {
   const { insets, regular, bar } = room;
   const frame = frameFor(room);
-  const fold = room.fold && divide(room.fold);
+  const { fold } = room;
   const { content, toolbar } = frame;
   const box: Box = {
     width: content.width,
     height: content.height,
     safe: { top: insets.top, bottom: insets.bottom },
     bar: frame.column ? 0 : toolbar.y + metrics.tool,
-    fold: fold && { ...fold, x: fold.x - content.x },
+    fold: fold && ('x' in fold ? { x: fold.x - content.x } : fold),
     controls: frame.column?.controls,
     regular,
   };
@@ -194,18 +187,6 @@ function rail({ window, toolbar, bottomInset }: Frame): Inbox {
     orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
     controls: { x: RAIL / 2, y: foot },
   };
-}
-
-// What the fold takes from the screen on its side. iOS reports it as a division region that's
-// active only while the Duo is partly open; then content keeps to either side of its frame, which
-// already holds the margins controls and text keep from the hinge. Open flat it's inactive and
-// nothing keeps off it, so the two sides meet at its middle. This is the only place that reads
-// whether it's active.
-function divide(fold: Region): Rect {
-  if (fold.active) return fold;
-  return fold.height > fold.width
-    ? { x: fold.x + fold.width / 2, y: fold.y, width: 0, height: fold.height }
-    : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
 }
 
 type Frame = {
@@ -308,7 +289,7 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
 function besideColumn(
   frame: Frame,
   column: NonNullable<Frame['column']>,
-  parting?: Rect,
+  fold?: Fold,
   before?: Words & { raise: number },
 ): Duo {
   const { window, insets, toolbar } = frame;
@@ -328,7 +309,7 @@ function besideColumn(
       },
       foot: insets.bottom,
     },
-    parting,
+    fold,
   );
   const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
   const buttons =
@@ -355,7 +336,7 @@ function besideColumn(
 // screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
 // at its trailing end, and the call buttons just before that pair, whether Tasks is open or not.
 // With Tasks open on a call, before them sit the words' switch, then the orb with its time.
-function belowBand(frame: Frame, parting?: Rect, before?: Words & { raise: number }): Duo {
+function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }): Duo {
   const { window, insets, toolbar, top } = frame;
   const {
     tasks,
@@ -366,7 +347,7 @@ function belowBand(frame: Frame, parting?: Rect, before?: Words & { raise: numbe
       area: { x: 0, y: top, width: window.width, height: window.height - top },
       foot: insets.bottom,
     },
-    parting,
+    fold,
   );
   const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
   const middle = toolbar.y + metrics.tool / 2;
@@ -385,27 +366,25 @@ function belowBand(frame: Frame, parting?: Rect, before?: Words & { raise: numbe
   };
 }
 
-// Tasks over a page's area, and the page after where it parts, the one it keeps when the call's
-// words take the one before it. Held wide it takes the screen's two panes as two pages side by
-// side, a list beside its topic, as a split view does on a wide screen, and folding only parts
-// them. On its side the screen is one tall page at every angle, and Tasks takes it whole: a fold
-// there never splits it into other pages, it only breaks it where the fold is. The page before the
-// fold is where it types beside the call's words.
+// Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
+// take the one before it. Held wide it takes the fold's two sides as two pages side by side, a
+// list beside its topic, as a split view does on a wide screen. On its side the screen is one tall
+// page, and Tasks takes it whole. The page before the fold is where it types beside the call's
+// words.
 function paged(
   page: Omit<Page, 'panes'>,
-  fold?: Rect,
+  fold?: Fold,
 ): { tasks: Page; after?: Page; before?: Page } {
   if (!fold) return { tasks: page };
   const { area } = page;
-  const end = { x: fold.x + fold.width, y: fold.y + fold.height };
-  if (fold.height > fold.width)
+  if ('x' in fold)
     return {
-      tasks: { ...page, panes: { at: fold.x - area.x, band: fold.width } },
-      after: { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } },
+      tasks: { ...page, panes: fold.x - area.x },
+      after: { ...page, area: { ...area, x: fold.x, width: area.x + area.width - fold.x } },
     };
   return {
-    tasks: fold.height > 0 ? { ...page, gap: { at: fold.y - area.y, band: fold.height } } : page,
-    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y } },
+    tasks: page,
+    after: { ...page, area: { ...area, y: fold.y, height: area.y + area.height - fold.y } },
     before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }

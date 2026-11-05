@@ -33,7 +33,7 @@ const openUpright = layoutOf(
 const openOnSideDuo = layoutOf(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
-  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
+  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: false } },
 ).duo!;
 const openOnSide = openOnSideDuo.tasks;
 const folded = layoutOf(
@@ -135,7 +135,7 @@ test('the leading page has Back named for where it goes, the list’s for the ca
   assert.equal(spotOf('list', pagesOf(go(), one, false), one).back, undefined);
 });
 
-test('on the Duo pages cross only while one fades, and never sit on the hinge, so clear pages work', () => {
+test('on the Duo pages cross only while one fades, and never across the fold, so clear pages work', () => {
   const walks: Stack[][] = [
     [stacks[0]![1], stacks[1]![1], stacks[2]![1], stacks[3]![1]],
     [stacks[0]![1], stacks[4]![1]],
@@ -179,26 +179,22 @@ test('on the Duo pages cross only while one fades, and never sit on the hinge, s
                   `${name}, t ${t}: ${one} covers ${other}`,
                 );
           }
-    const fold = room.panes;
-    if (!fold) continue;
-    const hinge = { x: fold.at, y: 0, width: fold.band, height: room.height };
+    if (room.panes === undefined) continue;
+    const fold = { x: room.panes, y: 0, width: 0, height: room.height };
     for (const [at, stack] of stacks)
       for (const level of LEVELS)
         assert.ok(
-          !overlap(box(level, stack, room), hinge),
-          `${name}, ${at}: ${level} on the hinge`,
+          !overlap(box(level, stack, room), fold),
+          `${name}, ${at}: ${level} across the fold`,
         );
   }
 });
 
-test('pages run flush to the screen edges and the hinge', () => {
+test('pages run flush to the screen edges and meet on the fold', () => {
   const room = roomOf(openUpright);
   const pages = pagesOf(go(), room);
-  assert.equal(spotOf('list', pages, room).width, openUpright.panes!.at);
-  assert.equal(
-    spotOf('topic', pages, room).width,
-    openUpright.area.width - openUpright.panes!.at - openUpright.panes!.band,
-  );
+  assert.equal(spotOf('list', pages, room).width, openUpright.panes);
+  assert.equal(spotOf('topic', pages, room).width, openUpright.area.width - openUpright.panes!);
   const side = roomOf(openOnSide);
   assert.equal(spotOf('list', pagesOf(go(), side), side).width, side.width);
 });

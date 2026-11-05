@@ -378,7 +378,7 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const inPanes = room.paged && !!room.panes;
+  const inPanes = room.paged && room.panes !== undefined;
   return (
     <ZStack
       alignment={inPanes ? 'topLeading' : 'top'}

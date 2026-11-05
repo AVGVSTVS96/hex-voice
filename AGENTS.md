@@ -57,6 +57,7 @@ Layout breaks here when JS and SwiftUI both place the same view, so where iOS al
 - Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
 - Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `theme.ts` (`radius`, `metrics`, `circle`) and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
 - Layout reads the window's `Room` (`src/screens/window.ts`), never the device's pose: iOS reports the fold and the bar's side for the device, and in Split View they lie outside the window. `tests/window.test.ts` keeps the pose to that one module and lays out every window size with the fold anywhere.
+- Folding moves nothing: the room's fold is only the line where it divides the window, with no angle, state or thickness, so partly open lays out exactly as open flat.
 - A size flows one way: the container gives it and the content fills it, or the content states it and the container fits it. Never measure a view to size the thing that sizes it; the settings sheet opened at a different width each time that way.
 - Prove layout on the real renderer: `scripts/duo tap` can `type` into a field, check it's `above-keyboard` or that there's `no-keyboard`, and `mark` a view then check it holds `still`, same place and size.
 

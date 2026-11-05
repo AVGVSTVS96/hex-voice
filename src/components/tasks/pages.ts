@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { PageId } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
-import type { Parting } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
@@ -41,8 +40,8 @@ export const START: Stack = {
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
 
-export function shapeOf(width: number, panes: Parting | undefined): Shape {
-  return panes ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
+export function shapeOf(width: number, panes: number | undefined): Shape {
+  return panes !== undefined ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
 }
 
 export function move(stack: Stack, step: Move): Stack {
@@ -107,8 +106,8 @@ type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
 // Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
 // fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and held wide it
-// takes the screen's two panes as two pages side by side (`panes`).
-export type Room = { width: number; foot: number | 'fold'; paged: boolean; panes?: Parting };
+// takes the fold's two sides as two pages side by side, meeting `panes` from its start.
+export type Room = { width: number; foot: number | 'fold'; paged: boolean; panes?: number };
 
 // A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 
@@ -145,7 +144,7 @@ export function useField() {
 }
 
 export function spotOf(level: Level, pages: Placing, room: Room): Spot {
-  if (room.paged && room.panes) return spotInPanes(level, pages, room, room.panes);
+  if (room.paged && room.panes !== undefined) return spotInPanes(level, pages, room, room.panes);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -185,16 +184,16 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
 
 // Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
 // wait off the leading edge, shallower ones off the trailing edge.
-function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, panes: Parting): Spot {
+function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, panes: number): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const second = { at: panes.at + panes.band, width: room.width - panes.at - panes.band };
+  const second = { at: panes, width: room.width - panes };
   const { at, width, shown } = front
     ? { ...second, shown: true }
     : i === levels.length - 2
-      ? { at: 0, width: panes.at, shown: true }
+      ? { at: 0, width: panes, shown: true }
       : i >= 0
-        ? { at: -second.at, width: panes.at, shown: false }
+        ? { at: -panes, width: panes, shown: false }
         : { ...second, at: room.width, shown: false };
   return {
     frame: { width },

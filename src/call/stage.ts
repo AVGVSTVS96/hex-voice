@@ -1,6 +1,6 @@
 import { breakpoint, metrics, type ControlsSize } from '@/ui/tokens';
 
-import type { Rect } from '@/screens/window';
+import type { Fold } from '@/screens/window';
 
 const AGENT = 22;
 const WORDS = 600;
@@ -14,6 +14,8 @@ const TASKS = 380;
 const CALL = 368;
 const BESIDE_MUTE = 56;
 const GAP = 12;
+// How far the call's words keep from the fold.
+const OFF_FOLD = 8;
 // Persona's Rive art fills three quarters of its view, as measured in the simulator.
 const ART = 0.75;
 
@@ -30,15 +32,14 @@ export type ColumnControls = {
 
 // The room the call stage lays out in, as the screen gives it: its size, the window's safe area
 // along its top and foot, how far down it a bar across the top reaches (none where the bar runs
-// down the side), the fold across it in its own coordinates (a line open flat, its whole frame
-// partly open), where its call buttons sit when they're out in a side column, and whether its width
-// is regular.
+// down the side), the fold across it in its own coordinates, where its call buttons sit when
+// they're out in a side column, and whether its width is regular.
 export type Box = {
   width: number;
   height: number;
   safe: { top: number; bottom: number };
   bar: number;
-  fold?: Rect;
+  fold?: Fold;
   controls?: ColumnControls;
   regular: boolean;
 };
@@ -92,9 +93,10 @@ export type Stage = {
 };
 
 export function stageLayout(box: Box): Stage {
-  if (box.regular && !box.fold && !box.controls) return pad(box);
-  if (box.regular && box.width > box.height) return split(box);
-  if (box.fold && box.fold.width > box.fold.height) return stacked(box, box.fold);
+  const { fold } = box;
+  if (box.regular && !fold && !box.controls) return pad(box);
+  if (fold && 'y' in fold) return stacked(box, fold.y);
+  if (box.regular && box.width > box.height) return split(box, fold?.x);
   return single(box);
 }
 
@@ -106,16 +108,6 @@ export function topOf({ safe, bar }: Box) {
 // How far the footer keeps above the box's foot, clear of the home indicator.
 export function footOf({ safe }: Box) {
   return Math.max(safe.bottom, 20) + 14;
-}
-
-function partly(fold: Rect) {
-  return Math.min(fold.width, fold.height) > 0;
-}
-
-// How far the call's words keep from the fold: flat it's a bare line, so a small gap; partly open
-// its frame already holds the margins, so none more.
-export function clear(fold: Rect) {
-  return partly(fold) ? 0 : 8;
 }
 
 function single(box: Box): Stage {
@@ -292,26 +284,24 @@ function measure(from: number, to: number): Span {
   return { x: from + (to - from - width) / 2, width };
 }
 
-// iPhone Duo open: the orb on the page before the fold, the words on the page after it.
-function split(box: Box): Stage {
-  const { width: across, height, safe, fold, controls } = box;
+// iPhone Duo open: the orb on the page before the fold at `fold`, the words on the page after it.
+function split(box: Box, fold?: number): Stage {
+  const { width: across, height, safe, controls } = box;
   const bottomInset = footOf(box);
-  const pane = fold ? fold.x : across / 2;
-  const page = fold ? fold.x + fold.width + clear(fold) : pane;
+  const pane = fold ?? across / 2;
+  const page = fold === undefined ? pane : fold + OFF_FOLD;
   const right = across - metrics.gutter;
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? safe.bottom : bottomInset + metrics.call + 14;
   const top = controls ? safe.top + 72 : box.bar + 16;
-  // Before a call the orb rests in the middle; partly open that's the hinge, so it waits on its page.
-  const read = { x: pane / 2, y: height / 2 };
   return {
     kind: 'split',
     controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
     orb: {
       size: Math.min(pane * 0.62, height * 0.42, 300),
-      rest: fold && partly(fold) ? read : { x: across / 2, y: height / 2 },
+      rest: { x: across / 2, y: height / 2 },
       room: { top: 0, bottom: height },
-      read,
+      read: { x: pane / 2, y: height / 2 },
     },
     words: { ...words, top },
     text: 'regular' as const,
@@ -320,22 +310,23 @@ function split(box: Box): Stage {
     footer: { ...words, bottom: agentBottom + AGENT },
     agent: { ...words, bottom: agentBottom },
     lift: { calls: 0, tasks: 0 },
-    calls: fold ? { width: pane, place: 'beside' } : callsBeside(across),
+    calls: fold === undefined ? callsBeside(across) : { width: pane, place: 'beside' },
     tasks: { width: TASKS, place: 'sheet' },
     pulls: false,
   };
 }
 
-function stacked(box: Box, fold: Rect): Stage {
+// iPhone Duo open on its side: the orb above the fold at `fold`, the words below it.
+function stacked(box: Box, fold: number): Stage {
   const base = single(box);
   const top = topOf(box);
-  const size = Math.min(base.orb.size, (fold.y - top) * 0.78);
-  const words = { ...base.words, top: fold.y + fold.height + clear(fold) };
-  const read = { x: base.orb.rest.x, y: (top + fold.y) / 2 };
+  const size = Math.min(base.orb.size, (fold - top) * 0.78);
+  const words = { ...base.words, top: fold + OFF_FOLD };
+  const read = { x: base.orb.rest.x, y: (top + fold) / 2 };
   return {
     ...base,
     kind: 'stacked',
-    orb: { ...base.orb, size, rest: fold.height ? read : base.orb.rest, read },
+    orb: { ...base.orb, size, read },
     words,
     besideCalls: words,
     besideTasks: words,
@@ -349,13 +340,13 @@ function stacked(box: Box, fold: Rect): Stage {
 export function wordsBefore(
   box: Box,
   { words, agent }: Stage,
-  fold: Rect,
+  fold: Fold,
 ): Words & { raise: number } {
-  if (fold.height > fold.width) {
+  if ('x' in fold) {
     const x = metrics.gutter;
-    const width = Math.min(fold.x - clear(fold) - x, WORDS_BESIDE);
+    const width = Math.min(fold.x - OFF_FOLD - x, WORDS_BESIDE);
     return { x, width, top: words.top, raise: 0 };
   }
-  const raise = box.height - fold.y + clear(fold) - agent.bottom;
+  const raise = box.height - fold.y + OFF_FOLD - agent.bottom;
   return { ...words, top: topOf(box) + 12, raise };
 }

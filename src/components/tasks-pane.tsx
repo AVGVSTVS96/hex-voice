@@ -1,12 +1,5 @@
-import { Host, Rectangle, ZStack } from '@expo/ui/swift-ui';
-import {
-  accessibilityHidden,
-  clipped,
-  foregroundStyle,
-  frame,
-  offset,
-  opacity,
-} from '@expo/ui/swift-ui/modifiers';
+import { Host, ZStack } from '@expo/ui/swift-ui';
+import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
@@ -14,7 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { shapeOf, usePages } from '@/components/tasks/pages';
 import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
-import type { Page, Parting } from '@/screens/layout';
+import type { Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
 
@@ -102,7 +95,6 @@ export function TasksPage({
             pages={pages}
             room={{ width: area.width, panes, foot: page.foot, paged: true }}
           />
-          {page.gap ? <Gap gap={page.gap} /> : null}
         </ZStack>
       </Host>
       <GestureDetector gesture={swipe}>
@@ -111,26 +103,6 @@ export function TasksPage({
     </Animated.View>
   );
 }
-
-// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
-// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
-// and nowhere else.
-function Gap({ gap }: { gap: Parting }) {
-  return (
-    <Rectangle
-      modifiers={[
-        frame({ height: gap.band }),
-        frame({ maxWidth: Infinity }),
-        foregroundStyle(theme.sheet),
-        opacity(DIM),
-        offset({ x: 0, y: gap.at }),
-        accessibilityHidden(true),
-      ]}
-    />
-  );
-}
-
-const DIM = 0.7;
 
 const styles = StyleSheet.create({
   pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },
