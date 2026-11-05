@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { Rectangle } from '@expo/ui/swift-ui';
+import { HStack, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   animation,
@@ -178,8 +178,8 @@ function AskCard({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
     >
-      <Row
-        alignment="start"
+      <HStack
+        alignment={open ? 'top' : 'firstTextBaseline'}
         spacing={0}
         modifiers={[
           padding({
@@ -249,14 +249,13 @@ function AskCard({
             tone="tertiary"
             modifiers={[
               monospacedDigit(),
-              frame({ minHeight: LINE }),
               padding({ leading: metrics.list.gap, trailing: metrics.list.inset }),
             ]}
           >
             {clock(new Date(ask.at))}
           </Text>
         )}
-      </Row>
+      </HStack>
       {open ? (
         <Column
           alignment="start"
