@@ -60,14 +60,16 @@ export function CallAsk({
     );
   return (
     <View style={styles.card}>
-      <View style={styles.head}>
-        <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
-          <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
-        </Pressable>
+      <View style={styles.title}>
+        <View style={styles.head}>
+          <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
+            <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
+          </Pressable>
+          {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
+        </View>
         <Text selectable style={styles.question}>
           {ask.question}
         </Text>
-        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
       </View>
       <View style={styles.options}>
         {ask.options.map((option) => (
@@ -123,14 +125,16 @@ const styles = StyleSheet.create({
     padding: space[3.5],
     gap: space[3],
   },
+  title: { gap: space[1.5] },
   head: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: space[2],
     paddingHorizontal: space[0.5],
   },
-  topic: { ...labelOf('subheadline', 'semibold'), color: theme.secondary },
-  question: { ...labelOf('subheadline'), flex: 1, color: theme.tertiary },
+  topic: { ...labelOf('footnote', 'semibold'), color: theme.secondary },
+  question: { ...textOf('sent'), color: theme.text, paddingHorizontal: space[0.5] },
   tag: {
     ...labelOf('footnote', 'semibold'),
     color: theme.text,
