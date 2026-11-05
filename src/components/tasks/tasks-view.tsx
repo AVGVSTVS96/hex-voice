@@ -43,6 +43,7 @@ import {
   placeOf,
   taskIn,
   topicIn,
+  type HexPick,
   type Place,
   type Stage,
   type Tile,
@@ -122,6 +123,10 @@ export function Tasks({
   const answer = (ask: Ask, option: AskOption) => {
     tap();
     yours.answer(ask, option);
+  };
+  const takePicks = (picks: HexPick[]) => {
+    tap();
+    for (const { ask, option } of picks) yours.answer(ask, option);
   };
   const undo = (ask: Ask) => {
     tick();
@@ -247,6 +252,7 @@ export function Tasks({
           width={spot('topic').width}
           onSteps={openSteps}
           onAnswer={answer}
+          onTakePicks={takePicks}
           onUndo={undo}
           onAgain={again}
           onDismiss={dismiss}
@@ -304,6 +310,7 @@ export function Tasks({
               />
             ))}
           onAnswer={answer}
+          onTakePicks={takePicks}
           onUndo={undo}
           onAgain={again}
           onDismiss={dismiss}

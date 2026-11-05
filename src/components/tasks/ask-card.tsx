@@ -32,7 +32,7 @@ import {
   type AskOption,
   type Words,
 } from '@/live/asks';
-import { fitsOneLine, picksOf } from '@/live/inbox';
+import { fitsOneLine, picksOf, type HexPick } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
@@ -55,6 +55,7 @@ export function YourCall({
   answered,
   width,
   onAnswer,
+  onTakePicks,
   onUndo,
   onAgain,
   onDismiss,
@@ -63,6 +64,7 @@ export function YourCall({
   answered: Record<string, string | null>;
   width: number;
   onAnswer: Answer;
+  onTakePicks: (picks: HexPick[]) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
@@ -80,12 +82,7 @@ export function YourCall({
       ]}
     >
       {picks.length > 1 ? (
-        <TakePicks
-          picks={picks}
-          onTake={() => {
-            for (const { ask, option } of picks) onAnswer(ask, option);
-          }}
-        >
+        <TakePicks picks={picks} onTake={() => onTakePicks(picks)}>
           {(confirm) => (
             <SectionHead
               title="Your call"
