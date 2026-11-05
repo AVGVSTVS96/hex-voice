@@ -1,4 +1,12 @@
-import { Host } from '@expo/ui/swift-ui';
+import { Host, Rectangle, ZStack } from '@expo/ui/swift-ui';
+import {
+  accessibilityHidden,
+  clipped,
+  foregroundStyle,
+  frame,
+  offset,
+  opacity,
+} from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
@@ -6,7 +14,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { shapeOf, usePages } from '@/components/tasks/pages';
 import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
-import type { Page } from '@/screens/layout';
+import type { Fold, Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
 
@@ -82,20 +90,20 @@ export function TasksPage({
       ]}
     >
       <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
-        <Tasks
-          {...view}
-          pages={pages}
-          room={{
-            width: area.width,
-            height: area.height,
-            fold,
-            gap: page.gap,
-            top: page.top,
-            foot: page.foot,
-            inset: page.inset,
-            paged: true,
-          }}
-        />
+        <ZStack
+          alignment="top"
+          modifiers={[
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+            clipped(),
+          ]}
+        >
+          <Tasks
+            {...view}
+            pages={pages}
+            room={{ width: area.width, fold, foot: page.foot, paged: true }}
+          />
+          {page.gap ? <Gap gap={page.gap} /> : null}
+        </ZStack>
       </Host>
       <GestureDetector gesture={swipe}>
         <View testID="tasks-edge" style={styles.edge} />
@@ -103,6 +111,26 @@ export function TasksPage({
     </Animated.View>
   );
 }
+
+// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
+// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
+// and nowhere else.
+function Gap({ gap }: { gap: Fold }) {
+  return (
+    <Rectangle
+      modifiers={[
+        frame({ height: gap.band }),
+        frame({ maxWidth: Infinity }),
+        foregroundStyle(theme.sheet),
+        opacity(DIM),
+        offset({ x: 0, y: gap.at }),
+        accessibilityHidden(true),
+      ]}
+    />
+  );
+}
+
+const DIM = 0.7;
 
 const styles = StyleSheet.create({
   pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },

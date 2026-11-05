@@ -25,9 +25,6 @@ const SHORT = 520;
 export const CALL_ORB = 34;
 export const TIME = 16;
 const TIME_WIDTH = 44;
-// Tasks' rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
-// bar's buttons.
-const FLUSH = { left: 0, right: 0 };
 // iPhone Duo open on its side reserves its whole top band for the status items but draws them this
 // far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
 const STATUS_DROP = 7;
@@ -73,17 +70,16 @@ export type Duo = {
   };
 };
 
-// Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
-// buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
-// clear of the home indicator, or ends at the fold. Held wide, the fold cuts it into two pages side
-// by side (`fold`, within `area`). On its side partly open it stays one page with a break across
-// it where the fold's frame is (`gap`), which what scrolls passes under.
+// Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
+// the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
+// Held wide, the fold cuts it into two pages side by side (`fold`, within `area`). On its side
+// partly open it stays one page with a break across it where the fold's frame is (`gap`), which
+// what scrolls passes under. Its rows keep their own inset, so its pages run flush to the screen's
+// edges, the fold and the bar's buttons.
 export type Page = {
   area: Rect;
   fold?: Fold;
   gap?: Fold;
-  inset: { left: number; right: number };
-  top: number;
   foot: number | 'fold';
 };
 
@@ -330,11 +326,13 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before
   const leading = column.x === 0;
   const { tasks, after } = paged(
     {
-      area: leading
-        ? { x: x + reach, y: 0, width: window.width - x - reach, height: window.height }
-        : { x: 0, y: 0, width: x - reach, height: window.height },
-      inset: FLUSH,
-      top: insets.top,
+      area: {
+        ...(leading
+          ? { x: x + reach, width: window.width - x - reach }
+          : { x: 0, width: x - reach }),
+        y: insets.top,
+        height: window.height - insets.top,
+      },
       foot: insets.bottom,
     },
     before?.fold,
@@ -373,8 +371,6 @@ function belowBand(frame: Frame, before?: Before): Duo {
   } = paged(
     {
       area: { x: 0, y: top, width: window.width, height: window.height - top },
-      inset: FLUSH,
-      top: 0,
       foot: insets.bottom,
     },
     before?.fold,
@@ -416,7 +412,7 @@ function paged(
     };
   return {
     tasks: fold.height > 0 ? { ...page, gap: { at: fold.y - area.y, band: fold.height } } : page,
-    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
+    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y } },
     before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }

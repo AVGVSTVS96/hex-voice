@@ -358,8 +358,6 @@ test('folded upright, Tasks runs from the screen edge to the column buttons and 
   assert.equal(layout.toolbar.y, 170);
   assert.deepEqual(layout.duo!.tasks, {
     area: { x: 0, y: 0, width: 424 - 32, height: 678 },
-    inset: { left: 0, right: 0 },
-    top: 0,
     foot: 34,
   });
   assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -382,8 +380,6 @@ test('open upright, Tasks takes both pages, or the trailing one while the callâ€
   assert.deepEqual(tasks.fold, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
   assert.deepEqual(beside!.tasks, {
     area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
-    inset: { left: 0, right: 0 },
-    top: 0,
     foot: 34,
   });
   assert.ok(layout.words.x >= 475.5, 'alone, the words are past the middle of the fold');
@@ -409,7 +405,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
   assert.equal(tasks.gap, undefined, 'and runs straight through it');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
-  assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
+  assert.equal(beside!.tasks.foot, 34, 'the bottom page');
   assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
   assert.equal(
     951 - layout.agent.bottom - beside!.words.raise,
