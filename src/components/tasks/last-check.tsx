@@ -13,9 +13,9 @@ import { Faded, SectionHead, Sections, Waiting } from '@/components/tasks/parts'
 import type { Check, CheckNote } from '@/live/asks';
 import { timeOfDay } from '@/live/calls';
 import type { Answered } from '@/hooks/use-watch';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { metrics, radius, space } from '@/ui/tokens';
 
 export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
   return (

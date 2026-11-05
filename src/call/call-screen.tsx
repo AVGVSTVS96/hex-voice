@@ -56,9 +56,9 @@ import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
-import { metrics } from '@/ui/tokens';
+import { metrics, radius } from '@/ui/tokens';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;

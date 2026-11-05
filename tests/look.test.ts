@@ -101,7 +101,7 @@ test('the files left to move onto the tokens still have something to move', () =
   assert.deepEqual(done, [], 'take these off the list: they draw only with tokens now');
 });
 
-test('every corner comes from theme.ts, in every file', () => {
+test('every corner comes from the tokens, in every file', () => {
   const corner = /borderRadius: [\d.]|roundedRectangle', [\d.]|cornerRadius: [\d.]/;
   const found = files('src')
     .filter((file) => !file.endsWith('theme.ts'))

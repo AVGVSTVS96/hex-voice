@@ -13,9 +13,9 @@ import {
 import { said, type Sending } from '@/live/chat';
 import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { textLook } from '@/ui/text';
-import { metrics, space, type Tone } from '@/ui/tokens';
+import { metrics, radius, space, type Tone } from '@/ui/tokens';
 
 // Drawn as the call transcript draws a turn.
 export function Said({ turn }: { turn: ChatTurn }) {
