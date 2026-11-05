@@ -14,54 +14,12 @@ import { useState } from 'react';
 import { Mark } from '@/components/tasks/mark';
 import { asks, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
-import type { Stage, Topic } from '@/live/inbox';
+import type { Stage } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
 const MARKS = 6;
-
-export function TopicHead({
-  topic,
-  width,
-  onPress,
-}: {
-  topic: Topic;
-  width: number;
-  onPress?: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={space[2]}
-      onPress={onPress}
-      modifiers={[
-        padding({
-          leading: metrics.list.inset,
-          trailing: metrics.list.inset - space[1],
-          top: space[3.5],
-          bottom: space[0.5],
-        }),
-        frame({ maxWidth: Infinity }),
-        contentShape(shapes.rectangle()),
-        ...listRow(width, { bottom: false }),
-        ...(onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
-      ]}
-    >
-      <Text
-        numberOfLines={1}
-        variant="subheadline"
-        weight="semibold"
-        modifiers={[layoutPriority(1)]}
-      >
-        {topic.name}
-      </Text>
-      {topic.marks.length ? <Dots marks={topic.marks} /> : null}
-      <Spacer flexible />
-      {onPress ? <Icon name="chevron.right" size={11} color={theme.tertiary} /> : null}
-    </Row>
-  );
-}
 
 export function Dots({ marks }: { marks: Stage[] }) {
   return (

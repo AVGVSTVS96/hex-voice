@@ -424,7 +424,8 @@ const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
 };
 
 // A project as one row in the list: its name and how its threads stand, its week on a lane, how
-// many it has here, then the newest thing in it and when. Opens its page.
+// many it has in the stage shown, or that a search found, then the newest of them and when. Opens
+// its page.
 export function ProjectRow({
   topic,
   stage,
@@ -435,7 +436,8 @@ export function ProjectRow({
   onOpen,
 }: {
   topic: Topic;
-  stage: Stage;
+  // Searching, it counts what was found, in every stage.
+  stage?: Stage;
   tracks: Turn[][];
   now: number;
   width: number;
@@ -447,7 +449,7 @@ export function ProjectRow({
   const count = topic.entries.length;
   // Mint means it waits on you, so only Needs you counts in mint.
   const needs = stage === 'needs';
-  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
+  const counted = `${count} ${!stage ? 'found' : needs ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
     <Column
       alignment="start"

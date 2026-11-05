@@ -16,7 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
-import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
+import { CheckRow, PicksRow } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField, type Pages, type Spot } from '@/components/tasks/pages';
 import {
@@ -28,10 +28,9 @@ import {
   listRow,
   type Feel,
 } from '@/components/tasks/parts';
-import { EntryRow, ProjectRow } from '@/components/tasks/rows';
+import { ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
-import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
   picksOf,
@@ -43,7 +42,6 @@ import {
   topicsOf,
   tracksOf,
   type Stage,
-  type Tile,
   type PageId,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
@@ -72,9 +70,6 @@ export function ListPage({
   current,
   yours,
   feel,
-  onAnswer,
-  onUndo,
-  onOpenTile,
   onGoThrough,
 }: {
   open: boolean;
@@ -88,9 +83,6 @@ export function ListPage({
   current: boolean;
   yours: ReturnType<typeof useAsks>;
   feel: Feel;
-  onAnswer: (ask: Ask, option: AskOption) => void;
-  onUndo: (ask: Ask) => void;
-  onOpenTile: (tile: Tile) => void;
   onGoThrough: () => void;
 }) {
   const { back } = useChrome();
@@ -118,16 +110,10 @@ export function ListPage({
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
   const searching = query !== null;
-  const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
+  const first = topics[0] && pageOf(topics[0]);
   useEffect(() => {
     if (beside && open && !pages.task && first) pages.go({ to: 'beside', id: first });
   }, [beside, open, pages.task, first]);
-  const selected = beside
-    ? ((
-        shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
-        shown.find((entry) => taskOf(entry) === pages.task)
-      )?.id ?? null)
-    : null;
   // The project open beside the list, by what its page shows.
   const openTopic = beside
     ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
@@ -152,31 +138,6 @@ export function ListPage({
     setQuery('');
   };
   const width = spot.width;
-  const actions = {
-    width,
-    selected,
-    answered: yours.answered,
-    onOpen: openPage,
-    onOpenTile,
-    onAnswer,
-    onUndo,
-    onDismiss: (ask: Ask) => {
-      feel.tap();
-      yours.dismiss(ask);
-    },
-    onAgain: (ask: Ask) => {
-      feel.tap();
-      yours.again(ask);
-    },
-    onAct: (id: string) => {
-      feel.tap();
-      void yours.act(id);
-    },
-    onRead: (id: string) => {
-      feel.tick();
-      void yours.read(id);
-    },
-  };
   const unreachable = (offline || yours.offline) && !loaded;
   const behind = loaded && !(current && yours.current);
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
@@ -250,33 +211,18 @@ export function ListPage({
               }}
             />
           ) : null}
-          {topics.flatMap((topic) => {
-            if (!searching)
-              return [
-                <ProjectRow
-                  key={topic.name}
-                  topic={topic}
-                  stage={stage}
-                  tracks={tracksOf(topic.name, tasks ?? [])}
-                  now={now}
-                  width={width}
-                  selected={topic.name === openTopic}
-                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
-                />,
-              ];
-            const lead = topic.entries.map(taskOf).find(Boolean);
-            return [
-              <TopicHead
-                key={`${topic.name}:head`}
-                topic={topic}
-                width={width}
-                onPress={() => openPage(lead ?? pageOf(topic))}
-              />,
-              ...topic.entries.map((entry, i) => (
-                <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
-              )),
-            ];
-          })}
+          {topics.map((topic) => (
+            <ProjectRow
+              key={topic.name}
+              topic={topic}
+              stage={searching ? undefined : stage}
+              tracks={tracksOf(topic.name, tasks ?? [])}
+              now={now}
+              width={width}
+              selected={topic.name === openTopic}
+              onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
+            />
+          ))}
           {!searching && stage === 'needs' && yours.list?.check ? (
             <CheckRow
               check={yours.list.check}
