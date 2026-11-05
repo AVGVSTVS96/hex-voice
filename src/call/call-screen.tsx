@@ -15,7 +15,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { cardOf } from '@/call/card';
+import { barOf, cardOf } from '@/call/card';
 import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
@@ -338,19 +338,10 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-  // The bar sits in the window. A column down the side never moves. A bar along the top spans the
-  // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
-  // begins, unless Calls starts below it, which leaves the band whole.
-  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
-  // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
-  // rides the card's edges, and keeps its leading end where Calls starts below it.
-  const toolbarStyle = useAnimatedStyle(() => {
-    const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
-    return {
-      left: toolbar.x + (list.below === undefined ? card.left : 0),
-      right: width - toolbar.x - toolbar.width + card.right,
-    };
-  });
+  // The bar sits in the window, and never moves for Tasks. A column down the side never moves at
+  // all; across the top it's placed by barOf, which only Calls moves.
+  const { toolbar } = layout;
+  const toolbarStyle = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
   // style only for the shared values it reads directly, not ones a helper worklet reads for it.
@@ -621,7 +612,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
       {panes && !duo && (
         <TasksPane
           {...tasks}
-          top={insets.top}
+          top={inbox ? inbox.top : insets.top}
           foot={insets.bottom}
           width={paneWidth}
           style={paneStyle}

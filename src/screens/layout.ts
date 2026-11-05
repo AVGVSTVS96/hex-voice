@@ -158,9 +158,10 @@ export type Layout = {
   pulls: boolean;
 };
 
+// The bar stays where it is over the inbox, so the inbox starts `top` down, under it.
 export type Inbox = {
   width: number;
-  toolbar: Spot & { width: number; axis: 'column' };
+  top: number;
   orb: Required<Spot>;
   controls: Place;
 };
@@ -439,12 +440,7 @@ function pad(frame: Frame): Layout {
   const withTasks = docked(0, width - tasks);
   const rail = {
     width: width - RAIL,
-    toolbar: {
-      x: (RAIL - metrics.tool) / 2,
-      y: toolbar.y,
-      width: metrics.tool,
-      axis: 'column' as const,
-    },
+    top: below,
     orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
     controls: { x: RAIL / 2, y: foot },
   };

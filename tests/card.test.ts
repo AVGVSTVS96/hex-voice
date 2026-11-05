@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
-import { cardOf } from '../src/call/card';
+import { barOf, cardOf } from '../src/call/card';
 import { screenLayout } from '../src/screens/layout';
-import { radius } from '../src/ui/tokens';
+import { metrics, radius } from '../src/ui/tokens';
 
 type Fixture = {
   window: { width: number; height: number };
@@ -100,5 +100,27 @@ test('what is on the call card stays put in the window unless the card slides as
     const moved = layout.calls.place === 'slide' ? card.left : 0;
     assert.equal(card.left + card.stage.left, moved, name);
     assert.equal(card.top + card.stage.top, 0, name);
+  }
+});
+
+// barOf takes no pane, so Tasks opening or closing can't move the bar; this checks the one place
+// it keeps is clear of Tasks and holds every button.
+test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
+  const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
+  for (const [name, { window, insets, pose }] of Object.entries(screens)) {
+    const layout = screenLayout(window, insets, pose);
+    if (layout.toolbar.axis !== 'row') continue;
+    for (const drawer of [0, 0.5, 1]) {
+      const { left, right } = barOf(layout, window.width, drawer);
+      const end = window.width - right;
+      assert.ok(end - left >= least, `${name}, Calls at ${drawer}: holds its buttons`);
+      if (layout.tasks.place === 'beside' && drawer === 0)
+        assert.ok(end <= window.width - layout.tasks.width, `${name}: clear of Tasks`);
+    }
+    if (layout.inbox)
+      assert.ok(
+        layout.toolbar.y + metrics.tool <= layout.inbox.top,
+        `${name}: the inbox starts under the bar`,
+      );
   }
 });
