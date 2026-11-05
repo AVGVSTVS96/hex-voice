@@ -554,11 +554,7 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
     if (layout.duo?.tasks.fold)
       assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
     if (pose.fold && !partly && layout.kind === 'split')
-      assert.equal(
-        layout.orb.rest.x,
-        layout.content.x + layout.content.width / 2,
-        `${name}: orb rests mid-screen`,
-      );
+      assert.equal(layout.orb.rest.x, layout.content.width / 2, `${name}: orb rests mid-screen`);
   }
 });
 
@@ -592,4 +588,23 @@ test('open on its side, beside Calls the words keep to the room the call has lef
     assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
     assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
   }
+});
+
+test('the call stage lays out from its own box, wherever the screen puts it and at the size it was laid out at', () => {
+  const { window, insets, pose } = duo['folded upright'];
+  const right = screenLayout(window, insets, pose);
+  const left = screenLayout(
+    window,
+    { ...insets, right: 0, left: 84 },
+    { ...pose, bar: 'left', occlusions: [] },
+  );
+  assert.equal(left.content.x, 84);
+  assert.deepEqual([left.orb, left.words, left.footer], [right.orb, right.words, right.footer]);
+  const given = { width: right.content.width, height: right.content.height };
+  const size = { width: 300, height: 600 };
+  const laid = screenLayout(window, insets, pose, { given, size });
+  assert.deepEqual(laid.size, size);
+  assert.equal(laid.orb.rest.x, 150);
+  const stale = screenLayout(window, insets, pose, { given: { width: 1, height: 1 }, size });
+  assert.deepEqual(stale.orb, right.orb, 'laid out in a box it is no longer given');
 });

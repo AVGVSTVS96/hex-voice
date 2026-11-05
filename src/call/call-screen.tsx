@@ -53,7 +53,7 @@ import type { CallAbout } from '@/live/types';
 import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout } from '@/screens/layout';
+import { screenLayout, type LaidOut } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { radius, theme } from '@/theme';
@@ -129,7 +129,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const insets = useSafeAreaInsets();
   const screen = useViewport();
   const { width, height } = screen;
-  const layout = screenLayout(screen, insets, pose);
+  // The stage lays out from its own box: the size it was laid out at, once it has been.
+  const [laid, setLaid] = useState<LaidOut>();
+  const layout = screenLayout(screen, insets, pose, laid);
   const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
@@ -201,7 +203,10 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const rest = orbRest(
     {
       top: orb.room.top,
-      bottom: Math.min(moves ? orb.room.bottom : height - footer, overSheet ? height / 2 : height),
+      bottom: Math.min(
+        moves ? orb.room.bottom : layout.size.height - footer,
+        overSheet ? height / 2 : height,
+      ),
     },
     orb.rest.y,
     size,
@@ -344,7 +349,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   });
   const stageStyle = useAnimatedStyle(() => ({
     top: -(list.below ?? 0) * drawer.get(),
-    left: list.place === 'beside' ? -drawer.get() * list.width : 0,
+    left: layout.content.x - (list.place === 'beside' ? drawer.get() * list.width : 0),
   }));
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * 48,
@@ -467,7 +472,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     if (duo) {
       const k = dock.get();
       const spot = duo.call.orb;
-      x += (spot.x - x) * k;
+      x += (spot.x - layout.content.x - x) * k;
       at += (spot.y - at) * k;
       visual += (spot.size - visual) * k;
       const under = uncovered(covers.get());
@@ -650,7 +655,15 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
             style={[styles.fill, styles.backdrop, backdropStyle]}
           />
         )}
-        <Animated.View style={[styles.stage, { width }, stageStyle]}>
+        <Animated.View
+          style={[styles.stage, { width: layout.content.width }, stageStyle]}
+          onLayout={({ nativeEvent: { layout: laidOut } }) =>
+            setLaid({
+              given: { width: layout.content.width, height: layout.content.height },
+              size: { width: laidOut.width, height: laidOut.height },
+            })
+          }
+        >
           <GestureDetector gesture={screenDrag}>
             <View style={styles.fill}>
               <Animated.View
