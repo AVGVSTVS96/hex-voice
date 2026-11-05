@@ -15,14 +15,17 @@ const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
 const BACK_FLICK_SPEED = 400;
 
-// Tasks beside the call on iPad. Its room at the top comes in `style`, which moves it as the pane
-// narrows from the inbox.
+// Tasks beside the call on iPad. Its width and top change together and at once: the inbox, wide,
+// starts under the bar, and the pane beside a call, clear of the bar, starts at the top. A top that
+// moved after its width would leave the wide inbox under the bar's buttons as a call ends.
 export function TasksPane({
+  top,
   foot,
   width,
   style,
   ...view
 }: TasksProps & {
+  top: number;
   foot: number;
   width: number;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
@@ -32,7 +35,7 @@ export function TasksPane({
       testID="tasks-pane"
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[styles.pane, { width }, style]}
+      style={[styles.pane, { width, paddingTop: top }, style]}
     >
       <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <TasksView {...view} width={width} foot={foot} />
