@@ -593,23 +593,3 @@ test('open on its side, beside Calls the words keep to the room the call has lef
     assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
   }
 });
-
-test('on the open Duo settings is a place whose two pages part only around the fold', () => {
-  const at = (name: keyof typeof duo) => {
-    const { window, insets, pose } = duo[name];
-    return screenLayout(window, insets, pose).duo?.settings;
-  };
-  const flat = at('open upright')!;
-  const folded = at('partly open upright')!;
-  assert.deepEqual(folded.area, flat.area, 'the same room flat and folded');
-  assert.deepEqual(flat.split, { axis: 'row', at: 475.5, band: 0 });
-  assert.equal(folded.split.axis, 'row');
-  assert.equal(folded.split.at + folded.split.band / 2, 475.5, 'parting evenly about the hinge');
-  const side = at('open on its side')!;
-  const sideFolded = at('partly open on its side')!;
-  assert.deepEqual(sideFolded.area, side.area);
-  assert.equal(side.split.axis, 'column', 'on its side, one over the other');
-  assert.equal(side.split.band, 0);
-  assert.equal(sideFolded.split.band, 40);
-  assert.equal(at('folded upright'), undefined, 'folded, settings stays the phone’s sheet');
-});

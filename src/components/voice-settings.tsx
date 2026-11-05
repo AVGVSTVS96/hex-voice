@@ -1,9 +1,11 @@
 import { Column, Host, Icon, RNHostView, Row, Spacer } from '@expo/ui';
 import {
+  ArrangementView,
   BottomSheet,
   Button as NativeButton,
   Group as SheetContent,
   Picker,
+  Rectangle,
   Text as NativeText,
   Toggle,
   ZStack,
@@ -14,15 +16,18 @@ import {
   accessibilityIdentifier,
   accessibilityLabel,
   animation,
+  arrangementViewStyle,
   background,
   buttonBorderShape,
   buttonStyle,
   clipped,
   controlSize,
+  foregroundStyle,
   frame,
   labelsHidden,
   labelStyle,
   offset,
+  onGeometryChange,
   padding,
   pickerStyle,
   presentationBackground,
@@ -35,7 +40,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, type EdgeInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -57,11 +62,10 @@ import { PersonaColors } from '@/components/persona-colors';
 import { SelectionCarousel } from '@/components/selection-carousel';
 import { Group, Separator, SettingRow, groupHeight } from '@/components/settings-list';
 import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
-import { useViewport } from '@/hooks/use-viewport';
+import { useViewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
-import type { Settings } from '@/screens/layout';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { breakpoint, metrics, space } from '@/ui/tokens';
@@ -74,8 +78,9 @@ export type SettingsSheet = 'phone' | 'form' | 'page';
 
 type Props = {
   sheet: SettingsSheet;
-  // On the open Duo, settings is a place of its own instead of a sheet (see `Settings`).
-  place?: Settings;
+  // On the open Duo, settings is a place of its own over the call instead of a sheet: iOS moves a
+  // sheet off an active fold.
+  place?: boolean;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -107,7 +112,8 @@ const PREVIEW_ORB = 160;
 // Side by side from `breakpoint.beside` wide, or from `besideShort` wide where the page stacked
 // can't fit the height.
 const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
-// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
+// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded, and
+// grows to `BESIDE.preview` where its own place has the room.
 const SHORT_PREVIEW = 120;
 const SHEET_GAP = 24;
 
@@ -118,7 +124,7 @@ const ORB = 190;
 const VOICE_CAROUSEL = 180;
 const HEADER_TOP = space[3.5];
 const HEADER = 44;
-// The bar over the persona's page on the open Duo.
+// The bar over the persona's pane on the open Duo.
 const BAR = 60;
 
 const APPEARANCE_HEIGHT =
@@ -154,24 +160,31 @@ export function VoiceSettings({
   // own measurement, and one held to a width we pick gets capped by the system narrower than its
   // content, or the window's width runs under iPhone Duo's side column.
   const [given, setGiven] = useState<number>();
-  // On the open Duo the persona has the first page and the rows the second, so the rows lay out to
-  // the second page's width and the persona to the first's.
-  const pages = place && pagesOf(place);
-  const width = pages ? pages.second.width : (given ?? 0);
+  // On the open Duo iOS gives the persona and the rows a pane each where the screen is wider than
+  // tall, and the persona's pane alone otherwise, which then holds the rows too. Each lays out to
+  // the pane it's given.
+  const two = !!place && screen.width > screen.height;
+  const [panes, setPanes] = useState<{ persona?: Size; rows?: Size }>({});
+  const rowsPane = two ? panes.rows : panes.persona;
+  const width = place ? (rowsPane?.width ?? 0) : (given ?? 0);
   const room = screen.height - insets.top - SHEET_GAP;
   const beside =
-    !pages &&
+    !place &&
     (width >= breakpoint.beside ||
       (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-  const carouselWidth = pages
-    ? Math.min(pages.first.width - 2 * metrics.gutter, BESIDE.carousel + 80)
+  const carouselWidth = two
+    ? Math.min((panes.persona?.width ?? 0) - 2 * metrics.gutter, BESIDE.carousel + 80)
     : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-  const preview = pages
+  const placeRoom = (panes.persona?.height ?? 0) - BAR;
+  const preview = place
     ? Math.max(
         SHORT_PREVIEW,
-        Math.min(BESIDE.preview, pages.first.height - PERSONA_PAGE - BAR - SHEET_TOP),
+        Math.min(
+          BESIDE.preview,
+          two ? placeRoom - PERSONA_PAGE - SHEET_TOP : placeRoom - (APPEARANCE_HEIGHT - ORB),
+        ),
       )
     : beside
       ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
@@ -185,7 +198,7 @@ export function VoiceSettings({
   const detents = phone
     ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
     : [{ height: appearanceHeight }];
-  const orbSize = Math.min(beside || pages ? BESIDE.orb : PREVIEW_ORB, preview - 30);
+  const orbSize = Math.min(beside || place ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice)!;
@@ -225,15 +238,10 @@ export function VoiceSettings({
     accessibilityHidden(!shown),
   ];
 
-  // On the open Duo's second page, the rows and the voices push over each other the same way, each
-  // as tall as the page lets it be.
-  // On its side the rows start just past the fold; held wide they sit midway down their page.
-  const slide = (shown: boolean, away: number) => [
-    frame({
-      maxWidth: Infinity,
-      maxHeight: Infinity,
-      alignment: place?.split.axis === 'column' ? 'top' : 'center',
-    }),
+  // In the open Duo's place, what settings shows and the voices push over each other the same way,
+  // each as tall as its pane lets it be: settings midway down, the voices from the top.
+  const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
     background(theme.sheet),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
@@ -251,7 +259,7 @@ export function VoiceSettings({
     <SelectionCarousel
       options={PERSONA_VARIANTS}
       value={persona}
-      width={beside || pages ? carouselWidth : contentWidth}
+      width={beside || two ? carouselWidth : contentWidth}
       height={PERSONA_PAGE}
       preview={
         isPresented ? (
@@ -397,30 +405,51 @@ export function VoiceSettings({
     </>
   );
 
-  if (pages && place)
-    return (
-      <SettingsPlace place={place} pages={pages} shown={isPresented} onBack={onDismiss}>
-        {carousel}
-        <ZStack
+  if (place) {
+    const pushes = (settings: ReactNode) => (
+      <ZStack
+        alignment="center"
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity }), clipped()]}
+      >
+        <Column
           alignment="center"
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity }), clipped()]}
+          spacing={metrics.groupSpacing}
+          modifiers={slide(!onVoicePage, -width / 3, 'center')}
         >
-          <Column
-            alignment="center"
-            spacing={metrics.groupSpacing}
-            modifiers={[
-              ...(place.split.axis === 'row' ? [] : [padding({ top: SHEET_TOP })]),
-              ...slide(!onVoicePage, -pages.second.width / 3),
-            ]}
-          >
-            {rows}
-          </Column>
-          <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, pages.second.width)}>
-            {voices}
-          </Column>
-        </ZStack>
+          {settings}
+        </Column>
+        <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, width, 'top')}>
+          {voices}
+        </Column>
+      </ZStack>
+    );
+    return (
+      <SettingsPlace
+        shown={isPresented}
+        two={two}
+        insets={insets}
+        onBack={onDismiss}
+        onPane={(pane, size) =>
+          setPanes((now) =>
+            now[pane]?.width === size.width && now[pane]?.height === size.height
+              ? now
+              : { ...now, [pane]: { width: size.width, height: size.height } },
+          )
+        }
+      >
+        {panes.persona &&
+          (two
+            ? carousel
+            : pushes(
+                <>
+                  {carousel}
+                  {rows}
+                </>,
+              ))}
+        {two && panes.rows && pushes(rows)}
       </SettingsPlace>
     );
+  }
 
   return (
     <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
@@ -523,84 +552,89 @@ export function VoiceSettings({
   );
 }
 
-// The open Duo's settings pages: how wide and tall the persona's (first) and the rows' (second)
-// are, either side of the fold's band.
-function pagesOf({ area, split }: Settings) {
-  const row = split.axis === 'row';
-  const rest = (row ? area.width : area.height) - split.at - split.band;
-  return {
-    first: row ? { width: split.at, height: area.height } : { width: area.width, height: split.at },
-    second: row ? { width: rest, height: area.height } : { width: area.width, height: rest },
-  };
-}
-
-// Settings on the open Duo, over the call where Tasks would be: the persona on the first page under
-// a bar back to the call, the rows on the second, meeting at the fold flat and parting around it
-// partly open. It fades in where it sits, never moved by a transform (its Host would keep telling
-// accessibility where it started).
+// Settings on the open Duo, over the call where Tasks would be. iOS arranges it: the persona's pane
+// beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
+// it partly open, and the persona's pane alone, holding the rows too, where it's taller than wide.
+// The arrangement fills the screen, so flat its panes meet on the crease; each pane keeps its
+// content clear of the window edges it touches, and the sheet's color stays off the system's bars,
+// where the toolbar sits on the call. It fades in where it sits, never moved by a transform (its
+// Host would keep telling accessibility where it started).
 function SettingsPlace({
-  place: { area, split },
-  pages,
   shown,
+  two,
+  insets: { top, bottom, left, right },
   onBack,
-  children: [persona, second],
+  onPane,
+  children: [persona, rows],
 }: {
-  place: Settings;
-  pages: ReturnType<typeof pagesOf>;
   shown: boolean;
+  two: boolean;
+  insets: EdgeInsets;
   onBack: () => void;
+  onPane: (pane: 'persona' | 'rows', size: Size) => void;
   children: [ReactNode, ReactNode];
 }) {
   const fade = useAnimatedStyle(() => ({
     opacity: withTiming(shown ? 1 : 0, { duration: motion.toolbar }),
   }));
-  const Pages = split.axis === 'row' ? Row : Column;
+  const pane = (name: 'persona' | 'rows', edges: { leading: number; trailing: number }) => [
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+    onGeometryChange((size) => onPane(name, size)),
+    padding({ top, bottom, ...edges }),
+  ];
   return (
     <Animated.View
       testID="settings-place"
       pointerEvents={shown ? 'auto' : 'none'}
       accessibilityElementsHidden={!shown}
       importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
-      style={[
-        { position: 'absolute', left: area.x, top: area.y, width: area.width, height: area.height },
-        { backgroundColor: theme.sheet },
-        fade,
-      ]}
+      style={[StyleSheet.absoluteFill, fade]}
     >
       <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
-        <Pages
-          alignment="start"
-          spacing={split.band}
+        <ZStack
           modifiers={[
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
+            frame({ maxWidth: Infinity, maxHeight: Infinity }),
             accessibilityElement('contain'),
             accessibilityIdentifier('voice-settings-sheet'),
           ]}
         >
-          <Column
-            alignment="center"
-            spacing={0}
+          <Rectangle
             modifiers={[
-              frame({ width: pages.first.width }),
-              frame({ maxHeight: pages.first.height, alignment: 'top' }),
+              foregroundStyle(theme.sheet),
+              padding({ top, leading: left, trailing: right }),
+            ]}
+          />
+          <ArrangementView
+            modifiers={[
+              arrangementViewStyle('split', { axes: 'horizontal' }),
+              frame({ maxWidth: Infinity, maxHeight: Infinity }),
             ]}
           >
-            <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
-            <Spacer flexible />
-            {persona}
-            <Spacer flexible />
-          </Column>
-          <Column
-            alignment="center"
-            spacing={0}
-            modifiers={[
-              frame({ width: pages.second.width }),
-              frame({ maxHeight: pages.second.height, alignment: 'top' }),
-            ]}
-          >
-            {second}
-          </Column>
-        </Pages>
+            <ArrangementView.Primary>
+              <Column
+                alignment="center"
+                spacing={0}
+                modifiers={pane('persona', { leading: left, trailing: two ? 0 : right })}
+              >
+                <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
+                {two ? <Spacer flexible /> : null}
+                {persona}
+                {two ? <Spacer flexible /> : null}
+              </Column>
+            </ArrangementView.Primary>
+            <ArrangementView.Secondary>
+              {two ? (
+                <Column
+                  alignment="center"
+                  spacing={0}
+                  modifiers={pane('rows', { leading: 0, trailing: right })}
+                >
+                  {rows}
+                </Column>
+              ) : null}
+            </ArrangementView.Secondary>
+          </ArrangementView>
+        </ZStack>
       </Host>
     </Animated.View>
   );
