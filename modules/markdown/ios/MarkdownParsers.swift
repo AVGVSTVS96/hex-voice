@@ -59,22 +59,23 @@ struct Chat: MarkupParser {
   }
 }
 
-// A message as one run of words: its blocks joined, list items by a dot, its code left out.
-// Bold, code and links keep their marks.
+// A message as one text, for a few lines of it: each block on its own line as written, list items
+// with their number or bullet, so a line limit folds it where the reader expects.
 struct Run: MarkupParser {
   let look: Look
 
   func attributedString(for input: String) throws -> AttributedString {
-    let document = try Chat(look: look, breaks: false).attributedString(for: input)
+    let document = try Chat(look: look).attributedString(for: input)
     var words = AttributedString()
     var block: PresentationIntent?
     for run in document.runs {
       let intent = run.presentationIntent
-      if Chat.isCode(intent) { continue }
       if intent != block {
-        if !words.characters.isEmpty {
-          let item = intent?.components.contains { if case .listItem = $0.kind { true } else { false } }
-          words += AttributedString(item == true ? " · " : " ")
+        if !words.characters.isEmpty { words += AttributedString("\n") }
+        if let mark = Self.mark(intent) {
+          var marked = AttributedString(mark)
+          marked.foregroundColor = look.secondary
+          words += marked
         }
         block = intent
       }
@@ -83,5 +84,22 @@ struct Run: MarkupParser {
       words += piece
     }
     return words
+  }
+
+  // An item's number or bullet, indented by how deep its list sits.
+  private static func mark(_ intent: PresentationIntent?) -> String? {
+    guard let components = intent?.components else { return nil }
+    let lists = components.filter {
+      switch $0.kind {
+      case .orderedList, .unorderedList: true
+      default: false
+      }
+    }
+    guard let item = components.first(where: { if case .listItem = $0.kind { true } else { false } }),
+      case .listItem(let ordinal) = item.kind, let list = lists.first
+    else { return nil }
+    let indent = String(repeating: "    ", count: lists.count - 1)
+    if case .orderedList = list.kind { return "\(indent)\(ordinal). " }
+    return "\(indent)• "
   }
 }
