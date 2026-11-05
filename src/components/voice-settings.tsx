@@ -239,7 +239,8 @@ export function VoiceSettings({
   ];
 
   // In the open Duo's place, what settings shows and the voices push over each other the same way,
-  // each as tall as its pane lets it be: settings midway down, the voices from the top.
+  // each as tall as its pane lets it be, midway down it; the voices start at the top of a pane that
+  // also holds the persona.
   const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
     background(theme.sheet),
@@ -418,7 +419,11 @@ export function VoiceSettings({
         >
           {settings}
         </Column>
-        <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, width, 'top')}>
+        <Column
+          alignment="center"
+          spacing={0}
+          modifiers={slide(onVoicePage, width, two ? 'center' : 'top')}
+        >
           {voices}
         </Column>
       </ZStack>
