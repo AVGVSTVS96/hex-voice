@@ -42,7 +42,7 @@ type PagedRoom = Extract<Room, { paged: true }>;
 const roomOf = (page: Page, inset = { left: 0, right: 0 }): PagedRoom => ({
   width: page.area.width,
   height: page.area.height,
-  fold: page.fold,
+  split: page.split,
   top: page.top,
   foot: page.foot,
   inset,
@@ -52,7 +52,7 @@ const sheet: Room = { width: 440, foot: 34, paged: false };
 
 const go = (...moves: Move[]) => moves.reduce(move, START);
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
-  const shape = shapeOf(room.width, room.paged ? room.fold : undefined);
+  const shape = shapeOf(room.width, room.paged ? room.split : undefined);
   return { levels: levelsOf(stack, shape), shape, closes };
 };
 const onScreen = (stack: Stack, room: PagedRoom) => {
@@ -76,9 +76,9 @@ const stacks: [string, Stack][] = [
 ];
 
 test('the Duo pages split at its fold held wide, on its side and folded it shows one at a time', () => {
-  assert.equal(shapeOf(openUpright.area.width, openUpright.fold), 'fold');
-  assert.equal(shapeOf(openOnSide.area.width, openOnSide.fold), 'one');
-  assert.equal(shapeOf(folded.area.width, folded.fold), 'one');
+  assert.equal(shapeOf(openUpright.area.width, openUpright.split), 'split');
+  assert.equal(shapeOf(openOnSide.area.width, openOnSide.split), 'one');
+  assert.equal(shapeOf(folded.area.width, folded.split), 'one');
   assert.equal(shapeOf(1000, undefined), 'columns');
 });
 
@@ -96,11 +96,11 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
     ['one', go({ to: 'topic', id: A }), ['list']],
     ['one', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
     ['one', go({ to: 'check' }), ['list']],
-    ['fold', go(), 'call'],
-    ['fold', go({ to: 'topic', id: A }), 'call'],
-    ['fold', go({ to: 'check' }), 'call'],
-    ['fold', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
-    ['fold', stacks[3]![1], ['list', 'topic', 'thread']],
+    ['split', go(), 'call'],
+    ['split', go({ to: 'topic', id: A }), 'call'],
+    ['split', go({ to: 'check' }), 'call'],
+    ['split', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
+    ['split', stacks[3]![1], ['list', 'topic', 'thread']],
     ['columns', go({ to: 'topic', id: A }), 'call'],
     ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
@@ -175,9 +175,9 @@ test('on the Duo pages cross only while one fades, and never sit on the hinge, s
                   `${name}, t ${t}: ${one} covers ${other}`,
                 );
           }
-    const fold = room.fold;
-    if (!fold) continue;
-    const hinge = { x: fold.at, y: 0, width: fold.band, height: room.height };
+    const split = room.split;
+    if (!split) continue;
+    const hinge = { x: split.at, y: 0, width: split.band, height: room.height };
     for (const [at, stack] of stacks)
       for (const level of LEVELS)
         assert.ok(
@@ -195,10 +195,10 @@ test('content keeps its inset from the screen edges and none at the hinge', () =
   const task = spotOf('topic', pages, room);
   assert.deepEqual([list.pad.leading, list.pad.trailing], [12, 0]);
   assert.deepEqual([task.pad.leading, task.pad.trailing], [0, 30]);
-  assert.equal(list.width, openUpright.fold!.at - 12);
+  assert.equal(list.width, openUpright.split!.at - 12);
   assert.equal(
     task.width,
-    openUpright.area.width - openUpright.fold!.at - openUpright.fold!.band - 30,
+    openUpright.area.width - openUpright.split!.at - openUpright.split!.band - 30,
   );
   const side = roomOf(openOnSide, inset);
   const top = spotOf('list', pagesOf(go(), side), side);
@@ -255,7 +255,7 @@ test('on its side, flat or partly open, Tasks is one page: the list fills it and
       { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
     ).duo!.tasks;
     const room = roomOf(page);
-    assert.equal(room.fold, undefined);
+    assert.equal(room.split, undefined);
     assert.deepEqual(onScreen(go(), room), ['list']);
     assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
     const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);

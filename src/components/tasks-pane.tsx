@@ -52,11 +52,11 @@ export function TasksPage({
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
-  const { area, fold } = page;
+  const { area, split } = page;
   const pages = usePages({
     open: view.open,
     at: view.at,
-    shape: shapeOf(area.width, fold),
+    shape: shapeOf(area.width, split),
     onClose,
   });
   const { back } = pages;
@@ -88,7 +88,7 @@ export function TasksPage({
           room={{
             width: area.width,
             height: area.height,
-            fold,
+            split,
             gap: page.gap,
             top: page.top,
             foot: page.foot,

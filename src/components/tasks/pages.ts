@@ -27,7 +27,7 @@ export type Move =
   | { to: 'check' }
   | { to: 'back' };
 
-export type Shape = 'one' | 'columns' | 'fold';
+export type Shape = 'one' | 'columns' | 'split';
 
 export const START: Stack = {
   path: [],
@@ -41,8 +41,10 @@ export const START: Stack = {
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
 
-export function shapeOf(width: number, fold: Fold | undefined): Shape {
-  return fold ? 'fold' : width >= COLUMNS ? 'columns' : 'one';
+// A paged room is as many pages as its layout cut it into; any other is two columns when it's wide
+// enough.
+export function shapeOf(width: number, split: Fold | undefined): Shape {
+  return split ? 'split' : width >= COLUMNS ? 'columns' : 'one';
 }
 
 export function move(stack: Stack, step: Move): Stack {
@@ -114,7 +116,7 @@ export type Room =
       paged: true;
       width: number;
       height: number;
-      fold?: Fold;
+      split?: Fold;
       gap?: Fold;
       top: number;
       foot: number | 'fold';
@@ -158,7 +160,7 @@ export function useField() {
 }
 
 export function spotOf(level: Level, pages: Placing, room: Room): Spot {
-  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
+  if (room.paged && room.split) return spotSplit(level, pages, room, room.split);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -201,23 +203,23 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
   };
 }
 
-// Held wide, the deepest level takes the page after the fold and the one before it the page
-// before; deeper ones wait off the leading edge, shallower ones off the trailing edge.
-function spotAtFold(
+// Two pages side by side: the deepest level takes the second page and the one before it the first;
+// deeper ones wait off the leading edge, shallower ones off the trailing edge.
+function spotSplit(
   level: Level,
   { levels, closes }: Placing,
   room: Extract<Room, { paged: true }>,
-  fold: Fold,
+  split: Fold,
 ): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const second = { at: fold.at + fold.band, width: room.width - fold.at - fold.band };
+  const second = { at: split.at + split.band, width: room.width - split.at - split.band };
   const { at, width, shown } = front
     ? { ...second, shown: true }
     : i === levels.length - 2
-      ? { at: 0, width: fold.at, shown: true }
+      ? { at: 0, width: split.at, shown: true }
       : i >= 0
-        ? { at: -second.at, width: fold.at, shown: false }
+        ? { at: -second.at, width: split.at, shown: false }
         : { ...second, at: room.width, shown: false };
   const { inset } = room;
   const pad =

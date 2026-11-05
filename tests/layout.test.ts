@@ -379,7 +379,7 @@ test('open upright, Tasks takes both pages, or the trailing one while the call�
   const { tasks, beside } = layout.duo!;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
   assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-  assert.deepEqual(tasks.fold, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
+  assert.deepEqual(tasks.split, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
   assert.deepEqual(beside!.tasks, {
     area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
     inset: { left: 0, right: 0 },
@@ -406,7 +406,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
+  assert.equal(tasks.split, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
   assert.equal(tasks.gap, undefined, 'and runs straight through it');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
   assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
@@ -429,7 +429,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open upright'].insets,
     duo['partly open upright'].pose,
   ).duo!;
-  assert.deepEqual(upright.tasks.fold, { at: 455.5, band: 40 });
+  assert.deepEqual(upright.tasks.split, { at: 455.5, band: 40 });
   assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
   assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
   const side = screenLayout(
@@ -437,7 +437,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open on its side'].insets,
     duo['partly open on its side'].pose,
   ).duo!;
-  assert.equal(side.tasks.fold, undefined, 'on its side Tasks stays one page');
+  assert.equal(side.tasks.split, undefined, 'on its side Tasks stays one page');
   assert.deepEqual(side.tasks.gap, { at: 455.5 - 82, band: 40 }, 'broken only where the fold is');
   assert.equal(side.beside!.tasks.area.y, 495.5);
 });
@@ -454,9 +454,21 @@ test('held wide, folding keeps Tasks’ two pages and only pulls them apart off 
     duo['partly open upright'].pose,
   ).duo!;
   assert.deepEqual(folded.tasks.area, flat.tasks.area, 'Tasks keeps the same room');
-  assert.deepEqual(flat.tasks.fold, { at: 475.5, band: 0 }, 'flat, the pages meet');
-  const { at, band } = folded.tasks.fold!;
+  assert.deepEqual(flat.tasks.split, { at: 475.5, band: 0 }, 'flat, the pages meet');
+  const { at, band } = folded.tasks.split!;
   assert.equal(at + band / 2, 475.5, 'folded, they part evenly about the same line');
+});
+
+test('Tasks is as many pages as its room holds, never as many as the hinge reports', () => {
+  const { window, insets, pose } = duo['open upright'];
+  const { fold: _, ...unreported } = pose;
+  const flat = screenLayout(window, insets, pose).duo!.tasks;
+  const lost = screenLayout(window, insets, unreported).duo!.tasks;
+  assert.deepEqual(lost, flat, 'held wide with no fold reported, the same two pages');
+  for (const name of ['folded upright', 'folded on its side', 'open on its side'] as const) {
+    const { window, insets, pose } = duo[name];
+    assert.equal(screenLayout(window, insets, pose).duo!.tasks.split, undefined, name);
+  }
 });
 
 test('partly open on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
@@ -551,8 +563,8 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
     const pose: Pose = fixture.pose;
     const layout = screenLayout(window, insets, pose);
     const partly = !!pose.fold?.active;
-    if (layout.duo?.tasks.fold)
-      assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
+    if (layout.duo?.tasks.split)
+      assert.equal(layout.duo.tasks.split.band > 0, partly, `${name}: partly open`);
     if (pose.fold && !partly && layout.kind === 'split')
       assert.equal(
         layout.orb.rest.x,

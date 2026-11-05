@@ -380,12 +380,12 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const atFold = room.paged && !!room.fold;
+  const split = room.paged && !!room.split;
   return (
     <ZStack
-      alignment={atFold ? 'topLeading' : 'top'}
+      alignment={split ? 'topLeading' : 'top'}
       modifiers={
-        atFold
+        split
           ? [
               frame({ maxWidth: Infinity, alignment: 'topLeading' }),
               upTo(Infinity, 'topLeading'),

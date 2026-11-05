@@ -23,6 +23,9 @@ const SHORT = 520;
 export const CALL_ORB = 34;
 export const TIME = 16;
 const TIME_WIDTH = 44;
+// Tasks this wide, and wider than tall, is two pages side by side: iPhone Duo held wide, never its
+// cover screen.
+const TWO_PAGES = 700;
 // Tasks' rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
 // bar's buttons.
 const FLUSH = { left: 0, right: 0 };
@@ -98,20 +101,21 @@ export type Settings = { area: Rect; split: { axis: 'row' | 'column'; at: number
 
 // Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 // buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
-// clear of the home indicator, or ends at the fold. Held wide, the fold cuts it into two pages side
-// by side (`fold`, within `area`). On its side partly open it stays one page with a break across
-// it where the fold's frame is (`gap`), which what scrolls passes under.
+// clear of the home indicator, or ends at the fold. Its size alone decides how many pages it is:
+// wide enough, it's two pages side by side (`split`, within `area`), whatever the hinge does. On
+// its side partly open it stays one page with a break across it where the fold's frame is
+// (`gap`), which what scrolls passes under.
 export type Page = {
   area: Rect;
-  fold?: Fold;
+  split?: Fold;
   gap?: Fold;
   inset: { left: number; right: number };
   top: number;
   foot: number | 'fold';
 };
 
-// The fold within Tasks: the first page `at` wide, then the fold's band: none open flat, the fold's
-// whole frame partly folded.
+// Where two pages of Tasks meet: the first page `at` wide, then the band between them, the fold's
+// whole frame partly folded and none otherwise.
 export type Fold = { at: number; band: number };
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
@@ -594,6 +598,7 @@ function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before
       top: insets.top,
       foot: insets.bottom,
     },
+    window.width / 2,
     before?.fold,
   );
   const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
@@ -634,6 +639,7 @@ function belowBand(frame: Frame, before?: Before): Duo {
       top: 0,
       foot: insets.bottom,
     },
+    window.width / 2,
     before?.fold,
   );
   const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
@@ -654,26 +660,31 @@ function belowBand(frame: Frame, before?: Before): Duo {
 }
 
 // Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
-// take the one before it. Held wide the fold cuts Tasks into two pages side by side, a list beside
-// its topic, as a split view does on a wide screen, and folding only parts them. On its side the
-// screen is one tall page at every angle, and Tasks takes it whole: a fold there never splits it
-// into other pages, it only breaks it where the fold is. The page before the fold is where it
-// types beside the call's words.
+// take the one before it. A page wide enough for two is two, a list beside its topic, as a split
+// view is on a wide screen, at every angle of the hinge: they meet at the fold, parting around its
+// frame partly folded, and where iOS reports no fold, at the screen's middle, where the hinge is.
+// On its side the screen is one tall page at every angle, and Tasks takes it whole: a fold there
+// only breaks it where the fold is. The page before the fold is where it types beside the call's
+// words.
 function paged(
-  page: Omit<Page, 'fold'>,
+  page: Omit<Page, 'split'>,
+  middle: number,
   fold?: Rect,
 ): { tasks: Page; after?: Page; before?: Page } {
-  if (!fold) return { tasks: page };
   const { area } = page;
-  const end = { x: fold.x + fold.width, y: fold.y + fold.height };
-  if (fold.height > fold.width)
+  if (area.width >= TWO_PAGES && area.width > area.height) {
+    const hinge = fold && fold.height > fold.width ? fold : { x: middle, width: 0 };
+    const end = hinge.x + hinge.width;
     return {
-      tasks: { ...page, fold: { at: fold.x - area.x, band: fold.width } },
-      after: { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } },
+      tasks: { ...page, split: { at: hinge.x - area.x, band: hinge.width } },
+      after: { ...page, area: { ...area, x: end, width: area.x + area.width - end } },
     };
+  }
+  if (!fold || fold.height > fold.width) return { tasks: page };
+  const end = fold.y + fold.height;
   return {
     tasks: fold.height > 0 ? { ...page, gap: { at: fold.y - area.y, band: fold.height } } : page,
-    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
+    after: { ...page, area: { ...area, y: end, height: area.y + area.height - end }, top: 0 },
     before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
   };
 }
