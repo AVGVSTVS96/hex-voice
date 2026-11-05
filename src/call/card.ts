@@ -9,8 +9,9 @@ import { radius } from '@/ui/tokens';
 // beside a pane. `drawer` and `pane` run 0 (shut) to 1 (open).
 //
 // What's on the card stays put in the window (`stage`) unless the card slides aside, and moves
-// by layout, never a transform, since it holds SwiftUI views. A card that still reaches the
-// screen's top and foot wears no hairline (`lined`): there it would only line the screen's edges.
+// by layout, never a transform, since it holds SwiftUI views. A hairline edges a card that slides
+// aside or starts below a band (`lined`); beside a pane a card still reaches the screen's top and
+// foot, where a hairline would only line the screen's edges.
 export function cardOf(
   { calls, tasks, content }: Pick<Layout, 'calls' | 'tasks' | 'content'>,
   drawer: number,

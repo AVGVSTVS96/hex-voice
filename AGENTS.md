@@ -55,7 +55,7 @@ Layout breaks here when JS and SwiftUI both place the same view, so where iOS al
 - Every React Native ScrollView is `@/ui/scroll`'s (lint holds it), so a drag down any scrolling content lets the keyboard go, as Tasks' SwiftUI scroll views do (`scrollDismissesKeyboard`).
 - A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
 - Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
-- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `src/ui/tokens.ts` (`radius`, `metrics`, `space`) and `theme.ts`'s `circle` and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
+- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `src/ui/tokens.ts` (`radius`, `metrics`, `space`) and `circle` in `theme.ts`, so it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
 - A size flows one way: the container gives it and the content fills it, or the content states it and the container fits it. Never measure a view to size the thing that sizes it; the settings sheet opened at a different width each time that way.
 - Prove layout on the real renderer: `scripts/duo tap` can `type` into a field, check it's `above-keyboard` or that there's `no-keyboard`, and `mark` a view then check it holds `still`, same place and size.
 
