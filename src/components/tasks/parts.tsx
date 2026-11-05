@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
   accessibilityLabel,
   alignmentGuide,
   foregroundStyle,
@@ -65,10 +66,13 @@ export function SectionHead({
   opens?: boolean;
   action?: { label: string; onPress: () => void };
 }) {
+  // A head with an action takes it across the whole row, as a strip does, so it's never only a
+  // footnote's height to hit.
   return (
     <Row
       alignment="center"
       spacing={0}
+      onPress={action?.onPress}
       modifiers={[
         padding({
           leading: metrics.list.inset,
@@ -77,6 +81,9 @@ export function SectionHead({
           bottom: space[1.5],
         }),
         frame({ maxWidth: Infinity }),
+        ...(action
+          ? [accessibilityLabel(`${title}. ${action.label}`), accessibilityAddTraits(['isButton'])]
+          : []),
       ]}
     >
       <Text variant="footnote" weight="semibold" tone="secondary">
@@ -97,13 +104,7 @@ export function SectionHead({
         />
       ) : null}
       {action ? (
-        <Text
-          variant="footnote"
-          weight="semibold"
-          tone="accent"
-          onPress={action.onPress}
-          modifiers={[accessibilityLabel(action.label)]}
-        >
+        <Text variant="footnote" weight="semibold" tone="accent">
           {action.label}
         </Text>
       ) : null}
