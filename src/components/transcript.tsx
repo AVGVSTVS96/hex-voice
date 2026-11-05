@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ScrollView,
   type ScrollViewInstance,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import type { TaskId } from '@/live/tasks';
 import type { TranscriptEntry } from '@/live/types';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
+import { ScrollView } from '@/ui/scroll';
 import { Turn } from '@/ui/turn';
 import { metrics, space, textOf } from '@/ui/tokens';
 

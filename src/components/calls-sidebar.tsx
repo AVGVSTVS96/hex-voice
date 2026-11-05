@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeOut,
@@ -25,6 +25,7 @@ import {
 } from '@/live/calls';
 import { motion } from '@/motion';
 import { circle, theme } from '@/theme';
+import { ScrollView } from '@/ui/scroll';
 import { metrics, radius, space, textOf } from '@/ui/tokens';
 
 const ACTION = 64;
