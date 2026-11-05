@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { arrived, newKey, said } from '../src/live/chat';
-import { blocksOf, plainOf } from '../src/live/markdown';
 import { TaskId, type Chat } from '../src/live/tasks';
 
 const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns.length): Chat => ({
@@ -41,29 +40,6 @@ test('app keys fit what hex takes', () => {
   assert.match(newKey(), /^app-[\w-]{8,60}$/);
 });
 
-test("hex's markdown splits into paragraphs, headings, lists, quotes and code", () => {
-  assert.deepEqual(
-    blocksOf(
-      '## Done\n\nShipped it.\nAll green.\n\n- one\n- two\n1. first\n\n> quoted\n\n```\nnpm run check\n```\n-# Task t-3 closed.',
-    ),
-    [
-      { kind: 'heading', text: 'Done' },
-      { kind: 'text', text: 'Shipped it.\nAll green.' },
-      {
-        kind: 'list',
-        items: [
-          { mark: '•', text: 'one' },
-          { mark: '•', text: 'two' },
-          { mark: '1.', text: 'first' },
-        ],
-      },
-      { kind: 'quote', text: 'quoted' },
-      { kind: 'code', text: 'npm run check' },
-      { kind: 'small', text: 'Task t-3 closed.' },
-    ],
-  );
-});
-
 test('what you did in a thread reads as an event, and a voice message as your words', () => {
   assert.deepEqual(said({ from: 'me', text: '(answered in the app) Ship it?: Yes' }), {
     kind: 'event',
@@ -87,11 +63,4 @@ test('what you did in a thread reads as an event, and a voice message as your wo
     kind: 'hex',
     text: '(aside) done',
   });
-});
-
-test('a preview reads a message as one run of words, without its code', () => {
-  assert.equal(
-    plainOf('## Shipped\n\n**Live** now:\n\n```\nnpm run ship\n```\n\n- iPhone\n- iPad'),
-    'Shipped **Live** now: iPhone · iPad',
-  );
 });

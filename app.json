@@ -13,6 +13,7 @@
     "ios": {
       "bundleIdentifier": "com.shahidy.hexvoice",
       "supportsTablet": true,
+      "deploymentTarget": "18.0",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "hex listens through your microphone while you talk with it.",
         "UIBackgroundModes": ["audio"],

@@ -1,0 +1,3 @@
+# Markdown in each place the app draws it, over invented answers: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo shoot <ref> scripts/duo-markdown-states
+# The topic: its pinned post, and its messages as one-line previews with their marks drawn.
+topic-pinned  hexvoice:///?tasks=md

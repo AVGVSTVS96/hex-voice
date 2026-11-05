@@ -156,6 +156,24 @@ test('a pinned text line shows a markdown link’s label and opens its url, as a
   ]);
 });
 
+test('a pinned line keeps its bold and code for the screen to draw, and a title ahead of them', () => {
+  const [section] = pinSections(
+    '📌 **Running:** the **Mac** build of `main`\n- **iPad** needs `devicectl`',
+  );
+  assert.deepEqual(
+    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
+    ['Running', ['the **Mac** build of `main`', '**iPad** needs `devicectl`']],
+  );
+});
+
+test('a pinned title bold to the end of its line, colon inside, leaves no stray mark', () => {
+  const [section] = pinSections('**Running: the Mac build**');
+  assert.deepEqual(
+    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
+    ['Running', ['the Mac build']],
+  );
+});
+
 test('what didn’t go through shows on the item it was about, and nowhere else', () => {
   const stuck = {
     id: 's',

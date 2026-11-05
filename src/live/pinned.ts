@@ -9,11 +9,14 @@ export type PinSection = { title: string; mark: PinMark; folded: boolean; lines:
 
 const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
 const LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/;
+// A line bold from its title to its end, colon inside: bold the title alone.
+const WHOLE_BOLD = /^(\*\*|__)([^:*_]{1,40}:)(.*?)\1$/;
+const PIN = /^📌\s*/u;
 const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/;
 // A heading's own emoji: the section's mark already says what it is.
 const EMOJI = /^(\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 const TITLES =
-  /^(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}:\s*(.+)$/i;
+  /^((?:\*\*|__)?(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(.+)$/i;
 const EMOJI_MARKS: [RegExp, PinMark][] = [
   [/^(✅|☑️|✔️)\s*/u, 'done'],
   [/^(❌|⚠️|🔴|🛑)\s*/u, 'failed'],
@@ -33,10 +36,10 @@ export function pinSections(text: string): PinSection[] {
       current.lines.push({ kind: 'code', text: code.join('\n') });
       continue;
     }
-    const line = raw.trim();
+    const line = raw.trim().replace(PIN, '');
     if (!line) continue;
-    const inline = plain(line).match(TITLES);
-    const heading = inline ? inline[0].slice(0, inline[0].indexOf(':')).trim() : headingOf(line);
+    const inline = line.replace(WHOLE_BOLD, '$1$2$1$3').match(TITLES);
+    const heading = inline ? plain(inline[1]!) : headingOf(line);
     if (heading) {
       if (current.title || current.lines.length) sections.push(current);
       const mark = sectionMark(heading);
@@ -44,7 +47,7 @@ export function pinSections(text: string): PinSection[] {
         title: heading,
         mark,
         folded: mark === 'done',
-        lines: inline ? [item(inline[2]!, mark)] : [],
+        lines: inline ? [item(inline[3]!, mark)] : [],
       };
       continue;
     }
@@ -90,13 +93,9 @@ function item(text: string, mark: PinMark): PinLine {
 function linked(text: string): { text: string; url?: string } {
   const link = text.match(LINK);
   const url = link?.[2] ?? text.match(URL)?.[0];
-  return { text: plain(link ? text.replace(LINK, '$1') : text), ...(url && { url }) };
+  return { text: (link ? text.replace(LINK, '$1') : text).trim(), ...(url && { url }) };
 }
 
 function plain(text: string) {
-  return text
-    .replace(/\*\*|__/g, '')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/^📌\s*/u, '')
-    .trim();
+  return text.replace(/\*\*|__/g, '').trim();
 }
