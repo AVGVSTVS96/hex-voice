@@ -1,4 +1,4 @@
-import { Button, Host, Image, ProgressView } from '@expo/ui/swift-ui';
+import { Button, Image, ProgressView } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -13,6 +13,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 
 import { theme } from '@/theme';
+import { Host } from '@/ui/host';
 import { metrics, type GlassSize } from '@/ui/tokens';
 
 const symbols = {
@@ -113,7 +114,7 @@ export function GlassButton({
 export function HostedGlassButton(props: Props) {
   const diameter = metrics[props.size ?? 'tool'];
   return (
-    <Host matchContents ignoreSafeArea="all" style={{ width: diameter, height: diameter }}>
+    <Host matchContents style={{ width: diameter, height: diameter }}>
       <GlassButton {...props} />
     </Host>
   );

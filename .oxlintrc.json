@@ -42,6 +42,16 @@
             "name": "react-native",
             "importNames": ["useWindowDimensions", "Dimensions"],
             "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+          },
+          {
+            "name": "@expo/ui",
+            "importNames": ["Host"],
+            "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+          },
+          {
+            "name": "@expo/ui/swift-ui",
+            "importNames": ["Host"],
+            "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
           }
         ]
       }
@@ -69,6 +79,16 @@
                 "name": "react-native",
                 "importNames": ["useWindowDimensions", "Dimensions"],
                 "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              },
+              {
+                "name": "@expo/ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "@expo/ui/swift-ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
               }
             ]
           }
@@ -94,6 +114,16 @@
                 "name": "react-native",
                 "importNames": ["useWindowDimensions", "Dimensions"],
                 "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              },
+              {
+                "name": "@expo/ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "@expo/ui/swift-ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
               }
             ],
             "patterns": [
@@ -121,6 +151,16 @@
                 "name": "react-native",
                 "importNames": ["useWindowDimensions", "Dimensions"],
                 "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              },
+              {
+                "name": "@expo/ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "@expo/ui/swift-ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
               }
             ]
           }
@@ -141,12 +181,43 @@
               {
                 "name": "@/hex",
                 "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              },
+              {
+                "name": "@expo/ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "@expo/ui/swift-ui",
+                "importNames": ["Host"],
+                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
               }
             ],
             "patterns": [
               {
                 "group": ["@/hex/*"],
                 "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/ui/host.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "expo/fetch",
+                "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["useWindowDimensions", "Dimensions"],
+                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
               }
             ]
           }

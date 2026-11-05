@@ -1,4 +1,4 @@
-import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
 import {
   BottomSheet,
   Button as NativeButton,
@@ -64,6 +64,7 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import type { Settings } from '@/screens/layout';
 import { theme } from '@/theme';
+import { Host } from '@/ui/host';
 import { metrics, type } from '@/ui/tokens';
 
 // On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
@@ -433,7 +434,7 @@ export function VoiceSettings({
     );
 
   return (
-    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={isPresented}
         onIsPresentedChange={(presented) => {
@@ -577,7 +578,7 @@ function SettingsPlace({
         fade,
       ]}
     >
-      <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
+      <Host seedColor={theme.tint} style={{ flex: 1 }}>
         <Pages
           alignment="start"
           spacing={split.band}

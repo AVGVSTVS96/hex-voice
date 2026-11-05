@@ -1,9 +1,10 @@
-import { GlassEffectContainer, HStack, Host, Spacer, VStack } from '@expo/ui/swift-ui';
+import { GlassEffectContainer, HStack, Spacer, VStack } from '@expo/ui/swift-ui';
 import { frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { buttonsOf, type Call, type CallButton } from '@/call/call';
 import { GlassButton } from '@/ui/glass-button';
+import { Host } from '@/ui/host';
 import { metrics, type ControlsSize } from '@/ui/tokens';
 
 type Props = {
@@ -56,7 +57,7 @@ export function CallControls({
     >
       <Host
         matchContents
-        ignoreSafeArea="all"
+
         style={
           axis === 'row' ? { width: along, height: callSide } : { width: callSide, height: along }
         }
