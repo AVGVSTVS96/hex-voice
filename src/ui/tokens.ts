@@ -213,5 +213,6 @@ export const metrics = {
 export type ControlsSize = keyof typeof metrics.controls;
 export type ToolbarGaps = 'regular' | 'compact';
 
-// Widths from which a sheet lays its content out side by side.
-export const breakpoint = { beside: 600, besideShort: 540 } as const;
+// Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
+// the fold parts a window only where it leaves a page on each side of it.
+export const breakpoint = { beside: 600, besideShort: 540, page: 320 } as const;

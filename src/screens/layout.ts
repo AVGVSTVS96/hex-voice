@@ -1,13 +1,12 @@
 import { metrics, type ControlsSize, type ToolbarGaps } from '@/ui/tokens';
 
-import type { Pose, Rect, Region } from '../../modules/pose';
+import type { Insets, Rect, Region, Room, Size } from '@/screens/window';
 
 const GAP = 12;
 // The toolbar's Tasks and settings, one glass capsule.
 const PAIR = 2 * metrics.tool + metrics.toolbar.row;
 const RAIL = 96;
 const AGENT = 22;
-const COLUMN = 84;
 const WORDS = 600;
 const WORDS_BESIDE = 520;
 const MEASURE = 680;
@@ -32,8 +31,6 @@ const ART = 0.75;
 // far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
 const STATUS_DROP = 7;
 
-type Size = { width: number; height: number };
-type Insets = { top: number; right: number; bottom: number; left: number };
 type Place = { x: number; y: number };
 type Spot = Place & { size?: number };
 type Span = { x: number; width: number };
@@ -46,7 +43,8 @@ type ColumnControls = {
   size?: ControlsSize;
 };
 
-// The call screen's geometry for a window in a pose. It comes in three arrangements:
+// The call screen's geometry for the room its window has, never the device's pose. It comes in
+// three arrangements:
 // - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
 // - split: the orb on the leading page and the words on the trailing one, both there from the
 //   start (iPad landscape, iPhone Duo open)
@@ -154,17 +152,18 @@ export type Inbox = {
   controls: Place;
 };
 
-export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
-  const frame = frameFor(window, insets, pose);
-  const fold = pose.fold && divide(pose.fold);
-  if (pose.regular && !fold && !pose.bar) return pad(frame);
+export function screenLayout(room: Room): Layout {
+  const { size: window, regular, bar } = room;
+  const frame = frameFor(room);
+  const fold = room.fold && divide(room.fold);
+  if (regular && !fold && !bar) return pad(frame);
   const layout =
-    pose.regular && window.width > window.height
+    regular && window.width > window.height
       ? split(frame, fold)
       : fold && fold.width > fold.height
         ? stacked(frame, fold)
         : single(frame);
-  if (!pose.bar && !fold) return layout;
+  if (!bar && !fold) return layout;
   const before = fold && wordsBefore(frame, layout, fold);
   const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
   // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
@@ -246,14 +245,14 @@ type Frame = {
   top: number;
 };
 
-function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
+function frameFor({ size: window, insets, regular, bar, fold, occlusions }: Room): Frame {
   const bottomInset = Math.max(insets.bottom, 20) + 14;
-  if (pose.bar) return { window, insets, bottomInset, ...column(window, insets, pose) };
-  const toolbar = pose.fold
-    ? band(window, insets, pose.occlusions ?? [])
+  if (bar) return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
+  const toolbar = fold
+    ? band(window, insets, occlusions)
     : {
         x: metrics.gutter,
-        y: insets.top + (pose.regular ? 16 : 12),
+        y: insets.top + (regular ? 16 : 12),
         width: window.width - 2 * metrics.gutter,
         axis: 'row' as const,
       };
@@ -292,12 +291,10 @@ function widestClear(from: number, to: number, taken: Rect[]): Span {
 // iPhone Duo's side column. The camera and the system's status items sit at its top upright and
 // at its foot on its side; the tools start below what's at the top, and the call buttons end above
 // what's at the foot.
-function column(window: Size, insets: Insets, pose: Pose) {
-  const width = Math.max(pose.bar === 'right' ? insets.right : insets.left, COLUMN);
-  const x = pose.bar === 'right' ? window.width - width : 0;
-  const covers = (pose.occlusions ?? []).filter(
-    (area) => area.x < x + width && area.x + area.width > x,
-  );
+function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) {
+  const width = bar === 'right' ? insets.right : insets.left;
+  const x = bar === 'right' ? window.width - width : 0;
+  const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
   const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
   const top = covers
     .filter(high)
