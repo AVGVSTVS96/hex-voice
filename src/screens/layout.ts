@@ -120,14 +120,14 @@ export function screenLayout(
   { stage, panes }: Reported = {},
 ): Layout {
   const frame = frameFor(window, insets, pose);
-  const fold = pose.fold && divide(pose.fold);
-  const { content, toolbar } = frame;
-  const size = stage && same(stage.given, content) ? stage.size : content;
-  // Held wide, Tasks parts where iOS parts the open screen's panes; on its side, at the fold.
-  const parting =
+  // Held wide, the call and Tasks part where iOS parts the open screen into its two panes; on its
+  // side, where the fold is.
+  const fold =
     pose.fold && pose.regular && window.width > window.height
       ? between(panesOf(window, panes), window)
-      : fold;
+      : pose.fold && divide(pose.fold);
+  const { content, toolbar } = frame;
+  const size = stage && same(stage.given, content) ? stage.size : content;
   const box: Box = {
     width: size.width,
     height: size.height,
@@ -148,8 +148,8 @@ export function screenLayout(
     };
   const before = box.fold && wordsBefore(box, layout, box.fold);
   const duo = frame.column
-    ? besideColumn(frame, frame.column, parting, before)
-    : belowBand(frame, parting, before);
+    ? besideColumn(frame, frame.column, fold, before)
+    : belowBand(frame, fold, before);
   // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
   const calls = frame.column
     ? layout.calls
@@ -224,7 +224,8 @@ export function panesOf(window: Size, { first, second }: Partial<Panes> = {}): P
   return { first: { x: 0, width: half }, second: { x: half, width: half } };
 }
 
-// The band between two panes, down the whole screen.
+// The band between two panes, down the whole screen: a line flat, the fold's whole frame partly
+// open.
 function between({ first, second }: Panes, window: Size): Rect {
   const end = first.x + first.width;
   return { x: end, y: 0, width: second.x - end, height: window.height };
@@ -246,11 +247,11 @@ function rail({ window, toolbar, bottomInset }: Frame): Inbox {
   };
 }
 
-// What the fold takes from the screen. iOS reports it as a division region that's active only
-// while the Duo is partly open; then content keeps to either side of its frame, which already
-// holds the margins controls and text keep from the hinge. Open flat it's inactive and nothing
-// keeps off it, so the two sides meet at its middle. This is the only place that reads whether
-// it's active.
+// What the fold takes from the screen on its side. iOS reports it as a division region that's
+// active only while the Duo is partly open; then content keeps to either side of its frame, which
+// already holds the margins controls and text keep from the hinge. Open flat it's inactive and
+// nothing keeps off it, so the two sides meet at its middle. This is the only place that reads
+// whether it's active.
 function divide(fold: Region): Rect {
   if (fold.active) return fold;
   return fold.height > fold.width

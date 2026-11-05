@@ -204,6 +204,7 @@ test('iPhone Duo open flat splits at the middle of the fold, with its bars down 
     { width: 951, height: 669 },
     { top: 0, right: 84, bottom: 21, left: 0 },
     { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
+    { panes: { first: { x: 0, width: 475 }, second: { x: 475, width: 476 } } },
   );
   assert.equal(layout.kind, 'split');
   assert.deepEqual(layout.orb.read, { x: 237.5, y: 334.5 });
@@ -299,6 +300,9 @@ const arranged = {
   flat: { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } },
   partly: { first: { x: 0, width: 455.5 }, second: { x: 495.5, width: 455.5 } },
 };
+const arrangedFor = (pose: Pose) => ({
+  panes: pose.fold?.active ? arranged.partly : arranged.flat,
+});
 
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -498,7 +502,7 @@ test('open, the orb and the words each keep a page of their own off the fold, an
     'partly open on its side',
   ] as const) {
     const { window, insets, pose } = duo[name];
-    const layout = screenLayout(window, insets, pose);
+    const layout = screenLayout(window, insets, pose, arrangedFor(pose));
     const fold = hingeOf(pose.fold);
     const row = fold.height > fold.width;
     const words = {
@@ -532,7 +536,7 @@ test('before a call the orb rests in the middle open flat, and on its page partl
     'partly open on its side',
   ] as const) {
     const { window, insets, pose } = duo[name];
-    const { orb } = screenLayout(window, insets, pose);
+    const { orb } = screenLayout(window, insets, pose, arrangedFor(pose));
     const resting = around(orb.rest.x, orb.rest.y, orb.size);
     if (pose.fold.active) {
       assert.ok(!overlaps(resting, pose.fold), `${name}: off the hinge`);
@@ -556,9 +560,7 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
     const { window, insets } = fixture;
     const pose: Pose = fixture.pose;
     const partly = !!pose.fold?.active;
-    const layout = screenLayout(window, insets, pose, {
-      panes: partly ? arranged.partly : arranged.flat,
-    });
+    const layout = screenLayout(window, insets, pose, arrangedFor(pose));
     if (layout.duo?.tasks.panes)
       assert.equal(layout.duo.tasks.panes.band > 0, partly, `${name}: partly open`);
     if (pose.fold && !partly && layout.kind === 'split')
@@ -628,4 +630,12 @@ test('held wide, Tasks parts where iOS parts the panes, and until it reports the
   assert.deepEqual(pagesWith({ first: arranged.partly.first }), { at: 475.5, band: 0 }, 'one');
   const side = { first: { x: 0, width: 669 }, second: { x: 0, width: 669 } };
   assert.deepEqual(pagesWith(side), { at: 475.5, band: 0 }, 'reported for the screen on its side');
+});
+
+test('held wide, the call takes the panes iOS reports: the orb on the first, the words from the second', () => {
+  const { window, insets, pose } = duo['partly open upright'];
+  const layout = screenLayout(window, insets, pose, { panes: arranged.partly });
+  assert.deepEqual(layout.orb.read, { x: 455.5 / 2, y: 669 / 2 });
+  assert.equal(layout.words.x, 495.5);
+  assert.equal(layout.duo!.beside!.words.x + layout.duo!.beside!.words.width, 455.5);
 });
