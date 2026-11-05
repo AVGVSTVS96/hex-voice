@@ -1,4 +1,4 @@
-import { Host, ZStack } from '@expo/ui/swift-ui';
+import { ZStack } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -10,6 +10,7 @@ import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view
 import type { Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
+import { Host } from '@/ui/host';
 
 // Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
 const BACK_EDGE_WIDTH = 16;
@@ -35,7 +36,7 @@ export function TasksPane({
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
       style={[styles.pane, { width, paddingTop: top }, style]}
     >
-      <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
+      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <TasksView {...view} width={width} foot={foot} />
       </Host>
     </Animated.View>
@@ -82,7 +83,7 @@ export function TasksPage({
         style,
       ]}
     >
-      <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
+      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <ZStack
           alignment="top"
           modifiers={[

@@ -1,4 +1,3 @@
-import { Host } from '@expo/ui';
 import { BottomSheet, Group as SheetContent } from '@expo/ui/swift-ui';
 import {
   presentationBackground,
@@ -12,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { TasksView, type TasksProps } from '@/components/tasks/tasks-view';
 import { useViewport } from '@/hooks/use-viewport';
 import { theme } from '@/theme';
+import { Host } from '@/ui/host';
 
 // Tasks on the phone and iPhone Duo. Before a call it opens full height; on a call it opens half
 // height so the call goes on behind it. However it goes away, swiped down or tapped past, it tells
@@ -28,7 +28,7 @@ export function TasksSheet({
   }, [view.open, onCall]);
 
   return (
-    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={view.open}
         onIsPresentedChange={(presented) => {
