@@ -1,5 +1,5 @@
 import { Column, Row, Spacer } from '@expo/ui';
-import { Button, SwipeActions } from '@expo/ui/swift-ui';
+import { Button, HStack, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
@@ -279,7 +279,11 @@ function Shell({
         spacing={0}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Row alignment="start" spacing={space[2.5]} modifiers={[frame({ maxWidth: Infinity })]}>
+        <HStack
+          alignment="firstTextBaseline"
+          spacing={space[2.5]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
           <Text
             numberOfLines={2}
             variant="subheadline"
@@ -288,16 +292,12 @@ function Shell({
           >
             {line}
           </Text>
-          <Row
-            alignment="center"
-            spacing={metrics.list.meta}
-            modifiers={[padding({ top: space[0.25] })]}
-          >
+          <Row alignment="center" spacing={metrics.list.meta}>
             {meta ? <Meta text={meta} /> : null}
             <Meta text={time} />
             <Tiles tiles={tiles} />
           </Row>
-        </Row>
+        </HStack>
         {children}
       </Column>
     </Row>
