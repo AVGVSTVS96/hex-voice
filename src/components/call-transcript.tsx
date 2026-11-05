@@ -1,11 +1,4 @@
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ColorValue,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/glyph';
@@ -22,6 +15,7 @@ import {
   type ShownMark,
 } from '@/live/calls';
 import { circle, theme } from '@/theme';
+import { ScrollView } from '@/ui/scroll';
 import { Turn } from '@/ui/turn';
 import { metrics, space, textOf } from '@/ui/tokens';
 

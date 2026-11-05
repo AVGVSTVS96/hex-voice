@@ -52,6 +52,11 @@
             "name": "@expo/ui/swift-ui",
             "importNames": ["Host"],
             "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+          },
+          {
+            "name": "react-native",
+            "importNames": ["ScrollView"],
+            "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
           }
         ]
       }
@@ -89,6 +94,11 @@
                 "name": "@expo/ui/swift-ui",
                 "importNames": ["Host"],
                 "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["ScrollView"],
+                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
               }
             ]
           }
@@ -124,6 +134,11 @@
                 "name": "@expo/ui/swift-ui",
                 "importNames": ["Host"],
                 "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["ScrollView"],
+                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
               }
             ],
             "patterns": [
@@ -161,6 +176,11 @@
                 "name": "@expo/ui/swift-ui",
                 "importNames": ["Host"],
                 "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["ScrollView"],
+                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
               }
             ]
           }
@@ -191,6 +211,11 @@
                 "name": "@expo/ui/swift-ui",
                 "importNames": ["Host"],
                 "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["ScrollView"],
+                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
               }
             ],
             "patterns": [
@@ -218,10 +243,21 @@
                 "name": "react-native",
                 "importNames": ["useWindowDimensions", "Dimensions"],
                 "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
+              },
+              {
+                "name": "react-native",
+                "importNames": ["ScrollView"],
+                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
               }
             ]
           }
         ]
+      }
+    },
+    {
+      "files": ["src/ui/scroll.tsx"],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     }
   ]
