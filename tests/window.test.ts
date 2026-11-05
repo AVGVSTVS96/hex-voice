@@ -173,6 +173,10 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
               problems.push(`${name}: ${what} ${span.x}+${span.width} in ${content.width}`);
           if (!(layout.calls.width > 0 && layout.calls.width < width))
             problems.push(`${name}: Calls ${layout.calls.width} wide`);
+          if (layout.calls.place === 'beside' && content.width - layout.calls.width < 320)
+            problems.push(
+              `${name}: beside Calls the call keeps ${content.width - layout.calls.width}`,
+            );
           const tasks = layout.duo?.tasks;
           if (tasks) {
             const { area, panes } = tasks;

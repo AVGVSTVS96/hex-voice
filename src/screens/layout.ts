@@ -1,4 +1,5 @@
 import {
+  callsBeside,
   stageLayout,
   wordsBefore,
   type Box,
@@ -127,19 +128,18 @@ export function screenLayout(room: Room): Layout {
   const duo = frame.column
     ? besideColumn(frame, frame.column, fold, before)
     : belowBand(frame, fold, before);
-  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band. A
-  // window of compact width has no room beside the call, so there Calls slides it aside.
-  const beside = !frame.column && regular;
-  const calls = beside
-    ? { width: LIST, place: 'beside' as const, below: frame.top }
-    : layout.calls;
+  // Open on its side Calls comes in under the band, leaving the band whole. It sits beside the
+  // call, as on iPad, only where that leaves the call a page; otherwise it slides over all but a
+  // peek of the call, as on the phone.
+  const calls = frame.column ? layout.calls : callsBeside(box.width, frame.top);
+  const banded = !frame.column && calls.place === 'beside';
   return {
     ...layout,
     content,
     toolbar,
     calls,
     // Beside Calls on its side, the words keep to the room the call has left.
-    ...(!beside
+    ...(!banded
       ? {}
       : {
           besideCalls: {

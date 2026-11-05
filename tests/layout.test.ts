@@ -586,13 +586,27 @@ test('open on its side, Calls comes in under the band, which stays whole above i
   }
 });
 
-test('open on its side, beside Calls the words keep to the room the call has left', () => {
+test('open on its side, Calls would leave the call less than a page, so it slides over all but a peek of it, under the band', () => {
   for (const name of ['open on its side', 'partly open on its side'] as const) {
     const { window, insets, pose } = duo[name];
-    const { calls, besideCalls } = layoutOf(window, insets, pose);
-    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
-    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
+    const { calls, toolbar } = layoutOf(window, insets, pose);
+    assert.equal(calls.place, 'slide', name);
+    assert.equal(
+      calls.width,
+      window.width - 72,
+      `${name}: a peek of the call stays to tap back to`,
+    );
+    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band stays whole above it`);
   }
+});
+
+test('where Calls leaves the call a page under the band, it sits beside it and the words keep to the room left', () => {
+  const { insets, pose } = duo['open on its side'];
+  const window = { width: 900, height: 951 };
+  const { calls, besideCalls } = layoutOf(window, insets, pose);
+  assert.equal(calls.place, 'beside');
+  assert.ok(besideCalls.x >= calls.width, 'right of Calls');
+  assert.ok(besideCalls.x + besideCalls.width <= window.width, 'on screen');
 });
 
 test('the call stage lays out from its own box, wherever the screen puts it', () => {
