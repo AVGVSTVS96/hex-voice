@@ -57,12 +57,12 @@ export const type = {
   // The call's words, with room between their lines to read along as they come.
   words: { textStyle: 'body', fontSize: 17, lineHeight: 25 },
   wordsLarge: { fontSize: 19, lineHeight: 28 },
-  // An ask's question in Tasks.
+  // An ask's question in Tasks, set close so a page of them scans.
   question: {
     textStyle: 'callout',
     fontSize: 16,
     lineHeight: 21,
-    lineSpacing: 5,
+    lineSpacing: 2,
     weight: 'semibold',
   },
   // A footnote that ends a subheadline's line, like a time or a place, level with its words.
@@ -194,14 +194,14 @@ export const metrics = {
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge (together with a
   // row's own top padding, nothing at rest sits in the fade). Then a row's padding above and below
-  // its content, and a place's, a point less below.
+  // its content, close enough that a phone's screen holds seven or more, and a place's.
   list: {
     inset: space[5],
     mark: 16,
     gap: space[2.5],
     fade: space[6],
     rest: space[3],
-    row: { top: 11, bottom: space[3] },
+    row: { top: space[2], bottom: space[2.5] },
     place: 11,
     // A step's first line, which its mark, time and chevron center on.
     line: 20,

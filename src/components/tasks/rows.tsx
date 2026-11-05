@@ -105,7 +105,7 @@ export function EntryRow({
               <InlineAnswers
                 ask={ask}
                 onAnswer={actions.onAnswer}
-                modifiers={[padding({ top: space[1] })]}
+                modifiers={[padding({ top: space[0.5] })]}
               />
             ) : null}
             {ask.failed ? <Failure text={ask.failed} /> : null}
@@ -283,7 +283,6 @@ function Shell({
           <Text
             numberOfLines={2}
             variant="subheadline"
-            paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {line}
@@ -453,7 +452,7 @@ export function ProjectRow({
   return (
     <Column
       alignment="start"
-      spacing={space[0.75]}
+      spacing={space[0.5]}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
@@ -470,7 +469,12 @@ export function ProjectRow({
       ]}
     >
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text numberOfLines={1} variant="callout" weight="semibold" modifiers={[layoutPriority(1)]}>
+        <Text
+          numberOfLines={1}
+          variant="subheadline"
+          weight="semibold"
+          modifiers={[layoutPriority(1)]}
+        >
           {topic.name}
         </Text>
         {topic.marks.length ? <Dots marks={topic.marks} /> : null}
