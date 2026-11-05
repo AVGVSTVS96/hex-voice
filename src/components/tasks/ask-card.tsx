@@ -183,7 +183,7 @@ function AskCard({
       modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
     >
       <HStack
-        alignment={open ? 'top' : 'firstTextBaseline'}
+        alignment="top"
         spacing={0}
         modifiers={[
           padding({
