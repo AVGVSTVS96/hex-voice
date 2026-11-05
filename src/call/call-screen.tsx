@@ -363,9 +363,20 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
   // begins, unless Calls starts below it, which leaves the band whole.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
-  // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
-  // moves with Calls and Tasks.
+  // Its place is all in this one style, whichever way it runs: a prop Reanimated has written stays
+  // on the view after a style React passes stops naming it, so a row's `left` would hold the side
+  // column at the screen's leading edge, over Tasks.
   const toolbarStyle = useAnimatedStyle(() => {
+    if (toolbar.axis === 'column') {
+      // The column keeps its width at its own edge: iOS grows the screen before the call screen
+      // lays out again as the Duo opens, so a column held by both edges would stretch across it.
+      const leading = toolbar.x < width / 2;
+      return {
+        left: leading ? toolbar.x : 'auto',
+        right: leading ? 'auto' : width - toolbar.x - toolbar.width,
+        width: toolbar.width,
+      };
+    }
     const d = drawer.get();
     const slid = list.place === 'slide' && list.below === undefined ? d * list.width : 0;
     const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
@@ -373,6 +384,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     return {
       left: toolbar.x + calls + slid,
       right: width - toolbar.x - toolbar.width + tasks - slid,
+      width: 'auto',
     };
   });
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
@@ -850,10 +862,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
         axis={toolbar.axis}
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-        style={[
-          { top: toolbar.y },
-          toolbar.axis === 'column' ? pinned(toolbar, width) : toolbarStyle,
-        ]}
+        style={[{ top: toolbar.y }, toolbarStyle]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
         settingsOpen={!!settingsPlace && settingsOpen}
@@ -898,12 +907,6 @@ function useEndedCall(call: Call, voice: string, add: (call: CallSummary) => voi
     });
     started.current = null;
   }, [call.kind, live]);
-}
-
-// A side column keeps its own width at the edge it's on. iOS grows the screen before the call
-// screen lays out again as the Duo opens, so a column held by both edges would stretch across it.
-function pinned({ x, width }: { x: number; width: number }, screen: number) {
-  return x < screen / 2 ? { left: x, width } : { right: screen - x - width, width };
 }
 
 const FADE = [{ color: theme.background }, { color: 'transparent' }];
