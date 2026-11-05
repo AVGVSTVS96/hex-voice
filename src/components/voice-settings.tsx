@@ -76,6 +76,9 @@ import { breakpoint, metrics, space } from '@/ui/tokens';
 // the sheet gets, the carousel beside the rows where that's wide enough.
 export type SettingsSheet = 'phone' | 'form' | 'page';
 
+// The open Duo's settings panes: the persona's beside the rows', or the persona's alone.
+type Pane = 'persona' | 'rows' | 'alone';
+
 type Props = {
   sheet: SettingsSheet;
   // On the open Duo, settings is a place of its own over the call instead of a sheet: iOS moves a
@@ -162,11 +165,17 @@ export function VoiceSettings({
   const [given, setGiven] = useState<number>();
   // On the open Duo iOS gives the persona and the rows a pane each where the screen is wider than
   // tall, and the persona's pane alone otherwise, which then holds the rows too. Each lays out to
-  // the pane it's given.
+  // the pane iOS reports, and until it does, to its half or all of the screen inside the safe area.
   const two = !!place && screen.width > screen.height;
-  const [panes, setPanes] = useState<{ persona?: Size; rows?: Size }>({});
-  const rowsPane = two ? panes.rows : panes.persona;
-  const width = place ? (rowsPane?.width ?? 0) : (given ?? 0);
+  const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
+  const tall = screen.height - insets.top - insets.bottom;
+  const personaPane = two
+    ? (reported.persona ?? { width: screen.width / 2 - insets.left, height: tall })
+    : (reported.alone ?? { width: screen.width - insets.left - insets.right, height: tall });
+  const rowsPane = two
+    ? (reported.rows ?? { width: screen.width / 2 - insets.right, height: tall })
+    : personaPane;
+  const width = place ? rowsPane.width : (given ?? 0);
   const room = screen.height - insets.top - SHEET_GAP;
   const beside =
     !place &&
@@ -174,10 +183,10 @@ export function VoiceSettings({
       (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
   const carouselWidth = two
-    ? Math.min((panes.persona?.width ?? 0) - 2 * metrics.gutter, BESIDE.carousel + 80)
+    ? Math.min(personaPane.width - 2 * metrics.gutter, BESIDE.carousel + 80)
     : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-  const placeRoom = (panes.persona?.height ?? 0) - BAR;
+  const placeRoom = personaPane.height - BAR;
   const preview = place
     ? Math.max(
         SHORT_PREVIEW,
@@ -435,23 +444,22 @@ export function VoiceSettings({
         insets={insets}
         onBack={onDismiss}
         onPane={(pane, size) =>
-          setPanes((now) =>
+          setReported((now) =>
             now[pane]?.width === size.width && now[pane]?.height === size.height
               ? now
               : { ...now, [pane]: { width: size.width, height: size.height } },
           )
         }
       >
-        {panes.persona &&
-          (two
-            ? carousel
-            : pushes(
-                <>
-                  {carousel}
-                  {rows}
-                </>,
-              ))}
-        {two && panes.rows && pushes(rows)}
+        {two
+          ? carousel
+          : pushes(
+              <>
+                {carousel}
+                {rows}
+              </>,
+            )}
+        {two && pushes(rows)}
       </SettingsPlace>
     );
   }
@@ -576,13 +584,13 @@ function SettingsPlace({
   two: boolean;
   insets: EdgeInsets;
   onBack: () => void;
-  onPane: (pane: 'persona' | 'rows', size: Size) => void;
+  onPane: (pane: Pane, size: Size) => void;
   children: [ReactNode, ReactNode];
 }) {
   const fade = useAnimatedStyle(() => ({
     opacity: withTiming(shown ? 1 : 0, { duration: motion.toolbar }),
   }));
-  const pane = (name: 'persona' | 'rows', edges: { leading: number; trailing: number }) => [
+  const pane = (name: Pane, edges: { leading: number; trailing: number }) => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
     onGeometryChange((size) => onPane(name, size)),
     padding({ top, bottom, ...edges }),
@@ -619,7 +627,10 @@ function SettingsPlace({
               <Column
                 alignment="center"
                 spacing={0}
-                modifiers={pane('persona', { leading: left, trailing: two ? 0 : right })}
+                modifiers={pane(two ? 'persona' : 'alone', {
+                  leading: left,
+                  trailing: two ? 0 : right,
+                })}
               >
                 <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
                 {two ? <Spacer flexible /> : null}
