@@ -24,7 +24,7 @@ index 12e21d7d32ccebfa32e051c07f74367e7d6dd12e..834143201b89b70b3a92319127edf0de
 +/build
 diff --git a/.oxlintrc.json b/.oxlintrc.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..54ad9393d1ec5927b1f97bbcd5941807f2c142f0
+index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9025ccf94
 --- /dev/null
 +++ b/.oxlintrc.json
 @@ -0,0 +1,157 @@
@@ -37,7 +37,7 @@ index 0000000000000000000000000000000000000000..54ad9393d1ec5927b1f97bbcd5941807
 +  "rules": {
 +    "react/rules-of-hooks": "error",
 +    "react/set-state-in-effect": "off",
-+    "react/refs": "off",
++    "react/refs": "error",
 +    "react/immutability": "off",
 +    "react-hooks/exhaustive-deps": "off",
 +    "typescript/switch-exhaustiveness-check": "error",
@@ -97009,10 +97009,10 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..fede6214ca18f90b798faf6117b4e0b7
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..329770f3c379962bbc06d64e76af3fa44f1a7415
+index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b593aea056
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,954 @@
+@@ -0,0 +1,956 @@
 +import * as Haptics from 'expo-haptics';
 +import * as ScreenOrientation from 'expo-screen-orientation';
 +import { useEffect, useRef, useState } from 'react';
@@ -97170,6 +97170,8 @@ index 0000000000000000000000000000000000000000..329770f3c379962bbc06d64e76af3fa4
 +  // place of its own over the call, and the call goes on in the bar.
 +  const panes = side.place !== 'sheet';
 +  const duo = layout.duo;
++  // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
++  const settingsPlace = pose.fold && duo?.tasks.area;
 +  const reducedMotion = useReducedMotion();
 +  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
 +  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -97829,7 +97831,7 @@ index 0000000000000000000000000000000000000000..329770f3c379962bbc06d64e76af3fa4
 +      )}
 +      <VoiceSettings
 +        sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
-+        place={duo?.settings}
++        place={settingsPlace}
 +        isPresented={settingsOpen}
 +        onDismiss={() => setSettingsOpen(false)}
 +        voice={voice}
@@ -97861,7 +97863,7 @@ index 0000000000000000000000000000000000000000..329770f3c379962bbc06d64e76af3fa4
 +        ]}
 +        callsOpen={drawerOpen}
 +        tasks={{ ...counts, open: tasksOpen }}
-+        settingsOpen={!!duo?.settings && settingsOpen}
++        settingsOpen={!!settingsPlace && settingsOpen}
 +        onCalls={() => {
 +          setSettingsOpen(false);
 +          toggleDrawer();
@@ -97871,7 +97873,7 @@ index 0000000000000000000000000000000000000000..329770f3c379962bbc06d64e76af3fa4
 +          toggleTasks();
 +        }}
 +        // On the open Duo settings is a place like Tasks, so its button opens and closes it.
-+        onSettings={() => setSettingsOpen((open) => (duo?.settings ? !open : true))}
++        onSettings={() => setSettingsOpen((open) => (settingsPlace ? !open : true))}
 +      />
 +      {controlsColumn && controls}
 +    </>
@@ -101294,7 +101296,7 @@ index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc1179
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..87b6368336a1c9dda7926828bd049f8c6d042ed1
+index 0000000000000000000000000000000000000000..1518857d0bedcc67c9bfc24b3642cdaa999803f7
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
 @@ -0,0 +1,638 @@
@@ -101483,7 +101485,7 @@ index 0000000000000000000000000000000000000000..87b6368336a1c9dda7926828bd049f8c
 +      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
 +    >
 +      <HStack
-+        alignment={open ? 'top' : 'firstTextBaseline'}
++        alignment="top"
 +        spacing={0}
 +        modifiers={[
 +          padding({
@@ -107039,18 +107041,20 @@ index 18e1ea17794f8ff3ed32b73efbc43af88f90fcfe..00000000000000000000000000000000
 -  );
 -}
 diff --git a/src/components/voice-settings.tsx b/src/components/voice-settings.tsx
-index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e7346ef46 100644
+index b84218e0163ac1e308cc90bad2a6687a999d8861..051a1631c71141adf4f13c85d9f28434c66fd2ff 100644
 --- a/src/components/voice-settings.tsx
 +++ b/src/components/voice-settings.tsx
-@@ -1,19 +1,81 @@
+@@ -1,19 +1,90 @@
 -import { BottomSheet, Button, Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
 -import { accessibilityLabel } from '@expo/ui/swift-ui/modifiers';
-+import { Column, Host, Icon, RNHostView, Row, Spacer, Text } from '@expo/ui';
++import { Column, Host, Icon, RNHostView, Row, Spacer } from '@expo/ui';
 +import {
++  ArrangementView,
 +  BottomSheet,
 +  Button as NativeButton,
 +  Group as SheetContent,
 +  Picker,
++  Rectangle,
 +  Text as NativeText,
 +  Toggle,
 +  ZStack,
@@ -107061,6 +107065,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  accessibilityIdentifier,
 +  accessibilityLabel,
 +  animation,
++  arrangementViewStyle,
 +  background,
 +  buttonBorderShape,
 +  buttonStyle,
@@ -107071,6 +107076,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  labelsHidden,
 +  labelStyle,
 +  offset,
++  onGeometryChange,
 +  padding,
 +  pickerStyle,
 +  presentationBackground,
@@ -107108,28 +107114,33 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
  import { SelectionCarousel } from '@/components/selection-carousel';
 +import { Group, Separator, SettingRow, groupHeight } from '@/components/settings-list';
 +import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
-+import { useViewport } from '@/hooks/use-viewport';
++import { useViewport, type Size } from '@/hooks/use-viewport';
 +import { useVoicePreview } from '@/hooks/use-voice-preview';
  import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 +import { heard, motion } from '@/motion';
-+import type { Settings } from '@/screens/layout';
 +import { theme } from '@/theme';
-+import { metrics, type } from '@/ui/tokens';
++import { Text } from '@/ui/text';
++import type { Rect } from '../../modules/pose';
++import { breakpoint, metrics, space } from '@/ui/tokens';
 +
 +// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
 +// the width is regular it's a centered form sheet, and a page sheet where the call is split across
 +// the screen (iPad landscape, iPhone Duo open upright). Either way its content lays out to the width
 +// the sheet gets, the carousel beside the rows where that's wide enough.
 +export type SettingsSheet = 'phone' | 'form' | 'page';
++
++// The open Duo's settings panes: the persona's beside the rows', or the persona's alone.
++type Pane = 'persona' | 'rows' | 'alone';
  
  type Props = {
 +  sheet: SettingsSheet;
-+  // On the open Duo, settings is a place of its own instead of a sheet (see `Settings`).
-+  place?: Settings;
++  // On the open Duo, settings is a place of its own over the call instead of a sheet, since iOS
++  // moves a sheet off an active fold. It covers what the toolbar leaves, as Tasks does.
++  place?: Rect;
    isPresented: boolean;
    onDismiss: () => void;
    voice: LiveVoice;
-@@ -23,11 +85,56 @@ type Props = {
+@@ -23,11 +94,57 @@ type Props = {
    persona: PersonaVariant;
    onPersonaChange: (persona: PersonaVariant) => void;
    personaEnabled: boolean;
@@ -107137,7 +107148,6 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
  };
  
 -const voiceOptions = VOICES.map((voice) => ({ ...voice, description: 'Swipe to choose a voice' }));
-+const ios = process.env.EXPO_OS === 'ios';
 +const voiceOptions = VOICES.map((voice) => ({
 +  ...voice,
 +  description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
@@ -107154,20 +107164,22 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  { level: 0, pitch: 0, tone: 0 },
 +];
 +const PREVIEW_ORB = 160;
-+// Side by side from `from` wide, or from `tight` wide where the page stacked can't fit the height.
-+const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180, from: 600, tight: 540 };
-+// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded.
++// Side by side from `breakpoint.beside` wide, or from `besideShort` wide where the page stacked
++// can't fit the height.
++const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
++// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded, and
++// grows to `BESIDE.preview` where its own place has the room.
 +const SHORT_PREVIEW = 120;
 +const SHEET_GAP = 24;
 +
-+const SHEET_TOP = 24;
++const SHEET_TOP = space[6];
 +const SHEET_BOTTOM = 26;
 +const PERSONA_PAGE = 138;
 +const ORB = 190;
 +const VOICE_CAROUSEL = 180;
-+const HEADER_TOP = 14;
++const HEADER_TOP = space[3.5];
 +const HEADER = 44;
-+// The bar over the persona's page on the open Duo.
++// The bar over the persona's pane on the open Duo.
 +const BAR = 60;
 +
 +const APPEARANCE_HEIGHT =
@@ -107187,7 +107199,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
    isPresented,
    onDismiss,
    voice,
-@@ -37,119 +144,474 @@ export function VoiceSettings({
+@@ -37,119 +154,511 @@ export function VoiceSettings({
    persona,
    onPersonaChange,
    personaEnabled,
@@ -107204,24 +107216,39 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  // own measurement, and one held to a width we pick gets capped by the system narrower than its
 +  // content, or the window's width runs under iPhone Duo's side column.
 +  const [given, setGiven] = useState<number>();
-+  // On the open Duo the persona has the first page and the rows the second, so the rows lay out to
-+  // the second page's width and the persona to the first's.
-+  const pages = place && pagesOf(place);
-+  const width = pages ? pages.second.width : (given ?? 0);
++  // On the open Duo iOS gives the persona and the rows a pane each where the screen is wider than
++  // tall, and the persona's pane alone otherwise, which then holds the persona in its top half and
++  // the rows in its bottom half. Each lays out to the pane iOS reports, and until it does, to its
++  // half or all of what the toolbar leaves.
++  const two = !!place && screen.width > screen.height;
++  const edges = place && {
++    top: place.y,
++    leading: place.x,
++    trailing: screen.width - place.x - place.width,
++    bottom: screen.height - place.y - place.height,
++  };
++  const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
++  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: place?.height ?? 0 });
++  const personaPane = two
++    ? (reported.persona ?? half(edges?.leading ?? 0))
++    : (reported.alone ?? { width: place?.width ?? 0, height: place?.height ?? 0 });
++  const rowsPane = two ? (reported.rows ?? half(edges?.trailing ?? 0)) : personaPane;
++  const personaHeight = two ? personaPane.height : screen.height / 2 - (edges?.top ?? 0);
++  const width = place ? rowsPane.width : (given ?? 0);
 +  const room = screen.height - insets.top - SHEET_GAP;
 +  const beside =
-+    !pages &&
-+    (width >= BESIDE.from ||
-+      (width >= BESIDE.tight && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
++    !place &&
++    (width >= breakpoint.beside ||
++      (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
 +  const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-+  const carouselWidth = pages
-+    ? Math.min(pages.first.width - 2 * metrics.gutter, BESIDE.carousel + 80)
++  const carouselWidth = place
++    ? Math.min(personaPane.width - 2 * metrics.gutter, BESIDE.carousel + 80)
 +    : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
 +  const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-+  const preview = pages
++  const preview = place
 +    ? Math.max(
 +        SHORT_PREVIEW,
-+        Math.min(BESIDE.preview, pages.first.height - PERSONA_PAGE - BAR - SHEET_TOP),
++        Math.min(BESIDE.preview, personaHeight - PERSONA_PAGE - BAR - SHEET_TOP),
 +      )
 +    : beside
 +      ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
@@ -107235,7 +107262,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  const detents = phone
 +    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
 +    : [{ height: appearanceHeight }];
-+  const orbSize = Math.min(beside || pages ? BESIDE.orb : PREVIEW_ORB, preview - 30);
++  const orbSize = Math.min(beside || place ? BESIDE.orb : PREVIEW_ORB, preview - 30);
 +  const [onVoicePage, setOnVoicePage] = useState(false);
 +  const [take, setTake] = useState(0);
    const selectedVoice = VOICES.find((option) => option.id === voice)!;
@@ -107261,12 +107288,12 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +  useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 +
 +  const haptic = (enabled = preferences.haptics) => {
-+    if (ios && enabled) void Haptics.selectionAsync();
-+  };
++    if (enabled) void Haptics.selectionAsync();
+   };
 +  const showVoices = (show: boolean) => {
 +    haptic();
 +    setOnVoicePage(show);
-   };
++  };
 +  // The voice page slides in from the right edge while the first page drifts a third of the way
 +  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
 +  // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
@@ -107281,15 +107308,11 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +    accessibilityHidden(!shown),
 +  ];
 +
-+  // On the open Duo's second page, the rows and the voices push over each other the same way, each
-+  // as tall as the page lets it be.
-+  // On its side the rows start just past the fold; held wide they sit midway down their page.
-+  const slide = (shown: boolean, away: number) => [
-+    frame({
-+      maxWidth: Infinity,
-+      maxHeight: Infinity,
-+      alignment: place?.split.axis === 'column' ? 'top' : 'center',
-+    }),
++  // In the open Duo's place, the rows and the voices push over each other the same way, each as tall
++  // as their room lets it be: midway down a pane of their own, or from the top of the persona's
++  // pane's bottom half.
++  const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
++    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
 +    background(theme.sheet),
 +    offset({ x: shown ? 0 : away }),
 +    animation(motion.page, onVoicePage),
@@ -107307,7 +107330,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +    <SelectionCarousel
 +      options={PERSONA_VARIANTS}
 +      value={persona}
-+      width={beside || pages ? carouselWidth : contentWidth}
++      width={beside || place ? carouselWidth : contentWidth}
 +      height={PERSONA_PAGE}
 +      preview={
 +        isPresented ? (
@@ -107376,13 +107399,8 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +          onPress={() => showVoices(true)}
 +          testID="voice-row"
 +        >
-+          <Text
-+            textStyle={{ fontSize: type.body.fontSize }}
-+            modifiers={[foregroundStyle(theme.secondary)]}
-+          >
-+            {selectedVoice.label}
-+          </Text>
-+          {ios && <Icon name="chevron.right" size={13} color={theme.secondary} />}
++          <Text tone="secondary">{selectedVoice.label}</Text>
++          <Icon name="chevron.right" size={13} color={theme.secondary} />
 +        </SettingRow>
 +        <Separator />
 +        <SettingRow icon="speaker.wave.2" title="Call sounds" width={rowsWidth}>
@@ -107433,12 +107451,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +          ]}
 +        />
 +        <Spacer flexible />
-+        <Text
-+          textStyle={{ fontSize: type.body.fontSize, fontWeight: '600' }}
-+          modifiers={[foregroundStyle(theme.text)]}
-+        >
-+          Voice
-+        </Text>
++        <Text variant="headline">Voice</Text>
 +        <Spacer flexible />
 +        <Spacer style={{ width: HEADER }} />
 +      </Row>
@@ -107463,9 +107476,23 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +    </>
 +  );
 +
-+  if (pages && place)
++  if (place && edges) {
++    const align = two ? 'center' : 'top';
 +    return (
-+      <SettingsPlace place={place} pages={pages} shown={isPresented} onBack={onDismiss}>
++      <SettingsPlace
++        shown={isPresented}
++        two={two}
++        edges={edges}
++        persona={personaHeight}
++        onBack={onDismiss}
++        onPane={(pane, size) =>
++          setReported((now) =>
++            now[pane]?.width === size.width && now[pane]?.height === size.height
++              ? now
++              : { ...now, [pane]: { width: size.width, height: size.height } },
++          )
++        }
++      >
 +        {carousel}
 +        <ZStack
 +          alignment="center"
@@ -107475,18 +107502,19 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
 +            alignment="center"
 +            spacing={metrics.groupSpacing}
 +            modifiers={[
-+              ...(place.split.axis === 'row' ? [] : [padding({ top: SHEET_TOP })]),
-+              ...slide(!onVoicePage, -pages.second.width / 3),
++              ...(two ? [] : [padding({ top: SHEET_TOP })]),
++              ...slide(!onVoicePage, -width / 3, align),
 +            ]}
 +          >
 +            {rows}
 +          </Column>
-+          <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, pages.second.width)}>
++          <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, width, align)}>
 +            {voices}
 +          </Column>
 +        </ZStack>
 +      </SettingsPlace>
 +    );
++  }
  
    return (
 -    <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
@@ -107680,84 +107708,105 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..0eecc10a7d9a82eead4fc1fffc7aa31e
    );
  }
 +
-+// The open Duo's settings pages: how wide and tall the persona's (first) and the rows' (second)
-+// are, either side of the fold's band.
-+function pagesOf({ area, split }: Settings) {
-+  const row = split.axis === 'row';
-+  const rest = (row ? area.width : area.height) - split.at - split.band;
-+  return {
-+    first: row ? { width: split.at, height: area.height } : { width: area.width, height: split.at },
-+    second: row ? { width: rest, height: area.height } : { width: area.width, height: rest },
-+  };
-+}
-+
-+// Settings on the open Duo, over the call where Tasks would be: the persona on the first page under
-+// a bar back to the call, the rows on the second, meeting at the fold flat and parting around it
-+// partly open. It fades in where it sits, never moved by a transform (its Host would keep telling
-+// accessibility where it started).
++// Settings on the open Duo, over the call where Tasks would be. iOS arranges it: the persona's pane
++// beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
++// it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
++// top half of the screen and the rows below it. The arrangement fills the screen, so flat its panes
++// meet on the crease; each pane and the sheet's color keep out of what the toolbar takes on the
++// edges it touches (`edges`). It fades in where it sits, never moved by a transform (its Host would
++// keep telling accessibility where it started).
 +function SettingsPlace({
-+  place: { area, split },
-+  pages,
 +  shown,
++  two,
++  edges: { top, leading, trailing, bottom },
++  persona: personaHeight,
 +  onBack,
-+  children: [persona, second],
++  onPane,
++  children: [persona, rows],
 +}: {
-+  place: Settings;
-+  pages: ReturnType<typeof pagesOf>;
 +  shown: boolean;
++  two: boolean;
++  edges: { top: number; leading: number; trailing: number; bottom: number };
++  persona: number;
 +  onBack: () => void;
++  onPane: (pane: Pane, size: Size) => void;
 +  children: [ReactNode, ReactNode];
 +}) {
 +  const fade = useAnimatedStyle(() => ({
 +    opacity: withTiming(shown ? 1 : 0, { duration: motion.toolbar }),
 +  }));
-+  const Pages = split.axis === 'row' ? Row : Column;
++  const pane = (name: Pane, sides: { leading: number; trailing: number }) => [
++    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
++    onGeometryChange((size) => onPane(name, size)),
++    padding({ top, bottom, ...sides }),
++  ];
 +  return (
 +    <Animated.View
 +      testID="settings-place"
 +      pointerEvents={shown ? 'auto' : 'none'}
 +      accessibilityElementsHidden={!shown}
 +      importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
-+      style={[
-+        { position: 'absolute', left: area.x, top: area.y, width: area.width, height: area.height },
-+        { backgroundColor: theme.sheet },
-+        fade,
-+      ]}
++      style={[StyleSheet.absoluteFill, fade]}
 +    >
 +      <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
-+        <Pages
-+          alignment="start"
-+          spacing={split.band}
++        <ZStack
 +          modifiers={[
-+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
++            frame({ maxWidth: Infinity, maxHeight: Infinity }),
 +            accessibilityElement('contain'),
 +            accessibilityIdentifier('voice-settings-sheet'),
 +          ]}
 +        >
-+          <Column
-+            alignment="center"
-+            spacing={0}
++          <Rectangle
++            modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
++          />
++          <ArrangementView
 +            modifiers={[
-+              frame({ width: pages.first.width }),
-+              frame({ maxHeight: pages.first.height, alignment: 'top' }),
++              arrangementViewStyle('split', { axes: 'horizontal' }),
++              frame({ maxWidth: Infinity, maxHeight: Infinity }),
 +            ]}
 +          >
-+            <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
-+            <Spacer flexible />
-+            {persona}
-+            <Spacer flexible />
-+          </Column>
-+          <Column
-+            alignment="center"
-+            spacing={0}
-+            modifiers={[
-+              frame({ width: pages.second.width }),
-+              frame({ maxHeight: pages.second.height, alignment: 'top' }),
-+            ]}
-+          >
-+            {second}
-+          </Column>
-+        </Pages>
++            <ArrangementView.Primary>
++              <Column
++                alignment="center"
++                spacing={0}
++                modifiers={pane(two ? 'persona' : 'alone', {
++                  leading,
++                  trailing: two ? 0 : trailing,
++                })}
++              >
++                <Column
++                  alignment="center"
++                  spacing={0}
++                  modifiers={[
++                    two ? frame({ maxHeight: Infinity }) : frame({ height: personaHeight }),
++                    frame({ maxWidth: Infinity }),
++                  ]}
++                >
++                  <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
++                  <Spacer flexible />
++                  {persona}
++                  <Spacer flexible />
++                </Column>
++                {two ? null : rows}
++              </Column>
++            </ArrangementView.Primary>
++            <ArrangementView.Secondary>
++              {two ? (
++                <Column
++                  alignment="center"
++                  spacing={0}
++                  modifiers={pane('rows', { leading: 0, trailing })}
++                >
++                  {rows}
++                </Column>
++              ) : (
++                // Left empty, iOS draws a bar along the bottom of the lone pane, like the home
++                // indicator.
++                <Spacer flexible />
++              )}
++            </ArrangementView.Secondary>
++          </ArrangementView>
++        </ZStack>
 +      </Host>
 +    </Animated.View>
 +  );
@@ -112187,10 +112236,10 @@ index 0000000000000000000000000000000000000000..3f5fa8e4dba4403b3baebf3c24888328
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0b7b3045292c81422072aae9518db3da752f0d30
+index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca97db65469
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,704 @@
+@@ -0,0 +1,684 @@
 +import { metrics, type ControlsSize, type ToolbarGaps } from '@/ui/tokens';
 +
 +import type { Pose, Rect, Region } from '../../modules/pose';
@@ -112274,7 +112323,6 @@ index 0000000000000000000000000000000000000000..0b7b3045292c81422072aae9518db3da
 +// (`typing`), the way a laptop keeps what you write above its keys.
 +export type Duo = {
 +  tasks: Page;
-+  settings?: Settings;
 +  beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
 +  call: {
 +    orb: Required<Spot>;
@@ -112282,12 +112330,6 @@ index 0000000000000000000000000000000000000000..0b7b3045292c81422072aae9518db3da
 +    controls?: { right: number; top: number };
 +  };
 +};
-+
-+// Settings on the open Duo is a place of its own over the call, like Tasks, not a sheet: iOS moves
-+// a sheet off an active fold, and the layout follows the screen, not the fold. Its two pages, the
-+// persona's and the rows', sit beside each other held wide and one over the other on its side,
-+// the first `at` long, then the fold's band: none open flat, its whole frame partly open.
-+export type Settings = { area: Rect; split: { axis: 'row' | 'column'; at: number; band: number } };
 +
 +// Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
 +// buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
@@ -112366,10 +112408,7 @@ index 0000000000000000000000000000000000000000..0b7b3045292c81422072aae9518db3da
 +        : single(frame);
 +  if (!pose.bar && !fold) return layout;
 +  const before = fold && wordsBefore(frame, layout, fold);
-+  const placed = frame.column
-+    ? besideColumn(frame, frame.column, before)
-+    : belowBand(frame, before);
-+  const duo = fold ? { ...placed, settings: settingsOf(placed.tasks.area, fold) } : placed;
++  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
 +  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
 +  const calls = frame.column
 +    ? layout.calls
@@ -112884,16 +112923,6 @@ index 0000000000000000000000000000000000000000..0b7b3045292c81422072aae9518db3da
 +  }
 +  const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
 +  return { fold, words: { ...words, top: frame.top + 12, raise } };
-+}
-+
-+function settingsOf(area: Rect, fold: Rect): Settings {
-+  return {
-+    area,
-+    split:
-+      fold.height > fold.width
-+        ? { axis: 'row', at: fold.x - area.x, band: fold.width }
-+        : { axis: 'column', at: fold.y - area.y, band: fold.height },
-+  };
 +}
 diff --git a/src/screens/live-screen.tsx b/src/screens/live-screen.tsx
 deleted file mode 100644
@@ -114752,10 +114781,10 @@ index 0000000000000000000000000000000000000000..4b5c2ac4513055c5b7b1e97062cb4c65
 +}
 diff --git a/src/ui/tokens.ts b/src/ui/tokens.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e7d2b150b47100ed1ec9e5192bbcc332a30b0b9f
+index 0000000000000000000000000000000000000000..8a8d7285e9ad730d6bcdd459d2174ca90d62ed27
 --- /dev/null
 +++ b/src/ui/tokens.ts
-@@ -0,0 +1,214 @@
+@@ -0,0 +1,217 @@
 +// The app's look: every color, text style, gap and size a component draws with. A component picks
 +// a name from these tables, never a value of its own, so it looks the same wherever it sits.
 +
@@ -114970,6 +114999,9 @@ index 0000000000000000000000000000000000000000..e7d2b150b47100ed1ec9e5192bbcc332
 +
 +export type ControlsSize = keyof typeof metrics.controls;
 +export type ToolbarGaps = 'regular' | 'compact';
++
++// Widths from which a sheet lays its content out side by side.
++export const breakpoint = { beside: 600, besideShort: 540 } as const;
 diff --git a/src/ui/turn.tsx b/src/ui/turn.tsx
 new file mode 100644
 index 0000000000000000000000000000000000000000..9ddaffda39d046acd23325a8379f4a44c11c016f
@@ -118580,10 +118612,10 @@ index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a78
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1865649e2cbc7d14043dd6d2e01d9f1c12a3050d
+index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8abdac0842
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,615 @@
+@@ -0,0 +1,595 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -119178,26 +119210,6 @@ index 0000000000000000000000000000000000000000..1865649e2cbc7d14043dd6d2e01d9f1c
 +    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
 +    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
 +  }
-+});
-+
-+test('on the open Duo settings is a place whose two pages part only around the fold', () => {
-+  const at = (name: keyof typeof duo) => {
-+    const { window, insets, pose } = duo[name];
-+    return screenLayout(window, insets, pose).duo?.settings;
-+  };
-+  const flat = at('open upright')!;
-+  const folded = at('partly open upright')!;
-+  assert.deepEqual(folded.area, flat.area, 'the same room flat and folded');
-+  assert.deepEqual(flat.split, { axis: 'row', at: 475.5, band: 0 });
-+  assert.equal(folded.split.axis, 'row');
-+  assert.equal(folded.split.at + folded.split.band / 2, 475.5, 'parting evenly about the hinge');
-+  const side = at('open on its side')!;
-+  const sideFolded = at('partly open on its side')!;
-+  assert.deepEqual(sideFolded.area, side.area);
-+  assert.equal(side.split.axis, 'column', 'on its side, one over the other');
-+  assert.equal(side.split.band, 0);
-+  assert.equal(sideFolded.split.band, 40);
-+  assert.equal(at('folded upright'), undefined, 'folded, settings stays the phone’s sheet');
 +});
 diff --git a/tests/lint.test.ts b/tests/lint.test.ts
 new file mode 100644
@@ -120628,10 +120640,10 @@ index 0323abea7d0be3dfb3ff293f02c2a393a486ca61..00000000000000000000000000000000
 -});
 diff --git a/tests/look.test.ts b/tests/look.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..242bc6ed868378a5514971a9a77408ebe3d0a68f
+index 0000000000000000000000000000000000000000..c926d380767956bec63a2259e680bb625cbfbbd1
 --- /dev/null
 +++ b/tests/look.test.ts
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,112 @@
 +import assert from 'node:assert/strict';
 +import { existsSync, readdirSync, readFileSync } from 'node:fs';
 +import { join } from 'node:path';
@@ -120648,12 +120660,10 @@ index 0000000000000000000000000000000000000000..242bc6ed868378a5514971a9a77408eb
 +
 +// Files still drawing with numbers of their own, until each moves onto the tokens. This list only
 +// shrinks.
-+const unmigrated = new Set([
-+  'src/components/tasks/tasks-view.tsx',
-+  'src/components/voice-settings.tsx',
-+  'src/live/call-activity.tsx',
-+  'src/screens/duo-tasks.tsx',
-+]);
++const unmigrated = new Set(['src/components/tasks/tasks-view.tsx', 'src/screens/duo-tasks.tsx']);
++
++// The Live Activity runs as a string in the widget extension, where the tokens don't exist.
++const widget = 'src/live/call-activity.tsx';
 +
 +// A token, a value React Native or SwiftUI was given by its parent, or a constant made of those,
 +// halved to center one on another.
@@ -120725,7 +120735,7 @@ index 0000000000000000000000000000000000000000..242bc6ed868378a5514971a9a77408eb
 +test('every look comes from the tokens, so a component looks the same wherever it sits', () => {
 +  const found = files('src')
 +    .filter((file) => !file.endsWith('theme.ts') && !file.startsWith('src/ui/'))
-+    .filter((file) => !unmigrated.has(file))
++    .filter((file) => file !== widget && !unmigrated.has(file))
 +    .flatMap(rawLooks);
 +  assert.deepEqual(found, []);
 +});
