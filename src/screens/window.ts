@@ -33,7 +33,7 @@ export function roomOf(pose: Pose, size: Size, insets: Insets): Room {
     insets,
     regular: pose.regular,
     bar,
-    fold: pose.fold && parting(pose.fold, size),
+    fold: pose.fold && parting(pose.fold, size, insets),
     occlusions: (pose.occlusions ?? []).flatMap((area) => {
       const inside = clip(area, size);
       return inside ? [inside] : [];
@@ -47,14 +47,14 @@ export function turns(pose: Pose, pad: boolean) {
   return pad || !!pose.bar || !!pose.fold;
 }
 
-// The fold within the window: it parts the window only where it lies across it with a page's width
-// on either side, and then runs only as long as the window.
-function parting(fold: Region, size: Size): Region | undefined {
+// The fold within the window: it parts the window only where it lies across it with a page of the
+// window's safe room on either side, and then runs only as long as the window.
+function parting(fold: Region, size: Size, insets: Insets): Region | undefined {
   const across = fold.height > fold.width;
-  const [start, end, extent] = across
-    ? [fold.x, fold.x + fold.width, size.width]
-    : [fold.y, fold.y + fold.height, size.height];
-  if (start < breakpoint.page || extent - end < breakpoint.page) return undefined;
+  const [before, after] = across
+    ? [fold.x - insets.left, size.width - insets.right - (fold.x + fold.width)]
+    : [fold.y - insets.top, size.height - insets.bottom - (fold.y + fold.height)];
+  if (before < breakpoint.page || after < breakpoint.page) return undefined;
   const inside = clip(fold, size);
   return inside && { ...inside, active: fold.active };
 }

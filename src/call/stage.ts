@@ -1,4 +1,4 @@
-import { metrics, type ControlsSize } from '@/ui/tokens';
+import { breakpoint, metrics, type ControlsSize } from '@/ui/tokens';
 
 import type { Rect } from '@/screens/window';
 
@@ -238,7 +238,7 @@ function pad(box: Box): Stage {
       footer: { ...words, bottom: agentLow + AGENT },
       agent: { ...words, bottom: agentLow },
       lift: { calls: agentHigh - agentLow, tasks: agentHigh - agentLow },
-      calls: { width: LIST, place: 'beside' },
+      calls: callsBeside(width),
       tasks: { width: tasks, place: 'beside' },
       pulls: false,
     };
@@ -270,10 +270,20 @@ function pad(box: Box): Stage {
     footer: { ...words, bottom: agentHigh + AGENT },
     agent: { ...words, bottom: agentHigh },
     lift: { calls: 0, tasks: 0 },
-    calls: { width: LIST, place: 'beside' },
+    calls: callsBeside(width),
     tasks: { width: tasks, place: 'beside' },
     pulls: false,
   };
+}
+
+// Calls sits beside the call only where that leaves the call a page; otherwise it slides over all
+// but a peek of it. Starting `below` a band, it leaves the band whole either way.
+export function callsBeside(width: number, below?: number): CallsPlacement {
+  const placement: CallsPlacement =
+    width - LIST >= breakpoint.page
+      ? { width: LIST, place: 'beside' }
+      : { width: width - PEEK, place: 'slide' };
+  return below === undefined ? placement : { ...placement, below };
 }
 
 // The words' measure, centered in the room between `from` and `to`.
@@ -310,7 +320,7 @@ function split(box: Box): Stage {
     footer: { ...words, bottom: agentBottom + AGENT },
     agent: { ...words, bottom: agentBottom },
     lift: { calls: 0, tasks: 0 },
-    calls: { width: fold ? pane : LIST, place: 'beside' },
+    calls: fold ? { width: pane, place: 'beside' } : callsBeside(across),
     tasks: { width: TASKS, place: 'sheet' },
     pulls: false,
   };

@@ -367,7 +367,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // moves with Calls and Tasks.
   const toolbarStyle = useAnimatedStyle(() => {
     const d = drawer.get();
-    const slid = list.place === 'slide' ? d * list.width : 0;
+    const slid = list.place === 'slide' && list.below === undefined ? d * list.width : 0;
     const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
     const tasks = side.place === 'beside' ? pane.get() * paneW.get() : 0;
     return {
