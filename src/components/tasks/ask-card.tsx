@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
 import { HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
 import {
+  accessibilityElement,
   accessibilityIdentifier,
   accessibilityLabel,
   animation,
@@ -19,6 +20,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useState } from 'react';
 
+import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
@@ -329,23 +331,21 @@ function Said({ words }: { words: Words }) {
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         animation(motion.list, whole),
-        accessibilityLabel(`From ${words.place}: ${words.text}`),
+        accessibilityElement('combine'),
       ]}
     >
       <Text variant="footnote" weight="semibold" tone="secondary">
         {`From ${words.place}${when}`}
       </Text>
-      <Text
+      <Markdown
+        inline={!whole}
+        lines={whole ? undefined : SAID}
         variant="itemDetail"
         tone="secondary"
-        paragraph
-        modifiers={[
-          whole ? lineLimit() : lineLimit(SAID),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         {words.text}
-      </Text>
+      </Markdown>
     </Column>
   );
 }

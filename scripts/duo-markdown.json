@@ -1,0 +1,105 @@
+{
+  "/tasks": {
+    "version": 1,
+    "tasks": [
+      {
+        "id": "md",
+        "app": "telegram",
+        "name": "markdown",
+        "place": "markdown",
+        "state": "needs",
+        "running": false,
+        "line": "Pick the font for Said",
+        "since": "2026-11-04T09:21:00.000Z",
+        "at": "2026-11-04T09:21:00.000Z",
+        "track": [],
+        "agents": []
+      }
+    ]
+  },
+  "/tasks/md": {
+    "id": "md",
+    "app": "telegram",
+    "name": "markdown",
+    "place": "markdown",
+    "state": "needs",
+    "running": false,
+    "line": "Pick the font for Said",
+    "since": "2026-11-04T09:21:00.000Z",
+    "at": "2026-11-04T09:21:00.000Z",
+    "track": [],
+    "agents": [],
+    "needs": "Pick the font for Said",
+    "pin": "📌 **Running:** the **Mac** build of `main` is compiling\n- 🔄 The **iPhone** build, [Xcode log](https://example.com/log)\n- ✅ Signed the **iPad** build with `devicectl`\n**Waiting on you**\n- 👉 Plug the **iPad** in, it's *locked*\n```\nnpm run ship:native\n```\n**Known problems**\n- ❌ The `_cache` folder is **full**\n",
+    "lately": [
+      {
+        "at": "2026-11-04T09:21:00.000Z",
+        "state": "needs",
+        "text": "Waiting on a pick"
+      }
+    ],
+    "steps": [],
+    "plan": []
+  },
+  "/tasks/md/chat": {
+    "version": 1,
+    "sends": true,
+    "total": 3,
+    "turns": [
+      {
+        "from": "me",
+        "text": "Is it live?"
+      },
+      {
+        "from": "hex",
+        "text": "## Shipped\n\nBoth builds are **live** on `main`, with the *markdown* drawn by [Textual](https://github.com/gonzalezreal/textual).\n\n- **iPhone**: installed over Wi-Fi\n- **iPad**: waiting for its cable\n  - signing runs out in 7 days\n- `devicectl` did the install\n\n1. Open the app\n2. Open Tasks\n\n> Signing runs out after 7 days, and a native install renews it.\n\n```swift\nstruct Hex: View {\n    // the whole app\n    var body: some View { Text(\"hello, \\(1 + 2)\") }\n}\n```\n\n-# Task t-3 closed."
+      },
+      {
+        "from": "hex",
+        "text": "**Done:** both builds are `live`, see [the log](https://example.com/log).\n\n- one\n- two"
+      }
+    ],
+    "waiting": []
+  },
+  "/asks": {
+    "version": 1,
+    "asks": [
+      {
+        "id": "md-ask",
+        "kind": "do",
+        "task": "md",
+        "at": "2026-11-04T09:21:00.000Z",
+        "app": "telegram",
+        "topic": "markdown",
+        "question": "Get the EDD letters DE 4800 and DE 1326C from your mail",
+        "context": "Going paperless doesn't cover letters EDD already mailed.",
+        "options": [
+          {
+            "label": "Found them"
+          },
+          {
+            "label": "Not there"
+          },
+          {
+            "label": "Later"
+          }
+        ],
+        "places": [
+          {
+            "app": "telegram",
+            "place": "markdown",
+            "task": "md"
+          }
+        ]
+      }
+    ],
+    "stuck": [],
+    "fresh": [],
+    "check": null
+  },
+  "/asks/md-ask/words": {
+    "place": "markdown",
+    "at": "2026-11-04T09:21:00.000Z",
+    "text": "**Leave both as they are: 7 checked, 8 unchecked.**\n\n- **7, federal tax withholding:** this takes 10% of each payment ($45 of $450) for federal tax. Unemployment counts as federally taxable income, so withholding saves you a tax bill in April, see [the IRS](https://www.irs.gov) or run `npm run ship`.\n- **8, direct deposit:** your bank stays as it is, which is *fine*."
+  }
+}

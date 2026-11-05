@@ -10,6 +10,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 
+import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
 import { Failure, SectionHead } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
@@ -94,12 +95,12 @@ function Line({ line }: { line: PinLine }) {
   const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
   if (line.kind === 'text' && !url)
     return (
-      <Text
+      <Markdown
+        inline
         variant="subheadline"
         tone="secondary"
-        paragraph
+        selectable
         modifiers={[
-          textSelection(true),
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
@@ -110,7 +111,7 @@ function Line({ line }: { line: PinLine }) {
         ]}
       >
         {line.text}
-      </Text>
+      </Markdown>
     );
   if (line.kind === 'text')
     return (
@@ -134,14 +135,14 @@ function Line({ line }: { line: PinLine }) {
           spacing={space[0.5]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          <Text
+          <Markdown
+            inline
             variant="subheadline"
             tone="secondary"
-            paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {line.text}
-          </Text>
+          </Markdown>
           {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
         </Column>
         <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
@@ -169,14 +170,14 @@ function Line({ line }: { line: PinLine }) {
         spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text
+        <Markdown
+          inline
           variant="subheadline"
           tone={line.mark === 'done' ? 'secondary' : 'text'}
-          paragraph
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {line.text}
-        </Text>
+        </Markdown>
         {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
       </Column>
       {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}

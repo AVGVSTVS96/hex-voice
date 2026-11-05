@@ -1,5 +1,5 @@
 import { Column, Row, Spacer } from '@expo/ui';
-import { ScrollView, Text } from '@expo/ui/swift-ui';
+import { Text } from '@expo/ui/swift-ui';
 import {
   background,
   clipShape,
@@ -10,12 +10,12 @@ import {
   textSelection,
 } from '@expo/ui/swift-ui/modifiers';
 
+import { Markdown } from '@/components/markdown';
 import { said, type Sending } from '@/live/chat';
-import { blocksOf, plainOf, type Block } from '@/live/markdown';
 import type { ChatTurn } from '@/live/tasks';
 import { radius, theme } from '@/theme';
 import { textLook } from '@/ui/text';
-import { metrics, space, type Tone } from '@/ui/tokens';
+import { metrics, space } from '@/ui/tokens';
 
 // Drawn as the call transcript draws a turn.
 export function Said({ turn }: { turn: ChatTurn }) {
@@ -24,18 +24,15 @@ export function Said({ turn }: { turn: ChatTurn }) {
   if (one.kind === 'event')
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   return (
-    <Column
-      alignment="start"
-      spacing={space[3]}
+    <Markdown
+      selectable
       modifiers={[
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
         frame({ maxWidth: Infinity }),
       ]}
     >
-      {blocksOf(one.text).map((block, i) => (
-        <Piece key={i} block={block} />
-      ))}
-    </Column>
+      {one.text}
+    </Markdown>
   );
 }
 
@@ -100,20 +97,15 @@ export function SaidLine({
       >
         {named ? who : ''}
       </Text>
-      <Text
-        markdownEnabled
-        modifiers={[
-          ...textLook({
-            variant: 'preview',
-            tone: one.kind === 'event' ? 'secondary' : 'text',
-            paragraph: true,
-          }),
-          lineLimit(lines),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
+      <Markdown
+        inline
+        lines={lines}
+        variant="preview"
+        tone={one.kind === 'event' ? 'secondary' : 'text'}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        {one.kind === 'hex' ? plainOf(text) : text}
-      </Text>
+        {text}
+      </Markdown>
     </Row>
   );
 }
@@ -160,99 +152,5 @@ function Event({ text }: { text: string }) {
         {text}
       </Text>
     </Row>
-  );
-}
-
-function Piece({ block }: { block: Block }) {
-  switch (block.kind) {
-    case 'code':
-      return (
-        <ScrollView
-          axes="horizontal"
-          showsIndicators={false}
-          modifiers={[
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-            background(theme.surface),
-            clipShape('roundedRectangle', radius.inner),
-          ]}
-        >
-          <Text
-            modifiers={[
-              ...textLook({ variant: 'snippet', paragraph: true }),
-              textSelection(true),
-              padding({
-                leading: space[3.5],
-                trailing: space[3.5],
-                top: space[3],
-                bottom: space[3],
-              }),
-            ]}
-          >
-            {block.text}
-          </Text>
-        </ScrollView>
-      );
-    case 'heading':
-      return <Words text={block.text} weight="semibold" />;
-    case 'small':
-      return <Words text={block.text} variant="footnote" tone="secondary" />;
-    case 'quote':
-      return (
-        <Row alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
-          <Spacer
-            modifiers={[
-              frame({ width: 3 }),
-              frame({ maxHeight: Infinity }),
-              background(theme.edge),
-            ]}
-          />
-          <Words text={block.text} tone="secondary" />
-        </Row>
-      );
-    case 'list':
-      return (
-        <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-          {block.items.map((item, i) => (
-            <Row key={i} alignment="start" spacing={space[2]}>
-              <Text
-                modifiers={[
-                  ...textLook({ tone: 'secondary' }),
-                  frame({ minWidth: 14, alignment: 'leading' }),
-                ]}
-              >
-                {item.mark}
-              </Text>
-              <Words text={item.text} />
-            </Row>
-          ))}
-        </Column>
-      );
-    case 'text':
-      return <Words text={block.text} />;
-  }
-}
-
-function Words({
-  text,
-  variant = 'body',
-  weight = 'regular',
-  tone = 'text',
-}: {
-  text: string;
-  variant?: 'body' | 'footnote';
-  weight?: 'regular' | 'semibold';
-  tone?: Tone;
-}) {
-  return (
-    <Text
-      markdownEnabled
-      modifiers={[
-        ...textLook({ variant, weight, tone, paragraph: true }),
-        textSelection(true),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-      ]}
-    >
-      {text}
-    </Text>
   );
 }
