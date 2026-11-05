@@ -129,3 +129,58 @@ test('in Split View each app lays out as one page in the window it has, as the D
     );
   }
 });
+
+// Every window the app could be given, with or without a side column and with the fold anywhere
+// across it or beyond its edges: whatever the room, everything the layout places has width and
+// stays inside the window.
+test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it', () => {
+  const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
+  const heights = [408, 466, 669, 678, 834, 951, 1194];
+  const problems: string[] = [];
+  for (const width of widths)
+    for (const height of heights)
+      for (const columnSide of [undefined, 'left', 'right'] as const)
+        for (const at of [undefined, -60, -20, 0, 0.25, 0.5, 0.75, 1, 1.02]) {
+          const window = { width, height };
+          const insets = {
+            top: columnSide ? 0 : 24,
+            bottom: 20,
+            left: columnSide === 'left' ? 84 : 0,
+            right: columnSide === 'right' ? 84 : 0,
+          };
+          const across = width > height;
+          const place = (extent: number) =>
+            at !== undefined && at > -1 && at <= 1.1 ? at * extent : (at ?? 0);
+          const fold =
+            at === undefined
+              ? undefined
+              : across
+                ? { x: place(width) - 20, y: 0, width: 40, height, active: false }
+                : { x: 0, y: place(height) - 20, width, height: 40, active: false };
+          const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
+          const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
+          const layout = screenLayout(roomOf(pose, window, insets));
+          const { content } = layout;
+          const spans = {
+            words: layout.words,
+            footer: layout.footer,
+            agent: layout.agent,
+            besideCalls: layout.besideCalls,
+            besideTasks: layout.besideTasks,
+          };
+          for (const [what, span] of Object.entries(spans))
+            if (!(span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5))
+              problems.push(`${name}: ${what} ${span.x}+${span.width} in ${content.width}`);
+          if (!(layout.calls.width > 0 && layout.calls.width < width))
+            problems.push(`${name}: Calls ${layout.calls.width} wide`);
+          const tasks = layout.duo?.tasks;
+          if (tasks) {
+            const { area, panes } = tasks;
+            if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5))
+              problems.push(`${name}: Tasks ${area.x}+${area.width}`);
+            if (panes && !(panes.at >= 200 && area.width - panes.at - panes.band >= 200))
+              problems.push(`${name}: Tasks' panes ${panes.at}+${panes.band} of ${area.width}`);
+          }
+        }
+  assert.deepEqual(problems, []);
+});

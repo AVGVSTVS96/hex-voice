@@ -8,6 +8,8 @@ const WORDS_BESIDE = 520;
 const MEASURE = 680;
 const LIST = 360;
 const SIDEBAR = 330;
+// What of the call still shows beside Calls slid in, to tap back to it.
+const PEEK = 72;
 const TASKS = 380;
 const CALL = 368;
 const BESIDE_MUTE = 56;
@@ -153,7 +155,7 @@ function single(box: Box): Stage {
       besideCalls: top12,
       besideTasks: top12,
       footer: { ...inset, bottom: bottomInset },
-      calls: { width: SIDEBAR, place: 'slide' },
+      calls: { width: Math.min(across - PEEK, SIDEBAR), place: 'slide' },
     };
   }
   // With the buttons in the side column, the docked orb takes the content's bottom corner and the
@@ -173,7 +175,7 @@ function single(box: Box): Stage {
     besideCalls: below,
     besideTasks: below,
     footer: { ...inset, bottom: height - dock + metrics.docked / 2 + 18 },
-    calls: { width: Math.min(across - 72, LIST), place: 'slide' },
+    calls: { width: Math.min(across - PEEK, LIST), place: 'slide' },
   };
 }
 
