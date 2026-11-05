@@ -116,7 +116,8 @@ test('in Split View each app lays out as one page in the window it has, as the D
     const layout = layoutIn(window, insets, pose);
     assert.equal(layout.kind, 'single', side);
     const tasks = layout.duo?.tasks;
-    assert.equal(tasks?.fold, undefined, `${side}: Tasks is one page`);
+    assert.equal(tasks?.panes, undefined, `${side}: Tasks is one page`);
+    assert.equal(tasks?.gap, undefined, `${side}: with no break across it`);
     assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
     for (const span of [layout.words, layout.footer, layout.agent])
       assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);

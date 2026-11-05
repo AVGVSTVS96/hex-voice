@@ -206,7 +206,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const rest = orbRest(
     {
       top: orb.room.top,
-      bottom: Math.min(moves ? orb.room.bottom : height - footer, overSheet ? height / 2 : height),
+      bottom: Math.min(
+        moves ? orb.room.bottom : layout.content.height - footer,
+        overSheet ? height / 2 : height,
+      ),
     },
     orb.rest.y,
     size,
@@ -349,7 +352,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   });
   const stageStyle = useAnimatedStyle(() => ({
     top: -(list.below ?? 0) * drawer.get(),
-    left: list.place === 'beside' ? -drawer.get() * list.width : 0,
+    left: layout.content.x - (list.place === 'beside' ? drawer.get() * list.width : 0),
   }));
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * 48,
@@ -472,7 +475,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     if (duo) {
       const k = dock.get();
       const spot = duo.call.orb;
-      x += (spot.x - x) * k;
+      x += (spot.x - layout.content.x - x) * k;
       at += (spot.y - at) * k;
       visual += (spot.size - visual) * k;
       const under = uncovered(covers.get());
@@ -655,7 +658,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             style={[styles.fill, styles.backdrop, backdropStyle]}
           />
         )}
-        <Animated.View style={[styles.stage, { width }, stageStyle]}>
+        <Animated.View style={[styles.stage, { width: layout.content.width }, stageStyle]}>
           <GestureDetector gesture={screenDrag}>
             <View style={styles.fill}>
               <Animated.View

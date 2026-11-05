@@ -4,7 +4,6 @@ import test from 'node:test';
 import type { Pose } from '../modules/pose';
 import { screenLayout, type Layout } from '../src/screens/layout';
 import { roomOf, type Insets, type Size } from '../src/screens/window';
-
 import { metrics } from '../src/ui/tokens';
 
 const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
@@ -298,6 +297,13 @@ const duo = {
   },
 } satisfies Record<string, { window: Size; insets: Insets; pose: Pose }>;
 
+// The panes iOS arranges the open screen into held wide, as the simulator reports them
+// (arrange-proto 90789e4): meeting on the crease flat, parted around the fold's frame partly open.
+const arranged = {
+  flat: { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } },
+  partly: { first: { x: 0, width: 455.5 }, second: { x: 495.5, width: 455.5 } },
+};
+
 type Box = { x: number; y: number; width: number; height: number };
 
 const overlaps = (a: Box, b: Box) =>
@@ -361,8 +367,6 @@ test('folded upright, Tasks runs from the screen edge to the column buttons and 
   assert.equal(layout.toolbar.y, 170);
   assert.deepEqual(layout.duo!.tasks, {
     area: { x: 0, y: 0, width: 424 - 32, height: 678 },
-    inset: { left: 0, right: 0 },
-    top: 0,
     foot: 34,
   });
   assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -382,11 +386,9 @@ test('open upright, Tasks takes both pages, or the trailing one while the call�
   const { tasks, beside } = layout.duo!;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
   assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-  assert.deepEqual(tasks.fold, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
+  assert.deepEqual(tasks.panes, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
   assert.deepEqual(beside!.tasks, {
     area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
-    inset: { left: 0, right: 0 },
-    top: 0,
     foot: 34,
   });
   assert.ok(layout.words.x >= 475.5, 'alone, the words are past the middle of the fold');
@@ -409,10 +411,10 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
+  assert.equal(tasks.panes, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
   assert.equal(tasks.gap, undefined, 'and runs straight through it');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
-  assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
+  assert.equal(beside!.tasks.foot, 34, 'the bottom page');
   assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
   assert.equal(
     951 - layout.agent.bottom - beside!.words.raise,
@@ -432,7 +434,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open upright'].insets,
     duo['partly open upright'].pose,
   ).duo!;
-  assert.deepEqual(upright.tasks.fold, { at: 455.5, band: 40 });
+  assert.deepEqual(upright.tasks.panes, { at: 455.5, band: 40 });
   assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
   assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
   const side = layoutOf(
@@ -440,7 +442,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open on its side'].insets,
     duo['partly open on its side'].pose,
   ).duo!;
-  assert.equal(side.tasks.fold, undefined, 'on its side Tasks stays one page');
+  assert.equal(side.tasks.panes, undefined, 'on its side Tasks stays one page');
   assert.deepEqual(side.tasks.gap, { at: 455.5 - 82, band: 40 }, 'broken only where the fold is');
   assert.equal(side.beside!.tasks.area.y, 495.5);
 });
@@ -457,8 +459,8 @@ test('held wide, folding keeps Tasks’ two pages and only pulls them apart off 
     duo['partly open upright'].pose,
   ).duo!;
   assert.deepEqual(folded.tasks.area, flat.tasks.area, 'Tasks keeps the same room');
-  assert.deepEqual(flat.tasks.fold, { at: 475.5, band: 0 }, 'flat, the pages meet');
-  const { at, band } = folded.tasks.fold!;
+  assert.deepEqual(flat.tasks.panes, { at: 475.5, band: 0 }, 'flat, the pages meet');
+  const { at, band } = folded.tasks.panes!;
   assert.equal(at + band / 2, 475.5, 'folded, they part evenly about the same line');
 });
 
@@ -552,16 +554,12 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
   for (const [name, fixture] of Object.entries(duo)) {
     const { window, insets } = fixture;
     const pose: Pose = fixture.pose;
-    const layout = layoutOf(window, insets, pose);
     const partly = !!pose.fold?.active;
-    if (layout.duo?.tasks.fold)
-      assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
+    const layout = layoutOf(window, insets, pose);
+    if (layout.duo?.tasks.panes)
+      assert.equal(layout.duo.tasks.panes.band > 0, partly, `${name}: partly open`);
     if (pose.fold && !partly && layout.kind === 'split')
-      assert.equal(
-        layout.orb.rest.x,
-        layout.content.x + layout.content.width / 2,
-        `${name}: orb rests mid-screen`,
-      );
+      assert.equal(layout.orb.rest.x, layout.content.width / 2, `${name}: orb rests mid-screen`);
   }
 });
 
@@ -595,4 +593,38 @@ test('open on its side, beside Calls the words keep to the room the call has lef
     assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
     assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
   }
+});
+
+test('the call stage lays out from its own box, wherever the screen puts it', () => {
+  const { window, insets, pose } = duo['folded upright'];
+  const right = layoutOf(window, insets, pose);
+  const left = layoutOf(
+    window,
+    { ...insets, right: 0, left: 84 },
+    { ...pose, bar: 'left', occlusions: [] },
+  );
+  assert.equal(left.content.x, 84);
+  assert.deepEqual([left.orb, left.words, left.footer], [right.orb, right.words, right.footer]);
+});
+
+test('held wide, Tasks parts where iOS parts the open screen into its panes, read from the window’s fold', () => {
+  for (const [pose, panes] of [
+    [duo['open upright'].pose, arranged.flat],
+    [duo['partly open upright'].pose, arranged.partly],
+  ] as const) {
+    const { window, insets } = duo['open upright'];
+    const { first, second } = panes;
+    assert.deepEqual(layoutOf(window, insets, pose).duo!.tasks.panes, {
+      at: first.width,
+      band: second.x - first.width,
+    });
+  }
+});
+
+test('held wide, the call takes the panes: the orb on the first, the words from the second', () => {
+  const { window, insets, pose } = duo['partly open upright'];
+  const layout = layoutOf(window, insets, pose);
+  assert.deepEqual(layout.orb.read, { x: 455.5 / 2, y: 669 / 2 });
+  assert.equal(layout.words.x, 495.5);
+  assert.equal(layout.duo!.beside!.words.x + layout.duo!.beside!.words.width, 455.5);
 });

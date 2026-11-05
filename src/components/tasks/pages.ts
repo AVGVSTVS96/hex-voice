@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { PageId } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
-import type { Fold } from '@/screens/layout';
+import type { Parting } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
@@ -27,7 +27,7 @@ export type Move =
   | { to: 'check' }
   | { to: 'back' };
 
-export type Shape = 'one' | 'columns' | 'fold';
+export type Shape = 'one' | 'columns' | 'panes';
 
 export const START: Stack = {
   path: [],
@@ -41,8 +41,8 @@ export const START: Stack = {
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
 
-export function shapeOf(width: number, fold: Fold | undefined): Shape {
-  return fold ? 'fold' : width >= COLUMNS ? 'columns' : 'one';
+export function shapeOf(width: number, panes: Parting | undefined): Shape {
+  return panes ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
 }
 
 export function move(stack: Stack, step: Move): Stack {
@@ -105,36 +105,23 @@ export function usePages({
 export type Pages = ReturnType<typeof usePages>;
 type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
-type Inset = { left: number; right: number };
-
-// Paged rooms are iPhone Duo's, whose pages are clear over the screen's backdrop.
-export type Room =
-  | { paged: false; width: number; foot: number }
-  | {
-      paged: true;
-      width: number;
-      height: number;
-      fold?: Fold;
-      gap?: Fold;
-      top: number;
-      foot: number | 'fold';
-      inset: Inset;
-    };
+// Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
+// fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and held wide it
+// takes the screen's two panes as two pages side by side (`panes`).
+export type Room = { width: number; foot: number | 'fold'; paged: boolean; panes?: Parting };
 
 // A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 
-// `frame` is a page's width and the most it may be tall: the keyboard can shorten it.
+// A page in a pane is as wide as the pane (`frame`); every page is as tall as the room
+// lets it be, which the keyboard can shorten.
 export type Spot = {
-  frame?: { width: number; maxHeight: number };
+  frame?: { width: number };
   offset: { x: number; y: number };
   shown: boolean;
   width: number;
-  pad: { top: number; leading: number; trailing: number };
   foot: number;
   back?: Level | 'call';
 };
-
-const FLUSH: Inset = { left: 0, right: 0 };
 
 // A page that ends at the fold keeps nothing clear below it.
 function footOf(foot: number | 'fold') {
@@ -158,7 +145,7 @@ export function useField() {
 }
 
 export function spotOf(level: Level, pages: Placing, room: Room): Spot {
-  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
+  if (room.paged && room.panes) return spotInPanes(level, pages, room, room.panes);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -171,13 +158,10 @@ function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot 
   const front = i === levels.length - 1;
   const page = room.width;
   const x = front ? 0 : i >= 0 ? -(room.paged ? page : page / 3) : page;
-  const top = room.paged ? room.top : 0;
-  const inset = room.paged ? room.inset : FLUSH;
   return {
     offset: { x, y: 0 },
     shown: x === 0,
-    width: page - inset.left - inset.right,
-    pad: { top, leading: inset.left, trailing: inset.right },
+    width: page,
     ...footOf(room.foot),
     back: level === 'list' ? (front && closes ? 'call' : undefined) : levels[i - 1],
   };
@@ -190,44 +174,33 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
   const front = i === levels.length - 1;
   const behind = i >= 0 || level === 'topic';
   const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
-  const top = room.paged ? room.top : 0;
   return {
     offset: { x, y: 0 },
     shown: x === 0,
     width: level === 'list' ? list : page,
-    pad: { top, leading: 0, trailing: 0 },
     ...footOf(room.foot),
     back: level === 'list' || level === 'topic' ? undefined : levels[i - 1],
   };
 }
 
-// Held wide, the deepest level takes the page after the fold and the one before it the page
-// before; deeper ones wait off the leading edge, shallower ones off the trailing edge.
-function spotAtFold(
-  level: Level,
-  { levels, closes }: Placing,
-  room: Extract<Room, { paged: true }>,
-  fold: Fold,
-): Spot {
+// Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
+// wait off the leading edge, shallower ones off the trailing edge.
+function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, panes: Parting): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const second = { at: fold.at + fold.band, width: room.width - fold.at - fold.band };
+  const second = { at: panes.at + panes.band, width: room.width - panes.at - panes.band };
   const { at, width, shown } = front
     ? { ...second, shown: true }
     : i === levels.length - 2
-      ? { at: 0, width: fold.at, shown: true }
+      ? { at: 0, width: panes.at, shown: true }
       : i >= 0
-        ? { at: -second.at, width: fold.at, shown: false }
+        ? { at: -second.at, width: panes.at, shown: false }
         : { ...second, at: room.width, shown: false };
-  const { inset } = room;
-  const pad =
-    at <= 0 ? { leading: inset.left, trailing: 0 } : { leading: 0, trailing: inset.right };
   return {
-    frame: { width, maxHeight: room.height },
+    frame: { width },
     offset: { x: at, y: 0 },
     shown,
-    width: width - pad.leading - pad.trailing,
-    pad: { top: room.top, ...pad },
+    width,
     ...footOf(room.foot),
     back: !(shown && at <= 0)
       ? undefined
