@@ -22,6 +22,7 @@ import XCTest
 //   selected <query>      checks the element is selected; unselected checks it isn't
 //   type <query> <text>   taps the element and types the text on the software keyboard
 //   above-keyboard <query> checks the keyboard is up and the element shows whole above it
+//   apart <query> <query> checks the two elements don't overlap
 //   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
 //   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 //   no-keyboard [name]    checks the keyboard has gone, naming the step in its failure
@@ -119,6 +120,10 @@ final class DuoTests: XCTestCase {
                     let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
                     XCTFail("\(argument.isEmpty ? "" : "\(argument): ")the keyboard is still up at \(keyboard.frame) in a \(app.windows.firstMatch.frame) window; focused: \(focused.exists ? focused.identifier : "nothing")")
                 }
+            case "apart":
+                let names = argument.split(separator: " ").map(String.init)
+                guard let one = element(names[0])?.frame, let other = element(names[1])?.frame else { break }
+                XCTAssertFalse(one.intersects(other), "\(names[0]) \(one) overlaps \(names[1]) \(other)")
             case "mark": marked[argument] = element(argument)?.frame
             case "still":
                 guard let was = marked[argument] else {
