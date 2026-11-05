@@ -88816,10 +88816,10 @@ index 0000000000000000000000000000000000000000..9eae84472be0b573a95b33378e24c6ed
 +}
 diff --git a/modules/markdown/ios/MarkdownParsers.swift b/modules/markdown/ios/MarkdownParsers.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..8400c8daf222e0c248d64249ae443380887fc648
+index 0000000000000000000000000000000000000000..b129526b41c824cf16fdb2e7d89660e21873430e
 --- /dev/null
 +++ b/modules/markdown/ios/MarkdownParsers.swift
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,105 @@
 +import Foundation
 +import SwiftUI
 +import Textual
@@ -88881,22 +88881,23 @@ index 0000000000000000000000000000000000000000..8400c8daf222e0c248d64249ae443380
 +  }
 +}
 +
-+// A message as one run of words: its blocks joined, list items by a dot, its code left out.
-+// Bold, code and links keep their marks.
++// A message as one text, for a few lines of it: each block on its own line as written, list items
++// with their number or bullet, so a line limit folds it where the reader expects.
 +struct Run: MarkupParser {
 +  let look: Look
 +
 +  func attributedString(for input: String) throws -> AttributedString {
-+    let document = try Chat(look: look, breaks: false).attributedString(for: input)
++    let document = try Chat(look: look).attributedString(for: input)
 +    var words = AttributedString()
 +    var block: PresentationIntent?
 +    for run in document.runs {
 +      let intent = run.presentationIntent
-+      if Chat.isCode(intent) { continue }
 +      if intent != block {
-+        if !words.characters.isEmpty {
-+          let item = intent?.components.contains { if case .listItem = $0.kind { true } else { false } }
-+          words += AttributedString(item == true ? " · " : " ")
++        if !words.characters.isEmpty { words += AttributedString("\n") }
++        if let mark = Self.mark(intent) {
++          var marked = AttributedString(mark)
++          marked.foregroundColor = look.secondary
++          words += marked
 +        }
 +        block = intent
 +      }
@@ -88905,6 +88906,23 @@ index 0000000000000000000000000000000000000000..8400c8daf222e0c248d64249ae443380
 +      words += piece
 +    }
 +    return words
++  }
++
++  // An item's number or bullet, indented by how deep its list sits.
++  private static func mark(_ intent: PresentationIntent?) -> String? {
++    guard let components = intent?.components else { return nil }
++    let lists = components.filter {
++      switch $0.kind {
++      case .orderedList, .unorderedList: true
++      default: false
++      }
++    }
++    guard let item = components.first(where: { if case .listItem = $0.kind { true } else { false } }),
++      case .listItem(let ordinal) = item.kind, let list = lists.first
++    else { return nil }
++    let indent = String(repeating: "    ", count: lists.count - 1)
++    if case .orderedList = list.kind { return "\(indent)\(ordinal). " }
++    return "\(indent)• "
 +  }
 +}
 diff --git a/modules/markdown/ios/MarkdownView.swift b/modules/markdown/ios/MarkdownView.swift
@@ -96296,7 +96314,7 @@ index 0000000000000000000000000000000000000000..4d938a2668adcfd42f55c3f7a85849cc
 +shoot thread-more
 diff --git a/scripts/duo-markdown.json b/scripts/duo-markdown.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..2b27581cfc3d9ed33aa3eec52048e824800695bd
+index 0000000000000000000000000000000000000000..e20704b926fa9666628235629ddea3b74491f9cc
 --- /dev/null
 +++ b/scripts/duo-markdown.json
 @@ -0,0 +1,105 @@
@@ -96402,7 +96420,7 @@ index 0000000000000000000000000000000000000000..2b27581cfc3d9ed33aa3eec52048e824
 +  "/asks/md-ask/words": {
 +    "place": "markdown",
 +    "at": "2026-11-04T09:21:00.000Z",
-+    "text": "**Leave both as they are: 7 checked, 8 unchecked.**\n\n- **7, the signing date:** this sets when the build's signature runs out, so an install keeps working until then, see [the docs](https://docs.expo.dev) or run `npm run ship`.\n- **8, the update channel:** the app stays on main, which is *fine*."
++    "text": "**markdown**: the hex voice app. Changes ship over the air with ship:js. [Paper](https://example.com/paper)\n\n1. ✓ App opens on the Duo again, with permanent Mac signing (c4bde66)\n2. ✓ Markdown in cards, threads and pins, drawn by Textual (889a7b4)\n3. Wide Duo layout and polish (t-757, t-751)\n   - nested under three\n4. Keyboard covering the send box (t-736)\n\nWatch: **7, the signing date:** run `npm run ship`, see [the docs](https://docs.expo.dev)."
 +  }
 +}
 diff --git a/scripts/duo-states b/scripts/duo-states
@@ -98853,10 +98871,10 @@ index 0000000000000000000000000000000000000000..aa402de41e2111d4432635604c1ab1e6
 +});
 diff --git a/src/components/call-ask.tsx b/src/components/call-ask.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..63c84d55e868122c369573a5cc0eaa552e3d263e
+index 0000000000000000000000000000000000000000..c8270fafa692990b69ff1282e3af79e9b82c37a6
 --- /dev/null
 +++ b/src/components/call-ask.tsx
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,180 @@
 +import { useState } from 'react';
 +import { Pressable, StyleSheet, Text, View } from 'react-native';
 +
@@ -98919,14 +98937,16 @@ index 0000000000000000000000000000000000000000..63c84d55e868122c369573a5cc0eaa55
 +    );
 +  return (
 +    <View style={styles.card}>
-+      <View style={styles.head}>
-+        <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
-+          <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
-+        </Pressable>
++      <View style={styles.title}>
++        <View style={styles.head}>
++          <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
++            <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
++          </Pressable>
++          {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
++        </View>
 +        <Text selectable style={styles.question}>
 +          {ask.question}
 +        </Text>
-+        {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
 +      </View>
 +      <View style={styles.options}>
 +        {ask.options.map((option) => (
@@ -98982,14 +99002,16 @@ index 0000000000000000000000000000000000000000..63c84d55e868122c369573a5cc0eaa55
 +    padding: space[3.5],
 +    gap: space[3],
 +  },
++  title: { gap: space[1.5] },
 +  head: {
 +    flexDirection: 'row',
-+    alignItems: 'baseline',
++    alignItems: 'center',
++    justifyContent: 'space-between',
 +    gap: space[2],
 +    paddingHorizontal: space[0.5],
 +  },
-+  topic: { ...labelOf('subheadline', 'semibold'), color: theme.secondary },
-+  question: { ...labelOf('subheadline'), flex: 1, color: theme.tertiary },
++  topic: { ...labelOf('footnote', 'semibold'), color: theme.secondary },
++  question: { ...textOf('sent'), color: theme.text, paddingHorizontal: space[0.5] },
 +  tag: {
 +    ...labelOf('footnote', 'semibold'),
 +    color: theme.text,
@@ -104176,10 +104198,10 @@ index 0000000000000000000000000000000000000000..ca66ee95042c480db9be2049772b4caa
 +}
 diff --git a/src/components/tasks/rows.tsx b/src/components/tasks/rows.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..fd911297dd90adbec4ca778152437ca084f08811
+index 0000000000000000000000000000000000000000..f611c94993a97077fb146951f960ba16cfbdab6b
 --- /dev/null
 +++ b/src/components/tasks/rows.tsx
-@@ -0,0 +1,503 @@
+@@ -0,0 +1,504 @@
 +import { Column, Row, Spacer } from '@expo/ui';
 +import { Button, HStack, SwipeActions } from '@expo/ui/swift-ui';
 +import {
@@ -104627,6 +104649,7 @@ index 0000000000000000000000000000000000000000..fd911297dd90adbec4ca778152437ca0
 +  const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 +  if (!newest) return null;
 +  const count = topic.entries.length;
++  const headline = headlineOf(newest);
 +  // Mint means it waits on you, so only Needs you counts in mint.
 +  const needs = stage === 'needs';
 +  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
@@ -104646,7 +104669,7 @@ index 0000000000000000000000000000000000000000..fd911297dd90adbec4ca778152437ca0
 +        frame({ maxWidth: Infinity, alignment: 'leading' }),
 +        contentShape(shapes.rectangle()),
 +        ...listRow(width, { selected }),
-+        accessibilityLabel(`${topic.name}, ${counted}: ${headlineOf(newest)}. Opens it`),
++        accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
 +      ]}
 +    >
 +      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -104676,7 +104699,7 @@ index 0000000000000000000000000000000000000000..fd911297dd90adbec4ca778152437ca0
 +          tone="secondary"
 +          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
 +        >
-+          {headlineOf(newest)}
++          {headline === topic.name ? '' : headline}
 +        </Text>
 +        <Meta text={clock(new Date(newest.at))} />
 +      </Row>
