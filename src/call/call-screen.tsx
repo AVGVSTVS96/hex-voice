@@ -15,6 +15,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { cardOf } from '@/call/card';
 import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
@@ -56,9 +57,9 @@ import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
-import { theme } from '@/theme';
+import { hairline, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
-import { metrics, radius } from '@/ui/tokens';
+import { metrics } from '@/ui/tokens';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
@@ -318,32 +319,20 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     }
     pane.set(settle(tasksOpen ? 1 : 0));
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-  // The call is a card, and while a pane sits beside it its corners round off against that pane.
-  // Calls always sits beside it, sliding it aside or taking its leading edge, and its top too where
-  // Calls starts below a band, so the band stays whole over both; Tasks does where it takes its
-  // trailing edge, and as a sheet or a page it covers the call instead, which leaves no edge to
-  // round. Where a pane takes an edge, what's on the call stays put in the window, so only the words
-  // move over into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
-  // A card that still reaches the screen's top and foot wears no hairline: there it would only line
-  // the screen's edges, which reads as a 1px gap along the top and bottom of the app.
-  const lined = list.place === 'slide' || list.below !== undefined;
+  // The card's place and corners, and the stage that keeps what's on it put, come from one rule.
   const cardStyle = useAnimatedStyle(() => {
-    const d = drawer.get();
-    const t = pane.get();
-    const slid = list.place === 'slide' ? d * list.width : 0;
-    const yielded = Math.min(1, Math.max(d, side.place === 'beside' ? t : 0) * 4);
+    const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
     return {
-      top: (list.below ?? 0) * d,
-      left: (list.place === 'beside' ? d * list.width : 0) + slid,
-      right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
-      borderRadius: radius.card * yielded,
-      borderWidth: lined && yielded > 0 ? StyleSheet.hairlineWidth : 0,
+      top: card.top,
+      left: card.left,
+      right: card.right,
+      borderRadius: card.borderRadius,
+      borderWidth: card.lined ? hairline : 0,
     };
   });
-  const stageStyle = useAnimatedStyle(() => ({
-    top: -(list.below ?? 0) * drawer.get(),
-    left: list.place === 'beside' ? -drawer.get() * list.width : 0,
-  }));
+  const stageStyle = useAnimatedStyle(
+    () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
+  );
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * 48,
   }));
@@ -354,15 +343,12 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // begins, unless Calls starts below it, which leaves the band whole.
   const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
   // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
-  // moves with Calls and Tasks.
+  // rides the card's edges, and keeps its leading end where Calls starts below it.
   const toolbarStyle = useAnimatedStyle(() => {
-    const d = drawer.get();
-    const slid = list.place === 'slide' ? d * list.width : 0;
-    const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
-    const tasks = side.place === 'beside' ? pane.get() * paneW.get() : 0;
+    const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
     return {
-      left: toolbar.x + calls + slid,
-      right: width - toolbar.x - toolbar.width + tasks - slid,
+      left: toolbar.x + (list.below === undefined ? card.left : 0),
+      right: width - toolbar.x - toolbar.width + card.right,
     };
   });
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
