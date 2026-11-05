@@ -336,8 +336,13 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * 48,
   }));
-  // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
-  const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
+  // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in. The
+  // inbox starts under the bar and the pane beside a call at the top, and it moves between the two
+  // as its width does, so nothing passes under the bar while it's still wide.
+  const paneStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, pane.get() * 4),
+    paddingTop: insets.top + ((layout.inbox?.top ?? insets.top) - insets.top) * wide.get(),
+  }));
   // The bar sits in the window, and never moves for Tasks. A column down the side never moves at
   // all; across the top it's placed by barOf, which only Calls moves.
   const { toolbar } = layout;
@@ -610,13 +615,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
     <>
       {sidebar}
       {panes && !duo && (
-        <TasksPane
-          {...tasks}
-          top={inbox ? inbox.top : insets.top}
-          foot={insets.bottom}
-          width={paneWidth}
-          style={paneStyle}
-        />
+        <TasksPane {...tasks} foot={insets.bottom} width={paneWidth} style={paneStyle} />
       )}
       <Animated.View style={[styles.card, cardStyle]}>
         {duo && (
