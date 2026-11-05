@@ -5,6 +5,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { motion } from '@/motion';
 
+const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
+
 // Calls comes in from the leading edge and follows the finger: `drawer` runs 0 (shut) to 1 (open),
 // and letting go settles it open or shut with a flick or past halfway. The pans open it from the
 // screen's edge, close it from the list, and close it from the call it peeks over, where a tap
@@ -27,12 +29,18 @@ export function useDrawer({
     setOpen(now);
     onChange(now);
   };
+  // The spring is critically damped, so it comes to rest without passing its end unless it starts
+  // faster than its natural frequency times the way left. A faster fling is held to that.
   const settle = (now: boolean, velocity = 0) => {
     'worklet';
+    const most = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
     drawer.set(
       reducedMotion
         ? withTiming(now ? 1 : 0, motion.reduced)
-        : withSpring(now ? 1 : 0, { ...motion.drawer, velocity: velocity / width }),
+        : withSpring(now ? 1 : 0, {
+            ...motion.drawer,
+            velocity: Math.min(most, Math.max(-most, velocity / width)),
+          }),
     );
     scheduleOnRN(opened, now);
   };
