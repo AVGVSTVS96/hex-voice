@@ -155,8 +155,8 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
   const duo = layout.duo;
-  // Open, iPhone Duo shows settings as a place of its own, as it does Tasks.
-  const settingsPlace = !!pose.fold;
+  // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
+  const settingsPlace = pose.fold && duo?.tasks.area;
   const reducedMotion = useReducedMotion();
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -848,7 +848,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         ]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
-        settingsOpen={settingsPlace && settingsOpen}
+        settingsOpen={!!settingsPlace && settingsOpen}
         onCalls={() => {
           setSettingsOpen(false);
           toggleDrawer();
