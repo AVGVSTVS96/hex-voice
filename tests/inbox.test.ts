@@ -325,7 +325,10 @@ test('hex’s picks are the open asks with a pick, never money', () => {
     stuck: [stuck('t3-limit')],
   });
   const taken = (answered?: Record<string, string | null>) =>
-    picksOf(entries, answered).map(({ ask, option }) => [ask.id, option.label]);
+    picksOf(
+      entries.flatMap((entry) => (entry.kind === 'ask' ? [entry.ask] : [])),
+      answered,
+    ).map(({ ask, option }) => [ask.id, option.label]);
   assert.deepEqual(taken({ answered: 'Yes' }), [
     ['ok', 'Deep'],
     ['page', 'Later'],

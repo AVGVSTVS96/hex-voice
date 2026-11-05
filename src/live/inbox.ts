@@ -243,13 +243,15 @@ function textOf(entry: Entry) {
 }
 
 // The asks hex already has a pick for, to take in one go. Money stays a call you make one by one.
-export function picksOf(entries: Entry[], answered: Record<string, string | null> = {}) {
-  return entries.flatMap((entry) => {
-    if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') return [];
-    const option = entry.ask.options.find((one) => one.pick);
-    return option ? [{ ask: entry.ask, option }] : [];
+export function picksOf(asks: Ask[], answered: Record<string, string | null> = {}) {
+  return asks.flatMap((ask) => {
+    if (answered[ask.id] || ask.tag === 'money') return [];
+    const option = ask.options.find((one) => one.pick);
+    return option ? [{ ask, option }] : [];
   });
 }
+
+export type HexPick = ReturnType<typeof picksOf>[number];
 
 // An ask's answers sit on one line only when every one fits in `width` points: their words at
 // `size` (the list's 15 or a topic page's 17), hex's pick with its check, a gap and a rule between

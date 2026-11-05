@@ -58,10 +58,12 @@ export function SectionHead({
   title,
   count,
   opens = false,
+  action,
 }: {
   title: string;
   count?: string | number;
   opens?: boolean;
+  action?: { label: string; onPress: () => void };
 }) {
   return (
     <Row
@@ -93,6 +95,17 @@ export function SectionHead({
           color={theme.tertiary}
           modifiers={[padding({ leading: space[2] })]}
         />
+      ) : null}
+      {action ? (
+        <Text
+          variant="footnote"
+          weight="semibold"
+          tone="accent"
+          onPress={action.onPress}
+          modifiers={[accessibilityLabel(action.label)]}
+        >
+          {action.label}
+        </Text>
       ) : null}
     </Row>
   );

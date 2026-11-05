@@ -17,6 +17,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useState } from 'react';
 
+import { TakePicks } from '@/components/tasks/inbox';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
@@ -31,7 +32,7 @@ import {
   type AskOption,
   type Words,
 } from '@/live/asks';
-import { fitsOneLine } from '@/live/inbox';
+import { fitsOneLine, picksOf } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
@@ -67,6 +68,9 @@ export function YourCall({
   onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
+  // Where hex has a pick for more than one, they're taken in one go from the head, which then names
+  // that instead of a count the page's subtitle already gives.
+  const picks = picksOf(asks, answered);
   return (
     <Column
       alignment="start"
@@ -75,7 +79,23 @@ export function YourCall({
         animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
       ]}
     >
-      <SectionHead title="Your call" count={open} />
+      {picks.length > 1 ? (
+        <TakePicks
+          picks={picks}
+          onTake={() => {
+            for (const { ask, option } of picks) onAnswer(ask, option);
+          }}
+        >
+          {(confirm) => (
+            <SectionHead
+              title="Your call"
+              action={{ label: `Take hex’s ${picks.length} picks`, onPress: confirm }}
+            />
+          )}
+        </TakePicks>
+      ) : (
+        <SectionHead title="Your call" count={open} />
+      )}
       {asks.map((ask, i) => {
         const said = answered[ask.id];
         if (said)
@@ -88,8 +108,8 @@ export function YourCall({
                 padding({
                   leading: metrics.list.inset - space[0.5],
                   trailing: metrics.list.inset,
-                  top: space[2.5],
-                  bottom: space[3.5],
+                  top: metrics.list.row.top,
+                  bottom: metrics.list.row.bottom,
                 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
@@ -100,10 +120,12 @@ export function YourCall({
                 spacing={space[0.25]}
                 modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                <Text variant="subheadline" tone="secondary">
+                <Text numberOfLines={1} variant="subheadline" tone="secondary">
                   {ask.question}
                 </Text>
-                <Text variant="subheadline">{said}</Text>
+                <Text numberOfLines={2} variant="subheadline">
+                  {said}
+                </Text>
                 {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
                 {ask.failed ? <Failure text={ask.failed} /> : null}
               </Column>
@@ -184,8 +206,8 @@ function AskCard({
         modifiers={[
           padding({
             leading: metrics.list.inset,
-            top: first ? space[0.5] : space[3],
-            bottom: open ? space[1.5] : space[3],
+            top: first ? space[0.5] : space[2.5],
+            bottom: open ? space[1.5] : space[2.5],
           }),
           frame({ maxWidth: Infinity }),
         ]}
@@ -293,7 +315,7 @@ function AskCard({
             padding({
               leading: metrics.list.inset,
               trailing: metrics.list.inset,
-              bottom: open ? space[1.5] : space[3],
+              bottom: open ? space[1.5] : space[2.5],
             }),
           ]}
         />
@@ -404,7 +426,7 @@ export function InlineAnswers({
             spacing={space[1.25]}
             onPress={() => onAnswer(ask, option)}
             modifiers={[
-              padding({ top: space[1.5], bottom: space[1] }),
+              padding({ top: space[1], bottom: space[1] }),
               accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
             ]}
           >
