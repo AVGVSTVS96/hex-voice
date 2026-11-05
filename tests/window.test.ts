@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { isDeepStrictEqual } from 'node:util';
 
 import type { Pose } from '../modules/pose';
 import { screenLayout } from '../src/screens/layout';
@@ -59,9 +60,9 @@ function inSplitView(x: number, width: number, insets: Insets, pose: Pose) {
   };
 }
 
-test('the open Duo’s whole screen keeps its fold and column', () => {
+test('the open Duo’s whole screen keeps its column, and its fold as the line down the middle of iOS’s', () => {
   const room = roomOf(openPose, open, column);
-  assert.deepEqual(room.fold, fold);
+  assert.deepEqual(room.fold, { x: 475.5 });
   assert.equal(room.bar, 'right');
   assert.deepEqual(room.occlusions, openPose.occlusions);
 });
@@ -84,14 +85,14 @@ test('in Split View the fold at a window’s edge isn’t the window’s, and a 
   assert.deepEqual(leftRoom.occlusions, [], 'the camera is over the other app');
 });
 
-test('a window the fold crosses keeps it, cut to the window’s length', () => {
+test('a window the fold crosses keeps it', () => {
   // A picture in picture pinned at the top leaves the app the screen below it.
   const shorter = roomOf(
     { ...openPose, fold: { ...fold, y: -200, height: 669 } },
     { width: 951, height: 469 },
     column,
   );
-  assert.deepEqual(shorter.fold, { ...fold, y: 0, height: 469 });
+  assert.deepEqual(shorter.fold, { x: 475.5 });
   const narrow = roomOf(openPose, { width: 700, height: 669 }, column);
   assert.equal(narrow.fold, undefined, 'past the fold only 204 of a page is left');
 });
@@ -117,7 +118,6 @@ test('in Split View each app lays out as one page in the window it has, as the D
     assert.equal(layout.kind, 'single', side);
     const tasks = layout.duo?.tasks;
     assert.equal(tasks?.panes, undefined, `${side}: Tasks is one page`);
-    assert.equal(tasks?.gap, undefined, `${side}: with no break across it`);
     assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
     for (const span of [layout.words, layout.footer, layout.agent])
       assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
@@ -132,8 +132,8 @@ test('in Split View each app lays out as one page in the window it has, as the D
 
 // Every window the app could be given, with or without a side column and with the fold anywhere
 // across it or beyond its edges: whatever the room, everything the layout places has width and
-// stays inside the window.
-test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it', () => {
+// stays inside the window, and partly folded it all lays out exactly as open flat.
+test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it and folding moves none of it', () => {
   const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
   const heights = [408, 466, 669, 678, 834, 951, 1194];
   const problems: string[] = [];
@@ -160,6 +160,9 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
           const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
           const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
           const layout = screenLayout(roomOf(pose, window, insets));
+          const folded = { ...pose, fold: fold && { ...fold, active: true } };
+          if (!isDeepStrictEqual(screenLayout(roomOf(folded, window, insets)), layout))
+            problems.push(`${name}: partly folded lays out differently`);
           const { content } = layout;
           const spans = {
             words: layout.words,
@@ -182,8 +185,8 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             const { area, panes } = tasks;
             if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5))
               problems.push(`${name}: Tasks ${area.x}+${area.width}`);
-            if (panes && !(panes.at >= 200 && area.width - panes.at - panes.band >= 200))
-              problems.push(`${name}: Tasks' panes ${panes.at}+${panes.band} of ${area.width}`);
+            if (panes !== undefined && !(panes >= 200 && area.width - panes >= 200))
+              problems.push(`${name}: Tasks' panes meet ${panes} into ${area.width}`);
           }
         }
   assert.deepEqual(problems, []);

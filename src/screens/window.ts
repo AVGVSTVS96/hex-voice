@@ -2,7 +2,9 @@ import { breakpoint } from '@/ui/tokens';
 
 import type { Pose, Rect, Region } from '../../modules/pose';
 
-export type { Rect, Region };
+export type { Rect };
+// Where the fold divides the window: a line down it at `x`, or across it at `y`.
+export type Fold = { x: number } | { y: number };
 export type Size = { width: number; height: number };
 export type Insets = { top: number; right: number; bottom: number; left: number };
 
@@ -19,8 +21,8 @@ export type Room = {
   // The side this window's bars run down, where the window keeps an inset for them.
   bar?: 'left' | 'right';
   // The fold, only where it parts this window, with a page's width on each side of it, in the
-  // window's coordinates and no longer than the window.
-  fold?: Region;
+  // window's coordinates.
+  fold?: Fold;
   // What the cameras and status items cover of the window.
   occlusions: Rect[];
 };
@@ -48,15 +50,16 @@ export function turns(pose: Pose, pad: boolean) {
 }
 
 // The fold within the window: it parts the window only where it lies across it with a page of the
-// window's safe room on either side, and then runs only as long as the window.
-function parting(fold: Region, size: Size, insets: Insets): Region | undefined {
+// window's safe room on either side, and then it's the line down the middle of iOS's division
+// region. How far the Duo is folded never reaches layout: Apple asks folding to move only what it
+// must.
+function parting(fold: Region, size: Size, insets: Insets): Fold | undefined {
   const across = fold.height > fold.width;
   const [before, after] = across
     ? [fold.x - insets.left, size.width - insets.right - (fold.x + fold.width)]
     : [fold.y - insets.top, size.height - insets.bottom - (fold.y + fold.height)];
   if (before < breakpoint.page || after < breakpoint.page) return undefined;
-  const inside = clip(fold, size);
-  return inside && { ...inside, active: fold.active };
+  return across ? { x: fold.x + fold.width / 2 } : { y: fold.y + fold.height / 2 };
 }
 
 function clip(area: Rect, { width, height }: Size): Rect | undefined {
