@@ -1,4 +1,4 @@
-import { Column, Host, Icon, RNHostView, Row, Spacer } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer } from '@expo/ui';
 import {
   ArrangementView,
   BottomSheet,
@@ -69,6 +69,7 @@ import { heard, motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import type { Rect } from '@/screens/window';
+import { Host } from '@/ui/host';
 import { breakpoint, metrics, space } from '@/ui/tokens';
 
 // On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
@@ -459,7 +460,7 @@ export function VoiceSettings({
   }
 
   return (
-    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={isPresented}
         onIsPresentedChange={(presented) => {
@@ -599,7 +600,7 @@ function SettingsPlace({
       importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
       style={[StyleSheet.absoluteFill, fade]}
     >
-      <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
+      <Host seedColor={theme.tint} style={{ flex: 1 }}>
         <ZStack
           modifiers={[
             frame({ maxWidth: Infinity, maxHeight: Infinity }),

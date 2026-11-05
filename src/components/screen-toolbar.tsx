@@ -1,9 +1,10 @@
-import { HStack, Host, VStack } from '@expo/ui/swift-ui';
+import { HStack, VStack } from '@expo/ui/swift-ui';
 import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
 import { TasksButton } from '@/components/tasks-button';
 import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
+import { Host } from '@/ui/host';
 import { metrics, type ToolbarGaps } from '@/ui/tokens';
 
 type Props = {
@@ -53,7 +54,7 @@ export function ScreenToolbar({
       />
       <Host
         matchContents
-        ignoreSafeArea="all"
+
         style={
           axis === 'row'
             ? { width: long, height: metrics.tool }

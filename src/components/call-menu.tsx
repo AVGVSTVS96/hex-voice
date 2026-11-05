@@ -1,15 +1,16 @@
-import { Column, Host, Spacer } from '@expo/ui';
+import { Column, Spacer } from '@expo/ui';
 import { Button, Image, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
 import { contentShape, shapes } from '@expo/ui/swift-ui/modifiers';
 
 import { circle, theme } from '@/theme';
+import { Host } from '@/ui/host';
 import { metrics } from '@/ui/tokens';
 
 type Props = { transcript?: string; title: string; onDelete?: () => void };
 
 export function CallMenu({ transcript, title, onDelete }: Props) {
   return (
-    <Host matchContents ignoreSafeArea="all" style={{ width: metrics.tool, height: metrics.tool }}>
+    <Host matchContents style={{ width: metrics.tool, height: metrics.tool }}>
       <Menu
         label={
           <Column
