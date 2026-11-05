@@ -100,6 +100,6 @@
   "/asks/md-ask/words": {
     "place": "markdown",
     "at": "2026-11-04T09:21:00.000Z",
-    "text": "**Leave both as they are: 7 checked, 8 unchecked.**\n\n- **7, the signing date:** this sets when the build's signature runs out, so an install keeps working until then, see [the docs](https://docs.expo.dev) or run `npm run ship`.\n- **8, the update channel:** the app stays on main, which is *fine*."
+    "text": "**markdown**: the hex voice app. Changes ship over the air with ship:js. [Paper](https://example.com/paper)\n\n1. ✓ App opens on the Duo again, with permanent Mac signing (c4bde66)\n2. ✓ Markdown in cards, threads and pins, drawn by Textual (889a7b4)\n3. Wide Duo layout and polish (t-757, t-751)\n   - nested under three\n4. Keyboard covering the send box (t-736)\n\nWatch: **7, the signing date:** run `npm run ship`, see [the docs](https://docs.expo.dev)."
   }
 }
