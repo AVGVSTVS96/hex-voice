@@ -15,23 +15,28 @@ import {
   type Stack,
 } from '../src/components/tasks/pages';
 import { TaskId } from '../src/live/tasks';
+import type { Pose } from '../modules/pose';
 import { screenLayout, type Page } from '../src/screens/layout';
+import { roomOf as windowRoom, type Insets, type Size } from '../src/screens/window';
+
+const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
+  screenLayout(windowRoom(pose, window, insets));
 
 const A = TaskId.parse('a');
 const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
 
-const openUpright = screenLayout(
+const openUpright = layoutOf(
   { width: 951, height: 669 },
   { top: 0, right: 84, bottom: 21, left: 0 },
   { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
 ).duo!.tasks;
-const openOnSideDuo = screenLayout(
+const openOnSideDuo = layoutOf(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
   { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
 ).duo!;
 const openOnSide = openOnSideDuo.tasks;
-const folded = screenLayout(
+const folded = layoutOf(
   { width: 466, height: 678 },
   { top: 0, right: 84, bottom: 34, left: 0 },
   { regular: false, bar: 'right' },
@@ -249,7 +254,7 @@ test('a page ending at the fold keeps nothing clear below it, and Back always sa
 
 test('on its side, flat or partly open, Tasks is one page: the list fills it and a topic pushes over it', () => {
   for (const active of [false, true]) {
-    const page = screenLayout(
+    const page = layoutOf(
       { width: 669, height: 951 },
       { top: 82, right: 0, bottom: 34, left: 0 },
       { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },

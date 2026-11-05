@@ -68,7 +68,7 @@ import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import type { Rect } from '../../modules/pose';
+import type { Rect } from '@/screens/window';
 import { breakpoint, metrics, space } from '@/ui/tokens';
 
 // On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where

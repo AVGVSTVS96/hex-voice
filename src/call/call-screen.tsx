@@ -45,7 +45,7 @@ import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
-import { useViewport, Viewport, type Size } from '@/hooks/use-viewport';
+import { Viewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { activityOrb } from '@/live/activity-orb';
 import type { TaskRow } from '@/live/tasks';
@@ -59,6 +59,7 @@ import { orbRest } from '@/screens/orb-rest';
 import { radius, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics } from '@/ui/tokens';
+import { roomOf, turns, type Room } from '@/screens/window';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
@@ -74,15 +75,17 @@ export type Opening = {
   reportPose: boolean;
 };
 
-// The screen lays itself out for the device's pose and the size it's drawn at, so it waits for the
-// first of each. The size is the screen's own, as laid out: React Native's window size can report
-// another screen's for a moment while iPhone Duo unfolds, and the call screen would lay out for the
-// cover across the open screen. A phone stays upright as it always has; iPad and iPhone Duo turn
-// to fit however they're held.
+// The screen lays itself out for the room its window has: the size it's drawn at and what of the
+// device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
+// screen's own, as laid out: React Native's window size can report another screen's for a moment
+// while iPhone Duo unfolds, and the call screen would lay out for the cover across the open screen.
+// A phone stays upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const [size, setSize] = useState<Size>();
-  const upright = pose && !PAD && !pose.bar && !pose.fold;
+  const insets = useSafeAreaInsets();
+  const room = pose && size && roomOf(pose, size, insets);
+  const upright = pose && !turns(pose, PAD);
   useEffect(() => {
     if (upright === undefined) return;
     void (upright
@@ -108,17 +111,17 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
           }
         />
       )}
-      {pose && size && (
-        <Viewport value={size}>
-          {opening.reportPose && <PoseReport pose={pose} />}
-          <CallScreen pose={pose} opening={opening} />
+      {pose && room && (
+        <Viewport value={room.size}>
+          {opening.reportPose && <PoseReport pose={pose} room={room} />}
+          <CallScreen room={room} opening={opening} />
         </Viewport>
       )}
     </View>
   );
 }
 
-function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
+function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -126,10 +129,9 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
-  const insets = useSafeAreaInsets();
-  const screen = useViewport();
+  const { insets, size: screen } = room;
   const { width, height } = screen;
-  const layout = screenLayout(screen, insets, pose);
+  const layout = screenLayout(room);
   const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
@@ -156,7 +158,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const panes = side.place !== 'sheet';
   const duo = layout.duo;
   // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
-  const settingsPlace = pose.fold && duo?.tasks.area;
+  const settingsPlace = room.fold && duo?.tasks.area;
   const reducedMotion = useReducedMotion();
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -815,7 +817,7 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
         />
       )}
       <VoiceSettings
-        sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
+        sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
         place={settingsPlace}
         isPresented={settingsOpen}
         onDismiss={() => setSettingsOpen(false)}

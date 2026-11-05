@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, StyleSheet } from 'react-native';
+import { Keyboard, StyleSheet, type KeyboardEvent } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -62,17 +62,27 @@ export function uncovered(covers: number) {
   return 1 - Math.min(1, 2 * covers);
 }
 
+// Whether this app's keyboard is up. iOS tells every app in Split View about the other's keyboard
+// too, which sits over that app, not this one.
 function useKeyboardUp() {
-  const [up, setUp] = useState(() => Keyboard.isVisible());
+  const [up, setUp] = useState(false);
   useEffect(() => {
-    const shown = Keyboard.addListener('keyboardWillShow', () => setUp(true));
-    const hidden = Keyboard.addListener('keyboardWillHide', () => setUp(false));
+    const shown = Keyboard.addListener('keyboardWillShow', (event) => {
+      if (ours(event)) setUp(true);
+    });
+    const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
+      if (ours(event)) setUp(false);
+    });
     return () => {
       shown.remove();
       hidden.remove();
     };
   }, []);
   return up;
+}
+
+function ours(event: KeyboardEvent) {
+  return !('isEventFromThisApp' in event) || event.isEventFromThisApp;
 }
 
 function useSettle(on: boolean, reducedMotion: boolean) {
