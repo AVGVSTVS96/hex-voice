@@ -1,5 +1,5 @@
 import { Column, Row, Spacer, Text } from '@expo/ui';
-import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
+import { ProgressView, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityHidden,
   animation,
@@ -9,7 +9,6 @@ import {
   frame,
   offset,
   opacity,
-  padding,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -49,7 +48,6 @@ import {
 } from '@/live/inbox';
 import type { TaskId, TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
-import type { Fold } from '@/screens/layout';
 import { theme } from '@/theme';
 
 const NAMED_BACK = 420;
@@ -380,12 +378,12 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const atFold = room.paged && !!room.fold;
+  const inPanes = room.paged && !!room.panes;
   return (
     <ZStack
-      alignment={atFold ? 'topLeading' : 'top'}
+      alignment={inPanes ? 'topLeading' : 'top'}
       modifiers={
-        atFold
+        inPanes
           ? [
               frame({ maxWidth: Infinity, alignment: 'topLeading' }),
               upTo(Infinity, 'topLeading'),
@@ -397,7 +395,6 @@ export function Tasks({
     >
       {page('list', list)}
       {levels}
-      {room.paged && room.gap ? <Gap gap={room.gap} /> : null}
     </ZStack>
   );
 }
@@ -428,26 +425,6 @@ function Nothing({ loaded }: { loaded: boolean }) {
   );
 }
 
-// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
-// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
-// and nowhere else.
-function Gap({ gap }: { gap: Fold }) {
-  return (
-    <Rectangle
-      modifiers={[
-        frame({ height: gap.band }),
-        frame({ maxWidth: Infinity }),
-        foregroundStyle(theme.sheet),
-        opacity(DIM),
-        offset({ x: 0, y: gap.at }),
-        accessibilityHidden(true),
-      ]}
-    />
-  );
-}
-
-const DIM = 0.7;
-
 // On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
 // covering the page below it.
 // A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
@@ -463,16 +440,16 @@ function PageAt({
   moved: number;
   children: ReactNode;
 }) {
-  const { frame: size, offset: at, pad } = spot;
+  const { frame: size, offset: at } = spot;
   return (
     <Column
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ top: pad.top, leading: pad.leading, trailing: pad.trailing }),
-        ...(size
-          ? [frame({ width: size.width, alignment: 'top' }), upTo(size.maxHeight)]
-          : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
+        size
+          ? frame({ width: size.width, alignment: 'top' })
+          : frame({ maxWidth: Infinity, alignment: 'top' }),
+        upTo(),
         ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
         offset(at),
         animation(motion.page, moved),
