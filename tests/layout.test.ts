@@ -625,3 +625,12 @@ test('on the open Duo settings is a place whose two pages part only around the f
   assert.equal(sideFolded.split.band, 40);
   assert.equal(at('folded upright'), undefined, 'folded, settings stays the phone’s sheet');
 });
+
+test('held wide, settings is two pages by the room it has, even with no fold reported', () => {
+  const { window, insets, pose } = duo['open upright'];
+  const { fold: _, ...unreported } = pose;
+  assert.deepEqual(
+    screenLayout(window, insets, unreported).duo?.settings,
+    screenLayout(window, insets, pose).duo?.settings,
+  );
+});

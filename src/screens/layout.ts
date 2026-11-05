@@ -180,7 +180,8 @@ export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
   const placed = frame.column
     ? besideColumn(frame, frame.column, before)
     : belowBand(frame, before);
-  const duo = fold ? { ...placed, settings: settingsOf(placed.tasks.area, fold) } : placed;
+  const settings = settingsOf(placed.tasks, fold);
+  const duo = settings ? { ...placed, settings } : placed;
   // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
   const calls = frame.column
     ? layout.calls
@@ -704,12 +705,11 @@ function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before
   return { fold, words: { ...words, top: frame.top + 12, raise } };
 }
 
-function settingsOf(area: Rect, fold: Rect): Settings {
-  return {
-    area,
-    split:
-      fold.height > fold.width
-        ? { axis: 'row', at: fold.x - area.x, band: fold.width }
-        : { axis: 'column', at: fold.y - area.y, band: fold.height },
-  };
+// Held wide, settings parts where Tasks does, so it's two pages whenever Tasks is, fold or not. On
+// its side it parts at the fold.
+function settingsOf({ area, split }: Page, fold?: Rect): Settings | undefined {
+  if (split) return { area, split: { axis: 'row', ...split } };
+  if (fold && fold.width > fold.height)
+    return { area, split: { axis: 'column', at: fold.y - area.y, band: fold.height } };
+  return undefined;
 }
