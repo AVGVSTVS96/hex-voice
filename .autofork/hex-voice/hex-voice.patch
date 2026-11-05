@@ -186,10 +186,10 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..1751a54635551337269713f505b88216c7bb36d4 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..2f5464eca0d31b1d96ff34f59cd85562162236c6 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,62 @@
+@@ -1,21 +1,64 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
@@ -244,6 +244,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..1751a54635551337269713f505b88216
 +- UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
 +- `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 +- Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
++- iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out in one half of the screen, with its own safe area and the pose in its coordinates. Sheets still present from the whole screen.
 +- A state is a line in `scripts/duo-states` (or the file you pass): its name, a URL that opens the app straight into it, and any launch arguments. Shots show the simulator's real status bar.
 +- The JS is bundled on the server and dropped into a simulator build of the commit's native fingerprint, so a JS change never rebuilds native code. Shots land in `~/.local/share/hex-voice/shots/<commit>/`, with one sheet per pose.
 +
@@ -256,6 +257,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..1751a54635551337269713f505b88216
 +- A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
 +- Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
 +- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `theme.ts` (`radius`, `metrics`, `circle`) and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
++- Layout reads the window's `Room` (`src/screens/window.ts`), never the device's pose: iOS reports the fold and the bar's side for the device, and in Split View they lie outside the window. `tests/window.test.ts` keeps the pose to that one module and lays out every window size with the fold anywhere.
 +- A size flows one way: the container gives it and the content fills it, or the content states it and the container fits it. Never measure a view to size the thing that sizes it; the settings sheet opened at a different width each time that way.
 +- Prove layout on the real renderer: `scripts/duo tap` can `type` into a field, check it's `above-keyboard` or that there's `no-keyboard`, and `mark` a view then check it holds `still`, same place and size.
 +
@@ -96996,41 +96998,50 @@ index 92b22a3b0e8f0f49999086c217bc9bcae979ddec..00000000000000000000000000000000
 -  })(request);
 -}
 diff --git a/src/app/index.tsx b/src/app/index.tsx
-index 26601b5cc3a19634cddb83886e484c70840f376d..fede6214ca18f90b798faf6117b4e0b7d169c785 100644
+index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0ecfa259fe 100644
 --- a/src/app/index.tsx
 +++ b/src/app/index.tsx
-@@ -1 +1,24 @@
+@@ -1 +1,33 @@
 -export { default } from '@/screens/live-screen';
 +import { useLocalSearchParams } from 'expo-router';
 +
 +import LiveScreen from '@/call/call-screen';
 +import { TaskId } from '@/live/tasks';
++import { SplitView } from '@/screens/split-view';
 +
 +// A link opens the app at a place (scripts/duo-states): ?tasks for Tasks' list, ?tasks=<topic>
 +// for a topic, ?open=settings or ?open=calls for those sheets, ?report=pose to write the pose where
-+// checks read it. ?demo=call, a pretend call, is read where the call lives (src/app/_layout.tsx).
++// checks read it, ?split=first or second to stand in for Split View. ?demo=call, a pretend call, is
++// read where the call lives (src/app/_layout.tsx).
 +export default function Index() {
-+  const { tasks, open, report } = useLocalSearchParams<{
++  const { tasks, open, report, split } = useLocalSearchParams<{
 +    tasks?: string;
 +    open?: string;
 +    report?: string;
++    split?: string;
 +  }>();
-+  return (
++  const screen = (
 +    <LiveScreen
 +      opening={{
 +        tasks: tasks === undefined ? undefined : { task: tasks ? TaskId.parse(tasks) : undefined },
 +        open: open === 'settings' || open === 'calls' ? open : undefined,
 +        reportPose: report === 'pose',
++        split: split === 'first' || split === 'second',
 +      }}
 +    />
++  );
++  return split === 'first' || split === 'second' ? (
++    <SplitView side={split}>{screen}</SplitView>
++  ) : (
++    screen
 +  );
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b593aea056
+index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5da2c3f3b
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,956 @@
+@@ -0,0 +1,961 @@
 +import * as Haptics from 'expo-haptics';
 +import * as ScreenOrientation from 'expo-screen-orientation';
 +import { useEffect, useRef, useState } from 'react';
@@ -97078,7 +97089,7 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 +import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
 +import { usePersonaPreference } from '@/hooks/use-persona-preference';
-+import { useViewport, Viewport, type Size } from '@/hooks/use-viewport';
++import { Viewport, type Size } from '@/hooks/use-viewport';
 +import { useVoicePreference } from '@/hooks/use-voice-preference';
 +import { activityOrb } from '@/live/activity-orb';
 +import type { TaskRow } from '@/live/tasks';
@@ -97092,6 +97103,7 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +import { radius, theme } from '@/theme';
 +import { HostedGlassButton } from '@/ui/glass-button';
 +import { metrics } from '@/ui/tokens';
++import { roomOf, turns, type Room } from '@/screens/window';
 +import { PoseView, type Pose } from '../../modules/pose';
 +
 +const AGENT_ROW = 22;
@@ -97105,17 +97117,22 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +  tasks?: TasksAt;
 +  open?: 'settings' | 'calls';
 +  reportPose: boolean;
++  // Laid out in half the screen for a check (src/screens/split-view.tsx). A half is compact, as iOS
++  // makes a Split View window, though the screen around it is regular.
++  split?: boolean;
 +};
 +
-+// The screen lays itself out for the device's pose and the size it's drawn at, so it waits for the
-+// first of each. The size is the screen's own, as laid out: React Native's window size can report
-+// another screen's for a moment while iPhone Duo unfolds, and the call screen would lay out for the
-+// cover across the open screen. A phone stays upright as it always has; iPad and iPhone Duo turn
-+// to fit however they're held.
++// The screen lays itself out for the room its window has: the size it's drawn at and what of the
++// device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
++// screen's own, as laid out: React Native's window size can report another screen's for a moment
++// while iPhone Duo unfolds, and the call screen would lay out for the cover across the open screen.
++// A phone stays upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 +export default function LiveScreen({ opening }: { opening: Opening }) {
 +  const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
 +  const [size, setSize] = useState<Size>();
-+  const upright = pose && !PAD && !pose.bar && !pose.fold;
++  const insets = useSafeAreaInsets();
++  const room = pose && size && roomOf(pose, size, insets);
++  const upright = pose && !turns(pose, PAD);
 +  useEffect(() => {
 +    if (upright === undefined) return;
 +    void (upright
@@ -97137,21 +97154,21 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +        <PoseView
 +          style={StyleSheet.absoluteFill}
 +          onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) =>
-+            setPose({ regular, bar, fold, occlusions })
++            setPose({ regular: regular && !opening.split, bar, fold, occlusions })
 +          }
 +        />
 +      )}
-+      {pose && size && (
-+        <Viewport value={size}>
-+          {opening.reportPose && <PoseReport pose={pose} />}
-+          <CallScreen pose={pose} opening={opening} />
++      {pose && room && (
++        <Viewport value={room.size}>
++          {opening.reportPose && <PoseReport pose={pose} room={room} />}
++          <CallScreen room={room} opening={opening} />
 +        </Viewport>
 +      )}
 +    </View>
 +  );
 +}
 +
-+function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
++function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
 +  const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
 +  const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
 +  const preferences = useCallPreferences();
@@ -97159,10 +97176,9 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +  const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
 +  const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
 +  const counts = useTaskCounts();
-+  const insets = useSafeAreaInsets();
-+  const screen = useViewport();
++  const { insets, size: screen } = room;
 +  const { width, height } = screen;
-+  const layout = screenLayout(screen, insets, pose);
++  const layout = screenLayout(room);
 +  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
 +  const split = layout.kind === 'split';
 +  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
@@ -97189,7 +97205,7 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +  const panes = side.place !== 'sheet';
 +  const duo = layout.duo;
 +  // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
-+  const settingsPlace = pose.fold && duo?.tasks.area;
++  const settingsPlace = room.fold && duo?.tasks.area;
 +  const reducedMotion = useReducedMotion();
 +  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
 +  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -97848,7 +97864,7 @@ index 0000000000000000000000000000000000000000..b3528923bd9dfa632c1694a40fc768b5
 +        />
 +      )}
 +      <VoiceSettings
-+        sheet={split ? 'page' : pose.regular ? 'form' : 'phone'}
++        sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
 +        place={settingsPlace}
 +        isPresented={settingsOpen}
 +        onDismiss={() => setSettingsOpen(false)}
@@ -98596,31 +98612,33 @@ index 0000000000000000000000000000000000000000..017a617a1562ff1f2a5d2d9c5835f05b
 +}
 diff --git a/src/call/pose-report.tsx b/src/call/pose-report.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..de7aceae946fc432ddf0aad2abd19a1164a4221e
+index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c61bbe72f5
 --- /dev/null
 +++ b/src/call/pose-report.tsx
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,25 @@
 +import { useEffect } from 'react';
 +import { Settings, useWindowDimensions } from 'react-native';
 +import { useSafeAreaInsets } from 'react-native-safe-area-context';
 +
 +import { useViewport } from '@/hooks/use-viewport';
 +import { logPose, startPoseLog } from '@/screens/pose-log';
++import type { Room } from '@/screens/window';
 +import type { Pose } from '../../modules/pose';
 +
-+// Writes the window, the size the screen lays out at, the safe area and the pose to the app's
-+// defaults (HexPose), where scripts/duo reads them, and starts the timed log of them and of where
-+// the screen's parts were laid out (HexPoseLog), so a check can see what changed between shots.
++// Writes the window, the size the screen lays out at, the safe area, the pose and the room it
++// leaves the window (`roomOf`) to the app's defaults (HexPose), where scripts/duo reads them, and
++// starts the timed log of them and of where the screen's parts were laid out (HexPoseLog), so a
++// check can see what changed between shots.
 +// The one reader of the window, to show where it and the screen's size disagree.
-+export function PoseReport({ pose }: { pose: Pose }) {
++export function PoseReport({ pose, room }: { pose: Pose; room: Room }) {
 +  const window = useWindowDimensions();
 +  const size = useViewport();
 +  const insets = useSafeAreaInsets();
 +  useEffect(startPoseLog, []);
 +  useEffect(() => {
-+    Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose }) });
-+    logPose('pose', { window, size, insets, pose });
-+  }, [window, size, insets, pose]);
++    Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose, room }) });
++    logPose('pose', { window, size, insets, pose, room });
++  }, [window, size, insets, pose, room]);
 +  return null;
 +}
 diff --git a/src/call/use-call.tsx b/src/call/use-call.tsx
@@ -107064,7 +107082,7 @@ index 18e1ea17794f8ff3ed32b73efbc43af88f90fcfe..00000000000000000000000000000000
 -  );
 -}
 diff --git a/src/components/voice-settings.tsx b/src/components/voice-settings.tsx
-index b84218e0163ac1e308cc90bad2a6687a999d8861..051a1631c71141adf4f13c85d9f28434c66fd2ff 100644
+index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4396c8ae4 100644
 --- a/src/components/voice-settings.tsx
 +++ b/src/components/voice-settings.tsx
 @@ -1,19 +1,90 @@
@@ -107143,7 +107161,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..051a1631c71141adf4f13c85d9f28434
 +import { heard, motion } from '@/motion';
 +import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import type { Rect } from '../../modules/pose';
++import type { Rect } from '@/screens/window';
 +import { breakpoint, metrics, space } from '@/ui/tokens';
 +
 +// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
@@ -112081,12 +112099,12 @@ index 0000000000000000000000000000000000000000..acbc2b2ba8071ea911c9cc51e923f4a0
 +}
 diff --git a/src/screens/duo-tasks.tsx b/src/screens/duo-tasks.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3f5fa8e4dba4403b3baebf3c248883289a5775f0
+index 0000000000000000000000000000000000000000..a3dcf467044d386823a6860a7f06fe10467a472c
 --- /dev/null
 +++ b/src/screens/duo-tasks.tsx
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,182 @@
 +import { useEffect, useState } from 'react';
-+import { Keyboard, StyleSheet } from 'react-native';
++import { Keyboard, StyleSheet, type KeyboardEvent } from 'react-native';
 +import Animated, {
 +  Extrapolation,
 +  interpolate,
@@ -112149,17 +112167,27 @@ index 0000000000000000000000000000000000000000..3f5fa8e4dba4403b3baebf3c24888328
 +  return 1 - Math.min(1, 2 * covers);
 +}
 +
++// Whether this app's keyboard is up. iOS tells every app in Split View about the other's keyboard
++// too, which sits over that app, not this one.
 +function useKeyboardUp() {
-+  const [up, setUp] = useState(() => Keyboard.isVisible());
++  const [up, setUp] = useState(false);
 +  useEffect(() => {
-+    const shown = Keyboard.addListener('keyboardWillShow', () => setUp(true));
-+    const hidden = Keyboard.addListener('keyboardWillHide', () => setUp(false));
++    const shown = Keyboard.addListener('keyboardWillShow', (event) => {
++      if (ours(event)) setUp(true);
++    });
++    const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
++      if (ours(event)) setUp(false);
++    });
 +    return () => {
 +      shown.remove();
 +      hidden.remove();
 +    };
 +  }, []);
 +  return up;
++}
++
++function ours(event: KeyboardEvent) {
++  return !('isEventFromThisApp' in event) || event.isEventFromThisApp;
 +}
 +
 +function useSettle(on: boolean, reducedMotion: boolean) {
@@ -112259,20 +112287,19 @@ index 0000000000000000000000000000000000000000..3f5fa8e4dba4403b3baebf3c24888328
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca97db65469
+index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be69655b260951
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,684 @@
+@@ -0,0 +1,681 @@
 +import { metrics, type ControlsSize, type ToolbarGaps } from '@/ui/tokens';
 +
-+import type { Pose, Rect, Region } from '../../modules/pose';
++import type { Insets, Rect, Region, Room, Size } from '@/screens/window';
 +
 +const GAP = 12;
 +// The toolbar's Tasks and settings, one glass capsule.
 +const PAIR = 2 * metrics.tool + metrics.toolbar.row;
 +const RAIL = 96;
 +const AGENT = 22;
-+const COLUMN = 84;
 +const WORDS = 600;
 +const WORDS_BESIDE = 520;
 +const MEASURE = 680;
@@ -112297,8 +112324,6 @@ index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca9
 +// far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
 +const STATUS_DROP = 7;
 +
-+type Size = { width: number; height: number };
-+type Insets = { top: number; right: number; bottom: number; left: number };
 +type Place = { x: number; y: number };
 +type Spot = Place & { size?: number };
 +type Span = { x: number; width: number };
@@ -112311,7 +112336,8 @@ index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca9
 +  size?: ControlsSize;
 +};
 +
-+// The call screen's geometry for a window in a pose. It comes in three arrangements:
++// The call screen's geometry for the room its window has, never the device's pose. It comes in
++// three arrangements:
 +// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
 +// - split: the orb on the leading page and the words on the trailing one, both there from the
 +//   start (iPad landscape, iPhone Duo open)
@@ -112419,17 +112445,18 @@ index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca9
 +  controls: Place;
 +};
 +
-+export function screenLayout(window: Size, insets: Insets, pose: Pose): Layout {
-+  const frame = frameFor(window, insets, pose);
-+  const fold = pose.fold && divide(pose.fold);
-+  if (pose.regular && !fold && !pose.bar) return pad(frame);
++export function screenLayout(room: Room): Layout {
++  const { size: window, regular, bar } = room;
++  const frame = frameFor(room);
++  const fold = room.fold && divide(room.fold);
++  if (regular && !fold && !bar) return pad(frame);
 +  const layout =
-+    pose.regular && window.width > window.height
++    regular && window.width > window.height
 +      ? split(frame, fold)
 +      : fold && fold.width > fold.height
 +        ? stacked(frame, fold)
 +        : single(frame);
-+  if (!pose.bar && !fold) return layout;
++  if (!bar && !fold) return layout;
 +  const before = fold && wordsBefore(frame, layout, fold);
 +  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
 +  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
@@ -112511,14 +112538,14 @@ index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca9
 +  top: number;
 +};
 +
-+function frameFor(window: Size, insets: Insets, pose: Pose): Frame {
++function frameFor({ size: window, insets, regular, bar, fold, occlusions }: Room): Frame {
 +  const bottomInset = Math.max(insets.bottom, 20) + 14;
-+  if (pose.bar) return { window, insets, bottomInset, ...column(window, insets, pose) };
-+  const toolbar = pose.fold
-+    ? band(window, insets, pose.occlusions ?? [])
++  if (bar) return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
++  const toolbar = fold
++    ? band(window, insets, occlusions)
 +    : {
 +        x: metrics.gutter,
-+        y: insets.top + (pose.regular ? 16 : 12),
++        y: insets.top + (regular ? 16 : 12),
 +        width: window.width - 2 * metrics.gutter,
 +        axis: 'row' as const,
 +      };
@@ -112557,12 +112584,10 @@ index 0000000000000000000000000000000000000000..655633862b1fe893812bccbadab63ca9
 +// iPhone Duo's side column. The camera and the system's status items sit at its top upright and
 +// at its foot on its side; the tools start below what's at the top, and the call buttons end above
 +// what's at the foot.
-+function column(window: Size, insets: Insets, pose: Pose) {
-+  const width = Math.max(pose.bar === 'right' ? insets.right : insets.left, COLUMN);
-+  const x = pose.bar === 'right' ? window.width - width : 0;
-+  const covers = (pose.occlusions ?? []).filter(
-+    (area) => area.x < x + width && area.x + area.width > x,
-+  );
++function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) {
++  const width = bar === 'right' ? insets.right : insets.left;
++  const x = bar === 'right' ? window.width - width : 0;
++  const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
 +  const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
 +  const top = covers
 +    .filter(high)
@@ -113156,6 +113181,121 @@ index 0000000000000000000000000000000000000000..f8fdfac3c5698ec1eaba28ca79f90fff
 +  if (!recording) return;
 +  entries = [...entries.slice(-(KEPT - 1)), { at: Date.now(), what, ...data }];
 +  Settings.set({ HexPoseLog: JSON.stringify(entries) });
++}
+diff --git a/src/screens/split-view.tsx b/src/screens/split-view.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..4806c9fbf9ca70310b6bbc17bbc867bd3b70b291
+--- /dev/null
++++ b/src/screens/split-view.tsx
+@@ -0,0 +1,35 @@
++import { useState, type ReactNode } from 'react';
++import { StyleSheet, View } from 'react-native';
++import { SafeAreaProvider } from 'react-native-safe-area-context';
++
++import { theme } from '@/theme';
++
++export type Side = 'first' | 'second';
++
++// For checks (?split=first or second): the app in one half of the screen, as Split View puts it,
++// the other half left to a stand-in for the other app: side by side where the screen is wider than
++// tall, one over the other where it's taller. The half has its own safe area, and the pose reports
++// the fold and the cameras in its coordinates, as iOS does for a Split View window. iOS's own Split
++// View can't be started on the Duo simulator, so this is how scripts/duo sees it.
++export function SplitView({ side, children }: { side: Side; children: ReactNode }) {
++  const [across, setAcross] = useState(true);
++  const other = <View style={styles.other} />;
++  return (
++    <View
++      style={[styles.screen, { flexDirection: across ? 'row' : 'column' }]}
++      onLayout={({ nativeEvent: { layout } }) => setAcross(layout.width > layout.height)}
++    >
++      {side === 'second' && other}
++      <View style={styles.half}>
++        <SafeAreaProvider>{children}</SafeAreaProvider>
++      </View>
++      {side === 'first' && other}
++    </View>
++  );
++}
++
++const styles = StyleSheet.create({
++  screen: { flex: 1 },
++  half: { flex: 1, overflow: 'hidden' },
++  other: { flex: 1, backgroundColor: theme.edge },
++});
+diff --git a/src/screens/window.ts b/src/screens/window.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a2734d4ad8f486a6e419fa4b3e955d05f557d31b
+--- /dev/null
++++ b/src/screens/window.ts
+@@ -0,0 +1,68 @@
++import { breakpoint } from '@/ui/tokens';
++
++import type { Pose, Rect, Region } from '../../modules/pose';
++
++export type { Rect, Region };
++export type Size = { width: number; height: number };
++export type Insets = { top: number; right: number; bottom: number; left: number };
++
++// The app's window as layout sees it: its size and safe area, and what of the device's pose falls
++// inside it. iOS reports the fold and the side the system prefers its bars on for the device,
++// wherever the window is: in Split View the fold lies at the window's edge, and the bar's edge is
++// reported though this window's bars may run along the top. Layout reads only this, so a window
++// lays out from what it has, whatever the device around it is doing.
++export type Room = {
++  size: Size;
++  insets: Insets;
++  // The window's width class, which iOS sets from the window's own width.
++  regular: boolean;
++  // The side this window's bars run down, where the window keeps an inset for them.
++  bar?: 'left' | 'right';
++  // The fold, only where it parts this window, with a page's width on each side of it, in the
++  // window's coordinates and no longer than the window.
++  fold?: Region;
++  // What the cameras and status items cover of the window.
++  occlusions: Rect[];
++};
++
++export function roomOf(pose: Pose, size: Size, insets: Insets): Room {
++  const bar =
++    pose.bar && (pose.bar === 'right' ? insets.right : insets.left) > 0 ? pose.bar : undefined;
++  return {
++    size,
++    insets,
++    regular: pose.regular,
++    bar,
++    fold: pose.fold && parting(pose.fold, size),
++    occlusions: (pose.occlusions ?? []).flatMap((area) => {
++      const inside = clip(area, size);
++      return inside ? [inside] : [];
++    }),
++  };
++}
++
++// Whether the screen turns as the device does: a plain iPhone stays upright, iPad and iPhone Duo
++// turn. A device fact, so it reads the pose itself.
++export function turns(pose: Pose, pad: boolean) {
++  return pad || !!pose.bar || !!pose.fold;
++}
++
++// The fold within the window: it parts the window only where it lies across it with a page's width
++// on either side, and then runs only as long as the window.
++function parting(fold: Region, size: Size): Region | undefined {
++  const across = fold.height > fold.width;
++  const [start, end, extent] = across
++    ? [fold.x, fold.x + fold.width, size.width]
++    : [fold.y, fold.y + fold.height, size.height];
++  if (start < breakpoint.page || extent - end < breakpoint.page) return undefined;
++  const inside = clip(fold, size);
++  return inside && { ...inside, active: fold.active };
++}
++
++function clip(area: Rect, { width, height }: Size): Rect | undefined {
++  const x = Math.max(0, area.x);
++  const y = Math.max(0, area.y);
++  const right = Math.min(width, area.x + area.width);
++  const bottom = Math.min(height, area.y + area.height);
++  return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : undefined;
 +}
 diff --git a/src/server/close-session.ts b/src/server/close-session.ts
 deleted file mode 100644
@@ -114804,10 +114944,10 @@ index 0000000000000000000000000000000000000000..4b5c2ac4513055c5b7b1e97062cb4c65
 +}
 diff --git a/src/ui/tokens.ts b/src/ui/tokens.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8a8d7285e9ad730d6bcdd459d2174ca90d62ed27
+index 0000000000000000000000000000000000000000..7c1c5f55c2021cbc09b6a0c876aa606ccf292c27
 --- /dev/null
 +++ b/src/ui/tokens.ts
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,218 @@
 +// The app's look: every color, text style, gap and size a component draws with. A component picks
 +// a name from these tables, never a value of its own, so it looks the same wherever it sits.
 +
@@ -115023,8 +115163,9 @@ index 0000000000000000000000000000000000000000..8a8d7285e9ad730d6bcdd459d2174ca9
 +export type ControlsSize = keyof typeof metrics.controls;
 +export type ToolbarGaps = 'regular' | 'compact';
 +
-+// Widths from which a sheet lays its content out side by side.
-+export const breakpoint = { beside: 600, besideShort: 540 } as const;
++// Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
++// the fold parts a window only where it leaves a page on each side of it.
++export const breakpoint = { beside: 600, besideShort: 540, page: 320 } as const;
 diff --git a/src/ui/turn.tsx b/src/ui/turn.tsx
 new file mode 100644
 index 0000000000000000000000000000000000000000..9ddaffda39d046acd23325a8379f4a44c11c016f
@@ -118635,21 +118776,26 @@ index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a78
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8abdac0842
+index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284e6870648
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,595 @@
+@@ -0,0 +1,598 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
 +import type { Pose } from '../modules/pose';
 +import { screenLayout, type Layout } from '../src/screens/layout';
++import { roomOf, type Insets, type Size } from '../src/screens/window';
++
 +import { metrics } from '../src/ui/tokens';
++
++const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
++  screenLayout(roomOf(pose, window, insets));
 +
 +const phone = { top: 62, right: 0, bottom: 34, left: 0 };
 +
 +test('the phone keeps its layout: toolbar on top, buttons under the footer, words pulled down', () => {
-+  const layout = screenLayout({ width: 440, height: 956 }, phone, { regular: false });
++  const layout = layoutOf({ width: 440, height: 956 }, phone, { regular: false });
 +  assert.equal(layout.kind, 'single');
 +  assert.equal(layout.controls, 'inline');
 +  assert.deepEqual(layout.toolbar, { x: 24, y: 74, width: 392, axis: 'row' });
@@ -118665,7 +118811,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('iPhone Duo closed moves the toolbar and buttons into the side column, below its camera', () => {
-+  const layout = screenLayout(
++  const layout = layoutOf(
 +    { width: 466, height: 678 },
 +    { top: 0, right: 84, bottom: 34, left: 0 },
 +    {
@@ -118698,7 +118844,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('iPhone Duo closed on its side keeps the tools at the column top and the buttons above its camera', () => {
-+  const layout = screenLayout(
++  const layout = layoutOf(
 +    { width: 678, height: 466 },
 +    { top: 0, right: 84, bottom: 34, left: 0 },
 +    {
@@ -118724,7 +118870,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +};
 +
 +test('iPad landscape puts the orb with its buttons under it on the leading half, the words centered on the trailing one', () => {
-+  const layout = screenLayout({ width: 1180, height: 820 }, pad, { regular: true });
++  const layout = layoutOf({ width: 1180, height: 820 }, pad, { regular: true });
 +  assert.equal(layout.kind, 'split');
 +  assert.equal(layout.orb.size, Math.round(820 * 0.32));
 +  assert.equal(layout.orb.read.x, 295);
@@ -118739,7 +118885,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('before a call, iPad rests the orb in the middle with its buttons under it, not beside an empty page', () => {
 +  for (const size of [iPads['11-inch landscape'], iPads['11-inch portrait']]) {
-+    const layout = screenLayout(size, pad, { regular: true });
++    const layout = layoutOf(size, pad, { regular: true });
 +    assert.ok(layout.controls !== 'inline' && 'center' in layout.controls);
 +    const { rest } = layout.controls.center;
 +    assert.equal(layout.orb.rest.x, size.width / 2);
@@ -118751,7 +118897,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('iPad portrait stacks the orb over the words, always shown, with no pull-down', () => {
-+  const layout = screenLayout(iPads['11-inch portrait'], pad, { regular: true });
++  const layout = layoutOf(iPads['11-inch portrait'], pad, { regular: true });
 +  assert.equal(layout.kind, 'stacked');
 +  assert.equal(layout.pulls, false);
 +  assert.equal(layout.orb.read.x, 834 / 2);
@@ -118763,7 +118909,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('Tasks takes two thirds of a landscape iPad, and standing up leaves the call 368', () => {
 +  const width = (size: { width: number; height: number }) =>
-+    screenLayout(size, pad, { regular: true }).tasks.width;
++    layoutOf(size, pad, { regular: true }).tasks.width;
 +  assert.equal(width(iPads['11-inch landscape']), 796);
 +  assert.equal(width(iPads['13-inch landscape']), 917);
 +  assert.equal(width(iPads['11-inch portrait']), 834 - 368);
@@ -118771,7 +118917,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('with a pane open the orb leaves the header and the words start under the toolbar', () => {
-+  const layout = screenLayout(iPads['11-inch landscape'], pad, { regular: true });
++  const layout = layoutOf(iPads['11-inch landscape'], pad, { regular: true });
 +  const room = 1194 - 796;
 +  assert.ok(layout.orb.dock!.tasks.y > layout.besideTasks.top);
 +  assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
@@ -118785,7 +118931,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +    { size: { width: 834, height: 1210 }, pane: 'tasks', from: 0, card: 368 },
 +  ] as const;
 +  for (const { size, pane, from, card } of cards) {
-+    const layout = screenLayout(size, pad, { regular: true });
++    const layout = layoutOf(size, pad, { regular: true });
 +    assert.ok(layout.controls !== 'inline' && 'center' in layout.controls);
 +    const buttons = layout.controls.center[pane];
 +    const spot = layout.orb.dock![pane];
@@ -118800,12 +118946,12 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('standing up, the words keep a readable 320 beside Tasks', () => {
 +  for (const size of [iPads['11-inch portrait'], iPads['13-inch portrait']])
-+    assert.equal(screenLayout(size, pad, { regular: true }).besideTasks.width, 320);
++    assert.equal(layoutOf(size, pad, { regular: true }).besideTasks.width, 320);
 +});
 +
 +test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in the room left', () => {
 +  for (const [name, size] of Object.entries(iPads)) {
-+    const layout = screenLayout(size, pad, { regular: true });
++    const layout = layoutOf(size, pad, { regular: true });
 +    const { orb, controls } = layout;
 +    assert.ok(controls !== 'inline' && 'center' in controls, name);
 +    const rooms = {
@@ -118841,7 +118987,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +}
 +
 +test('iPhone Duo open flat splits at the middle of the fold, with its bars down the side', () => {
-+  const layout = screenLayout(
++  const layout = layoutOf(
 +    { width: 951, height: 669 },
 +    { top: 0, right: 84, bottom: 21, left: 0 },
 +    { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
@@ -118855,7 +119001,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('iPhone Duo on a table puts the orb above the fold and the words below it', () => {
-+  const layout = screenLayout(
++  const layout = layoutOf(
 +    { width: 669, height: 951 },
 +    { top: 54, right: 0, bottom: 34, left: 0 },
 +    { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
@@ -118934,8 +119080,6 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +  },
 +} satisfies Record<string, { window: Size; insets: Insets; pose: Pose }>;
 +
-+type Size = { width: number; height: number };
-+type Insets = { top: number; right: number; bottom: number; left: number };
 +type Box = { x: number; y: number; width: number; height: number };
 +
 +const overlaps = (a: Box, b: Box) =>
@@ -118977,7 +119121,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which keep clear of each other and the status items', () => {
 +  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
-+    const layout = screenLayout(window, insets, pose);
++    const layout = layoutOf(window, insets, pose);
 +    const placed = bar(layout, window);
 +    const pages = [layout.duo!.tasks, ...(layout.duo!.beside ? [layout.duo!.beside.tasks] : [])];
 +    for (const [what, box] of Object.entries(placed)) {
@@ -118995,7 +119139,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('folded upright, Tasks runs from the screen edge to the column buttons and the tools start under the status items', () => {
 +  const { window, insets, pose } = duo['folded upright'];
-+  const layout = screenLayout(window, insets, pose);
++  const layout = layoutOf(window, insets, pose);
 +  assert.equal(layout.toolbar.y, 170);
 +  assert.deepEqual(layout.duo!.tasks, {
 +    area: { x: 0, y: 0, width: 424 - 32, height: 678 },
@@ -119008,7 +119152,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('folded on its side, the short column keeps the tools at its top and its smaller buttons above the status items', () => {
 +  const { window, insets, pose } = duo['folded on its side'];
-+  const layout = screenLayout(window, insets, pose);
++  const layout = layoutOf(window, insets, pose);
 +  assert.equal(layout.toolbar.y, 16);
 +  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 636 - 26, height: 466 });
 +  assert.equal(layout.duo!.beside, undefined);
@@ -119016,7 +119160,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('open upright, Tasks takes both pages, or the trailing one while the call’s words take the leading page', () => {
 +  const { window, insets, pose } = duo['open upright'];
-+  const layout = screenLayout(window, insets, pose);
++  const layout = layoutOf(window, insets, pose);
 +  const { tasks, beside } = layout.duo!;
 +  assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
 +  assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
@@ -119038,7 +119182,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('open on its side, the toolbar sits in the status band level with the status items, and Tasks starts under it as one page', () => {
 +  const { window, insets, pose } = duo['open on its side'];
-+  const layout = screenLayout(window, insets, pose);
++  const layout = layoutOf(window, insets, pose);
 +  const { toolbar } = layout;
 +  assert.equal(layout.kind, 'stacked');
 +  assert.equal(toolbar.axis, 'row');
@@ -119065,7 +119209,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('partly open, Tasks keeps its pages off the fold’s whole frame, margins and all', () => {
-+  const upright = screenLayout(
++  const upright = layoutOf(
 +    duo['partly open upright'].window,
 +    duo['partly open upright'].insets,
 +    duo['partly open upright'].pose,
@@ -119073,7 +119217,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +  assert.deepEqual(upright.tasks.fold, { at: 455.5, band: 40 });
 +  assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
 +  assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
-+  const side = screenLayout(
++  const side = layoutOf(
 +    duo['partly open on its side'].window,
 +    duo['partly open on its side'].insets,
 +    duo['partly open on its side'].pose,
@@ -119084,12 +119228,12 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('held wide, folding keeps Tasks’ two pages and only pulls them apart off the fold', () => {
-+  const flat = screenLayout(
++  const flat = layoutOf(
 +    duo['open upright'].window,
 +    duo['open upright'].insets,
 +    duo['open upright'].pose,
 +  ).duo!;
-+  const folded = screenLayout(
++  const folded = layoutOf(
 +    duo['partly open upright'].window,
 +    duo['partly open upright'].insets,
 +    duo['partly open upright'].pose,
@@ -119101,7 +119245,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +});
 +
 +test('partly open on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
-+  const side = screenLayout(
++  const side = layoutOf(
 +    duo['partly open on its side'].window,
 +    duo['partly open on its side'].insets,
 +    duo['partly open on its side'].pose,
@@ -119109,7 +119253,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +  const typing = side.beside!.typing!;
 +  assert.deepEqual(typing.area, { x: 0, y: 82, width: 669, height: 455.5 - 82 });
 +  assert.equal(typing.foot, 'fold');
-+  const upright = screenLayout(
++  const upright = layoutOf(
 +    duo['partly open upright'].window,
 +    duo['partly open upright'].insets,
 +    duo['partly open upright'].pose,
@@ -119133,7 +119277,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +    'partly open on its side',
 +  ] as const) {
 +    const { window, insets, pose } = duo[name];
-+    const layout = screenLayout(window, insets, pose);
++    const layout = layoutOf(window, insets, pose);
 +    const fold = hingeOf(pose.fold);
 +    const row = fold.height > fold.width;
 +    const words = {
@@ -119167,7 +119311,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +    'partly open on its side',
 +  ] as const) {
 +    const { window, insets, pose } = duo[name];
-+    const { orb } = screenLayout(window, insets, pose);
++    const { orb } = layoutOf(window, insets, pose);
 +    const resting = around(orb.rest.x, orb.rest.y, orb.size);
 +    if (pose.fold.active) {
 +      assert.ok(!overlaps(resting, pose.fold), `${name}: off the hinge`);
@@ -119178,11 +119322,11 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('on iPhone Duo Calls never lies over the call: the call yields it an edge and rounds off against it', () => {
 +  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
-+    const { calls } = screenLayout(window, insets, pose);
++    const { calls } = layoutOf(window, insets, pose);
 +    assert.notEqual(calls.place, 'over', name);
 +  }
 +  const { window, insets, pose } = duo['open upright'];
-+  const { calls } = screenLayout(window, insets, pose);
++  const { calls } = layoutOf(window, insets, pose);
 +  assert.deepEqual(calls, { width: 475.5, place: 'beside' }, 'open upright, the leading page');
 +});
 +
@@ -119190,7 +119334,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +  for (const [name, fixture] of Object.entries(duo)) {
 +    const { window, insets } = fixture;
 +    const pose: Pose = fixture.pose;
-+    const layout = screenLayout(window, insets, pose);
++    const layout = layoutOf(window, insets, pose);
 +    const partly = !!pose.fold?.active;
 +    if (layout.duo?.tasks.fold)
 +      assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
@@ -119205,7 +119349,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +
 +test('on iPhone Duo, beside Calls the orb rests whole in the room the call has left, and reads clear of the words', () => {
 +  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
-+    const { calls, orb, besideCalls } = screenLayout(window, insets, pose);
++    const { calls, orb, besideCalls } = layoutOf(window, insets, pose);
 +    if (calls.place !== 'beside') continue;
 +    const { x, y, size } = orb.dock!.calls;
 +    const resting = around(x, y, size);
@@ -119220,7 +119364,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +test('open on its side, Calls comes in under the band, which stays whole above it', () => {
 +  for (const name of ['open on its side', 'partly open on its side'] as const) {
 +    const { window, insets, pose } = duo[name];
-+    const { calls, toolbar } = screenLayout(window, insets, pose);
++    const { calls, toolbar } = layoutOf(window, insets, pose);
 +    assert.equal(calls.below, insets.top, name);
 +    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
 +  }
@@ -119229,7 +119373,7 @@ index 0000000000000000000000000000000000000000..7fe36d1b504f083078dfc37baae00d8a
 +test('open on its side, beside Calls the words keep to the room the call has left', () => {
 +  for (const name of ['open on its side', 'partly open on its side'] as const) {
 +    const { window, insets, pose } = duo[name];
-+    const { calls, besideCalls } = screenLayout(window, insets, pose);
++    const { calls, besideCalls } = layoutOf(window, insets, pose);
 +    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
 +    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
 +  }
@@ -120816,10 +120960,10 @@ index 0000000000000000000000000000000000000000..7a5c934688393b3462365a886c65dbaa
 +});
 diff --git a/tests/pages.test.ts b/tests/pages.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..d980fc12869d278f931b7838dfaa457eaae3cfb1
+index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a8736467299e75
 --- /dev/null
 +++ b/tests/pages.test.ts
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,269 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -120837,23 +120981,28 @@ index 0000000000000000000000000000000000000000..d980fc12869d278f931b7838dfaa457e
 +  type Stack,
 +} from '../src/components/tasks/pages';
 +import { TaskId } from '../src/live/tasks';
++import type { Pose } from '../modules/pose';
 +import { screenLayout, type Page } from '../src/screens/layout';
++import { roomOf as windowRoom, type Insets, type Size } from '../src/screens/window';
++
++const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
++  screenLayout(windowRoom(pose, window, insets));
 +
 +const A = TaskId.parse('a');
 +const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
 +
-+const openUpright = screenLayout(
++const openUpright = layoutOf(
 +  { width: 951, height: 669 },
 +  { top: 0, right: 84, bottom: 21, left: 0 },
 +  { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
 +).duo!.tasks;
-+const openOnSideDuo = screenLayout(
++const openOnSideDuo = layoutOf(
 +  { width: 669, height: 951 },
 +  { top: 54, right: 0, bottom: 34, left: 0 },
 +  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
 +).duo!;
 +const openOnSide = openOnSideDuo.tasks;
-+const folded = screenLayout(
++const folded = layoutOf(
 +  { width: 466, height: 678 },
 +  { top: 0, right: 84, bottom: 34, left: 0 },
 +  { regular: false, bar: 'right' },
@@ -121071,7 +121220,7 @@ index 0000000000000000000000000000000000000000..d980fc12869d278f931b7838dfaa457e
 +
 +test('on its side, flat or partly open, Tasks is one page: the list fills it and a topic pushes over it', () => {
 +  for (const active of [false, true]) {
-+    const page = screenLayout(
++    const page = layoutOf(
 +      { width: 669, height: 951 },
 +      { top: 82, right: 0, bottom: 34, left: 0 },
 +      { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
@@ -123134,6 +123283,142 @@ index 0000000000000000000000000000000000000000..9ba05aa550b4d317037aed9baf17e64c
 +
 +test('every voice has its introduction bundled', () => {
 +  for (const { id } of VOICES) assert.ok(existsSync(`assets/voices/${id}.m4a`), id);
++});
+diff --git a/tests/window.test.ts b/tests/window.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e514364946760b
+--- /dev/null
++++ b/tests/window.test.ts
+@@ -0,0 +1,130 @@
++import assert from 'node:assert/strict';
++import { readdirSync, readFileSync } from 'node:fs';
++import { join } from 'node:path';
++import test from 'node:test';
++
++import type { Pose } from '../modules/pose';
++import { screenLayout } from '../src/screens/layout';
++import { roomOf, type Insets, type Size } from '../src/screens/window';
++
++const files = (dir: string): string[] =>
++  readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
++    entry.isDirectory()
++      ? files(join(dir, entry.name))
++      : /\.tsx?$/.test(entry.name)
++        ? [join(dir, entry.name)]
++        : [],
++  );
++
++test('only the window module reads the device’s pose; the call screen mounts it and the check reports it', () => {
++  const readers = files('src').filter((file) =>
++    /from '(?:\.\.\/)+modules\/pose'/.test(readFileSync(file, 'utf8')),
++  );
++  assert.deepEqual(readers.sort(), [
++    'src/call/call-screen.tsx',
++    'src/call/pose-report.tsx',
++    'src/screens/window.ts',
++  ]);
++  const screen = readFileSync('src/call/call-screen.tsx', 'utf8');
++  assert.deepEqual(
++    [...screen.matchAll(/\bpose\.\w+/g)].map(([read]) => read),
++    [],
++    'the call screen hands the pose to roomOf and turns, and reads none of it itself',
++  );
++});
++
++// iPhone Duo held wide and open: 951×669, the side column's 84 on the right, the fold 40 wide at
++// the middle. In Split View each app gets half; the app on the right keeps the column.
++const open = { width: 951, height: 669 };
++const column = { top: 0, right: 84, bottom: 34, left: 0 };
++const fold = { x: 455.5, y: 0, width: 40, height: 669, active: false };
++const openPose: Pose = {
++  regular: true,
++  bar: 'right',
++  fold,
++  occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
++};
++
++// A window at `x` on the open screen, as iOS reports the pose to it: in the window's coordinates,
++// the bar's edge the device's.
++function inSplitView(x: number, width: number, insets: Insets, pose: Pose) {
++  return {
++    window: { width, height: open.height },
++    insets,
++    pose: {
++      ...pose,
++      fold: pose.fold && { ...pose.fold, x: pose.fold.x - x },
++      occlusions: pose.occlusions?.map((area) => ({ ...area, x: area.x - x })),
++    },
++  };
++}
++
++test('the open Duo’s whole screen keeps its fold and column', () => {
++  const room = roomOf(openPose, open, column);
++  assert.deepEqual(room.fold, fold);
++  assert.equal(room.bar, 'right');
++  assert.deepEqual(room.occlusions, openPose.occlusions);
++});
++
++test('in Split View the fold at a window’s edge isn’t the window’s, and a column it has no inset for isn’t either', () => {
++  const right = inSplitView(480, 471, column, { ...openPose, regular: false });
++  const rightRoom = roomOf(right.pose, right.window, right.insets);
++  assert.equal(rightRoom.fold, undefined, 'the fold lies at the right app’s leading edge');
++  assert.equal(rightRoom.bar, 'right', 'the right app keeps the column it has an inset for');
++  assert.deepEqual(rightRoom.occlusions, [{ x: 387, y: 0, width: 84, height: 120 }]);
++
++  const left = inSplitView(0, 471, { top: 0, right: 0, bottom: 34, left: 0 }, openPose);
++  const leftRoom = roomOf(left.pose, left.window, left.insets);
++  assert.equal(leftRoom.fold, undefined, 'the fold lies at the left app’s trailing edge');
++  assert.equal(
++    leftRoom.bar,
++    undefined,
++    'the device prefers its bars on the right, outside this window',
++  );
++  assert.deepEqual(leftRoom.occlusions, [], 'the camera is over the other app');
++});
++
++test('a window the fold crosses keeps it, cut to the window’s length', () => {
++  // A picture in picture pinned at the top leaves the app the screen below it.
++  const shorter = roomOf(
++    { ...openPose, fold: { ...fold, y: -200, height: 669 } },
++    { width: 951, height: 469 },
++    column,
++  );
++  assert.deepEqual(shorter.fold, { ...fold, y: 0, height: 469 });
++  const narrow = roomOf(openPose, { width: 700, height: 669 }, column);
++  assert.equal(narrow.fold, undefined, 'past the fold only 204 of a page is left');
++});
++
++function layoutIn(window: Size, insets: Insets, pose: Pose) {
++  return screenLayout(roomOf(pose, window, insets));
++}
++
++test('in Split View each app lays out as one page in the window it has, as the Duo does folded', () => {
++  for (const [side, { window, insets, pose }] of Object.entries({
++    right: inSplitView(480, 471, column, { ...openPose, regular: false }),
++    left: inSplitView(
++      0,
++      471,
++      { top: 24, right: 0, bottom: 34, left: 0 },
++      {
++        ...openPose,
++        regular: false,
++      },
++    ),
++  })) {
++    const layout = layoutIn(window, insets, pose);
++    assert.equal(layout.kind, 'single', side);
++    const tasks = layout.duo?.tasks;
++    assert.equal(tasks?.fold, undefined, `${side}: Tasks is one page`);
++    assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
++    for (const span of [layout.words, layout.footer, layout.agent])
++      assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
++    assert.ok(layout.toolbar.y >= 0 && layout.toolbar.x >= 0, `${side}: the toolbar is on screen`);
++    assert.ok(
++      layout.toolbar.x + (layout.toolbar.axis === 'row' ? layout.toolbar.width : 48) <=
++        window.width,
++      `${side}: the toolbar ends inside the window`,
++    );
++  }
 +});
 diff --git a/tsconfig.json b/tsconfig.json
 index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d01534b0d5f22 100644
