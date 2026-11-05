@@ -445,6 +445,7 @@ export function ProjectRow({
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
   const count = topic.entries.length;
+  const headline = headlineOf(newest);
   // Mint means it waits on you, so only Needs you counts in mint.
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
@@ -464,7 +465,7 @@ export function ProjectRow({
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
         ...listRow(width, { selected }),
-        accessibilityLabel(`${topic.name}, ${counted}: ${headlineOf(newest)}. Opens it`),
+        accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -494,7 +495,7 @@ export function ProjectRow({
           tone="secondary"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          {headlineOf(newest)}
+          {headline === topic.name ? '' : headline}
         </Text>
         <Meta text={clock(new Date(newest.at))} />
       </Row>
