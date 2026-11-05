@@ -293,6 +293,13 @@ const duo = {
   },
 } satisfies Record<string, { window: Size; insets: Insets; pose: Pose }>;
 
+// The panes iOS arranges the open screen into held wide, as the simulator reports them
+// (arrange-proto 90789e4): meeting on the crease flat, parted around the fold's frame partly open.
+const arranged = {
+  flat: { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } },
+  partly: { first: { x: 0, width: 455.5 }, second: { x: 495.5, width: 455.5 } },
+};
+
 type Size = { width: number; height: number };
 type Insets = { top: number; right: number; bottom: number; left: number };
 type Box = { x: number; y: number; width: number; height: number };
@@ -377,7 +384,7 @@ test('open upright, Tasks takes both pages, or the trailing one while the call�
   const { tasks, beside } = layout.duo!;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
   assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-  assert.deepEqual(tasks.fold, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
+  assert.deepEqual(tasks.panes, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
   assert.deepEqual(beside!.tasks, {
     area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
     foot: 34,
@@ -402,7 +409,7 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
   const { tasks, beside, call } = layout.duo!;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
+  assert.equal(tasks.panes, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
   assert.equal(tasks.gap, undefined, 'and runs straight through it');
   assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
   assert.equal(beside!.tasks.foot, 34, 'the bottom page');
@@ -424,8 +431,9 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open upright'].window,
     duo['partly open upright'].insets,
     duo['partly open upright'].pose,
+    { panes: arranged.partly },
   ).duo!;
-  assert.deepEqual(upright.tasks.fold, { at: 455.5, band: 40 });
+  assert.deepEqual(upright.tasks.panes, { at: 455.5, band: 40 });
   assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
   assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
   const side = screenLayout(
@@ -433,7 +441,7 @@ test('partly open, Tasks keeps its pages off the fold’s whole frame, margins a
     duo['partly open on its side'].insets,
     duo['partly open on its side'].pose,
   ).duo!;
-  assert.equal(side.tasks.fold, undefined, 'on its side Tasks stays one page');
+  assert.equal(side.tasks.panes, undefined, 'on its side Tasks stays one page');
   assert.deepEqual(side.tasks.gap, { at: 455.5 - 82, band: 40 }, 'broken only where the fold is');
   assert.equal(side.beside!.tasks.area.y, 495.5);
 });
@@ -443,15 +451,17 @@ test('held wide, folding keeps Tasks’ two pages and only pulls them apart off 
     duo['open upright'].window,
     duo['open upright'].insets,
     duo['open upright'].pose,
+    { panes: arranged.flat },
   ).duo!;
   const folded = screenLayout(
     duo['partly open upright'].window,
     duo['partly open upright'].insets,
     duo['partly open upright'].pose,
+    { panes: arranged.partly },
   ).duo!;
   assert.deepEqual(folded.tasks.area, flat.tasks.area, 'Tasks keeps the same room');
-  assert.deepEqual(flat.tasks.fold, { at: 475.5, band: 0 }, 'flat, the pages meet');
-  const { at, band } = folded.tasks.fold!;
+  assert.deepEqual(flat.tasks.panes, { at: 475.5, band: 0 }, 'flat, the pages meet');
+  const { at, band } = folded.tasks.panes!;
   assert.equal(at + band / 2, 475.5, 'folded, they part evenly about the same line');
 });
 
@@ -545,10 +555,12 @@ test('open flat, iPhone Duo treats the fold as a line, never as partly open, in 
   for (const [name, fixture] of Object.entries(duo)) {
     const { window, insets } = fixture;
     const pose: Pose = fixture.pose;
-    const layout = screenLayout(window, insets, pose);
     const partly = !!pose.fold?.active;
-    if (layout.duo?.tasks.fold)
-      assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
+    const layout = screenLayout(window, insets, pose, {
+      panes: partly ? arranged.partly : arranged.flat,
+    });
+    if (layout.duo?.tasks.panes)
+      assert.equal(layout.duo.tasks.panes.band > 0, partly, `${name}: partly open`);
     if (pose.fold && !partly && layout.kind === 'split')
       assert.equal(layout.orb.rest.x, layout.content.width / 2, `${name}: orb rests mid-screen`);
   }
@@ -598,9 +610,22 @@ test('the call stage lays out from its own box, wherever the screen puts it and 
   assert.deepEqual([left.orb, left.words, left.footer], [right.orb, right.words, right.footer]);
   const given = { width: right.content.width, height: right.content.height };
   const size = { width: 300, height: 600 };
-  const laid = screenLayout(window, insets, pose, { given, size });
+  const laid = screenLayout(window, insets, pose, { stage: { given, size } });
   assert.deepEqual(laid.size, size);
   assert.equal(laid.orb.rest.x, 150);
-  const stale = screenLayout(window, insets, pose, { given: { width: 1, height: 1 }, size });
+  const stale = screenLayout(window, insets, pose, {
+    stage: { given: { width: 1, height: 1 }, size },
+  });
   assert.deepEqual(stale.orb, right.orb, 'laid out in a box it is no longer given');
+});
+
+test('held wide, Tasks parts where iOS parts the panes, and until it reports them for this screen, at its middle', () => {
+  const { window, insets, pose } = duo['partly open upright'];
+  const pagesWith = (panes?: Partial<typeof arranged.flat>) =>
+    screenLayout(window, insets, pose, { panes }).duo!.tasks.panes;
+  assert.deepEqual(pagesWith(arranged.partly), { at: 455.5, band: 40 });
+  assert.deepEqual(pagesWith(), { at: 475.5, band: 0 }, 'none reported yet');
+  assert.deepEqual(pagesWith({ first: arranged.partly.first }), { at: 475.5, band: 0 }, 'one');
+  const side = { first: { x: 0, width: 669 }, second: { x: 0, width: 669 } };
+  assert.deepEqual(pagesWith(side), { at: 475.5, band: 0 }, 'reported for the screen on its side');
 });

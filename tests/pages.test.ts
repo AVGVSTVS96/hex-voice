@@ -43,7 +43,7 @@ type PagedRoom = Room & { height: number };
 const roomOf = (page: Page): PagedRoom => ({
   width: page.area.width,
   height: page.area.height,
-  fold: page.fold,
+  panes: page.panes,
   foot: page.foot,
   paged: true,
 });
@@ -51,7 +51,7 @@ const sheet: Room = { width: 440, foot: 34, paged: false };
 
 const go = (...moves: Move[]) => moves.reduce(move, START);
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
-  const shape = shapeOf(room.width, room.paged ? room.fold : undefined);
+  const shape = shapeOf(room.width, room.paged ? room.panes : undefined);
   return { levels: levelsOf(stack, shape), shape, closes };
 };
 const onScreen = (stack: Stack, room: PagedRoom) => {
@@ -75,9 +75,9 @@ const stacks: [string, Stack][] = [
 ];
 
 test('the Duo pages split at its fold held wide, on its side and folded it shows one at a time', () => {
-  assert.equal(shapeOf(openUpright.area.width, openUpright.fold), 'fold');
-  assert.equal(shapeOf(openOnSide.area.width, openOnSide.fold), 'one');
-  assert.equal(shapeOf(folded.area.width, folded.fold), 'one');
+  assert.equal(shapeOf(openUpright.area.width, openUpright.panes), 'panes');
+  assert.equal(shapeOf(openOnSide.area.width, openOnSide.panes), 'one');
+  assert.equal(shapeOf(folded.area.width, folded.panes), 'one');
   assert.equal(shapeOf(1000, undefined), 'columns');
 });
 
@@ -95,11 +95,11 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
     ['one', go({ to: 'topic', id: A }), ['list']],
     ['one', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
     ['one', go({ to: 'check' }), ['list']],
-    ['fold', go(), 'call'],
-    ['fold', go({ to: 'topic', id: A }), 'call'],
-    ['fold', go({ to: 'check' }), 'call'],
-    ['fold', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
-    ['fold', stacks[3]![1], ['list', 'topic', 'thread']],
+    ['panes', go(), 'call'],
+    ['panes', go({ to: 'topic', id: A }), 'call'],
+    ['panes', go({ to: 'check' }), 'call'],
+    ['panes', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
+    ['panes', stacks[3]![1], ['list', 'topic', 'thread']],
     ['columns', go({ to: 'topic', id: A }), 'call'],
     ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
@@ -174,7 +174,7 @@ test('on the Duo pages cross only while one fades, and never sit on the hinge, s
                   `${name}, t ${t}: ${one} covers ${other}`,
                 );
           }
-    const fold = room.fold;
+    const fold = room.panes;
     if (!fold) continue;
     const hinge = { x: fold.at, y: 0, width: fold.band, height: room.height };
     for (const [at, stack] of stacks)
@@ -189,10 +189,10 @@ test('on the Duo pages cross only while one fades, and never sit on the hinge, s
 test('pages run flush to the screen edges and the hinge', () => {
   const room = roomOf(openUpright);
   const pages = pagesOf(go(), room);
-  assert.equal(spotOf('list', pages, room).width, openUpright.fold!.at);
+  assert.equal(spotOf('list', pages, room).width, openUpright.panes!.at);
   assert.equal(
     spotOf('topic', pages, room).width,
-    openUpright.area.width - openUpright.fold!.at - openUpright.fold!.band,
+    openUpright.area.width - openUpright.panes!.at - openUpright.panes!.band,
   );
   const side = roomOf(openOnSide);
   assert.equal(spotOf('list', pagesOf(go(), side), side).width, side.width);
@@ -241,7 +241,7 @@ test('on its side, flat or partly open, Tasks is one page: the list fills it and
       { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
     ).duo!.tasks;
     const room = roomOf(page);
-    assert.equal(room.fold, undefined);
+    assert.equal(room.panes, undefined);
     assert.deepEqual(onScreen(go(), room), ['list']);
     assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
     const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);

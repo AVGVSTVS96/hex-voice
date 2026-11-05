@@ -378,12 +378,12 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const atFold = room.paged && !!room.fold;
+  const inPanes = room.paged && !!room.panes;
   return (
     <ZStack
-      alignment={atFold ? 'topLeading' : 'top'}
+      alignment={inPanes ? 'topLeading' : 'top'}
       modifiers={
-        atFold
+        inPanes
           ? [
               frame({ maxWidth: Infinity, alignment: 'topLeading' }),
               upTo(Infinity, 'topLeading'),

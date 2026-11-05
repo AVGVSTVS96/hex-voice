@@ -14,7 +14,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { shapeOf, usePages } from '@/components/tasks/pages';
 import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
-import type { Fold, Page } from '@/screens/layout';
+import type { Page, Parting } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
 
@@ -60,11 +60,11 @@ export function TasksPage({
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
-  const { area, fold } = page;
+  const { area, panes } = page;
   const pages = usePages({
     open: view.open,
     at: view.at,
-    shape: shapeOf(area.width, fold),
+    shape: shapeOf(area.width, panes),
     onClose,
   });
   const { back } = pages;
@@ -100,7 +100,7 @@ export function TasksPage({
           <Tasks
             {...view}
             pages={pages}
-            room={{ width: area.width, fold, foot: page.foot, paged: true }}
+            room={{ width: area.width, panes, foot: page.foot, paged: true }}
           />
           {page.gap ? <Gap gap={page.gap} /> : null}
         </ZStack>
@@ -115,7 +115,7 @@ export function TasksPage({
 // On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
 // under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
 // and nowhere else.
-function Gap({ gap }: { gap: Fold }) {
+function Gap({ gap }: { gap: Parting }) {
   return (
     <Rectangle
       modifiers={[

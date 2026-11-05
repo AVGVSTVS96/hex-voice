@@ -53,7 +53,8 @@ import type { CallAbout } from '@/live/types';
 import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout, type LaidOut } from '@/screens/layout';
+import { Arrangement } from '@/screens/arrangement';
+import { screenLayout, type LaidOut, type Panes } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { radius, theme } from '@/theme';
@@ -129,9 +130,11 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
   const insets = useSafeAreaInsets();
   const screen = useViewport();
   const { width, height } = screen;
-  // The stage lays out from its own box: the size it was laid out at, once it has been.
+  // The stage lays out from its own box: the size it was laid out at, once it has been. Held wide,
+  // Tasks takes the panes iOS arranges the open screen into, once it has reported them.
   const [laid, setLaid] = useState<LaidOut>();
-  const layout = screenLayout(screen, insets, pose, laid);
+  const [arranged, setArranged] = useState<Partial<Panes>>({});
+  const layout = screenLayout(screen, insets, pose, { stage: laid, panes: arranged });
   const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
@@ -638,6 +641,17 @@ function CallScreen({ pose, opening }: { pose: Pose; opening: Opening }) {
 
   return (
     <>
+      {pose.fold && (
+        <Arrangement
+          onPane={(name, span) =>
+            setArranged((now) =>
+              now[name]?.x === span.x && now[name]?.width === span.width
+                ? now
+                : { ...now, [name]: span },
+            )
+          }
+        />
+      )}
       {sidebar}
       {panes && !duo && (
         <TasksPane
