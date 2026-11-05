@@ -650,7 +650,11 @@ function SettingsPlace({
                 >
                   {rows}
                 </Column>
-              ) : null}
+              ) : (
+                // Left empty, iOS draws a bar along the bottom of the lone pane, like the home
+                // indicator.
+                <Spacer flexible />
+              )}
             </ArrangementView.Secondary>
           </ArrangementView>
         </ZStack>
