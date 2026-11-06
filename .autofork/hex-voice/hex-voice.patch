@@ -98956,10 +98956,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..424661f30eb0ee5c8ab64c426b0dc62230ad2d7c
+index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d2a0c768d
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,639 @@
+@@ -0,0 +1,641 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99267,6 +99267,8 @@ index 0000000000000000000000000000000000000000..424661f30eb0ee5c8ab64c426b0dc622
 +  }
 +  for pose in $POSES; do
 +    for appearance in $APPEARANCES; do
++      # CoreSimulatorService restarting shuts every simulator down; boot it again for the next pose.
++      xcrun simctl bootstatus "$id" -b >/dev/null
 +      place_turned "$pose"
 +      xcrun simctl ui "$id" appearance "$appearance"
 +      result=$tests/$pose-$appearance.xcresult
