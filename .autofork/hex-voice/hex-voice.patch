@@ -186,7 +186,7 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..bc30cd15ea294c708c160dcbd077360b743be25d 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3c01832d9a3849a9093be743267150b22b5caa2c 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
 @@ -1,21 +1,65 @@
@@ -229,7 +229,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..bc30cd15ea294c708c160dcbd077360b
 +
 +## Checking on the Duo
 +
-+One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. Checks run in lanes, each a Duo simulator on iOS 27.1 and an iPad on 27.0 with its own Mac folder, stand-in port and lock, one of the pair booted at a time and kept booted between checks: a check takes whichever of lanes 1 ("hexvoice Duo") and 2 ("2 hexvoice Duo") is free, and `scripts/duo verify` has its own ("verify hexvoice Duo"), so it never waits behind them. Checks wait for a lane, and for the Mac's simulator turn, in the order they came; `FIRST=1 scripts/duo …` puts the check he's waiting on ahead of the rest. All lanes install the simulator builds lane 1 makes. To stop a check, stop it on the Mac too, or its stand-in outlives its lock. Never copy the app to the Mac.
++One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. Checks run in lanes, each a Duo simulator on iOS 27.1 and an iPad on 27.0 with its own Mac folder, stand-in port and lock, one of the pair booted at a time and kept booted between checks: a check takes whichever of lanes 1 ("hexvoice Duo") and 2 ("2 hexvoice Duo") is free, and `scripts/duo verify` has its own ("verify hexvoice Duo"), so it never waits behind them. Checks wait for a lane, and for the Mac's simulator turn, in the order they came; `FIRST=1 scripts/duo …` puts the check he's waiting on ahead of the rest. All lanes install the simulator builds lane 1 makes. Stopping a check here (TERM or Ctrl-C) stops its Mac half too, and on the Mac a check holds its lane's own lock while it runs. Never copy the app to the Mac.
  
 -## Commit and PR conventions
 +```
@@ -98956,10 +98956,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d2a0c768d
+index 0000000000000000000000000000000000000000..6c8c4c2224b5af70d81fccba8a93f94a6ce37b84
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,641 @@
+@@ -0,0 +1,644 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99415,7 +99415,7 @@ index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d
 +  { if [ -n "$states" ]; then cat "$states"; else
 +    git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
 +  fi; } |
-+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac shoot $runtime"
++    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime"
 +  collect "$out"
 +  echo "$title" >"$out/done"
 +}
@@ -99424,7 +99424,7 @@ index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d
 +  echo "tapping through $title"
 +  { if [ -n "${1:-}" ]; then cat "$1"; else
 +    git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac tap $runtime"
++  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
 +  collect "${2:-$out/tap}"
 +}
 +
@@ -99547,7 +99547,8 @@ index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d
 +# Holds the lock of the first free lane of those given. Checks waiting for a lane take one in the
 +# order they came, by ticket, and FIRST=1 puts a check someone is waiting on ahead of the rest (it
 +# goes first for the Mac's simulator turn too). A lane whose stand-in port is taken on the Mac is
-+# busy as well, as when a check was stopped here but not there.
++# busy as well, and on the Mac a check also holds the lane's own lock (<folder>.lock) while it runs,
++# so one that outlived its run here makes the next wait there instead of colliding.
 +take_lane() {
 +  local queue=$home/queue-${1:-checks} candidate waiting ticket told=
 +  mkdir -p "$queue"
@@ -99564,6 +99565,8 @@ index 0000000000000000000000000000000000000000..5acfc5dfc8eec5f69b1b12e978d7b10d
 +        use_lane "$candidate"
 +        ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || {
 +          rm -f "$ticket"
++          # A check stopped here stops on the Mac too, or its stand-in would hold the lane's port.
++          trap 'ssh "$mac" "pkill -f \"[${folder:0:1}]${folder:1}/harness/duo mac \"; lsof -ti tcp:$hexport -sTCP:LISTEN | xargs kill" 2>/dev/null; exit 143' TERM INT HUP
 +          return 0
 +        }
 +        flock -u 7
