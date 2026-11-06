@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # Ships main's JS to the app over the air: the iPhone and iPad pick it up the next time the app
 # comes to the front with no call live. Native changes need scripts/ship-native instead.
+#   scripts/ship-js <commit>   ships main once it holds the commit you pushed, so a merge or push
+#                              that failed never ships whatever else main holds
 . "$(dirname "$0")/release.sh"
 
+want=${1:-}
+[ -n "$want" ] || die "name the commit you pushed: npm run ship:js -- <commit>"
 mkdir -p "$home"
 exec 9>"$home/release.lock"
 flock 9
 refresh_release
+git -C "$release" merge-base --is-ancestor "$want" origin/main 2>/dev/null ||
+  die "main doesn't hold $want: push it first; nothing was shipped"
 runtime=$(runtime_version)
 [ -d "$updates/ios/$runtime" ] ||
   die "main changed native code (runtime $runtime has no native build): run npm run ship:native"
