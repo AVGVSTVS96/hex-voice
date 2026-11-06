@@ -101,5 +101,10 @@
     "place": "markdown",
     "at": "2026-11-04T09:21:00.000Z",
     "text": "**markdown**: the hex voice app. Changes ship over the air with ship:js. [Paper](https://example.com/paper)\n\n1. ✓ App opens on the Duo again, with permanent Mac signing (c4bde66)\n2. ✓ Markdown in cards, threads and pins, drawn by Textual (889a7b4)\n3. Wide Duo layout and polish (t-757, t-751)\n   - nested under three\n4. Keyboard covering the send box (t-736)\n\nWatch: **7, federal tax withholding:** run `npm run ship`, see [the IRS](https://www.irs.gov)."
+  },
+  "/tasks/summary": {
+    "version": 1,
+    "needs": 1,
+    "working": 2
   }
 }
