@@ -294,7 +294,7 @@ index 0000000000000000000000000000000000000000..67abb4f1c0fdac1ce07aa7413dead54c
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..8b186e095b68469dd57ac5ba9b825bfbacc2d859 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..a791a87f206a209c11aa11eeed4206242d745107 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
 @@ -1,21 +1,69 @@
@@ -325,11 +325,11 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..8b186e095b68469dd57ac5ba9b825bfb
  
 -Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
 +```
-+push main ─┬─ npm run ship:js      JS only: over the air, on both devices in seconds
-+           └─ npm run ship:native  native changed: one warm Mac build, installed on both
++push main ─┬─ npm run ship:js -- <commit>   JS only: over the air, on both devices in seconds
++           └─ npm run ship:native           native changed: one warm Mac build, installed on both
 +```
 +
-+- After you push main, run `npm run ship:js`. It publishes main's JS to the update server (`updates/store.mts`, the `hex-voice-updates` service on the server), and the app restarts into it the next time it comes to the front with no call live.
++- After you push main, run `npm run ship:js -- <commit>`, naming the commit you pushed: it refuses unless main holds it, so a merge or push that failed never ships the rest of main. It publishes main's JS to the update server (`updates/store.mts`, the `hex-voice-updates` service on the server), and the app restarts into it the next time it comes to the front with no call live.
 +- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/`, `modules/` or `package.json`'s scripts changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, and signs it (below) and installs it with `devicectl` on the iPhone (over Wi-Fi) and the iPad (plugged into the Mac) once no call is live. A run that waited behind another ships the newest main, or nothing when both devices already run it.
 +- The free Apple team holds one development certificate at a time, and it's the Mac's (its key is in the Mac's login keychain), so xtool never makes its own: that would revoke the Mac's and break every app Xcode signed, hex keyboard too. `ship:native` has xtool on the server (Bassim's fork, whose `xtool sign` provisions an app for a certificate it holds without the key and signs ad hoc) make the profiles, then `scripts/resign` signs on the Mac with the keychain identity that has the certificate's serial, the frameworks, the Live Activity extension and the app, each with its profile's entitlements. The keychain opens only in the login session, so that runs as a one-off launch agent. Simulator builds on the Mac are fine.
 +- Both ship what's on origin/main, from the release checkout `~/.local/share/hex-voice/release` and its `.env.local` (see `.env.example`), and both wait their turn, so any agent can run them at any time.
@@ -100257,19 +100257,25 @@ index 8e737af44cd58398be542b3c0503bb5abb3356c4..00000000000000000000000000000000
 -}
 diff --git a/scripts/ship-js b/scripts/ship-js
 new file mode 100755
-index 0000000000000000000000000000000000000000..75d07193eea0b6627585dabdb4d78a70540554f7
+index 0000000000000000000000000000000000000000..059a36b6cde0a5858dd718017b8fae90f540361c
 --- /dev/null
 +++ b/scripts/ship-js
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,25 @@
 +#!/usr/bin/env bash
 +# Ships main's JS to the app over the air: the iPhone and iPad pick it up the next time the app
 +# comes to the front with no call live. Native changes need scripts/ship-native instead.
++#   scripts/ship-js <commit>   ships main once it holds the commit you pushed, so a merge or push
++#                              that failed never ships whatever else main holds
 +. "$(dirname "$0")/release.sh"
 +
++want=${1:-}
++[ -n "$want" ] || die "name the commit you pushed: npm run ship:js -- <commit>"
 +mkdir -p "$home"
 +exec 9>"$home/release.lock"
 +flock 9
 +refresh_release
++git -C "$release" merge-base --is-ancestor "$want" origin/main 2>/dev/null ||
++  die "main doesn't hold $want: push it first; nothing was shipped"
 +runtime=$(runtime_version)
 +[ -d "$updates/ios/$runtime" ] ||
 +  die "main changed native code (runtime $runtime has no native build): run npm run ship:native"
