@@ -567,13 +567,17 @@ phone() {
   echo "$file"
 }
 
-# Holds the lock of the first free lane of those given, waiting while none is.
+# Holds the lock of the first free lane of those given, waiting while none is. A lane whose stand-in
+# port is taken on the Mac is busy too, as when a check was stopped here but not there.
 take_lane() {
   local candidate told=
   while :; do
     for candidate in "$@"; do
       exec 7>"$home/duo${candidate:+-$candidate}.lock"
-      flock -n 7 && use_lane "$candidate" && return
+      flock -n 7 || continue
+      use_lane "$candidate"
+      ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || return 0
+      flock -u 7
     done
     [ -n "$told" ] || echo "every lane is checking; this one checks once one is free"
     told=1
