@@ -90845,10 +90845,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..edbbb8eedd5eb77dce603942517e31cadd050425
+index 0000000000000000000000000000000000000000..9cfd2de53548c4a75112ec5e58077ca3cecb6348
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,616 @@
+@@ -0,0 +1,617 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -90967,7 +90967,8 @@ index 0000000000000000000000000000000000000000..edbbb8eedd5eb77dce603942517e31ca
 +    DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
 +    exec node harness/duo-hex.mjs) &
 +  standin=$!
-+  trap 'kill "$standin"' EXIT
++  # The simulator stays booted for the next check, but the app closes: its orb draws all the while.
++  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null' EXIT
 +  # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
 +  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
 +    "https://127.0.0.1:$hexport/tasks/summary" ||
@@ -91301,7 +91302,7 @@ index 0000000000000000000000000000000000000000..edbbb8eedd5eb77dce603942517e31ca
 +  { if [ -n "$states" ]; then cat "$states"; else
 +    git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
 +  fi; } |
-+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac shoot $runtime"
++    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims turn $folder/harness/duo mac shoot $runtime"
 +  collect "$out"
 +  echo "$title" >"$out/done"
 +}
@@ -91310,7 +91311,7 @@ index 0000000000000000000000000000000000000000..edbbb8eedd5eb77dce603942517e31ca
 +  echo "tapping through $title"
 +  { if [ -n "${1:-}" ]; then cat "$1"; else
 +    git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac tap $runtime"
++  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims turn $folder/harness/duo mac tap $runtime"
 +  collect "${2:-$out/tap}"
 +}
 +
