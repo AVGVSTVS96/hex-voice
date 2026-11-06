@@ -451,7 +451,7 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims turn $folder/harness/duo mac shoot $runtime"
+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac shoot $runtime"
   collect "$out"
   echo "$title" >"$out/done"
 }
@@ -460,7 +460,7 @@ tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims turn $folder/harness/duo mac tap $runtime"
+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac tap $runtime"
   collect "${2:-$out/tap}"
 }
 
@@ -580,25 +580,40 @@ phone() {
   echo "$file"
 }
 
-# Holds the lock of the first free lane of those given, waiting while none is. A lane whose stand-in
-# port is taken on the Mac is busy too, as when a check was stopped here but not there.
+# Holds the lock of the first free lane of those given. Checks waiting for a lane take one in the
+# order they came, by ticket, and FIRST=1 puts a check someone is waiting on ahead of the rest (it
+# goes first for the Mac's simulator turn too). A lane whose stand-in port is taken on the Mac is
+# busy as well, as when a check was stopped here but not there.
 take_lane() {
-  local candidate told=
+  local queue=$home/queue-${1:-checks} candidate waiting ticket told=
+  mkdir -p "$queue"
+  ticket=$queue/$([ -n "${FIRST:-}" ] && echo 0 || echo 1)-$(date +%s)-$$
+  echo "$(date +%H:%M) scripts/duo $command" >"$ticket"
   while :; do
-    for candidate in "$@"; do
-      exec 7>"$home/duo${candidate:+-$candidate}.lock"
-      flock -n 7 || continue
-      use_lane "$candidate"
-      ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || return 0
-      flock -u 7
+    for waiting in "$queue"/*; do
+      kill -0 "${waiting##*-}" 2>/dev/null || rm -f "$waiting"
     done
-    [ -n "$told" ] || echo "every lane is checking; this one checks once one is free"
+    if [ "$(ls "$queue" | sort -t- -k1,1 -k2,2n | head -1)" = "${ticket##*/}" ]; then
+      for candidate in "$@"; do
+        exec 7>"$home/duo${candidate:+-$candidate}.lock"
+        flock -n 7 || continue
+        use_lane "$candidate"
+        ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || {
+          rm -f "$ticket"
+          return 0
+        }
+        flock -u 7
+      done
+    fi
+    [ -n "$told" ] || { echo "every lane is checking; this one checks in its turn, behind:" && ls "$queue" |
+      sort -t- -k1,1 -k2,2n | sed "/^${ticket##*/}\$/,\$d" | while read -r waiting; do cat "$queue/$waiting"; done; }
     told=1
     sleep 5
   done
 }
 
 mkdir -p "$home"
+command=$*
 case ${1:-} in
   build | shoot | tap | verify)
     start=$SECONDS
