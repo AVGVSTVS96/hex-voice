@@ -38,24 +38,24 @@ const screens: Record<string, Fixture> = {
   'Duo open upright': {
     window: { width: 951, height: 669 },
     insets: column,
-    pose: { regular: true, bar: 'right', fold: { ...upright, active: false } },
+    pose: { regular: true, bar: 'right', fold: { ...upright } },
   },
   'Duo open, column leading': {
     window: { width: 951, height: 669 },
     insets: { ...column, right: 0, left: 84 },
-    pose: { regular: true, bar: 'left', fold: { ...upright, x: 539.5, active: false } },
+    pose: { regular: true, bar: 'left', fold: { ...upright, x: 539.5 } },
   },
   'Duo partly open upright': {
     window: { width: 951, height: 669 },
     insets: column,
-    pose: { regular: true, bar: 'right', fold: { ...upright, active: true } },
+    pose: { regular: true, bar: 'right', fold: { ...upright } },
   },
   'Duo open on its side': {
     window: { width: 669, height: 951 },
     insets: band,
     pose: {
       regular: true,
-      fold: { ...flat, active: false },
+      fold: { ...flat },
       occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
     },
   },
@@ -120,8 +120,8 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
           const fold = !folded
             ? undefined
             : across
-              ? { x: width / 2 - 20, y: 0, width: 40, height, active: false }
-              : { x: 0, y: height / 2 - 20, width, height: 40, active: false };
+              ? { x: width / 2 - 20, y: 0, width: 40, height }
+              : { x: 0, y: height / 2 - 20, width, height: 40 };
           const layout = layoutOf({
             window: { width, height },
             insets: {

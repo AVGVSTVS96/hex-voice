@@ -217,7 +217,7 @@ test('iPhone Duo open flat splits at the middle of the fold, with its bars down 
   const layout = layoutOf(
     { width: 951, height: 669 },
     { top: 0, right: 84, bottom: 21, left: 0 },
-    { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
+    { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669 } },
   );
   assert.equal(layout.kind, 'split');
   assert.deepEqual(layout.orb.read, { x: 237.5, y: 334.5 });
@@ -231,7 +231,7 @@ test('iPhone Duo on a table puts the orb above the fold and the words below it',
   const layout = layoutOf(
     { width: 669, height: 951 },
     { top: 54, right: 0, bottom: 34, left: 0 },
-    { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: false } },
+    { regular: true, fold: { x: 0, y: 455, width: 669, height: 40 } },
   );
   assert.equal(layout.kind, 'stacked');
   assert.ok(layout.words.top > 475, 'the words start past the fold');
@@ -273,7 +273,7 @@ const duo = {
     pose: {
       regular: true,
       bar: 'right',
-      fold: { x: 455.5, y: 0, width: 40, height: 669, active: false },
+      fold: { x: 455.5, y: 0, width: 40, height: 669 },
       occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
     },
   },
@@ -282,7 +282,7 @@ const duo = {
     insets: { top: 82, right: 0, bottom: 34, left: 0 },
     pose: {
       regular: true,
-      fold: { x: 0, y: 455.5, width: 669, height: 40, active: false },
+      fold: { x: 0, y: 455.5, width: 669, height: 40 },
       occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
     },
   },
@@ -291,12 +291,6 @@ const duo = {
 // The panes iOS arranges the open screen into held wide flat, as the simulator reports them
 // (arrange-proto 90789e4): they meet on the crease.
 const arranged = { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } };
-
-// The same Duo partly folded: iOS reports the same fold, active.
-const partly = (pose: Pose): Pose => ({
-  ...pose,
-  fold: pose.fold && { ...pose.fold, active: true },
-});
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -438,11 +432,6 @@ test('open on its side, the toolbar sits in the status band level with the statu
     { right: 669 - (523 - 108 - 24), top: toolbar.y },
     'the call buttons come in before Tasks and settings, which stay put',
   );
-});
-
-test('folding moves nothing: in every pose, a partly folded Duo lays out exactly as it does open flat', () => {
-  for (const [name, { window, insets, pose }] of Object.entries(duo))
-    assert.deepEqual(layoutOf(window, insets, partly(pose)), layoutOf(window, insets, pose), name);
 });
 
 test('on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {

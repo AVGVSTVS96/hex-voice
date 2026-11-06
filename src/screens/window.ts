@@ -1,6 +1,6 @@
 import { breakpoint } from '@/ui/tokens';
 
-import type { Pose, Rect, Region } from '../../modules/pose';
+import type { Pose, Rect } from '../../modules/pose';
 
 export type { Rect };
 // Where the fold divides the window: a line down it at `x`, or across it at `y`.
@@ -53,7 +53,7 @@ export function turns(pose: Pose, pad: boolean) {
 // window's safe room on either side, and then it's the line down the middle of iOS's division
 // region. How far the Duo is folded never reaches layout: Apple asks folding to move only what it
 // must.
-function parting(fold: Region, size: Size, insets: Insets): Fold | undefined {
+function parting(fold: Rect, size: Size, insets: Insets): Fold | undefined {
   const across = fold.height > fold.width;
   const [before, after] = across
     ? [fold.x - insets.left, size.width - insets.right - (fold.x + fold.width)]

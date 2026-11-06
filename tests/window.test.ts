@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { isDeepStrictEqual } from 'node:util';
 
 import type { Pose } from '../modules/pose';
 import { screenLayout } from '../src/screens/layout';
@@ -38,7 +37,7 @@ test('only the window module reads the device’s pose; the call screen mounts i
 // the middle. In Split View each app gets half; the app on the right keeps the column.
 const open = { width: 951, height: 669 };
 const column = { top: 0, right: 84, bottom: 34, left: 0 };
-const fold = { x: 455.5, y: 0, width: 40, height: 669, active: false };
+const fold = { x: 455.5, y: 0, width: 40, height: 669 };
 const openPose: Pose = {
   regular: true,
   bar: 'right',
@@ -155,14 +154,11 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             at === undefined
               ? undefined
               : across
-                ? { x: place(width) - 20, y: 0, width: 40, height, active: false }
-                : { x: 0, y: place(height) - 20, width, height: 40, active: false };
+                ? { x: place(width) - 20, y: 0, width: 40, height }
+                : { x: 0, y: place(height) - 20, width, height: 40 };
           const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
           const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
           const layout = screenLayout(roomOf(pose, window, insets));
-          const folded = { ...pose, fold: fold && { ...fold, active: true } };
-          if (!isDeepStrictEqual(screenLayout(roomOf(folded, window, insets)), layout))
-            problems.push(`${name}: partly folded lays out differently`);
           const { content } = layout;
           const spans = {
             words: layout.words,
