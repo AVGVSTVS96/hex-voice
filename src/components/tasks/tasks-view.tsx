@@ -31,6 +31,7 @@ import {
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
 import { EntryRow } from '@/components/tasks/rows';
+import { Selectable } from '@/components/tasks/said';
 import { Asked, Detail } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { StepsLoading, Trace } from '@/components/tasks/trace';
@@ -209,7 +210,9 @@ export function Tasks({
       <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
         <PageChrome.Provider value={chromeOf(at)}>
           <Showing.Provider value={open && at.shown}>
-            <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
+            <Typing.Provider value={typingOn(level)}>
+              <Selectable.Provider value={typing !== level}>{children}</Selectable.Provider>
+            </Typing.Provider>
           </Showing.Provider>
         </PageChrome.Provider>
       </PageAt>
