@@ -24,7 +24,7 @@ import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
-import { useDraft } from '@/hooks/use-draft';
+import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, Hairline, SectionHead } from '@/components/tasks/parts';
 import {
@@ -159,8 +159,14 @@ function AskCard({
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [writing, setWriting] = useState(false);
+  // Words typed on it and not sent open it on them, so they're never out of sight: after the page
+  // closes, and once hex's check lists it under a new id.
+  const [held] = useState(
+    () => !!carryDraft(`ask:${ask.id}`, ask.was?.map((id) => `ask:${id}`) ?? []).trim(),
+  );
+  const [open, setOpen] = useState(held);
+  // 'held' opens the field without raising the keyboard; the pencil raises it.
+  const [writing, setWriting] = useState<boolean | 'held'>(held && 'held');
   const words = useWords(open ? ask.id : null);
   // A note leaves the ask open, so the card stays and says it went, or why it didn't.
   const notes = useFailures();
@@ -176,6 +182,8 @@ function AskCard({
         if (sent) setWriting(false);
       });
   };
+  // What last didn't go through on it, folded or open.
+  const failed = notes.failed.note ?? ask.failed;
   return (
     <Column
       alignment="start"
@@ -275,23 +283,21 @@ function AskCard({
         >
           {words ? <Said words={words} /> : null}
           {ask.links?.length ? <Links links={ask.links} /> : null}
-          {notes.failed.note ? (
-            <Failure text={notes.failed.note} modifiers={[padding({ top: space[1] })]} />
-          ) : noted ? (
+          {noted && !notes.failed.note ? (
             <Text
               variant="footnote"
               tone="secondary"
               paragraph
               modifiers={[padding({ top: space[1] })]}
             >
-              {`Note sent to ${ask.topic}`}
+              {`Sent to ${ask.topic} as a note. The question is still open.`}
             </Text>
           ) : null}
         </Column>
       ) : null}
-      {ask.failed ? (
+      {failed ? (
         <Failure
-          text={ask.failed}
+          text={failed}
           modifiers={[
             padding({
               leading: metrics.list.inset,
@@ -304,6 +310,7 @@ function AskCard({
       {!open ? null : writing ? (
         <Composer
           draft={`ask:${ask.id}`}
+          focus={writing === true}
           topic={ask.topic}
           sending={noting}
           onNote={note}
@@ -503,6 +510,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
 // None of them goes while a note is on its way.
 function Composer({
   draft,
+  focus,
   topic,
   sending,
   onNote,
@@ -510,6 +518,7 @@ function Composer({
   onDismiss,
 }: {
   draft: string;
+  focus: boolean;
   topic: string;
   sending: boolean;
   onNote: (text: string) => void;
@@ -553,7 +562,7 @@ function Composer({
       >
         <TextInput
           ref={field}
-          autoFocus
+          autoFocus={focus}
           multiline
           testID="ask-input"
           onFocus={() => typing(true)}

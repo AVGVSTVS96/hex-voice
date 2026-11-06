@@ -40,6 +40,8 @@ export const Ask = z.object({
   links: z.optional(z.array(AskLink)),
   places: z.array(AskPlace),
   tag: z.optional(z.string()),
+  // The ids it was listed under before hex's check took it up.
+  was: z.optional(z.array(AskId)),
 });
 // Where an ask came from in its thread's own words, read when its card opens: the place as Tasks
 // names it, when it was said there, and the words, as written.
