@@ -28,12 +28,12 @@ const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
 const openUpright = layoutOf(
   { width: 951, height: 669 },
   { top: 0, right: 84, bottom: 21, left: 0 },
-  { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669, active: false } },
+  { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669 } },
 ).duo!.tasks;
 const openOnSideDuo = layoutOf(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
-  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: false } },
+  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40 } },
 ).duo!;
 const openOnSide = openOnSideDuo.tasks;
 const folded = layoutOf(
@@ -234,18 +234,16 @@ test('a page ending at the fold keeps nothing clear below it, and Back always sa
   assert.equal(spotOf('list', pagesOf(go(), beside), beside).back, 'call');
 });
 
-test('on its side, flat or partly open, Tasks is one page: the list fills it and a topic pushes over it', () => {
-  for (const active of [false, true]) {
-    const page = layoutOf(
-      { width: 669, height: 951 },
-      { top: 82, right: 0, bottom: 34, left: 0 },
-      { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
-    ).duo!.tasks;
-    const room = roomOf(page);
-    assert.equal(room.panes, undefined);
-    assert.deepEqual(onScreen(go(), room), ['list']);
-    assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
-    const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);
-    assert.deepEqual([topic.back, topic.width], ['list', 669]);
-  }
+test('on its side, Tasks is one page: the list fills it and a topic pushes over it', () => {
+  const page = layoutOf(
+    { width: 669, height: 951 },
+    { top: 82, right: 0, bottom: 34, left: 0 },
+    { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40 } },
+  ).duo!.tasks;
+  const room = roomOf(page);
+  assert.equal(room.panes, undefined);
+  assert.deepEqual(onScreen(go(), room), ['list']);
+  assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
+  const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);
+  assert.deepEqual([topic.back, topic.width], ['list', 669]);
 });

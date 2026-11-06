@@ -2,14 +2,14 @@ import { requireNativeView } from 'expo';
 import type { ViewProps } from 'react-native';
 
 export type Rect = { x: number; y: number; width: number; height: number };
-export type Region = Rect & { active: boolean };
 
 // Whether the width is regular, which side the system puts its bars on (iPhone Duo's side
-// column), where the fold divides the screen, and what the cameras and system bars cover.
+// column), the fold's whole frame (the same at every angle), and what the cameras and system bars
+// cover.
 export type Pose = {
   regular: boolean;
   bar?: 'left' | 'right';
-  fold?: Region;
+  fold?: Rect;
   occlusions?: Rect[];
 };
 

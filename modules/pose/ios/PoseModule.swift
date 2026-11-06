@@ -11,8 +11,10 @@ public final class PoseModule: Module {
 }
 
 // Reports, in its own coordinates, whether the width is regular, which side the system puts its
-// bars on (iPhone Duo's side column), where the fold divides the screen and what the cameras and
-// system bars cover, each time one changes.
+// bars on (iPhone Duo's side column), where the fold lies and what the cameras and system bars
+// cover, each time one changes. It reads them only while laying out, where they're current: UIKit
+// tracks the traits and reserved regions read there and lays the view out again when they change.
+// The fold is its whole frame at every angle, so folding the Duo sends nothing.
 final class PoseView: ExpoView {
   let onPoseChange = EventDispatcher()
   private var reported: NSDictionary?
@@ -20,21 +22,10 @@ final class PoseView: ExpoView {
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     isUserInteractionEnabled = false
-    guard #available(iOS 17, *) else { return }
-    var traits: [UITrait] = [UITraitHorizontalSizeClass.self]
-    if #available(iOS 27.1, *) {
-      traits += UITraitCollection.systemTraitsAffectingVerticalBarEdge
-      addInteraction(UIHingeInteraction { [weak self] _, _ in self?.report() })
-    }
-    registerForTraitChanges(traits) { (view: PoseView, _) in view.report() }
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    report()
-  }
-
-  private func report() {
     let pose = NSDictionary(dictionary: current())
     guard pose != reported else { return }
     reported = pose
@@ -51,7 +42,7 @@ final class PoseView: ExpoView {
     default: break
     }
     if let fold = reservedRegions(kind: .division, options: .includeInactive).first {
-      pose["fold"] = rect(fold.frame).merging(["active": fold.isActive]) { $1 }
+      pose["fold"] = rect(fold.frame)
     }
     pose["occlusions"] = reservedRegions(kind: .occlusion).map { rect($0.frame) }
     return pose
