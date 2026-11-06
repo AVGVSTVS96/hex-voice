@@ -1,10 +1,11 @@
-"""How a move's frames are counted: from the first that changed to the first of the final layout."""
+"""How a move's frames are counted: from the first that changed to the first of the final layout,
+and of those, the ones after iOS's own part that aren't the final layout."""
 from pathlib import Path
 import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from fold_frames import differs, settle as counted
+from fold_frames import differs, settle as settled, wrong as counted
 
 
 def same(a, b):
@@ -12,28 +13,22 @@ def same(a, b):
 
 
 def settle(frames):
-    return counted(frames, same, lambda frame: frame == 'off')
+    return settled(frames, same, lambda frame: frame == 'off')
+
+
+def wrong(frames, landed, last):
+    return counted(frames, landed, last, same)
 
 
 class Settle(unittest.TestCase):
     def test_a_layout_that_lands_at_once_takes_one_frame(self):
-        self.assertEqual(settle(['old', 'old', 'new', 'new', 'new']), (2, 2, 0, 0))
-
-    def test_frames_drawn_before_the_final_layout_are_counted(self):
-        frames = ['old', 'old', 'stretched', 'stretched', 'split', 'new', 'new']
-        self.assertEqual(settle(frames), (2, 5, 3, 2))
-
-    def test_a_turn_s_steps_are_not_held_but_the_old_layout_left_after_it_is(self):
-        frames = ['old', 'tilt1', 'tilt2', 'tilt3', 'stale', 'stale', 'stale', 'new', 'new']
-        self.assertEqual(settle(frames), (1, 7, 6, 3))
+        self.assertEqual(settle(['old', 'old', 'new', 'new', 'new']), (2, 2))
 
     def test_the_screen_the_duo_lights_counts_from_its_first_drawn_frame(self):
-        frames = ['off', 'off', 'off', 'new', 'new']
-        self.assertEqual(settle(frames), (3, 3, 0, 0))
+        self.assertEqual(settle(['off', 'off', 'off', 'new', 'new']), (3, 3))
 
     def test_a_layout_that_flickers_back_settles_only_after_its_last_change(self):
-        frames = ['old', 'new', 'old', 'new', 'new']
-        self.assertEqual(settle(frames), (1, 3, 1, 0))
+        self.assertEqual(settle(['old', 'new', 'old', 'new', 'new']), (1, 3))
 
     def test_nothing_moved(self):
         self.assertIsNone(settle(['old', 'old', 'old']))
@@ -42,6 +37,18 @@ class Settle(unittest.TestCase):
         frame = bytes(1000)
         self.assertFalse(differs(frame, bytes([255] * 4) + bytes(996)))
         self.assertTrue(differs(frame, bytes([255] * 6) + bytes(994)))
+
+
+class Wrong(unittest.TestCase):
+    def test_only_frames_after_ios_landed_count(self):
+        frames = ['old', 'tilt1', 'tilt2', 'stale', 'stale', 'new', 'new']
+        first, last = settle(frames)
+        self.assertEqual(wrong(frames, first + 2, last), 2)
+
+    def test_an_app_that_lands_with_ios_shows_no_wrong_frame(self):
+        frames = ['old', 'tilt1', 'tilt2', 'new', 'new']
+        first, last = settle(frames)
+        self.assertEqual(wrong(frames, first + 2, last), 0)
 
 
 if __name__ == '__main__':

@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
-"""Counts the frames each Duo move takes to settle, from the films `scripts/duo fold` makes.
+"""Counts the frames the app shows a wrong layout after each Duo move, from `scripts/duo fold`'s films.
 
     scripts/fold_frames.py <dir>
 
 <dir> holds, per state, a film of each screen (<state>-1.mov the cover, <state>-3.mov the open
 screen) through the same moves, the ms each film started (<state>-<screen>.start) and its moves
-(<state>-<screen>-moves.txt: "<ms> <from> <to>"). Each move is cut from the film of the screen it lands on at 60 frames a
-second, as iOS draws, from a little before it until the next. From the first frame that differs
-from the one before the move to the frame after which none differs from the last, it counts the
-frames on screen, those of them that aren't the last, and of those the ones held for more than a
-frame: a layout drawn for the old window, or in pieces, rather than a step of iOS's turn. It writes table.md, and per move a sheet of those frames.
+(<state>-<screen>-moves.txt: "<ms> <from> <to>"). Each move is cut from the film of the screen it
+lands on at 60 frames a second, as iOS draws, from a little before it until the next, and runs from
+the first frame that changed (a lit screen's first, when the Duo changes screens) to the first of
+the final layout, after which nothing changes.
+
+Part of that is iOS's own: the screen lighting, the turn's animation, the home screen shown while
+the app's window moves. The state named "probe" is a plain UIKit app that lays out in the pass that
+resizes its window (FoldProbe), filmed through the same moves, so how long it takes from its first
+changed frame to its final one is iOS's part. A move counts as landed that long after the app's own
+first changed frame, and the frames the app shows after that which aren't its final layout are the
+app's: drawn for the old window, or in pieces. Without a probe, every frame counts.
+
+It writes table.md, and per move a sheet of its frames, each labelled by its ms after iOS landed.
 """
 import subprocess
 import sys
@@ -38,10 +46,8 @@ def dark(frame):
 
 
 def settle(frames, same=None, off_screen=dark):
-    """(first, last, off, held): the first frame that moved, the first of the final layout, the
-    frames between them that weren't it, and of those the ones held on screen, the same as the frame
-    before or after: a layout drawn and left there rather than a step of iOS's turn or a fade. A
-    screen that's dark is off, as the one the Duo leaves is. None when nothing moved."""
+    """(first, last): the first frame that moved, ignoring a dark screen, which is off, and the
+    first of the final layout. None when nothing moved."""
     same = same or (lambda a, b: not differs(a, b))
     before, final = frames[0], frames[-1]
     first = next((i for i, frame in enumerate(frames)
@@ -51,10 +57,13 @@ def settle(frames, same=None, off_screen=dark):
     last = len(frames) - 1
     while last > first and same(frames[last - 1], final):
         last -= 1
-    wrong = [i for i in range(first, last) if not same(frames[i], final)]
-    held = [i for i in wrong
-            if same(frames[i], frames[i - 1]) or same(frames[i], frames[i + 1])]
-    return first, last, len(wrong), len(held)
+    return first, last
+
+
+def wrong(frames, landed, last, same=None):
+    """The frames from `landed` until the final layout that aren't it."""
+    same = same or (lambda a, b: not differs(a, b))
+    return sum(1 for frame in frames[landed:last] if not same(frame, frames[-1]))
 
 
 def gray(film, start, seconds):
@@ -67,7 +76,7 @@ def gray(film, start, seconds):
     return [raw[i:i + size] for i in range(0, len(raw) - size + 1, size)]
 
 
-def sheet(film, start, seconds, first, last, out):
+def sheet(film, start, seconds, first, landed, last, out):
     """Cut the way `gray` cuts, so a frame's number is the same in both."""
     out.mkdir(parents=True, exist_ok=True)
     subprocess.run(
@@ -78,7 +87,7 @@ def sheet(film, start, seconds, first, last, out):
     for shot in sorted(out.glob('*.png')):
         n = int(shot.stem)
         if first - 2 <= n <= last + 2:
-            shot.rename(out / f'{n:03d}_{round((n - first) * 1000 / FPS):+d}ms.png')
+            shot.rename(out / f'{n:03d}_{ms(n - landed):+d}ms.png')
         else:
             shot.unlink()
     subprocess.run(
@@ -87,39 +96,60 @@ def sheet(film, start, seconds, first, last, out):
          f'{out}.png'], check=False)
 
 
+def ms(frames):
+    return round(frames * 1000 / FPS)
+
+
 def marks_of(moves):
     return [line.split() for line in moves.read_text().splitlines() if line.strip()]
 
 
+def cut(folder, state, n, after):
+    """Move n's frames in the film of the screen it lands on, and how they were cut."""
+    screen = screen_of(after)
+    film = folder / f'{state}-{screen}.mov'
+    began = folder / f'{state}-{screen}.start'
+    filmed = folder / f'{state}-{screen}-moves.txt'
+    if not (film.exists() and began.exists() and filmed.exists()):
+        return None
+    marks = marks_of(filmed)
+    at = int(marks[n][0])
+    start = (at - int(began.read_text())) / 1000 - BEFORE
+    until = int(marks[n + 1][0]) if n + 1 < len(marks) else at + 4000
+    seconds = (until - at) / 1000 + BEFORE - 0.1
+    return film, start, seconds, gray(film, start, seconds)
+
+
 def main(folder):
     folder = Path(folder)
-    rows = ['| state | move | frames to final | ms | not final | wrong layout held |',
-            '|---|---|---|---|---|---|']
-    for moves in sorted(folder.glob('*-3-moves.txt')):
-        state = moves.name[:-len('-3-moves.txt')]
-        for n, (_, before, after) in enumerate(marks_of(moves)):
-            screen = screen_of(after)
-            film = folder / f'{state}-{screen}.mov'
-            began = folder / f'{state}-{screen}.start'
-            filmed = folder / f'{state}-{screen}-moves.txt'
+    states = sorted(moves.name[:-len('-3-moves.txt')] for moves in folder.glob('*-3-moves.txt'))
+    moves = marks_of(folder / f'{states[0]}-3-moves.txt') if states else []
+    ios = {}
+    if 'probe' in states:
+        for n, (_, _, after) in enumerate(moves):
+            taken = cut(folder, 'probe', n, after)
+            moved = taken and settle(taken[3])
+            ios[n] = moved[1] - moved[0] if moved else 0
+    rows = ['| state | move | iOS’s own (ms) | app final after it lands (ms) | '
+            'wrong frames after it lands |', '|---|---|---|---|---|']
+    for state in (one for one in states if one != 'probe'):
+        for n, (_, before, after) in enumerate(moves):
             move = f'{before} → {after}'
-            if not (film.exists() and began.exists() and filmed.exists()):
-                rows.append(f'| {state} | {move} | no film of screen {screen} | | | |')
+            own = f'{ms(ios[n])}' if n in ios else '?'
+            taken = cut(folder, state, n, after)
+            if taken is None:
+                rows.append(f'| {state} | {move} | {own} | no film | |')
                 continue
-            marks = marks_of(filmed)
-            at = marks[n][0]
-            start = (int(at) - int(began.read_text())) / 1000 - BEFORE
-            until = int(marks[n + 1][0]) if n + 1 < len(marks) else int(at) + 4000
-            seconds = (until - int(at)) / 1000 + BEFORE - 0.1
-            frames = gray(film, start, seconds)
+            film, start, seconds, frames = taken
             moved = settle(frames)
             if moved is None:
-                rows.append(f'| {state} | {move} | 0 (nothing moved) | 0 | 0 | 0 |')
+                rows.append(f'| {state} | {move} | {own} | nothing moved | 0 |')
                 continue
-            first, last, off, held = moved
-            rows.append(f'| {state} | {move} | {last - first + 1} | '
-                        f'{round((last - first) * 1000 / FPS)} | {off} | {held} |')
-            sheet(film, start, seconds, first, last,
+            first, last = moved
+            landed = min(last, first + ios.get(n, 0))
+            rows.append(f'| {state} | {move} | {own} | {ms(last - landed)} | '
+                        f'{wrong(frames, landed, last)} |')
+            sheet(film, start, seconds, first, landed, last,
                   folder / 'frames' / f'{state}-{n + 1}-{before}-{after}')
     table = '\n'.join(rows) + '\n'
     (folder / 'table.md').write_text(table)
