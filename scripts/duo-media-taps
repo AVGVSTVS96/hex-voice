@@ -69,3 +69,7 @@ wait 1
 tap Add
 wait 3
 shoot call-sent-photos
+tap tasks-button
+wait 2
+shoot call-docked
+absent call-add

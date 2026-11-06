@@ -12,6 +12,8 @@ type Props = {
   ready: boolean;
   axis: 'row' | 'column';
   mute?: boolean;
+  // The +, which the call docked beside Tasks leaves out.
+  add?: boolean;
   size?: ControlsSize;
   style?: ViewStyle;
   onMute: () => void;
@@ -37,6 +39,7 @@ export function CallControls({
   ready,
   axis,
   mute = true,
+  add: adds = true,
   size = 'regular',
   style,
   onMute,
@@ -47,7 +50,7 @@ export function CallControls({
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
   const callSide = metrics[sizes.call];
-  const add = mute && buttons.add;
+  const add = adds && mute && buttons.add;
   const along = (add ? muteSide + sizes.gap : 0) + (mute ? muteSide + sizes.gap : 0) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
   const primaryOff = primary.off || !ready;
