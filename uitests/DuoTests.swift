@@ -84,7 +84,7 @@ final class DuoTests: XCTestCase {
             case "shoot", "pose", "pose-burst":
                 sleep(1)
                 print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
-                sleep(command == "shoot" ? UInt32(ProcessInfo.processInfo.environment["DUO_SHOOT_WAIT"] ?? "") ?? 3 : 9)
+                waitForDuo()
             case "snap": print("duo-snap \(argument)")
             case "hex":
                 print("duo-hex \(argument)")
@@ -183,6 +183,17 @@ final class DuoTests: XCTestCase {
         print("duo-frame tapped \(query) at (\(shows.midX), \(shows.midY)) of \(element.frame), keyboard at \(keyboard.frame.minY)")
         touch()
         window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
+    }
+
+    // Waits until scripts/duo has shot or posed what was just asked: it touches <DUO_SYNC>/<n> for
+    // the nth, in a folder on the Mac the simulator reads directly.
+    private var asked = 0
+    private func waitForDuo() {
+        asked += 1
+        let done = (ProcessInfo.processInfo.environment["DUO_SYNC"] ?? "") + "/\(asked)"
+        let deadline = Date().addingTimeInterval(120)
+        while !FileManager.default.fileExists(atPath: done) && Date() < deadline { usleep(100_000) }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: done), "scripts/duo didn't finish step \(asked) in 2 minutes")
     }
 
     // Marks the moment a finger lands, in ms on the Mac's clock, so a filmed run knows where each

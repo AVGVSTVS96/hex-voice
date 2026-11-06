@@ -324,7 +324,9 @@ mac_tap() {
         until grep -q "Recording started" build/recording.log; do sleep 0.1; done
         filmed=$(ms)
       }
-      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SHOOT_WAIT=$((3 + 2 * $(wc -w <<<"${ALSO:-}"))) xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
+      rm -rf build/sync && mkdir -p build/sync
+      answered=0
+      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
         case $line in
@@ -340,25 +342,32 @@ mac_tap() {
               "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
             for also in ${ALSO:-}; do
               xcrun simctl ui "$id" appearance "$also"
-              sleep 1
+              sleep 0.6
               xcrun simctl io "$id" screenshot ${display:+--display=$display} \
                 "shots/$pose-$step-$also.png" >/dev/null 2>&1
             done
             [ -z "${ALSO:-}" ] || xcrun simctl ui "$id" appearance "$appearance"
-            xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
-              jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
-            xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
-              jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
+            touch "build/sync/$((answered += 1))"
+            {
+              xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
+                jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
+              xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
+                jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
+            } &
             ;;
           *"duo-snap "*)
             xcrun simctl io "$id" screenshot ${display:+--display=$display} \
               "shots/$pose-${line##*duo-snap }-$appearance.png" >/dev/null 2>&1 &
             ;;
-          *"duo-pose "*) place_turned "${line##*duo-pose }" ;;
+          *"duo-pose "*)
+            place_turned "${line##*duo-pose }"
+            touch "build/sync/$((answered += 1))"
+            ;;
           *"duo-burst "*)
             bursts=$((${bursts:-0} + 1))
             burst=shots/$pose-burst$bursts-${line##*duo-burst }-$appearance
             place_turned "${line##*duo-burst }"
+            touch "build/sync/$((answered += 1))"
             ;;
           *"duo-hex down"*) touch hex-down ;;
           *"duo-hex up"*) rm -f hex-down ;;
