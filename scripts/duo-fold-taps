@@ -1,0 +1,23 @@
+# Folds and turns the Duo with Tasks open, checking the toolbar keeps off the Tasks page each time it's
+# back open upright: POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps
+launch hexvoice:///?tasks
+wait 3
+shoot tasks
+apart calls-button tasks-page
+apart voice-settings-button tasks-page
+pose cover-up
+shoot cover-up
+pose open-up
+shoot open-up
+apart calls-button tasks-page
+apart voice-settings-button tasks-page
+pose 150-up
+shoot 150-up
+pose open-side
+shoot open-side
+pose 120-side
+shoot 120-side
+pose open-up
+shoot open-up-again
+apart calls-button tasks-page
+apart voice-settings-button tasks-page

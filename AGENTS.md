@@ -41,6 +41,7 @@ scripts/duo phone [update]        a screenshot of his real Duo, once hex runs th
 ```
 
 - UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
+- A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
 - `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 - Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
 - iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out in one half of the screen, with its own safe area and the pose in its coordinates. Sheets still present from the whole screen.
