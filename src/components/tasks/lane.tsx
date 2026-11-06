@@ -10,12 +10,11 @@ const BAR = 4;
 // The shortest run is still a bar, never a dot.
 const SHORTEST = 6;
 const FAILED = 5;
-const NOW = 6;
-const GLOW = 12;
+const NOW = 7;
 const TICK = 6;
 
 // A project's last week at a glance, on a thin line: its runs in mint, deepening from the week's
-// far end to now, so the latest work reads first; a lit dot at now while it works; a tick where
+// far end to now, so the latest work reads first; a dot at its head while it works; a tick where
 // today began; red where a run failed. A quiet project is the line alone.
 export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; now: number }) {
   const { spans, failures } = laneOf(tracks, now, width);
@@ -64,10 +63,13 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
         </Mask.Content>
       </Mask>
       {live ? (
-        <ZStack modifiers={[frame({ width: GLOW, height: GLOW }), offset({ x: width - GLOW })]}>
-          <Circle modifiers={[foregroundStyle(theme.accentMuted)]} />
-          <Circle modifiers={[frame({ width: NOW, height: NOW }), foregroundStyle(theme.accent)]} />
-        </ZStack>
+        <Circle
+          modifiers={[
+            frame({ width: NOW, height: NOW }),
+            foregroundStyle(theme.accent),
+            offset({ x: width - NOW }),
+          ]}
+        />
       ) : null}
       {failures.map((x) => (
         <Circle
