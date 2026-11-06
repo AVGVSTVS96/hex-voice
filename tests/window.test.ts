@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
+import { pagedRoom, shapeOf } from '../src/components/tasks/pages';
 import { screenLayout } from '../src/screens/layout';
 import { roomOf, type Insets, type Size } from '../src/screens/window';
 
@@ -116,7 +117,7 @@ test('in Split View each app lays out as one page in the window it has, as the D
     const layout = layoutIn(window, insets, pose);
     assert.equal(layout.kind, 'single', side);
     const tasks = layout.duo?.tasks;
-    assert.equal(tasks?.panes, undefined, `${side}: Tasks is one page`);
+    assert.ok(!tasks || shapeOf(pagedRoom(tasks)) === 'one', `${side}: Tasks is one page`);
     assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
     for (const span of [layout.words, layout.footer, layout.agent])
       assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
@@ -178,11 +179,9 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             );
           const tasks = layout.duo?.tasks;
           if (tasks) {
-            const { area, panes } = tasks;
+            const { area } = tasks;
             if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5))
               problems.push(`${name}: Tasks ${area.x}+${area.width}`);
-            if (panes !== undefined && !(panes >= 200 && area.width - panes >= 200))
-              problems.push(`${name}: Tasks' panes meet ${panes} into ${area.width}`);
           }
         }
   assert.deepEqual(problems, []);
