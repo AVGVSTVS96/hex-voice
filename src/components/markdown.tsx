@@ -3,8 +3,8 @@ import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
 
 import { Failure } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { radius, theme } from '@/theme';
-import { space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
+import { theme } from '@/theme';
+import { radius, space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
 import { MarkdownView } from '../../modules/markdown';
 
 // Markdown in the app's own look, in one of its text styles: words in the text tone or the secondary one, code on the
