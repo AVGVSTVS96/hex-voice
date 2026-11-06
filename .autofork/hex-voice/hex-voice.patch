@@ -90845,10 +90845,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..5b01bac5af3ba2eae82acdfc4f0def6f671ae500
+index 0000000000000000000000000000000000000000..edbbb8eedd5eb77dce603942517e31cadd050425
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,611 @@
+@@ -0,0 +1,616 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -91160,18 +91160,23 @@ index 0000000000000000000000000000000000000000..5b01bac5af3ba2eae82acdfc4f0def6f
 +      result=$tests/$pose-$appearance.xcresult
 +      rm -rf "$result" "$tests/attachments"
 +      [ "${VIDEO:-}" != "$appearance" ] || {
++        rm -f build/recording.log
 +        xcrun simctl io "$id" recordVideo --codec=h264 ${display:+--display=$display} --force \
-+          "shots/$pose-$appearance.mov" >/dev/null 2>&1 &
++          "shots/$pose-$appearance.mov" >/dev/null 2>build/recording.log &
 +        recording=$!
-+        sleep 1
++        # The film's first frame, the moment the steps' ms count from.
++        until grep -q "Recording started" build/recording.log; do sleep 0.1; done
 +        filmed=$(ms)
 +      }
 +      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SHOOT_WAIT=$((3 + 2 * $(wc -w <<<"${ALSO:-}"))) xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
 +        -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
 +        -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
 +        case $line in
-+          *"duo-line "* | *duo-touch*)
++          *"duo-line "*)
 +            [ "${VIDEO:-}" != "$appearance" ] || echo "$(($(ms) - filmed)) ${line##*duo-}" >>"shots/$pose-$appearance-steps.txt"
++            ;;
++          *"duo-touch "*)
++            [ "${VIDEO:-}" != "$appearance" ] || echo "$((${line##*duo-touch } - filmed)) touch" >>"shots/$pose-$appearance-steps.txt"
 +            ;;
 +          *"duo-step "*)
 +            step=${line##*duo-step }
@@ -118749,10 +118754,10 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..c67fa61e16097af9d7dca135feae2dada9104fe6
+index 0000000000000000000000000000000000000000..09b02369f6ee27b1e043aa9add2a3deb2f09ddc2
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,196 @@
+@@ -0,0 +1,199 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
@@ -118790,6 +118795,8 @@ index 0000000000000000000000000000000000000000..c67fa61e16097af9d7dca135feae2dad
 +    var marked: [String: CGRect] = [:]
 +
 +    override func setUp() {
++        // scripts/duo acts on each line as it's printed, so none may wait in a buffer.
++        setvbuf(stdout, nil, _IONBF, 0)
 +        continueAfterFailure = true
 +        app.terminate()
 +        app.launch()
@@ -118931,9 +118938,10 @@ index 0000000000000000000000000000000000000000..c67fa61e16097af9d7dca135feae2dad
 +        window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
 +    }
 +
-+    // Marks the moment a finger lands, so a filmed run knows where each move starts.
++    // Marks the moment a finger lands, in ms on the Mac's clock, so a filmed run knows where each
++    // move starts.
 +    private func touch() {
-+        print("duo-touch")
++        print("duo-touch \(Int(Date().timeIntervalSince1970 * 1000))")
 +    }
 +
 +    // The smallest list or scroll view under the element, or with rows the smallest row too.
