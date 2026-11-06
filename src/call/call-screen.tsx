@@ -800,10 +800,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         )}
         {drawerOpen && list.place !== 'beside' && (
           <GestureDetector gesture={peekClose}>
-            <View
-              accessibilityLabel="Close calls"
-              style={[styles.fill, { left: layout.content.x, width: layout.content.width }]}
-            />
+            <View accessibilityLabel="Close calls" style={styles.fill} />
           </GestureDetector>
         )}
       </Animated.View>
