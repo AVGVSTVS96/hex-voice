@@ -82,8 +82,10 @@ pose_of() {
 
 # Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 # js/ its bundle, harness/ this script with what it needs.
+# Checks build and run with their own Xcode, set here per device; .env.local's DEVELOPER_DIR is the
+# one ship:native builds with.
 on_mac() {
-  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/$xcode.app/Contents/Developer}
+  export DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer
   export PATH=/opt/homebrew/bin:$PATH
   cd ~/"$folder"
   local command=$1
@@ -93,7 +95,7 @@ on_mac() {
 
 mac_build() {
   local runtime=$1
-  (cd app && prepare_native && SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
+  (cd app && prepare_native && DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
     -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
     -derivedDataPath build ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >build/xcodebuild.log 2>&1) || {
     grep -E 'error:' app/build/xcodebuild.log | sort -u >&2
