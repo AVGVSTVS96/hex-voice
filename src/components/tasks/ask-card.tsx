@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
+import { Capsule, HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
 import {
   accessibilityElement,
   accessibilityIdentifier,
@@ -234,8 +234,7 @@ function AskCard({
           </Text>
           {open && ask.context ? (
             <Text
-              variant="itemDetail"
-              tone="secondary"
+              variant="subheadline"
               paragraph
               modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
             >
@@ -247,14 +246,20 @@ function AskCard({
           <Row
             alignment="center"
             spacing={0}
-            style={{ width: PENCIL, height: PENCIL }}
             onPress={() => setWriting(!writing)}
             modifiers={[
-              padding({ top: (LINE - PENCIL) / 2, bottom: (LINE - PENCIL) / 2 }),
+              frame({ width: PENCIL, height: PENCIL }),
+              contentShape(shapes.rectangle()),
+              padding({
+                leading: space[1],
+                // Its symbol, centered in 44 points, then ends at the list's inset, as the date does.
+                trailing: space[1.5],
+                top: (LINE - PENCIL) / 2,
+                bottom: (LINE - PENCIL) / 2,
+              }),
               accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
             ]}
           >
-            <Spacer flexible />
             <Icon
               name="square.and.pencil"
               size={15}
@@ -331,36 +336,46 @@ function AskCard({
   );
 }
 
-// The thread's own words, under where and when they were said: a few lines, all of them on a tap.
+// The thread's own words, quoted under hex's summary with a rule beside them, so the two never read
+// as one: where and when they were said, a few lines, all of them on a tap.
 function Said({ words }: { words: Words }) {
   const [whole, setWhole] = useState(false);
   const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
   return (
-    <Column
-      alignment="start"
-      spacing={space[0.5]}
-      onPress={() => setWhole(!whole)}
+    <HStack
+      alignment="top"
+      spacing={space[3]}
       modifiers={[
-        padding({ top: space[2], bottom: space[0.5] }),
+        padding({ top: space[3], bottom: space[0.5] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        animation(motion.list, whole),
-        accessibilityElement('combine'),
       ]}
     >
-      <Text variant="footnote" weight="semibold" tone="secondary">
-        {`From ${words.place}${when}`}
-      </Text>
-      <Markdown
-        inline={!whole}
-        lines={whole ? undefined : SAID}
-        variant="itemDetail"
-        tone="secondary"
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      <Capsule modifiers={[frame({ width: 2 }), foregroundStyle(theme.surfaceSelected)]} />
+      <Column
+        alignment="start"
+        spacing={space[1]}
+        onPress={() => setWhole(!whole)}
+        modifiers={[
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          contentShape(shapes.rectangle()),
+          animation(motion.list, whole),
+          accessibilityElement('combine'),
+        ]}
       >
-        {words.text}
-      </Markdown>
-    </Column>
+        <Text variant="footnote" tone="tertiary">
+          {`From ${words.place}${when}`}
+        </Text>
+        <Markdown
+          inline={!whole}
+          lines={whole ? undefined : SAID}
+          variant="itemDetail"
+          tone="secondary"
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
+          {words.text}
+        </Markdown>
+      </Column>
+    </HStack>
   );
 }
 
