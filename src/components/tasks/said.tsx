@@ -9,6 +9,7 @@ import {
   padding,
   textSelection,
 } from '@expo/ui/swift-ui/modifiers';
+import { createContext, useContext } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { said, type Sending } from '@/live/chat';
@@ -17,15 +18,20 @@ import { theme } from '@/theme';
 import { textLook } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
+// Selectable text takes a tap for itself, so while you type on a page what was said there isn't
+// selectable, and a tap on it ends the typing instead.
+export const Selectable = createContext(true);
+
 // Drawn as the call transcript draws a turn.
 export function Said({ turn }: { turn: ChatTurn }) {
   const one = said(turn);
+  const selectable = useContext(Selectable);
   if (one.kind === 'me') return <Mine text={one.text} />;
   if (one.kind === 'event')
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   return (
     <Markdown
-      selectable
+      selectable={selectable}
       modifiers={[
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
         frame({ maxWidth: Infinity }),
@@ -111,6 +117,7 @@ export function SaidLine({
 }
 
 function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
+  const selectable = useContext(Selectable);
   return (
     <Row
       alignment="center"
@@ -123,7 +130,7 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
       <Text
         modifiers={[
           ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
-          textSelection(true),
+          textSelection(selectable),
           padding({
             leading: metrics.bubbleX,
             trailing: metrics.bubbleX,
