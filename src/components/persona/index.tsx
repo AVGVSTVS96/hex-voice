@@ -100,6 +100,7 @@ function PersonaRenderer({
   size = SIZE,
   color = DEFAULT_PERSONA_COLOR,
   palette,
+  paused = false,
 }: PersonaProps & { variant: PersonaVariant }) {
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
@@ -144,6 +145,8 @@ function PersonaRenderer({
         // Input setters resume playback. Keep reduced-motion visuals frozen.
         pause();
       } else {
+        // The file's first frame is a dot that grows into the state its inputs ask for; set before
+        // it ever plays, they start it there. A paused one holds that frame until it shows.
         for (const { name, value } of personaInputValues(state)) {
           riveViewRef.setBooleanInputValue(name, value);
         }
@@ -151,9 +154,10 @@ function PersonaRenderer({
           originalPalette.current ??= riveViewRef.getNumberInputValue('color');
           riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
         }
-        riveViewRef.playIfNeeded();
+        if (paused) pause();
+        else riveViewRef.playIfNeeded();
         initialized.current = true;
-        if (reducedMotion) {
+        if (reducedMotion && !paused) {
           // Draw the first frame before pausing so the new visual is visible.
           frame = requestAnimationFrame(() => {
             frame = requestAnimationFrame(pause);
@@ -168,7 +172,7 @@ function PersonaRenderer({
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [riveViewRef, state, variant, palette, dynamicColor, colorModel, reducedMotion]);
+  }, [riveViewRef, state, variant, palette, dynamicColor, colorModel, reducedMotion, paused]);
 
   useEffect(() => {
     const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
@@ -195,7 +199,7 @@ function PersonaRenderer({
           stateMachineName={PERSONA_STATE_MACHINE}
           dataBind={colorModel ?? undefined}
           fit={Fit.Contain}
-          autoPlay
+          autoPlay={false}
           onError={() => setFailed(true)}
           style={{ width: size, height: size, backgroundColor: 'transparent' }}
         />

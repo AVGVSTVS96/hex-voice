@@ -19,22 +19,22 @@ import { theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics } from '@/ui/tokens';
 
-// iPhone Duo's Tasks as the call screen sees it. While it's open on a call the call is docked in
-// the bar, and open, the switch in the bar can give the call's words the page before the fold,
-// beside Tasks, until the call ends. Folding changes none of it. `dock` settles from 0 to 1 as the
-// call moves into the bar, `covers` as Tasks covers the call's pages, and `aside` as the words move
-// to the page before the fold. While the keyboard is up there Tasks
-// types on that page instead (`above`), and the call's own page steps aside for it.
+// iPhone Duo's Tasks as the call screen sees it, in the place it shares with settings. While the
+// place is open on a call the call is docked in the bar, and open, the switch in the bar can give
+// the call's words the page before the fold, beside Tasks, until the call ends. Folding changes none
+// of it. `dock` settles from 0 to 1 as the call moves into the bar, `covers` as the place covers the
+// call's pages, and `aside` as the words move to the page before the fold. While the keyboard is up
+// there Tasks types on that page instead (`above`), and the call's own page steps aside for it.
 export function useDuoTasks(
   duo: Duo | undefined,
-  open: boolean,
+  { open, tasks }: { open: boolean; tasks: boolean },
   onCall: boolean,
   reducedMotion: boolean,
 ) {
   const [chosen, setChosen] = useState(false);
   const available = !!duo?.beside && onCall;
   if (chosen && !available) setChosen(false);
-  const offered = available && open;
+  const offered = available && tasks;
   const docked = !!duo && open && onCall;
   const beside = offered && chosen;
   const above = useKeyboardUp() && beside && !!duo?.beside?.typing;
@@ -95,12 +95,14 @@ function useSettle(on: boolean, reducedMotion: boolean) {
 }
 
 // Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call's
-// words their page beside Tasks, lit while they have it. Tasks fades in where it sits as `pane` opens it: moved by a
-// transform, its Host would keep telling iOS accessibility where it started.
+// words their page beside Tasks, lit while they have it. Tasks fades in where it sits as `pane` opens
+// the place, while the place shows it (`shown`): moved by a transform, its Host would keep telling iOS
+// accessibility where it started.
 export function DuoTasks({
   duo,
   tasks,
   state,
+  shown,
   onCall,
   seconds,
   pane,
@@ -108,6 +110,7 @@ export function DuoTasks({
   duo: Duo;
   tasks: TasksProps & { onClose: () => void };
   state: ReturnType<typeof useDuoTasks>;
+  shown: boolean;
   onCall: boolean;
   seconds: number;
   pane: SharedValue<number>;
@@ -115,7 +118,7 @@ export function DuoTasks({
   // A fade only: a layer transform over the SwiftUI host leaves its controls' accessibility frames
   // where the slide began, so VoiceOver and taps by element miss ‹ Call.
   const pageStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pane.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP),
+    opacity: shown ? interpolate(pane.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
   const offerStyle = useAnimatedStyle(() => ({ opacity: state.offer.get() }));

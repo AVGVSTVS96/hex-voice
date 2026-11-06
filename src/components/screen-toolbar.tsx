@@ -14,7 +14,6 @@ type Props = {
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
-  // On the open Duo settings is a place like Tasks, lit while it's open.
   settingsOpen?: boolean;
   onCalls: () => void;
   onTasks: () => void;

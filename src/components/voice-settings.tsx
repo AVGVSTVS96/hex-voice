@@ -42,12 +42,14 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Extrapolation,
+  interpolate,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSequence,
   withSpring,
-  withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { Persona, preloadPersonas } from '@/components/persona';
@@ -84,8 +86,9 @@ type Pane = 'persona' | 'rows' | 'alone';
 type Props = {
   sheet: SettingsSheet;
   // On the open Duo, settings is a place of its own over the call instead of a sheet, since iOS
-  // moves a sheet off an active fold. It covers what the toolbar leaves, as Tasks does.
-  place?: Rect;
+  // moves a sheet off an active fold. It's the place Tasks takes, covering what the toolbar leaves
+  // (`area`), and shows as `pane` opens it while it's settings the place shows (`shown`).
+  place?: { area: Rect; shown: boolean; pane: SharedValue<number> };
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -169,18 +172,19 @@ export function VoiceSettings({
   // tall, and the persona's pane alone otherwise, which then holds the persona in its top half and
   // the rows in its bottom half. Each lays out to the pane iOS reports, and until it does, to its
   // half or all of what the toolbar leaves.
-  const two = !!place && screen.width > screen.height;
-  const edges = place && {
-    top: place.y,
-    leading: place.x,
-    trailing: screen.width - place.x - place.width,
-    bottom: screen.height - place.y - place.height,
+  const area = place?.area;
+  const two = !!area && screen.width > screen.height;
+  const edges = area && {
+    top: area.y,
+    leading: area.x,
+    trailing: screen.width - area.x - area.width,
+    bottom: screen.height - area.y - area.height,
   };
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
-  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: place?.height ?? 0 });
+  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: area?.height ?? 0 });
   const personaPane = two
     ? (reported.persona ?? half(edges?.leading ?? 0))
-    : (reported.alone ?? { width: place?.width ?? 0, height: place?.height ?? 0 });
+    : (reported.alone ?? { width: area?.width ?? 0, height: area?.height ?? 0 });
   const rowsPane = two ? (reported.rows ?? half(edges?.trailing ?? 0)) : personaPane;
   const personaHeight = two ? personaPane.height : screen.height / 2 - (edges?.top ?? 0);
   const width = place ? rowsPane.width : (given ?? 0);
@@ -275,18 +279,18 @@ export function VoiceSettings({
       value={persona}
       width={beside || place ? carouselWidth : contentWidth}
       height={PERSONA_PAGE}
+      // One persona for as long as settings lives, so opening settings never makes a new one.
       preview={
-        isPresented ? (
-          <Animated.View style={orbStyle}>
-            <Persona
-              variant={persona}
-              size={orbSize}
-              state="idle"
-              color={preferences.personaColor}
-              palette={opalPaletteInput(preferences.opalPalette)}
-            />
-          </Animated.View>
-        ) : undefined
+        <Animated.View style={orbStyle}>
+          <Persona
+            variant={persona}
+            size={orbSize}
+            state="idle"
+            paused={!isPresented}
+            color={preferences.personaColor}
+            palette={opalPaletteInput(preferences.opalPalette)}
+          />
+        </Animated.View>
       }
       previewHeight={preview}
       enabled={personaEnabled}
@@ -419,144 +423,149 @@ export function VoiceSettings({
     </>
   );
 
-  if (place && edges) {
-    const align = two ? 'center' : 'top';
-    return (
-      <SettingsPlace
-        shown={isPresented}
-        two={two}
-        edges={edges}
-        persona={personaHeight}
-        onBack={onDismiss}
-        onPane={(pane, size) =>
-          setReported((now) =>
-            now[pane]?.width === size.width && now[pane]?.height === size.height
-              ? now
-              : { ...now, [pane]: { width: size.width, height: size.height } },
-          )
-        }
+  // The sheet stays mounted where settings has its place, closed, so a fold that moves settings
+  // into its place takes the sheet down instead of leaving it up, unseen, over the screen.
+  const align = two ? 'center' : 'top';
+  const placed = place && edges && (
+    <SettingsPlace
+      shown={place.shown}
+      open={isPresented}
+      pane={place.pane}
+      two={two}
+      edges={edges}
+      persona={personaHeight}
+      onBack={onDismiss}
+      onPane={(pane, size) =>
+        setReported((now) =>
+          now[pane]?.width === size.width && now[pane]?.height === size.height
+            ? now
+            : { ...now, [pane]: { width: size.width, height: size.height } },
+        )
+      }
+    >
+      {carousel}
+      <ZStack
+        alignment="center"
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity }), clipped()]}
       >
-        {carousel}
-        <ZStack
+        <Column
           alignment="center"
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity }), clipped()]}
-        >
-          <Column
-            alignment="center"
-            spacing={metrics.groupSpacing}
-            modifiers={[
-              ...(two ? [] : [padding({ top: SHEET_TOP })]),
-              ...slide(!onVoicePage, -width / 3, align),
-            ]}
-          >
-            {rows}
-          </Column>
-          <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, width, align)}>
-            {voices}
-          </Column>
-        </ZStack>
-      </SettingsPlace>
-    );
-  }
-
-  return (
-    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
-      <BottomSheet
-        isPresented={isPresented}
-        onIsPresentedChange={(presented) => {
-          if (!presented) onDismiss();
-        }}
-        onDismiss={() => setOnVoicePage(false)}
-      >
-        <SheetContent
+          spacing={metrics.groupSpacing}
           modifiers={[
-            presentationDragIndicator('visible'),
-            presentationDetents(detents, {
-              selection: detents[onVoicePage ? detents.length - 1 : 0],
-              // Dragging the sheet to the other height reads as leaving the page you're on: up from
-              // the voices goes back to settings, down from settings closes the sheet.
-              onSelectionChange: (detent) => {
-                if (!phone) return;
-                const voiceSized =
-                  typeof detent === 'object' &&
-                  'height' in detent &&
-                  detent.height === VOICE_HEIGHT;
-                if (voiceSized === onVoicePage) return;
-                if (onVoicePage) showVoices(false);
-                else onDismiss();
-              },
-            }),
-            ...(phone
-              ? []
-              : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
-            presentationBackground(theme.sheet),
+            ...(two ? [] : [padding({ top: SHEET_TOP })]),
+            ...slide(!onVoicePage, -width / 3, align),
           ]}
         >
-          <ZStack
-            alignment="bottom"
+          {rows}
+        </Column>
+        <Column alignment="center" spacing={0} modifiers={slide(onVoicePage, width, align)}>
+          {voices}
+        </Column>
+      </ZStack>
+    </SettingsPlace>
+  );
+
+  return (
+    <>
+      {placed}
+      <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+        <BottomSheet
+          isPresented={!placed && isPresented}
+          onIsPresentedChange={(presented) => {
+            if (!presented && !placed) onDismiss();
+          }}
+          onDismiss={() => setOnVoicePage(false)}
+        >
+          <SheetContent
             modifiers={[
+              presentationDragIndicator('visible'),
+              presentationDetents(detents, {
+                selection: detents[onVoicePage ? detents.length - 1 : 0],
+                // Dragging the sheet to the other height reads as leaving the page you're on: up from
+                // the voices goes back to settings, down from settings closes the sheet.
+                onSelectionChange: (detent) => {
+                  if (!phone) return;
+                  const voiceSized =
+                    typeof detent === 'object' &&
+                    'height' in detent &&
+                    detent.height === VOICE_HEIGHT;
+                  if (voiceSized === onVoicePage) return;
+                  if (onVoicePage) showVoices(false);
+                  else onDismiss();
+                },
+              }),
               ...(phone
-                ? [
-                    frame({
-                      maxWidth: Infinity,
-                      minHeight: 0,
-                      maxHeight: Infinity,
-                      alignment: 'bottom',
-                    }),
-                    clipped(),
-                  ]
-                : [
-                    frame({ height: appearanceHeight }),
-                    frame({ maxWidth: Infinity }),
-                    clipped(),
-                    animation(motion.page, onVoicePage),
-                  ]),
-              // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
-              accessibilityElement('contain'),
-              accessibilityIdentifier('voice-settings-sheet'),
+                ? []
+                : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
+              presentationBackground(theme.sheet),
             ]}
           >
-            <RNHostView>
-              <View
-                pointerEvents="none"
-                onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
-                style={StyleSheet.absoluteFill}
-              />
-            </RNHostView>
-            {width > 0 && beside ? (
-              <Row
-                alignment="center"
-                spacing={metrics.gutter}
-                style={{ paddingHorizontal: metrics.gutter }}
-                modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-              >
-                {carousel}
-                <Column spacing={metrics.groupSpacing}>{rows}</Column>
-              </Row>
-            ) : width > 0 ? (
-              <Column
-                alignment="center"
-                spacing={metrics.groupSpacing}
-                style={{ paddingTop: SHEET_TOP }}
-                modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-              >
-                {carousel}
-                {rows}
-              </Column>
-            ) : null}
-            {width > 0 && (
-              <Column
-                alignment="center"
-                spacing={0}
-                modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
-              >
-                {voices}
-              </Column>
-            )}
-          </ZStack>
-        </SheetContent>
-      </BottomSheet>
-    </Host>
+            <ZStack
+              alignment="bottom"
+              modifiers={[
+                ...(phone
+                  ? [
+                      frame({
+                        maxWidth: Infinity,
+                        minHeight: 0,
+                        maxHeight: Infinity,
+                        alignment: 'bottom',
+                      }),
+                      clipped(),
+                    ]
+                  : [
+                      frame({ height: appearanceHeight }),
+                      frame({ maxWidth: Infinity }),
+                      clipped(),
+                      animation(motion.page, onVoicePage),
+                    ]),
+                // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
+                accessibilityElement('contain'),
+                accessibilityIdentifier('voice-settings-sheet'),
+              ]}
+            >
+              <RNHostView>
+                <View
+                  pointerEvents="none"
+                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
+                  style={StyleSheet.absoluteFill}
+                />
+              </RNHostView>
+              {placed ? null : width > 0 && beside ? (
+                <Row
+                  alignment="center"
+                  spacing={metrics.gutter}
+                  style={{ paddingHorizontal: metrics.gutter }}
+                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+                >
+                  {carousel}
+                  <Column spacing={metrics.groupSpacing}>{rows}</Column>
+                </Row>
+              ) : width > 0 ? (
+                <Column
+                  alignment="center"
+                  spacing={metrics.groupSpacing}
+                  style={{ paddingTop: SHEET_TOP }}
+                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+                >
+                  {carousel}
+                  {rows}
+                </Column>
+              ) : null}
+              {!placed && width > 0 && (
+                <Column
+                  alignment="center"
+                  spacing={0}
+                  modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
+                >
+                  {voices}
+                </Column>
+              )}
+            </ZStack>
+          </SheetContent>
+        </BottomSheet>
+      </Host>
+    </>
   );
 }
 
@@ -565,10 +574,12 @@ export function VoiceSettings({
 // it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
 // top half of the screen and the rows below it. The arrangement fills the screen, so flat its panes
 // meet on the crease; each pane and the sheet's color keep out of what the toolbar takes on the
-// edges it touches (`edges`). It fades in where it sits, never moved by a transform (its Host would
-// keep telling accessibility where it started).
+// edges it touches (`edges`). It fades in where it sits as Tasks does, never moved by a transform
+// (its Host would keep telling accessibility where it started).
 function SettingsPlace({
   shown,
+  open,
+  pane: opened,
   two,
   edges: { top, leading, trailing, bottom },
   persona: personaHeight,
@@ -577,6 +588,8 @@ function SettingsPlace({
   children: [persona, rows],
 }: {
   shown: boolean;
+  open: boolean;
+  pane: SharedValue<number>;
   two: boolean;
   edges: { top: number; leading: number; trailing: number; bottom: number };
   persona: number;
@@ -585,7 +598,7 @@ function SettingsPlace({
   children: [ReactNode, ReactNode];
 }) {
   const fade = useAnimatedStyle(() => ({
-    opacity: withTiming(shown ? 1 : 0, { duration: motion.toolbar }),
+    opacity: shown ? interpolate(opened.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
   const pane = (name: Pane, sides: { leading: number; trailing: number }) => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
@@ -595,9 +608,9 @@ function SettingsPlace({
   return (
     <Animated.View
       testID="settings-place"
-      pointerEvents={shown ? 'auto' : 'none'}
-      accessibilityElementsHidden={!shown}
-      importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
+      pointerEvents={open ? 'auto' : 'none'}
+      accessibilityElementsHidden={!open}
+      importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
       style={[StyleSheet.absoluteFill, fade]}
     >
       <Host seedColor={theme.tint} style={{ flex: 1 }}>
