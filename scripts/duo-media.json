@@ -1,0 +1,90 @@
+{
+  "/tasks": {
+    "version": 1,
+    "tasks": [
+      {
+        "id": "media",
+        "app": "telegram",
+        "name": "router",
+        "place": "router",
+        "state": "needs",
+        "running": false,
+        "line": "Check the cable from the wall",
+        "since": "2026-11-05T08:39:00.000Z",
+        "at": "2026-11-05T08:42:00.000Z",
+        "track": [],
+        "agents": []
+      }
+    ]
+  },
+  "/tasks/media": {
+    "id": "media",
+    "app": "telegram",
+    "name": "router",
+    "place": "router",
+    "state": "needs",
+    "running": false,
+    "line": "Check the cable from the wall",
+    "since": "2026-11-05T08:39:00.000Z",
+    "at": "2026-11-05T08:42:00.000Z",
+    "track": [],
+    "agents": [],
+    "needs": "Check the cable from the wall",
+    "lately": [
+      {
+        "at": "2026-11-05T08:42:00.000Z",
+        "state": "needs",
+        "text": "Waiting on you"
+      }
+    ],
+    "steps": [],
+    "plan": []
+  },
+  "/tasks/media/chat": {
+    "version": 1,
+    "sends": true,
+    "total": 4,
+    "turns": [
+      {
+        "from": "me",
+        "text": "Can you see why the internet's out?",
+        "media": [
+          {
+            "id": "duo-photo",
+            "kind": "photo"
+          }
+        ]
+      },
+      {
+        "from": "hex",
+        "text": "The fourth light, **internet**, is off, so the router isn't getting a signal. Check the cable from the wall into its back."
+      },
+      {
+        "from": "me",
+        "text": "",
+        "media": [
+          {
+            "id": "duo-cable",
+            "kind": "photo"
+          },
+          {
+            "id": "duo-clip",
+            "kind": "video"
+          }
+        ]
+      },
+      {
+        "from": "hex",
+        "text": "That cable's seated. In the clip the light comes on for a second, then drops: call the provider."
+      }
+    ],
+    "waiting": []
+  },
+  "/asks": {
+    "version": 1,
+    "asks": [],
+    "stuck": [],
+    "fresh": [],
+    "check": null
+  }
+}

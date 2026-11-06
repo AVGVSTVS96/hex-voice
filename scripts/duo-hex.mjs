@@ -9,7 +9,9 @@
 // never answer or act for him. The app under check only knows this address and a dummy token.
 // It speaks HTTPS with HTTP/2, as hex does, under a root only the simulator trusts (DUO_HEX_TLS):
 // the app keeps several watches open at once, and over HTTP/1.1 iOS gives a host 4 connections, so
-// every other read would wait behind them.
+// every other read would wait behind them. Photos and clips sent to /media stay here, in memory,
+// and come back from /media/<id> (a clip as duo-media.jpg, standing in for its still); an id it
+// never saw, like one a kept chat names, comes back as duo-media.jpg too.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createSecureServer } from 'node:http2';
 
@@ -28,6 +30,13 @@ const also = Object.fromEntries(
   ),
 );
 
+const sample = {
+  type: 'image/jpeg',
+  body: readFileSync(new URL('duo-media.jpg', import.meta.url)),
+};
+const media = new Map();
+const MEDIA = /^\/media(?:\/([^/?]+))?(?:\?|$)/;
+
 const tls = {
   key: readFileSync(`${DUO_HEX_TLS}/key.pem`),
   cert: readFileSync(`${DUO_HEX_TLS}/cert.pem`),
@@ -35,6 +44,24 @@ const tls = {
 };
 
 createSecureServer(tls, async (request, response) => {
+  const shared = (request.url ?? '').match(MEDIA);
+  if (shared && request.method === 'POST' && !shared[1]) {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    const type = request.headers['content-type'] ?? 'image/jpeg';
+    const kind = type.startsWith('video/') ? 'video' : 'photo';
+    const id = `duo-${media.size + 1}`;
+    media.set(id, kind === 'video' ? sample : { type, body: Buffer.concat(chunks) });
+    response
+      .writeHead(201, { 'content-type': 'application/json' })
+      .end(JSON.stringify({ id, kind }));
+    return;
+  }
+  if (shared?.[1] && request.method === 'GET') {
+    const { type, body } = media.get(decodeURIComponent(shared[1])) ?? sample;
+    response.writeHead(200, { 'content-type': type }).end(body);
+    return;
+  }
   if (request.method !== 'GET') {
     request.resume();
     if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))

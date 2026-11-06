@@ -9,6 +9,7 @@ import {
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/glyph';
+import { Sent } from '@/components/media/sent';
 import { WrapUp } from '@/components/wrap-up';
 import {
   ENDINGS,
@@ -62,6 +63,8 @@ export function CallTranscript({ summary, call, failed, live }: Props) {
             <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
               {`${moment.mark.text} · ${clock(moment.at)}`}
             </Line>
+          ) : moment.kind === 'media' ? (
+            <Sent key={moment.key} media={moment.media} />
           ) : (
             <Turn key={moment.key} you={moment.turn.who === 'you'}>
               <Text selectable style={styles.text}>

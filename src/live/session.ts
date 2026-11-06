@@ -6,8 +6,10 @@ import type {
   LiveSnapshot,
   LiveTransport,
   SessionAPI,
+  TranscriptEntry,
   TransportFactory,
 } from './types';
+import type { Picked } from './media';
 import { DEFAULT_VOICE, type LiveVoice } from './voices';
 
 const initialSnapshot = (): LiveSnapshot => ({
@@ -171,7 +173,7 @@ export class LiveSession {
         const entries = [...this.snapshot.transcript];
         // Each speaker has an independent caption stream, so overlapping speech
         // must not split a sentence every time the other speaker emits a delta.
-        let index = entries.findLastIndex((entry) => entry.role === role);
+        let index = entries.findLastIndex((entry) => entry.role === role && !entry.media);
         const previous = entries[index];
         const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
         if (!previous || startMs - (previous.endMs ?? previous.startMs) > 2000) {
@@ -302,6 +304,31 @@ export class LiveSession {
     this.hear({ input: 0 });
     if (this.sessionId)
       void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
+  };
+
+  // A photo or clip you send shows in the call's words at once, and says so if it never got there.
+  share = async (media: Picked) => {
+    const id = this.sessionId;
+    if (this.snapshot.status !== 'connected' || !id || !this.api.share) return;
+    const entry: TranscriptEntry = {
+      id: `media-${++this.nextCommand}`,
+      role: 'user',
+      text: '',
+      startMs: Date.now() - this.startedAt,
+      media,
+    };
+    this.update({ transcript: [...this.snapshot.transcript, entry] });
+    try {
+      await this.api.share(id, media);
+    } catch (error) {
+      if (this.sessionId !== id) return;
+      const failed = error instanceof Error ? error.message : 'Not sent';
+      this.update({
+        transcript: this.snapshot.transcript.map((each) =>
+          each.id === entry.id ? { ...each, failed } : each,
+        ),
+      });
+    }
   };
 
   // iOS doesn't always say when it hands the audio back (Siri, some declined calls), so a tap on the

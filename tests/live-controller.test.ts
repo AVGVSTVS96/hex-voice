@@ -770,3 +770,34 @@ test('a phone call or Siri pauses the microphone, tells hex, and gives it back u
     await h.cleanup();
   }
 });
+
+test('a photo sent on a call shows as your turn at once, your words never join it, and it says so when it never got there', async () => {
+  const h = harness();
+  const shared: string[] = [];
+  let refuse = false;
+  h.api.share = async (id, media) => {
+    shared.push(`${id} ${media.uri}`);
+    if (refuse) throw new Error('Cannot reach hex. Check that Tailscale is on, then try again.');
+  };
+  try {
+    await h.session.start();
+    await settle();
+    const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
+    await h.session.share(photo);
+    h.transports[0]!.emit({ type: 'session.input_transcript.delta', delta: 'Why is it orange?' });
+    refuse = true;
+    await h.session.share(photo);
+    const words = h.session.getSnapshot().transcript;
+    assert.deepEqual(shared, ['live_1 file:///router.jpg', 'live_1 file:///router.jpg']);
+    assert.deepEqual(
+      words.map(({ text, media, failed }) => [text, media?.kind, failed]),
+      [
+        ['', 'photo', undefined],
+        ['Why is it orange?', undefined, undefined],
+        ['', 'photo', 'Cannot reach hex. Check that Tailscale is on, then try again.'],
+      ],
+    );
+  } finally {
+    await h.cleanup();
+  }
+});

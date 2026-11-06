@@ -10,12 +10,20 @@ export class Refused extends Error {
   }
 }
 
-export type Config = { url?: string; token?: string; fetch: typeof globalThis.fetch };
+// `open` reads a file on this phone, for sending it as it is.
+export type Config = {
+  url?: string;
+  token?: string;
+  fetch: typeof globalThis.fetch;
+  open?: (uri: string) => Blob;
+};
 export type Client = ReturnType<typeof createClient>;
 
 type Options = {
   method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
+  // A file's bytes, sent as they are under its Content-Type.
+  file?: { body: ArrayBuffer; type: string };
   after?: number;
   signal?: AbortSignal;
   timeout?: number;
@@ -26,17 +34,19 @@ type Options = {
 const READ = 90_000;
 const WRITE = 60_000;
 const WAIT = 120_000;
+// A minute of video over a slow link.
+const UPLOAD = 300_000;
 const UNREACHABLE = ['Network request failed', 'Failed to fetch', 'fetch failed'];
 
 // The one way this app talks to hex: the address and token are read once, every request has a
 // deadline, and every answer is parsed before anything sees it.
-export function createClient({ url, token, fetch }: Config) {
+export function createClient({ url, token, fetch, open }: Config) {
   const origin = url?.trim().replace(/\/+$/, '');
   const auth: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   async function call(
     path: string,
-    { method = 'GET', body, after, signal, timeout }: Options,
+    { method = 'GET', body, file, after, signal, timeout }: Options,
   ): Promise<unknown> {
     if (!origin)
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
@@ -49,8 +59,12 @@ export function createClient({ url, token, fetch }: Config) {
         `${origin}${after === undefined ? path : `${path}?after=${after}`}`,
         {
           method,
-          headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          headers: file
+            ? { ...auth, 'Content-Type': file.type }
+            : body === undefined
+              ? auth
+              : { ...auth, 'Content-Type': 'application/json' },
+          body: file ? file.body : body === undefined ? undefined : JSON.stringify(body),
           signal: controller.signal,
         },
       );
@@ -73,24 +87,45 @@ export function createClient({ url, token, fetch }: Config) {
     }
   }
 
+  const read = <S extends z.ZodMiniType>(path: string, schema: S, answer: unknown) => {
+    const parsed = schema.safeParse(answer);
+    if (parsed.success) return parsed.data;
+    const where = parsed.error.issues[0]?.path.join('.');
+    throw new Error(
+      `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
+    );
+  };
+
   return {
     request: async <S extends z.ZodMiniType>(
       path: string,
       schema: S,
       options: Options = {},
-    ): Promise<z.output<S>> => {
-      const answer = schema.safeParse(
+    ): Promise<z.output<S>> =>
+      read(
+        path,
+        schema,
         await call(path, {
           ...options,
           timeout: options.timeout ?? (options.after === undefined ? READ : WAIT),
         }),
-      );
-      if (answer.success) return answer.data;
-      const where = answer.error.issues[0]?.path.join('.');
-      throw new Error(
-        `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
+      ),
+    // A file on this phone, sent whole as the request's body.
+    upload: async <S extends z.ZodMiniType>(
+      path: string,
+      schema: S,
+      { uri, type }: { uri: string; type: string },
+    ): Promise<z.output<S>> => {
+      if (!open) throw new Error('This app can’t read files here.');
+      const body = await open(uri).arrayBuffer();
+      return read(
+        path,
+        schema,
+        await call(path, { method: 'POST', file: { body, type }, timeout: UPLOAD }),
       );
     },
+    // An image hex serves, as an image view asks for it.
+    image: (path: string) => ({ uri: `${origin ?? ''}${path}`, headers: auth }),
     send: async (path: string, options: Omit<Options, 'after' | 'signal'> = {}) => {
       await call(path, { method: 'POST', ...options, timeout: options.timeout ?? WRITE });
     },

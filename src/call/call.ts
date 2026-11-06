@@ -66,7 +66,7 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
       kind: 'elsewhere',
       phase: leaving ? 'ending' : 'live',
       record,
-      words: liveEntries(record.turns),
+      words: liveEntries(record),
     };
   if (record)
     return {
@@ -76,7 +76,7 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
         from: record.from,
         ending: record.end,
         seconds: endedSeconds(record),
-        words: liveEntries(record.turns),
+        words: liveEntries(record),
       },
     };
   if (!session.callId && !session.error) return { kind: 'none' };

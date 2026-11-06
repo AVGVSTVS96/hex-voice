@@ -5,6 +5,7 @@ import { Refused } from '@/hex/client';
 import { useFailures, failure } from '@/hooks/use-failures';
 import { useWatch } from '@/hooks/use-watch';
 import { arrived, newKey, type Sending } from '@/live/chat';
+import type { Picked } from '@/live/media';
 import type { Chat, TaskId } from '@/live/tasks';
 
 // One thread's chat, live while it's open, with your words showing the moment you send them. The
@@ -28,7 +29,7 @@ export function useChat(id: TaskId | null) {
       ...now.filter(({ key }) => key !== sent.key),
       { ...sent, failed: undefined },
     ]);
-    hex.tasks.send(sent.id, sent.text, sent.key).catch((error: unknown) => {
+    hex.tasks.send(sent.id, sent.text, sent.key, sent.media).catch((error: unknown) => {
       const failed = { why: failure('Not sent', error), again: !(error instanceof Refused) };
       setSending((now) => now.map((each) => (each.key === sent.key ? { ...each, failed } : each)));
     });
@@ -37,7 +38,8 @@ export function useChat(id: TaskId | null) {
   return {
     chat,
     pending,
-    send: (text: string) => id && deliver({ id, key: newKey(), text, total: chat?.total ?? 0 }),
+    send: (text: string, media: Picked[] = []) =>
+      id && deliver({ id, key: newKey(), text, media, total: chat?.total ?? 0 }),
     retry: deliver,
     stop: () => id && tries.attempt(id, 'Not stopped', () => hex.tasks.stop(id)),
     failed: id ? tries.failed[id] : undefined,

@@ -1,16 +1,20 @@
 import * as z from 'zod/mini';
 
 import type { CallEnding, CallId } from './calls';
+import type { Picked, Shown } from './media';
 import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
+// A photo or clip you sent shows as your turn, with why it didn't go when it didn't.
 export type TranscriptEntry = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   startMs: number;
   endMs?: number;
+  media?: Shown;
+  failed?: string;
 };
 export type LiveSnapshot = {
   status: LiveStatus;
@@ -92,4 +96,5 @@ export type SessionAPI = {
   ) => Promise<{ sdp: string; sessionId: CallId }>;
   close: (sessionId: CallId) => Promise<void>;
   mark?: (sessionId: CallId, kind: 'paused' | 'resumed') => Promise<void>;
+  share?: (sessionId: CallId, media: Picked) => Promise<void>;
 };

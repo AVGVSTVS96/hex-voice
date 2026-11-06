@@ -10,10 +10,11 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
-import { callOf, isHere } from '@/call/call';
+import { callOf, isHere, type Call } from '@/call/call';
 import { hex } from '@/hex';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import type { CallId } from '@/live/calls';
+import type { Picked } from '@/live/media';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
@@ -74,6 +75,27 @@ export function useCall(held: CallId | null) {
     start: (voice: LiveVoice, about?: CallAbout) => session.start(voice, about),
     end: () => (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop()),
     toggleMute: session.toggleMute,
+  };
+}
+
+// Whether a call on this phone holds the microphone, so nothing else here records sound.
+export function useMicHeld() {
+  const { session } = use(Session)!;
+  const { status } = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getSnapshot,
+  );
+  return isHere(status);
+}
+
+// What you send a call: shown in its words at once when it's this phone's, or put on the record of
+// the call hex holds elsewhere.
+export function useShare(call: Call) {
+  const { session } = use(Session)!;
+  return (media: Picked) => {
+    if (call.kind === 'here') void session.share(media);
+    else if (call.kind === 'elsewhere') void hex.calls.share(call.record.id, media).catch(() => {});
   };
 }
 

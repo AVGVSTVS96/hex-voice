@@ -57,7 +57,20 @@
       "./plugins/without-push",
       "./plugins/with-rive-legacy",
       "expo-widgets",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "hex sees what you show it, when you send a photo or video.",
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

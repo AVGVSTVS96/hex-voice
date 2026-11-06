@@ -28,6 +28,7 @@ import XCTest
 //   tree <name>           keeps the accessibility tree as it is now, as <name>
 //   absent <id>           checks no element has that id
 //   hex down|up           has the stand-in drop every read from now on, as when hex can't be reached, or answer again
+//   system <label>        taps that button on a system alert, like a permission's Allow, if one shows
 // A line whose element isn't there fails and is skipped, and the script goes on. The
 // accessibility tree at the end is kept beside the shots too.
 final class DuoTests: XCTestCase {
@@ -89,6 +90,9 @@ final class DuoTests: XCTestCase {
                 print("duo-hex \(argument)")
                 sleep(1)
             case "tree": keepTree(argument)
+            case "system":
+                let button = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons[argument]
+                if button.waitForExistence(timeout: 5) { button.tap() } else { print("duo-frame no system alert with \(argument)") }
             case "absent":
                 XCTAssertFalse(app.descendants(matching: .any)[argument].exists, "\(argument) is there")
             case "frame": element(argument).map { print("duo-frame \(argument) \($0.frame)") }

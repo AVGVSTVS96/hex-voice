@@ -22,10 +22,29 @@ export const radius = {
   field: metrics.field / 2,
   // A tag or a block of code inside something else.
   inner: 12,
+  // A photo or clip you sent, and one waiting to go.
+  media: 18,
+  waiting: 12,
 } as const;
 
 // The thinnest line the screen draws: a divider's.
 export const hairline = StyleSheet.hairlineWidth;
+
+// A photo's edge, as Photos draws one: no frame, only a bevel half a pixel wide that the picture
+// seems to spill over, catching light along its top and falling into shade along its foot.
+export const bevel = {
+  width: hairline / 2,
+  light: theme.bevelLight,
+  side: theme.bevelSide,
+  shade: theme.bevelShade,
+  // The same edge as a SwiftUI gradient, top to foot.
+  gradient: {
+    type: 'linearGradient' as const,
+    colors: [theme.bevelLight, theme.bevelSide, theme.bevelShade],
+    startPoint: { x: 0.5, y: 0 },
+    endPoint: { x: 0.5, y: 1 },
+  },
+};
 
 // A circle is as round as half its size, whatever size it's drawn at.
 export function circle(size: number) {

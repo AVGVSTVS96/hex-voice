@@ -1,3 +1,4 @@
+import type { Picked } from './media';
 import type { Chat, ChatTurn, TaskId } from './tasks';
 
 // What you sent from here to thread `id` that its chat doesn't show yet: `total` is how long the
@@ -7,6 +8,7 @@ export type Sending = {
   id: TaskId;
   key: string;
   text: string;
+  media: Picked[];
   total: number;
   failed?: { why: string; again: boolean };
 };
@@ -17,7 +19,12 @@ export function arrived(chat: Chat, sent: Sending) {
     chat.waiting.some(({ key }) => key.endsWith(`:${sent.key}`)) ||
     chat.turns
       .slice(Math.max(0, sent.total - (chat.total - chat.turns.length)))
-      .some((turn) => turn.from === 'me' && turn.text === sent.text)
+      .some(
+        (turn) =>
+          turn.from === 'me' &&
+          turn.text === sent.text &&
+          (turn.media?.length ?? 0) === sent.media.length,
+      )
   );
 }
 

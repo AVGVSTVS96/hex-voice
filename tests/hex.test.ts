@@ -5,6 +5,7 @@ import { createHex } from '../src/hex/api';
 import { Refused, createClient } from '../src/hex/client';
 import { AskId } from '../src/live/asks';
 import { CallId } from '../src/live/calls';
+import { MediaId } from '../src/live/media';
 import { TaskId } from '../src/live/tasks';
 
 const url = 'https://hex.example:8790';
@@ -228,4 +229,50 @@ test('an answer, a note and a not needed each go to their ask and say what they 
     ],
   );
   await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/);
+});
+
+test('a photo goes to hex as its bytes, then to the call or the thread by the id hex gave it', async () => {
+  const seen: { url: string; init?: RequestInit }[] = [];
+  const hex = createHex(
+    createClient({
+      url,
+      token: 'secret',
+      open: (uri) => new Blob([`bytes of ${uri}`]),
+      fetch: async (input, init) => {
+        seen.push({ url: String(input), init });
+        return String(input).endsWith('/media')
+          ? Response.json({ id: `m${seen.length}`, kind: 'photo' }, { status: 201 })
+          : new Response(null, { status: 204 });
+      },
+    }),
+  );
+  const photo = { uri: 'file:///shot.jpg', kind: 'photo' as const, type: 'image/jpeg' };
+  assert.deepEqual(await hex.media.upload(photo), { id: 'm1', kind: 'photo' });
+  await hex.calls.share(live, photo);
+  await hex.tasks.send(thread, '', 'app-2', [photo, photo]);
+  assert.deepEqual(
+    await Promise.all(
+      seen.map(async ({ url, init }) => [
+        url.slice(url.indexOf('/', 8)),
+        new Headers(init?.headers).get('content-type'),
+        init?.body instanceof ArrayBuffer ? new TextDecoder().decode(init.body) : init?.body,
+      ]),
+    ),
+    [
+      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      ['/calls/live_1/media', 'application/json', '{"media":"m2"}'],
+      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      [
+        '/tasks/telegram%3A-100%3A908/chat',
+        'application/json',
+        '{"text":"","key":"app-2","media":["m4","m5"]}',
+      ],
+    ],
+  );
+  assert.deepEqual(hex.media.image(MediaId.parse('m1')), {
+    uri: `${url}/media/m1`,
+    headers: { Authorization: 'Bearer secret' },
+  });
 });

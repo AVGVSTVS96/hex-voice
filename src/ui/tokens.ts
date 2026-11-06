@@ -25,6 +25,16 @@ export const color = {
   accentSolid: { dark: '#1F8A6D', light: '#1F8A6D' },
   danger: { dark: '#F0A5A8', light: '#D93A42' },
   dangerMuted: { dark: '#3A2224', light: '#FBE3E4' },
+  // Over a photo or the camera's picture, in either appearance: words and symbols, the black under
+  // and on them, the dark glass behind them, and recording.
+  onMedia: { dark: '#FFFFFF', light: '#FFFFFF' },
+  media: { dark: '#000000', light: '#000000' },
+  overMedia: { dark: '#00000073', light: '#00000073' },
+  recording: { dark: '#FF453A', light: '#FF3B30' },
+  // A photo's edge: the light along its top, the hairline down its sides, the shade along its foot.
+  bevelLight: { dark: '#FFFFFF52', light: '#FFFFFF66' },
+  bevelSide: { dark: '#FFFFFF1F', light: '#0000000F' },
+  bevelShade: { dark: '#00000059', light: '#00000026' },
 } as const;
 
 export type Tone = keyof typeof color;
@@ -181,6 +191,9 @@ export const metrics = {
   pill: { height: 52, gap: 9 },
   // A thread's composer: its field's least height, and its send button's.
   field: 50,
+  // A photo or clip: what you sent, at its widest in a thread (in a call it's a share of the
+  // words' width), and waiting in the composer. Then the camera's shutter and its ring.
+  media: { turn: 240, share: '64%', waiting: 64, shutter: 72, ring: 4 },
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
