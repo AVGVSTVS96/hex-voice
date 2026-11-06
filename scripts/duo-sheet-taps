@@ -1,0 +1,68 @@
+# ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-sheet-taps: its project is markdown.
+# The cover screen (cover-up, cover-side), where settings is a sheet over Tasks and the call: each
+# tap snapped right after it lands and shot once it settles. Also the Tasks button's ring through
+# Tasks, Calls and a project page, a stage switch, and unfolding with settings up.
+launch hexvoice:///
+wait 3
+shoot call
+tap tasks-button
+snap tasks-tap
+shoot tasks
+selected tasks-button
+tap Working,
+snap stage-tap
+wait 0.2
+snap stage-tap-later
+shoot stage
+tap Done,
+snap stage-done-tap
+shoot stage-done
+tap Quiet,
+snap stage-quiet-tap
+shoot stage-quiet
+tap Needs you,
+snap stage-needs-tap
+shoot stage-needs
+tap markdown
+snap chat-tap
+wait 0.3
+snap chat-tap-later
+shoot chat
+tap task-back
+snap chat-back-tap
+shoot chat-back
+tap voice-settings-button
+snap settings-tap
+wait 0.3
+snap settings-tap-later
+shoot settings
+swipe-down voice-settings-sheet
+tap tasks-button
+shoot tasks-closed
+unselected tasks-button
+tap voice-settings-button
+snap settings-from-call-tap
+wait 0.3
+snap settings-from-call-tap-later
+shoot settings-from-call
+swipe-down voice-settings-sheet
+shoot settings-closed
+tap calls-button
+snap calls-tap
+wait 0.3
+snap calls-tap-later
+shoot calls
+tap calls-button
+snap calls-closed-tap
+shoot calls-closed
+# Unfolding with settings up moves it into its place, where Tasks swaps in with one tap.
+tap voice-settings-button
+shoot fold-settings
+pose open-up
+shoot unfolded-settings
+selected voice-settings-button
+tap tasks-button
+snap unfolded-tasks-tap
+shoot unfolded-tasks
+selected tasks-button
+unselected voice-settings-button
