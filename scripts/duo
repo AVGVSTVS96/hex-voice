@@ -391,27 +391,16 @@ mac_tap() {
 }
 
 # Moves the Duo from one pose to the next as a hand would, at once: the hinge or the turn, whichever
-# changes. The open screen often misses a turn the running app was sent, so a screen that hasn't
-# turned is turned again from upright, as place_turned does; fold_frames counts from the first frame
-# that changed, so the retry's wait isn't counted.
+# changes. A turn is sent again a second later, as place does, since the simulator can miss the
+# first. Whether the screen turned shows in the film: the probe's turns and the app's side by side.
 move() {
-  local from pose=$2
+  local from
   pose_of "$1"
   from=$hinge:$orientation
   pose_of "$2"
   [ "${from%:*}" = "$hinge" ] || hub hinge "$hinge" "${from%:*}"
+  [ "${from#*:}" = "$orientation" ] || { hub orientation "$orientation" && sleep 1 && hub orientation "$orientation"; }
   echo "$hinge" >build/hinge
-  [ "${from#*:}" != "$orientation" ] || return 0
-  hub orientation "$orientation"
-  sleep 2
-  xcrun simctl io "$id" screenshot --display=$display build/turn.png >/dev/null 2>&1
-  turned build/turn.png && return
-  hub orientation portrait
-  sleep 1
-  hub orientation "$orientation"
-  sleep 2
-  xcrun simctl io "$id" screenshot --display=$display build/turn.png >/dev/null 2>&1
-  turned build/turn.png || echo "$pose: the screen didn't turn" >>shots/notes.txt
 }
 
 # Films each state it reads moving through FOLDS from cover-up, once filming the open screen and
@@ -602,7 +591,8 @@ fold() {
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null | grep -E '^tasks(-call)? '
   fi
     [ -z "${FOLD_PROBE:-}" ] || echo "probe launch:com.shahidy.foldprobe"; } |
-    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime"
+    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" ||
+    echo "the Mac's half ended with $?; counting what it filmed"
   mkdir -p "$dir"
   rsync -a "$mac:$folder/shots/" "$dir/"
   [ ! -f "$dir/notes.txt" ] || cat "$dir/notes.txt"
