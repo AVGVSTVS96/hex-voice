@@ -17,8 +17,8 @@
 # state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 # screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
 # newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
-# iPad Pro 11" on iOS 27.0 (27.1 is the Duo's alone), in place of the Duo, shutting the Duo down so only one is booted; its poses are up and
-# side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
+# iPad Pro 11" on iOS 27.0 through Xcode 27.0 (27.1 and Xcode-beta are the Duo's alone), in place
+# of the Duo, shutting the Duo down so only one is booted; its poses are up and side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
 # last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
 # while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
 # ANSWERS=<file of answers by path> answers those paths from the file, its shots in kept/<file>/. The JS is bundled here; the Mac builds the
@@ -48,8 +48,8 @@ use_lane() {
   duo="${1:+$1 }hexvoice Duo"
   ipad="${1:+$1 }hexvoice iPad"
   case $DEVICE in
-    duo) sim=$duo model=iPhone-Duo os=iOS-27-1 ;;
-    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 ;;
+    duo) sim=$duo model=iPhone-Duo os=iOS-27-1 xcode=Xcode-beta ;;
+    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 xcode=Xcode ;;
   esac
   case $1 in
     '') hexport=8799 ;;
@@ -83,7 +83,7 @@ pose_of() {
 # Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 # js/ its bundle, harness/ this script with what it needs.
 on_mac() {
-  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer}
+  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/$xcode.app/Contents/Developer}
   export PATH=/opt/homebrew/bin:$PATH
   cd ~/"$folder"
   local command=$1

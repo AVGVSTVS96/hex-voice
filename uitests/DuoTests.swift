@@ -133,10 +133,10 @@ final class DuoTests: XCTestCase {
         }
     }
 
-    // Pages that have left stay in the tree off screen, and rows scrolled under a bar can't be
-    // touched, so the first match that can be wins, then the first on screen. Which are on screen
-    // comes from one snapshot of the tree, since a live list can change between reading a match's
-    // place and touching it.
+    // Pages that have left stay in the tree off screen, so the first match on screen wins, whole if
+    // one is. Which are on screen comes from one snapshot of the tree, since a live list can change
+    // between reading a match's place and touching it, and asking a live element whether it can be
+    // touched fails the run when its frame has just gone.
     private func element(_ query: String) -> XCUIElement? {
         let matches = app.descendants(matching: .any).matching(predicate(for: query))
         guard matches.firstMatch.waitForExistence(timeout: 10) else {
@@ -147,8 +147,8 @@ final class DuoTests: XCTestCase {
         let screen = app.windows.firstMatch.frame
         let onScreen = matching(query, in: tree).enumerated()
             .filter { screen.contains(CGPoint(x: $0.element.frame.midX, y: $0.element.frame.midY)) }
-            .map { matches.element(boundBy: $0.offset) }
-        return onScreen.prefix(4).first { $0.exists && $0.isHittable } ?? onScreen.first ?? matches.firstMatch
+        let pick = onScreen.first { screen.contains($0.element.frame) } ?? onScreen.first
+        return pick.map { matches.element(boundBy: $0.offset) } ?? matches.firstMatch
     }
 
     // The elements under a snapshot (itself excluded) that match the query, in the order a query finds them.

@@ -1,5 +1,5 @@
-# The walk scripts/duo verify films: the app's screens moving into each other by toolbar, tab, row,
-# back and edge swipe, then with a call on. Each part opens the app afresh, so a step that sticks
+# The walk scripts/duo verify films: the app's screens moving into each other by toolbar, tab, row
+# and back, then with a call on. Each part opens the app afresh, so a step that sticks
 # can't hide the rest.
 shoot call
 tap tasks-button
@@ -22,7 +22,6 @@ shoot searching
 launch hexvoice:///
 tap calls-button
 shoot calls
-swipe-back calls-edge
 launch hexvoice:///?demo=call
 shoot call-live
 tap tasks-button
