@@ -331,7 +331,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     }
     pane.set(settle(tasksOpen ? 1 : 0));
   }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-  // The card's place and corners, and the stage that keeps what's on it put, come from one rule.
+  // The card's place and corners, and what keeps the stage on it put, all come from cardOf.
   const cardStyle = useAnimatedStyle(() => {
     const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
     return {
