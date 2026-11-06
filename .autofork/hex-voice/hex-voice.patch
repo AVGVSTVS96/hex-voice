@@ -100640,7 +100640,7 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0e
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..b48bc7388fa46084ce3a02b8422b0434faef541e
+index 0000000000000000000000000000000000000000..e80dc7874661c805f96f201b291e0bf95b2025c1
 --- /dev/null
 +++ b/src/call/call-screen.tsx
 @@ -0,0 +1,941 @@
@@ -100705,12 +100705,12 @@ index 0000000000000000000000000000000000000000..b48bc7388fa46084ce3a02b8422b0434
 +import { orbRest } from '@/screens/orb-rest';
 +import { hairline, theme } from '@/theme';
 +import { HostedGlassButton } from '@/ui/glass-button';
-+import { metrics } from '@/ui/tokens';
++import { metrics, stack } from '@/ui/tokens';
 +import { roomOf, turns, type Room } from '@/screens/window';
 +import { PoseView, type Pose } from '../../modules/pose';
 +
 +const AGENT_ROW = 22;
-+const CONTROLS_BOX = 200;
++const CONTROLS_BOX = stack('regular', { add: true });
 +// The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
 +const OVER_SHEET = 96;
 +const PAD = Platform.OS === 'ios' && Platform.isPad;
@@ -102296,11 +102296,11 @@ index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c6
 +}
 diff --git a/src/call/stage.ts b/src/call/stage.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8da4d6771
+index 0000000000000000000000000000000000000000..ff1063471a67ab74eda71ddade555c3582850355
 --- /dev/null
 +++ b/src/call/stage.ts
 @@ -0,0 +1,352 @@
-+import { breakpoint, metrics, type ControlsSize } from '@/ui/tokens';
++import { breakpoint, metrics, stack, type ControlsSize } from '@/ui/tokens';
 +
 +import type { Fold } from '@/screens/window';
 +
@@ -102314,7 +102314,7 @@ index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8
 +const PEEK = 72;
 +const TASKS = 380;
 +const CALL = 368;
-+const BESIDE_MUTE = 56;
++const BESIDE_BUTTONS = 56;
 +const GAP = 12;
 +// How far the call's words keep from the fold.
 +const OFF_FOLD = 8;
@@ -102370,7 +102370,8 @@ index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8
 +  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
 +  // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
 +  // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-+  // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
++  // docks just before the call buttons' stack in the room a pane leaves (`dock`), never covered or
++  // faded.
 +  orb: {
 +    size: number;
 +    rest: Spot;
@@ -102477,7 +102478,7 @@ index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8
 +// the whole screen when none is. With nothing open the orb is a third of the short side, beside
 +// the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
 +// open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
-+// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
++// before their + with the gap the buttons keep, so the header holds only the toolbar and the words
 +// keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
 +// narrow to read, so the call keeps CALL.
 +function pad(box: Box): Stage {
@@ -102492,10 +102493,9 @@ index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8
 +  const agentHigh = bottomInset + metrics.call + 14;
 +  const docked = (from: number, to: number) => {
 +    const center = from + (to - from) / 2;
-+    const { mute: muteSize, call, gap } = metrics.controls.regular;
-+    const mute = center - (metrics[muteSize] + gap + metrics[call]) / 2;
++    const buttons = center - stack('regular', { add: true }) / 2;
 +    return {
-+      orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
++      orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },
 +      words: { ...measure(from, to), top: below + 16 },
 +      controls: { x: center, y: foot },
 +    };
@@ -116239,10 +116239,10 @@ index 0000000000000000000000000000000000000000..a3dcf467044d386823a6860a7f06fe10
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc066e53a7ab
+index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8f61f5551
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,385 @@
 +import {
 +  callsBeside,
 +  stageLayout,
@@ -116253,7 +116253,7 @@ index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc06
 +  type Stage,
 +  type Words,
 +} from '@/call/stage';
-+import { metrics, type ToolbarGaps } from '@/ui/tokens';
++import { metrics, stack, type ToolbarGaps } from '@/ui/tokens';
 +
 +import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 +
@@ -116535,7 +116535,8 @@ index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc06
 +): Duo {
 +  const { window, insets, toolbar } = frame;
 +  const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
-+  const sizes = metrics.controls[column.controls.size ?? 'regular'];
++  const size = column.controls.size ?? 'regular';
++  const sizes = metrics.controls[size];
 +  const x = column.x + column.width / 2;
 +  const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
 +  const leading = column.x === 0;
@@ -116553,8 +116554,7 @@ index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc06
 +    fold,
 +  );
 +  const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
-+  const buttons =
-+    window.height - column.controls.bottom - metrics[sizes.mute] - sizes.gap - metrics[sizes.call];
++  const buttons = window.height - column.controls.bottom - stack(size);
 +  const group = CALL_ORB + 4 + TIME + (after ? 12 + metrics.tool : 0);
 +  const y = (tools + buttons - group) / 2;
 +  const time = y + CALL_ORB + 4;
@@ -116592,8 +116592,7 @@ index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc06
 +  );
 +  const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
 +  const middle = toolbar.y + metrics.tool / 2;
-+  const tool = metrics.controls.tool;
-+  const mute = end - metrics[tool.mute] - tool.gap - metrics[tool.call];
++  const mute = end - stack('tool');
 +  const button = { x: mute - 14 - metrics.tool / 2, y: middle };
 +  const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
 +  return {
@@ -118662,10 +118661,10 @@ index 0000000000000000000000000000000000000000..4b5c2ac4513055c5b7b1e97062cb4c65
 +}
 diff --git a/src/ui/tokens.ts b/src/ui/tokens.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a278fdf80b3b2bc63dbf674ad06d3bda1660ce5d
+index 0000000000000000000000000000000000000000..79a7af0735107a6393270feaf229dd8953da1fe8
 --- /dev/null
 +++ b/src/ui/tokens.ts
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,242 @@
 +// The app's look: every color, text style, gap and size a component draws with. A component picks
 +// a name from these tables, never a value of its own, so it looks the same wherever it sits.
 +
@@ -118897,6 +118896,13 @@ index 0000000000000000000000000000000000000000..a278fdf80b3b2bc63dbf674ad06d3bda
 +
 +export type ControlsSize = keyof typeof metrics.controls;
 +export type ToolbarGaps = 'regular' | 'compact';
++
++// How long the call buttons' stack runs at a size, along its row or column: mute and the call
++// button, and with `add` the + before them, drawn as mute is.
++export function stack(size: ControlsSize, { add = false } = {}) {
++  const { mute, call, gap } = metrics.controls[size];
++  return (add ? 2 : 1) * (metrics[mute] + gap) + metrics[call];
++}
 +
 +// Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
 +// the fold parts a window only where it leaves a page on each side of it.
@@ -122691,17 +122697,18 @@ index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a78
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc223e86fdb7
+index 0000000000000000000000000000000000000000..4e199cf95c2331aac772eab90e60c2e9b5af6880
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,556 @@
+@@ -0,0 +1,585 @@
 +import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
 +import test from 'node:test';
 +
 +import type { Pose } from '../modules/pose';
 +import { screenLayout, type Layout } from '../src/screens/layout';
 +import { roomOf, type Insets, type Size } from '../src/screens/window';
-+import { metrics } from '../src/ui/tokens';
++import { metrics, stack } from '../src/ui/tokens';
 +
 +const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
 +  screenLayout(roomOf(pose, window, insets));
@@ -122837,7 +122844,7 @@ index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc22
 +  assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
 +});
 +
-+test('with a pane open the orb sits drawn 56 just before mute, 12 from it, at every card width', () => {
++test('with a pane open the orb sits drawn 56 just before the call buttons’ +, 12 from it, at every card width', () => {
 +  const cards = [
 +    { size: { width: 1210, height: 834 }, pane: 'calls', from: 360, card: 850 },
 +    { size: { width: 1210, height: 834 }, pane: 'tasks', from: 0, card: 403 },
@@ -122852,8 +122859,8 @@ index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc22
 +    const where = `${size.width} wide, ${pane}: ${card} card`;
 +    assert.equal(buttons.x, from + card / 2, where);
 +    assert.equal(Math.round(spot.size * 0.75), 56, `${where}: drawn 56`);
-+    const mute = buttons.x - (60 + 12 + 64) / 2;
-+    assert.equal(mute - (spot.x + 28), 12, `${where}: 12 from mute`);
++    const add = buttons.x - (60 + 12 + 60 + 12 + 64) / 2;
++    assert.equal(add - (spot.x + 28), 12, `${where}: 12 from the +`);
 +    assert.equal(spot.y, buttons.y, `${where}: centered on the buttons`);
 +  }
 +});
@@ -122888,12 +122895,21 @@ index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc22
 +      assert.ok(words.x >= from && words.x + words.width <= to, `${where}: words in the room`);
 +      assert.ok(words.width >= 320, `${where}: words readable`);
 +      const buttons = controls.center[state];
-+      assert.ok(buttons.x - 68 >= from && buttons.x + 68 <= to, `${where}: buttons in the room`);
++      const reach = stack('regular', { add: true }) / 2;
++      assert.ok(
++        buttons.x - reach >= from && buttons.x + reach <= to,
++        `${where}: the whole stack, +, in the room`,
++      );
 +      assert.ok(buttons.y + 32 <= size.height, `${where}: buttons on screen`);
 +    }
 +    if (state(size) === 'landscape')
 +      assert.ok(layout.inbox && layout.inbox.width === size.width - 96, `${name}: inbox`);
 +  }
++});
++
++test('on iPad the call buttons’ box is as wide as their whole stack, + to the call button', () => {
++  const screen = readFileSync('src/call/call-screen.tsx', 'utf8');
++  assert.match(screen, /^const CONTROLS_BOX = stack\('regular', \{ add: true \}\);$/m);
 +});
 +
 +function state(size: { width: number; height: number }) {
@@ -123010,16 +123026,20 @@ index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc22
 +    const { tools, group } = metrics.toolbar[toolbar.gaps!];
 +    placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 3 * 48 + tools + group };
 +    assert.ok(controls !== 'inline' && 'bottom' in controls);
-+    const sizes = metrics.controls[controls.size!];
-+    const end = metrics[sizes.call];
-+    const height = metrics[sizes.mute] + sizes.gap + end;
++    const end = metrics[metrics.controls[controls.size!].call];
++    const height = stack(controls.size!);
 +    const x = window.width - controls.right - 32;
 +    placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
 +  } else {
 +    placed.calls = { x: toolbar.x, y: toolbar.y, width: 48, height: 48 };
 +    placed.pair = { x: toolbar.x + toolbar.width - 108, y: toolbar.y, width: 108, height: 48 };
 +    const { right, top } = call.controls!;
-+    placed.buttons = { x: window.width - right - 108, y: top, width: 108, height: 48 };
++    placed.buttons = {
++      x: window.width - right - stack('tool'),
++      y: top,
++      width: stack('tool'),
++      height: 48,
++    };
 +  }
 +  return placed;
 +}
@@ -123038,6 +123058,21 @@ index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc22
 +        assert.ok(!overlaps(status, box), `${where} clear of the status items`);
 +      for (const [other, them] of Object.entries(placed))
 +        if (other !== what) assert.ok(!overlaps(box, them), `${where} clear of ${other}`);
++    }
++  }
++});
++
++test('on iPhone Duo with Tasks closed, the call’s own stack has room for its + before mute, clear of the tools', () => {
++  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
++    const layout = layoutOf(window, insets, pose);
++    const { tools, calls, buttons } = bar(layout, window);
++    if (layout.toolbar.axis === 'column') {
++      assert.ok(layout.controls !== 'inline' && 'bottom' in layout.controls);
++      const top = buttons.y + buttons.height - stack(layout.controls.size!, { add: true });
++      assert.ok(top >= tools.y + tools.height, `${name}: the + below the tools`);
++    } else {
++      const start = buttons.x + buttons.width - stack('tool', { add: true });
++      assert.ok(start >= calls.x + calls.width, `${name}: the + after Calls`);
 +    }
 +  }
 +});
