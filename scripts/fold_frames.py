@@ -29,16 +29,22 @@ SIDE = 128
 # A pixel has changed past this many gray levels, and a frame past this share of its pixels.
 LEVELS = 32
 SHARE = 0.005
+# The probe's layout is a few big blocks, and the home indicator iOS fades in and dims for seconds
+# after a move is under this share of it, so the probe's own landing ignores it.
+PROBE_SHARE = 0.03
 BEFORE = 0.25
+# A film's first frame comes a little after the simulator says it started, so a cut stops this far
+# short of the next move.
+AFTER = 0.6
 
 
 def screen_of(pose):
     return 1 if pose.startswith('cover') else 3
 
 
-def differs(a, b):
+def differs(a, b, share=SHARE):
     changed = sum(1 for x, y in zip(a, b) if abs(x - y) > LEVELS)
-    return changed > SHARE * len(a)
+    return changed > share * len(a)
 
 
 def dark(frame):
@@ -116,7 +122,7 @@ def cut(folder, state, n, after):
     at = int(marks[n][0])
     start = (at - int(began.read_text())) / 1000 - BEFORE
     until = int(marks[n + 1][0]) if n + 1 < len(marks) else at + 4000
-    seconds = (until - at) / 1000 + BEFORE - 0.1
+    seconds = (until - at) / 1000 + BEFORE - AFTER
     return film, start, seconds, gray(film, start, seconds)
 
 
@@ -128,7 +134,7 @@ def main(folder):
     if 'probe' in states:
         for n, (_, _, after) in enumerate(moves):
             taken = cut(folder, 'probe', n, after)
-            moved = taken and settle(taken[3])
+            moved = taken and settle(taken[3], lambda a, b: not differs(a, b, PROBE_SHARE))
             ios[n] = moved[1] - moved[0] if moved else 0
     rows = ['| state | move | iOS’s own (ms) | app final after it lands (ms) | '
             'wrong frames after it lands |', '|---|---|---|---|---|']
