@@ -99068,10 +99068,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..671f2af458df2f079c1212d0ddf466116603601c
+index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e3fc4a383
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,648 @@
+@@ -0,0 +1,657 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99398,7 +99398,9 @@ index 0000000000000000000000000000000000000000..671f2af458df2f079c1212d0ddf46611
 +        until grep -q "Recording started" build/recording.log; do sleep 0.1; done
 +        filmed=$(ms)
 +      }
-+      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SHOOT_WAIT=$((3 + 2 * $(wc -w <<<"${ALSO:-}"))) xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
++      rm -rf build/sync && mkdir -p build/sync
++      answered=0
++      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
 +        -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
 +        -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
 +        case $line in
@@ -99414,25 +99416,32 @@ index 0000000000000000000000000000000000000000..671f2af458df2f079c1212d0ddf46611
 +              "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
 +            for also in ${ALSO:-}; do
 +              xcrun simctl ui "$id" appearance "$also"
-+              sleep 1
++              sleep 0.6
 +              xcrun simctl io "$id" screenshot ${display:+--display=$display} \
 +                "shots/$pose-$step-$also.png" >/dev/null 2>&1
 +            done
 +            [ -z "${ALSO:-}" ] || xcrun simctl ui "$id" appearance "$appearance"
-+            xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
-+              jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
-+            xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
-+              jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
++            touch "build/sync/$((answered += 1))"
++            {
++              xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
++                jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
++              xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
++                jq . >"shots/$pose-$step-$appearance-log.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance-log.json"
++            } &
 +            ;;
 +          *"duo-snap "*)
 +            xcrun simctl io "$id" screenshot ${display:+--display=$display} \
 +              "shots/$pose-${line##*duo-snap }-$appearance.png" >/dev/null 2>&1 &
 +            ;;
-+          *"duo-pose "*) place_turned "${line##*duo-pose }" ;;
++          *"duo-pose "*)
++            place_turned "${line##*duo-pose }"
++            touch "build/sync/$((answered += 1))"
++            ;;
 +          *"duo-burst "*)
 +            bursts=$((${bursts:-0} + 1))
 +            burst=shots/$pose-burst$bursts-${line##*duo-burst }-$appearance
 +            place_turned "${line##*duo-burst }"
++            touch "build/sync/$((answered += 1))"
 +            ;;
 +          *"duo-hex down"*) touch hex-down ;;
 +          *"duo-hex up"*) rm -f hex-down ;;
@@ -127389,10 +127398,10 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..56eda8af7f3f6ea8e1f55b2f64a61b4e9e461bc3
+index 0000000000000000000000000000000000000000..a786e91fd78895f3bd860124d9c4abef02336886
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,217 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
@@ -127479,7 +127488,7 @@ index 0000000000000000000000000000000000000000..56eda8af7f3f6ea8e1f55b2f64a61b4e
 +            case "shoot", "pose", "pose-burst":
 +                sleep(1)
 +                print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
-+                sleep(command == "shoot" ? UInt32(ProcessInfo.processInfo.environment["DUO_SHOOT_WAIT"] ?? "") ?? 3 : 9)
++                waitForDuo()
 +            case "snap": print("duo-snap \(argument)")
 +            case "hex":
 +                print("duo-hex \(argument)")
@@ -127578,6 +127587,17 @@ index 0000000000000000000000000000000000000000..56eda8af7f3f6ea8e1f55b2f64a61b4e
 +        print("duo-frame tapped \(query) at (\(shows.midX), \(shows.midY)) of \(element.frame), keyboard at \(keyboard.frame.minY)")
 +        touch()
 +        window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
++    }
++
++    // Waits until scripts/duo has shot or posed what was just asked: it touches <DUO_SYNC>/<n> for
++    // the nth, in a folder on the Mac the simulator reads directly.
++    private var asked = 0
++    private func waitForDuo() {
++        asked += 1
++        let done = (ProcessInfo.processInfo.environment["DUO_SYNC"] ?? "") + "/\(asked)"
++        let deadline = Date().addingTimeInterval(120)
++        while !FileManager.default.fileExists(atPath: done) && Date() < deadline { usleep(100_000) }
++        XCTAssertTrue(FileManager.default.fileExists(atPath: done), "scripts/duo didn't finish step \(asked) in 2 minutes")
 +    }
 +
 +    // Marks the moment a finger lands, in ms on the Mac's clock, so a filmed run knows where each
