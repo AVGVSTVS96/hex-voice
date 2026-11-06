@@ -35,6 +35,8 @@ final class DuoTests: XCTestCase {
     var marked: [String: CGRect] = [:]
 
     override func setUp() {
+        // scripts/duo acts on each line as it's printed, so none may wait in a buffer.
+        setvbuf(stdout, nil, _IONBF, 0)
         continueAfterFailure = true
         app.terminate()
         app.launch()
@@ -176,9 +178,10 @@ final class DuoTests: XCTestCase {
         window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
     }
 
-    // Marks the moment a finger lands, so a filmed run knows where each move starts.
+    // Marks the moment a finger lands, in ms on the Mac's clock, so a filmed run knows where each
+    // move starts.
     private func touch() {
-        print("duo-touch")
+        print("duo-touch \(Int(Date().timeIntervalSince1970 * 1000))")
     }
 
     // The smallest list or scroll view under the element, or with rows the smallest row too.

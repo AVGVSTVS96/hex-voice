@@ -309,18 +309,23 @@ mac_tap() {
       result=$tests/$pose-$appearance.xcresult
       rm -rf "$result" "$tests/attachments"
       [ "${VIDEO:-}" != "$appearance" ] || {
+        rm -f build/recording.log
         xcrun simctl io "$id" recordVideo --codec=h264 ${display:+--display=$display} --force \
-          "shots/$pose-$appearance.mov" >/dev/null 2>&1 &
+          "shots/$pose-$appearance.mov" >/dev/null 2>build/recording.log &
         recording=$!
-        sleep 1
+        # The film's first frame, the moment the steps' ms count from.
+        until grep -q "Recording started" build/recording.log; do sleep 0.1; done
         filmed=$(ms)
       }
       TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SHOOT_WAIT=$((3 + 2 * $(wc -w <<<"${ALSO:-}"))) xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
         case $line in
-          *"duo-line "* | *duo-touch*)
+          *"duo-line "*)
             [ "${VIDEO:-}" != "$appearance" ] || echo "$(($(ms) - filmed)) ${line##*duo-}" >>"shots/$pose-$appearance-steps.txt"
+            ;;
+          *"duo-touch "*)
+            [ "${VIDEO:-}" != "$appearance" ] || echo "$((${line##*duo-touch } - filmed)) touch" >>"shots/$pose-$appearance-steps.txt"
             ;;
           *"duo-step "*)
             step=${line##*duo-step }
