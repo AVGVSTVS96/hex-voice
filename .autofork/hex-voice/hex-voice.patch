@@ -187,10 +187,10 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3c01832d9a3849a9093be743267150b22b5caa2c 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3cc64cfab40158f34c45f7c343cb74ced20d8311 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,65 @@
+@@ -1,21 +1,67 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
@@ -244,6 +244,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3c01832d9a3849a9093be743267150b2
 -- Never add AI or Codex co-author credits.
 -- PR titles use the user's area format, for example `[web] ...` or `[be] ...`.
 +- UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
++- A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
 +- `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 +- Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
 +- iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out in one half of the screen, with its own safe area and the pose in its coordinates. Sheets still present from the whole screen.
@@ -260,6 +261,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3c01832d9a3849a9093be743267150b2
 +- Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
 +- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `theme.ts` (`radius`, `metrics`, `circle`) and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
 +- Layout reads the window's `Room` (`src/screens/window.ts`), never the device's pose: iOS reports the fold and the bar's side for the device, and in Split View they lie outside the window. `tests/window.test.ts` keeps the pose to that one module and lays out every window size with the fold anywhere.
++- Folding moves nothing: the room's fold is only the line where it divides the window, with no angle, state or thickness, so partly open lays out exactly as open flat.
 +- A size flows one way: the container gives it and the content fills it, or the content states it and the container fits it. Never measure a view to size the thing that sizes it; the settings sheet opened at a different width each time that way.
 +- Prove layout on the real renderer: `scripts/duo tap` can `type` into a field, check it's `above-keyboard` or that there's `no-keyboard`, and `mark` a view then check it holds `still`, same place and size.
 +
@@ -99609,6 +99611,35 @@ index 0000000000000000000000000000000000000000..671f2af458df2f079c1212d0ddf46611
 +  phone) phone "${2:-}" ;;
 +  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | verify [ref] | phone [update]" ;;
 +esac
+diff --git a/scripts/duo-fold-taps b/scripts/duo-fold-taps
+new file mode 100644
+index 0000000000000000000000000000000000000000..eb6533cfc1434e1a3de00b22c083a1f96c89f3fd
+--- /dev/null
++++ b/scripts/duo-fold-taps
+@@ -0,0 +1,23 @@
++# Folds and turns the Duo with Tasks open, checking the toolbar keeps off the Tasks page each time it's
++# back open upright: POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps
++launch hexvoice:///?tasks
++wait 3
++shoot tasks
++apart calls-button tasks-page
++apart voice-settings-button tasks-page
++pose cover-up
++shoot cover-up
++pose open-up
++shoot open-up
++apart calls-button tasks-page
++apart voice-settings-button tasks-page
++pose 150-up
++shoot 150-up
++pose open-side
++shoot open-side
++pose 120-side
++shoot 120-side
++pose open-up
++shoot open-up-again
++apart calls-button tasks-page
++apart voice-settings-button tasks-page
 diff --git a/scripts/duo-hex.mjs b/scripts/duo-hex.mjs
 new file mode 100644
 index 0000000000000000000000000000000000000000..033e1072d9eeefb0cd9251cdcdc1bee919974b18
@@ -100500,10 +100531,10 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0e
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5da2c3f3b
+index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670c82797ec
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,961 @@
+@@ -0,0 +1,964 @@
 +import * as Haptics from 'expo-haptics';
 +import * as ScreenOrientation from 'expo-screen-orientation';
 +import { useEffect, useRef, useState } from 'react';
@@ -100646,6 +100677,8 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
 +  // footer and agent line follow the words there instead of spanning the screen.
 +  const moves = split || !!orb.dock;
++  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
++  const follows = moves || !!layout.duo?.beside;
 +  // What the words show, in one place. Where the layout pulls the words down over the orb, they
 +  // show once pulled; everywhere else they take their own page once there's a call or words to show,
 +  // and before that the orb rests alone in the middle. Opening a past call pulls them, and letting
@@ -100712,7 +100745,10 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +  const rest = orbRest(
 +    {
 +      top: orb.room.top,
-+      bottom: Math.min(moves ? orb.room.bottom : height - footer, overSheet ? height / 2 : height),
++      bottom: Math.min(
++        moves ? orb.room.bottom : layout.content.height - footer,
++        overSheet ? height / 2 : height,
++      ),
 +    },
 +    orb.rest.y,
 +    size,
@@ -100855,7 +100891,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +  });
 +  const stageStyle = useAnimatedStyle(() => ({
 +    top: -(list.below ?? 0) * drawer.get(),
-+    left: list.place === 'beside' ? -drawer.get() * list.width : 0,
++    left: layout.content.x - (list.place === 'beside' ? drawer.get() * list.width : 0),
 +  }));
 +  const sidebarStyle = useAnimatedStyle(() => ({
 +    left: layout.content.x + (drawer.get() - 1) * 48,
@@ -100866,16 +100902,28 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +  // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
 +  // begins, unless Calls starts below it, which leaves the band whole.
 +  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
-+  // In iPhone Duo's side column the toolbar stays put, so it's placed outright; across the top it
-+  // moves with Calls and Tasks.
++  // Its place is all in this one style, whichever way it runs: a prop Reanimated has written stays
++  // on the view after a style React passes stops naming it, so a row's `left` would hold the side
++  // column at the screen's leading edge, over Tasks.
 +  const toolbarStyle = useAnimatedStyle(() => {
++    if (toolbar.axis === 'column') {
++      // The column keeps its width at its own edge: iOS grows the screen before the call screen
++      // lays out again as the Duo opens, so a column held by both edges would stretch across it.
++      const leading = toolbar.x < width / 2;
++      return {
++        left: leading ? toolbar.x : 'auto',
++        right: leading ? 'auto' : width - toolbar.x - toolbar.width,
++        width: toolbar.width,
++      };
++    }
 +    const d = drawer.get();
-+    const slid = list.place === 'slide' ? d * list.width : 0;
++    const slid = list.place === 'slide' && list.below === undefined ? d * list.width : 0;
 +    const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
 +    const tasks = side.place === 'beside' ? pane.get() * paneW.get() : 0;
 +    return {
 +      left: toolbar.x + calls + slid,
 +      right: width - toolbar.x - toolbar.width + tasks - slid,
++      width: 'auto',
 +    };
 +  });
 +  // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
@@ -100892,9 +100940,13 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +    'worklet';
 +    return open + (calls - open) * d + (tasks - open) * t;
 +  };
-+  const columnStyle = useAnimatedStyle(() => {
-+    const { d, t } = besideness(drawer.get(), pane.get());
-+    const a = aside.get();
++  // The footer and agent line each hold their own span, or where the call moves, follow the words.
++  // One style writes their place either way: a prop Reanimated has written stays on the view after
++  // it stops writing it, so a span React passes beside it would never come back.
++  const column = (own: { x: number; width: number }, drawn: number, paned: number, a: number) => {
++    'worklet';
++    if (!follows) return { left: own.x, width: own.width, marginBottom: 0 };
++    const { d, t } = besideness(drawn, paned);
 +    return {
 +      left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
 +      width:
@@ -100902,7 +100954,13 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +        (before.width - words.width) * a,
 +      marginBottom: lift.calls * d + lift.tasks * t + before.raise * a,
 +    };
-+  });
++  };
++  const footerStyle = useAnimatedStyle(() =>
++    column(layout.footer, drawer.get(), pane.get(), aside.get()),
++  );
++  const agentStyle = useAnimatedStyle(() =>
++    column(layout.agent, drawer.get(), pane.get(), aside.get()),
++  );
 +  // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
 +  const linesStyle = useAnimatedStyle(() => {
 +    const { t } = besideness(drawer.get(), pane.get());
@@ -100978,7 +101036,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +    if (duo) {
 +      const k = dock.get();
 +      const spot = duo.call.orb;
-+      x += (spot.x - x) * k;
++      x += (spot.x - layout.content.x - x) * k;
 +      at += (spot.y - at) * k;
 +      visual += (spot.size - visual) * k;
 +      const under = uncovered(covers.get());
@@ -101004,9 +101062,10 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +      interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) * uncovered(covers.get()),
 +  }));
 +  // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
-+  // the words' fades trade the call's color for the backdrop's as it comes in.
++  // the words' fades trade the call's color for the backdrop's as it comes in. They wear that style
++  // off the Duo too, so its last opacity can't stay behind when a window loses the Duo's layout.
 +  const backdropStyle = useAnimatedStyle(() => ({ opacity: pane.get() }));
-+  const callColorStyle = useAnimatedStyle(() => ({ opacity: 1 - pane.get() }));
++  const callColorStyle = useAnimatedStyle(() => ({ opacity: duo ? 1 - pane.get() : 1 }));
 +  const transcriptStyle = useAnimatedStyle(() => {
 +    const p = progress.get();
 +    const shown = reducedMotion
@@ -101161,7 +101220,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +            style={[styles.fill, styles.backdrop, backdropStyle]}
 +          />
 +        )}
-+        <Animated.View style={[styles.stage, { width }, stageStyle]}>
++        <Animated.View style={[styles.stage, { width: layout.content.width }, stageStyle]}>
 +          <GestureDetector gesture={screenDrag}>
 +            <View style={styles.fill}>
 +              <Animated.View
@@ -101199,14 +101258,8 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +                      onOpenTask={(task) => openTasks({ task })}
 +                    />
 +                  )}
-+                  <Animated.View
-+                    pointerEvents="none"
-+                    style={[styles.fade, duo && callColorStyle]}
-+                  />
-+                  <Animated.View
-+                    pointerEvents="none"
-+                    style={[styles.fadeBottom, duo && callColorStyle]}
-+                  />
++                  <Animated.View pointerEvents="none" style={[styles.fade, callColorStyle]} />
++                  <Animated.View pointerEvents="none" style={[styles.fadeBottom, callColorStyle]} />
 +                  {duo && (
 +                    <>
 +                      <Animated.View
@@ -101265,12 +101318,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +            calls={calls.calls}
 +            trouble={troubleNow}
 +            leading={split}
-+            style={[
-+              { left: layout.footer.x, width: layout.footer.width },
-+              (moves || duo?.beside) && columnStyle,
-+              linesStyle,
-+              { paddingBottom: layout.footer.bottom },
-+            ]}
++            style={[footerStyle, linesStyle, { paddingBottom: layout.footer.bottom }]}
 +            onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
 +            onOpen={showCall}
 +            onMore={() => openTasks({ stage: 'needs' })}
@@ -101285,12 +101333,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +            accessibilityRole="button"
 +            accessibilityHint="Opens what hex is working on"
 +            hitSlop={{ top: 8, bottom: 12 }}
-+            style={[
-+              styles.agent,
-+              { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
-+              (moves || duo?.beside) && columnStyle,
-+              linesStyle,
-+            ]}
++            style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
 +          >
 +            <AgentLine line={agent} />
 +          </AnimatedPressable>
@@ -101353,10 +101396,7 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +        onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
 +        axis={toolbar.axis}
 +        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-+        style={[
-+          { top: toolbar.y },
-+          toolbar.axis === 'column' ? pinned(toolbar, width) : toolbarStyle,
-+        ]}
++        style={[{ top: toolbar.y }, toolbarStyle]}
 +        callsOpen={drawerOpen}
 +        tasks={{ ...counts, open: tasksOpen }}
 +        settingsOpen={!!settingsPlace && settingsOpen}
@@ -101401,12 +101441,6 @@ index 0000000000000000000000000000000000000000..67f67e85d9eba6580c4c5e26b10c9fd5
 +    });
 +    started.current = null;
 +  }, [call.kind, live]);
-+}
-+
-+// A side column keeps its own width at the edge it's on. iOS grows the screen before the call
-+// screen lays out again as the Duo opens, so a column held by both edges would stretch across it.
-+function pinned({ x, width }: { x: number; width: number }, screen: number) {
-+  return x < screen / 2 ? { left: x, width } : { right: screen - x - width, width };
 +}
 +
 +const FADE = [{ color: theme.background }, { color: 'transparent' }];
@@ -102102,6 +102136,364 @@ index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c6
 +    logPose('pose', { window, size, insets, pose, room });
 +  }, [window, size, insets, pose, room]);
 +  return null;
++}
+diff --git a/src/call/stage.ts b/src/call/stage.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..38cfd7cfbf655d8b0654c618b074c3b8da4d6771
+--- /dev/null
++++ b/src/call/stage.ts
+@@ -0,0 +1,352 @@
++import { breakpoint, metrics, type ControlsSize } from '@/ui/tokens';
++
++import type { Fold } from '@/screens/window';
++
++const AGENT = 22;
++const WORDS = 600;
++const WORDS_BESIDE = 520;
++const MEASURE = 680;
++const LIST = 360;
++const SIDEBAR = 330;
++// What of the call still shows beside Calls slid in, to tap back to it.
++const PEEK = 72;
++const TASKS = 380;
++const CALL = 368;
++const BESIDE_MUTE = 56;
++const GAP = 12;
++// How far the call's words keep from the fold.
++const OFF_FOLD = 8;
++// Persona's Rive art fills three quarters of its view, as measured in the simulator.
++const ART = 0.75;
++
++type Place = { x: number; y: number };
++type Spot = Place & { size?: number };
++type Span = { x: number; width: number };
++export type Words = Span & { top: number };
++export type ColumnControls = {
++  right: number;
++  bottom: number;
++  axis: 'row' | 'column';
++  size?: ControlsSize;
++};
++
++// The room the call stage lays out in, as the screen gives it: its size, the window's safe area
++// along its top and foot, how far down it a bar across the top reaches (none where the bar runs
++// down the side), the fold across it in its own coordinates, where its call buttons sit when
++// they're out in a side column, and whether its width is regular.
++export type Box = {
++  width: number;
++  height: number;
++  safe: { top: number; bottom: number };
++  bar: number;
++  fold?: Fold;
++  controls?: ColumnControls;
++  regular: boolean;
++};
++
++export type Pane<Place> = { width: number; place: Place };
++// Calls that starts `below` a band of status and bar buttons leaves that band whole.
++export type CallsPlacement = Pane<'slide' | 'beside'> & { below?: number };
++export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
++
++// Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
++export type Beside<T> = { open: T; calls: T; tasks: T };
++
++// The call stage's geometry, in its own box's coordinates. It comes in three arrangements:
++// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
++// - split: the orb on the leading page and the words on the trailing one, both there from the
++//   start (iPad landscape, iPhone Duo open)
++// - stacked: the orb above and the words below it (iPad portrait, iPhone Duo open on its side)
++//
++// Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
++// (single), and everywhere else they have a place of their own and always show.
++export type Stage = {
++  kind: 'single' | 'split' | 'stacked';
++  // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
++  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
++  // `rest` under the orb while it rests alone.
++  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
++  // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
++  // when the words show: docked small in the corner, or at full size on its own page. On iPad it
++  // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
++  orb: {
++    size: number;
++    rest: Spot;
++    room: { top: number; bottom: number };
++    read: Spot;
++    // Beside Calls the orb rests at `calls`, and where the words then need that room, at `read`.
++    dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
++  };
++  words: Words;
++  text: 'regular' | 'large';
++  // Where the words move while Calls or Tasks sit beside them.
++  besideCalls: Words;
++  besideTasks: Words;
++  footer: Span & { bottom: number };
++  agent: Span & { bottom: number };
++  // How far the footer and agent line rise while a pane is open, to clear the call buttons that
++  // move in under them.
++  lift: { calls: number; tasks: number };
++  calls: CallsPlacement;
++  tasks: TasksPlacement;
++  pulls: boolean;
++};
++
++export function stageLayout(box: Box): Stage {
++  const { fold } = box;
++  if (box.regular && !fold && !box.controls) return pad(box);
++  if (fold && 'y' in fold) return stacked(box, fold.y);
++  if (box.regular && box.width > box.height) return split(box, fold?.x);
++  return single(box);
++}
++
++// Where the content starts: under the status items, and under a bar across the top.
++export function topOf({ safe, bar }: Box) {
++  return Math.max(safe.top, bar);
++}
++
++// How far the footer keeps above the box's foot, clear of the home indicator.
++export function footOf({ safe }: Box) {
++  return Math.max(safe.bottom, 20) + 14;
++}
++
++function single(box: Box): Stage {
++  const { width: across, height, safe, controls } = box;
++  const top = topOf(box);
++  const bottomInset = footOf(box);
++  const center = across / 2;
++  const width = Math.min(across - 2 * metrics.gutter, WORDS);
++  const words = { x: center - width / 2, width };
++  const inset = { x: metrics.gutter, width: across - 2 * metrics.gutter };
++  const agent = { ...inset, bottom: Math.max(safe.bottom - 17, 6) };
++  const size = Math.min(across * 0.62, height * 0.34, 280);
++  const shared = {
++    kind: 'single' as const,
++    text: 'regular' as const,
++    agent,
++    lift: { calls: 0, tasks: 0 },
++    tasks: { width: TASKS, place: 'sheet' as const },
++    pulls: true,
++  };
++  if (!controls) {
++    const top12 = { ...words, top: top + 12 };
++    return {
++      ...shared,
++      controls: 'inline',
++      orb: {
++        size,
++        rest: { x: center, y: height / 2 },
++        room: { top, bottom: height },
++        read: {
++          x: metrics.gutter + metrics.docked / 2,
++          y: height - bottomInset - metrics.call / 2,
++          size: metrics.docked,
++        },
++      },
++      words: top12,
++      besideCalls: top12,
++      besideTasks: top12,
++      footer: { ...inset, bottom: bottomInset },
++      calls: { width: Math.min(across - PEEK, SIDEBAR), place: 'slide' },
++    };
++  }
++  // With the buttons in the side column, the docked orb takes the content's bottom corner and the
++  // footer sits above it.
++  const dock = height - safe.bottom - 8 - metrics.docked / 2;
++  const below = { ...words, top: safe.top + 72 };
++  return {
++    ...shared,
++    controls,
++    orb: {
++      size,
++      rest: { x: center, y: (safe.top + height - safe.bottom) / 2 },
++      room: { top, bottom: height },
++      read: { x: metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked },
++    },
++    words: below,
++    besideCalls: below,
++    besideTasks: below,
++    footer: { ...inset, bottom: height - dock + metrics.docked / 2 + 18 },
++    calls: { width: Math.min(across - PEEK, LIST), place: 'slide' },
++  };
++}
++
++// iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
++// the whole screen when none is. With nothing open the orb is a third of the short side, beside
++// the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
++// open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
++// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
++// keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
++// narrow to read, so the call keeps CALL.
++function pad(box: Box): Stage {
++  const { width, height } = box;
++  const bottomInset = footOf(box);
++  const landscape = width > height;
++  const size = Math.round(Math.min(width, height) * 0.32);
++  const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
++  const below = box.bar;
++  const foot = height - bottomInset - metrics.call / 2;
++  const agentLow = bottomInset;
++  const agentHigh = bottomInset + metrics.call + 14;
++  const docked = (from: number, to: number) => {
++    const center = from + (to - from) / 2;
++    const { mute: muteSize, call, gap } = metrics.controls.regular;
++    const mute = center - (metrics[muteSize] + gap + metrics[call]) / 2;
++    return {
++      orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
++      words: { ...measure(from, to), top: below + 16 },
++      controls: { x: center, y: foot },
++    };
++  };
++  const withCalls = docked(LIST, width);
++  const withTasks = docked(0, width - tasks);
++
++  if (landscape) {
++    const half = width / 2;
++    const group = size + 40 + metrics.call;
++    const top = (height - group) / 2;
++    const words = { ...measure(half, width), top: below + 16 };
++    return {
++      kind: 'split',
++      controls: {
++        center: {
++          open: { x: half / 2, y: top + size + 40 + metrics.call / 2 },
++          calls: withCalls.controls,
++          tasks: withTasks.controls,
++          rest: { x: half, y: top + size + 40 + metrics.call / 2 },
++        },
++      },
++      orb: {
++        size,
++        rest: { x: half, y: top + size / 2 },
++        room: { top: 0, bottom: height },
++        read: { x: half / 2, y: top + size / 2 },
++        dock: { calls: withCalls.orb, tasks: withTasks.orb },
++      },
++      words,
++      text: 'large' as const,
++      besideCalls: withCalls.words,
++      besideTasks: withTasks.words,
++      footer: { ...words, bottom: agentLow + AGENT },
++      agent: { ...words, bottom: agentLow },
++      lift: { calls: agentHigh - agentLow, tasks: agentHigh - agentLow },
++      calls: callsBeside(width),
++      tasks: { width: tasks, place: 'beside' },
++      pulls: false,
++    };
++  }
++
++  const orbY = below + 40 + size / 2;
++  const words = { ...measure(0, width), top: orbY + size / 2 + 24 };
++  return {
++    kind: 'stacked',
++    controls: {
++      center: {
++        open: { x: width / 2, y: foot },
++        calls: withCalls.controls,
++        tasks: withTasks.controls,
++        rest: { x: width / 2, y: foot },
++      },
++    },
++    orb: {
++      size,
++      rest: { x: width / 2, y: (below + foot - metrics.call / 2) / 2 },
++      room: { top: below, bottom: height },
++      read: { x: width / 2, y: orbY },
++      dock: { calls: withCalls.orb, tasks: withTasks.orb },
++    },
++    words,
++    text: 'large' as const,
++    besideCalls: withCalls.words,
++    besideTasks: withTasks.words,
++    footer: { ...words, bottom: agentHigh + AGENT },
++    agent: { ...words, bottom: agentHigh },
++    lift: { calls: 0, tasks: 0 },
++    calls: callsBeside(width),
++    tasks: { width: tasks, place: 'beside' },
++    pulls: false,
++  };
++}
++
++// Calls sits beside the call only where that leaves the call a page; otherwise it slides over all
++// but a peek of it. Starting `below` a band, it leaves the band whole either way.
++export function callsBeside(width: number, below?: number): CallsPlacement {
++  const placement: CallsPlacement =
++    width - LIST >= breakpoint.page
++      ? { width: LIST, place: 'beside' }
++      : { width: width - PEEK, place: 'slide' };
++  return below === undefined ? placement : { ...placement, below };
++}
++
++// The words' measure, centered in the room between `from` and `to`.
++function measure(from: number, to: number): Span {
++  const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
++  return { x: from + (to - from - width) / 2, width };
++}
++
++// iPhone Duo open: the orb on the page before the fold at `fold`, the words on the page after it.
++function split(box: Box, fold?: number): Stage {
++  const { width: across, height, safe, controls } = box;
++  const bottomInset = footOf(box);
++  const pane = fold ?? across / 2;
++  const page = fold === undefined ? pane : fold + OFF_FOLD;
++  const right = across - metrics.gutter;
++  const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
++  const agentBottom = controls ? safe.bottom : bottomInset + metrics.call + 14;
++  const top = controls ? safe.top + 72 : box.bar + 16;
++  return {
++    kind: 'split',
++    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
++    orb: {
++      size: Math.min(pane * 0.62, height * 0.42, 300),
++      rest: { x: across / 2, y: height / 2 },
++      room: { top: 0, bottom: height },
++      read: { x: pane / 2, y: height / 2 },
++    },
++    words: { ...words, top },
++    text: 'regular' as const,
++    besideCalls: { x: page, width: right - page, top },
++    besideTasks: { ...words, top },
++    footer: { ...words, bottom: agentBottom + AGENT },
++    agent: { ...words, bottom: agentBottom },
++    lift: { calls: 0, tasks: 0 },
++    calls: fold === undefined ? callsBeside(across) : { width: pane, place: 'beside' },
++    tasks: { width: TASKS, place: 'sheet' },
++    pulls: false,
++  };
++}
++
++// iPhone Duo open on its side: the orb above the fold at `fold`, the words below it.
++function stacked(box: Box, fold: number): Stage {
++  const base = single(box);
++  const top = topOf(box);
++  const size = Math.min(base.orb.size, (fold - top) * 0.78);
++  const words = { ...base.words, top: fold + OFF_FOLD };
++  const read = { x: base.orb.rest.x, y: (top + fold) / 2 };
++  return {
++    ...base,
++    kind: 'stacked',
++    orb: { ...base.orb, size, read },
++    words,
++    besideCalls: words,
++    besideTasks: words,
++    pulls: false,
++  };
++}
++
++// Where the call's words go on the page before the fold, beside Tasks: upright, at the words' own
++// height; on its side, from under the band down to the fold, so they and the agent line beneath
++// them rise until that line ends a gap short of it.
++export function wordsBefore(
++  box: Box,
++  { words, agent }: Stage,
++  fold: Fold,
++): Words & { raise: number } {
++  if ('x' in fold) {
++    const x = metrics.gutter;
++    const width = Math.min(fold.x - OFF_FOLD - x, WORDS_BESIDE);
++    return { x, width, top: words.top, raise: 0 };
++  }
++  const raise = box.height - fold.y + OFF_FOLD - agent.bottom;
++  return { ...words, top: topOf(box) + 12, raise };
 +}
 diff --git a/src/call/use-call.tsx b/src/call/use-call.tsx
 new file mode 100644
@@ -104616,11 +105008,12 @@ index 0000000000000000000000000000000000000000..b33530336e35519ef750a10c1e84858f
 +}
 diff --git a/src/components/tasks-pane.tsx b/src/components/tasks-pane.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..e6f08eef7e9fcd4f9a77b60ac2ed339f6dd4ffa2
+index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b9582590f6a
 --- /dev/null
 +++ b/src/components/tasks-pane.tsx
 @@ -0,0 +1,112 @@
-+import { Host } from '@expo/ui/swift-ui';
++import { Host, ZStack } from '@expo/ui/swift-ui';
++import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 +import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 +import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 +import Animated, { type AnimatedStyle } from 'react-native-reanimated';
@@ -104674,11 +105067,11 @@ index 0000000000000000000000000000000000000000..e6f08eef7e9fcd4f9a77b60ac2ed339f
 +  onClose: () => void;
 +  style?: StyleProp<AnimatedStyle<ViewStyle>>;
 +}) {
-+  const { area, fold } = page;
++  const { area, panes } = page;
 +  const pages = usePages({
 +    open: view.open,
 +    at: view.at,
-+    shape: shapeOf(area.width, fold),
++    shape: shapeOf(area.width, panes),
 +    onClose,
 +  });
 +  const { back } = pages;
@@ -104704,20 +105097,19 @@ index 0000000000000000000000000000000000000000..e6f08eef7e9fcd4f9a77b60ac2ed339f
 +      ]}
 +    >
 +      <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
-+        <Tasks
-+          {...view}
-+          pages={pages}
-+          room={{
-+            width: area.width,
-+            height: area.height,
-+            fold,
-+            gap: page.gap,
-+            top: page.top,
-+            foot: page.foot,
-+            inset: page.inset,
-+            paged: true,
-+          }}
-+        />
++        <ZStack
++          alignment="top"
++          modifiers={[
++            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
++            clipped(),
++          ]}
++        >
++          <Tasks
++            {...view}
++            pages={pages}
++            room={{ width: area.width, panes, foot: page.foot, paged: true }}
++          />
++        </ZStack>
 +      </Host>
 +      <GestureDetector gesture={swipe}>
 +        <View testID="tasks-edge" style={styles.edge} />
@@ -106730,17 +107122,16 @@ index 0000000000000000000000000000000000000000..dd0042ee39065eb3578acf646b3a6654
 +}
 diff --git a/src/components/tasks/pages.ts b/src/components/tasks/pages.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a794cc7355
+index 0000000000000000000000000000000000000000..078d9108995dab71aea000938f6fb4b20bbfbe49
 --- /dev/null
 +++ b/src/components/tasks/pages.ts
-@@ -0,0 +1,240 @@
+@@ -0,0 +1,212 @@
 +import type { TextInputRef } from '@expo/ui';
 +import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 +
 +import type { TasksAt } from '@/components/tasks/tasks-view';
 +import type { PageId } from '@/live/inbox';
 +import type { TaskId } from '@/live/tasks';
-+import type { Fold } from '@/screens/layout';
 +
 +export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 +type Pushed = Exclude<Level, 'list'>;
@@ -106763,7 +107154,7 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +  | { to: 'check' }
 +  | { to: 'back' };
 +
-+export type Shape = 'one' | 'columns' | 'fold';
++export type Shape = 'one' | 'columns' | 'panes';
 +
 +export const START: Stack = {
 +  path: [],
@@ -106777,8 +107168,8 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +// or anywhere before one. An 11-inch keeps one wide list beside a call.
 +const COLUMNS = 900;
 +
-+export function shapeOf(width: number, fold: Fold | undefined): Shape {
-+  return fold ? 'fold' : width >= COLUMNS ? 'columns' : 'one';
++export function shapeOf(width: number, panes: number | undefined): Shape {
++  return panes !== undefined ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
 +}
 +
 +export function move(stack: Stack, step: Move): Stack {
@@ -106841,36 +107232,23 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +export type Pages = ReturnType<typeof usePages>;
 +type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 +
-+type Inset = { left: number; right: number };
-+
-+// Paged rooms are iPhone Duo's, whose pages are clear over the screen's backdrop.
-+export type Room =
-+  | { paged: false; width: number; foot: number }
-+  | {
-+      paged: true;
-+      width: number;
-+      height: number;
-+      fold?: Fold;
-+      gap?: Fold;
-+      top: number;
-+      foot: number | 'fold';
-+      inset: Inset;
-+    };
++// Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
++// fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and held wide it
++// takes the fold's two sides as two pages side by side, meeting `panes` from its start.
++export type Room = { width: number; foot: number | 'fold'; paged: boolean; panes?: number };
 +
 +// A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 +
-+// `frame` is a page's width and the most it may be tall: the keyboard can shorten it.
++// A page in a pane is as wide as the pane (`frame`); every page is as tall as the room
++// lets it be, which the keyboard can shorten.
 +export type Spot = {
-+  frame?: { width: number; maxHeight: number };
++  frame?: { width: number };
 +  offset: { x: number; y: number };
 +  shown: boolean;
 +  width: number;
-+  pad: { top: number; leading: number; trailing: number };
 +  foot: number;
 +  back?: Level | 'call';
 +};
-+
-+const FLUSH: Inset = { left: 0, right: 0 };
 +
 +// A page that ends at the fold keeps nothing clear below it.
 +function footOf(foot: number | 'fold') {
@@ -106894,7 +107272,7 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +}
 +
 +export function spotOf(level: Level, pages: Placing, room: Room): Spot {
-+  if (room.paged && room.fold) return spotAtFold(level, pages, room, room.fold);
++  if (room.paged && room.panes !== undefined) return spotInPanes(level, pages, room, room.panes);
 +  return pages.shape === 'columns'
 +    ? spotInColumns(level, pages, room)
 +    : spotAlone(level, pages, room);
@@ -106907,13 +107285,10 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +  const front = i === levels.length - 1;
 +  const page = room.width;
 +  const x = front ? 0 : i >= 0 ? -(room.paged ? page : page / 3) : page;
-+  const top = room.paged ? room.top : 0;
-+  const inset = room.paged ? room.inset : FLUSH;
 +  return {
 +    offset: { x, y: 0 },
 +    shown: x === 0,
-+    width: page - inset.left - inset.right,
-+    pad: { top, leading: inset.left, trailing: inset.right },
++    width: page,
 +    ...footOf(room.foot),
 +    back: level === 'list' ? (front && closes ? 'call' : undefined) : levels[i - 1],
 +  };
@@ -106926,44 +107301,33 @@ index 0000000000000000000000000000000000000000..657d3ba10c800a542e57493cb96532a7
 +  const front = i === levels.length - 1;
 +  const behind = i >= 0 || level === 'topic';
 +  const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
-+  const top = room.paged ? room.top : 0;
 +  return {
 +    offset: { x, y: 0 },
 +    shown: x === 0,
 +    width: level === 'list' ? list : page,
-+    pad: { top, leading: 0, trailing: 0 },
 +    ...footOf(room.foot),
 +    back: level === 'list' || level === 'topic' ? undefined : levels[i - 1],
 +  };
 +}
 +
-+// Held wide, the deepest level takes the page after the fold and the one before it the page
-+// before; deeper ones wait off the leading edge, shallower ones off the trailing edge.
-+function spotAtFold(
-+  level: Level,
-+  { levels, closes }: Placing,
-+  room: Extract<Room, { paged: true }>,
-+  fold: Fold,
-+): Spot {
++// Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
++// wait off the leading edge, shallower ones off the trailing edge.
++function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, panes: number): Spot {
 +  const i = levels.indexOf(level);
 +  const front = i === levels.length - 1;
-+  const second = { at: fold.at + fold.band, width: room.width - fold.at - fold.band };
++  const second = { at: panes, width: room.width - panes };
 +  const { at, width, shown } = front
 +    ? { ...second, shown: true }
 +    : i === levels.length - 2
-+      ? { at: 0, width: fold.at, shown: true }
++      ? { at: 0, width: panes, shown: true }
 +      : i >= 0
-+        ? { at: -second.at, width: fold.at, shown: false }
++        ? { at: -panes, width: panes, shown: false }
 +        : { ...second, at: room.width, shown: false };
-+  const { inset } = room;
-+  const pad =
-+    at <= 0 ? { leading: inset.left, trailing: 0 } : { leading: 0, trailing: inset.right };
 +  return {
-+    frame: { width, maxHeight: room.height },
++    frame: { width },
 +    offset: { x: at, y: 0 },
 +    shown,
-+    width: width - pad.leading - pad.trailing,
-+    pad: { top: room.top, ...pad },
++    width,
 +    ...footOf(room.foot),
 +    back: !(shown && at <= 0)
 +      ? undefined
@@ -108686,12 +109050,12 @@ index 0000000000000000000000000000000000000000..f7e26ad7ae4da4b06b30a79578d60a66
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca633d78ddf6
+index 0000000000000000000000000000000000000000..f284cc7f406a0238681eee00a2b37ef1c6e4b9a7
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,492 @@
+@@ -0,0 +1,469 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
-+import { ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
++import { ProgressView, ZStack } from '@expo/ui/swift-ui';
 +import {
 +  accessibilityHidden,
 +  animation,
@@ -108701,7 +109065,6 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +  frame,
 +  offset,
 +  opacity,
-+  padding,
 +  scrollDismissesKeyboard,
 +} from '@expo/ui/swift-ui/modifiers';
 +import { useMemo, useState, type ReactNode } from 'react';
@@ -108741,7 +109104,6 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +} from '@/live/inbox';
 +import type { TaskId, TaskRow } from '@/live/tasks';
 +import { motion, rowsKey } from '@/motion';
-+import type { Fold } from '@/screens/layout';
 +import { theme } from '@/theme';
 +
 +const NAMED_BACK = 420;
@@ -109072,12 +109434,12 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +        </ZStack>
 +      </Row>
 +    );
-+  const atFold = room.paged && !!room.fold;
++  const inPanes = room.paged && room.panes !== undefined;
 +  return (
 +    <ZStack
-+      alignment={atFold ? 'topLeading' : 'top'}
++      alignment={inPanes ? 'topLeading' : 'top'}
 +      modifiers={
-+        atFold
++        inPanes
 +          ? [
 +              frame({ maxWidth: Infinity, alignment: 'topLeading' }),
 +              upTo(Infinity, 'topLeading'),
@@ -109089,7 +109451,6 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +    >
 +      {page('list', list)}
 +      {levels}
-+      {room.paged && room.gap ? <Gap gap={room.gap} /> : null}
 +    </ZStack>
 +  );
 +}
@@ -109120,26 +109481,6 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +  );
 +}
 +
-+// On its side partly open, a break across Tasks where the fold's frame is: what scrolls passes
-+// under it dimmed, so a row resting there still reads as a row, and it takes the taps in the fold
-+// and nowhere else.
-+function Gap({ gap }: { gap: Fold }) {
-+  return (
-+    <Rectangle
-+      modifiers={[
-+        frame({ height: gap.band }),
-+        frame({ maxWidth: Infinity }),
-+        foregroundStyle(theme.sheet),
-+        opacity(DIM),
-+        offset({ x: 0, y: gap.at }),
-+        accessibilityHidden(true),
-+      ]}
-+    />
-+  );
-+}
-+
-+const DIM = 0.7;
-+
 +// On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
 +// covering the page below it.
 +// A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
@@ -109155,16 +109496,16 @@ index 0000000000000000000000000000000000000000..3aa68c230e19eb7a402bc50d7619ca63
 +  moved: number;
 +  children: ReactNode;
 +}) {
-+  const { frame: size, offset: at, pad } = spot;
++  const { frame: size, offset: at } = spot;
 +  return (
 +    <Column
 +      alignment="center"
 +      spacing={0}
 +      modifiers={[
-+        padding({ top: pad.top, leading: pad.leading, trailing: pad.trailing }),
-+        ...(size
-+          ? [frame({ width: size.width, alignment: 'top' }), upTo(size.maxHeight)]
-+          : [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()]),
++        size
++          ? frame({ width: size.width, alignment: 'top' })
++          : frame({ maxWidth: Infinity, alignment: 'top' }),
++        upTo(),
 +        ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
 +        offset(at),
 +        animation(motion.page, moved),
@@ -115749,39 +116090,37 @@ index 0000000000000000000000000000000000000000..a3dcf467044d386823a6860a7f06fe10
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be69655b260951
+index 0000000000000000000000000000000000000000..edaa64391754c028926fa9045cbf74e0b4edff22
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,681 @@
-+import { metrics, type ControlsSize, type ToolbarGaps } from '@/ui/tokens';
+@@ -0,0 +1,390 @@
++import {
++  callsBeside,
++  stageLayout,
++  wordsBefore,
++  type Box,
++  type CallsPlacement,
++  type ColumnControls,
++  type Stage,
++  type Words,
++} from '@/call/stage';
++import { metrics, type ToolbarGaps } from '@/ui/tokens';
 +
-+import type { Insets, Rect, Region, Room, Size } from '@/screens/window';
++import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 +
 +const GAP = 12;
 +// The toolbar's Tasks and settings, one glass capsule.
 +const PAIR = 2 * metrics.tool + metrics.toolbar.row;
 +const RAIL = 96;
-+const AGENT = 22;
 +const WORDS = 600;
-+const WORDS_BESIDE = 520;
-+const MEASURE = 680;
 +const LIST = 360;
-+const SIDEBAR = 330;
-+const TASKS = 380;
-+const CALL = 368;
 +const RAIL_ORB = 44;
-+const BESIDE_MUTE = 56;
 +// iPhone Duo's column: below this height (folded on its side) its buttons draw smaller and closer.
 +const SHORT = 520;
 +// On a call with Tasks open, the orb this big and the call's time this tall and wide join the bar.
 +export const CALL_ORB = 34;
 +export const TIME = 16;
 +const TIME_WIDTH = 44;
-+// Tasks' rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
-+// bar's buttons.
-+const FLUSH = { left: 0, right: 0 };
-+// Persona's Rive art fills three quarters of its view, as measured in the simulator.
-+const ART = 0.75;
 +// iPhone Duo open on its side reserves its whole top band for the status items but draws them this
 +// far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
 +const STATUS_DROP = 7;
@@ -115789,27 +116128,15 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +type Place = { x: number; y: number };
 +type Spot = Place & { size?: number };
 +type Span = { x: number; width: number };
-+type Words = Span & { top: number };
 +type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGaps };
-+type ColumnControls = {
-+  right: number;
-+  bottom: number;
-+  axis: 'row' | 'column';
-+  size?: ControlsSize;
-+};
 +
-+// The call screen's geometry for the room its window has, never the device's pose. It comes in
-+// three arrangements:
-+// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
-+// - split: the orb on the leading page and the words on the trailing one, both there from the
-+//   start (iPad landscape, iPhone Duo open)
-+// - stacked: the orb above and the words below it (iPad portrait, iPhone Duo open on its side)
-+// Where the system puts its bars down the side (iPhone Duo), the toolbar and call buttons move
-+// into that side column, and the content is the rest of the screen. Where they stay along the top
-+// (iPhone Duo open on its side), the toolbar moves up into that band beside the status items.
-+//
-+// Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
-+// (single), and everywhere else they have a place of their own and always show.
++// The screen's regions for the room its window has, never the device's pose: where the call
++// stage's box sits and what it keeps clear of, the toolbar, and where Calls and Tasks come in. The
++// stage lays out its own content from its box (`stageLayout`). Where the system puts its bars down
++// the side (iPhone Duo), the toolbar and call buttons move into that side column, and the stage's
++// box is the rest of the screen. Where they stay along the top (iPhone Duo open on its side), the
++// toolbar moves up into that band beside the status items. Where the window's fold parts it, the
++// call and Tasks part there too, held wide or on its side.
 +//
 +// Calls and Tasks come in from the sides, and where they go is all this decides; the call card
 +// looks the same either way. Calls comes in one of two ways:
@@ -115819,19 +116146,14 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +// - beside: the call gives up its trailing edge to Tasks (iPad)
 +// - sheet: Tasks rises as a sheet (phone)
 +// - page: Tasks is a place of its own over the call (iPhone Duo, see `Duo`)
-+export type Pane<Place> = { width: number; place: Place };
-+// Calls that starts `below` a band of status and bar buttons leaves that band whole.
-+export type CallsPlacement = Pane<'slide' | 'beside'> & { below?: number };
-+export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 +
 +// iPhone Duo's Tasks is a place of its own over the call (`tasks`). While it's open on a call, the
 +// call sits in the bar beside the system's status items: its orb with its time, down the side
 +// column or across the top band, where the call buttons join them (`controls`) and the tools
 +// gather at the band's leading end. Open on a call, a button in the bar can give the call's words
-+// the page before the fold while Tasks keeps the one after it (`beside`). Folding never does it: a
-+// fold only pulls Tasks' pages apart to either side of it, as Apple asks. On its side the keyboard
++// the page before the fold while Tasks keeps the one after it (`beside`). On its side the keyboard
 +// takes the page after the fold, so while you type there Tasks moves to the page before it
-+// (`typing`), the way a laptop keeps what you write above its keys.
++// (`typing`), the way a laptop keeps what you write above its keys. Spots are the window's.
 +export type Duo = {
 +  tasks: Page;
 +  beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
@@ -115842,62 +116164,24 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +  };
 +};
 +
-+// Where Tasks' content lays out: `area` runs as wide as it can without reaching under the bar's
-+// buttons, its content keeps `inset` in from its sides, starts `top` below its top and keeps `foot`
-+// clear of the home indicator, or ends at the fold. Held wide, the fold cuts it into two pages side
-+// by side (`fold`, within `area`). On its side partly open it stays one page with a break across
-+// it where the fold's frame is (`gap`), which what scrolls passes under.
++// Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
++// the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
++// Held wide, it takes the two sides of the fold as two pages side by side, meeting `panes` from
++// its start. Its rows keep their own inset, so its pages run flush to the screen's edges, the fold
++// and the bar's buttons.
 +export type Page = {
 +  area: Rect;
-+  fold?: Fold;
-+  gap?: Fold;
-+  inset: { left: number; right: number };
-+  top: number;
++  panes?: number;
 +  foot: number | 'fold';
 +};
 +
-+// The fold within Tasks: the first page `at` wide, then the fold's band: none open flat, the fold's
-+// whole frame partly folded.
-+export type Fold = { at: number; band: number };
-+
-+// Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
-+export type Beside<T> = { open: T; calls: T; tasks: T };
-+
-+export type Layout = {
-+  kind: 'single' | 'split' | 'stacked';
++// The stage's parts are in its box's coordinates; `content` is that box in the window's.
++export type Layout = Stage & {
 +  content: Rect;
 +  toolbar: Toolbar;
-+  // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
-+  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
-+  // `rest` under the orb while it rests alone.
-+  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
-+  // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
-+  // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-+  // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
-+  orb: {
-+    size: number;
-+    rest: Spot;
-+    room: { top: number; bottom: number };
-+    read: Spot;
-+    // Beside Calls the orb rests at `calls`, and where the words then need that room, at `read`.
-+    dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
-+  };
-+  words: Words;
-+  text: 'regular' | 'large';
-+  // Where the words move while Calls or Tasks sit beside them.
-+  besideCalls: Words;
-+  besideTasks: Words;
-+  footer: Span & { bottom: number };
-+  agent: Span & { bottom: number };
-+  // How far the footer and agent line rise while a pane is open, to clear the call buttons that
-+  // move in under them.
-+  lift: { calls: number; tasks: number };
-+  calls: CallsPlacement;
-+  tasks: TasksPlacement;
 +  // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
 +  inbox?: Inbox;
 +  duo?: Duo;
-+  pulls: boolean;
 +};
 +
 +export type Inbox = {
@@ -115908,85 +116192,97 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +};
 +
 +export function screenLayout(room: Room): Layout {
-+  const { size: window, regular, bar } = room;
++  const { insets, regular, bar } = room;
 +  const frame = frameFor(room);
-+  const fold = room.fold && divide(room.fold);
-+  if (regular && !fold && !bar) return pad(frame);
-+  const layout =
-+    regular && window.width > window.height
-+      ? split(frame, fold)
-+      : fold && fold.width > fold.height
-+        ? stacked(frame, fold)
-+        : single(frame);
-+  if (!bar && !fold) return layout;
-+  const before = fold && wordsBefore(frame, layout, fold);
-+  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
-+  // Open on its side the call yields its leading edge to Calls, as on iPad, under the band.
-+  const calls = frame.column
-+    ? layout.calls
-+    : { width: LIST, place: 'beside' as const, below: frame.top };
++  const { fold } = room;
++  const { content, toolbar } = frame;
++  const box: Box = {
++    width: content.width,
++    height: content.height,
++    safe: { top: insets.top, bottom: insets.bottom },
++    bar: frame.column ? 0 : toolbar.y + metrics.tool,
++    fold: fold && ('x' in fold ? { x: fold.x - content.x } : fold),
++    controls: frame.column?.controls,
++    regular,
++  };
++  const layout = stageLayout(box);
++  if (!bar && !fold)
++    return {
++      ...layout,
++      content,
++      toolbar,
++      inbox: regular && box.width > box.height ? rail(frame) : undefined,
++    };
++  const before = box.fold && wordsBefore(box, layout, box.fold);
++  const duo = frame.column
++    ? besideColumn(frame, frame.column, fold, before)
++    : belowBand(frame, fold, before);
++  // Open on its side Calls comes in under the band, leaving the band whole. It sits beside the
++  // call, as on iPad, only where that leaves the call a page; otherwise it slides over all but a
++  // peek of the call, as on the phone.
++  const calls = frame.column ? layout.calls : callsBeside(box.width, frame.top);
++  const banded = !frame.column && calls.place === 'beside';
 +  return {
 +    ...layout,
++    content,
++    toolbar,
 +    calls,
 +    // Beside Calls on its side, the words keep to the room the call has left.
-+    ...(frame.column
++    ...(!banded
 +      ? {}
 +      : {
 +          besideCalls: {
 +            ...layout.words,
 +            x: LIST + metrics.gutter,
-+            width: Math.min(frame.content.width - LIST - 2 * metrics.gutter, WORDS),
++            width: Math.min(box.width - LIST - 2 * metrics.gutter, WORDS),
 +          },
 +        }),
-+    tasks: { width: frame.content.width, place: 'page' },
++    tasks: { width: content.width, place: 'page' },
 +    // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the
 +    // room the call has left. Upright that room is the words' page, so once there are words it
 +    // docks in the column, at the spot it takes when Tasks opens on a call; on its side it waits
 +    // above them.
 +    orb:
 +      calls.place === 'beside'
-+        ? { ...layout.orb, dock: roomFor(frame, layout, calls, duo) }
++        ? { ...layout.orb, dock: roomFor(frame, box, layout, calls, duo) }
 +        : layout.orb,
 +    duo,
 +  };
 +}
 +
++// The orb's spots beside Calls, in the stage's box.
 +function roomFor(
 +  frame: Frame,
-+  layout: Layout,
++  box: Box,
++  layout: Stage,
 +  calls: CallsPlacement,
 +  duo: Duo,
-+): NonNullable<Layout['orb']['dock']> {
-+  const from = frame.content.x + calls.width;
-+  const to = frame.column ? frame.column.x : frame.window.width;
++): NonNullable<Stage['orb']['dock']> {
++  const from = calls.width;
++  const to = frame.column ? frame.column.x - frame.content.x : box.width;
 +  const rest = {
 +    x: (from + to) / 2,
 +    y: layout.orb.read.y,
 +    size: Math.min(layout.orb.size, (to - from) * 0.62),
 +  };
-+  return { calls: rest, read: frame.column ? duo.call.orb : undefined, tasks: duo.call.orb };
++  const docked = { ...duo.call.orb, x: duo.call.orb.x - frame.content.x };
++  return { calls: rest, read: frame.column ? docked : undefined, tasks: docked };
 +}
 +
-+// What the fold takes from the screen. iOS reports it as a division region that's active only
-+// while the Duo is partly open; then content keeps to either side of its frame, which already
-+// holds the margins controls and text keep from the hinge. Open flat it's inactive and nothing
-+// keeps off it, so the two sides meet at its middle. This is the only place that reads whether
-+// it's active; everything after asks `partly()` of what it returns.
-+function divide(fold: Region): Rect {
-+  if (fold.active) return fold;
-+  return fold.height > fold.width
-+    ? { x: fold.x + fold.width / 2, y: fold.y, width: 0, height: fold.height }
-+    : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
-+}
-+
-+function partly(fold: Rect) {
-+  return Math.min(fold.width, fold.height) > 0;
-+}
-+
-+// How far the call's words keep from the fold: flat it's a bare line, so a small gap; partly open
-+// its frame already holds the margins, so none more.
-+function clear(fold: Rect) {
-+  return partly(fold) ? 0 : 8;
++// Before a call on a wide iPad, the rail the call waits in beside the inbox.
++function rail({ window, toolbar, bottomInset }: Frame): Inbox {
++  const foot = window.height - bottomInset - metrics.call / 2;
++  return {
++    width: window.width - RAIL,
++    toolbar: {
++      x: (RAIL - metrics.tool) / 2,
++      y: toolbar.y,
++      width: metrics.tool,
++      axis: 'column',
++    },
++    orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
++    controls: { x: RAIL / 2, y: foot },
++  };
 +}
 +
 +type Frame = {
@@ -116083,244 +116379,15 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +  };
 +}
 +
-+function single(frame: Frame): Layout {
-+  const { window, insets, bottomInset, content, toolbar, top } = frame;
-+  const controls = frame.column?.controls;
-+  const center = content.x + content.width / 2;
-+  const width = Math.min(content.width - 2 * metrics.gutter, WORDS);
-+  const words = { x: center - width / 2, width };
-+  const inset = { x: content.x + metrics.gutter, width: content.width - 2 * metrics.gutter };
-+  const agent = { ...inset, bottom: Math.max(insets.bottom - 17, 6) };
-+  const size = Math.min(content.width * 0.62, window.height * 0.34, 280);
-+  const shared = {
-+    kind: 'single' as const,
-+    content,
-+    toolbar,
-+    text: 'regular' as const,
-+    agent,
-+    lift: { calls: 0, tasks: 0 },
-+    tasks: { width: TASKS, place: 'sheet' as const },
-+    pulls: true,
-+  };
-+  if (!controls) {
-+    const top12 = { ...words, top: top + 12 };
-+    return {
-+      ...shared,
-+      controls: 'inline',
-+      orb: {
-+        size,
-+        rest: { x: center, y: window.height / 2 },
-+        room: { top, bottom: window.height },
-+        read: {
-+          x: content.x + metrics.gutter + metrics.docked / 2,
-+          y: window.height - bottomInset - metrics.call / 2,
-+          size: metrics.docked,
-+        },
-+      },
-+      words: top12,
-+      besideCalls: top12,
-+      besideTasks: top12,
-+      footer: { ...inset, bottom: bottomInset },
-+      calls: { width: SIDEBAR, place: 'slide' },
-+    };
-+  }
-+  // With the buttons in the side column, the docked orb takes the content's bottom corner and the
-+  // footer sits above it.
-+  const dock = window.height - insets.bottom - 8 - metrics.docked / 2;
-+  const below = { ...words, top: insets.top + 72 };
-+  return {
-+    ...shared,
-+    controls,
-+    orb: {
-+      size,
-+      rest: { x: center, y: (insets.top + window.height - insets.bottom) / 2 },
-+      room: { top, bottom: window.height },
-+      read: { x: content.x + metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked },
-+    },
-+    words: below,
-+    besideCalls: below,
-+    besideTasks: below,
-+    footer: { ...inset, bottom: window.height - dock + metrics.docked / 2 + 18 },
-+    calls: { width: Math.min(content.width - 72, LIST), place: 'slide' },
-+  };
-+}
-+
-+// iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
-+// the whole screen when none is. With nothing open the orb is a third of the short side, beside
-+// the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
-+// open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
-+// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
-+// keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
-+// narrow to read, so the call keeps CALL.
-+function pad(frame: Frame): Layout {
-+  const { window, bottomInset, content, toolbar } = frame;
-+  const { width, height } = window;
-+  const landscape = width > height;
-+  const size = Math.round(Math.min(width, height) * 0.32);
-+  const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
-+  const below = toolbar.y + metrics.tool;
-+  const foot = height - bottomInset - metrics.call / 2;
-+  const agentLow = bottomInset;
-+  const agentHigh = bottomInset + metrics.call + 14;
-+  const docked = (from: number, to: number) => {
-+    const center = from + (to - from) / 2;
-+    const { mute: muteSize, call, gap } = metrics.controls.regular;
-+    const mute = center - (metrics[muteSize] + gap + metrics[call]) / 2;
-+    return {
-+      orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
-+      words: { ...measure(from, to), top: below + 16 },
-+      controls: { x: center, y: foot },
-+    };
-+  };
-+  const withCalls = docked(LIST, width);
-+  const withTasks = docked(0, width - tasks);
-+  const rail = {
-+    width: width - RAIL,
-+    toolbar: {
-+      x: (RAIL - metrics.tool) / 2,
-+      y: toolbar.y,
-+      width: metrics.tool,
-+      axis: 'column' as const,
-+    },
-+    orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
-+    controls: { x: RAIL / 2, y: foot },
-+  };
-+
-+  if (landscape) {
-+    const half = width / 2;
-+    const group = size + 40 + metrics.call;
-+    const top = (height - group) / 2;
-+    const words = { ...measure(half, width), top: below + 16 };
-+    return {
-+      kind: 'split',
-+      content,
-+      toolbar,
-+      controls: {
-+        center: {
-+          open: { x: half / 2, y: top + size + 40 + metrics.call / 2 },
-+          calls: withCalls.controls,
-+          tasks: withTasks.controls,
-+          rest: { x: half, y: top + size + 40 + metrics.call / 2 },
-+        },
-+      },
-+      orb: {
-+        size,
-+        rest: { x: half, y: top + size / 2 },
-+        room: { top: 0, bottom: height },
-+        read: { x: half / 2, y: top + size / 2 },
-+        dock: { calls: withCalls.orb, tasks: withTasks.orb },
-+      },
-+      words,
-+      text: 'large' as const,
-+      besideCalls: withCalls.words,
-+      besideTasks: withTasks.words,
-+      footer: { ...words, bottom: agentLow + AGENT },
-+      agent: { ...words, bottom: agentLow },
-+      lift: { calls: agentHigh - agentLow, tasks: agentHigh - agentLow },
-+      calls: { width: LIST, place: 'beside' },
-+      tasks: { width: tasks, place: 'beside' },
-+      inbox: rail,
-+      pulls: false,
-+    };
-+  }
-+
-+  const orbY = below + 40 + size / 2;
-+  const words = { ...measure(0, width), top: orbY + size / 2 + 24 };
-+  return {
-+    kind: 'stacked',
-+    content,
-+    toolbar,
-+    controls: {
-+      center: {
-+        open: { x: width / 2, y: foot },
-+        calls: withCalls.controls,
-+        tasks: withTasks.controls,
-+        rest: { x: width / 2, y: foot },
-+      },
-+    },
-+    orb: {
-+      size,
-+      rest: { x: width / 2, y: (below + foot - metrics.call / 2) / 2 },
-+      room: { top: below, bottom: height },
-+      read: { x: width / 2, y: orbY },
-+      dock: { calls: withCalls.orb, tasks: withTasks.orb },
-+    },
-+    words,
-+    text: 'large' as const,
-+    besideCalls: withCalls.words,
-+    besideTasks: withTasks.words,
-+    footer: { ...words, bottom: agentHigh + AGENT },
-+    agent: { ...words, bottom: agentHigh },
-+    lift: { calls: 0, tasks: 0 },
-+    calls: { width: LIST, place: 'beside' },
-+    tasks: { width: tasks, place: 'beside' },
-+    pulls: false,
-+  };
-+}
-+
-+// The words' measure, centered in the room between `from` and `to`.
-+function measure(from: number, to: number): Span {
-+  const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
-+  return { x: from + (to - from - width) / 2, width };
-+}
-+
-+// iPhone Duo open: the orb on the page before the fold, the words on the page after it.
-+function split(frame: Frame, fold?: Rect): Layout {
-+  const { window, insets, bottomInset, content, toolbar } = frame;
-+  const controls = frame.column?.controls;
-+  const pane = fold ? fold.x - content.x : content.width / 2;
-+  const page = fold ? fold.x + fold.width + clear(fold) : content.x + pane;
-+  const right = content.x + content.width - metrics.gutter;
-+  const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
-+  const agentBottom = controls ? insets.bottom : bottomInset + metrics.call + 14;
-+  const top = controls ? insets.top + 72 : toolbar.y + 64;
-+  // Before a call the orb rests in the middle; partly open that's the hinge, so it waits on its page.
-+  const read = { x: content.x + pane / 2, y: window.height / 2 };
-+  return {
-+    kind: 'split',
-+    content,
-+    toolbar,
-+    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
-+    orb: {
-+      size: Math.min(pane * 0.62, window.height * 0.42, 300),
-+      rest:
-+        fold && partly(fold) ? read : { x: content.x + content.width / 2, y: window.height / 2 },
-+      room: { top: 0, bottom: window.height },
-+      read,
-+    },
-+    words: { ...words, top },
-+    text: 'regular' as const,
-+    besideCalls: { x: page, width: right - page, top },
-+    besideTasks: { ...words, top },
-+    footer: { ...words, bottom: agentBottom + AGENT },
-+    agent: { ...words, bottom: agentBottom },
-+    lift: { calls: 0, tasks: 0 },
-+    calls: { width: fold ? pane : LIST, place: 'beside' },
-+    tasks: { width: TASKS, place: 'sheet' },
-+    pulls: false,
-+  };
-+}
-+
-+function stacked(frame: Frame, fold: Rect): Layout {
-+  const base = single(frame);
-+  const size = Math.min(base.orb.size, (fold.y - frame.top) * 0.78);
-+  const words = { ...base.words, top: fold.y + fold.height + clear(fold) };
-+  const read = { x: base.orb.rest.x, y: (frame.top + fold.y) / 2 };
-+  return {
-+    ...base,
-+    kind: 'stacked',
-+    orb: { ...base.orb, size, rest: fold.height ? read : base.orb.rest, read },
-+    words,
-+    besideCalls: words,
-+    besideTasks: words,
-+    pulls: false,
-+  };
-+}
-+
 +// iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
 +// buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
 +// switch sit as one group midway between the tools and the call buttons.
-+function besideColumn(frame: Frame, column: NonNullable<Frame['column']>, before?: Before): Duo {
++function besideColumn(
++  frame: Frame,
++  column: NonNullable<Frame['column']>,
++  fold?: Fold,
++  before?: Words & { raise: number },
++): Duo {
 +  const { window, insets, toolbar } = frame;
 +  const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
 +  const sizes = metrics.controls[column.controls.size ?? 'regular'];
@@ -116329,14 +116396,16 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +  const leading = column.x === 0;
 +  const { tasks, after } = paged(
 +    {
-+      area: leading
-+        ? { x: x + reach, y: 0, width: window.width - x - reach, height: window.height }
-+        : { x: 0, y: 0, width: x - reach, height: window.height },
-+      inset: FLUSH,
-+      top: insets.top,
++      area: {
++        ...(leading
++          ? { x: x + reach, width: window.width - x - reach }
++          : { x: 0, width: x - reach }),
++        y: insets.top,
++        height: window.height - insets.top,
++      },
 +      foot: insets.bottom,
 +    },
-+    before?.fold,
++    fold,
 +  );
 +  const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
 +  const buttons =
@@ -116349,7 +116418,7 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +    beside: after &&
 +      before && {
 +        tasks: after,
-+        words: before.words,
++        words: before,
 +        button: { x, y: time + TIME + 12 + metrics.tool / 2 },
 +      },
 +    call: {
@@ -116363,7 +116432,7 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +// screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
 +// at its trailing end, and the call buttons just before that pair, whether Tasks is open or not.
 +// With Tasks open on a call, before them sit the words' switch, then the orb with its time.
-+function belowBand(frame: Frame, before?: Before): Duo {
++function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }): Duo {
 +  const { window, insets, toolbar, top } = frame;
 +  const {
 +    tasks,
@@ -116372,11 +116441,9 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +  } = paged(
 +    {
 +      area: { x: 0, y: top, width: window.width, height: window.height - top },
-+      inset: FLUSH,
-+      top: 0,
 +      foot: insets.bottom,
 +    },
-+    before?.fold,
++    fold,
 +  );
 +  const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
 +  const middle = toolbar.y + metrics.tool / 2;
@@ -116386,7 +116453,7 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +  const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
 +  return {
 +    tasks,
-+    beside: after && before && { tasks: after, typing: above, words: before.words, button },
++    beside: after && before && { tasks: after, typing: above, words: before, button },
 +    call: {
 +      orb: { x: time - 6 - CALL_ORB / 2, y: middle, size: CALL_ORB },
 +      time: { x: time, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
@@ -116396,43 +116463,26 @@ index 0000000000000000000000000000000000000000..bb1611bcc2faaeb243d14ab2e3be6965
 +}
 +
 +// Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
-+// take the one before it. Held wide the fold cuts Tasks into two pages side by side, a list beside
-+// its topic, as a split view does on a wide screen, and folding only parts them. On its side the
-+// screen is one tall page at every angle, and Tasks takes it whole: a fold there never splits it
-+// into other pages, it only breaks it where the fold is. The page before the fold is where it
-+// types beside the call's words.
++// take the one before it. Held wide it takes the fold's two sides as two pages side by side, a
++// list beside its topic, as a split view does on a wide screen. On its side the screen is one tall
++// page, and Tasks takes it whole. The page before the fold is where it types beside the call's
++// words.
 +function paged(
-+  page: Omit<Page, 'fold'>,
-+  fold?: Rect,
++  page: Omit<Page, 'panes'>,
++  fold?: Fold,
 +): { tasks: Page; after?: Page; before?: Page } {
 +  if (!fold) return { tasks: page };
 +  const { area } = page;
-+  const end = { x: fold.x + fold.width, y: fold.y + fold.height };
-+  if (fold.height > fold.width)
++  if ('x' in fold)
 +    return {
-+      tasks: { ...page, fold: { at: fold.x - area.x, band: fold.width } },
-+      after: { ...page, area: { ...area, x: end.x, width: area.x + area.width - end.x } },
++      tasks: { ...page, panes: fold.x - area.x },
++      after: { ...page, area: { ...area, x: fold.x, width: area.x + area.width - fold.x } },
 +    };
 +  return {
-+    tasks: fold.height > 0 ? { ...page, gap: { at: fold.y - area.y, band: fold.height } } : page,
-+    after: { ...page, area: { ...area, y: end.y, height: area.y + area.height - end.y }, top: 0 },
++    tasks: page,
++    after: { ...page, area: { ...area, y: fold.y, height: area.y + area.height - fold.y } },
 +    before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
 +  };
-+}
-+
-+type Before = { fold: Rect; words: Words & { raise: number } };
-+
-+// Where the call's words go on the page before the fold, beside Tasks: upright, at the words' own
-+// height; on its side, from under the band down to the fold, so they and the agent line beneath
-+// them rise until that line ends a gap short of it.
-+function wordsBefore(frame: Frame, { words, agent }: Layout, fold: Rect): Before {
-+  if (fold.height > fold.width) {
-+    const x = frame.content.x + metrics.gutter;
-+    const width = Math.min(fold.x - clear(fold) - x, WORDS_BESIDE);
-+    return { fold, words: { x, width, top: words.top, raise: 0 } };
-+  }
-+  const raise = frame.window.height - fold.y + clear(fold) - agent.bottom;
-+  return { fold, words: { ...words, top: frame.top + 12, raise } };
 +}
 diff --git a/src/screens/live-screen.tsx b/src/screens/live-screen.tsx
 deleted file mode 100644
@@ -116687,15 +116737,17 @@ index 0000000000000000000000000000000000000000..4806c9fbf9ca70310b6bbc17bbc867bd
 +});
 diff --git a/src/screens/window.ts b/src/screens/window.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a2734d4ad8f486a6e419fa4b3e955d05f557d31b
+index 0000000000000000000000000000000000000000..04b8dcba4a6570630031dc1d4a2f1b17c86b50c0
 --- /dev/null
 +++ b/src/screens/window.ts
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,71 @@
 +import { breakpoint } from '@/ui/tokens';
 +
 +import type { Pose, Rect, Region } from '../../modules/pose';
 +
-+export type { Rect, Region };
++export type { Rect };
++// Where the fold divides the window: a line down it at `x`, or across it at `y`.
++export type Fold = { x: number } | { y: number };
 +export type Size = { width: number; height: number };
 +export type Insets = { top: number; right: number; bottom: number; left: number };
 +
@@ -116712,8 +116764,8 @@ index 0000000000000000000000000000000000000000..a2734d4ad8f486a6e419fa4b3e955d05
 +  // The side this window's bars run down, where the window keeps an inset for them.
 +  bar?: 'left' | 'right';
 +  // The fold, only where it parts this window, with a page's width on each side of it, in the
-+  // window's coordinates and no longer than the window.
-+  fold?: Region;
++  // window's coordinates.
++  fold?: Fold;
 +  // What the cameras and status items cover of the window.
 +  occlusions: Rect[];
 +};
@@ -116726,7 +116778,7 @@ index 0000000000000000000000000000000000000000..a2734d4ad8f486a6e419fa4b3e955d05
 +    insets,
 +    regular: pose.regular,
 +    bar,
-+    fold: pose.fold && parting(pose.fold, size),
++    fold: pose.fold && parting(pose.fold, size, insets),
 +    occlusions: (pose.occlusions ?? []).flatMap((area) => {
 +      const inside = clip(area, size);
 +      return inside ? [inside] : [];
@@ -116740,16 +116792,17 @@ index 0000000000000000000000000000000000000000..a2734d4ad8f486a6e419fa4b3e955d05
 +  return pad || !!pose.bar || !!pose.fold;
 +}
 +
-+// The fold within the window: it parts the window only where it lies across it with a page's width
-+// on either side, and then runs only as long as the window.
-+function parting(fold: Region, size: Size): Region | undefined {
++// The fold within the window: it parts the window only where it lies across it with a page of the
++// window's safe room on either side, and then it's the line down the middle of iOS's division
++// region. How far the Duo is folded never reaches layout: Apple asks folding to move only what it
++// must.
++function parting(fold: Region, size: Size, insets: Insets): Fold | undefined {
 +  const across = fold.height > fold.width;
-+  const [start, end, extent] = across
-+    ? [fold.x, fold.x + fold.width, size.width]
-+    : [fold.y, fold.y + fold.height, size.height];
-+  if (start < breakpoint.page || extent - end < breakpoint.page) return undefined;
-+  const inside = clip(fold, size);
-+  return inside && { ...inside, active: fold.active };
++  const [before, after] = across
++    ? [fold.x - insets.left, size.width - insets.right - (fold.x + fold.width)]
++    : [fold.y - insets.top, size.height - insets.bottom - (fold.y + fold.height)];
++  if (before < breakpoint.page || after < breakpoint.page) return undefined;
++  return across ? { x: fold.x + fold.width / 2 } : { y: fold.y + fold.height / 2 };
 +}
 +
 +function clip(area: Rect, { width, height }: Size): Rect | undefined {
@@ -122238,17 +122291,16 @@ index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a78
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284e6870648
+index 0000000000000000000000000000000000000000..f473d0dc0e44b96e4979c4267369cc223e86fdb7
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,598 @@
+@@ -0,0 +1,556 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
 +import type { Pose } from '../modules/pose';
 +import { screenLayout, type Layout } from '../src/screens/layout';
 +import { roomOf, type Insets, type Size } from '../src/screens/window';
-+
 +import { metrics } from '../src/ui/tokens';
 +
 +const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
@@ -122466,11 +122518,11 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  const layout = layoutOf(
 +    { width: 669, height: 951 },
 +    { top: 54, right: 0, bottom: 34, left: 0 },
-+    { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
++    { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: false } },
 +  );
 +  assert.equal(layout.kind, 'stacked');
-+  assert.equal(layout.words.top, 495, 'right past the fold’s frame, which holds its margins');
-+  assert.ok(layout.orb.read.y < 455);
++  assert.ok(layout.words.top > 475, 'the words start past the fold');
++  assert.ok(layout.orb.read.y + layout.orb.size / 2 < 475, 'the orb sits whole above it');
 +  assert.equal(layout.pulls, false);
 +  assert.equal(layout.tasks.place, 'page');
 +});
@@ -122521,26 +122573,17 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +      occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
 +    },
 +  },
-+  'partly open upright': {
-+    window: { width: 951, height: 669 },
-+    insets: { top: 0, right: 84, bottom: 34, left: 0 },
-+    pose: {
-+      regular: true,
-+      bar: 'right',
-+      fold: { x: 455.5, y: 0, width: 40, height: 669, active: true },
-+      occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
-+    },
-+  },
-+  'partly open on its side': {
-+    window: { width: 669, height: 951 },
-+    insets: { top: 82, right: 0, bottom: 34, left: 0 },
-+    pose: {
-+      regular: true,
-+      fold: { x: 0, y: 455.5, width: 669, height: 40, active: true },
-+      occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
-+    },
-+  },
 +} satisfies Record<string, { window: Size; insets: Insets; pose: Pose }>;
++
++// The panes iOS arranges the open screen into held wide flat, as the simulator reports them
++// (arrange-proto 90789e4): they meet on the crease.
++const arranged = { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } };
++
++// The same Duo partly folded: iOS reports the same fold, active.
++const partly = (pose: Pose): Pose => ({
++  ...pose,
++  fold: pose.fold && { ...pose.fold, active: true },
++});
 +
 +type Box = { x: number; y: number; width: number; height: number };
 +
@@ -122605,8 +122648,6 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  assert.equal(layout.toolbar.y, 170);
 +  assert.deepEqual(layout.duo!.tasks, {
 +    area: { x: 0, y: 0, width: 424 - 32, height: 678 },
-+    inset: { left: 0, right: 0 },
-+    top: 0,
 +    foot: 34,
 +  });
 +  assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -122626,11 +122667,9 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  const { tasks, beside } = layout.duo!;
 +  assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
 +  assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-+  assert.deepEqual(tasks.fold, { at: 475.5, band: 0 }, 'flat, nothing keeps off it');
++  assert.equal(tasks.panes, 475.5, 'its two pages meet on the fold');
 +  assert.deepEqual(beside!.tasks, {
 +    area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
-+    inset: { left: 0, right: 0 },
-+    top: 0,
 +    foot: 34,
 +  });
 +  assert.ok(layout.words.x >= 475.5, 'alone, the words are past the middle of the fold');
@@ -122653,10 +122692,9 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
 +  const { tasks, beside, call } = layout.duo!;
 +  assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-+  assert.equal(tasks.fold, undefined, 'flat on its side, Tasks is one page, not cut at the fold');
-+  assert.equal(tasks.gap, undefined, 'and runs straight through it');
++  assert.equal(tasks.panes, undefined, 'on its side, Tasks is one page, not cut at the fold');
 +  assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
-+  assert.deepEqual([beside!.tasks.top, beside!.tasks.foot], [0, 34], 'the bottom page');
++  assert.equal(beside!.tasks.foot, 34, 'the bottom page');
 +  assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
 +  assert.equal(
 +    951 - layout.agent.bottom - beside!.words.raise,
@@ -122670,77 +122708,41 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  );
 +});
 +
-+test('partly open, Tasks keeps its pages off the fold’s whole frame, margins and all', () => {
-+  const upright = layoutOf(
-+    duo['partly open upright'].window,
-+    duo['partly open upright'].insets,
-+    duo['partly open upright'].pose,
-+  ).duo!;
-+  assert.deepEqual(upright.tasks.fold, { at: 455.5, band: 40 });
-+  assert.deepEqual(upright.beside!.tasks.area, { x: 495.5, y: 0, width: 877 - 495.5, height: 669 });
-+  assert.equal(upright.beside!.words.x + upright.beside!.words.width, 455.5);
-+  const side = layoutOf(
-+    duo['partly open on its side'].window,
-+    duo['partly open on its side'].insets,
-+    duo['partly open on its side'].pose,
-+  ).duo!;
-+  assert.equal(side.tasks.fold, undefined, 'on its side Tasks stays one page');
-+  assert.deepEqual(side.tasks.gap, { at: 455.5 - 82, band: 40 }, 'broken only where the fold is');
-+  assert.equal(side.beside!.tasks.area.y, 495.5);
++test('folding moves nothing: in every pose, a partly folded Duo lays out exactly as it does open flat', () => {
++  for (const [name, { window, insets, pose }] of Object.entries(duo))
++    assert.deepEqual(layoutOf(window, insets, partly(pose)), layoutOf(window, insets, pose), name);
 +});
 +
-+test('held wide, folding keeps Tasks’ two pages and only pulls them apart off the fold', () => {
-+  const flat = layoutOf(
++test('on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
++  const side = layoutOf(
++    duo['open on its side'].window,
++    duo['open on its side'].insets,
++    duo['open on its side'].pose,
++  ).duo!;
++  const typing = side.beside!.typing!;
++  assert.deepEqual(typing.area, { x: 0, y: 82, width: 669, height: 475.5 - 82 });
++  assert.equal(typing.foot, 'fold');
++  const upright = layoutOf(
 +    duo['open upright'].window,
 +    duo['open upright'].insets,
 +    duo['open upright'].pose,
 +  ).duo!;
-+  const folded = layoutOf(
-+    duo['partly open upright'].window,
-+    duo['partly open upright'].insets,
-+    duo['partly open upright'].pose,
-+  ).duo!;
-+  assert.deepEqual(folded.tasks.area, flat.tasks.area, 'Tasks keeps the same room');
-+  assert.deepEqual(flat.tasks.fold, { at: 475.5, band: 0 }, 'flat, the pages meet');
-+  const { at, band } = folded.tasks.fold!;
-+  assert.equal(at + band / 2, 475.5, 'folded, they part evenly about the same line');
-+});
-+
-+test('partly open on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
-+  const side = layoutOf(
-+    duo['partly open on its side'].window,
-+    duo['partly open on its side'].insets,
-+    duo['partly open on its side'].pose,
-+  ).duo!;
-+  const typing = side.beside!.typing!;
-+  assert.deepEqual(typing.area, { x: 0, y: 82, width: 669, height: 455.5 - 82 });
-+  assert.equal(typing.foot, 'fold');
-+  const upright = layoutOf(
-+    duo['partly open upright'].window,
-+    duo['partly open upright'].insets,
-+    duo['partly open upright'].pose,
-+  ).duo!;
 +  assert.equal(upright.beside!.typing, undefined);
 +});
 +
-+// Flat, the fold is a line down its middle; partly open, its whole frame.
-+const hingeOf = ({ active, ...fold }: Box & { active: boolean }): Box =>
-+  active
-+    ? fold
-+    : fold.height > fold.width
-+      ? { x: fold.x + fold.width / 2, y: fold.y, width: 0, height: fold.height }
-+      : { x: fold.x, y: fold.y + fold.height / 2, width: fold.width, height: 0 };
++// The fold as the window's room has it: a line, held as a box with no width or no height.
++const lineOf = (window: Size, insets: Insets, pose: Pose): Box => {
++  const fold = roomOf(pose, window, insets).fold!;
++  return 'x' in fold
++    ? { x: fold.x, y: 0, width: 0, height: window.height }
++    : { x: 0, y: fold.y, width: window.width, height: 0 };
++};
 +
-+test('open, the orb and the words each keep a page of their own off the fold, and beside Tasks the words take the orb’s', () => {
-+  for (const name of [
-+    'open upright',
-+    'open on its side',
-+    'partly open upright',
-+    'partly open on its side',
-+  ] as const) {
++test('open, the orb and the words each keep a page of their own across the fold, and beside Tasks the words take the orb’s', () => {
++  for (const name of ['open upright', 'open on its side'] as const) {
 +    const { window, insets, pose } = duo[name];
 +    const layout = layoutOf(window, insets, pose);
-+    const fold = hingeOf(pose.fold);
++    const fold = lineOf(window, insets, pose);
 +    const row = fold.height > fold.width;
 +    const words = {
 +      ...layout.words,
@@ -122749,7 +122751,7 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +    };
 +    const orb = around(layout.orb.read.x, layout.orb.read.y, layout.orb.size);
 +    assert.equal(layout.pulls, false, `${name}: the words have a page of their own`);
-+    assert.ok(!overlaps(orb, fold) && !overlaps(words, fold), `${name}: neither sits on the hinge`);
++    assert.ok(!overlaps(orb, fold) && !overlaps(words, fold), `${name}: neither crosses the fold`);
 +    assert.ok(
 +      row ? orb.x + orb.width <= fold.x : orb.y + orb.height <= fold.y,
 +      `${name}: orb first`,
@@ -122760,25 +122762,17 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +      y: beside.words.top,
 +      height: (row ? window.height : fold.y) - beside.words.top,
 +    };
-+    assert.ok(!overlaps(before, fold), `${name}: the words beside Tasks are off the hinge`);
++    assert.ok(!overlaps(before, fold), `${name}: the words beside Tasks keep to their page`);
 +    assert.ok(!overlaps(before, beside.tasks.area), `${name}: and clear of Tasks`);
 +  }
 +});
 +
-+test('before a call the orb rests in the middle open flat, and on its page partly open, never on the hinge', () => {
-+  for (const name of [
-+    'open upright',
-+    'open on its side',
-+    'partly open upright',
-+    'partly open on its side',
-+  ] as const) {
++test('before a call, the open Duo rests the orb in the middle of the call, not on a page', () => {
++  for (const name of ['open upright', 'open on its side'] as const) {
 +    const { window, insets, pose } = duo[name];
-+    const { orb } = layoutOf(window, insets, pose);
-+    const resting = around(orb.rest.x, orb.rest.y, orb.size);
-+    if (pose.fold.active) {
-+      assert.ok(!overlaps(resting, pose.fold), `${name}: off the hinge`);
-+      assert.deepEqual(orb.rest, orb.read, `${name}: where it reads`);
-+    } else assert.notDeepEqual(orb.rest, orb.read, `${name}: in the middle, not on a page`);
++    const { orb, content } = layoutOf(window, insets, pose);
++    assert.deepEqual(orb.rest, { x: content.width / 2, y: content.height / 2 }, name);
++    assert.notDeepEqual(orb.rest, orb.read, `${name}: it moves to its page once there are words`);
 +  }
 +});
 +
@@ -122790,23 +122784,6 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +  const { window, insets, pose } = duo['open upright'];
 +  const { calls } = layoutOf(window, insets, pose);
 +  assert.deepEqual(calls, { width: 475.5, place: 'beside' }, 'open upright, the leading page');
-+});
-+
-+test('open flat, iPhone Duo treats the fold as a line, never as partly open, in every way it lays out', () => {
-+  for (const [name, fixture] of Object.entries(duo)) {
-+    const { window, insets } = fixture;
-+    const pose: Pose = fixture.pose;
-+    const layout = layoutOf(window, insets, pose);
-+    const partly = !!pose.fold?.active;
-+    if (layout.duo?.tasks.fold)
-+      assert.equal(layout.duo.tasks.fold.band > 0, partly, `${name}: partly open`);
-+    if (pose.fold && !partly && layout.kind === 'split')
-+      assert.equal(
-+        layout.orb.rest.x,
-+        layout.content.x + layout.content.width / 2,
-+        `${name}: orb rests mid-screen`,
-+      );
-+  }
 +});
 +
 +test('on iPhone Duo, beside Calls the orb rests whole in the room the call has left, and reads clear of the words', () => {
@@ -122824,21 +122801,55 @@ index 0000000000000000000000000000000000000000..f9adc039520869125167c741066e3284
 +});
 +
 +test('open on its side, Calls comes in under the band, which stays whole above it', () => {
-+  for (const name of ['open on its side', 'partly open on its side'] as const) {
-+    const { window, insets, pose } = duo[name];
-+    const { calls, toolbar } = layoutOf(window, insets, pose);
-+    assert.equal(calls.below, insets.top, name);
-+    assert.ok(toolbar.y + 48 <= calls.below!, `${name}: the band's buttons sit above it`);
-+  }
++  const { window, insets, pose } = duo['open on its side'];
++  const { calls, toolbar } = layoutOf(window, insets, pose);
++  assert.equal(calls.below, insets.top);
++  assert.ok(toolbar.y + 48 <= calls.below!, 'the band’s buttons sit above it');
 +});
 +
-+test('open on its side, beside Calls the words keep to the room the call has left', () => {
-+  for (const name of ['open on its side', 'partly open on its side'] as const) {
-+    const { window, insets, pose } = duo[name];
-+    const { calls, besideCalls } = layoutOf(window, insets, pose);
-+    assert.ok(besideCalls.x >= calls.width, `${name}: right of Calls`);
-+    assert.ok(besideCalls.x + besideCalls.width <= window.width, `${name}: on screen`);
-+  }
++test('open on its side, Calls would leave the call less than a page, so it slides over all but a peek of it, under the band', () => {
++  const { window, insets, pose } = duo['open on its side'];
++  const { calls, toolbar } = layoutOf(window, insets, pose);
++  assert.equal(calls.place, 'slide');
++  assert.equal(calls.width, window.width - 72, 'a peek of the call stays to tap back to');
++  assert.ok(toolbar.y + 48 <= calls.below!, 'the band stays whole above it');
++});
++
++test('where Calls leaves the call a page under the band, it sits beside it and the words keep to the room left', () => {
++  const { insets, pose } = duo['open on its side'];
++  const window = { width: 900, height: 951 };
++  const { calls, besideCalls } = layoutOf(window, insets, pose);
++  assert.equal(calls.place, 'beside');
++  assert.ok(besideCalls.x >= calls.width, 'right of Calls');
++  assert.ok(besideCalls.x + besideCalls.width <= window.width, 'on screen');
++});
++
++test('the call stage lays out from its own box, wherever the screen puts it', () => {
++  const { window, insets, pose } = duo['folded upright'];
++  const right = layoutOf(window, insets, pose);
++  const left = layoutOf(
++    window,
++    { ...insets, right: 0, left: 84 },
++    { ...pose, bar: 'left', occlusions: [] },
++  );
++  assert.equal(left.content.x, 84);
++  assert.deepEqual([left.orb, left.words, left.footer], [right.orb, right.words, right.footer]);
++});
++
++test('held wide, Tasks’ two pages meet where iOS’s panes meet open flat, read from the window’s fold', () => {
++  const { window, insets, pose } = duo['open upright'];
++  const { tasks, beside } = layoutOf(window, insets, pose).duo!;
++  assert.equal(tasks.panes, arranged.first.width);
++  assert.equal(beside!.tasks.area.x, arranged.second.x);
++});
++
++test('held wide, the call takes the panes: the orb on the first, the words from the second', () => {
++  const { window, insets, pose } = duo['open upright'];
++  const layout = layoutOf(window, insets, pose);
++  assert.deepEqual(layout.orb.read, { x: arranged.first.width / 2, y: 669 / 2 });
++  assert.ok(layout.words.x >= arranged.second.x);
++  const before = layout.duo!.beside!.words;
++  assert.ok(before.x + before.width <= arranged.first.width);
 +});
 diff --git a/tests/lint.test.ts b/tests/lint.test.ts
 new file mode 100644
@@ -124422,10 +124433,10 @@ index 0000000000000000000000000000000000000000..7a5c934688393b3462365a886c65dbaa
 +});
 diff --git a/tests/pages.test.ts b/tests/pages.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a8736467299e75
+index 0000000000000000000000000000000000000000..d8d1b6366a089cef530bbc6e1ba035bbef602157
 --- /dev/null
 +++ b/tests/pages.test.ts
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,251 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -124461,7 +124472,7 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +const openOnSideDuo = layoutOf(
 +  { width: 669, height: 951 },
 +  { top: 54, right: 0, bottom: 34, left: 0 },
-+  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: true } },
++  { regular: true, fold: { x: 0, y: 455, width: 669, height: 40, active: false } },
 +).duo!;
 +const openOnSide = openOnSideDuo.tasks;
 +const folded = layoutOf(
@@ -124470,22 +124481,21 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +  { regular: false, bar: 'right' },
 +).duo!.tasks;
 +
-+type PagedRoom = Extract<Room, { paged: true }>;
++// A Duo page's room, and how tall its area is.
++type PagedRoom = Room & { height: number };
 +
-+const roomOf = (page: Page, inset = { left: 0, right: 0 }): PagedRoom => ({
++const roomOf = (page: Page): PagedRoom => ({
 +  width: page.area.width,
 +  height: page.area.height,
-+  fold: page.fold,
-+  top: page.top,
++  panes: page.panes,
 +  foot: page.foot,
-+  inset,
 +  paged: true,
 +});
 +const sheet: Room = { width: 440, foot: 34, paged: false };
 +
 +const go = (...moves: Move[]) => moves.reduce(move, START);
 +const pagesOf = (stack: Stack, room: Room, closes = true) => {
-+  const shape = shapeOf(room.width, room.paged ? room.fold : undefined);
++  const shape = shapeOf(room.width, room.paged ? room.panes : undefined);
 +  return { levels: levelsOf(stack, shape), shape, closes };
 +};
 +const onScreen = (stack: Stack, room: PagedRoom) => {
@@ -124494,8 +124504,8 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +};
 +const box = (level: Level, stack: Stack, room: PagedRoom) => {
 +  const spot = spotOf(level, pagesOf(stack, room), room);
-+  const { width, maxHeight: height } = spot.frame ?? { width: room.width, maxHeight: room.height };
-+  return { x: spot.offset.x, y: spot.offset.y, width, height };
++  const { width } = spot.frame ?? room;
++  return { x: spot.offset.x, y: spot.offset.y, width, height: room.height };
 +};
 +const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
 +  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -124509,9 +124519,9 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +];
 +
 +test('the Duo pages split at its fold held wide, on its side and folded it shows one at a time', () => {
-+  assert.equal(shapeOf(openUpright.area.width, openUpright.fold), 'fold');
-+  assert.equal(shapeOf(openOnSide.area.width, openOnSide.fold), 'one');
-+  assert.equal(shapeOf(folded.area.width, folded.fold), 'one');
++  assert.equal(shapeOf(openUpright.area.width, openUpright.panes), 'panes');
++  assert.equal(shapeOf(openOnSide.area.width, openOnSide.panes), 'one');
++  assert.equal(shapeOf(folded.area.width, folded.panes), 'one');
 +  assert.equal(shapeOf(1000, undefined), 'columns');
 +});
 +
@@ -124529,11 +124539,11 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +    ['one', go({ to: 'topic', id: A }), ['list']],
 +    ['one', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
 +    ['one', go({ to: 'check' }), ['list']],
-+    ['fold', go(), 'call'],
-+    ['fold', go({ to: 'topic', id: A }), 'call'],
-+    ['fold', go({ to: 'check' }), 'call'],
-+    ['fold', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
-+    ['fold', stacks[3]![1], ['list', 'topic', 'thread']],
++    ['panes', go(), 'call'],
++    ['panes', go({ to: 'topic', id: A }), 'call'],
++    ['panes', go({ to: 'check' }), 'call'],
++    ['panes', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
++    ['panes', stacks[3]![1], ['list', 'topic', 'thread']],
 +    ['columns', go({ to: 'topic', id: A }), 'call'],
 +    ['columns', go({ to: 'check' }), ['list', 'topic']],
 +  ];
@@ -124564,7 +124574,7 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +  assert.equal(spotOf('list', pagesOf(go(), one, false), one).back, undefined);
 +});
 +
-+test('on the Duo pages cross only while one fades, and never sit on the hinge, so clear pages work', () => {
++test('on the Duo pages cross only while one fades, and never across the fold, so clear pages work', () => {
 +  const walks: Stack[][] = [
 +    [stacks[0]![1], stacks[1]![1], stacks[2]![1], stacks[3]![1]],
 +    [stacks[0]![1], stacks[4]![1]],
@@ -124608,49 +124618,32 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +                  `${name}, t ${t}: ${one} covers ${other}`,
 +                );
 +          }
-+    const fold = room.fold;
-+    if (!fold) continue;
-+    const hinge = { x: fold.at, y: 0, width: fold.band, height: room.height };
++    if (room.panes === undefined) continue;
++    const fold = { x: room.panes, y: 0, width: 0, height: room.height };
 +    for (const [at, stack] of stacks)
 +      for (const level of LEVELS)
 +        assert.ok(
-+          !overlap(box(level, stack, room), hinge),
-+          `${name}, ${at}: ${level} on the hinge`,
++          !overlap(box(level, stack, room), fold),
++          `${name}, ${at}: ${level} across the fold`,
 +        );
 +  }
 +});
 +
-+test('content keeps its inset from the screen edges and none at the hinge', () => {
-+  const inset = { left: 12, right: 30 };
-+  const room = roomOf(openUpright, inset);
++test('pages run flush to the screen edges and meet on the fold', () => {
++  const room = roomOf(openUpright);
 +  const pages = pagesOf(go(), room);
-+  const list = spotOf('list', pages, room);
-+  const task = spotOf('topic', pages, room);
-+  assert.deepEqual([list.pad.leading, list.pad.trailing], [12, 0]);
-+  assert.deepEqual([task.pad.leading, task.pad.trailing], [0, 30]);
-+  assert.equal(list.width, openUpright.fold!.at - 12);
-+  assert.equal(
-+    task.width,
-+    openUpright.area.width - openUpright.fold!.at - openUpright.fold!.band - 30,
-+  );
-+  const side = roomOf(openOnSide, inset);
-+  const top = spotOf('list', pagesOf(go(), side), side);
-+  assert.deepEqual([top.pad.leading, top.pad.trailing, top.width], [12, 30, side.width - 42]);
++  assert.equal(spotOf('list', pages, room).width, openUpright.panes);
++  assert.equal(spotOf('topic', pages, room).width, openUpright.area.width - openUpright.panes!);
++  const side = roomOf(openOnSide);
++  assert.equal(spotOf('list', pagesOf(go(), side), side).width, side.width);
 +});
 +
 +test('beside the transcript, Tasks lays out one page wide with the list’s Back to the call', () => {
-+  const room: Room = {
-+    width: 455,
-+    height: 669,
-+    top: 0,
-+    foot: 21,
-+    inset: { left: 16, right: 16 },
-+    paged: true,
-+  };
++  const room: Room = { width: 455, foot: 21, paged: true };
 +  const pages = pagesOf(go(), room);
 +  assert.equal(pages.shape, 'one');
 +  const list = spotOf('list', pages, room);
-+  assert.deepEqual([list.shown, list.back, list.width], [true, 'call', 423]);
++  assert.deepEqual([list.shown, list.back, list.width], [true, 'call', 455]);
 +  const deeper = pagesOf(go({ to: 'topic', id: A }), room);
 +  assert.equal(spotOf('list', deeper, room).offset.x, -455);
 +  assert.equal(spotOf('topic', deeper, room).back, 'list');
@@ -124688,7 +124681,7 @@ index 0000000000000000000000000000000000000000..9772b28dfaade706f3ce1763b6a87364
 +      { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40, active } },
 +    ).duo!.tasks;
 +    const room = roomOf(page);
-+    assert.equal(room.fold, undefined);
++    assert.equal(room.panes, undefined);
 +    assert.deepEqual(onScreen(go(), room), ['list']);
 +    assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
 +    const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);
@@ -126748,14 +126741,15 @@ index 0000000000000000000000000000000000000000..9ba05aa550b4d317037aed9baf17e64c
 +});
 diff --git a/tests/window.test.ts b/tests/window.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e514364946760b
+index 0000000000000000000000000000000000000000..9c669e4fbb8cce5be76d4ce7e1cb3d6fbb0fa970
 --- /dev/null
 +++ b/tests/window.test.ts
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,193 @@
 +import assert from 'node:assert/strict';
 +import { readdirSync, readFileSync } from 'node:fs';
 +import { join } from 'node:path';
 +import test from 'node:test';
++import { isDeepStrictEqual } from 'node:util';
 +
 +import type { Pose } from '../modules/pose';
 +import { screenLayout } from '../src/screens/layout';
@@ -126813,9 +126807,9 @@ index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e51436
 +  };
 +}
 +
-+test('the open Duo’s whole screen keeps its fold and column', () => {
++test('the open Duo’s whole screen keeps its column, and its fold as the line down the middle of iOS’s', () => {
 +  const room = roomOf(openPose, open, column);
-+  assert.deepEqual(room.fold, fold);
++  assert.deepEqual(room.fold, { x: 475.5 });
 +  assert.equal(room.bar, 'right');
 +  assert.deepEqual(room.occlusions, openPose.occlusions);
 +});
@@ -126838,14 +126832,14 @@ index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e51436
 +  assert.deepEqual(leftRoom.occlusions, [], 'the camera is over the other app');
 +});
 +
-+test('a window the fold crosses keeps it, cut to the window’s length', () => {
++test('a window the fold crosses keeps it', () => {
 +  // A picture in picture pinned at the top leaves the app the screen below it.
 +  const shorter = roomOf(
 +    { ...openPose, fold: { ...fold, y: -200, height: 669 } },
 +    { width: 951, height: 469 },
 +    column,
 +  );
-+  assert.deepEqual(shorter.fold, { ...fold, y: 0, height: 469 });
++  assert.deepEqual(shorter.fold, { x: 475.5 });
 +  const narrow = roomOf(openPose, { width: 700, height: 669 }, column);
 +  assert.equal(narrow.fold, undefined, 'past the fold only 204 of a page is left');
 +});
@@ -126870,7 +126864,7 @@ index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e51436
 +    const layout = layoutIn(window, insets, pose);
 +    assert.equal(layout.kind, 'single', side);
 +    const tasks = layout.duo?.tasks;
-+    assert.equal(tasks?.fold, undefined, `${side}: Tasks is one page`);
++    assert.equal(tasks?.panes, undefined, `${side}: Tasks is one page`);
 +    assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
 +    for (const span of [layout.words, layout.footer, layout.agent])
 +      assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
@@ -126881,6 +126875,68 @@ index 0000000000000000000000000000000000000000..011817b1ee9c785a34c3176f21e51436
 +      `${side}: the toolbar ends inside the window`,
 +    );
 +  }
++});
++
++// Every window the app could be given, with or without a side column and with the fold anywhere
++// across it or beyond its edges: whatever the room, everything the layout places has width and
++// stays inside the window, and partly folded it all lays out exactly as open flat.
++test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it and folding moves none of it', () => {
++  const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
++  const heights = [408, 466, 669, 678, 834, 951, 1194];
++  const problems: string[] = [];
++  for (const width of widths)
++    for (const height of heights)
++      for (const columnSide of [undefined, 'left', 'right'] as const)
++        for (const at of [undefined, -60, -20, 0, 0.25, 0.5, 0.75, 1, 1.02]) {
++          const window = { width, height };
++          const insets = {
++            top: columnSide ? 0 : 24,
++            bottom: 20,
++            left: columnSide === 'left' ? 84 : 0,
++            right: columnSide === 'right' ? 84 : 0,
++          };
++          const across = width > height;
++          const place = (extent: number) =>
++            at !== undefined && at > -1 && at <= 1.1 ? at * extent : (at ?? 0);
++          const fold =
++            at === undefined
++              ? undefined
++              : across
++                ? { x: place(width) - 20, y: 0, width: 40, height, active: false }
++                : { x: 0, y: place(height) - 20, width, height: 40, active: false };
++          const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
++          const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
++          const layout = screenLayout(roomOf(pose, window, insets));
++          const folded = { ...pose, fold: fold && { ...fold, active: true } };
++          if (!isDeepStrictEqual(screenLayout(roomOf(folded, window, insets)), layout))
++            problems.push(`${name}: partly folded lays out differently`);
++          const { content } = layout;
++          const spans = {
++            words: layout.words,
++            footer: layout.footer,
++            agent: layout.agent,
++            besideCalls: layout.besideCalls,
++            besideTasks: layout.besideTasks,
++          };
++          for (const [what, span] of Object.entries(spans))
++            if (!(span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5))
++              problems.push(`${name}: ${what} ${span.x}+${span.width} in ${content.width}`);
++          if (!(layout.calls.width > 0 && layout.calls.width < width))
++            problems.push(`${name}: Calls ${layout.calls.width} wide`);
++          if (layout.calls.place === 'beside' && content.width - layout.calls.width < 320)
++            problems.push(
++              `${name}: beside Calls the call keeps ${content.width - layout.calls.width}`,
++            );
++          const tasks = layout.duo?.tasks;
++          if (tasks) {
++            const { area, panes } = tasks;
++            if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5))
++              problems.push(`${name}: Tasks ${area.x}+${area.width}`);
++            if (panes !== undefined && !(panes >= 200 && area.width - panes >= 200))
++              problems.push(`${name}: Tasks' panes meet ${panes} into ${area.width}`);
++          }
++        }
++  assert.deepEqual(problems, []);
 +});
 diff --git a/tsconfig.json b/tsconfig.json
 index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d01534b0d5f22 100644
@@ -126898,10 +126954,10 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..1de5e4de4ab2b0f82222d983edeeae60bd7e4cca
+index 0000000000000000000000000000000000000000..56eda8af7f3f6ea8e1f55b2f64a61b4e9e461bc3
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,206 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
@@ -126926,6 +126982,7 @@ index 0000000000000000000000000000000000000000..1de5e4de4ab2b0f82222d983edeeae60
 +//   selected <query>      checks the element is selected; unselected checks it isn't
 +//   type <query> <text>   taps the element and types the text on the software keyboard
 +//   above-keyboard <query> checks the keyboard is up and the element shows whole above it
++//   apart <query> <query> checks the two elements don't overlap
 +//   mark <query>          remembers the element's frame; still <query> checks it hasn't moved or resized
 +//   swipe-down <query>    drags from the element down to the screen's foot, the way you pull a keyboard away
 +//   no-keyboard [name]    checks the keyboard has gone, naming the step in its failure
@@ -127023,6 +127080,10 @@ index 0000000000000000000000000000000000000000..1de5e4de4ab2b0f82222d983edeeae60
 +                    let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
 +                    XCTFail("\(argument.isEmpty ? "" : "\(argument): ")the keyboard is still up at \(keyboard.frame) in a \(app.windows.firstMatch.frame) window; focused: \(focused.exists ? focused.identifier : "nothing")")
 +                }
++            case "apart":
++                let names = argument.split(separator: " ").map(String.init)
++                guard let one = element(names[0])?.frame, let other = element(names[1])?.frame else { break }
++                XCTAssertFalse(one.intersects(other), "\(names[0]) \(one) overlaps \(names[1]) \(other)")
 +            case "mark": marked[argument] = element(argument)?.frame
 +            case "still":
 +                guard let was = marked[argument] else {
