@@ -26,9 +26,9 @@ import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
 import { PLACES, placeOf } from '@/live/inbox';
 import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { labelOf, metrics, space } from '@/ui/tokens';
+import { labelOf, metrics, radius, space } from '@/ui/tokens';
 
 export function Messages({
   thread,
