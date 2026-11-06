@@ -246,6 +246,45 @@ test('each tab counts its stage, leaving out the asks you answered here', () => 
   });
 });
 
+test('a tab counts what its projects count, so an ask answered here leaves both, and its picks', () => {
+  const asks = [
+    ask('a1', 'pick', { task: 'telegram:autofork', options: [{ label: 'Go', pick: true }] }),
+    ask('a2', 'yesno', { task: 'telegram:autofork' }),
+    ask('p1', 'pick', { task: 'telegram:pigeon', topic: 'pigeon' }),
+  ];
+  const entries = stream({
+    asks,
+    tasks: [row('autofork', 'working'), row('Cloud', 'needs')],
+    stuck: [stuck('t3-limit')],
+  });
+  const needs = entries.filter((entry) => entry.stage === 'needs');
+  const tally = (answered: Record<string, string | null>) => ({
+    tab: stageCounts(entries, answered).needs,
+    projects: topicsOf(needs, answered).map((topic) => [topic.name, topic.count]),
+    picks: picksOf(asks, answered).length,
+  });
+  assert.deepEqual(tally({}), {
+    tab: 5,
+    projects: [
+      ['autofork', 2],
+      ['pigeon', 1],
+      ['Cloud', 1],
+      ['Stuck', 1],
+    ],
+    picks: 1,
+  });
+  assert.deepEqual(tally({ a1: 'Go', p1: 'Yes' }), {
+    tab: 3,
+    projects: [
+      ['autofork', 1],
+      ['pigeon', 0],
+      ['Cloud', 1],
+      ['Stuck', 1],
+    ],
+    picks: 0,
+  });
+});
+
 test('search needs every word, in any case, across the question, the line, the topic and the place', () => {
   const entries = stream({
     asks: [
@@ -436,9 +475,9 @@ test('an entry’s headline is what it asks or says', () => {
 test('a project opens on its leading thread, or on a page of its own when it has none', () => {
   const [entry] = stream({ tasks: [row('voiceapp', 'needs', at(3))] });
   assert.ok(entry?.kind === 'task');
-  const topic = { name: 'voiceapp', entries: [entry] };
+  const topic = { name: 'voiceapp', entries: [entry], count: 1 };
   assert.equal(pageOf(topic), entry.task.id);
-  const stuck = { name: 'Stuck', entries: [] };
+  const stuck = { name: 'Stuck', entries: [], count: 0 };
   assert.equal(topicIn(pageOf(stuck)), 'Stuck');
   assert.equal(topicIn(entry.task.id), undefined);
 });

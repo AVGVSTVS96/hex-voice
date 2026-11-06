@@ -444,7 +444,7 @@ export function ProjectRow({
 }) {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
-  const count = topic.entries.length;
+  const { count } = topic;
   const headline = headlineOf(newest);
   const counted = `${count} ${!stage ? 'found' : stage === 'needs' ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
