@@ -111,8 +111,8 @@ snap unfolded-tasks-tap
 shoot unfolded-tasks
 selected tasks-button
 unselected voice-settings-button
-# In Split View Tasks and settings are sheets over the toolbar, as on the cover: each goes with a
-# swipe before the other opens, and its button lights only while it's up.
+# In Split View Tasks is a sheet over the toolbar and settings a card over the screen: Tasks goes
+# with a swipe, settings with a tap beside it, before the other opens, and only the one up is lit.
 launch hexvoice:///?split=first
 wait 3
 tap tasks-button
@@ -125,8 +125,9 @@ snap split-settings-tap
 shoot split-settings
 selected voice-settings-button
 unselected tasks-button
-swipe-down voice-settings-sheet
+tap tasks-button
 wait 3
+unselected voice-settings-button
 tap tasks-button
 snap split-back-to-tasks-tap
 shoot split-back-to-tasks
