@@ -222,3 +222,9 @@ test('an answer still missing a place stays folded through the sheet closing, an
     ['c'],
   );
 });
+
+test("an ask hex's check took up keeps the ids it was listed under, so what was typed on them follows it", () => {
+  const taken = ask('check:twilio', 'yesno', { was: ['telegram:-100:1:7', 'telegram:-100:1:8'] });
+  assert.deepEqual(taken.was, ['telegram:-100:1:7', 'telegram:-100:1:8']);
+  assert.equal(ask('telegram:-100:1:7', 'yesno').was, undefined);
+});

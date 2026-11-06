@@ -21,6 +21,17 @@ export function sentDraft(where: string, text: string) {
   if (saved()[where]?.trim() === text.trim()) keepDraft(where, '');
 }
 
+// What's typed somewhere that's since been listed under another name, like an ask hex's check took
+// up, moves to where it is now.
+export function carryDraft(where: string, from: string[]) {
+  const all = saved();
+  const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
+  if (!old) return all[where] ?? '';
+  const { [old]: text, ...rest } = all;
+  Settings.set({ [KEY]: { ...rest, [where]: text } });
+  return text!;
+}
+
 export function useDraft(where: string) {
   const [first] = useState(() => saved()[where] ?? '');
   return { first, keep: (text: string) => keepDraft(where, text) };
