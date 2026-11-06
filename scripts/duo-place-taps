@@ -1,0 +1,122 @@
+# ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-place-taps: its project is markdown.
+# The open Duo (open-up, open-side): Tasks and settings swap in their one place, like a tab bar,
+# each tap snapped right after it lands and shot once it settles, so a frame of the bare call, the
+# two overlapping or both buttons lit would show. Settings' persona is snapped as it opens, to show it at its size from the start.
+# Also the Tasks button's turning ring, which stays on the button, and a stage switch, which swaps
+# the list without fading two lists' rows through each other.
+launch hexvoice:///
+wait 3
+shoot call
+tap tasks-button
+snap tasks-tap
+shoot tasks
+selected tasks-button
+unselected voice-settings-button
+tap Working,
+snap stage-tap
+wait 0.2
+snap stage-tap-later
+shoot stage
+tap Done,
+snap stage-done-tap
+shoot stage-done
+tap Quiet,
+snap stage-quiet-tap
+shoot stage-quiet
+tap Needs you,
+snap stage-needs-tap
+wait 0.2
+snap stage-needs-tap-later
+shoot stage-needs
+tap markdown
+snap chat-tap
+wait 0.3
+snap chat-tap-later
+shoot chat
+tap voice-settings-button
+snap settings-tap
+wait 0.3
+snap settings-tap-later
+shoot settings
+tap tasks-button
+snap back-to-tasks-tap
+wait 0.2
+snap back-to-tasks-tap-later
+shoot back-to-tasks
+selected tasks-button
+unselected voice-settings-button
+tap voice-settings-button
+snap settings-again-tap
+shoot settings-again
+tap voice-settings-button
+snap settings-closed-tap
+shoot settings-closed
+unselected voice-settings-button
+unselected tasks-button
+tap voice-settings-button
+snap settings-from-call-tap
+wait 0.3
+snap settings-from-call-tap-later
+shoot settings-from-call
+tap tasks-button
+snap tasks-from-settings-tap
+shoot tasks-from-settings
+tap tasks-button
+snap tasks-closed-tap
+shoot tasks-closed
+wait 0.3
+snap tasks-closed-tap-later
+tap calls-button
+snap calls-tap
+wait 0.3
+snap calls-tap-later
+shoot calls
+tap calls-button
+snap calls-closed-tap
+wait 0.3
+snap calls-closed-tap-later
+shoot calls-closed
+# On a call the call goes on in the bar, docked, under either one.
+launch hexvoice:///?demo=call
+wait 3
+tap tasks-button
+snap call-tasks-tap
+shoot call-tasks
+tap voice-settings-button
+snap call-settings-tap
+shoot call-settings
+tap tasks-button
+snap call-back-to-tasks-tap
+shoot call-back-to-tasks
+# Folding with settings open moves it to a sheet, which covers the toolbar until it's let go;
+# unfolding with settings open moves it back into its place, where Tasks swaps in with one tap.
+launch hexvoice:///
+wait 3
+tap voice-settings-button
+shoot fold-settings
+pose cover-up
+shoot folded-settings
+swipe-down voice-settings-sheet
+tap tasks-button
+shoot folded-tasks
+tap voice-settings-button
+shoot folded-settings-again
+pose open-up
+shoot unfolded-settings
+selected voice-settings-button
+tap tasks-button
+snap unfolded-tasks-tap
+shoot unfolded-tasks
+selected tasks-button
+unselected voice-settings-button
+# In Split View settings is a sheet: Tasks, settings, then Tasks again.
+launch hexvoice:///?split=first
+wait 3
+tap tasks-button
+shoot split-tasks
+tap voice-settings-button
+snap split-settings-tap
+shoot split-settings
+tap tasks-button
+snap split-back-to-tasks-tap
+shoot split-back-to-tasks
