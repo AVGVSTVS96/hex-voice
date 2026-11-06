@@ -1,8 +1,8 @@
 diff --git a/.env.example b/.env.example
-index b6a47e0e3a9cd07956a286b95ad708a4dc726e35..ff9c3f5a7491f9b6b13ccc5065282155c7b2c858 100644
+index b6a47e0e3a9cd07956a286b95ad708a4dc726e35..4a47cb7ee779917a29e75878b596597d9c21642e 100644
 --- a/.env.example
 +++ b/.env.example
-@@ -1,4 +1,6 @@
+@@ -1,4 +1,7 @@
 -OPENAI_API_KEY=
 -API_TOKEN=
 -EXPO_PUBLIC_API_TOKEN=
@@ -11,6 +11,7 @@ index b6a47e0e3a9cd07956a286b95ad708a4dc726e35..ff9c3f5a7491f9b6b13ccc5065282155
 +EXPO_PUBLIC_HEX_TOKEN=<hex's token>
 +HEX_UPDATES_URL=https://<server>.<tailnet>.ts.net:8791/manifest
 +IOS_DEVICES="<iphone udid> <ipad udid>"
++# The Xcode ship:native builds with; checks (scripts/duo) pick their own.
 +DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 +DUO_UDID=<iphone duo udid>
 diff --git a/.gitignore b/.gitignore
@@ -98956,10 +98957,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..6c8c4c2224b5af70d81fccba8a93f94a6ce37b84
+index 0000000000000000000000000000000000000000..092f76549e5be31f0cae8bc109dcee30dc69f8b2
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,644 @@
+@@ -0,0 +1,646 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99044,8 +99045,10 @@ index 0000000000000000000000000000000000000000..6c8c4c2224b5af70d81fccba8a93f94a
 +
 +# Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 +# js/ its bundle, harness/ this script with what it needs.
++# Checks build and run with their own Xcode, set here per device; .env.local's DEVELOPER_DIR is the
++# one ship:native builds with.
 +on_mac() {
-+  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/$xcode.app/Contents/Developer}
++  export DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer
 +  export PATH=/opt/homebrew/bin:$PATH
 +  cd ~/"$folder"
 +  local command=$1
@@ -99055,7 +99058,7 @@ index 0000000000000000000000000000000000000000..6c8c4c2224b5af70d81fccba8a93f94a
 +
 +mac_build() {
 +  local runtime=$1
-+  (cd app && prepare_native && SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
++  (cd app && prepare_native && DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
 +    -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
 +    -derivedDataPath build ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >build/xcodebuild.log 2>&1) || {
 +    grep -E 'error:' app/build/xcodebuild.log | sort -u >&2
