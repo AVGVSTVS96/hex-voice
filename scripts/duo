@@ -119,7 +119,9 @@ mac_install() {
     exec node harness/duo-hex.mjs) &
   standin=$!
   # The simulator stays booted for the next check, but the app closes: its orb draws all the while.
-  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null' EXIT
+  # While ~/.config/turn/cold exists, as when the Mac is short of memory, the simulator shuts down too.
+  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null
+    [ ! -e ~/.config/turn/cold ] || xcrun simctl shutdown "$id"' EXIT
   # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
   curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
     "https://127.0.0.1:$hexport/tasks/summary" ||
