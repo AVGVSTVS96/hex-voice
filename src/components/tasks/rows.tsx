@@ -13,7 +13,6 @@ import {
 import type { ReactNode } from 'react';
 
 import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
-import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
 import { Failure, listRow } from '@/components/tasks/parts';
@@ -423,8 +422,8 @@ const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   quiet: 'quiet',
 };
 
-// A project as one row in the list: its name and how its threads stand, its week on a lane, how
-// many it has here, then the newest thing in it and when. Opens its page.
+// A project as one row in the list: its name, its week on a lane, how many it has here, then the
+// newest thing in it. Opens its page.
 export function ProjectRow({
   topic,
   stage,
@@ -446,9 +445,7 @@ export function ProjectRow({
   if (!newest) return null;
   const count = topic.entries.length;
   const headline = headlineOf(newest);
-  // Mint means it waits on you, so only Needs you counts in mint.
-  const needs = stage === 'needs';
-  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
+  const counted = `${count} ${stage === 'needs' ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
     <Column
       alignment="start"
@@ -468,37 +465,30 @@ export function ProjectRow({
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
-      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text numberOfLines={1} variant="callout" weight="semibold" modifiers={[layoutPriority(1)]}>
           {topic.name}
         </Text>
-        {topic.marks.length ? <Dots marks={topic.marks} /> : null}
         <Spacer flexible />
         {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
         <Text
           variant="subheadline"
-          weight="semibold"
-          tone={needs ? 'accent' : 'tertiary'}
+          tone="secondary"
           modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
         >
           {String(count)}
         </Text>
       </Row>
-      <Row
-        alignment="center"
-        spacing={metrics.list.gap}
-        modifiers={[frame({ maxWidth: Infinity })]}
-      >
+      {headline === topic.name ? null : (
         <Text
           numberOfLines={1}
           variant="itemDetail"
           tone="secondary"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          {headline === topic.name ? '' : headline}
+          {headline}
         </Text>
-        <Meta text={clock(new Date(newest.at))} />
-      </Row>
+      )}
     </Column>
   );
 }

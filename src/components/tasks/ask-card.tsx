@@ -42,8 +42,8 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
 
-// Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
-// on one line where they fit.
+// Compact, so a page of many asks scans: folded, a question on one line; open, its choices on one
+// line where they fit.
 const ROW = 40;
 // How much of the thread's own words show before a tap shows them all.
 const SAID = 6;
@@ -79,7 +79,7 @@ export function YourCall({
         animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
       ]}
     >
-      <SectionHead title="Your call" count={open} />
+      <SectionHead title={`Your call · ${open}`} />
       {asks.map((ask, i) => {
         const said = answered[ask.id];
         if (said)
@@ -144,8 +144,8 @@ export function YourCall({
   );
 }
 
-// Folded like a project row, the question and the first line of its background; a tap opens the
-// background whole, the thread's own words, and the answers. Writing on it keeps it open.
+// Folded, the question on one line and when it was asked; a tap opens the question whole, its
+// background, the thread's own words, and the answers. Writing on it keeps it open.
 function AskCard({
   ask,
   first,
@@ -207,23 +207,21 @@ function AskCard({
         >
           <Text
             variant="question"
+            weight={open ? undefined : 'regular'}
             paragraph
             modifiers={[
-              open ? lineLimit() : lineLimit(2),
+              open ? lineLimit() : lineLimit(1),
               frame({ maxWidth: Infinity, alignment: 'leading' }),
             ]}
           >
             {ask.question}
           </Text>
-          {ask.context ? (
+          {open && ask.context ? (
             <Text
               variant="itemDetail"
               tone="secondary"
               paragraph
-              modifiers={[
-                open ? lineLimit() : lineLimit(1),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
-              ]}
+              modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
             >
               {ask.context}
             </Text>
