@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name           = 'Pose'
   s.version        = '1.0.0'
-  s.summary        = 'Where the system puts its bars and where the fold divides the screen'
+  s.summary        = 'Where the system puts its bars and the fold, and which ways the screen turns'
   s.author         = ''
   s.homepage       = 'https://github.com/AVGVSTVS96/hex-voice'
   s.license        = 'MIT'

@@ -29,7 +29,7 @@ test('only the window module reads the device’s pose; the call screen mounts i
   assert.deepEqual(
     [...screen.matchAll(/\bpose\.\w+/g)].map(([read]) => read),
     [],
-    'the call screen hands the pose to roomOf and turns, and reads none of it itself',
+    'the call screen hands the pose to roomOf and reads none of it itself',
   );
 });
 

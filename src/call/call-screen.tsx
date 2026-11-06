@@ -1,7 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -60,7 +59,7 @@ import { orbRest } from '@/screens/orb-rest';
 import { hairline, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics, stack } from '@/ui/tokens';
-import { roomOf, turns, type Room } from '@/screens/window';
+import { roomOf, type Room } from '@/screens/window';
 import { closed, inView, opened, type Place, type Places } from './places';
 import { PoseView, type Pose } from '../../modules/pose';
 
@@ -68,7 +67,6 @@ const AGENT_ROW = 22;
 const CONTROLS_BOX = stack('regular', { add: true });
 // The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
 const OVER_SHEET = 96;
-const PAD = Platform.OS === 'ios' && Platform.isPad;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export type Opening = {
@@ -84,19 +82,11 @@ export type Opening = {
 // device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
 // screen's own, as laid out: React Native's window size can report another screen's for a moment
 // while iPhone Duo unfolds, and the call screen would lay out for the cover across the open screen.
-// A phone stays upright as it always has; iPad and iPhone Duo turn to fit however they're held.
 export default function LiveScreen({ opening }: { opening: Opening }) {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const [size, setSize] = useState<Size>();
   const insets = useSafeAreaInsets();
   const room = pose && size && roomOf(pose, size, insets);
-  const upright = pose && !turns(pose, PAD);
-  useEffect(() => {
-    if (upright === undefined) return;
-    void (upright
-      ? ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
-      : ScreenOrientation.unlockAsync());
-  }, [upright]);
   return (
     <View
       style={styles.root}
