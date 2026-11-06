@@ -583,7 +583,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       ready={voiceLoaded}
       axis="row"
       mute={!inboxShown}
-      add={!(duo && tasksOpen)}
+      add={!(duo ? tasksOpen : !!orb.dock && (drawerOpen || tasksOpen))}
       onMute={onMute}
       onPrimary={onPrimaryPress}
       {...place}

@@ -50,8 +50,8 @@ export function CallControls({
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
   const callSide = metrics[sizes.call];
-  const add = adds && mute && buttons.add;
-  const along = (add ? muteSide + sizes.gap : 0) + (mute ? muteSide + sizes.gap : 0) + callSide;
+  const add = adds && mute;
+  const along = (add ? 2 : mute ? 1 : 0) * (muteSide + sizes.gap) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
   const primaryOff = primary.off || !ready;
   return (
@@ -68,10 +68,14 @@ export function CallControls({
       >
         <GlassEffectContainer>
           <Stack spacing={sizes.gap}>
-            {add ? <CallAdd call={call} size={sizes.mute} /> : null}
-            {/* With no call there's nothing to mute, so an empty space holds mute's place and the
-            call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
-            a glass button with opacity 0 still drew, glyph and all. */}
+            {/* With no call there's nothing to send to or mute, so empty spaces hold the +'s and
+            mute's places and nothing beside them moves as a call starts. Not invisible buttons: in
+            a GlassEffectContainer, a glass button with opacity 0 still drew, glyph and all. */}
+            {add && buttons.add ? (
+              <CallAdd call={call} size={sizes.mute} />
+            ) : add ? (
+              <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
+            ) : null}
             {mute && !buttons.mute ? (
               <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
             ) : mute && buttons.mute ? (
