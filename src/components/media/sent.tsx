@@ -7,7 +7,7 @@ import { metrics, space, textOf } from '@/ui/tokens';
 
 // A photo or clip you sent a call, on your side of its words, sized from their width.
 // While hex takes it in, it shows dim with Sending under it.
-export function Sent({
+export function SentMedia({
   media,
   sending = false,
   failed,

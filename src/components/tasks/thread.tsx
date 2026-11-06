@@ -287,7 +287,7 @@ function Composer({
     >
       <AddMedia
         testID="thread-add"
-        most={Math.max(1, MOST - media.length)}
+        most={MOST - media.length}
         sends={false}
         onAdd={(more) => setMedia((now) => [...now, ...more].slice(0, MOST))}
         label={
@@ -323,7 +323,7 @@ function Composer({
         ]}
       >
         {media.length ? (
-          <RNHostView matchContents>
+          <RNHostView matchContents={{ vertical: true }}>
             <Waiting
               media={media}
               onRemove={(at) => setMedia((now) => now.filter((_, i) => i !== at))}

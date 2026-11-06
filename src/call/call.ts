@@ -10,6 +10,7 @@ import {
   type CallRecord,
   type CallSource,
 } from '@/live/calls';
+import type { MediaId, Shown } from '@/live/media';
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from '@/live/types';
 
 export type Mic = { muted: boolean; interrupted: boolean };
@@ -91,6 +92,25 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
       words: session.transcript,
     },
   };
+}
+
+// A photo or clip you sent a call from here, as its words show it until hex's record has it: going,
+// or why it didn't.
+export type Sent = { call: CallId; id?: MediaId; entry: TranscriptEntry & { media: Shown } };
+
+// The call with what you sent it among its words. One hex holds elsewhere shows each from its own
+// record once that has it, so a sent one shows only until then.
+export function withSent(call: Call, sent: Sent[]): Call {
+  if (call.kind === 'none') return call;
+  const id = callIdOf(call);
+  const kept = new Set(
+    call.kind === 'elsewhere' ? (call.record.moments ?? []).map((m) => m.media) : [],
+  );
+  const ours = sent
+    .filter((one) => one.call === id && !(one.id && kept.has(one.id)))
+    .map((one) => one.entry);
+  if (!ours.length) return call;
+  return { ...call, words: [...call.words, ...ours].sort((a, b) => a.startMs - b.startMs) };
 }
 
 // The call going on now, here or elsewhere; hex names this phone's once it answers.

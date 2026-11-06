@@ -1,6 +1,7 @@
 import { BottomSheet, Button, Group, Menu, RNHostView } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
+  disabled,
   frame,
   presentationBackground,
   presentationDetents,
@@ -15,8 +16,9 @@ import type { Picked } from '@/live/media';
 import { bevel, theme } from '@/theme';
 
 // The + and what it opens, as ChatGPT's plus does: the system menu with Camera, which rises as a
-// sheet to half the screen, and Photos, Apple's own picker. What you shoot or pick goes to `onAdd`;
-// `sends` says it goes out from there, so the camera's last button says Send rather than Add.
+// sheet to half the screen, and Photos, Apple's own picker, up to `most` at once (none: the + is
+// off). What you shoot or pick goes to `onAdd`; `sends` says it goes out from there, so the
+// camera's last button says Send rather than Add.
 export function AddMedia({
   label,
   most,
@@ -38,6 +40,8 @@ export function AddMedia({
       selectionLimit: most,
       preferredAssetRepresentationMode:
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      // A clip the size the camera records, so a minute of 4K doesn't go up whole.
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
     if (picked.canceled) return;
     onAdd(
@@ -54,7 +58,7 @@ export function AddMedia({
       onIsPresentedChange={setCamera}
       testID={`${testID}-camera`}
       anchor={
-        <Menu label={label} modifiers={[accessibilityIdentifier(testID)]}>
+        <Menu label={label} modifiers={[accessibilityIdentifier(testID), disabled(most < 1)]}>
           <Button label="Camera" systemImage="camera" onPress={() => setCamera(true)} />
           <Button label="Photos" systemImage="photo.on.rectangle" onPress={() => void pick()} />
         </Menu>

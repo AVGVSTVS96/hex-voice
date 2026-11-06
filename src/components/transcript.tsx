@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import { CallAsk } from '@/components/call-ask';
-import { Sent } from '@/components/media/sent';
+import { SentMedia } from '@/components/media/sent';
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import type { TaskId } from '@/live/tasks';
@@ -92,7 +92,7 @@ export function Transcript({
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : moment.media ? (
-            <Sent
+            <SentMedia
               key={moment.id}
               media={moment.media}
               sending={moment.sending}

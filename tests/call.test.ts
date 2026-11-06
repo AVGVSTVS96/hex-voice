@@ -12,10 +12,12 @@ import {
   statusOf,
   voiceLocked,
   wakeOf,
+  withSent,
   wordsOf,
   type Call,
 } from '../src/call/call';
 import { CallId, type CallRecord } from '../src/live/calls';
+import { MediaId } from '../src/live/media';
 import type { LiveSnapshot, TranscriptEntry } from '../src/live/types';
 
 const words: TranscriptEntry[] = [{ id: 'user-0', role: 'user', text: 'Hi hex', startMs: 0 }];
@@ -272,4 +274,33 @@ test('an error from this phone’s last call goes once a call elsewhere is the l
   });
   assert.equal(errorOf(after), undefined);
   assert.equal(buttonsOf(after).call, 'start');
+});
+
+test('what you sent a call shows among its words, going then sent, until the record of a call held elsewhere has it', () => {
+  const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
+  const sent = (call: CallId, at: number, id?: string) => ({
+    call,
+    id: id === undefined ? undefined : MediaId.parse(id),
+    entry: { id: `sent ${at}`, role: 'user' as const, text: '', startMs: at, media: photo },
+  });
+  const here = withSent(live(), [sent(sess, 500), sent(CallId.parse('other'), 100)]);
+  assert.deepEqual(
+    wordsOf(here).map(({ id }) => id),
+    ['user-0', 'sent 500'],
+  );
+  const phone = callOf(session(), {
+    record: record({ moments: [{ at: 900, kind: 'photo', text: '', media: MediaId.parse('m1') }] }),
+    leaving: false,
+  });
+  const ids = (call: Call) => wordsOf(call).map(({ id }) => id);
+  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800)])), [
+    'voice 0',
+    'sent 800',
+    'media m1',
+  ]);
+  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800, 'm1')])), [
+    'voice 0',
+    'media m1',
+  ]);
+  assert.equal(withSent(callOf(session(), nobody), [sent(sess, 1)]).kind, 'none');
 });

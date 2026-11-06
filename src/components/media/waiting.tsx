@@ -6,7 +6,8 @@ import type { Picked } from '@/live/media';
 import { circle, radius, theme } from '@/theme';
 import { metrics, space } from '@/ui/tokens';
 
-// What you picked or shot, waiting in the composer to go with your words, each with its way out.
+// What you picked or shot, waiting in the composer to go with your words, each with its way out,
+// as many to a row as the field's width holds.
 export function Waiting({ media, onRemove }: { media: Picked[]; onRemove: (at: number) => void }) {
   return (
     <View style={styles.row}>
@@ -32,7 +33,7 @@ export function Waiting({ media, onRemove }: { media: Picked[]; onRemove: (at: n
 const REMOVE = space[5];
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space[2] },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   one: { width: metrics.media.waiting, height: metrics.media.waiting },
   remove: {
     ...circle(REMOVE),

@@ -24,8 +24,9 @@ const { shutter, ring } = metrics.media;
 const HOLD_MS = 280;
 
 // The live camera, to its edges: tap the shutter for a photo, hold it for a clip with a ring
-// filling to a minute, flip to the other camera, then Retake or keep the shot. While a call here
-// holds the microphone, a clip records without sound.
+// filling to a minute, flip to the other camera, then Retake or keep the shot. It takes the
+// microphone only while a clip records, so music plays on as it opens, and never while a call here
+// holds it: then a clip records without sound.
 export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) => void }) {
   const camera = useRef<CameraView>(null);
   const [permission, ask] = useCameraPermissions();
@@ -33,7 +34,10 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   const [phase, setPhase] = useState<Phase>({ at: 'live' });
   const quiet = useMicHeld();
   const filled = useSharedValue(0);
-  const recording = useRef(false);
+  // Whether the shutter is still held: a clip records until it's let go, even let go before the
+  // recording has begun.
+  const held = useRef(false);
+  const recording = phase.at === 'recording';
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) void ask();
@@ -44,22 +48,33 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     if (photo)
       setPhase({ at: 'review', shot: { uri: photo.uri, kind: 'photo', type: 'image/jpeg' } });
   };
-  const record = async () => {
-    recording.current = true;
-    setPhase({ at: 'recording', since: Date.now() });
-    filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
-    const clip = await camera.current
-      ?.recordAsync({ maxDuration: CLIP_SECONDS })
-      .catch(() => undefined);
-    recording.current = false;
-    cancelAnimation(filled);
-    filled.set(0);
-    setPhase(
-      clip
-        ? { at: 'review', shot: { uri: clip.uri, kind: 'video', type: 'video/quicktime' } }
-        : { at: 'live' },
-    );
+  const lift = () => {
+    if (!held.current) return;
+    held.current = false;
+    camera.current?.stopRecording();
   };
+  // A clip starts once the camera has the microphone, a render after the hold.
+  useEffect(() => {
+    if (!recording) return;
+    if (!held.current) {
+      setPhase({ at: 'live' });
+      return;
+    }
+    filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
+    void camera.current
+      ?.recordAsync({ maxDuration: CLIP_SECONDS, progressUpdateInterval: 0.1 })
+      .catch(() => undefined)
+      .then((clip) => {
+        held.current = false;
+        cancelAnimation(filled);
+        filled.set(0);
+        setPhase(
+          clip
+            ? { at: 'review', shot: { uri: clip.uri, kind: 'video', type: 'video/quicktime' } }
+            : { at: 'live' },
+        );
+      });
+  }, [recording]);
 
   if (!permission?.granted)
     return permission && !permission.canAskAgain ? (
@@ -81,8 +96,11 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
         facing={facing}
         mode="video"
         videoQuality="720p"
-        mute={quiet}
+        mute={quiet || !recording}
         active={phase.at !== 'review'}
+        onRecordingProgress={() => {
+          if (!held.current) camera.current?.stopRecording();
+        }}
       />
       {phase.at === 'review' && phase.shot.kind === 'photo' && (
         <Image
@@ -123,12 +141,13 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
                 testID="camera-shutter"
                 delayLongPress={HOLD_MS}
                 onPress={() => void take()}
-                onLongPress={() => void record()}
-                onPressOut={() => {
-                  if (recording.current) camera.current?.stopRecording();
+                onLongPress={() => {
+                  held.current = true;
+                  setPhase({ at: 'recording', since: Date.now() });
                 }}
+                onPressOut={lift}
               >
-                <Shutter recording={phase.at === 'recording'} filled={filled} />
+                <Shutter recording={recording} filled={filled} />
               </Pressable>
             </View>
             <View style={styles.side}>

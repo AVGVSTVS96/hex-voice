@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, View, type DimensionValue } from 'react-native';
 
 import { Glyph } from '@/components/glyph';
-import { useMediaSource } from '@/hooks/use-media';
+import { mediaSource } from '@/hooks/use-media';
 import type { Shown } from '@/live/media';
 import { bevel, circle, radius, theme } from '@/theme';
 import { metrics, space } from '@/ui/tokens';
@@ -22,7 +22,7 @@ export function Thumb({
   square?: boolean;
 }) {
   const [shape, setShape] = useState(4 / 3);
-  const source = useMediaSource(media);
+  const source = mediaSource(media);
   return (
     <View
       accessibilityRole="image"

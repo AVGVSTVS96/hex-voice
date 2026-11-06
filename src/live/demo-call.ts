@@ -42,5 +42,4 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
 export const demoAPI: SessionAPI = {
   create: async () => ({ sdp: '', sessionId: CallId.parse('demo') }),
   close: async () => {},
-  share: async () => {},
 };

@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
-import { callOf, isHere, type Call } from '@/call/call';
+import { callIdOf, callOf, isHere, withSent, type Call, type Sent } from '@/call/call';
 import { hex } from '@/hex';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import type { CallId } from '@/live/calls';
@@ -23,6 +23,11 @@ import type { LiveVoice } from '@/live/voices';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
 const Session = createContext<{ session: LiveSession; demo: boolean } | null>(null);
+// What you sent the call from here, and how to send it more.
+const Sending = createContext<{
+  sent: Sent[];
+  send: (call: CallId, at: number, media: Picked) => void;
+} | null>(null);
 
 // The call's audio lives above every screen, so moving between them never ends it. A demo session
 // plays a pretend call (src/live/demo-call.ts), starting as the call screen opens.
@@ -49,7 +54,37 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
     };
   }, [session]);
   const [value] = useState({ session, demo });
-  return <Session value={value}>{children}</Session>;
+  const [sent, setSent] = useState<Sent[]>([]);
+  const [send] = useState(() => (call: CallId, at: number, media: Picked) => {
+    const entry = {
+      id: `sent ${call} ${at} ${media.uri}`,
+      role: 'user' as const,
+      text: '',
+      startMs: at,
+      media,
+      sending: true,
+    };
+    const settle = (change: Partial<Sent>, entryChange: Partial<Sent['entry']>) =>
+      setSent((now) =>
+        now.map((one) =>
+          one.entry.id === entry.id
+            ? { ...one, ...change, entry: { ...one.entry, sending: false, ...entryChange } }
+            : one,
+        ),
+      );
+    setSent((now) => [...now, { call, entry }]);
+    // A clip's file is one no image view draws, so once hex has it, it shows hex's still.
+    hex.calls.share(call, media).then(
+      (shared) => settle({ id: shared.id }, media.kind === 'video' ? { media: shared } : {}),
+      (error: unknown) =>
+        settle({}, { failed: error instanceof Error ? error.message : String(error) }),
+    );
+  });
+  return (
+    <Session value={value}>
+      <Sending value={{ sent, send }}>{children}</Sending>
+    </Session>
+  );
 }
 
 // The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
@@ -66,7 +101,11 @@ export function useCall(held: CallId | null) {
     held && !here && held !== snapshot.callId ? held : undefined,
     here,
   );
-  const call = callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving });
+  const { sent } = use(Sending)!;
+  const call = withSent(
+    callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving }),
+    sent,
+  );
   useEffect(() => {
     if (demo) void session.start();
   }, [session, demo]);
@@ -89,13 +128,15 @@ export function useMicHeld() {
   return isHere(status);
 }
 
-// What you send a call: shown in its words at once when it's this phone's, or put on the record of
-// the call hex holds elsewhere.
+// What you send a call shows in its words at once, going, then sent or why it didn't.
 export function useShare(call: Call) {
-  const { session } = use(Session)!;
+  const { send } = use(Sending)!;
+  const id = callIdOf(call);
   return (media: Picked) => {
-    if (call.kind === 'here') void session.share(media);
-    else if (call.kind === 'elsewhere') void hex.calls.share(call.record.id, media).catch(() => {});
+    if (call.kind === 'none' || !id) return;
+    const at =
+      call.kind === 'here' ? call.seconds * 1000 : Date.now() - Date.parse(call.record.started);
+    send(id, at, media);
   };
 }
 

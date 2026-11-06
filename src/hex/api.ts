@@ -25,10 +25,6 @@ export function createHex({ request, send, upload, image }: Client) {
     // The photo, or for a clip a still from it.
     image: (id: MediaId) => image(`/media/${enc(id)}`),
   };
-  const share = async (call: CallId, picked: Picked) => {
-    const { id } = await media.upload(picked);
-    await send(`/calls/${enc(call)}/media`, { body: { media: id } });
-  };
   const session: SessionAPI = {
     create: async (sdp, voice, about) => {
       const { session, transport } = await request('/session', Opened, {
@@ -39,7 +35,6 @@ export function createHex({ request, send, upload, image }: Client) {
     },
     close: (sessionId) => send('/session', { method: 'DELETE', body: { sessionId } }),
     mark: (sessionId, kind) => send(`/calls/${enc(sessionId)}/moments`, { body: { kind } }),
-    share,
   };
   return {
     session,
@@ -54,7 +49,12 @@ export function createHex({ request, send, upload, image }: Client) {
       get: (id: CallId, after?: number, signal?: AbortSignal) =>
         request(`/calls/${enc(id)}`, CallRecord, { after, signal }),
       remove: (id: CallId) => send(`/calls/${enc(id)}`, { method: 'DELETE' }),
-      share,
+      // The photo or clip goes up, then to the call by the id hex gave it, which comes back.
+      share: async (id: CallId, picked: Picked) => {
+        const shared = await media.upload(picked);
+        await send(`/calls/${enc(id)}/media`, { body: { media: shared.id } });
+        return shared;
+      },
     },
     tasks: {
       list: (after?: number, signal?: AbortSignal) =>

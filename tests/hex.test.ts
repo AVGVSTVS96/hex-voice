@@ -237,12 +237,13 @@ test('a photo goes to hex as its bytes, then to the call or the thread by the id
     createClient({
       url,
       token: 'secret',
-      open: (uri) => new Blob([`bytes of ${uri}`]),
+      sendFile: async (to, file, { headers }) => {
+        seen.push({ url: to, init: { headers, body: `file ${file.uri}` } });
+        return { status: 201, text: JSON.stringify({ id: `m${seen.length}`, kind: 'photo' }) };
+      },
       fetch: async (input, init) => {
         seen.push({ url: String(input), init });
-        return String(input).endsWith('/media')
-          ? Response.json({ id: `m${seen.length}`, kind: 'photo' }, { status: 201 })
-          : new Response(null, { status: 204 });
+        return new Response(null, { status: 204 });
       },
     }),
   );
@@ -255,15 +256,15 @@ test('a photo goes to hex as its bytes, then to the call or the thread by the id
       seen.map(async ({ url, init }) => [
         url.slice(url.indexOf('/', 8)),
         new Headers(init?.headers).get('content-type'),
-        init?.body instanceof ArrayBuffer ? new TextDecoder().decode(init.body) : init?.body,
+        init?.body,
       ]),
     ),
     [
-      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
-      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'file file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'file file:///shot.jpg'],
       ['/calls/live_1/media', 'application/json', '{"media":"m2"}'],
-      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
-      ['/media', 'image/jpeg', 'bytes of file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'file file:///shot.jpg'],
+      ['/media', 'image/jpeg', 'file file:///shot.jpg'],
       [
         '/tasks/telegram%3A-100%3A908/chat',
         'application/json',

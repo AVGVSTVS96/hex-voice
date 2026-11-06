@@ -1,7 +1,7 @@
 import * as z from 'zod/mini';
 
 import type { CallEnding, CallId } from './calls';
-import type { Picked, Shown } from './media';
+import type { Shown } from './media';
 import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
@@ -98,5 +98,4 @@ export type SessionAPI = {
   ) => Promise<{ sdp: string; sessionId: CallId }>;
   close: (sessionId: CallId) => Promise<void>;
   mark?: (sessionId: CallId, kind: 'paused' | 'resumed') => Promise<void>;
-  share?: (sessionId: CallId, media: Picked) => Promise<void>;
 };
