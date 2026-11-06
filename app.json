@@ -56,6 +56,7 @@
       "./plugins/with-activity-orbs",
       "./plugins/without-push",
       "./plugins/with-rive-legacy",
+      "./plugins/with-siri",
       "expo-widgets",
       "expo-audio"
     ],

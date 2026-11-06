@@ -3,6 +3,7 @@
 Read https://docs.expo.dev/versions/v58.0.0/ before changing Expo code.
 
 Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`).
+Siri sees Ask hex (`plugins/siri`) only in builds made with Xcode 27.3 or newer, whose SDK has its tool and skill; older Xcodes build it as a plain intent.
 
 hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx github:AVGVSTVS96/autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
 
