@@ -316,18 +316,20 @@ export class LiveSession {
       text: '',
       startMs: Date.now() - this.startedAt,
       media,
+      sending: true,
     };
     this.update({ transcript: [...this.snapshot.transcript, entry] });
-    try {
-      await this.api.share(id, media);
-    } catch (error) {
-      if (this.sessionId !== id) return;
-      const failed = error instanceof Error ? error.message : 'Not sent';
+    const settle = (change: Partial<TranscriptEntry>) =>
       this.update({
         transcript: this.snapshot.transcript.map((each) =>
-          each.id === entry.id ? { ...each, failed } : each,
+          each.id === entry.id ? { ...each, sending: false, ...change } : each,
         ),
       });
+    try {
+      await this.api.share(id, media);
+      settle({});
+    } catch (error) {
+      settle({ failed: error instanceof Error ? error.message : 'Not sent' });
     }
   };
 

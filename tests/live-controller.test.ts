@@ -790,11 +790,11 @@ test('a photo sent on a call shows as your turn at once, your words never join i
     const words = h.session.getSnapshot().transcript;
     assert.deepEqual(shared, ['live_1 file:///router.jpg', 'live_1 file:///router.jpg']);
     assert.deepEqual(
-      words.map(({ text, media, failed }) => [text, media?.kind, failed]),
+      words.map(({ text, media, sending, failed }) => [text, media?.kind, sending, failed]),
       [
-        ['', 'photo', undefined],
-        ['Why is it orange?', undefined, undefined],
-        ['', 'photo', 'Cannot reach hex. Check that Tailscale is on, then try again.'],
+        ['', 'photo', false, undefined],
+        ['Why is it orange?', undefined, undefined, undefined],
+        ['', 'photo', false, 'Cannot reach hex. Check that Tailscale is on, then try again.'],
       ],
     );
   } finally {

@@ -92,7 +92,12 @@ export function Transcript({
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : moment.media ? (
-            <Sent key={moment.id} media={moment.media} failed={moment.failed} />
+            <Sent
+              key={moment.id}
+              media={moment.media}
+              sending={moment.sending}
+              failed={moment.failed}
+            />
           ) : (
             <Line key={moment.id} entry={moment} size={size} />
           ),
