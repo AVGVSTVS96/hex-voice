@@ -1,6 +1,7 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["PoseModule"]
+    "modules": ["PoseModule"],
+    "reactDelegateHandlers": ["PoseReactDelegateHandler"]
   }
 }

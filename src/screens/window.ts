@@ -43,12 +43,6 @@ export function roomOf(pose: Pose, size: Size, insets: Insets): Room {
   };
 }
 
-// Whether the screen turns as the device does: a plain iPhone stays upright, iPad and iPhone Duo
-// turn. A device fact, so it reads the pose itself.
-export function turns(pose: Pose, pad: boolean) {
-  return pad || !!pose.bar || !!pose.fold;
-}
-
 // The fold within the window: it parts the window only where it lies across it with a page of the
 // window's safe room on either side, and then it's the line down the middle of iOS's division
 // region. How far the Duo is folded never reaches layout: Apple asks folding to move only what it
