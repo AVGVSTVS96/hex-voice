@@ -90845,10 +90845,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..9cfd2de53548c4a75112ec5e58077ca3cecb6348
+index 0000000000000000000000000000000000000000..ac02f346da12d8ab40b5393470ff2284dbcacacc
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,617 @@
+@@ -0,0 +1,624 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -91384,14 +91384,21 @@ index 0000000000000000000000000000000000000000..9cfd2de53548c4a75112ec5e58077ca3
 +  VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
 +  filmstrips "$dir/duo"
 +  filmstrips "$dir/ipad"
-+  echo "a fresh reviewer is looking at $title"
-+  # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says otherwise
-+  # (anthropics/claude-code#97074).
-+  (cd "$dir" && CLAUDE_CODE_ENTRYPOINT=cli claude -p --model claude-opus-5-5 --effort high \
-+    --allowedTools Read Glob 'Bash(magick:*)' <"$repo/scripts/review.md") >"$dir/review.md" ||
-+    die "the reviewer didn't answer, so $title isn't verified"
++  echo "three fresh reviewers are looking at $title: the folded Duo, the open Duo and the iPad"
++  local share
++  for share in "duo/cover-up duo/cover-side" "duo/open-up duo/open-side" "ipad/up ipad/side"; do
++    # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says
++    # otherwise (anthropics/claude-code#97074).
++    { cat "$repo/scripts/review.md"; echo; echo "Your share is everything for these poses: $share."; } |
++      (cd "$dir" && CLAUDE_CODE_ENTRYPOINT=cli claude -p --model claude-opus-5-5 --effort high \
++        --tools Read Glob Bash --allowedTools Read Glob 'Bash(magick:*)') >"$dir/review-$(echo "${share%% *}" | tr / -).md" &
++  done
++  wait
++  for share in duo-cover-up duo-open-up ipad-up; do
++    echo "## $share and its pair" && cat "$dir/review-$share.md"
++  done >"$dir/review.md"
 +  cat "$dir/review.md"
-+  if [ "$(tail -n1 "$dir/review.md")" = PASS ]; then
++  if [ "$(grep -cx PASS "$dir/review.md")" = 3 ]; then
 +    echo "pass $title $dir" >"$verdict"
 +  else
 +    echo "fail $title $dir" >"$verdict"
@@ -118755,10 +118762,10 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..09b02369f6ee27b1e043aa9add2a3deb2f09ddc2
+index 0000000000000000000000000000000000000000..1de5e4de4ab2b0f82222d983edeeae60bd7e4cca
 --- /dev/null
 +++ b/uitests/DuoTests.swift
-@@ -0,0 +1,199 @@
+@@ -0,0 +1,201 @@
 +import XCTest
 +
 +// Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
@@ -118896,8 +118903,8 @@ index 0000000000000000000000000000000000000000..09b02369f6ee27b1e043aa9add2a3deb
 +        }
 +    }
 +
-+    // Pages that have left stay in the tree off screen, so the first match on screen wins, whole if
-+    // one is. Which are on screen comes from one snapshot of the tree, since a live list can change
++    // Pages that have left stay in the tree off screen, so the first match on screen wins, one named
++    // by the query before one that only mentions it, whole if one is. Which are on screen comes from one snapshot of the tree, since a live list can change
 +    // between reading a match's place and touching it, and asking a live element whether it can be
 +    // touched fails the run when its frame has just gone.
 +    private func element(_ query: String) -> XCUIElement? {
@@ -118910,7 +118917,9 @@ index 0000000000000000000000000000000000000000..09b02369f6ee27b1e043aa9add2a3deb
 +        let screen = app.windows.firstMatch.frame
 +        let onScreen = matching(query, in: tree).enumerated()
 +            .filter { screen.contains(CGPoint(x: $0.element.frame.midX, y: $0.element.frame.midY)) }
-+        let pick = onScreen.first { screen.contains($0.element.frame) } ?? onScreen.first
++        // "Working" means the tab "Working 5" before a row that reads "Working: Telegram…".
++        let named = onScreen.filter { $0.element.identifier == query || $0.element.label == query || $0.element.label.hasPrefix(query + " ") }
++        let pick = (named.isEmpty ? onScreen : named).first { screen.contains($0.element.frame) } ?? onScreen.first
 +        return pick.map { matches.element(boundBy: $0.offset) } ?? matches.firstMatch
 +    }
 +
