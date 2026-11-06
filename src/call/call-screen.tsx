@@ -61,6 +61,7 @@ import { hairline, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics, stack } from '@/ui/tokens';
 import { roomOf, turns, type Room } from '@/screens/window';
+import { closed, inView, opened, type Place, type Places } from './places';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
@@ -163,20 +164,20 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const duo = layout.duo;
   // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
   const settingsPlace = room.fold && duo?.tasks.area;
-  // Tasks and settings take turns like tabs; `shows` stays on the last one while it closes. Where
-  // settings goes, its place or a sheet, follows the room.
-  const [place, setPlace] = useState<{ open: boolean; shows: 'tasks' | 'settings' }>({
-    open: opening.tasks !== undefined || opening.open === 'settings',
-    shows: opening.open === 'settings' ? 'settings' : 'tasks',
+  const shared = !!settingsPlace;
+  const [places, setPlaces] = useState<Places>({
+    tasks: opening.tasks !== undefined,
+    settings: opening.open === 'settings',
+    front: opening.open === 'settings' ? 'settings' : 'tasks',
   });
-  const tasksOpen = place.open && place.shows === 'tasks';
-  const settingsOpen = place.open && place.shows === 'settings';
-  const placeOpen = tasksOpen || (!!settingsPlace && settingsOpen);
-  const show = (shows: 'tasks' | 'settings') => setPlace({ open: true, shows });
-  const closePlace = () => setPlace((now) => ({ ...now, open: false }));
-  // A sheet's dismissal lands after a swap too, so it closes only what it shows.
-  const close = (shown: 'tasks' | 'settings') =>
-    setPlace((now) => (now.shows === shown ? { ...now, open: false } : now));
+  const { tasks: tasksOpen, settings: settingsOpen } = inView(places, shared);
+  const placeOpen = tasksOpen || (shared && settingsOpen);
+  const show = (place: Place) => setPlaces((now) => opened(now, place, shared));
+  const close = (place: Place) => setPlaces((now) => closed(now, place));
+  const closePlace = () => {
+    close('tasks');
+    if (shared) close('settings');
+  };
   const reducedMotion = useReducedMotion();
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -815,7 +816,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           duo={duo}
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
-          shown={place.shows === 'tasks'}
+          shown={places.front === 'tasks'}
           onCall={onCall}
           seconds={callSeconds}
           pane={pane}
@@ -825,7 +826,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
         place={
           settingsPlace
-            ? { area: settingsPlace, shown: place.shows === 'settings', pane }
+            ? { area: settingsPlace, shown: places.front === 'settings', pane }
             : undefined
         }
         isPresented={settingsOpen}
@@ -862,7 +863,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           toggleDrawer();
         }}
         onTasks={toggleTasks}
-        onSettings={() => (settingsOpen ? closePlace() : show('settings'))}
+        onSettings={() => (settingsOpen ? close('settings') : show('settings'))}
       />
       {controlsColumn && controls}
     </>
