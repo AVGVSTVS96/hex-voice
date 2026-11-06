@@ -140,6 +140,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
   // footer and agent line follow the words there instead of spanning the screen.
   const moves = split || !!orb.dock;
+  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
+  const follows = moves || !!layout.duo?.beside;
   // What the words show, in one place. Where the layout pulls the words down over the orb, they
   // show once pulled; everywhere else they take their own page once there's a call or words to show,
   // and before that the orb rests alone in the middle. Opening a past call pulls them, and letting
@@ -401,9 +403,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     'worklet';
     return open + (calls - open) * d + (tasks - open) * t;
   };
-  const columnStyle = useAnimatedStyle(() => {
-    const { d, t } = besideness(drawer.get(), pane.get());
-    const a = aside.get();
+  // The footer and agent line each hold their own span, or where the call moves, follow the words.
+  // One style writes their place either way: a prop Reanimated has written stays on the view after
+  // it stops writing it, so a span React passes beside it would never come back.
+  const column = (own: { x: number; width: number }, drawn: number, paned: number, a: number) => {
+    'worklet';
+    if (!follows) return { left: own.x, width: own.width, marginBottom: 0 };
+    const { d, t } = besideness(drawn, paned);
     return {
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
       width:
@@ -411,7 +417,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         (before.width - words.width) * a,
       marginBottom: lift.calls * d + lift.tasks * t + before.raise * a,
     };
-  });
+  };
+  const footerStyle = useAnimatedStyle(() =>
+    column(layout.footer, drawer.get(), pane.get(), aside.get()),
+  );
+  const agentStyle = useAnimatedStyle(() =>
+    column(layout.agent, drawer.get(), pane.get(), aside.get()),
+  );
   // The call's own lines make way for the iPad inbox, and for iPhone Duo's Tasks where it covers them.
   const linesStyle = useAnimatedStyle(() => {
     const { t } = besideness(drawer.get(), pane.get());
@@ -513,9 +525,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) * uncovered(covers.get()),
   }));
   // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
-  // the words' fades trade the call's color for the backdrop's as it comes in.
+  // the words' fades trade the call's color for the backdrop's as it comes in. They wear that style
+  // off the Duo too, so its last opacity can't stay behind when a window loses the Duo's layout.
   const backdropStyle = useAnimatedStyle(() => ({ opacity: pane.get() }));
-  const callColorStyle = useAnimatedStyle(() => ({ opacity: 1 - pane.get() }));
+  const callColorStyle = useAnimatedStyle(() => ({ opacity: duo ? 1 - pane.get() : 1 }));
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const shown = reducedMotion
@@ -708,14 +721,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                       onOpenTask={(task) => openTasks({ task })}
                     />
                   )}
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[styles.fade, duo && callColorStyle]}
-                  />
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[styles.fadeBottom, duo && callColorStyle]}
-                  />
+                  <Animated.View pointerEvents="none" style={[styles.fade, callColorStyle]} />
+                  <Animated.View pointerEvents="none" style={[styles.fadeBottom, callColorStyle]} />
                   {duo && (
                     <>
                       <Animated.View
@@ -774,12 +781,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             calls={calls.calls}
             trouble={troubleNow}
             leading={split}
-            style={[
-              { left: layout.footer.x, width: layout.footer.width },
-              (moves || duo?.beside) && columnStyle,
-              linesStyle,
-              { paddingBottom: layout.footer.bottom },
-            ]}
+            style={[footerStyle, linesStyle, { paddingBottom: layout.footer.bottom }]}
             onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
             onOpen={showCall}
             onMore={() => openTasks({ stage: 'needs' })}
@@ -794,12 +796,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
             hitSlop={{ top: 8, bottom: 12 }}
-            style={[
-              styles.agent,
-              { left: layout.agent.x, width: layout.agent.width, bottom: layout.agent.bottom },
-              (moves || duo?.beside) && columnStyle,
-              linesStyle,
-            ]}
+            style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
           >
             <AgentLine line={agent} />
           </AnimatedPressable>
