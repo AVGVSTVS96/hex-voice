@@ -56,6 +56,7 @@ final class DuoTests: XCTestCase {
         for line in script.split(separator: "\n") {
             let words = line.split(separator: " ", maxSplits: 1).map(String.init)
             guard let command = words.first, !command.hasPrefix("#") else { continue }
+            print("duo-line \(line)")
             let argument = words.count > 1 ? words[1] : ""
             switch command {
             case "launch":
@@ -66,17 +67,21 @@ final class DuoTests: XCTestCase {
             case "tap": element(argument).map { tap($0, argument) }
             case "tap-at":
                 let point = argument.split(separator: " ").compactMap { Double($0) }
+                touch()
                 app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: point[0], dy: point[1])).tap()
             case "swipe-back":
+                element(argument).map { _ in touch() }
                 element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
-            case "swipe-left": element(argument).map { holder($0, rows: true) }?.swipeLeft()
-            case "scroll": (argument.isEmpty ? app.collectionViews.firstMatch : element(argument).map { holder($0, rows: false) })?.swipeUp()
+            case "swipe-left": element(argument).map { touch(); holder($0, rows: true).swipeLeft() }
+            case "scroll":
+                let list = argument.isEmpty ? app.collectionViews.firstMatch : element(argument).map { holder($0, rows: false) }
+                list.map { touch(); $0.swipeUp() }
             case "shoot", "pose", "pose-burst":
                 sleep(1)
                 print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
-                sleep(command == "shoot" ? 3 : 9)
+                sleep(command == "shoot" ? UInt32(ProcessInfo.processInfo.environment["DUO_SHOOT_WAIT"] ?? "") ?? 3 : 9)
             case "snap": print("duo-snap \(argument)")
             case "hex":
                 print("duo-hex \(argument)")
@@ -91,6 +96,7 @@ final class DuoTests: XCTestCase {
             case "type":
                 let parts = argument.split(separator: " ", maxSplits: 1).map(String.init)
                 guard let field = element(parts[0]) else { break }
+                touch()
                 field.tap()
                 field.typeText(parts.count > 1 ? parts[1] : "")
             case "above-keyboard":
@@ -100,6 +106,7 @@ final class DuoTests: XCTestCase {
                 XCTAssertLessThanOrEqual(frame.maxY, keyboard.frame.minY, "\(argument) ends \(frame.maxY) under the keyboard's top \(keyboard.frame.minY)")
                 XCTAssertGreaterThanOrEqual(frame.minY, app.windows.firstMatch.frame.minY, "\(argument) starts above the screen")
             case "swipe-down":
+                element(argument).map { _ in touch() }
                 element(argument)?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
             case "no-keyboard":
@@ -127,16 +134,28 @@ final class DuoTests: XCTestCase {
     }
 
     // Pages that have left stay in the tree off screen, and rows scrolled under a bar can't be
-    // touched, so the first match that can be wins, then the first on screen.
+    // touched, so the first match that can be wins, then the first on screen. Which are on screen
+    // comes from one snapshot of the tree, since a live list can change between reading a match's
+    // place and touching it.
     private func element(_ query: String) -> XCUIElement? {
         let matches = app.descendants(matching: .any).matching(predicate(for: query))
         guard matches.firstMatch.waitForExistence(timeout: 10) else {
             XCTFail("nothing matches \(query), so its line was skipped")
             return nil
         }
+        guard let tree = try? app.snapshot() else { return matches.firstMatch }
         let screen = app.windows.firstMatch.frame
-        let onScreen = matches.allElementsBoundByIndex.filter { screen.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
-        return onScreen.first { $0.isHittable } ?? onScreen.first ?? matches.firstMatch
+        let onScreen = matching(query, in: tree).enumerated()
+            .filter { screen.contains(CGPoint(x: $0.element.frame.midX, y: $0.element.frame.midY)) }
+            .map { matches.element(boundBy: $0.offset) }
+        return onScreen.prefix(4).first { $0.exists && $0.isHittable } ?? onScreen.first ?? matches.firstMatch
+    }
+
+    // The elements under a snapshot (itself excluded) that match the query, in the order a query finds them.
+    private func matching(_ query: String, in tree: XCUIElementSnapshot) -> [XCUIElementSnapshot] {
+        tree.children.flatMap { child in
+            (child.identifier == query || child.label.contains(query) ? [child] : []) + matching(query, in: child)
+        }
     }
 
     // With the keyboard up, XCUITest's own tap can land on the keyboard even for a view drawn wholly
@@ -148,11 +167,18 @@ final class DuoTests: XCTestCase {
         var shows = element.frame.intersection(window.frame)
         if keyboard.exists { shows.size.height = max(0, min(shows.height, keyboard.frame.minY - shows.minY)) }
         guard keyboard.exists, !shows.isEmpty else {
+            touch()
             element.tap()
             return
         }
         print("duo-frame tapped \(query) at (\(shows.midX), \(shows.midY)) of \(element.frame), keyboard at \(keyboard.frame.minY)")
+        touch()
         window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: shows.midX, dy: shows.midY)).tap()
+    }
+
+    // Marks the moment a finger lands, so a filmed run knows where each move starts.
+    private func touch() {
+        print("duo-touch")
     }
 
     // The smallest list or scroll view under the element, or with rows the smallest row too.

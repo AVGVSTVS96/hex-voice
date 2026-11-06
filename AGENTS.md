@@ -31,11 +31,12 @@ push main ─┬─ npm run ship:js      JS only: over the air, on both devices 
 
 ## Checking on the Duo
 
-One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. It keeps one simulator booted on the Mac, "hexvoice Duo" on iOS 27.1. To see another device, like the iPad, it shuts the Duo down first and boots it again after, so only one is ever booted. Never copy the app to the Mac.
+One agent, the verifier, runs the simulator and installs to his iPhone Duo; builders commit and hand it the commit. Checks run in lanes, each a Duo simulator on iOS 27.1 and an iPad on 27.0 with its own Mac folder, stand-in port and lock, one of the pair booted at a time and kept booted between checks: a check takes whichever of lanes 1 ("hexvoice Duo") and 2 ("2 hexvoice Duo") is free, and `scripts/duo verify` has its own ("verify hexvoice Duo"), so it never waits behind them. All lanes install the simulator builds lane 1 makes. To stop a check, stop it on the Mac too, or its stand-in outlives its lock. Never copy the app to the Mac.
 
 ```
 scripts/duo shoot [ref] [states]  each state (scripts/duo-states) × the Duo's 4 poses × dark and light
 scripts/duo tap [ref] [taps]      a tap script (scripts/duo-taps) played by XCUITest: real taps, folds
+scripts/duo verify [ref]          check, scripts/duo-moves filmed, judged by a fresh reviewer
 scripts/duo phone [update]        a screenshot of his real Duo, once hex runs that OTA update
 ```
 

@@ -1,0 +1,32 @@
+# The walk scripts/duo verify films: the app's screens moving into each other by toolbar, tab, row,
+# back and edge swipe, then with a call on. Each part opens the app afresh, so a step that sticks
+# can't hide the rest.
+shoot call
+tap tasks-button
+shoot tasks
+tap Working
+shoot working
+tap voice-settings-button
+shoot settings
+tap tasks-button
+shoot tasks-again
+tap voice-settings-button
+tap tasks-button
+launch hexvoice:///?tasks
+tap project-row
+shoot project
+tap task-back
+tap tasks-search
+type tasks-search-field voice
+shoot searching
+launch hexvoice:///
+tap calls-button
+shoot calls
+swipe-back calls-edge
+launch hexvoice:///?demo=call
+shoot call-live
+tap tasks-button
+shoot tasks-on-call
+tap voice-settings-button
+shoot settings-on-call
+tap tasks-button
