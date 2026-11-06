@@ -8,11 +8,12 @@ import {
   shapes,
   textSelection,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
 import { Failure, SectionHead } from '@/components/tasks/parts';
+import { Selectable } from '@/components/tasks/said';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
 import { theme } from '@/theme';
@@ -69,13 +70,14 @@ function Section({ section }: { section: PinSection }) {
 
 function Line({ line }: { line: PinLine }) {
   const tries = useFailures();
+  const selectable = useContext(Selectable);
   if (line.kind === 'code')
     return (
       <Text
         variant="code"
         paragraph
         modifiers={[
-          textSelection(true),
+          textSelection(selectable),
           padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           background(theme.surface),
@@ -99,7 +101,7 @@ function Line({ line }: { line: PinLine }) {
         inline
         variant="subheadline"
         tone="secondary"
-        selectable
+        selectable={selectable}
         modifiers={[
           padding({
             leading: metrics.list.inset,
