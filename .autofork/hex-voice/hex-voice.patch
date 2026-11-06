@@ -98957,10 +98957,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..092f76549e5be31f0cae8bc109dcee30dc69f8b2
+index 0000000000000000000000000000000000000000..671f2af458df2f079c1212d0ddf466116603601c
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,646 @@
+@@ -0,0 +1,648 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99082,7 +99082,9 @@ index 0000000000000000000000000000000000000000..092f76549e5be31f0cae8bc109dcee30
 +    exec node harness/duo-hex.mjs) &
 +  standin=$!
 +  # The simulator stays booted for the next check, but the app closes: its orb draws all the while.
-+  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null' EXIT
++  # While ~/.config/turn/cold exists, as when the Mac is short of memory, the simulator shuts down too.
++  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null
++    [ ! -e ~/.config/turn/cold ] || xcrun simctl shutdown "$id"' EXIT
 +  # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
 +  curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
 +    "https://127.0.0.1:$hexport/tasks/summary" ||
