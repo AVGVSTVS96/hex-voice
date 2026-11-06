@@ -7,6 +7,8 @@
 #                                     by default) in each pose, dark and light
 #   scripts/duo tap [ref] [taps]      the tap script (the ref's scripts/duo-taps by default) in
 #                                     each pose, dark and light: XCUITest really taps
+#   scripts/duo verify [ref]          what ship:js and ship:native run first: npm run check, then
+#                                     scripts/duo-moves filmed and judged by a fresh reviewer
 #   scripts/duo phone [update]        the real Duo's screen, once it runs that OTA update if given
 #
 # POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
@@ -14,29 +16,50 @@
 # $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt naming each
 # state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 # screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
-# newest main, or nothing when that commit was already shot. DEVICE=ipad borrows hex keyboard's
-# "hexkb look iPad Pro 11" in place of the Duo, so only one is ever booted; its poses are up and
+# newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
+# iPad Pro 11" on iOS 27.0 (27.1 is the Duo's alone), in place of the Duo, shutting the Duo down so only one is booted; its poses are up and
 # side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
 # last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
 # while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
 # ANSWERS=<file of answers by path> answers those paths from the file, its shots in kept/<file>/. The JS is bundled here; the Mac builds the
 # app for the simulator only when the commit's native fingerprint has no build yet, keeping the
-# last three, and its simulator is booted only while a check runs.
+# last three. A lane's simulator stays booted between checks, since each boot starts hundreds of
+# iOS services at once and loads the Mac for minutes; each check installs the app fresh instead.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
-folder=Developer/hex-voice-sim
 DEVICE=${DEVICE:-duo}
 HEX=${HEX:-live}
-ipad="hexkb look iPad Pro 11"
 case $DEVICE in
-  duo) sim="hexvoice Duo" ;;
-  ipad) sim=$ipad ;;
+  duo | ipad) ;;
   *) echo "DEVICE is duo or ipad" >&2 && exit 1 ;;
 esac
 bundle=com.shahidy.hexvoice
-# The app under check talks to scripts/duo-hex.mjs here, which never passes a write on to hex.
-hexport=8799
+
+# A lane is a Duo and an iPad simulator with its own Mac folder, stand-in port, lock and checkout
+# here, so lanes check side by side. Checks take whichever of lanes 1 ("") and 2 is free first, and
+# verify has a lane of its own, so it never waits behind them. Every lane installs the simulator
+# builds lane 1's folder makes. The app under check talks to scripts/duo-hex.mjs on the lane's port,
+# which never passes a write on to hex.
+use_lane() {
+  LANE=$1
+  lane=${1:+-$1}
+  folder=Developer/hex-voice-sim$lane
+  duo="${1:+$1 }hexvoice Duo"
+  ipad="${1:+$1 }hexvoice iPad"
+  case $DEVICE in
+    duo) sim=$duo model=iPhone-Duo os=iOS-27-1 ;;
+    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 ;;
+  esac
+  case $1 in
+    '') hexport=8799 ;;
+    verify) hexport=8800 ;;
+    *) hexport=$((8799 + $1)) ;;
+  esac
+  verify=$home/verify$lane
+  js=$home/js$lane
+}
+use_lane "${LANE:-}"
 
 # A Duo pose is <fold>-<up|side>: the fold is cover (shut), open (flat) or the hinge's angle in
 # degrees. The iPad's are up and side.
@@ -93,7 +116,7 @@ mac_install() {
     DUO_HEX_REPLAY=$([ "$HEX" != kept ] || echo 1) DUO_HEX_ALSO=$([ ! -f harness/also.json ] || echo harness/also.json) \
     exec node harness/duo-hex.mjs) &
   standin=$!
-  trap 'kill "$standin"; xcrun simctl shutdown "$id" 2>/dev/null' EXIT
+  trap 'kill "$standin"' EXIT
   # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
   curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
     "https://127.0.0.1:$hexport/tasks/summary" ||
@@ -124,13 +147,12 @@ mac_tls() {
 }
 
 mac_simulator() {
-  local runtime=com.apple.CoreSimulator.SimRuntime.iOS-27-1 other
+  local runtime=com.apple.CoreSimulator.SimRuntime.$os other
   id=$(xcrun simctl list devices -j | jq -r --arg name "$sim" \
     '.devices[][] | select(.name == $name and .isAvailable) | .udid' | head -1)
-  [ -n "$id" ] || [ "$DEVICE" != duo ] || id=$(xcrun simctl create "$sim" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
-  [ -n "$id" ] || die "the Mac has no \"$sim\" simulator"
-  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" --arg ipad "$ipad" \
-    '.devices[][] | select(((.name | startswith("hexvoice")) or .name == $ipad) and .udid != $id) | .udid'); do
+  [ -n "$id" ] || id=$(xcrun simctl create "$sim" "com.apple.CoreSimulator.SimDeviceType.$model" "$runtime")
+  for other in $(xcrun simctl list devices booted -j | jq -r --arg id "$id" --arg duo "$duo" --arg ipad "$ipad" \
+    '.devices[][] | select((.name == $duo or .name == $ipad) and .udid != $id) | .udid'); do
     xcrun simctl shutdown "$other"
   done
   # iOS asks "Open in hex?" for each link until the scheme is approved, and reads approvals at boot.
@@ -286,14 +308,31 @@ mac_tap() {
       xcrun simctl ui "$id" appearance "$appearance"
       result=$tests/$pose-$appearance.xcresult
       rm -rf "$result" "$tests/attachments"
-      TEST_RUNNER_DUO_TAPS=$taps xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
+      [ "${VIDEO:-}" != "$appearance" ] || {
+        xcrun simctl io "$id" recordVideo --codec=h264 ${display:+--display=$display} --force \
+          "shots/$pose-$appearance.mov" >/dev/null 2>&1 &
+        recording=$!
+        sleep 1
+        filmed=$(ms)
+      }
+      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SHOOT_WAIT=$((3 + 2 * $(wc -w <<<"${ALSO:-}"))) xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
         case $line in
+          *"duo-line "* | *duo-touch*)
+            [ "${VIDEO:-}" != "$appearance" ] || echo "$(($(ms) - filmed)) ${line##*duo-}" >>"shots/$pose-$appearance-steps.txt"
+            ;;
           *"duo-step "*)
             step=${line##*duo-step }
             xcrun simctl io "$id" screenshot ${display:+--display=$display} \
               "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
+            for also in ${ALSO:-}; do
+              xcrun simctl ui "$id" appearance "$also"
+              sleep 1
+              xcrun simctl io "$id" screenshot ${display:+--display=$display} \
+                "shots/$pose-$step-$also.png" >/dev/null 2>&1
+            done
+            [ -z "${ALSO:-}" ] || xcrun simctl ui "$id" appearance "$appearance"
             xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
               jq . >"shots/$pose-$step-$appearance.json" 2>/dev/null || rm -f "shots/$pose-$step-$appearance.json"
             xcrun simctl spawn "$id" defaults read "$prefs" HexPoseLog 2>/dev/null </dev/null |
@@ -314,6 +353,7 @@ mac_tap() {
           *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
       done; wait; } || true
+      [ "${VIDEO:-}" != "$appearance" ] || { kill -INT "$recording" && wait "$recording"; } || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
       jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
         "\(.exportedFileName) \(.suggestedHumanReadableName | sub("_[0-9]+_[0-9A-F-]+.*$"; ""))"' \
@@ -331,44 +371,52 @@ mac_tap() {
 }
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-verify=$home/verify
 shots=$home/shots
+
+# Sets commit to the ref's, main's being origin/main as it is now.
+resolve() {
+  local ref=${1:-main}
+  git -C "$repo" fetch -q origin main
+  [ "$ref" != main ] || ref=origin/main
+  commit=$(git -C "$repo" rev-parse --short=7 "$ref^{commit}") || die "no commit $ref"
+}
 
 # Checks the ref out in $verify with its node_modules, bundles its JS, and builds its native code
 # on the Mac if no build has its fingerprint.
 prepare() {
-  local ref=${1:-main}
-  if [ "$ref" = main ]; then
-    git -C "$repo" fetch -q origin main
-    ref=origin/main
-  fi
-  commit=$(git -C "$repo" rev-parse --short=7 "$ref^{commit}") || die "no commit $ref"
+  resolve "${1:-}"
   [ -d "$verify" ] || git -C "$repo" worktree add -q --detach "$verify" "$commit"
   git -C "$verify" checkout -q --force --detach "$commit"
   cp "$release/.env.local" "$verify/.env.local"
   (cd "$verify" && install_modules)
   title=$(git -C "$verify" log --oneline -1 | cut -c1-80)
   runtime=$(runtime_version "$verify")
-  rm -rf "$home/js" && mkdir -p "$home/js"
+  rm -rf "$js" && mkdir -p "$js"
   (cd "$verify" && EXPO_PUBLIC_HEX_URL=https://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
     turn npx expo export:embed --platform ios --dev false --minify true \
-    --entry-file node_modules/expo-router/entry.js --bundle-output "$home/js/main.jsbundle" \
-    --assets-dest "$home/js") >"$home/js.log" 2>&1 || {
-    tail -20 "$home/js.log" >&2
+    --entry-file node_modules/expo-router/entry.js --bundle-output "$js/main.jsbundle" \
+    --assets-dest "$js") >"$js.log" 2>&1 || {
+    tail -20 "$js.log" >&2
     die "$title didn't bundle"
   }
   (set -a && . "$release/.env.local" &&
-    ! grep -qF -e "$EXPO_PUBLIC_HEX_TOKEN" -e "$EXPO_PUBLIC_HEX_URL" "$home/js/main.jsbundle") ||
+    ! grep -qF -e "$EXPO_PUBLIC_HEX_TOKEN" -e "$EXPO_PUBLIC_HEX_URL" "$js/main.jsbundle") ||
     die "$title's bundle can reach hex itself, so it isn't checked"
+  [ -z "$lane" ] || ssh "$mac" "mkdir -p $folder && ln -sfn ../hex-voice-sim/apps $folder/apps"
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
     "$repo/scripts/duo-hex.mjs" "$repo/uitests" "$mac:$folder/harness/"
   rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
   [ -z "${ANSWERS:-}" ] || rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
-  rsync -a --delete "$home/js/" "$mac:$folder/js/"
+  rsync -a --delete "$js/" "$mac:$folder/js/"
   ssh "$mac" test -d "$folder/apps/$runtime.app" || {
-    echo "building $title's native code for the simulator"
-    rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$verify/" "$mac:$folder/app/"
-    ssh "$mac" "$folder/harness/duo mac build $runtime" </dev/null
+    exec 6>"$home/build.lock"
+    flock 6
+    ssh "$mac" test -d "$folder/apps/$runtime.app" || {
+      echo "building $title's native code for the simulator"
+      rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$verify/" "$mac:Developer/hex-voice-sim/app/"
+      ssh "$mac" "LANE= $folder/harness/duo mac build $runtime" </dev/null
+    }
+    flock -u 6
   }
 }
 
@@ -397,7 +445,7 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac shoot $runtime"
+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac shoot $runtime"
   collect "$out"
   echo "$title" >"$out/done"
 }
@@ -406,8 +454,92 @@ tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac tap $runtime"
-  collect "$out/tap"
+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' turn $folder/harness/duo mac tap $runtime"
+  collect "${2:-$out/tap}"
+}
+
+# Turns each film in $1 into the frames the screen drew in the second after each touch (a tap, swipe
+# or keystroke lands), 20 a second without repeats, labelled by their ms after it: one row of frames
+# per touch, titled by its step, four touches to a sheet, moves/<pose>-<appearance>-<n>.png, with
+# every frame kept in moves/<pose>-<appearance>/<row>/. The films have a keyframe every half second,
+# so each second is cut on its own, eight at once.
+filmstrips() {
+  local dir=$1 movie frames at step row frame rows n
+  for movie in "$dir"/*.mov; do
+    [ -f "$movie" ] || continue
+    frames=$dir/moves/$(basename "$movie" .mov)
+    rm -rf "$frames" && mkdir -p "$frames"
+    n=0
+    while read -r at step; do
+      row=$frames/$(printf %02d $n)
+      n=$((n + 1))
+      mkdir -p "$row" && echo "$step" >"$row.step"
+      [ "$(jobs -rp | wc -l)" -lt 8 ] || wait -n
+      ffmpeg -nostdin -loglevel error -ss "$((at / 1000)).$(printf %03d $((at % 1000)))" -t 1 -i "$movie" \
+        -vf fps=20,scale=-2:480,mpdecimate -fps_mode passthrough -frame_pts 1 "$row/%03d.png" &
+    done < <(awk '$2 == "touch" { print $1, step; next } { $1 = ""; step = substr($0, 7) }' "${movie%.mov}-steps.txt")
+  done
+  wait
+  for frames in "$dir"/moves/*/; do
+    frames=${frames%/}
+    rows=()
+    for row in "$frames"/??; do
+      for frame in "$row"/*.png; do
+        [ -f "$frame" ] && mv "$frame" "$row/$(printf %04d $((10#$(basename "$frame" .png) * 50)))ms.png"
+      done
+      montage -label '%t' -pointsize 22 -fill white "$row"/*.png -tile 10x -geometry +3+3 -background '#333' \
+        -title "$(cat "$row.step")" "$row.png" 2>/dev/null && rows+=("$row.png")
+    done
+    for i in $(seq 0 4 $((${#rows[@]} - 1))); do
+      magick "${rows[@]:$i:4}" -background '#111' -append "$frames-$((i / 4 + 1)).png"
+    done
+  done
+}
+
+passed() {
+  [ "$(head -c4 "$verdict" 2>/dev/null)" = pass ] && echo "what $commit ships already passed: $(cat "$verdict")"
+}
+
+# The check a builder's commits pass before they ship: npm run check, then scripts/duo-moves on the
+# Duo in its 4 poses and the iPad in its 2, dark and light, filmed, and a reviewer who never saw the
+# work (scripts/review.md) judging each shot and each frame the screens draw as they move. A pass is
+# kept for what ships: the commit's tree without its tests, scripts and docs, so a commit that changes
+# only those passes at once.
+verify() {
+  local dir moves
+  resolve "${1:-}"
+  verdict=$home/verdicts/$(git -C "$repo" ls-tree "$commit" |
+    grep -vP '\t(tests|scripts|uitests|docs|\.autofork|[^/]*\.md)$' | git hash-object --stdin)
+  passed && return
+  take_lane verify
+  passed && return
+  prepare "$commit"
+  dir=$shots/$commit/verify
+  rm -rf "$dir" && mkdir -p "$dir" "$home/verdicts"
+  echo "checking $title"
+  (cd "$verify" && npm run check) >"$dir/check.log" 2>&1 || {
+    tail -30 "$dir/check.log" >&2
+    die "npm run check failed on $title, see $dir/check.log"
+  }
+  moves=$dir/duo-moves
+  git -C "$verify" show HEAD:scripts/duo-moves >"$moves" 2>/dev/null || cp "$repo/scripts/duo-moves" "$moves"
+  VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=duo POSES='cover-up cover-side open-up open-side' tap "$moves" "$dir/duo"
+  VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
+  filmstrips "$dir/duo"
+  filmstrips "$dir/ipad"
+  echo "a fresh reviewer is looking at $title"
+  # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says otherwise
+  # (anthropics/claude-code#97074).
+  (cd "$dir" && CLAUDE_CODE_ENTRYPOINT=cli claude -p --model claude-opus-5-5 --effort high \
+    --allowedTools Read Glob 'Bash(magick:*)' <"$repo/scripts/review.md") >"$dir/review.md" ||
+    die "the reviewer didn't answer, so $title isn't verified"
+  cat "$dir/review.md"
+  if [ "$(tail -n1 "$dir/review.md")" = PASS ]; then
+    echo "pass $title $dir" >"$verdict"
+  else
+    echo "fail $title $dir" >"$verdict"
+    die "$title didn't pass: fix what the reviewer found, commit, and run scripts/duo verify again"
+  fi
 }
 
 # The Duo's lit screen. Given an OTA update id, it first waits until a device asks for updates
@@ -435,15 +567,30 @@ phone() {
   echo "$file"
 }
 
+# Holds the lock of the first free lane of those given, waiting while none is.
+take_lane() {
+  local candidate told=
+  while :; do
+    for candidate in "$@"; do
+      exec 7>"$home/duo${candidate:+-$candidate}.lock"
+      flock -n 7 && use_lane "$candidate" && return
+    done
+    [ -n "$told" ] || echo "every lane is checking; this one checks once one is free"
+    told=1
+    sleep 5
+  done
+}
+
 mkdir -p "$home"
 case ${1:-} in
-  build | shoot | tap)
-    exec 7>"$home/duo.lock"
-    flock -n 7 || {
-      echo "another check is running; this one checks after it"
-      flock 7
-    }
+  build | shoot | tap | verify)
     start=$SECONDS
+    [ "$1" != verify ] || {
+      verify "${2:-}"
+      echo "took $((SECONDS - start))s"
+      exit
+    }
+    take_lane "" 2
     prepare "${2:-}"
     out=$shots/$commit
     [ "$DEVICE" = duo ] || out=$out/$DEVICE
@@ -456,5 +603,5 @@ case ${1:-} in
     echo "took $((SECONDS - start))s"
     ;;
   phone) phone "${2:-}" ;;
-  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | phone [update]" ;;
+  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | verify [ref] | phone [update]" ;;
 esac
