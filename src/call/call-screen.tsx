@@ -129,8 +129,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
-  const [settingsOpen, setSettingsOpen] = useState(opening.open === 'settings');
-  const [tasksOpen, setTasksOpen] = useState(opening.tasks !== undefined);
   const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
   const counts = useTaskCounts();
   const { insets, size: screen } = room;
@@ -165,6 +163,20 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const duo = layout.duo;
   // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
   const settingsPlace = room.fold && duo?.tasks.area;
+  // Tasks and settings take turns like tabs; `shows` stays on the last one while it closes. Where
+  // settings goes, its place or a sheet, follows the room.
+  const [place, setPlace] = useState<{ open: boolean; shows: 'tasks' | 'settings' }>({
+    open: opening.tasks !== undefined || opening.open === 'settings',
+    shows: opening.open === 'settings' ? 'settings' : 'tasks',
+  });
+  const tasksOpen = place.open && place.shows === 'tasks';
+  const settingsOpen = place.open && place.shows === 'settings';
+  const placeOpen = tasksOpen || (!!settingsPlace && settingsOpen);
+  const show = (shows: 'tasks' | 'settings') => setPlace({ open: true, shows });
+  const closePlace = () => setPlace((now) => ({ ...now, open: false }));
+  // A sheet's dismissal lands after a swap too, so it closes only what it shows.
+  const close = (shown: 'tasks' | 'settings') =>
+    setPlace((now) => (now.shows === shown ? { ...now, open: false } : now));
   const reducedMotion = useReducedMotion();
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -175,7 +187,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const reading = layout.pulls
     ? showing.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
-  const duoTasks = useDuoTasks(duo, tasksOpen, onCall, reducedMotion);
+  const duoTasks = useDuoTasks(duo, { open: placeOpen, tasks: tasksOpen }, onCall, reducedMotion);
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
@@ -235,7 +247,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
     tick();
-    setTasksOpen(false);
+    closePlace();
   };
   const now = useNow(docked && call.kind === 'elsewhere');
   const callSeconds =
@@ -294,7 +306,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     width: list.width,
     reducedMotion,
     onChange: (open) => {
-      if (open && panes) setTasksOpen(false);
+      if (open && panes) closePlace();
     },
   });
   const toggleDrawer = () => {
@@ -315,7 +327,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const leaveCall = () => setShowing({ pulled: false, call: null });
 
   // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
-  const pane = useSharedValue(panes && tasksOpen ? 1 : 0);
+  const pane = useSharedValue(panes && placeOpen ? 1 : 0);
   const paneWidth = inbox ? inbox.width : side.width;
   const paneW = useSharedValue(paneWidth);
   const wide = useSharedValue(inbox ? 1 : 0);
@@ -324,13 +336,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     const settle = (to: number) =>
       reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
     // A pane that opens from closed takes its width at once; one already open moves to it.
-    if (tasksOpen) {
+    if (placeOpen) {
       const closed = pane.get() < 0.01;
       paneW.set(closed ? paneWidth : settle(paneWidth));
       wide.set(closed ? (inbox ? 1 : 0) : settle(inbox ? 1 : 0));
     }
-    pane.set(settle(tasksOpen ? 1 : 0));
-  }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
+    pane.set(settle(placeOpen ? 1 : 0));
+  }, [placeOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
   // The card's place and corners, and what keeps the stage on it put, all come from cardOf.
   const cardStyle = useAnimatedStyle(() => {
     const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
@@ -550,13 +562,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const openTasks = (at: TasksAt = {}) => {
     tick();
     setTasksAt(at);
-    setTasksOpen(true);
+    show('tasks');
     if (panes && drawerOpen) settleDrawer(false);
   };
   const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
   // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
-    if (!panes) setTasksOpen(false);
+    if (!panes) closePlace();
   };
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
@@ -786,7 +798,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             </Animated.View>
           )}
         </Animated.View>
-        {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => setTasksOpen(false)} />}
+        {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => close('tasks')} />}
         {!drawerOpen && !(duo && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
             <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
@@ -803,6 +815,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           duo={duo}
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
+          shown={place.shows === 'tasks'}
           onCall={onCall}
           seconds={callSeconds}
           pane={pane}
@@ -810,9 +823,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       )}
       <VoiceSettings
         sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
-        place={settingsPlace}
+        place={
+          settingsPlace
+            ? { area: settingsPlace, shown: place.shows === 'settings', pane }
+            : undefined
+        }
         isPresented={settingsOpen}
-        onDismiss={() => setSettingsOpen(false)}
+        onDismiss={() => close('settings')}
         voice={voice}
         onVoiceChange={setVoice}
         voiceEnabled={voiceLoaded && !voiceLocked(call)}
@@ -839,17 +856,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         style={[{ top: toolbar.y }, toolbarStyle]}
         callsOpen={drawerOpen}
         tasks={{ ...counts, open: tasksOpen }}
-        settingsOpen={!!settingsPlace && settingsOpen}
+        settingsOpen={settingsOpen}
         onCalls={() => {
-          setSettingsOpen(false);
+          close('settings');
           toggleDrawer();
         }}
-        onTasks={() => {
-          setSettingsOpen(false);
-          toggleTasks();
-        }}
-        // On the open Duo settings is a place like Tasks, so its button opens and closes it.
-        onSettings={() => setSettingsOpen((open) => (settingsPlace ? !open : true))}
+        onTasks={toggleTasks}
+        onSettings={() => (settingsOpen ? closePlace() : show('settings'))}
       />
       {controlsColumn && controls}
     </>

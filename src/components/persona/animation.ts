@@ -8,6 +8,7 @@ export interface PersonaProps {
   size?: number;
   color?: string;
   palette?: number;
+  paused?: boolean;
 }
 
 // All six assets use these state-machine inputs. Color is a view-model property.
