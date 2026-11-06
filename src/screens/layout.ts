@@ -88,9 +88,10 @@ export type Layout = Stage & {
   duo?: Duo;
 };
 
+// The bar stays where it is over the inbox, so the inbox starts `top` down, under it.
 export type Inbox = {
   width: number;
-  toolbar: Spot & { width: number; axis: 'column' };
+  top: number;
   orb: Required<Spot>;
   controls: Place;
 };
@@ -174,16 +175,11 @@ function roomFor(
 }
 
 // Before a call on a wide iPad, the rail the call waits in beside the inbox.
-function rail({ window, toolbar, bottomInset }: Frame): Inbox {
+function rail({ window, top, bottomInset }: Frame): Inbox {
   const foot = window.height - bottomInset - metrics.call / 2;
   return {
     width: window.width - RAIL,
-    toolbar: {
-      x: (RAIL - metrics.tool) / 2,
-      y: toolbar.y,
-      width: metrics.tool,
-      axis: 'column',
-    },
+    top,
     orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
     controls: { x: RAIL / 2, y: foot },
   };
