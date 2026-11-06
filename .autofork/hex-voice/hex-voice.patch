@@ -294,10 +294,10 @@ index 0000000000000000000000000000000000000000..67abb4f1c0fdac1ce07aa7413dead54c
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..a791a87f206a209c11aa11eeed4206242d745107 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..e8391efec15df85d44ab006b910f0e86ace38f02 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,69 @@
+@@ -1,21 +1,71 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
@@ -344,6 +344,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..a791a87f206a209c11aa11eeed420624
 +scripts/duo shoot [ref] [states]  each state (scripts/duo-states) × the Duo's 4 poses × dark and light
 +scripts/duo tap [ref] [taps]      a tap script (scripts/duo-taps) played by XCUITest: real taps, folds
 +scripts/duo verify [ref]          check, scripts/duo-moves filmed, judged by a fresh reviewer
++scripts/duo fold [ref] [states]   films Tasks through FOLDS, counts each move's wrong frames
 +scripts/duo phone [update]        a screenshot of his real Duo, once hex runs that OTA update
 +```
  
@@ -352,6 +353,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..a791a87f206a209c11aa11eeed420624
 -- PR titles use the user's area format, for example `[web] ...` or `[be] ...`.
 +- UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
 +- A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
++- A change meant to make folding, opening or turning smoother proves it with `scripts/duo fold` before and after: it counts the frames the app shows a wrong layout once iOS's own part of each move has landed, timed by a plain UIKit app filmed alongside (`FOLD_PROBE`, its simulator build on the Mac), into `fold/table.md` with a sheet per move.
 +- `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 +- Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
 +- iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out in one half of the screen, with its own safe area and the pose in its coordinates. Sheets still present from the whole screen.
@@ -99068,10 +99070,10 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e3fc4a383
+index 0000000000000000000000000000000000000000..bec0bbdcfe251e30676abf548a21610b360000f7
 --- /dev/null
 +++ b/scripts/duo
-@@ -0,0 +1,657 @@
+@@ -0,0 +1,741 @@
 +#!/usr/bin/env bash
 +# Checks a commit on the iPhone Duo simulator, the one hex-voice keeps on the Mac ("hexvoice Duo",
 +# iOS 27.1), or with DEVICE=ipad on an iPad 11" simulator, and screenshots the real Duo.
@@ -99083,6 +99085,8 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +#                                     each pose, dark and light: XCUITest really taps
 +#   scripts/duo verify [ref]          what ship:js and ship:native run first: npm run check, then
 +#                                     scripts/duo-moves filmed and judged by a fresh reviewer
++#   scripts/duo fold [ref] [states]   films the states moving through FOLDS and counts the frames
++#                                     each move takes to settle (scripts/fold_frames.py)
 +#   scripts/duo phone [update]        the real Duo's screen, once it runs that OTA update if given
 +#
 +# POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
@@ -99139,6 +99143,9 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +# degrees. The iPad's are up and side.
 +if [ "$DEVICE" = ipad ]; then POSES=${POSES:-up side}; else POSES=${POSES:-cover-up cover-side open-up open-side}; fi
 +APPEARANCES=${APPEARANCES:-dark light}
++# The moves `scripts/duo fold` films, from cover-up: turning the cover, opening, turning open,
++# folding partway, and shutting.
++FOLDS=${FOLDS:-cover-side cover-up open-up open-side open-up 150-up open-up cover-up}
 +
 +# Sets hinge, orientation and the simulator display that shows the pose.
 +pose_of() {
@@ -99459,6 +99466,62 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +  done
 +}
 +
++# Moves the Duo from one pose to the next as a hand would, at once: the hinge or the turn, whichever
++# changes. A turn is sent again a second later, as place does, since the simulator can miss the
++# first. Whether the screen turned shows in the film: the probe's turns and the app's side by side.
++move() {
++  local from
++  pose_of "$1"
++  from=$hinge:$orientation
++  pose_of "$2"
++  [ "${from%:*}" = "$hinge" ] || hub hinge "$hinge" "${from%:*}"
++  [ "${from#*:}" = "$orientation" ] || { hub orientation "$orientation" && sleep 1 && hub orientation "$orientation"; }
++  echo "$hinge" >build/hinge
++}
++
++# Films each state it reads moving through FOLDS from cover-up, once filming the open screen and
++# once the cover (the simulator films one screen at a time): shots/<state>-<screen>.mov, the ms its
++# film started in shots/<state>-<screen>.start, and each move as "<ms> <from> <to>" in
++# shots/<state>-<screen>-moves.txt. A state's URL launch:<bundle> launches that app instead: the
++# probe, FOLD_PROBE's app, which is installed first.
++mac_fold() {
++  local states state url arguments pose hinge orientation display at screen film tries
++  mac_install "$1"
++  [ -z "${FOLD_PROBE:-}" ] || xcrun simctl install "$id" "${FOLD_PROBE/#\~/$HOME}"
++  xcrun simctl ui "$id" appearance dark
++  states=$(cat)
++  while read -r -u 4 state url arguments; do
++    for screen in 3 1; do
++      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
++      xcrun simctl terminate "$id" "${url#launch:}" 2>/dev/null || true
++      place cover-up
++      case $url in
++        launch:*) xcrun simctl launch "$id" "${url#launch:}" >/dev/null ;;
++        *) xcrun simctl openurl "$id" "$url" ;;
++      esac
++      sleep "${SETTLE:-5}"
++      xcrun simctl io "$id" recordVideo --codec=h264 --display=$screen --force "shots/$state-$screen.mov" \
++        >/dev/null 2>build/recording.log &
++      film=$!
++      tries=0
++      until grep -q "Recording started" build/recording.log || [ $((tries += 1)) -gt 500 ]; do sleep 0.02; done
++      ms >"shots/$state-$screen.start"
++      grep -q "Recording started" build/recording.log ||
++        echo "$state: screen $screen didn't film: $(cat build/recording.log)" >>shots/notes.txt
++      sleep 1
++      at=cover-up
++      for pose in $FOLDS; do
++        echo "$(ms) $at $pose" >>"shots/$state-$screen-moves.txt"
++        move "$at" "$pose"
++        at=$pose
++        sleep 4
++      done
++      kill -INT "$film" 2>/dev/null || true
++      wait "$film" || true
++    done
++  done 4<<<"$states"
++}
++
 +[ "${1:-}" = mac ] && {
 +  shift
 +  on_mac "$@"
@@ -99591,6 +99654,28 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +  done
 +}
 +
++# Films the states (tasks open, and on a pretend call, by default) through FOLDS and counts per move
++# the frames the app showed a wrong layout after iOS's own part of the move had landed
++# (scripts/fold_frames.py), into $out/fold/table.md with a sheet of each move's frames. iOS's part is
++# what a plain UIKit app takes: FOLD_PROBE, the path of a simulator build of one on the Mac
++# (FoldProbe, com.shahidy.foldprobe), filmed alongside as the state "probe".
++fold() {
++  local dir=$out/fold
++  echo "folding $title"
++  rm -rf "$dir"
++  { if [ -n "${1:-}" ]; then cat "$1"; else
++    git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null | grep -E '^tasks(-call)? '
++  fi
++    [ -z "${FOLD_PROBE:-}" ] || echo "probe launch:com.shahidy.foldprobe"; } |
++    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" ||
++    echo "the Mac's half ended with $?; counting what it filmed"
++  mkdir -p "$dir"
++  rsync -a "$mac:$folder/shots/" "$dir/"
++  [ ! -f "$dir/notes.txt" ] || cat "$dir/notes.txt"
++  python3 "$repo/scripts/fold_frames.py" "$dir"
++  echo "frames: $dir"
++}
++
 +passed() {
 +  [ "$(head -c4 "$verdict" 2>/dev/null)" = pass ] && echo "what $commit ships already passed: $(cat "$verdict")"
 +}
@@ -99707,7 +99792,7 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +mkdir -p "$home"
 +command=$*
 +case ${1:-} in
-+  build | shoot | tap | verify)
++  build | shoot | tap | fold | verify)
 +    start=$SECONDS
 +    [ "$1" != verify ] || {
 +      verify "${2:-}"
@@ -99723,11 +99808,12 @@ index 0000000000000000000000000000000000000000..ffc44ceae929a8a0bd7b4b0e7da6ce7e
 +    case $1 in
 +      shoot) shoot "${3:-}" ;;
 +      tap) tap "${3:-}" ;;
++      fold) fold "${3:-}" ;;
 +    esac
 +    echo "took $((SECONDS - start))s"
 +    ;;
 +  phone) phone "${2:-}" ;;
-+  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | verify [ref] | phone [update]" ;;
++  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | fold [ref] [states] | verify [ref] | phone [update]" ;;
 +esac
 diff --git a/scripts/duo-fold-taps b/scripts/duo-fold-taps
 new file mode 100644
@@ -100070,6 +100156,178 @@ index 0000000000000000000000000000000000000000..926a3d2c1b8127c097fa21f78d9de0c6
 +tap voice-settings-button
 +shoot settings-again
 +still voice-row
+diff --git a/scripts/fold_frames.py b/scripts/fold_frames.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..5e4463caf00901c01b3d5e19e701bf3fde1b3327
+--- /dev/null
++++ b/scripts/fold_frames.py
+@@ -0,0 +1,166 @@
++#!/usr/bin/env python3
++"""Counts the frames the app shows a wrong layout after each Duo move, from `scripts/duo fold`'s films.
++
++    scripts/fold_frames.py <dir>
++
++<dir> holds, per state, a film of each screen (<state>-1.mov the cover, <state>-3.mov the open
++screen) through the same moves, the ms each film started (<state>-<screen>.start) and its moves
++(<state>-<screen>-moves.txt: "<ms> <from> <to>"). Each move is cut from the film of the screen it
++lands on at 60 frames a second, as iOS draws, from a little before it until the next, and runs from
++the first frame that changed (a lit screen's first, when the Duo changes screens) to the first of
++the final layout, after which nothing changes.
++
++Part of that is iOS's own: the screen lighting, the turn's animation, the home screen shown while
++the app's window moves. The state named "probe" is a plain UIKit app that lays out in the pass that
++resizes its window (FoldProbe), filmed through the same moves, so how long it takes from its first
++changed frame to its final one is iOS's part. A move counts as landed that long after the app's own
++first changed frame, and the frames the app shows after that which aren't its final layout are the
++app's: drawn for the old window, or in pieces. Without a probe, every frame counts.
++
++It writes table.md, and per move a sheet of its frames, each labelled by its ms after iOS landed.
++"""
++import subprocess
++import sys
++from pathlib import Path
++
++FPS = 60
++# Gray frames this small keep a layout's shape and lose the orb's breathing and the clock's digits.
++SIDE = 128
++# A pixel has changed past this many gray levels, and a frame past this share of its pixels.
++LEVELS = 32
++SHARE = 0.005
++# The probe's layout is a few big blocks, and the home indicator iOS fades in and dims for seconds
++# after a move is under this share of it, so the probe's own landing ignores it.
++PROBE_SHARE = 0.03
++BEFORE = 0.25
++# A film's first frame comes a little after the simulator says it started, so a cut stops this far
++# short of the next move.
++AFTER = 0.6
++
++
++def screen_of(pose):
++    return 1 if pose.startswith('cover') else 3
++
++
++def differs(a, b, share=SHARE):
++    changed = sum(1 for x, y in zip(a, b) if abs(x - y) > LEVELS)
++    return changed > share * len(a)
++
++
++def dark(frame):
++    return max(frame) < LEVELS
++
++
++def settle(frames, same=None, off_screen=dark):
++    """(first, last): the first frame that moved, ignoring a dark screen, which is off, and the
++    first of the final layout. None when nothing moved."""
++    same = same or (lambda a, b: not differs(a, b))
++    before, final = frames[0], frames[-1]
++    first = next((i for i, frame in enumerate(frames)
++                  if not off_screen(frame) and not same(frame, before)), None)
++    if first is None:
++        return None
++    last = len(frames) - 1
++    while last > first and same(frames[last - 1], final):
++        last -= 1
++    return first, last
++
++
++def wrong(frames, landed, last, same=None):
++    """The frames from `landed` until the final layout that aren't it."""
++    same = same or (lambda a, b: not differs(a, b))
++    return sum(1 for frame in frames[landed:last] if not same(frame, frames[-1]))
++
++
++def gray(film, start, seconds):
++    raw = subprocess.run(
++        ['ffmpeg', '-nostdin', '-loglevel', 'error', '-ss', f'{max(0, start):.3f}', '-t',
++         f'{seconds:.3f}', '-i', str(film), '-vf', f'fps={FPS},scale={SIDE}:{SIDE},format=gray',
++         '-f', 'rawvideo', '-'],
++        check=True, capture_output=True).stdout
++    size = SIDE * SIDE
++    return [raw[i:i + size] for i in range(0, len(raw) - size + 1, size)]
++
++
++def sheet(film, start, seconds, first, landed, last, out):
++    """Cut the way `gray` cuts, so a frame's number is the same in both."""
++    out.mkdir(parents=True, exist_ok=True)
++    subprocess.run(
++        ['ffmpeg', '-nostdin', '-loglevel', 'error', '-ss', f'{max(0, start):.3f}', '-t',
++         f'{seconds:.3f}', '-i', str(film), '-vf', f'fps={FPS},scale=-2:360', '-start_number', '0',
++         str(out / '%03d.png')],
++        check=True)
++    for shot in sorted(out.glob('*.png')):
++        n = int(shot.stem)
++        if first - 2 <= n <= last + 2:
++            shot.rename(out / f'{n:03d}_{ms(n - landed):+d}ms.png')
++        else:
++            shot.unlink()
++    subprocess.run(
++        ['magick', 'montage', '-label', '%t', '-pointsize', '18', '-fill', 'white', '-background',
++         '#222', '-tile', '8x', '-geometry', '+3+3', *sorted(map(str, out.glob('*.png'))),
++         f'{out}.png'], check=False)
++
++
++def ms(frames):
++    return round(frames * 1000 / FPS)
++
++
++def marks_of(moves):
++    return [line.split() for line in moves.read_text().splitlines() if line.strip()]
++
++
++def cut(folder, state, n, after):
++    """Move n's frames in the film of the screen it lands on, and how they were cut."""
++    screen = screen_of(after)
++    film = folder / f'{state}-{screen}.mov'
++    began = folder / f'{state}-{screen}.start'
++    filmed = folder / f'{state}-{screen}-moves.txt'
++    if not (film.exists() and began.exists() and filmed.exists()):
++        return None
++    marks = marks_of(filmed)
++    at = int(marks[n][0])
++    start = (at - int(began.read_text())) / 1000 - BEFORE
++    until = int(marks[n + 1][0]) if n + 1 < len(marks) else at + 4000
++    seconds = (until - at) / 1000 + BEFORE - AFTER
++    return film, start, seconds, gray(film, start, seconds)
++
++
++def main(folder):
++    folder = Path(folder)
++    states = sorted(moves.name[:-len('-3-moves.txt')] for moves in folder.glob('*-3-moves.txt'))
++    moves = marks_of(folder / f'{states[0]}-3-moves.txt') if states else []
++    ios = {}
++    if 'probe' in states:
++        for n, (_, _, after) in enumerate(moves):
++            taken = cut(folder, 'probe', n, after)
++            moved = taken and settle(taken[3], lambda a, b: not differs(a, b, PROBE_SHARE))
++            ios[n] = moved[1] - moved[0] if moved else 0
++    rows = ['| state | move | iOS’s own (ms) | app final after it lands (ms) | '
++            'wrong frames after it lands |', '|---|---|---|---|---|']
++    for state in (one for one in states if one != 'probe'):
++        for n, (_, before, after) in enumerate(moves):
++            move = f'{before} → {after}'
++            own = f'{ms(ios[n])}' if n in ios else '?'
++            taken = cut(folder, state, n, after)
++            if taken is None:
++                rows.append(f'| {state} | {move} | {own} | no film | |')
++                continue
++            film, start, seconds, frames = taken
++            moved = settle(frames)
++            if moved is None:
++                rows.append(f'| {state} | {move} | {own} | nothing moved | 0 |')
++                continue
++            first, last = moved
++            landed = min(last, first + ios.get(n, 0))
++            rows.append(f'| {state} | {move} | {own} | {ms(last - landed)} | '
++                        f'{wrong(frames, landed, last)} |')
++            sheet(film, start, seconds, first, landed, last,
++                  folder / 'frames' / f'{state}-{n + 1}-{before}-{after}')
++    table = '\n'.join(rows) + '\n'
++    (folder / 'table.md').write_text(table)
++    print(table)
++
++
++if __name__ == '__main__':
++    main(sys.argv[1])
 diff --git a/scripts/release.sh b/scripts/release.sh
 new file mode 100644
 index 0000000000000000000000000000000000000000..67501776703c93049a8f28b9150361a779b36911
@@ -100401,6 +100659,67 @@ index 0000000000000000000000000000000000000000..f4644e14e3b90855904c86e33a416a99
 +  fi
 +done
 +[ -z "$failed" ] || die "couldn't install on$failed, see $home/install-<udid>.log"
+diff --git a/scripts/tests/test_fold_frames.py b/scripts/tests/test_fold_frames.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2608e6167cfab984989dba7585981bb1a926f616
+--- /dev/null
++++ b/scripts/tests/test_fold_frames.py
+@@ -0,0 +1,55 @@
++"""How a move's frames are counted: from the first that changed to the first of the final layout,
++and of those, the ones after iOS's own part that aren't the final layout."""
++from pathlib import Path
++import sys
++import unittest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++from fold_frames import differs, settle as settled, wrong as counted
++
++
++def same(a, b):
++    return a == b
++
++
++def settle(frames):
++    return settled(frames, same, lambda frame: frame == 'off')
++
++
++def wrong(frames, landed, last):
++    return counted(frames, landed, last, same)
++
++
++class Settle(unittest.TestCase):
++    def test_a_layout_that_lands_at_once_takes_one_frame(self):
++        self.assertEqual(settle(['old', 'old', 'new', 'new', 'new']), (2, 2))
++
++    def test_the_screen_the_duo_lights_counts_from_its_first_drawn_frame(self):
++        self.assertEqual(settle(['off', 'off', 'off', 'new', 'new']), (3, 3))
++
++    def test_a_layout_that_flickers_back_settles_only_after_its_last_change(self):
++        self.assertEqual(settle(['old', 'new', 'old', 'new', 'new']), (1, 3))
++
++    def test_nothing_moved(self):
++        self.assertIsNone(settle(['old', 'old', 'old']))
++
++    def test_a_few_changed_pixels_are_the_same_frame(self):
++        frame = bytes(1000)
++        self.assertFalse(differs(frame, bytes([255] * 4) + bytes(996)))
++        self.assertTrue(differs(frame, bytes([255] * 6) + bytes(994)))
++
++
++class Wrong(unittest.TestCase):
++    def test_only_frames_after_ios_landed_count(self):
++        frames = ['old', 'tilt1', 'tilt2', 'stale', 'stale', 'new', 'new']
++        first, last = settle(frames)
++        self.assertEqual(wrong(frames, first + 2, last), 2)
++
++    def test_an_app_that_lands_with_ios_shows_no_wrong_frame(self):
++        frames = ['old', 'tilt1', 'tilt2', 'new', 'new']
++        first, last = settle(frames)
++        self.assertEqual(wrong(frames, first + 2, last), 0)
++
++
++if __name__ == '__main__':
++    unittest.main()
 diff --git a/scripts/voice-previews.mts b/scripts/voice-previews.mts
 new file mode 100644
 index 0000000000000000000000000000000000000000..cfb1119f8600b7afb0120d22112374ee737de4cf
