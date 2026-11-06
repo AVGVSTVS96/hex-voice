@@ -4,9 +4,9 @@ import { accessibilityLabel, padding } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
-import { hairline, radius, theme } from '@/theme';
+import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics } from '@/ui/tokens';
+import { metrics, radius } from '@/ui/tokens';
 
 export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 

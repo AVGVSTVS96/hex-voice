@@ -38,9 +38,9 @@ import {
 import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { labelOf, metrics, space, type } from '@/ui/tokens';
+import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
 
 // Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
 // on one line where they fit.

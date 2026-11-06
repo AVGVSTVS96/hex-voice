@@ -15,9 +15,9 @@ import { Mark } from '@/components/tasks/mark';
 import { Failure, SectionHead } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
-import { radius, theme } from '@/theme';
+import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { metrics, radius, space } from '@/ui/tokens';
 
 export function Pinned({ text }: { text: string }) {
   const sections = pinSections(text);
