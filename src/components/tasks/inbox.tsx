@@ -1,49 +1,22 @@
 import { Icon, Row, Spacer } from '@expo/ui';
-import { Button, Circle, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
+import { Button, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   contentShape,
-  foregroundStyle,
   frame,
   layoutPriority,
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
 import { asks, listRow } from '@/components/tasks/parts';
-import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
-import type { Stage } from '@/live/inbox';
+import { checkLine, type CheckSummary } from '@/live/asks';
+import type { HexPick } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
-
-const MARKS = 6;
-
-export function Dots({ marks }: { marks: Stage[] }) {
-  return (
-    <Row alignment="center" spacing={metrics.dots.gap}>
-      {marks.slice(0, MARKS).map((stage, i) => (
-        <Circle
-          key={i}
-          modifiers={[
-            frame({ width: metrics.dots.size, height: metrics.dots.size }),
-            foregroundStyle(
-              stage === 'needs'
-                ? theme.accent
-                : stage === 'working'
-                  ? theme.accentTrack
-                  : stage === 'done'
-                    ? theme.secondary
-                    : theme.surfaceSelected,
-            ),
-          ]}
-        />
-      ))}
-    </Row>
-  );
-}
 
 function Strip({
   width,
@@ -123,16 +96,16 @@ export function CheckRow({
   );
 }
 
-// It asks once more first, since it answers for you many times over, naming each question and the
-// answer it would give.
-export function PicksRow({
+// Taking hex's picks asks once more first, since it answers for you many times over, naming each
+// question and the answer it would give. `children` draws what you tap, given what opens the ask.
+export function TakePicks({
   picks,
-  width,
   onTake,
+  children,
 }: {
-  picks: { ask: Ask; option: AskOption }[];
-  width: number;
+  picks: HexPick[];
   onTake: () => void;
+  children: (confirm: () => void) => ReactNode;
 }) {
   const [asking, setAsking] = useState(false);
   const n = picks.length;
@@ -143,16 +116,7 @@ export function PicksRow({
       onIsPresentedChange={setAsking}
       titleVisibility="visible"
     >
-      <ConfirmationDialog.Trigger>
-        <Strip
-          width={width}
-          mark="done"
-          title={`hex has a pick for ${asks(n)}`}
-          action={`Take ${n}`}
-          label={`hex has a pick for ${asks(n)}. Take them`}
-          onPress={() => setAsking(true)}
-        />
-      </ConfirmationDialog.Trigger>
+      <ConfirmationDialog.Trigger>{children(() => setAsking(true))}</ConfirmationDialog.Trigger>
       <ConfirmationDialog.Actions>
         <Button label={`Take ${n} picks`} onPress={onTake} />
         <Button label="Cancel" role="cancel" />
@@ -163,6 +127,32 @@ export function PicksRow({
         </NativeText>
       </ConfirmationDialog.Message>
     </ConfirmationDialog>
+  );
+}
+
+export function PicksRow({
+  picks,
+  width,
+  onTake,
+}: {
+  picks: HexPick[];
+  width: number;
+  onTake: () => void;
+}) {
+  const n = picks.length;
+  return (
+    <TakePicks picks={picks} onTake={onTake}>
+      {(confirm) => (
+        <Strip
+          width={width}
+          mark="done"
+          title={`hex has a pick for ${asks(n)}`}
+          action={`Take ${n}`}
+          label={`hex has a pick for ${asks(n)}. Take them`}
+          onPress={confirm}
+        />
+      )}
+    </TakePicks>
   );
 }
 

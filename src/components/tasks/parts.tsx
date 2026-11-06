@@ -1,8 +1,10 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
   accessibilityLabel,
   alignmentGuide,
+  contentShape,
   foregroundStyle,
   frame,
   listRowBackground,
@@ -10,6 +12,7 @@ import {
   listRowSeparator,
   listRowSeparatorTint,
   padding,
+  shapes,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
@@ -58,15 +61,19 @@ export function SectionHead({
   title,
   count,
   opens = false,
+  action,
 }: {
   title: string;
   count?: string | number;
   opens?: boolean;
+  // Taken across the whole row, so it's never only a footnote's height to hit.
+  action?: { label: string; onPress: () => void };
 }) {
   return (
     <Row
       alignment="center"
       spacing={0}
+      onPress={action?.onPress}
       modifiers={[
         padding({
           leading: metrics.list.inset,
@@ -75,6 +82,13 @@ export function SectionHead({
           bottom: space[1.5],
         }),
         frame({ maxWidth: Infinity }),
+        ...(action
+          ? [
+              contentShape(shapes.rectangle()),
+              accessibilityLabel(`${title}. ${action.label}`),
+              accessibilityAddTraits(['isButton']),
+            ]
+          : []),
       ]}
     >
       <Text variant="footnote" weight="semibold" tone="secondary">
@@ -93,6 +107,11 @@ export function SectionHead({
           color={theme.tertiary}
           modifiers={[padding({ leading: space[2] })]}
         />
+      ) : null}
+      {action ? (
+        <Text variant="footnote" weight="semibold" tone="accent">
+          {action.label}
+        </Text>
       ) : null}
     </Row>
   );

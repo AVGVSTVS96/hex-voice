@@ -19,7 +19,7 @@ import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
-import { placeOf, type Place } from '@/live/inbox';
+import { placeOf, type HexPick, type Place } from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
@@ -45,6 +45,7 @@ export function Detail({
   width,
   onSteps,
   onAnswer,
+  onTakePicks,
   onUndo,
   onAgain,
   onDismiss,
@@ -65,6 +66,7 @@ export function Detail({
   width: number;
   onSteps: (id: TaskId) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
+  onTakePicks: (picks: HexPick[]) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
@@ -133,6 +135,7 @@ export function Detail({
                   answered={answered}
                   width={width}
                   onAnswer={onAnswer}
+                  onTakePicks={onTakePicks}
                   onUndo={onUndo}
                   onAgain={onAgain}
                   onDismiss={onDismiss}
@@ -213,6 +216,7 @@ export function Asked({
   door,
   rows,
   onAnswer,
+  onTakePicks,
   onUndo,
   onAgain,
   onDismiss,
@@ -224,6 +228,7 @@ export function Asked({
   door?: Door;
   rows?: ReactNode[];
   onAnswer: (ask: Ask, option: AskOption) => void;
+  onTakePicks: (picks: HexPick[]) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
@@ -256,6 +261,7 @@ export function Asked({
                 answered={answered}
                 width={width}
                 onAnswer={onAnswer}
+                onTakePicks={onTakePicks}
                 onUndo={onUndo}
                 onAgain={onAgain}
                 onDismiss={onDismiss}

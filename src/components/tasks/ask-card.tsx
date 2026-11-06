@@ -21,6 +21,7 @@ import {
 import { useContext, useState } from 'react';
 
 import { Markdown } from '@/components/markdown';
+import { TakePicks } from '@/components/tasks/inbox';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
@@ -35,7 +36,7 @@ import {
   type AskOption,
   type Words,
 } from '@/live/asks';
-import { fitsOneLine } from '@/live/inbox';
+import { fitsOneLine, picksOf, type HexPick } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
@@ -58,6 +59,7 @@ export function YourCall({
   answered,
   width,
   onAnswer,
+  onTakePicks,
   onUndo,
   onAgain,
   onDismiss,
@@ -66,11 +68,14 @@ export function YourCall({
   answered: Record<string, string | null>;
   width: number;
   onAnswer: Answer;
+  onTakePicks: (picks: HexPick[]) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
+  const picks = picksOf(asks, answered);
+  const head = `Your call · ${open}`;
   return (
     <Column
       alignment="start"
@@ -79,7 +84,18 @@ export function YourCall({
         animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
       ]}
     >
-      <SectionHead title={`Your call · ${open}`} />
+      {picks.length > 1 ? (
+        <TakePicks picks={picks} onTake={() => onTakePicks(picks)}>
+          {(confirm) => (
+            <SectionHead
+              title={head}
+              action={{ label: `Take ${picks.length}`, onPress: confirm }}
+            />
+          )}
+        </TakePicks>
+      ) : (
+        <SectionHead title={head} />
+      )}
       {asks.map((ask, i) => {
         const said = answered[ask.id];
         if (said)

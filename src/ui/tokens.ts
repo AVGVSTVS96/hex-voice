@@ -189,8 +189,6 @@ export const metrics = {
   tabs: { gap: 5, underline: 11 },
   // An app's tile rounds its corners by this share of its size, as iOS rounds app icons.
   tileCorner: 0.27,
-  // A topic's marks, as dots beside its name.
-  dots: { size: 6, gap: 3 },
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge (together with a
   // row's own top padding, nothing at rest sits in the fade). Then a row's padding above and below
