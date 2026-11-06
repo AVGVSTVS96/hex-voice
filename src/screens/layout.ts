@@ -8,9 +8,10 @@ import {
   type Stage,
   type Words,
 } from '@/call/stage';
-import { metrics, stack, type ToolbarGaps } from '@/ui/tokens';
+import { breakpoint, metrics, stack, type ToolbarGaps } from '@/ui/tokens';
 
-import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
+import { columnOf, type Column } from '@/screens/column';
+import type { Insets, Rect, Room, Size } from '@/screens/window';
 
 const GAP = 12;
 // The toolbar's Tasks and settings, one glass capsule.
@@ -19,8 +20,6 @@ const RAIL = 96;
 const WORDS = 600;
 const LIST = 360;
 const RAIL_ORB = 44;
-// iPhone Duo's column: below this height (folded on its side) its buttons draw smaller and closer.
-const SHORT = 520;
 // On a call with Tasks open, the orb this big and the call's time this tall and wide join the bar.
 export const CALL_ORB = 34;
 export const TIME = 16;
@@ -70,14 +69,21 @@ export type Duo = {
 
 // Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
 // the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
-// Held wide, it takes the two sides of the fold as two pages side by side, meeting `panes` from
-// its start. Its rows keep their own inset, so its pages run flush to the screen's edges, the fold
-// and the bar's buttons.
+// Wide enough for two, it takes the window's two halves as two pages side by side, meeting `panes`
+// from its start at the window's middle, where the open Duo's crease is. Its rows keep their own
+// inset, so its pages run flush to the screen's edges, the crease and the bar's buttons.
+//
+// `edges` is the same area as the window's edges hold it: a length from an edge that only the
+// safe area and the bar set, or half the window. Laid out from them, Tasks takes a new window's
+// size in the same pass as the window does, never a frame later.
 export type Page = {
   area: Rect;
+  edges: Edges;
   panes?: number;
   foot: number | 'fold';
 };
+
+type Edges = Record<'top' | 'right' | 'bottom' | 'left', number | '50%'>;
 
 // The stage's parts are in its box's coordinates; `content` is that box in the window's.
 export type Layout = Stage & {
@@ -119,9 +125,7 @@ export function screenLayout(room: Room): Layout {
       inbox: regular && box.width > box.height ? rail(frame) : undefined,
     };
   const before = box.fold && wordsBefore(box, layout, box.fold);
-  const duo = frame.column
-    ? besideColumn(frame, frame.column, fold, before)
-    : belowBand(frame, fold, before);
+  const duo = frame.column ? besideColumn(frame, frame.column, before) : belowBand(frame, before);
   // Open on its side Calls comes in under the band, leaving the band whole. It sits beside the
   // call, as on iPad, only where that leaves the call a page; otherwise it slides over all but a
   // peek of the call, as on the phone.
@@ -191,14 +195,17 @@ type Frame = {
   bottomInset: number;
   content: Rect;
   toolbar: Toolbar;
-  // iPhone Duo's side column, the tools at its top and the call buttons at its foot.
-  column?: Span & { controls: ColumnControls };
+  // iPhone Duo's side column, the tools at its top and the call buttons at its foot, centered on
+  // `middle`.
+  column?: Span & { middle: number; controls: ColumnControls };
   top: number;
 };
 
-function frameFor({ size: window, insets, regular, bar, fold, occlusions }: Room): Frame {
+function frameFor(room: Room): Frame {
+  const { size: window, insets, regular, fold, occlusions } = room;
   const bottomInset = Math.max(insets.bottom, 20) + 14;
-  if (bar) return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
+  const side = columnOf(room);
+  if (side) return { window, insets, bottomInset, ...column(room, side) };
   const toolbar = fold
     ? band(window, insets, occlusions)
     : {
@@ -239,28 +246,17 @@ function widestClear(from: number, to: number, taken: Rect[]): Span {
   return to - start > best.width ? { x: start, width: to - start } : best;
 }
 
-// iPhone Duo's side column. The camera and the system's status items sit at its top upright and
-// at its foot on its side; the tools start below what's at the top, and the call buttons end above
-// what's at the foot.
-function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) {
-  const width = bar === 'right' ? insets.right : insets.left;
+// iPhone Duo's side column (`columnOf`): the tools start below what's at its top, the call buttons
+// end above what's at its foot, and both center on the system's items in it.
+function column(room: Room, { bar, width, shift, top, foot, tight }: Column) {
+  const { size: window, insets } = room;
   const x = bar === 'right' ? window.width - width : 0;
-  const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
-  const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
-  const top = covers
-    .filter(high)
-    .reduce((bottom, area) => Math.max(bottom, area.y + area.height), insets.top);
-  const foot = covers
-    .filter((area) => !high(area))
-    .reduce((bottom, area) => Math.max(bottom, window.height - area.y + 8), insets.bottom);
-  // A short column (folded on its side) draws its buttons smaller and closer, so the call's orb and
-  // time still fit between the tools and the call buttons.
-  const tight = window.height < SHORT;
+  const middle = x + width / 2 + shift;
   return {
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
-      x: x + (width - metrics.tool) / 2,
-      y: Math.max(top, GAP + 4),
+      x: middle - metrics.tool / 2,
+      y: top,
       width: metrics.tool,
       axis: 'column' as const,
       gaps: tight ? ('compact' as const) : ('regular' as const),
@@ -268,8 +264,9 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
     column: {
       x,
       width,
+      middle,
       controls: {
-        right: window.width - x - (width + metrics.call) / 2,
+        right: window.width - middle - metrics.call / 2,
         bottom: foot,
         axis: 'column' as const,
         size: tight ? ('compact' as const) : ('regular' as const),
@@ -279,48 +276,35 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
   };
 }
 
-// iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
-// buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
+// iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column, the
+// bar's inset, which holds the buttons and the orb docked between them; on a call the orb, its time and, open, the words'
 // switch sit as one group midway between the tools and the call buttons.
 function besideColumn(
   frame: Frame,
   column: NonNullable<Frame['column']>,
-  fold?: Fold,
   before?: Words & { raise: number },
 ): Duo {
   const { window, insets, toolbar } = frame;
   const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
   const size = column.controls.size ?? 'regular';
-  const sizes = metrics.controls[size];
-  const x = column.x + column.width / 2;
-  const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
-  const leading = column.x === 0;
-  const { tasks, after } = paged(
-    {
-      area: {
-        ...(leading
-          ? { x: x + reach, width: window.width - x - reach }
-          : { x: 0, width: x - reach }),
-        y: insets.top,
-        height: window.height - insets.top,
-      },
-      foot: insets.bottom,
-    },
-    fold,
-  );
+  const x = column.middle;
+  const { tasks, after } = paged(window, {
+    top: insets.top,
+    ...(column.x === 0 ? { left: column.width, right: 0 } : { left: 0, right: column.width }),
+    foot: insets.bottom,
+  });
   const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
   const buttons = window.height - column.controls.bottom - stack(size);
-  const group = CALL_ORB + 4 + TIME + (after ? 12 + metrics.tool : 0);
+  const group = CALL_ORB + 4 + TIME + (before ? 12 + metrics.tool : 0);
   const y = (tools + buttons - group) / 2;
   const time = y + CALL_ORB + 4;
   return {
     tasks,
-    beside: after &&
-      before && {
-        tasks: after,
-        words: before,
-        button: { x, y: time + TIME + 12 + metrics.tool / 2 },
-      },
+    beside: before && {
+      tasks: after,
+      words: before,
+      button: { x, y: time + TIME + 12 + metrics.tool / 2 },
+    },
     call: {
       orb: { x, y: y + CALL_ORB / 2, size: CALL_ORB },
       time: { x: x - TIME_WIDTH / 2, y: time, width: TIME_WIDTH, align: 'center' },
@@ -332,27 +316,21 @@ function besideColumn(
 // screen below the band. The toolbar keeps Calls at the band's leading end and Tasks with settings
 // at its trailing end, and the call buttons just before that pair, whether Tasks is open or not.
 // With Tasks open on a call, before them sit the words' switch, then the orb with its time.
-function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }): Duo {
+function belowBand(frame: Frame, before?: Words & { raise: number }): Duo {
   const { window, insets, toolbar, top } = frame;
   const {
     tasks,
     after,
     before: above,
-  } = paged(
-    {
-      area: { x: 0, y: top, width: window.width, height: window.height - top },
-      foot: insets.bottom,
-    },
-    fold,
-  );
+  } = paged(window, { top, left: 0, right: 0, foot: insets.bottom });
   const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
   const middle = toolbar.y + metrics.tool / 2;
   const mute = end - stack('tool');
   const button = { x: mute - 14 - metrics.tool / 2, y: middle };
-  const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
+  const time = (before ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
   return {
     tasks,
-    beside: after && before && { tasks: after, typing: above, words: before, button },
+    beside: before && { tasks: after, typing: above, words: before, button },
     call: {
       orb: { x: time - 6 - CALL_ORB / 2, y: middle, size: CALL_ORB },
       time: { x: time, y: middle - TIME / 2, width: TIME_WIDTH, align: 'left' },
@@ -361,25 +339,39 @@ function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }
   };
 }
 
-// Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
-// take the one before it. Held wide it takes the fold's two sides as two pages side by side, a
-// list beside its topic, as a split view does on a wide screen. On its side the screen is one tall
-// page, and Tasks takes it whole. The page before the fold is where it types beside the call's
-// words.
+// Tasks between the window's edges `top`, `left` and `right`, and its halves. Wide enough for two
+// pages, it takes the halves side by side, a list beside its topic, as a split view does on a wide
+// screen; narrower, it's one page. The half after the middle is the page it keeps when the call's
+// words take the one before it: the trailing half held wide, the lower one on its side, where the
+// upper half is the one it types in.
 function paged(
-  page: Omit<Page, 'panes'>,
-  fold?: Fold,
-): { tasks: Page; after?: Page; before?: Page } {
-  if (!fold) return { tasks: page };
-  const { area } = page;
-  if ('x' in fold)
+  window: Size,
+  { top, left, right, foot }: { top: number; left: number; right: number; foot: number },
+): { tasks: Page; after: Page; before?: Page } {
+  const middle = { x: window.width / 2, y: window.height / 2 };
+  const area = { x: left, y: top, width: window.width - left - right, height: window.height - top };
+  const edges: Edges = { top, right, bottom: 0, left };
+  const tasks = { area, edges, foot };
+  if (window.width >= breakpoint.columns)
     return {
-      tasks: { ...page, panes: fold.x - area.x },
-      after: { ...page, area: { ...area, x: fold.x, width: area.x + area.width - fold.x } },
+      tasks: { ...tasks, panes: middle.x - left },
+      after: {
+        area: { ...area, x: middle.x, width: area.x + area.width - middle.x },
+        edges: { ...edges, left: '50%' },
+        foot,
+      },
     };
   return {
-    tasks: page,
-    after: { ...page, area: { ...area, y: fold.y, height: area.y + area.height - fold.y } },
-    before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
+    tasks,
+    after: {
+      area: { ...area, y: middle.y, height: window.height - middle.y },
+      edges: { ...edges, top: '50%' },
+      foot,
+    },
+    before: {
+      area: { ...area, height: middle.y - top },
+      edges: { ...edges, bottom: '50%' },
+      foot: 'fold',
+    },
   };
 }

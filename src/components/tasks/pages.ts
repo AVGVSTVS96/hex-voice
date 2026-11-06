@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { PageId } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
+import { breakpoint } from '@/ui/tokens';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
@@ -36,12 +37,9 @@ export const START: Stack = {
   focusComposer: false,
 };
 
-// Wide enough for the list and a topic's page side by side: Tasks on a 13-inch iPad beside a call,
-// or anywhere before one. An 11-inch keeps one wide list beside a call.
-const COLUMNS = 900;
-
+// An 11-inch iPad keeps one wide list beside a call.
 export function shapeOf(width: number, panes: number | undefined): Shape {
-  return panes !== undefined ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
+  return panes !== undefined ? 'panes' : width >= breakpoint.columns ? 'columns' : 'one';
 }
 
 export function move(stack: Stack, step: Move): Stack {

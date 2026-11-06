@@ -79,7 +79,7 @@ const stacks: [string, Stack][] = [
   ['the last check', go({ to: 'check' })],
 ];
 
-test('the Duo pages split at its fold held wide, on its side and folded it shows one at a time', () => {
+test('held wide the Duo is wide enough for two pages side by side; on its side and folded it shows one at a time', () => {
   assert.equal(shapeOf(openUpright.area.width, openUpright.panes), 'panes');
   assert.equal(shapeOf(openOnSide.area.width, openOnSide.panes), 'one');
   assert.equal(shapeOf(folded.area.width, folded.panes), 'one');
@@ -190,7 +190,7 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
   }
 });
 
-test('pages run flush to the screen edges and meet on the fold', () => {
+test('pages run flush to the screen edges and meet at the window’s middle, on the crease', () => {
   const room = roomOf(openUpright);
   const pages = pagesOf(go(), room);
   assert.equal(spotOf('list', pages, room).width, openUpright.panes);

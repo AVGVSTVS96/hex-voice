@@ -238,5 +238,7 @@ export function stack(size: ControlsSize, { add = false } = {}) {
 }
 
 // Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
-// the fold parts a window only where it leaves a page on each side of it.
-export const breakpoint = { beside: 600, besideShort: 540, page: 320 } as const;
+// the fold parts a window only where it leaves a page on each side of it. From `columns` wide, a
+// window holds two pages side by side: Tasks' list beside its topic, on a 13-inch iPad beside a
+// call or the open Duo held wide.
+export const breakpoint = { beside: 600, besideShort: 540, page: 320, columns: 900 } as const;

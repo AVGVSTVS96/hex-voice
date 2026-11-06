@@ -54,7 +54,7 @@ export function TasksPage({
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
-  const { area, panes } = page;
+  const { area, edges, panes } = page;
   const pages = usePages({
     open: view.open,
     at: view.at,
@@ -77,11 +77,7 @@ export function TasksPage({
       pointerEvents={view.open ? 'auto' : 'none'}
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[
-        styles.page,
-        { left: area.x, top: area.y, width: area.width, height: area.height },
-        style,
-      ]}
+      style={[styles.page, edges, style]}
     >
       <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <ZStack
