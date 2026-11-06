@@ -402,45 +402,40 @@ move() {
   echo "$hinge" >build/hinge
 }
 
-# Films each state it reads moving through FOLDS from cover-up, both screens at once since the Duo
-# draws on the cover shut and on the open screen open: shots/<state>-<screen>.mov, the ms each film
-# started in shots/<state>-<screen>.start, and each move as "<ms> <from> <to>" in
-# shots/<state>-moves.txt.
+# Films each state it reads moving through FOLDS from cover-up, once filming the open screen and
+# once the cover (the simulator films one screen at a time): shots/<state>-<screen>.mov, the ms its
+# film started in shots/<state>-<screen>.start, and each move as "<ms> <from> <to>" in
+# shots/<state>-<screen>-moves.txt.
 mac_fold() {
-  local states state url arguments pose hinge orientation display at screen tries
+  local states state url arguments pose hinge orientation display at screen film tries
   mac_install "$1"
   xcrun simctl ui "$id" appearance dark
   states=$(cat)
   while read -r -u 4 state url arguments; do
-    xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
-    place cover-up
-    xcrun simctl openurl "$id" "$url"
-    sleep "${SETTLE:-5}"
-    films=()
-    for screen in 1 3; do
+    for screen in 3 1; do
+      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
+      place cover-up
+      xcrun simctl openurl "$id" "$url"
+      sleep "${SETTLE:-5}"
       xcrun simctl io "$id" recordVideo --codec=h264 --display=$screen --force "shots/$state-$screen.mov" \
-        >/dev/null 2>"build/recording-$screen.log" &
-      films+=($!)
-    done
-    for screen in 1 3; do
+        >/dev/null 2>build/recording.log &
+      film=$!
       tries=0
-      until grep -q "Recording started" "build/recording-$screen.log" || [ $((tries += 1)) -gt 100 ]; do sleep 0.1; done
-      if [ "$tries" -gt 100 ]; then
-        echo "$state: screen $screen didn't film: $(cat "build/recording-$screen.log")" >>shots/notes.txt
-      else
-        ms >"shots/$state-$screen.start"
-      fi
+      until grep -q "Recording started" build/recording.log || [ $((tries += 1)) -gt 500 ]; do sleep 0.02; done
+      ms >"shots/$state-$screen.start"
+      grep -q "Recording started" build/recording.log ||
+        echo "$state: screen $screen didn't film: $(cat build/recording.log)" >>shots/notes.txt
+      sleep 1
+      at=cover-up
+      for pose in $FOLDS; do
+        echo "$(ms) $at $pose" >>"shots/$state-$screen-moves.txt"
+        move "$at" "$pose"
+        at=$pose
+        sleep 4
+      done
+      kill -INT "$film" 2>/dev/null || true
+      wait "$film" || true
     done
-    sleep 1
-    at=cover-up
-    for pose in $FOLDS; do
-      echo "$(ms) $at $pose" >>"shots/$state-moves.txt"
-      move "$at" "$pose"
-      at=$pose
-      sleep 4
-    done
-    kill -INT "${films[@]}" 2>/dev/null || true
-    wait "${films[@]}" || true
   done 4<<<"$states"
 }
 
