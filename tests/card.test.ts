@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
-import { cardOf } from '../src/call/card';
+import { barOf, cardOf } from '../src/call/card';
 import { screenLayout } from '../src/screens/layout';
 import { roomOf, type Insets, type Size } from '../src/screens/window';
-import { radius } from '../src/ui/tokens';
+import { metrics, radius } from '../src/ui/tokens';
 
 type Fixture = { window: Size; insets: Insets; pose: Pose };
 
@@ -141,4 +141,34 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
             problems.push(`${name}: nothing in, rounded`);
         }
   assert.deepEqual(problems, []);
+});
+
+// barOf takes no pane, so Tasks opening or closing can't move the bar; this checks the one place
+// it keeps is clear of Tasks and holds every button.
+test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
+  const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
+  for (const [name, screen] of Object.entries(screens)) {
+    const layout = layoutOf(screen);
+    const { toolbar, calls, tasks } = layout;
+    if (toolbar.axis !== 'row') continue;
+    const window = screen.window.width;
+    for (const drawer of [0, 0.5, 1]) {
+      const { left, right } = barOf(layout, window, drawer);
+      const end = window - right;
+      const where = `${name}, Calls at ${drawer}`;
+      assert.ok(end - left >= least, `${where}: holds its buttons`);
+      if (calls.below !== undefined)
+        assert.deepEqual([left, end], [toolbar.x, toolbar.x + toolbar.width], `${where}: whole`);
+      if (drawer === 0) {
+        assert.ok(left >= 0 && end <= window, `${where}: inside the window`);
+        if (tasks.place === 'beside')
+          assert.ok(end <= window - tasks.width, `${where}: clear of Tasks`);
+      }
+    }
+    if (layout.inbox)
+      assert.ok(
+        toolbar.y + metrics.tool <= layout.inbox.top,
+        `${name}: the inbox starts under the bar`,
+      );
+  }
 });

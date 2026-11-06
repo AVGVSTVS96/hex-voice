@@ -15,7 +15,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { cardOf } from '@/call/card';
+import { barOf, cardOf } from '@/call/card';
 import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
@@ -350,9 +350,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-  // The bar sits in the window. A column down the side never moves. A bar along the top rides the
-  // card's top edge, unless Calls starts below it, which leaves the band whole.
-  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
+  // The bar sits in the window, and never moves for Tasks. A column down the side never moves at
+  // all; across the top it's placed by barOf, which only Calls moves.
+  const { toolbar } = layout;
   // Its place is all in this one style, whichever way it runs: a prop Reanimated has written stays
   // on the view after a style React passes stops naming it, so a row's `left` would hold the side
   // column at the screen's leading edge, over Tasks.
@@ -367,13 +367,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         width: toolbar.width,
       };
     }
-    const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
-    const banded = list.below !== undefined;
-    return {
-      left: toolbar.x + (banded ? 0 : card.left),
-      right: width - toolbar.x - toolbar.width + (banded ? 0 : card.right),
-      width: 'auto',
-    };
+    return { ...barOf(layout, width, drawer.get()), width: 'auto' };
   });
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
@@ -656,7 +650,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       {panes && !duo && (
         <TasksPane
           {...tasks}
-          top={insets.top}
+          top={inbox ? inbox.top : insets.top}
           foot={insets.bottom}
           width={paneWidth}
           style={paneStyle}
