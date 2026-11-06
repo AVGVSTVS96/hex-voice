@@ -33,7 +33,6 @@ import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
-  inboxEntries,
   picksOf,
   search,
   stageCounts,
@@ -42,6 +41,7 @@ import {
   topicIn,
   topicsOf,
   tracksOf,
+  type Entry,
   type Stage,
   type Tile,
   type PageId,
@@ -68,6 +68,7 @@ export function ListPage({
   spot,
   paged,
   tasks,
+  entries,
   offline,
   current,
   yours,
@@ -83,6 +84,7 @@ export function ListPage({
   spot: Spot;
   paged: boolean;
   tasks: TaskRow[] | undefined;
+  entries: Entry[];
   offline: boolean;
   // hex has answered since this list showed what was kept on this device, and nothing failed since.
   current: boolean;
@@ -96,10 +98,6 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
-  const entries = useMemo(
-    () => inboxEntries(tasks ?? [], yours.list, yours.shown),
-    [tasks, yours.list, yours.shown],
-  );
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   useEffect(() => {

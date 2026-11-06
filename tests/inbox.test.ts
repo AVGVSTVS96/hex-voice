@@ -10,7 +10,9 @@ import {
   pageOf,
   topicIn,
   inboxEntries,
+  linkName,
   picksOf,
+  proofWords,
   reachedBy,
   search,
   stageCounts,
@@ -19,7 +21,7 @@ import {
   topicsOf,
   type Entry,
 } from '../src/live/inbox';
-import { TaskRow } from '../src/live/tasks';
+import { Finished, TaskRow } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
 const at = (hours: number, minutes = 0, day = 13) =>
@@ -80,9 +82,32 @@ const fresh = (id: string, topic: string, when = at(9), read = false): Fresh =>
     read,
   });
 
-type Parts = { tasks?: TaskRow[]; asks?: Ask[]; stuck?: Stuck[]; fresh?: Fresh[] };
-const stream = ({ tasks = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
-  inboxEntries(tasks, { stuck, fresh }, asks, now);
+const done = (
+  id: string,
+  topic: string,
+  when = at(9),
+  extra: Partial<z.input<typeof Finished>> = {},
+): Finished =>
+  Finished.parse({
+    id,
+    title: `${id} title`,
+    topic,
+    app: 'telegram',
+    proof: `${id} proof`,
+    at: when,
+    run: `telegram:${topic}`,
+    ...extra,
+  });
+
+type Parts = {
+  tasks?: TaskRow[];
+  finished?: Finished[];
+  asks?: Ask[];
+  stuck?: Stuck[];
+  fresh?: Fresh[];
+};
+const stream = ({ tasks = [], finished = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
+  inboxEntries(tasks, finished, { stuck, fresh }, asks, now);
 const ids = (entries: Entry[]) => entries.map((entry) => entry.id);
 
 test('your asks lead in hex’s order, then threads that need you without an ask, then what is stuck', () => {
@@ -533,4 +558,72 @@ test('an answer says it cleared buttons only when hex says it settled some, name
     reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
     '. 2 places were out of reach and still ask it',
   );
+});
+
+test('each task finished today is in Done under its project, while that project works on in another tab', () => {
+  const entries = stream({
+    tasks: [row('voiceapp', 'working'), row('iikb', 'needs'), row('seqno', 'idle')],
+    finished: [
+      done('t-2', 'voiceapp', at(9, 30)),
+      done('t-1', 'voiceapp', at(8)),
+      done('t-3', 'iikb', at(9, 45)),
+      done('t-4', 'seqno', at(7)),
+      done('t-0', 'voiceapp', at(23, 0, 12)),
+    ],
+  });
+  const tab = entries.filter((entry) => entry.stage === 'done');
+  assert.deepEqual(ids(tab), ['t-3', 't-2', 't-1', 't-4']);
+  assert.deepEqual(
+    topicsOf(tab, entries).map(({ name, count, marks }) => [name, count, marks]),
+    [
+      ['iikb', 1, ['needs']],
+      ['voiceapp', 2, ['working']],
+      ['seqno', 1, ['done']],
+    ],
+  );
+  assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
+  assert.equal(pageOf(topicsOf(tab, entries)[1]!), 'telegram:voiceapp');
+  assert.equal(headlineOf(tab[0]!), 't-3 title');
+});
+
+test('a thread that finished tasks today shows as them in Done, not as a row of its own', () => {
+  const entries = stream({
+    tasks: [row('voiceapp', 'done', at(9, 40)), row('pigeon', 'done', at(9, 50))],
+    finished: [done('t-1', 'voiceapp', at(9, 30))],
+  });
+  assert.deepEqual(ids(entries), ['telegram:pigeon', 't-1']);
+});
+
+test('a finished task with no thread on the board opens its project’s own page, and its proof link is a tile', () => {
+  const [entry] = stream({
+    finished: [
+      done('t-5', 'Launch plan', at(9), {
+        run: undefined,
+        link: 'https://t.me/c/1/1',
+        proof: 'https://github.com/AVGVSTVS96/hex/pull/180 (5b2b282, live)',
+      }),
+    ],
+  });
+  assert.equal(taskOf(entry!), undefined);
+  assert.equal(pageOf(topicsOf([entry!], [entry!])[0]!), 'topic:Launch plan');
+  assert.deepEqual(entry!.tiles, [
+    { kind: 'app', place: 'telegram', label: 'Telegram', link: 'https://t.me/c/1/1' },
+    { kind: 'link', label: 'hex #180', url: 'https://github.com/AVGVSTVS96/hex/pull/180' },
+  ]);
+  assert.deepEqual(ids(search([entry!], 'hex #180')), ['t-5']);
+});
+
+test('a proof reads with each link by its name', () => {
+  assert.equal(
+    proofWords(
+      'https://github.com/AVGVSTVS96/iikb/commit/b9330a0c1 and https://github.com/AVGVSTVS96/grokx',
+    ),
+    'iikb b9330a0 and grokx',
+  );
+  assert.equal(linkName('https://x.com/avgvstvs96/status/2118'), 'x.com');
+  assert.equal(
+    proofWords('(see http://100.113.223.113:4800/iikb-context)'),
+    '(see 100.113.223.113)',
+  );
+  assert.equal(proofWords('iikb 7e9ac84, build 501 on Duo'), 'iikb 7e9ac84, build 501 on Duo');
 });

@@ -39,6 +39,7 @@ import { useChat } from '@/hooks/use-chat';
 import { useTask, useTasks } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
+  finishedIn,
   inboxEntries,
   placeOf,
   taskIn,
@@ -85,7 +86,7 @@ export function Tasks({
   pages,
   room,
 }: TasksProps & { pages: Pages; room: Room }) {
-  const { tasks, version, offline, current } = useTasks(open);
+  const { tasks, finished, version, offline, current } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
@@ -96,8 +97,8 @@ export function Tasks({
   const touch = feel(haptics);
   const { tick, tap } = touch;
   const entries = useMemo(
-    () => inboxEntries(tasks ?? [], yours.list, yours.shown),
-    [tasks, yours.list, yours.shown],
+    () => inboxEntries(tasks ?? [], finished, yours.list, yours.shown),
+    [tasks, finished, yours.list, yours.shown],
   );
   // An ask whose thread has left the board opens its topic's newest thread still on it, or else
   // the topic's asks alone.
@@ -224,6 +225,7 @@ export function Tasks({
       spot={spot('list')}
       paged={room.paged}
       tasks={tasks}
+      entries={entries}
       offline={offline}
       current={current}
       yours={yours}
@@ -246,6 +248,7 @@ export function Tasks({
           asks={topicAsks}
           answered={yours.answered}
           threads={threads}
+          finished={finishedIn(entries, opened.name)}
           missing={missing}
           width={spot('topic').width}
           onSteps={openSteps}
@@ -259,6 +262,7 @@ export function Tasks({
             tick();
             pages.go({ to: 'topic', id });
           }}
+          onOpenTile={openTile}
           messages={
             !paired && said.chat && (said.chat.total || said.chat.sends) ? (
               <Messages

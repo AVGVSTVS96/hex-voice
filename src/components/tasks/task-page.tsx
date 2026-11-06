@@ -19,7 +19,7 @@ import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
-import { placeOf, type Place } from '@/live/inbox';
+import { placeOf, proofWords, type FinishedEntry, type Place, type Tile } from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
@@ -41,6 +41,7 @@ export function Detail({
   asks,
   answered,
   threads,
+  finished,
   missing,
   width,
   onSteps,
@@ -51,6 +52,7 @@ export function Detail({
   onTalk,
   onOpen,
   onOpenTask,
+  onOpenTile,
   messages,
   beside = false,
   answering = false,
@@ -61,6 +63,8 @@ export function Detail({
   asks: Ask[];
   answered: Record<string, string | null>;
   threads: TaskRow[];
+  // What hex finished in this project today, newest first.
+  finished: FinishedEntry[];
   missing: Set<Place>;
   width: number;
   onSteps: (id: TaskId) => void;
@@ -71,6 +75,7 @@ export function Detail({
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: TaskId) => void;
+  onOpenTile: (tile: Tile) => void;
   messages?: ReactNode;
   beside?: boolean;
   // Writing your own answer to an ask, so its field is the one on the page.
@@ -154,6 +159,14 @@ export function Detail({
                 <Column key="run" alignment="start" spacing={0}>
                   <SectionHead title="Last run" />
                   <Run thread={full} onPress={() => onSteps(full.id)} />
+                </Column>
+              ) : null}
+              {finished.length ? (
+                <Column key="finished" alignment="start" spacing={0}>
+                  <SectionHead title="Done today" count={finished.length} />
+                  {finished.map((entry) => (
+                    <Finished key={entry.id} entry={entry} onOpen={onOpenTile} />
+                  ))}
                 </Column>
               ) : null}
               {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
@@ -266,6 +279,35 @@ export function Asked({
         </ScrollView>
       </Faded>
     </Column>
+  );
+}
+
+// A task finished here, with what showed it done; its proof's link opens from it.
+function Finished({
+  entry: { finished, tiles },
+  onOpen,
+}: {
+  entry: FinishedEntry;
+  onOpen: (tile: Tile) => void;
+}) {
+  const proof = proofWords(finished.proof);
+  const page = tiles.find((tile) => tile.kind === 'link');
+  return (
+    <TraceLine
+      lead={<Mark state="done" />}
+      text={finished.title}
+      lines={2}
+      time={clock(new Date(finished.at))}
+      after={page ? <Icon name="arrow.up.right" size={11} color={theme.tertiary} /> : undefined}
+      onPress={page && (() => onOpen(page))}
+      label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
+    >
+      {proof ? (
+        <Text numberOfLines={2} variant="footnote" tone="secondary" paragraph>
+          {proof}
+        </Text>
+      ) : null}
+    </TraceLine>
   );
 }
 

@@ -7,11 +7,12 @@ import {
   type Stuck,
   type Sent,
 } from './asks';
-import { startOfDay, type TaskId, type TaskRow, type Turn } from './tasks';
+import { startOfDay, type Finished, type TaskId, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
-// stuck, then what's working, then what finished today, then the rest, quiet. Tasks shows it a
-// stage at a time, each stage cut into its topics.
+// stuck, then what's working, then what finished today (each task hex closed, in whatever project,
+// and each run that ended), then the rest, quiet. Tasks shows it a stage at a time, each stage cut
+// into its topics.
 export type Stage = 'needs' | 'working' | 'done' | 'quiet';
 export type Place = 'telegram' | 't3' | 'buzz' | 'discord' | 'server';
 
@@ -29,6 +30,15 @@ export type Entry = Base &
     | { kind: 'stuck'; stuck: Stuck }
     | { kind: 'task'; task: TaskRow }
     | { kind: 'fresh'; fresh: Fresh }
+    | { kind: 'finished'; finished: Finished }
+  );
+
+export type FinishedEntry = Extract<Entry, { kind: 'finished' }>;
+
+// What hex finished in a project today, newest first.
+export const finishedIn = (entries: Entry[], topic: string) =>
+  entries.filter(
+    (entry): entry is FinishedEntry => entry.kind === 'finished' && entry.topic === topic,
   );
 
 // A topic in a stage: what it has there and how many of those count, one mark per thread it has
@@ -105,18 +115,42 @@ const threadTile = (place: Place, link?: string): Tile => ({
 
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 
+const LINKS = /https?:\/\/[^\s)]+/g;
+
+// What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
+// by its name, else its site.
+export function linkName(url: string) {
+  const github = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/);
+  if (github?.[2])
+    return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3]!.slice(0, 7)}`;
+  if (github) return github[1]!;
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/[:/].*$/, '');
+}
+
+// A task's proof as its row reads it, each link by its name.
+export const proofWords = (proof: string) => proof.replace(LINKS, linkName).trim();
+
+const proofTile = (proof: string): Tile[] => {
+  const [url] = proof.match(LINKS) ?? [];
+  return url ? [{ kind: 'link', label: linkName(url), url }] : [];
+};
+
 // The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic
-// while it's on the board; a thread that needs you some other way keeps its own row. What finished
-// since you looked leads Done until it's read, and a read one from before today has already shown
-// as its thread.
+// while it's on the board; a thread that needs you some other way keeps its own row. The tasks a
+// thread finished today stand in for the thread having finished, so Done lists what was done. What
+// finished since you looked leads Done until it's read, and a read one from before today has
+// already shown as its thread.
 export function inboxEntries(
   tasks: TaskRow[],
+  finished: Finished[],
   list: Pick<AskList, 'stuck' | 'fresh'> | undefined,
   asks: Ask[],
   now = new Date(),
 ): Entry[] {
   const today = startOfDay(now);
   const asked = new Set(asks.map((ask) => ask.task));
+  const done = finished.filter((one) => Date.parse(one.at) >= today);
+  const closed = new Set(done.map((one) => one.run));
   const names = new Map(tasks.map((task) => [task.id, task.name]));
   const stageOf = (task: TaskRow): Stage => {
     if (task.state === 'needs' || task.state === 'working') return task.state;
@@ -135,6 +169,7 @@ export function inboxEntries(
     })),
     ...tasks
       .filter((task) => task.state !== 'needs' || !asked.has(task.id))
+      .filter((task) => task.state !== 'done' || !closed.has(task.id))
       .map((task): Entry => ({
         kind: 'task',
         id: task.id,
@@ -167,6 +202,16 @@ export function inboxEntries(
         at: fresh.at,
         fresh,
       })),
+    ...done.map((one): Entry => ({
+      kind: 'finished',
+      id: one.id,
+      topic: one.topic,
+      place: placeOf(one.app),
+      tiles: [threadTile(placeOf(one.app), one.link), ...proofTile(one.proof)],
+      stage: 'done',
+      at: one.at,
+      finished: one,
+    })),
   ];
   const settled = (entry: Entry) => entry.stage === 'done' || entry.stage === 'quiet';
   const unread = (entry: Entry) => entry.kind === 'fresh' && !entry.fresh.read;
@@ -233,6 +278,8 @@ export function headlineOf(entry: Entry) {
       return entry.stuck.title;
     case 'fresh':
       return entry.fresh.title;
+    case 'finished':
+      return entry.finished.title;
   }
 }
 
@@ -246,6 +293,8 @@ function textOf(entry: Entry) {
       return [entry.stuck.title, entry.stuck.why];
     case 'fresh':
       return [entry.fresh.title, entry.fresh.line];
+    case 'finished':
+      return [entry.finished.title, proofWords(entry.finished.proof)];
   }
 }
 
@@ -298,10 +347,11 @@ export function tracksOf(name: string, tasks: TaskRow[]): Turn[][] {
   return tasks.flatMap((task) => (task.name === name && task.track?.length ? [task.track] : []));
 }
 
-// The task a row opens, when it has one.
+// The thread a row is about and opens, when it has one on the board.
 export function taskOf(entry: Entry) {
   if (entry.kind === 'ask') return entry.ask.task;
   if (entry.kind === 'task') return entry.task.id;
+  if (entry.kind === 'finished') return entry.finished.run;
   return undefined;
 }
 

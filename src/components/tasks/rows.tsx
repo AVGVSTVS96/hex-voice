@@ -25,6 +25,7 @@ import {
   fitsOneLine,
   headlineOf,
   opens,
+  proofWords,
   type Entry,
   type Stage,
   type Tile,
@@ -164,6 +165,25 @@ export function EntryRow({
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
             {fresh.failed ? <Failure text={fresh.failed} /> : null}
+          </Shell>
+        </Swiped>
+      );
+    }
+    case 'finished': {
+      const { finished } = entry;
+      const proof = proofWords(finished.proof);
+      const { run } = finished;
+      return (
+        <Swiped {...swiped}>
+          <Shell
+            mark="done"
+            line={finished.title}
+            time={clock(new Date(entry.at))}
+            tiles={entry.tiles}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ''}`}
+            onPress={run && (() => actions.onOpen(run, entry.id))}
+          >
+            {proof ? <Why text={proof} /> : null}
           </Shell>
         </Swiped>
       );
@@ -327,7 +347,7 @@ function Meta({ text }: { text: string }) {
   );
 }
 
-// Why something is stuck, under what it is.
+// Why something is stuck, or what showed a task done, under what it is.
 function Why({ text }: { text: string }) {
   return (
     <Text

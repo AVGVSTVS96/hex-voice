@@ -112,7 +112,25 @@ export const TaskOrPage = z.union([
 ]);
 export type TaskOrPage = z.output<typeof TaskOrPage>;
 export type TaskPage = Extract<TaskOrPage, { kind: 'page' }>;
-export const TaskList = z.object({ version: z.number(), tasks: z.array(TaskRow) });
+// A task hex closed in the last day: what it was, the proof it was closed with, and the topic it
+// was done in, named as that project's threads are, with `run` its thread while that's on the board.
+// `app` and `link` are where its thread lives.
+export const Finished = z.object({
+  id: z.string(),
+  title: z.string(),
+  topic: z.string(),
+  app: z.string(),
+  proof: z.string(),
+  at: z.string(),
+  run: z.optional(TaskId),
+  link: z.optional(z.string()),
+});
+export type Finished = z.infer<typeof Finished>;
+export const TaskList = z.object({
+  version: z.number(),
+  tasks: z.array(TaskRow),
+  finished: z.catch(z.array(Finished), []),
+});
 export type TaskList = z.infer<typeof TaskList>;
 // A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
 // of `total`), what you sent that its session hasn't taken in yet, and whether words typed here
