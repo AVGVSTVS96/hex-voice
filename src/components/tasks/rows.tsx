@@ -444,7 +444,7 @@ export function ProjectRow({
 }) {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
-  const count = topic.entries.length;
+  const { count } = topic;
   const headline = headlineOf(newest);
   // Mint means it waits on you, so only Needs you counts in mint.
   const needs = stage === 'needs';
@@ -478,7 +478,7 @@ export function ProjectRow({
         <Text
           variant="subheadline"
           weight="semibold"
-          tone={needs ? 'accent' : 'tertiary'}
+          tone={needs && count ? 'accent' : 'tertiary'}
           modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
         >
           {String(count)}

@@ -31,9 +31,14 @@ export type Entry = Base &
     | { kind: 'fresh'; fresh: Fresh }
   );
 
-// A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
-// last week for its lane.
-export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
+// A topic in a stage: what it has there and how many of those count, one mark per thread it has
+// anywhere, and each thread's last week for its lane.
+export type Topic = { name: string; entries: Entry[]; count: number; marks: Stage[] };
+
+// The asks answered here, folded where they sat until the sheet closes. They're off your plate, so
+// no count holds them: a stage's tab is the sum of its projects' counts.
+type Answered = Record<string, string | null>;
+const counts = (entry: Entry, answered: Answered) => !answered[entry.id];
 
 export const STAGES: { key: Stage; title: string }[] = [
   { key: 'needs', title: 'Needs you' },
@@ -180,7 +185,7 @@ export function inboxEntries(
 // The shown entries cut into their topics, in the stream's order. Each topic's marks and lanes
 // come from all it has going, so a topic reads the same on every tab. Its marks put what needs
 // you first; what just finished is news of a thread, not one, so it has none.
-export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
+export function topicsOf(shown: Entry[], all: Entry[], answered: Answered = {}): Topic[] {
   const names = [...new Set(shown.map((entry) => entry.topic))];
   return names.map((name) => {
     const threads = new Map<string, Stage>();
@@ -190,19 +195,21 @@ export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
       const before = threads.get(thread);
       if (!before || RANK[entry.stage] < RANK[before]) threads.set(thread, entry.stage);
     }
+    const entries = shown.filter((entry) => entry.topic === name);
     return {
       name,
-      entries: shown.filter((entry) => entry.topic === name),
+      entries,
+      count: entries.filter((entry) => counts(entry, answered)).length,
       marks: [...threads.values()].sort((a, b) => RANK[a] - RANK[b]),
     };
   });
 }
 
-// What each tab counts: asks you've answered here are already off your plate.
-export function stageCounts(entries: Entry[], answered: Record<string, string | null> = {}) {
-  const counts: Record<Stage, number> = { needs: 0, working: 0, done: 0, quiet: 0 };
-  for (const entry of entries) if (!answered[entry.id]) counts[entry.stage]++;
-  return counts;
+// What each tab counts.
+export function stageCounts(entries: Entry[], answered: Answered = {}) {
+  const tabs: Record<Stage, number> = { needs: 0, working: 0, done: 0, quiet: 0 };
+  for (const entry of entries) if (counts(entry, answered)) tabs[entry.stage]++;
+  return tabs;
 }
 
 // Search runs over every word a row shows, its topic and where it lives.
@@ -243,9 +250,9 @@ function textOf(entry: Entry) {
 }
 
 // The asks hex already has a pick for, to take in one go. Money stays a call you make one by one.
-export function picksOf(entries: Entry[], answered: Record<string, string | null> = {}) {
+export function picksOf(entries: Entry[], answered: Answered = {}) {
   return entries.flatMap((entry) => {
-    if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') return [];
+    if (entry.kind !== 'ask' || !counts(entry, answered) || entry.ask.tag === 'money') return [];
     const option = entry.ask.options.find((one) => one.pick);
     return option ? [{ ask: entry.ask, option }] : [];
   });
