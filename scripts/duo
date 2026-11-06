@@ -391,14 +391,14 @@ mac_tap() {
 }
 
 # Moves the Duo from one pose to the next as a hand would, at once: the hinge or the turn, whichever
-# changes.
+# changes. A turn is sent again a second later, as place does, since the simulator can miss the first.
 move() {
-  local from to
+  local from
   pose_of "$1"
   from=$hinge:$orientation
   pose_of "$2"
   [ "${from%:*}" = "$hinge" ] || hub hinge "$hinge" "${from%:*}"
-  [ "${from#*:}" = "$orientation" ] || hub orientation "$orientation"
+  [ "${from#*:}" = "$orientation" ] || { hub orientation "$orientation" && sleep 1 && hub orientation "$orientation"; }
   echo "$hinge" >build/hinge
 }
 
