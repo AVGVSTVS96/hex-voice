@@ -4,7 +4,7 @@ Read https://docs.expo.dev/versions/v58.0.0/ before changing Expo code.
 
 Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`).
 
-hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx github:AVGVSTVS96/autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
+hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
 
 ## How it works
 
