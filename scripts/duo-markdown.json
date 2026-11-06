@@ -14,6 +14,32 @@
         "at": "2026-11-04T09:21:00.000Z",
         "track": [],
         "agents": []
+      },
+      {
+        "id": "md-working-1",
+        "app": "telegram",
+        "name": "voiceapp",
+        "place": "voiceapp",
+        "state": "working",
+        "running": true,
+        "line": "Checking the switch fix on the Duo",
+        "since": "2026-11-04T09:10:00.000Z",
+        "at": "2026-11-04T09:20:00.000Z",
+        "track": [],
+        "agents": []
+      },
+      {
+        "id": "md-working-2",
+        "app": "telegram",
+        "name": "iikb",
+        "place": "iikb",
+        "state": "working",
+        "running": true,
+        "line": "Building the Stats tab",
+        "since": "2026-11-04T09:10:00.000Z",
+        "at": "2026-11-04T09:20:00.000Z",
+        "track": [],
+        "agents": []
       }
     ]
   },
