@@ -187,7 +187,7 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3cc64cfab40158f34c45f7c343cb74ced20d8311 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..2a8848100bd8e60f9046a2262812db41014baf8d 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
 @@ -1,21 +1,67 @@
@@ -198,7 +198,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3cc64cfab40158f34c45f7c343cb74ce
 +
 +Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`).
 +
-+hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx github:AVGVSTVS96/autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
++hex-voice is an autofork of davidmokos/expo-gpt-live: after a change lands on main, run `npx autofork save hex-voice` and commit `.autofork/hex-voice/` with it, so syncs keep the change.
 +
 +## How it works
 +
@@ -259,7 +259,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..3cc64cfab40158f34c45f7c343cb74ce
 +
 +- A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
 +- Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
-+- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `theme.ts` (`radius`, `metrics`, `circle`) and it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
++- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `src/ui/tokens.ts` (`radius`, `metrics`, `space`) and `circle` in `theme.ts`, so it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
 +- Layout reads the window's `Room` (`src/screens/window.ts`), never the device's pose: iOS reports the fold and the bar's side for the device, and in Split View they lie outside the window. `tests/window.test.ts` keeps the pose to that one module and lays out every window size with the fold anywhere.
 +- Folding moves nothing: the room's fold is only the line where it divides the window, with no angle, state or thickness, so partly open lays out exactly as open flat.
 +- A size flows one way: the container gives it and the content fills it, or the content states it and the container fits it. Never measure a view to size the thing that sizes it; the settings sheet opened at a different width each time that way.
@@ -100531,10 +100531,10 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0e
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670c82797ec
+index 0000000000000000000000000000000000000000..b48bc7388fa46084ce3a02b8422b0434faef541e
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,964 @@
+@@ -0,0 +1,941 @@
 +import * as Haptics from 'expo-haptics';
 +import * as ScreenOrientation from 'expo-screen-orientation';
 +import { useEffect, useRef, useState } from 'react';
@@ -100552,6 +100552,7 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +import { useSafeAreaInsets } from 'react-native-safe-area-context';
 +import { scheduleOnRN } from 'react-native-worklets';
 +
++import { barOf, cardOf } from '@/call/card';
 +import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
 +import { useDrawer } from '@/call/drawer';
 +import { CallFooter } from '@/call/footer';
@@ -100593,7 +100594,7 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +import { screenLayout } from '@/screens/layout';
 +import { logPose } from '@/screens/pose-log';
 +import { orbRest } from '@/screens/orb-rest';
-+import { radius, theme } from '@/theme';
++import { hairline, theme } from '@/theme';
 +import { HostedGlassButton } from '@/ui/glass-button';
 +import { metrics } from '@/ui/tokens';
 +import { roomOf, turns, type Room } from '@/screens/window';
@@ -100867,41 +100868,28 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +    }
 +    pane.set(settle(tasksOpen ? 1 : 0));
 +  }, [tasksOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
-+  // The call is a card, and while a pane sits beside it its corners round off against that pane.
-+  // Calls always sits beside it, sliding it aside or taking its leading edge, and its top too where
-+  // Calls starts below a band, so the band stays whole over both; Tasks does where it takes its
-+  // trailing edge, and as a sheet or a page it covers the call instead, which leaves no edge to
-+  // round. Where a pane takes an edge, what's on the call stays put in the window, so only the words
-+  // move over into what's left. It moves by layout, never a transform, since it holds SwiftUI views.
-+  // A card that still reaches the screen's top and foot wears no hairline: there it would only line
-+  // the screen's edges, which reads as a 1px gap along the top and bottom of the app.
-+  const lined = list.place === 'slide' || list.below !== undefined;
++  // The card's place and corners, and what keeps the stage on it put, all come from cardOf.
 +  const cardStyle = useAnimatedStyle(() => {
-+    const d = drawer.get();
-+    const t = pane.get();
-+    const slid = list.place === 'slide' ? d * list.width : 0;
-+    const yielded = Math.min(1, Math.max(d, side.place === 'beside' ? t : 0) * 4);
++    const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
 +    return {
-+      top: (list.below ?? 0) * d,
-+      left: (list.place === 'beside' ? d * list.width : 0) + slid,
-+      right: (side.place === 'beside' ? t * paneW.get() : 0) - slid,
-+      borderRadius: radius.card * yielded,
-+      borderWidth: lined && yielded > 0 ? StyleSheet.hairlineWidth : 0,
++      top: card.top,
++      left: card.left,
++      right: card.right,
++      borderRadius: card.borderRadius,
++      borderWidth: card.lined ? hairline : 0,
 +    };
 +  });
-+  const stageStyle = useAnimatedStyle(() => ({
-+    top: -(list.below ?? 0) * drawer.get(),
-+    left: layout.content.x - (list.place === 'beside' ? drawer.get() * list.width : 0),
-+  }));
++  const stageStyle = useAnimatedStyle(
++    () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
++  );
 +  const sidebarStyle = useAnimatedStyle(() => ({
 +    left: layout.content.x + (drawer.get() - 1) * 48,
 +  }));
 +  // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
 +  const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-+  // The bar sits in the window. A column down the side never moves. A bar along the top spans the
-+  // card's top edge: it rides a card that slides aside, and ends where a pane beside the card
-+  // begins, unless Calls starts below it, which leaves the band whole.
-+  const toolbar = inboxShown ? layout.inbox!.toolbar : layout.toolbar;
++  // The bar sits in the window, and never moves for Tasks. A column down the side never moves at
++  // all; across the top it's placed by barOf, which only Calls moves.
++  const { toolbar } = layout;
 +  // Its place is all in this one style, whichever way it runs: a prop Reanimated has written stays
 +  // on the view after a style React passes stops naming it, so a row's `left` would hold the side
 +  // column at the screen's leading edge, over Tasks.
@@ -100916,15 +100904,7 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +        width: toolbar.width,
 +      };
 +    }
-+    const d = drawer.get();
-+    const slid = list.place === 'slide' && list.below === undefined ? d * list.width : 0;
-+    const calls = list.place === 'beside' && list.below === undefined ? d * list.width : 0;
-+    const tasks = side.place === 'beside' ? pane.get() * paneW.get() : 0;
-+    return {
-+      left: toolbar.x + calls + slid,
-+      right: width - toolbar.x - toolbar.width + tasks - slid,
-+      width: 'auto',
-+    };
++    return { ...barOf(layout, width, drawer.get()), width: 'auto' };
 +  });
 +  // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
 +  // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
@@ -101207,7 +101187,7 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +      {panes && !duo && (
 +        <TasksPane
 +          {...tasks}
-+          top={insets.top}
++          top={inbox ? inbox.top : insets.top}
 +          foot={insets.bottom}
 +          width={paneWidth}
 +          style={paneStyle}
@@ -101351,10 +101331,7 @@ index 0000000000000000000000000000000000000000..4982002eda9d408828504fcd97d1d670
 +        )}
 +        {drawerOpen && list.place !== 'beside' && (
 +          <GestureDetector gesture={peekClose}>
-+            <View
-+              accessibilityLabel="Close calls"
-+              style={[styles.fill, { left: layout.content.x, width: layout.content.width }]}
-+            />
++            <View accessibilityLabel="Close calls" style={styles.fill} />
 +          </GestureDetector>
 +        )}
 +      </Animated.View>
@@ -101694,6 +101671,69 @@ index 0000000000000000000000000000000000000000..91d8e252375bb2b3d4691c1da21bae1b
 +
 +export function errorOf(call: Call) {
 +  return call.kind === 'none' ? call.last?.error : undefined;
++}
+diff --git a/src/call/card.ts b/src/call/card.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c528ad2b7055c20c532bfcf5e24fbdaeb35f0be8
+--- /dev/null
++++ b/src/call/card.ts
+@@ -0,0 +1,57 @@
++import type { Layout } from '@/screens/layout';
++import { metrics, radius } from '@/ui/tokens';
++
++// The call is a card, and Calls and Tasks only move it. Calls takes its leading edge up to where
++// Calls ends, or slides it aside, and its top too where Calls starts below a band; Tasks takes its
++// trailing edge where it's a pane beside it, and as a sheet or a page covers it instead. Its
++// corners follow from where that leaves it: a card off any edge of the screen rounds by
++// `radius.card`, all the way once it has moved that far, so no screen or pose draws it square
++// beside a pane. `drawer` and `pane` run 0 (shut) to 1 (open). Edges are the window's.
++//
++// The stage, the call's content box, stays put in the window (`stage`, its place on the card)
++// unless the card slides aside, and moves by layout, never a transform, since it holds SwiftUI
++// views. A hairline edges a card that slides aside or starts below a band (`lined`); beside a pane a
++// card still reaches the screen's top and foot, where a hairline would only line the screen's edges.
++export function cardOf(
++  { calls, tasks, content }: Pick<Layout, 'calls' | 'tasks' | 'content'>,
++  drawer: number,
++  pane: number,
++  paneWidth: number,
++) {
++  'worklet';
++  const left = drawer * (content.x + calls.width);
++  const slid = calls.place === 'slide' ? drawer * calls.width : 0;
++  const top = (calls.below ?? 0) * drawer;
++  const right = (tasks.place === 'beside' ? pane * paneWidth : 0) - slid;
++  const off = Math.max(top, left, right);
++  const rounded = Math.min(1, off / radius.card);
++  return {
++    top,
++    left,
++    right,
++    borderRadius: radius.card * rounded,
++    lined: top > 0 || slid > 0,
++    stage: { top: -top, left: content.x + slid - left },
++  };
++}
++
++// The least a bar across the top holds: Calls, then Tasks and settings.
++const BAR = 3 * metrics.tool + 2 * metrics.toolbar.row;
++
++// Where a bar across the top runs, from the window's left and right. It spans the card's top edge as
++// it is with Tasks open, open or not, so opening or closing Tasks never moves a button: beside a
++// pane, Tasks and settings keep to the room the call has left either way. Calls still carries it,
++// unless Calls starts below it and leaves the band whole, and where Calls takes so much that Tasks'
++// room can't hold it, it runs on past that room. It takes no `pane`, so it can't follow Tasks.
++export function barOf(
++  layout: Pick<Layout, 'calls' | 'tasks' | 'content' | 'toolbar'>,
++  window: number,
++  drawer: number,
++) {
++  'worklet';
++  const { toolbar, calls } = layout;
++  const card = cardOf(layout, calls.below === undefined ? drawer : 0, 1, layout.tasks.width);
++  const left = toolbar.x + card.left;
++  const end = Math.max(toolbar.x + toolbar.width - card.right, left + BAR);
++  return { left, right: window - end };
 +}
 diff --git a/src/call/drawer.ts b/src/call/drawer.ts
 new file mode 100644
@@ -102743,7 +102783,7 @@ index 0000000000000000000000000000000000000000..aa402de41e2111d4432635604c1ab1e6
 +});
 diff --git a/src/components/call-ask.tsx b/src/components/call-ask.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..c8270fafa692990b69ff1282e3af79e9b82c37a6
+index 0000000000000000000000000000000000000000..a6637a31ded90347c5862501477b2566d9d00a2f
 --- /dev/null
 +++ b/src/components/call-ask.tsx
 @@ -0,0 +1,180 @@
@@ -102754,8 +102794,8 @@ index 0000000000000000000000000000000000000000..c8270fafa692990b69ff1282e3af79e9
 +import type { CallCard } from '@/live/agents';
 +import type { AskOption } from '@/live/asks';
 +import { reachedBy } from '@/live/inbox';
-+import { circle, radius, theme } from '@/theme';
-+import { labelOf, space, textOf } from '@/ui/tokens';
++import { circle, theme } from '@/theme';
++import { labelOf, radius, space, textOf } from '@/ui/tokens';
 +
 +// An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 +// open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
@@ -103225,7 +103265,7 @@ index 0000000000000000000000000000000000000000..1d688e0ea96ccb8197cb0613aadedb36
 +});
 diff --git a/src/components/calls-sidebar.tsx b/src/components/calls-sidebar.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..23a289a951103819263efb01d6f07121cb2b16f3
+index 0000000000000000000000000000000000000000..4d2ad699397939773e03cf96200383c7c288eec0
 --- /dev/null
 +++ b/src/components/calls-sidebar.tsx
 @@ -0,0 +1,302 @@
@@ -103255,8 +103295,8 @@ index 0000000000000000000000000000000000000000..23a289a951103819263efb01d6f07121
 +  type CallSummary,
 +} from '@/live/calls';
 +import { motion } from '@/motion';
-+import { circle, radius, theme } from '@/theme';
-+import { metrics, space, textOf } from '@/ui/tokens';
++import { circle, theme } from '@/theme';
++import { metrics, radius, space, textOf } from '@/ui/tokens';
 +
 +const ACTION = 64;
 +const DELETE_AT = 180;
@@ -103551,7 +103591,7 @@ index 0000000000000000000000000000000000000000..3d3041ff642dde373ee10e9a7fa4e4aa
 +}
 diff --git a/src/components/markdown.tsx b/src/components/markdown.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..b7b78dfdd1579b5522a25786741cf1c01d98fa70
+index 0000000000000000000000000000000000000000..ed10e28b6c84d0fe2a4fd5a277ba0a96213c9414
 --- /dev/null
 +++ b/src/components/markdown.tsx
 @@ -0,0 +1,56 @@
@@ -103560,8 +103600,8 @@ index 0000000000000000000000000000000000000000..b7b78dfdd1579b5522a25786741cf1c0
 +
 +import { Failure } from '@/components/tasks/parts';
 +import { openURL, useFailures } from '@/hooks/use-failures';
-+import { radius, theme } from '@/theme';
-+import { space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
++import { theme } from '@/theme';
++import { radius, space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
 +import { MarkdownView } from '../../modules/markdown';
 +
 +// Markdown in the app's own look, in one of its text styles: words in the text tone or the secondary one, code on the
@@ -104830,7 +104870,7 @@ index c6e650339e4865b6b4404d0de5d826ad9c8b267d..00000000000000000000000000000000
 -};
 diff --git a/src/components/settings-list.tsx b/src/components/settings-list.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..5623bb2270bdc284eb12d2109a8ce7b17a604a25
+index 0000000000000000000000000000000000000000..531da49c14fa5f2fed4ffe54aba45f0cdbcb5d29
 --- /dev/null
 +++ b/src/components/settings-list.tsx
 @@ -0,0 +1,61 @@
@@ -104840,9 +104880,9 @@ index 0000000000000000000000000000000000000000..5623bb2270bdc284eb12d2109a8ce7b1
 +import type { ReactNode } from 'react';
 +import type { SFSymbol } from 'sf-symbols-typescript';
 +
-+import { hairline, radius, theme } from '@/theme';
++import { hairline, theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import { metrics } from '@/ui/tokens';
++import { metrics, radius } from '@/ui/tokens';
 +
 +export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 +
@@ -105190,7 +105230,7 @@ index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc1179
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1518857d0bedcc67c9bfc24b3642cdaa999803f7
+index 0000000000000000000000000000000000000000..3c32cd995bb86a0d3c145c47d6db7f7a5e5c4cec
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
 @@ -0,0 +1,638 @@
@@ -105234,9 +105274,9 @@ index 0000000000000000000000000000000000000000..1518857d0bedcc67c9bfc24b3642cdaa
 +import { fitsOneLine } from '@/live/inbox';
 +import { clock } from '@/live/tasks';
 +import { motion, rowsKey } from '@/motion';
-+import { radius, theme } from '@/theme';
++import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import { labelOf, metrics, space, type } from '@/ui/tokens';
++import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
 +
 +// Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
 +// on one line where they fit.
@@ -106321,7 +106361,7 @@ index 0000000000000000000000000000000000000000..4c9dfa59b9fc875043b01ae7358efcbd
 +}
 diff --git a/src/components/tasks/last-check.tsx b/src/components/tasks/last-check.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..71f86a3110f88d170738daf9acc707416051f8e1
+index 0000000000000000000000000000000000000000..6b4823c406992754d62a527d479649f10e4fb5fb
 --- /dev/null
 +++ b/src/components/tasks/last-check.tsx
 @@ -0,0 +1,136 @@
@@ -106340,9 +106380,9 @@ index 0000000000000000000000000000000000000000..71f86a3110f88d170738daf9acc70741
 +import type { Check, CheckNote } from '@/live/asks';
 +import { timeOfDay } from '@/live/calls';
 +import type { Answered } from '@/hooks/use-watch';
-+import { radius, theme } from '@/theme';
++import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import { metrics, space } from '@/ui/tokens';
++import { metrics, radius, space } from '@/ui/tokens';
 +
 +export function LastCheck({ check, ...answered }: Answered & { check?: Check }) {
 +  return (
@@ -107628,7 +107668,7 @@ index 0000000000000000000000000000000000000000..3e6a187c5bce9a552bb6c635539b9b9f
 +}
 diff --git a/src/components/tasks/pinned.tsx b/src/components/tasks/pinned.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..a21b633d497fb13ba131a58d5c5f9d86926a4985
+index 0000000000000000000000000000000000000000..0dc888b1d07579f634ca20308f7c9b8a6d4b0417
 --- /dev/null
 +++ b/src/components/tasks/pinned.tsx
 @@ -0,0 +1,186 @@
@@ -107649,9 +107689,9 @@ index 0000000000000000000000000000000000000000..a21b633d497fb13ba131a58d5c5f9d86
 +import { Failure, SectionHead } from '@/components/tasks/parts';
 +import { openURL, useFailures } from '@/hooks/use-failures';
 +import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
-+import { radius, theme } from '@/theme';
++import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import { metrics, space } from '@/ui/tokens';
++import { metrics, radius, space } from '@/ui/tokens';
 +
 +export function Pinned({ text }: { text: string }) {
 +  const sections = pinSections(text);
@@ -108552,7 +108592,7 @@ index 0000000000000000000000000000000000000000..f611c94993a97077fb146951f960ba16
 +}
 diff --git a/src/components/tasks/said.tsx b/src/components/tasks/said.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..ba216ed9487392a72dc932639f29d65a105d7404
+index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e95425a4df
 --- /dev/null
 +++ b/src/components/tasks/said.tsx
 @@ -0,0 +1,156 @@
@@ -108571,9 +108611,9 @@ index 0000000000000000000000000000000000000000..ba216ed9487392a72dc932639f29d65a
 +import { Markdown } from '@/components/markdown';
 +import { said, type Sending } from '@/live/chat';
 +import type { ChatTurn } from '@/live/tasks';
-+import { radius, theme } from '@/theme';
++import { theme } from '@/theme';
 +import { textLook } from '@/ui/text';
-+import { metrics, space } from '@/ui/tokens';
++import { metrics, radius, space } from '@/ui/tokens';
 +
 +// Drawn as the call transcript draws a turn.
 +export function Said({ turn }: { turn: ChatTurn }) {
@@ -109525,7 +109565,7 @@ index 0000000000000000000000000000000000000000..f284cc7f406a0238681eee00a2b37ef1
 +}
 diff --git a/src/components/tasks/thread.tsx b/src/components/tasks/thread.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..dfcd4c6c65e6af221557cd3bea3fb199f015c14a
+index 0000000000000000000000000000000000000000..d48e9801c02456b854b73bb6e72c74d2a32af76b
 --- /dev/null
 +++ b/src/components/tasks/thread.tsx
 @@ -0,0 +1,393 @@
@@ -109557,9 +109597,9 @@ index 0000000000000000000000000000000000000000..dfcd4c6c65e6af221557cd3bea3fb199
 +import type { Sending } from '@/live/chat';
 +import { PLACES, placeOf } from '@/live/inbox';
 +import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
-+import { radius, theme } from '@/theme';
++import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
-+import { labelOf, metrics, space } from '@/ui/tokens';
++import { labelOf, metrics, radius, space } from '@/ui/tokens';
 +
 +export function Messages({
 +  thread,
@@ -116090,10 +116130,10 @@ index 0000000000000000000000000000000000000000..a3dcf467044d386823a6860a7f06fe10
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..edaa64391754c028926fa9045cbf74e0b4edff22
+index 0000000000000000000000000000000000000000..1b76857f30ea7c239338c30529c2cc066e53a7ab
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,390 @@
+@@ -0,0 +1,386 @@
 +import {
 +  callsBeside,
 +  stageLayout,
@@ -116184,9 +116224,10 @@ index 0000000000000000000000000000000000000000..edaa64391754c028926fa9045cbf74e0
 +  duo?: Duo;
 +};
 +
++// The bar stays where it is over the inbox, so the inbox starts `top` down, under it.
 +export type Inbox = {
 +  width: number;
-+  toolbar: Spot & { width: number; axis: 'column' };
++  top: number;
 +  orb: Required<Spot>;
 +  controls: Place;
 +};
@@ -116270,16 +116311,11 @@ index 0000000000000000000000000000000000000000..edaa64391754c028926fa9045cbf74e0
 +}
 +
 +// Before a call on a wide iPad, the rail the call waits in beside the inbox.
-+function rail({ window, toolbar, bottomInset }: Frame): Inbox {
++function rail({ window, top, bottomInset }: Frame): Inbox {
 +  const foot = window.height - bottomInset - metrics.call / 2;
 +  return {
 +    width: window.width - RAIL,
-+    toolbar: {
-+      x: (RAIL - metrics.tool) / 2,
-+      y: toolbar.y,
-+      width: metrics.tool,
-+      axis: 'column',
-+    },
++    top,
 +    orb: { x: RAIL / 2, y: foot - metrics.call / 2 - 20 - RAIL_ORB / 2, size: RAIL_ORB },
 +    controls: { x: RAIL / 2, y: foot },
 +  };
@@ -118232,10 +118268,10 @@ index cd18d681c93bc6fa3d36a123b835deb4f124e8b6..00000000000000000000000000000000
 -  }
 -}
 diff --git a/src/theme.ts b/src/theme.ts
-index d8c516e081beacbfc12b1421509c6303443ba382..e9838d30c2c05a8f5567778921beb69d7587eb1c 100644
+index d8c516e081beacbfc12b1421509c6303443ba382..980ae57bdaba7df1129e549199e47f05c680acd1 100644
 --- a/src/theme.ts
 +++ b/src/theme.ts
-@@ -1,9 +1,33 @@
+@@ -1,9 +1,16 @@
 -export const theme = {
 -  background: '#000000',
 -  surface: '#202020',
@@ -118244,31 +118280,15 @@ index d8c516e081beacbfc12b1421509c6303443ba382..e9838d30c2c05a8f5567778921beb69d
 -  accent: '#C4F3E5',
 -  accentMuted: '#1B3534',
 -  danger: '#F0A5A8',
+-} as const;
 +import { DynamicColorIOS, StyleSheet, type ColorValue } from 'react-native';
 +
-+import { color, metrics, type Tone } from '@/ui/tokens';
++import { color, type Tone } from '@/ui/tokens';
 +
 +// iOS picks the side of each color that matches the system's appearance.
 +export const theme = Object.fromEntries(
 +  Object.entries(color).map(([tone, pair]) => [tone, DynamicColorIOS(pair)]),
 +) as Record<Tone, ColorValue>;
-+
-+// One corner per kind of shape, the same in every pose and screen. Where something sits never
-+// changes how it's drawn.
-+export const radius = {
-+  // The call, rounding off against Calls or Tasks beside it.
-+  card: 44,
-+  // A grouped panel: settings, an ask on the call, the last check.
-+  group: 26,
-+  // What you said.
-+  bubble: 20,
-+  // A row or button you press, and a field you type in.
-+  control: 14,
-+  // A thread's composer, as round as a capsule while it holds one line.
-+  field: metrics.field / 2,
-+  // A tag or a block of code inside something else.
-+  inner: 12,
- } as const;
 +
 +// The thinnest line the screen draws: a divider's.
 +export const hairline = StyleSheet.hairlineWidth;
@@ -118459,10 +118479,10 @@ index 0000000000000000000000000000000000000000..4b5c2ac4513055c5b7b1e97062cb4c65
 +}
 diff --git a/src/ui/tokens.ts b/src/ui/tokens.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7c1c5f55c2021cbc09b6a0c876aa606ccf292c27
+index 0000000000000000000000000000000000000000..a278fdf80b3b2bc63dbf674ad06d3bda1660ce5d
 --- /dev/null
 +++ b/src/ui/tokens.ts
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,235 @@
 +// The app's look: every color, text style, gap and size a component draws with. A component picks
 +// a name from these tables, never a value of its own, so it looks the same wherever it sits.
 +
@@ -118675,6 +118695,23 @@ index 0000000000000000000000000000000000000000..7c1c5f55c2021cbc09b6a0c876aa606c
 +  },
 +} as const;
 +
++// One corner per kind of shape, the same in every pose and screen. Where something sits never
++// changes how it's drawn.
++export const radius = {
++  // The call, rounding off against Calls or Tasks beside it.
++  card: 44,
++  // A grouped panel: settings, an ask on the call, the last check.
++  group: 26,
++  // What you said.
++  bubble: 20,
++  // A row or button you press, and a field you type in.
++  control: 14,
++  // A thread's composer, as round as a capsule while it holds one line.
++  field: metrics.field / 2,
++  // A tag or a block of code inside something else.
++  inner: 12,
++} as const;
++
 +export type ControlsSize = keyof typeof metrics.controls;
 +export type ToolbarGaps = 'regular' | 'compact';
 +
@@ -118683,15 +118720,15 @@ index 0000000000000000000000000000000000000000..7c1c5f55c2021cbc09b6a0c876aa606c
 +export const breakpoint = { beside: 600, besideShort: 540, page: 320 } as const;
 diff --git a/src/ui/turn.tsx b/src/ui/turn.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..9ddaffda39d046acd23325a8379f4a44c11c016f
+index 0000000000000000000000000000000000000000..2b6b073660e4ec9c3787d0e9f7d53662081cb7bf
 --- /dev/null
 +++ b/src/ui/turn.tsx
 @@ -0,0 +1,23 @@
 +import type { ReactNode } from 'react';
 +import { StyleSheet, View } from 'react-native';
 +
-+import { radius, theme } from '@/theme';
-+import { metrics } from '@/ui/tokens';
++import { theme } from '@/theme';
++import { metrics, radius } from '@/ui/tokens';
 +
 +// One turn of a call: yours in a bubble at the trailing edge, hex's plain at the leading edge.
 +export function Turn({ you, children }: { you: boolean; children: ReactNode }) {
@@ -119683,6 +119720,186 @@ index 0000000000000000000000000000000000000000..c43bd10f7e40957cb25a45994e777476
 +  assert.deepEqual(ids(putBack([c, a], b)), ['c', 'b', 'a']);
 +  assert.deepEqual(ids(putBack([b, a], c)), ['c', 'b', 'a']);
 +  assert.deepEqual(ids(putBack([c, b], a)), ['c', 'b', 'a']);
++});
+diff --git a/tests/card.test.ts b/tests/card.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..25470f106f572fd3f17f1d3e739a35706139a716
+--- /dev/null
++++ b/tests/card.test.ts
+@@ -0,0 +1,174 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++
++import type { Pose } from '../modules/pose';
++import { barOf, cardOf } from '../src/call/card';
++import { screenLayout } from '../src/screens/layout';
++import { roomOf, type Insets, type Size } from '../src/screens/window';
++import { metrics, radius } from '../src/ui/tokens';
++
++type Fixture = { window: Size; insets: Insets; pose: Pose };
++
++const pad = { top: 24, right: 0, bottom: 20, left: 0 };
++const column = { top: 0, right: 84, bottom: 34, left: 0 };
++const band = { top: 82, right: 0, bottom: 34, left: 0 };
++const upright = { x: 455.5, y: 0, width: 40, height: 669 };
++const flat = { x: 0, y: 455.5, width: 669, height: 40 };
++
++// Every screen the app lays out for: the phone, iPad both ways up, and iPhone Duo's poses with its
++// column on either side.
++const screens: Record<string, Fixture> = {
++  phone: {
++    window: { width: 440, height: 956 },
++    insets: { top: 62, right: 0, bottom: 34, left: 0 },
++    pose: { regular: false },
++  },
++  'iPad landscape': { window: { width: 1194, height: 834 }, insets: pad, pose: { regular: true } },
++  'iPad portrait': { window: { width: 834, height: 1194 }, insets: pad, pose: { regular: true } },
++  'Duo folded upright': {
++    window: { width: 466, height: 678 },
++    insets: column,
++    pose: { regular: false, bar: 'right', occlusions: [{ x: 382, y: 0, width: 84, height: 170 }] },
++  },
++  'Duo folded, column leading': {
++    window: { width: 466, height: 678 },
++    insets: { ...column, right: 0, left: 84 },
++    pose: { regular: false, bar: 'left', occlusions: [{ x: 0, y: 0, width: 84, height: 170 }] },
++  },
++  'Duo open upright': {
++    window: { width: 951, height: 669 },
++    insets: column,
++    pose: { regular: true, bar: 'right', fold: { ...upright, active: false } },
++  },
++  'Duo open, column leading': {
++    window: { width: 951, height: 669 },
++    insets: { ...column, right: 0, left: 84 },
++    pose: { regular: true, bar: 'left', fold: { ...upright, x: 539.5, active: false } },
++  },
++  'Duo partly open upright': {
++    window: { width: 951, height: 669 },
++    insets: column,
++    pose: { regular: true, bar: 'right', fold: { ...upright, active: true } },
++  },
++  'Duo open on its side': {
++    window: { width: 669, height: 951 },
++    insets: band,
++    pose: {
++      regular: true,
++      fold: { ...flat, active: false },
++      occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
++    },
++  },
++};
++
++const layoutOf = ({ window, insets, pose }: Fixture) => screenLayout(roomOf(pose, window, insets));
++
++test('on every screen, the call card rounds off by the one card corner whenever Calls is in, and meets Calls’ edge', () => {
++  for (const [name, screen] of Object.entries(screens)) {
++    const layout = layoutOf(screen);
++    const card = cardOf(layout, 1, 0, layout.tasks.width);
++    assert.equal(card.borderRadius, radius.card, name);
++    assert.equal(card.left, layout.content.x + layout.calls.width, `${name}: meets Calls' edge`);
++  }
++});
++
++test('on every screen, the call card rounds off against Tasks beside it, and Tasks over it leaves it whole', () => {
++  for (const [name, screen] of Object.entries(screens)) {
++    const layout = layoutOf(screen);
++    const card = cardOf(layout, 0, 1, layout.tasks.width);
++    assert.equal(card.borderRadius, layout.tasks.place === 'beside' ? radius.card : 0, name);
++  }
++});
++
++test('on every screen, a call card with nothing beside it fills the screen square', () => {
++  for (const [name, screen] of Object.entries(screens)) {
++    const layout = layoutOf(screen);
++    const card = cardOf(layout, 0, 0, layout.tasks.width);
++    assert.deepEqual(
++      { top: card.top, left: card.left, right: card.right, corner: card.borderRadius },
++      { top: 0, left: 0, right: 0, corner: 0 },
++      name,
++    );
++    assert.equal(card.stage.left, layout.content.x, `${name}: the stage sits on the content`);
++  }
++});
++
++test('what is on the call card stays put in the window unless the card slides aside to Calls’ edge', () => {
++  for (const [name, screen] of Object.entries(screens)) {
++    const layout = layoutOf(screen);
++    for (const drawer of [0.5, 1]) {
++      const card = cardOf(layout, drawer, 0, layout.tasks.width);
++      const slid = layout.calls.place === 'slide' ? drawer * layout.calls.width : 0;
++      assert.equal(card.left + card.stage.left, layout.content.x + slid, `${name} at ${drawer}`);
++      assert.equal(card.top + card.stage.top, 0, `${name} at ${drawer}`);
++      if (layout.calls.place === 'slide' && drawer === 1)
++        assert.equal(card.stage.left, 0, `${name}: the call's content peeks from Calls' edge`);
++    }
++  }
++});
++
++// The same rule in every window the app could be given, with or without a side column on either
++// side and with or without a fold: there is no screen or pose where Calls leaves the card square
++// or the card covers any of Calls.
++test('in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square', () => {
++  const problems: string[] = [];
++  for (const width of [375, 440, 466, 669, 834, 951, 1194])
++    for (const height of [466, 669, 678, 834, 951, 1194])
++      for (const side of [undefined, 'left', 'right'] as const)
++        for (const folded of [false, true]) {
++          const across = width > height;
++          const fold = !folded
++            ? undefined
++            : across
++              ? { x: width / 2 - 20, y: 0, width: 40, height, active: false }
++              : { x: 0, y: height / 2 - 20, width, height: 40, active: false };
++          const layout = layoutOf({
++            window: { width, height },
++            insets: {
++              top: side ? 0 : 24,
++              bottom: 20,
++              left: side === 'left' ? 84 : 0,
++              right: side === 'right' ? 84 : 0,
++            },
++            pose: { regular: width >= 669, bar: side, fold },
++          });
++          const name = `${width}x${height} ${side ?? 'no'} column${folded ? ', folded' : ''}`;
++          const calls = cardOf(layout, 1, 0, layout.tasks.width);
++          if (calls.borderRadius !== radius.card) problems.push(`${name}: Calls in, square`);
++          if (calls.left !== layout.content.x + layout.calls.width)
++            problems.push(`${name}: card at ${calls.left}, Calls ends at ${layout.calls.width}`);
++          if (cardOf(layout, 0, 0, layout.tasks.width).borderRadius !== 0)
++            problems.push(`${name}: nothing in, rounded`);
++        }
++  assert.deepEqual(problems, []);
++});
++
++// barOf takes no pane, so Tasks opening or closing can't move the bar; this checks the one place
++// it keeps is clear of Tasks and holds every button.
++test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
++  const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
++  for (const [name, screen] of Object.entries(screens)) {
++    const layout = layoutOf(screen);
++    const { toolbar, calls, tasks } = layout;
++    if (toolbar.axis !== 'row') continue;
++    const window = screen.window.width;
++    for (const drawer of [0, 0.5, 1]) {
++      const { left, right } = barOf(layout, window, drawer);
++      const end = window - right;
++      const where = `${name}, Calls at ${drawer}`;
++      assert.ok(end - left >= least, `${where}: holds its buttons`);
++      if (calls.below !== undefined)
++        assert.deepEqual([left, end], [toolbar.x, toolbar.x + toolbar.width], `${where}: whole`);
++      if (drawer === 0) {
++        assert.ok(left >= 0 && end <= window, `${where}: inside the window`);
++        if (tasks.place === 'beside')
++          assert.ok(end <= window - tasks.width, `${where}: clear of Tasks`);
++      }
++    }
++    if (layout.inbox)
++      assert.ok(
++        toolbar.y + metrics.tool <= layout.inbox.top,
++        `${name}: the inbox starts under the bar`,
++      );
++  }
 +});
 diff --git a/tests/chat.test.ts b/tests/chat.test.ts
 new file mode 100644
@@ -124280,7 +124497,7 @@ index 0323abea7d0be3dfb3ff293f02c2a393a486ca61..00000000000000000000000000000000
 -});
 diff --git a/tests/look.test.ts b/tests/look.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c926d380767956bec63a2259e680bb625cbfbbd1
+index 0000000000000000000000000000000000000000..f9f9fbeddf4a727132d1f3f7fb6ff3c192c5bb11
 --- /dev/null
 +++ b/tests/look.test.ts
 @@ -0,0 +1,112 @@
@@ -124385,7 +124602,7 @@ index 0000000000000000000000000000000000000000..c926d380767956bec63a2259e680bb62
 +  assert.deepEqual(done, [], 'take these off the list: they draw only with tokens now');
 +});
 +
-+test('every corner comes from theme.ts, in every file', () => {
++test('every corner comes from the tokens, in every file', () => {
 +  const corner = /borderRadius: [\d.]|roundedRectangle', [\d.]|cornerRadius: [\d.]/;
 +  const found = files('src')
 +    .filter((file) => !file.endsWith('theme.ts'))
