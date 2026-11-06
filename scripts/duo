@@ -453,7 +453,7 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac shoot $runtime"
+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime"
   collect "$out"
   echo "$title" >"$out/done"
 }
@@ -462,7 +462,7 @@ tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} turn $folder/harness/duo mac tap $runtime"
+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
   collect "${2:-$out/tap}"
 }
 
@@ -585,7 +585,8 @@ phone() {
 # Holds the lock of the first free lane of those given. Checks waiting for a lane take one in the
 # order they came, by ticket, and FIRST=1 puts a check someone is waiting on ahead of the rest (it
 # goes first for the Mac's simulator turn too). A lane whose stand-in port is taken on the Mac is
-# busy as well, as when a check was stopped here but not there.
+# busy as well, and on the Mac a check also holds the lane's own lock (<folder>.lock) while it runs,
+# so one that outlived its run here makes the next wait there instead of colliding.
 take_lane() {
   local queue=$home/queue-${1:-checks} candidate waiting ticket told=
   mkdir -p "$queue"
@@ -602,6 +603,8 @@ take_lane() {
         use_lane "$candidate"
         ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || {
           rm -f "$ticket"
+          # A check stopped here stops on the Mac too, or its stand-in would hold the lane's port.
+          trap 'ssh "$mac" "pkill -f \"[${folder:0:1}]${folder:1}/harness/duo mac \"; lsof -ti tcp:$hexport -sTCP:LISTEN | xargs kill" 2>/dev/null; exit 143' TERM INT HUP
           return 0
         }
         flock -u 7
