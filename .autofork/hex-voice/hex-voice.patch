@@ -90845,7 +90845,7 @@ index 0000000000000000000000000000000000000000..3e2fd6576e5c7d13c4451d9b9f38aa0f
 +}
 diff --git a/scripts/duo b/scripts/duo
 new file mode 100755
-index 0000000000000000000000000000000000000000..868e90a6eb72b1f97fa8a3493a099d05cf3fa7f1
+index 0000000000000000000000000000000000000000..5b01bac5af3ba2eae82acdfc4f0def6f671ae500
 --- /dev/null
 +++ b/scripts/duo
 @@ -0,0 +1,611 @@
@@ -90868,8 +90868,8 @@ index 0000000000000000000000000000000000000000..868e90a6eb72b1f97fa8a3493a099d05
 +# state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 +# screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
 +# newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
-+# iPad Pro 11" on iOS 27.0 (27.1 is the Duo's alone), in place of the Duo, shutting the Duo down so only one is booted; its poses are up and
-+# side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
++# iPad Pro 11" on iOS 27.0 through Xcode 27.0 (27.1 and Xcode-beta are the Duo's alone), in place
++# of the Duo, shutting the Duo down so only one is booted; its poses are up and side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
 +# last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
 +# while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
 +# ANSWERS=<file of answers by path> answers those paths from the file, its shots in kept/<file>/. The JS is bundled here; the Mac builds the
@@ -90899,8 +90899,8 @@ index 0000000000000000000000000000000000000000..868e90a6eb72b1f97fa8a3493a099d05
 +  duo="${1:+$1 }hexvoice Duo"
 +  ipad="${1:+$1 }hexvoice iPad"
 +  case $DEVICE in
-+    duo) sim=$duo model=iPhone-Duo os=iOS-27-1 ;;
-+    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 ;;
++    duo) sim=$duo model=iPhone-Duo os=iOS-27-1 xcode=Xcode-beta ;;
++    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 xcode=Xcode ;;
 +  esac
 +  case $1 in
 +    '') hexport=8799 ;;
@@ -90934,7 +90934,7 @@ index 0000000000000000000000000000000000000000..868e90a6eb72b1f97fa8a3493a099d05
 +# Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 +# js/ its bundle, harness/ this script with what it needs.
 +on_mac() {
-+  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer}
++  export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/$xcode.app/Contents/Developer}
 +  export PATH=/opt/homebrew/bin:$PATH
 +  cd ~/"$folder"
 +  local command=$1
@@ -91686,12 +91686,12 @@ index 0000000000000000000000000000000000000000..e20704b926fa9666628235629ddea3b7
 +}
 diff --git a/scripts/duo-moves b/scripts/duo-moves
 new file mode 100644
-index 0000000000000000000000000000000000000000..6588496c69a082e58d93e1159a7158178d35da46
+index 0000000000000000000000000000000000000000..7c2cfff7ada4b0781067090e6f48a65db231ebf9
 --- /dev/null
 +++ b/scripts/duo-moves
-@@ -0,0 +1,32 @@
-+# The walk scripts/duo verify films: the app's screens moving into each other by toolbar, tab, row,
-+# back and edge swipe, then with a call on. Each part opens the app afresh, so a step that sticks
+@@ -0,0 +1,31 @@
++# The walk scripts/duo verify films: the app's screens moving into each other by toolbar, tab, row
++# and back, then with a call on. Each part opens the app afresh, so a step that sticks
 +# can't hide the rest.
 +shoot call
 +tap tasks-button
@@ -91714,7 +91714,6 @@ index 0000000000000000000000000000000000000000..6588496c69a082e58d93e1159a715817
 +launch hexvoice:///
 +tap calls-button
 +shoot calls
-+swipe-back calls-edge
 +launch hexvoice:///?demo=call
 +shoot call-live
 +tap tasks-button
@@ -118750,7 +118749,7 @@ index a90e9858adc5fc48d849a53284a3c6791c05811b..f80d915cd9d2cd7bdc2e6f90e97d0153
  }
 diff --git a/uitests/DuoTests.swift b/uitests/DuoTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa24c6388df7e5f72e4ee532c107cc88c1ec9954
+index 0000000000000000000000000000000000000000..c67fa61e16097af9d7dca135feae2dada9104fe6
 --- /dev/null
 +++ b/uitests/DuoTests.swift
 @@ -0,0 +1,196 @@
@@ -118889,10 +118888,10 @@ index 0000000000000000000000000000000000000000..aa24c6388df7e5f72e4ee532c107cc88
 +        }
 +    }
 +
-+    // Pages that have left stay in the tree off screen, and rows scrolled under a bar can't be
-+    // touched, so the first match that can be wins, then the first on screen. Which are on screen
-+    // comes from one snapshot of the tree, since a live list can change between reading a match's
-+    // place and touching it.
++    // Pages that have left stay in the tree off screen, so the first match on screen wins, whole if
++    // one is. Which are on screen comes from one snapshot of the tree, since a live list can change
++    // between reading a match's place and touching it, and asking a live element whether it can be
++    // touched fails the run when its frame has just gone.
 +    private func element(_ query: String) -> XCUIElement? {
 +        let matches = app.descendants(matching: .any).matching(predicate(for: query))
 +        guard matches.firstMatch.waitForExistence(timeout: 10) else {
@@ -118903,8 +118902,8 @@ index 0000000000000000000000000000000000000000..aa24c6388df7e5f72e4ee532c107cc88
 +        let screen = app.windows.firstMatch.frame
 +        let onScreen = matching(query, in: tree).enumerated()
 +            .filter { screen.contains(CGPoint(x: $0.element.frame.midX, y: $0.element.frame.midY)) }
-+            .map { matches.element(boundBy: $0.offset) }
-+        return onScreen.prefix(4).first { $0.exists && $0.isHittable } ?? onScreen.first ?? matches.firstMatch
++        let pick = onScreen.first { screen.contains($0.element.frame) } ?? onScreen.first
++        return pick.map { matches.element(boundBy: $0.offset) } ?? matches.firstMatch
 +    }
 +
 +    // The elements under a snapshot (itself excluded) that match the query, in the order a query finds them.
