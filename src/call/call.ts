@@ -158,10 +158,16 @@ export type CallButton = 'start' | 'retry' | 'cancel' | 'end' | 'ending';
 // With no call there's nothing to mute. A call held elsewhere mutes there, not here.
 export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
 
-export function buttonsOf(call: Call): { call: CallButton; mute: MuteButton } {
-  if (call.kind === 'none') return { call: call.last?.error ? 'retry' : 'start', mute: undefined };
-  if (call.phase === 'ending') return { call: 'ending', mute: muteOf(call) };
-  return { call: call.phase === 'connecting' ? 'cancel' : 'end', mute: muteOf(call) };
+// A photo or clip goes to a call once it's live.
+export function buttonsOf(call: Call): { call: CallButton; mute: MuteButton; add: boolean } {
+  if (call.kind === 'none')
+    return { call: call.last?.error ? 'retry' : 'start', mute: undefined, add: false };
+  if (call.phase === 'ending') return { call: 'ending', mute: muteOf(call), add: false };
+  return {
+    call: call.phase === 'connecting' ? 'cancel' : 'end',
+    mute: muteOf(call),
+    add: call.phase === 'live',
+  };
 }
 
 function muteOf(call: Exclude<Call, { kind: 'none' }>): MuteButton {

@@ -3,6 +3,7 @@ import { frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { buttonsOf, type Call, type CallButton } from '@/call/call';
+import { CallAdd } from '@/components/media/call-add';
 import { GlassButton } from '@/ui/glass-button';
 import { metrics, type ControlsSize } from '@/ui/tokens';
 
@@ -28,8 +29,8 @@ const PRIMARY: Record<
   ending: { icon: 'waveform', label: 'Ending conversation', loading: true, off: true },
 };
 
-// Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
-// column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
+// The + on a live call, mute and the call button: a row beside each other on the phone, a column
+// in iPhone Duo's side column with the + above mute. A call held elsewhere, like a phone call, mutes there, not here. In the
 // iPad inbox's rail, before any call, the call button waits alone.
 export function CallControls({
   call,
@@ -46,7 +47,8 @@ export function CallControls({
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
   const callSide = metrics[sizes.call];
-  const along = (mute ? muteSide + sizes.gap : 0) + callSide;
+  const add = mute && buttons.add;
+  const along = (add ? muteSide + sizes.gap : 0) + (mute ? muteSide + sizes.gap : 0) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
   const primaryOff = primary.off || !ready;
   return (
@@ -63,6 +65,7 @@ export function CallControls({
       >
         <GlassEffectContainer>
           <Stack spacing={sizes.gap}>
+            {add ? <CallAdd call={call} size={sizes.mute} /> : null}
             {/* With no call there's nothing to mute, so an empty space holds mute's place and the
             call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
             a glass button with opacity 0 still drew, glyph and all. */}

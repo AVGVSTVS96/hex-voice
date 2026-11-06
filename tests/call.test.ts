@@ -68,7 +68,7 @@ test('before any call the orb rests asleep and alone, ready to start', () => {
     persona: 'idle',
     wake: 0,
     status: 'Ready to start a conversation',
-    buttons: { call: 'start', mute: undefined },
+    buttons: { call: 'start', mute: undefined, add: false },
     words: false,
     footer: undefined,
     error: undefined,
@@ -81,7 +81,7 @@ test('connecting here locks the voice, thinks, and offers to cancel', () => {
     persona: 'thinking',
     wake: 0.5,
     status: 'Connecting',
-    buttons: { call: 'cancel', mute: { muted: false, enabled: false } },
+    buttons: { call: 'cancel', mute: { muted: false, enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -96,7 +96,11 @@ test('a live call here listens, speaks while hex talks, and goes quiet when mute
   assert.equal(personaOf(live({ muted: true }), true), 'speaking');
   assert.equal(statusOf(live()), 'Conversation active');
   assert.equal(statusOf(live({ muted: true })), 'Microphone muted');
-  assert.deepEqual(buttonsOf(live()), { call: 'end', mute: { muted: false, enabled: true } });
+  assert.deepEqual(buttonsOf(live()), {
+    call: 'end',
+    mute: { muted: false, enabled: true },
+    add: true,
+  });
   assert.deepEqual(buttonsOf(live({ muted: true })).mute, { muted: true, enabled: true });
   assert.equal(wakeOf(live()), 1);
   assert.deepEqual(wordsOf(live()), words);
@@ -123,7 +127,7 @@ test('ending a call here thinks, keeps the microphone as it was, and lets nothin
     persona: 'thinking',
     wake: 0.5,
     status: 'Ending conversation',
-    buttons: { call: 'ending', mute: { muted: true, enabled: false } },
+    buttons: { call: 'ending', mute: { muted: true, enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -140,7 +144,7 @@ test('a call that ended here says how and how long, and its words stay', () => {
     persona: 'idle',
     wake: 0,
     status: 'Ready to start a conversation',
-    buttons: { call: 'start', mute: undefined },
+    buttons: { call: 'start', mute: undefined, add: false },
     words: true,
     footer: { kind: 'ended', id: 'sess_1', text: 'You hung up · 2 min', bad: false },
     error: undefined,
@@ -197,7 +201,7 @@ test('a call hex holds elsewhere shows as the call, with its words and where it 
     persona: 'listening',
     wake: 1,
     status: 'hex called you, on your phone',
-    buttons: { call: 'end', mute: { muted: false, enabled: false } },
+    buttons: { call: 'end', mute: { muted: false, enabled: false }, add: true },
     words: true,
     footer: { kind: 'elsewhere', text: 'On your phone · hex called you' },
     error: undefined,
