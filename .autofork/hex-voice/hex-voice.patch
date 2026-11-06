@@ -25,10 +25,10 @@ index 12e21d7d32ccebfa32e051c07f74367e7d6dd12e..834143201b89b70b3a92319127edf0de
 +/build
 diff --git a/.oxlintrc.json b/.oxlintrc.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9025ccf94
+index 0000000000000000000000000000000000000000..67abb4f1c0fdac1ce07aa7413dead54cb1cee49f
 --- /dev/null
 +++ b/.oxlintrc.json
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,264 @@
 +{
 +  "$schema": "./node_modules/oxlint/configuration_schema.json",
 +  "plugins": ["typescript", "react", "unicorn", "oxc", "import"],
@@ -73,6 +73,21 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +            "name": "react-native",
 +            "importNames": ["useWindowDimensions", "Dimensions"],
 +            "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
++          },
++          {
++            "name": "@expo/ui",
++            "importNames": ["Host"],
++            "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++          },
++          {
++            "name": "@expo/ui/swift-ui",
++            "importNames": ["Host"],
++            "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++          },
++          {
++            "name": "react-native",
++            "importNames": ["ScrollView"],
++            "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
 +          }
 +        ]
 +      }
@@ -100,6 +115,21 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +                "name": "react-native",
 +                "importNames": ["useWindowDimensions", "Dimensions"],
 +                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
++              },
++              {
++                "name": "@expo/ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "@expo/ui/swift-ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["ScrollView"],
++                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
 +              }
 +            ]
 +          }
@@ -125,6 +155,21 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +                "name": "react-native",
 +                "importNames": ["useWindowDimensions", "Dimensions"],
 +                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
++              },
++              {
++                "name": "@expo/ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "@expo/ui/swift-ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["ScrollView"],
++                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
 +              }
 +            ],
 +            "patterns": [
@@ -152,6 +197,21 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +                "name": "react-native",
 +                "importNames": ["useWindowDimensions", "Dimensions"],
 +                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
++              },
++              {
++                "name": "@expo/ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "@expo/ui/swift-ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["ScrollView"],
++                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
 +              }
 +            ]
 +          }
@@ -172,6 +232,21 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +              {
 +                "name": "@/hex",
 +                "message": "Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask."
++              },
++              {
++                "name": "@expo/ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "@expo/ui/swift-ui",
++                "importNames": ["Host"],
++                "message": "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["ScrollView"],
++                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
 +              }
 +            ],
 +            "patterns": [
@@ -183,14 +258,46 @@ index 0000000000000000000000000000000000000000..dee3a49fae122569a2dfd05f54f867a9
 +          }
 +        ]
 +      }
++    },
++    {
++      "files": ["src/ui/host.tsx"],
++      "rules": {
++        "no-restricted-imports": [
++          "error",
++          {
++            "paths": [
++              {
++                "name": "expo/fetch",
++                "message": "Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["useWindowDimensions", "Dimensions"],
++                "message": "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds."
++              },
++              {
++                "name": "react-native",
++                "importNames": ["ScrollView"],
++                "message": "Import ScrollView from '@/ui/scroll': a drag down it pulls the keyboard away, as every scrolling view in the app does."
++              }
++            ]
++          }
++        ]
++      }
++    },
++    {
++      "files": ["src/ui/scroll.tsx"],
++      "rules": {
++        "no-restricted-imports": "off"
++      }
 +    }
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..2a8848100bd8e60f9046a2262812db41014baf8d 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..8b186e095b68469dd57ac5ba9b825bfbacc2d859 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,67 @@
+@@ -1,21 +1,69 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
@@ -257,6 +364,8 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..2a8848100bd8e60f9046a2262812db41
 +
 +Layout breaks here when JS and SwiftUI both place the same view, so where iOS already places something, let it:
 +
++- Every Host is `@/ui/host`'s (lint holds it). It keeps clear of nothing unless it holds a field (`avoids="keyboard"`, Tasks' pages) or presents a sheet (`avoids="system"`), so the keyboard never moves a view it covers.
++- Every React Native ScrollView is `@/ui/scroll`'s (lint holds it), so a drag down any scrolling content lets the keyboard go, as Tasks' SwiftUI scroll views do (`scrollDismissesKeyboard`).
 +- A SwiftUI view's height is the most it may take (`maxHeight`, `upTo()` in `tasks-view.tsx`), never a fixed size. The keyboard shortens the Host it covers, and a view taller than its Host is centered, half off the top with its foot under the keyboard.
 +- Never move a view that holds a Host with a React Native transform. SwiftUI never hears about it, so accessibility and tap tests keep the old spot. Move it by layout, or inside SwiftUI.
 +- Where something sits decides only where it goes, never how it looks. A component's corners, surfaces and spacing come from `src/ui/tokens.ts` (`radius`, `metrics`, `space`) and `circle` in `theme.ts`, so it has one look on every screen and pose; `tests/look.test.ts` fails on a raw corner.
@@ -101737,16 +101846,18 @@ index 0000000000000000000000000000000000000000..c528ad2b7055c20c532bfcf5e24fbdae
 +}
 diff --git a/src/call/drawer.ts b/src/call/drawer.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7bbb3bbb0f89377f06e34cddbf7bb4a16ba8b8a2
+index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a95518c308
 --- /dev/null
 +++ b/src/call/drawer.ts
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,78 @@
 +import { useState } from 'react';
 +import { Gesture } from 'react-native-gesture-handler';
 +import { cancelAnimation, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 +import { scheduleOnRN } from 'react-native-worklets';
 +
 +import { motion } from '@/motion';
++
++const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 +
 +// Calls comes in from the leading edge and follows the finger: `drawer` runs 0 (shut) to 1 (open),
 +// and letting go settles it open or shut with a flick or past halfway. The pans open it from the
@@ -101770,12 +101881,18 @@ index 0000000000000000000000000000000000000000..7bbb3bbb0f89377f06e34cddbf7bb4a1
 +    setOpen(now);
 +    onChange(now);
 +  };
++  // The spring is critically damped, so it comes to rest without passing its end unless it starts
++  // faster than its natural frequency times the way left. A faster fling is held to that.
 +  const settle = (now: boolean, velocity = 0) => {
 +    'worklet';
++    const most = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
 +    drawer.set(
 +      reducedMotion
 +        ? withTiming(now ? 1 : 0, motion.reduced)
-+        : withSpring(now ? 1 : 0, { ...motion.drawer, velocity: velocity / width }),
++        : withSpring(now ? 1 : 0, {
++            ...motion.drawer,
++            velocity: Math.min(most, Math.max(-most, velocity / width)),
++          }),
 +    );
 +    scheduleOnRN(opened, now);
 +  };
@@ -102633,11 +102750,11 @@ index 0000000000000000000000000000000000000000..3c57cf36a9e77e7633c52ddc6d7f0bc4
 +}
 diff --git a/src/components/agent-line.tsx b/src/components/agent-line.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa402de41e2111d4432635604c1ab1e624848116
+index 0000000000000000000000000000000000000000..78313beb7949f42f02687b3b910b3146bddffab9
 --- /dev/null
 +++ b/src/components/agent-line.tsx
-@@ -0,0 +1,144 @@
-+import { Host, Icon } from '@expo/ui';
+@@ -0,0 +1,145 @@
++import { Icon } from '@expo/ui';
 +import { useEffect } from 'react';
 +import { StyleSheet, Text, View } from 'react-native';
 +import Animated, {
@@ -102656,6 +102773,7 @@ index 0000000000000000000000000000000000000000..aa402de41e2111d4432635604c1ab1e6
 +import type { AgentLine as Line } from '@/live/agents';
 +import { motion } from '@/motion';
 +import { circle, theme } from '@/theme';
++import { Host } from '@/ui/host';
 +import { space, textOf } from '@/ui/tokens';
 +
 +const { step, turn, rise } = motion.agent;
@@ -102969,16 +103087,17 @@ index 0000000000000000000000000000000000000000..a6637a31ded90347c5862501477b2566
 +});
 diff --git a/src/components/call-controls.tsx b/src/components/call-controls.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..9857202d545e89dd086a816a312bec147d275f30
+index 0000000000000000000000000000000000000000..b8641bd5cc61eb269c2b9ad53c18ca10ce697163
 --- /dev/null
 +++ b/src/components/call-controls.tsx
 @@ -0,0 +1,107 @@
-+import { GlassEffectContainer, HStack, Host, Spacer, VStack } from '@expo/ui/swift-ui';
++import { GlassEffectContainer, HStack, Spacer, VStack } from '@expo/ui/swift-ui';
 +import { frame } from '@expo/ui/swift-ui/modifiers';
 +import { StyleSheet, View, type ViewStyle } from 'react-native';
 +
 +import { buttonsOf, type Call, type CallButton } from '@/call/call';
 +import { GlassButton } from '@/ui/glass-button';
++import { Host } from '@/ui/host';
 +import { metrics, type ControlsSize } from '@/ui/tokens';
 +
 +type Props = {
@@ -103031,7 +103150,6 @@ index 0000000000000000000000000000000000000000..9857202d545e89dd086a816a312bec14
 +    >
 +      <Host
 +        matchContents
-+        ignoreSafeArea="all"
 +        style={
 +          axis === 'row' ? { width: along, height: callSide } : { width: callSide, height: along }
 +        }
@@ -103082,39 +103200,22 @@ index 0000000000000000000000000000000000000000..9857202d545e89dd086a816a312bec14
 +});
 diff --git a/src/components/call-menu.tsx b/src/components/call-menu.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3ca36e6e9d5d95f2bf036466f2cdd5fd197661bb
+index 0000000000000000000000000000000000000000..7235dab0c881496050492f9813b490efc63416e2
 --- /dev/null
 +++ b/src/components/call-menu.tsx
-@@ -0,0 +1,41 @@
-+import { Column, Host, Spacer } from '@expo/ui';
-+import { Button, Image, Label, Menu, ShareLink } from '@expo/ui/swift-ui';
-+import { contentShape, shapes } from '@expo/ui/swift-ui/modifiers';
+@@ -0,0 +1,24 @@
++import { Button, Label, ShareLink } from '@expo/ui/swift-ui';
 +
-+import { circle, theme } from '@/theme';
++import { GlassMenu } from '@/ui/glass-button';
++import { Host } from '@/ui/host';
 +import { metrics } from '@/ui/tokens';
 +
 +type Props = { transcript?: string; title: string; onDelete?: () => void };
 +
 +export function CallMenu({ transcript, title, onDelete }: Props) {
 +  return (
-+    <Host matchContents ignoreSafeArea="all" style={{ width: metrics.tool, height: metrics.tool }}>
-+      <Menu
-+        label={
-+          <Column
-+            alignment="center"
-+            spacing={0}
-+            style={{
-+              ...circle(metrics.tool),
-+              backgroundColor: theme.surface,
-+            }}
-+            modifiers={[contentShape(shapes.circle())]}
-+          >
-+            <Spacer flexible />
-+            <Image systemName="ellipsis" size={20} color={theme.text} />
-+            <Spacer flexible />
-+          </Column>
-+        }
-+      >
++    <Host matchContents style={{ width: metrics.tool, height: metrics.tool }}>
++      <GlassMenu icon="more" label="Call actions">
 +        {transcript !== undefined && (
 +          <ShareLink item={transcript} subject={title}>
 +            <Label title="Share transcript" systemImage="square.and.arrow.up" />
@@ -103123,24 +103224,17 @@ index 0000000000000000000000000000000000000000..3ca36e6e9d5d95f2bf036466f2cdd5fd
 +        {onDelete && (
 +          <Button label="Delete call" systemImage="trash" role="destructive" onPress={onDelete} />
 +        )}
-+      </Menu>
++      </GlassMenu>
 +    </Host>
 +  );
 +}
 diff --git a/src/components/call-transcript.tsx b/src/components/call-transcript.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..1d688e0ea96ccb8197cb0613aadedb36867dc7b3
+index 0000000000000000000000000000000000000000..809126daf582270700c4e265bb9f94fe56727529
 --- /dev/null
 +++ b/src/components/call-transcript.tsx
-@@ -0,0 +1,130 @@
-+import {
-+  ActivityIndicator,
-+  ScrollView,
-+  StyleSheet,
-+  Text,
-+  View,
-+  type ColorValue,
-+} from 'react-native';
+@@ -0,0 +1,124 @@
++import { ActivityIndicator, StyleSheet, Text, View, type ColorValue } from 'react-native';
 +import type { SFSymbol } from 'sf-symbols-typescript';
 +
 +import { Glyph } from '@/components/glyph';
@@ -103157,6 +103251,7 @@ index 0000000000000000000000000000000000000000..1d688e0ea96ccb8197cb0613aadedb36
 +  type ShownMark,
 +} from '@/live/calls';
 +import { circle, theme } from '@/theme';
++import { ScrollView } from '@/ui/scroll';
 +import { Turn } from '@/ui/turn';
 +import { metrics, space, textOf } from '@/ui/tokens';
 +
@@ -103265,13 +103360,13 @@ index 0000000000000000000000000000000000000000..1d688e0ea96ccb8197cb0613aadedb36
 +});
 diff --git a/src/components/calls-sidebar.tsx b/src/components/calls-sidebar.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..4d2ad699397939773e03cf96200383c7c288eec0
+index 0000000000000000000000000000000000000000..fa2d74cb86840c5d2bdc41a561a31452ddc4647b
 --- /dev/null
 +++ b/src/components/calls-sidebar.tsx
-@@ -0,0 +1,302 @@
+@@ -0,0 +1,303 @@
 +import * as Haptics from 'expo-haptics';
 +import { useState } from 'react';
-+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
++import { Pressable, StyleSheet, Text, View } from 'react-native';
 +import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 +import Animated, {
 +  FadeOut,
@@ -103296,6 +103391,7 @@ index 0000000000000000000000000000000000000000..4d2ad699397939773e03cf96200383c7
 +} from '@/live/calls';
 +import { motion } from '@/motion';
 +import { circle, theme } from '@/theme';
++import { ScrollView } from '@/ui/scroll';
 +import { metrics, radius, space, textOf } from '@/ui/tokens';
 +
 +const ACTION = 64;
@@ -103573,14 +103669,15 @@ index 0000000000000000000000000000000000000000..4d2ad699397939773e03cf96200383c7
 +});
 diff --git a/src/components/glyph.tsx b/src/components/glyph.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..3d3041ff642dde373ee10e9a7fa4e4aa4a3ccb57
+index 0000000000000000000000000000000000000000..9531d1f6895b5f59c82f21f5d83379a567d2e0b1
 --- /dev/null
 +++ b/src/components/glyph.tsx
-@@ -0,0 +1,12 @@
-+import { Host } from '@expo/ui';
+@@ -0,0 +1,13 @@
 +import { Image } from '@expo/ui/swift-ui';
 +import type { ColorValue } from 'react-native';
 +import type { SFSymbol } from 'sf-symbols-typescript';
++
++import { Host } from '@/ui/host';
 +
 +export function Glyph({ name, size, color }: { name: SFSymbol; size: number; color: ColorValue }) {
 +  return (
@@ -104343,16 +104440,17 @@ index 148c485d3c9fa713a03434a8c9994adf64f757b2..ac2fa14ac281101926738db1a6bc953f
 +}
 diff --git a/src/components/screen-toolbar.tsx b/src/components/screen-toolbar.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..d9f6e062302ea099f222caf0b5493b6f21791b21
+index 0000000000000000000000000000000000000000..4762428bda67839ab4021e0eeb82374f90596849
 --- /dev/null
 +++ b/src/components/screen-toolbar.tsx
 @@ -0,0 +1,87 @@
-+import { HStack, Host, VStack } from '@expo/ui/swift-ui';
++import { HStack, VStack } from '@expo/ui/swift-ui';
 +import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 +import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 +
 +import { TasksButton } from '@/components/tasks-button';
 +import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
++import { Host } from '@/ui/host';
 +import { metrics, type ToolbarGaps } from '@/ui/tokens';
 +
 +type Props = {
@@ -104402,7 +104500,6 @@ index 0000000000000000000000000000000000000000..d9f6e062302ea099f222caf0b5493b6f
 +      />
 +      <Host
 +        matchContents
-+        ignoreSafeArea="all"
 +        style={
 +          axis === 'row'
 +            ? { width: long, height: metrics.tool }
@@ -105048,11 +105145,11 @@ index 0000000000000000000000000000000000000000..b33530336e35519ef750a10c1e84858f
 +}
 diff --git a/src/components/tasks-pane.tsx b/src/components/tasks-pane.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b9582590f6a
+index 0000000000000000000000000000000000000000..1741296bf9398a4685893e42d7ce5b8ed607054c
 --- /dev/null
 +++ b/src/components/tasks-pane.tsx
-@@ -0,0 +1,112 @@
-+import { Host, ZStack } from '@expo/ui/swift-ui';
+@@ -0,0 +1,113 @@
++import { ZStack } from '@expo/ui/swift-ui';
 +import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 +import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 +import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -105064,6 +105161,7 @@ index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b95
 +import type { Page } from '@/screens/layout';
 +import { logPose } from '@/screens/pose-log';
 +import { theme } from '@/theme';
++import { Host } from '@/ui/host';
 +
 +// Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
 +const BACK_EDGE_WIDTH = 16;
@@ -105089,7 +105187,7 @@ index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b95
 +      importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
 +      style={[styles.pane, { width, paddingTop: top }, style]}
 +    >
-+      <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
++      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
 +        <TasksView {...view} width={width} foot={foot} />
 +      </Host>
 +    </Animated.View>
@@ -105136,7 +105234,7 @@ index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b95
 +        style,
 +      ]}
 +    >
-+      <Host seedColor={theme.tint} ignoreSafeArea="container" style={styles.fill}>
++      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
 +        <ZStack
 +          alignment="top"
 +          modifiers={[
@@ -105166,11 +105264,10 @@ index 0000000000000000000000000000000000000000..710467534c82c75bd052c61282975b95
 +});
 diff --git a/src/components/tasks-sheet.tsx b/src/components/tasks-sheet.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc117991987b4f
+index 0000000000000000000000000000000000000000..8ac4ea84425326a5f4c4451e581972e63d472bf5
 --- /dev/null
 +++ b/src/components/tasks-sheet.tsx
 @@ -0,0 +1,58 @@
-+import { Host } from '@expo/ui';
 +import { BottomSheet, Group as SheetContent } from '@expo/ui/swift-ui';
 +import {
 +  presentationBackground,
@@ -105184,6 +105281,7 @@ index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc1179
 +import { TasksView, type TasksProps } from '@/components/tasks/tasks-view';
 +import { useViewport } from '@/hooks/use-viewport';
 +import { theme } from '@/theme';
++import { Host } from '@/ui/host';
 +
 +// Tasks on the phone and iPhone Duo. Before a call it opens full height; on a call it opens half
 +// height so the call goes on behind it. However it goes away, swiped down or tapped past, it tells
@@ -105200,7 +105298,7 @@ index 0000000000000000000000000000000000000000..18caf25d0bac58bd42e89a1af5dc1179
 +  }, [view.open, onCall]);
 +
 +  return (
-+    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
++    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
 +      <BottomSheet
 +        isPresented={view.open}
 +        onIsPresentedChange={(presented) => {
@@ -108592,10 +108690,10 @@ index 0000000000000000000000000000000000000000..f611c94993a97077fb146951f960ba16
 +}
 diff --git a/src/components/tasks/said.tsx b/src/components/tasks/said.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e95425a4df
+index 0000000000000000000000000000000000000000..1ea332607a48eae58538e9ab09deb64b01e1ec7e
 --- /dev/null
 +++ b/src/components/tasks/said.tsx
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,163 @@
 +import { Column, Row, Spacer } from '@expo/ui';
 +import { Text } from '@expo/ui/swift-ui';
 +import {
@@ -108607,6 +108705,7 @@ index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e9
 +  padding,
 +  textSelection,
 +} from '@expo/ui/swift-ui/modifiers';
++import { createContext, useContext } from 'react';
 +
 +import { Markdown } from '@/components/markdown';
 +import { said, type Sending } from '@/live/chat';
@@ -108615,15 +108714,20 @@ index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e9
 +import { textLook } from '@/ui/text';
 +import { metrics, radius, space } from '@/ui/tokens';
 +
++// Selectable text takes a tap for itself, so while you type on a page what was said there isn't
++// selectable, and a tap on it ends the typing instead.
++export const Selectable = createContext(true);
++
 +// Drawn as the call transcript draws a turn.
 +export function Said({ turn }: { turn: ChatTurn }) {
 +  const one = said(turn);
++  const selectable = useContext(Selectable);
 +  if (one.kind === 'me') return <Mine text={one.text} />;
 +  if (one.kind === 'event')
 +    return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
 +  return (
 +    <Markdown
-+      selectable
++      selectable={selectable}
 +      modifiers={[
 +        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
 +        frame({ maxWidth: Infinity }),
@@ -108709,6 +108813,7 @@ index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e9
 +}
 +
 +function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
++  const selectable = useContext(Selectable);
 +  return (
 +    <Row
 +      alignment="center"
@@ -108721,7 +108826,7 @@ index 0000000000000000000000000000000000000000..7e4e37b39946d6409c1eaa761a1434e9
 +      <Text
 +        modifiers={[
 +          ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
-+          textSelection(true),
++          textSelection(selectable),
 +          padding({
 +            leading: metrics.bubbleX,
 +            trailing: metrics.bubbleX,
@@ -109090,10 +109195,10 @@ index 0000000000000000000000000000000000000000..f7e26ad7ae4da4b06b30a79578d60a66
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..f284cc7f406a0238681eee00a2b37ef1c6e4b9a7
+index 0000000000000000000000000000000000000000..fe62ad0966f89b4519718594253e182964410456
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,469 @@
+@@ -0,0 +1,472 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -109126,6 +109231,7 @@ index 0000000000000000000000000000000000000000..f284cc7f406a0238681eee00a2b37ef1
 +} from '@/components/tasks/pages';
 +import { feel } from '@/components/tasks/parts';
 +import { EntryRow } from '@/components/tasks/rows';
++import { Selectable } from '@/components/tasks/said';
 +import { Asked, Detail } from '@/components/tasks/task-page';
 +import { Messages, ThreadPage } from '@/components/tasks/thread';
 +import { StepsLoading, Trace } from '@/components/tasks/trace';
@@ -109303,7 +109409,9 @@ index 0000000000000000000000000000000000000000..f284cc7f406a0238681eee00a2b37ef1
 +      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
 +        <PageChrome.Provider value={chromeOf(at)}>
 +          <Showing.Provider value={open && at.shown}>
-+            <Typing.Provider value={typingOn(level)}>{children}</Typing.Provider>
++            <Typing.Provider value={typingOn(level)}>
++              <Selectable.Provider value={typing !== level}>{children}</Selectable.Provider>
++            </Typing.Provider>
 +          </Showing.Provider>
 +        </PageChrome.Provider>
 +      </PageAt>
@@ -110535,13 +110643,12 @@ index a47abb52444399214a487867119a1d102701c5ee..00000000000000000000000000000000
 -}
 diff --git a/src/components/transcript.tsx b/src/components/transcript.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..06b20714d89fd4e2c8912b213487c61451647076
+index 0000000000000000000000000000000000000000..b13464133e7c0eddae32d438f1b466168250c074
 --- /dev/null
 +++ b/src/components/transcript.tsx
 @@ -0,0 +1,158 @@
 +import { useEffect, useRef, useState } from 'react';
 +import {
-+  ScrollView,
 +  type ScrollViewInstance,
 +  StyleSheet,
 +  Text,
@@ -110556,6 +110663,7 @@ index 0000000000000000000000000000000000000000..06b20714d89fd4e2c8912b213487c614
 +import type { TranscriptEntry } from '@/live/types';
 +import { motion } from '@/motion';
 +import { theme } from '@/theme';
++import { ScrollView } from '@/ui/scroll';
 +import { Turn } from '@/ui/turn';
 +import { metrics, space, textOf } from '@/ui/tokens';
 +
@@ -110925,13 +111033,13 @@ index 18e1ea17794f8ff3ed32b73efbc43af88f90fcfe..00000000000000000000000000000000
 -  );
 -}
 diff --git a/src/components/voice-settings.tsx b/src/components/voice-settings.tsx
-index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4396c8ae4 100644
+index b84218e0163ac1e308cc90bad2a6687a999d8861..8bb2268fbfcc422c90e2da945a334756317ca78a 100644
 --- a/src/components/voice-settings.tsx
 +++ b/src/components/voice-settings.tsx
-@@ -1,19 +1,90 @@
+@@ -1,19 +1,91 @@
 -import { BottomSheet, Button, Column, Host, Icon, Row, Spacer, Text } from '@expo/ui';
 -import { accessibilityLabel } from '@expo/ui/swift-ui/modifiers';
-+import { Column, Host, Icon, RNHostView, Row, Spacer } from '@expo/ui';
++import { Column, Icon, RNHostView, Row, Spacer } from '@expo/ui';
 +import {
 +  ArrangementView,
 +  BottomSheet,
@@ -111005,6 +111113,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4
 +import { theme } from '@/theme';
 +import { Text } from '@/ui/text';
 +import type { Rect } from '@/screens/window';
++import { Host } from '@/ui/host';
 +import { breakpoint, metrics, space } from '@/ui/tokens';
 +
 +// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
@@ -111024,7 +111133,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4
    isPresented: boolean;
    onDismiss: () => void;
    voice: LiveVoice;
-@@ -23,11 +94,57 @@ type Props = {
+@@ -23,11 +95,57 @@ type Props = {
    persona: PersonaVariant;
    onPersonaChange: (persona: PersonaVariant) => void;
    personaEnabled: boolean;
@@ -111083,7 +111192,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4
    isPresented,
    onDismiss,
    voice,
-@@ -37,119 +154,511 @@ export function VoiceSettings({
+@@ -37,119 +155,511 @@ export function VoiceSettings({
    persona,
    onPersonaChange,
    personaEnabled,
@@ -111402,7 +111511,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4
  
    return (
 -    <Host colorScheme="dark" seedColor="#FFFFFF" style={{ position: 'absolute' }}>
-+    <Host seedColor={theme.tint} style={{ position: 'absolute' }}>
++    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
        <BottomSheet
          isPresented={isPresented}
 -        onDismiss={dismiss}
@@ -111632,7 +111741,7 @@ index b84218e0163ac1e308cc90bad2a6687a999d8861..5d489f625e5ae267762f317854edc2f4
 +      importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
 +      style={[StyleSheet.absoluteFill, fade]}
 +    >
-+      <Host seedColor={theme.tint} ignoreSafeArea="all" style={{ flex: 1 }}>
++      <Host seedColor={theme.tint} style={{ flex: 1 }}>
 +        <ZStack
 +          modifiers={[
 +            frame({ maxWidth: Infinity, maxHeight: Infinity }),
@@ -118299,11 +118408,11 @@ index d8c516e081beacbfc12b1421509c6303443ba382..980ae57bdaba7df1129e549199e47f05
 +}
 diff --git a/src/ui/glass-button.tsx b/src/ui/glass-button.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..265e9fe366c5e2e4fb799c409ef9d2e1b4336e2f
+index 0000000000000000000000000000000000000000..3f3acdf4b7c515e76220307061ec57b85403589b
 --- /dev/null
 +++ b/src/ui/glass-button.tsx
-@@ -0,0 +1,120 @@
-+import { Button, Host, Image, ProgressView } from '@expo/ui/swift-ui';
+@@ -0,0 +1,150 @@
++import { Button, Image, Menu, ProgressView } from '@expo/ui/swift-ui';
 +import {
 +  accessibilityAddTraits,
 +  accessibilityLabel,
@@ -118316,8 +118425,10 @@ index 0000000000000000000000000000000000000000..265e9fe366c5e2e4fb799c409ef9d2e1
 +  shapes,
 +  tint,
 +} from '@expo/ui/swift-ui/modifiers';
++import type { ReactNode } from 'react';
 +
 +import { theme } from '@/theme';
++import { Host } from '@/ui/host';
 +import { metrics, type GlassSize } from '@/ui/tokens';
 +
 +const symbols = {
@@ -118331,6 +118442,7 @@ index 0000000000000000000000000000000000000000..265e9fe366c5e2e4fb799c409ef9d2e1
 +  'mic-off': 'mic.slash',
 +  close: 'xmark',
 +  waveform: 'waveform',
++  more: 'ellipsis',
 +} as const;
 +
 +type Props = {
@@ -118380,14 +118492,7 @@ index 0000000000000000000000000000000000000000..265e9fe366c5e2e4fb799c409ef9d2e1
 +      : selected
 +        ? theme.accent
 +        : theme.text;
-+  const diameter = metrics[size];
-+  const face = [
-+    frame({ width: diameter, height: diameter }),
-+    ...(selected
-+      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
-+      : []),
-+    contentShape(shapes.circle()),
-+  ];
++  const look = face(size, selected);
 +  return (
 +    <Button
 +      onPress={onPress}
@@ -118401,27 +118506,105 @@ index 0000000000000000000000000000000000000000..265e9fe366c5e2e4fb799c409ef9d2e1
 +      ]}
 +    >
 +      {loading ? (
-+        <ProgressView modifiers={[tint(color), ...face]} />
++        <ProgressView modifiers={[tint(color), ...look]} />
 +      ) : (
 +        <Image
 +          systemName={symbols[icon]}
 +          size={metrics.symbol[prominent ? 'prominent' : 'regular']}
 +          color={color}
-+          modifiers={face}
++          modifiers={look}
 +        />
 +      )}
 +    </Button>
 +  );
 +}
 +
++// A GlassButton that opens a menu of `children`.
++export function GlassMenu({
++  icon,
++  label,
++  children,
++}: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) {
++  return (
++    <Menu
++      label={
++        <Image
++          systemName={symbols[icon]}
++          size={metrics.symbol.regular}
++          color={theme.text}
++          modifiers={face('tool', false)}
++        />
++      }
++      modifiers={[accessibilityLabel(label), glass('circle')]}
++    >
++      {children}
++    </Menu>
++  );
++}
++
++function face(size: GlassSize, selected: boolean) {
++  const diameter = metrics[size];
++  return [
++    frame({ width: diameter, height: diameter }),
++    ...(selected
++      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
++      : []),
++    contentShape(shapes.circle()),
++  ];
++}
++
 +// A GlassButton that React Native lays out, in a Host of its own.
 +export function HostedGlassButton(props: Props) {
 +  const diameter = metrics[props.size ?? 'tool'];
 +  return (
-+    <Host matchContents ignoreSafeArea="all" style={{ width: diameter, height: diameter }}>
++    <Host matchContents style={{ width: diameter, height: diameter }}>
 +      <GlassButton {...props} />
 +    </Host>
 +  );
++}
+diff --git a/src/ui/host.tsx b/src/ui/host.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..81e01deaa5298513005d5922ace0255f1ca7f38c
+--- /dev/null
++++ b/src/ui/host.tsx
+@@ -0,0 +1,19 @@
++import { Host as SwiftUIHost, type HostProps } from '@expo/ui/swift-ui';
++
++// Where a SwiftUI view sits is React Native's to decide, so by default a Host keeps clear of
++// nothing iOS reserves. One the keyboard covered would otherwise shorten what it holds by the
++// keyboard and center it, half off its top: the call's buttons, marks and icons jumping up as you
++// type in Tasks. A Host that holds a field keeps above the `keyboard`, so the field and its send
++// button stay over it. A sheet's Host only presents its sheet, which iOS lays out as the `system`
++// does, keyboard and all.
++export function Host({
++  avoids,
++  ...props
++}: Omit<HostProps, 'ignoreSafeArea'> & { avoids?: 'keyboard' | 'system' }) {
++  return (
++    <SwiftUIHost
++      {...props}
++      ignoreSafeArea={avoids === 'keyboard' ? 'container' : avoids === 'system' ? undefined : 'all'}
++    />
++  );
++}
+diff --git a/src/ui/scroll.tsx b/src/ui/scroll.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..5b71bf3a235b525a2e1d0a30b0b10be28af3a75c
+--- /dev/null
++++ b/src/ui/scroll.tsx
+@@ -0,0 +1,13 @@
++import type { Ref } from 'react';
++import {
++  ScrollView as NativeScrollView,
++  type ScrollViewInstance,
++  type ScrollViewProps,
++} from 'react-native';
++
++// Any drag of the app's scrolling content lets the keyboard go, whichever field holds it: the call's
++// words beside Tasks let go of Tasks' keyboard too. Interactive dismissal would wait for the finger
++// to reach the keyboard, which a drag beside it never does.
++export function ScrollView(props: ScrollViewProps & { ref?: Ref<ScrollViewInstance> }) {
++  return <NativeScrollView keyboardDismissMode="on-drag" {...props} />;
 +}
 diff --git a/src/ui/text.tsx b/src/ui/text.tsx
 new file mode 100644
