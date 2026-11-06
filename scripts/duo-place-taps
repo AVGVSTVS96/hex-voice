@@ -97,6 +97,8 @@ shoot fold-settings
 pose cover-up
 shoot folded-settings
 swipe-down voice-settings-sheet
+# A swiped sheet takes a moment to go, and a tap before then lands on it.
+wait 3
 tap tasks-button
 shoot folded-tasks
 tap voice-settings-button
@@ -117,12 +119,14 @@ tap tasks-button
 shoot split-tasks
 selected tasks-button
 swipe-down tasks-search
+wait 3
 tap voice-settings-button
 snap split-settings-tap
 shoot split-settings
 selected voice-settings-button
 unselected tasks-button
 swipe-down voice-settings-sheet
+wait 3
 tap tasks-button
 snap split-back-to-tasks-tap
 shoot split-back-to-tasks
