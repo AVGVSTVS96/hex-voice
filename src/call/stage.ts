@@ -1,4 +1,4 @@
-import { breakpoint, metrics, type ControlsSize } from '@/ui/tokens';
+import { breakpoint, metrics, stack, type ControlsSize } from '@/ui/tokens';
 
 import type { Fold } from '@/screens/window';
 
@@ -12,7 +12,7 @@ const SIDEBAR = 330;
 const PEEK = 72;
 const TASKS = 380;
 const CALL = 368;
-const BESIDE_MUTE = 56;
+const BESIDE_BUTTONS = 56;
 const GAP = 12;
 // How far the call's words keep from the fold.
 const OFF_FOLD = 8;
@@ -68,7 +68,8 @@ export type Stage = {
   controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-  // docks just before mute in the room a pane leaves (`dock`), never covered or faded.
+  // docks just before the call buttons' stack in the room a pane leaves (`dock`), never covered or
+  // faded.
   orb: {
     size: number;
     rest: Spot;
@@ -175,7 +176,7 @@ function single(box: Box): Stage {
 // the whole screen when none is. With nothing open the orb is a third of the short side, beside
 // the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
 // open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
-// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
+// before their + with the gap the buttons keep, so the header holds only the toolbar and the words
 // keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
 // narrow to read, so the call keeps CALL.
 function pad(box: Box): Stage {
@@ -190,10 +191,9 @@ function pad(box: Box): Stage {
   const agentHigh = bottomInset + metrics.call + 14;
   const docked = (from: number, to: number) => {
     const center = from + (to - from) / 2;
-    const { mute: muteSize, call, gap } = metrics.controls.regular;
-    const mute = center - (metrics[muteSize] + gap + metrics[call]) / 2;
+    const buttons = center - stack('regular', { add: true }) / 2;
     return {
-      orb: { x: mute - GAP - BESIDE_MUTE / 2, y: foot, size: BESIDE_MUTE / ART },
+      orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },
       words: { ...measure(from, to), top: below + 16 },
       controls: { x: center, y: foot },
     };

@@ -59,12 +59,12 @@ import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { hairline, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
-import { metrics } from '@/ui/tokens';
+import { metrics, stack } from '@/ui/tokens';
 import { roomOf, turns, type Room } from '@/screens/window';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
-const CONTROLS_BOX = 200;
+const CONTROLS_BOX = stack('regular', { add: true });
 // The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
 const OVER_SHEET = 96;
 const PAD = Platform.OS === 'ios' && Platform.isPad;

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import type { Pose } from '../modules/pose';
 import { screenLayout, type Layout } from '../src/screens/layout';
 import { roomOf, type Insets, type Size } from '../src/screens/window';
-import { metrics } from '../src/ui/tokens';
+import { metrics, stack } from '../src/ui/tokens';
 
 const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
   screenLayout(roomOf(pose, window, insets));
@@ -140,7 +141,7 @@ test('with a pane open the orb leaves the header and the words start under the t
   assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
 });
 
-test('with a pane open the orb sits drawn 56 just before mute, 12 from it, at every card width', () => {
+test('with a pane open the orb sits drawn 56 just before the call buttons’ +, 12 from it, at every card width', () => {
   const cards = [
     { size: { width: 1210, height: 834 }, pane: 'calls', from: 360, card: 850 },
     { size: { width: 1210, height: 834 }, pane: 'tasks', from: 0, card: 403 },
@@ -155,8 +156,8 @@ test('with a pane open the orb sits drawn 56 just before mute, 12 from it, at ev
     const where = `${size.width} wide, ${pane}: ${card} card`;
     assert.equal(buttons.x, from + card / 2, where);
     assert.equal(Math.round(spot.size * 0.75), 56, `${where}: drawn 56`);
-    const mute = buttons.x - (60 + 12 + 64) / 2;
-    assert.equal(mute - (spot.x + 28), 12, `${where}: 12 from mute`);
+    const add = buttons.x - (60 + 12 + 60 + 12 + 64) / 2;
+    assert.equal(add - (spot.x + 28), 12, `${where}: 12 from the +`);
     assert.equal(spot.y, buttons.y, `${where}: centered on the buttons`);
   }
 });
@@ -191,12 +192,21 @@ test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in 
       assert.ok(words.x >= from && words.x + words.width <= to, `${where}: words in the room`);
       assert.ok(words.width >= 320, `${where}: words readable`);
       const buttons = controls.center[state];
-      assert.ok(buttons.x - 68 >= from && buttons.x + 68 <= to, `${where}: buttons in the room`);
+      const reach = stack('regular', { add: true }) / 2;
+      assert.ok(
+        buttons.x - reach >= from && buttons.x + reach <= to,
+        `${where}: the whole stack, +, in the room`,
+      );
       assert.ok(buttons.y + 32 <= size.height, `${where}: buttons on screen`);
     }
     if (state(size) === 'landscape')
       assert.ok(layout.inbox && layout.inbox.width === size.width - 96, `${name}: inbox`);
   }
+});
+
+test('on iPad the call buttons’ box is as wide as their whole stack, + to the call button', () => {
+  const screen = readFileSync('src/call/call-screen.tsx', 'utf8');
+  assert.match(screen, /^const CONTROLS_BOX = stack\('regular', \{ add: true \}\);$/m);
 });
 
 function state(size: { width: number; height: number }) {
@@ -313,16 +323,20 @@ function bar(layout: Layout, window: Size) {
     const { tools, group } = metrics.toolbar[toolbar.gaps!];
     placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 3 * 48 + tools + group };
     assert.ok(controls !== 'inline' && 'bottom' in controls);
-    const sizes = metrics.controls[controls.size!];
-    const end = metrics[sizes.call];
-    const height = metrics[sizes.mute] + sizes.gap + end;
+    const end = metrics[metrics.controls[controls.size!].call];
+    const height = stack(controls.size!);
     const x = window.width - controls.right - 32;
     placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
   } else {
     placed.calls = { x: toolbar.x, y: toolbar.y, width: 48, height: 48 };
     placed.pair = { x: toolbar.x + toolbar.width - 108, y: toolbar.y, width: 108, height: 48 };
     const { right, top } = call.controls!;
-    placed.buttons = { x: window.width - right - 108, y: top, width: 108, height: 48 };
+    placed.buttons = {
+      x: window.width - right - stack('tool'),
+      y: top,
+      width: stack('tool'),
+      height: 48,
+    };
   }
   return placed;
 }
@@ -341,6 +355,21 @@ test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which ke
         assert.ok(!overlaps(status, box), `${where} clear of the status items`);
       for (const [other, them] of Object.entries(placed))
         if (other !== what) assert.ok(!overlaps(box, them), `${where} clear of ${other}`);
+    }
+  }
+});
+
+test('on iPhone Duo with Tasks closed, the call’s own stack has room for its + before mute, clear of the tools', () => {
+  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+    const layout = layoutOf(window, insets, pose);
+    const { tools, calls, buttons } = bar(layout, window);
+    if (layout.toolbar.axis === 'column') {
+      assert.ok(layout.controls !== 'inline' && 'bottom' in layout.controls);
+      const top = buttons.y + buttons.height - stack(layout.controls.size!, { add: true });
+      assert.ok(top >= tools.y + tools.height, `${name}: the + below the tools`);
+    } else {
+      const start = buttons.x + buttons.width - stack('tool', { add: true });
+      assert.ok(start >= calls.x + calls.width, `${name}: the + after Calls`);
     }
   }
 });

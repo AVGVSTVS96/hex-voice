@@ -230,6 +230,13 @@ export const radius = {
 export type ControlsSize = keyof typeof metrics.controls;
 export type ToolbarGaps = 'regular' | 'compact';
 
+// How long the call buttons' stack runs at a size, along its row or column: mute and the call
+// button, and with `add` the + before them, drawn as mute is.
+export function stack(size: ControlsSize, { add = false } = {}) {
+  const { mute, call, gap } = metrics.controls[size];
+  return (add ? 2 : 1) * (metrics[mute] + gap) + metrics[call];
+}
+
 // Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
 // the fold parts a window only where it leaves a page on each side of it.
 export const breakpoint = { beside: 600, besideShort: 540, page: 320 } as const;
