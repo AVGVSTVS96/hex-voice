@@ -33,6 +33,7 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   const [phase, setPhase] = useState<Phase>({ at: 'live' });
   const quiet = useMicHeld();
   const filled = useSharedValue(0);
+  const recording = useRef(false);
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) void ask();
@@ -44,11 +45,13 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
       setPhase({ at: 'review', shot: { uri: photo.uri, kind: 'photo', type: 'image/jpeg' } });
   };
   const record = async () => {
+    recording.current = true;
     setPhase({ at: 'recording', since: Date.now() });
     filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
     const clip = await camera.current
       ?.recordAsync({ maxDuration: CLIP_SECONDS })
       .catch(() => undefined);
+    recording.current = false;
     cancelAnimation(filled);
     filled.set(0);
     setPhase(
@@ -58,14 +61,16 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     );
   };
 
-  if (permission && !permission.granted)
-    return (
+  if (!permission?.granted)
+    return permission && !permission.canAskAgain ? (
       <View style={[styles.fill, styles.blocked]}>
         <Text style={styles.words}>Allow hex to use the camera in Settings.</Text>
         <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}>
           <Text style={[styles.words, styles.strong]}>Open Settings</Text>
         </Pressable>
       </View>
+    ) : (
+      <View style={styles.fill} />
     );
 
   return (
@@ -120,7 +125,7 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
                 onPress={() => void take()}
                 onLongPress={() => void record()}
                 onPressOut={() => {
-                  if (phase.at === 'recording') camera.current?.stopRecording();
+                  if (recording.current) camera.current?.stopRecording();
                 }}
               >
                 <Shutter recording={phase.at === 'recording'} filled={filled} />
