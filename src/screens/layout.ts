@@ -8,7 +8,7 @@ import {
   type Stage,
   type Words,
 } from '@/call/stage';
-import { metrics, type ToolbarGaps } from '@/ui/tokens';
+import { metrics, stack, type ToolbarGaps } from '@/ui/tokens';
 
 import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 
@@ -290,7 +290,8 @@ function besideColumn(
 ): Duo {
   const { window, insets, toolbar } = frame;
   const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
-  const sizes = metrics.controls[column.controls.size ?? 'regular'];
+  const size = column.controls.size ?? 'regular';
+  const sizes = metrics.controls[size];
   const x = column.x + column.width / 2;
   const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
   const leading = column.x === 0;
@@ -308,8 +309,7 @@ function besideColumn(
     fold,
   );
   const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
-  const buttons =
-    window.height - column.controls.bottom - metrics[sizes.mute] - sizes.gap - metrics[sizes.call];
+  const buttons = window.height - column.controls.bottom - stack(size);
   const group = CALL_ORB + 4 + TIME + (after ? 12 + metrics.tool : 0);
   const y = (tools + buttons - group) / 2;
   const time = y + CALL_ORB + 4;
@@ -347,8 +347,7 @@ function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }
   );
   const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
   const middle = toolbar.y + metrics.tool / 2;
-  const tool = metrics.controls.tool;
-  const mute = end - metrics[tool.mute] - tool.gap - metrics[tool.call];
+  const mute = end - stack('tool');
   const button = { x: mute - 14 - metrics.tool / 2, y: middle };
   const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - TIME_WIDTH;
   return {
