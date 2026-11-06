@@ -305,6 +305,8 @@ mac_tap() {
   }
   for pose in $POSES; do
     for appearance in $APPEARANCES; do
+      # CoreSimulatorService restarting shuts every simulator down; boot it again for the next pose.
+      xcrun simctl bootstatus "$id" -b >/dev/null
       place_turned "$pose"
       xcrun simctl ui "$id" appearance "$appearance"
       result=$tests/$pose-$appearance.xcresult
