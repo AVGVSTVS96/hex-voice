@@ -7,6 +7,7 @@ import {
   clipShape,
   contentShape,
   frame,
+  id,
   listStyle,
   padding,
   scrollClipDisabled,
@@ -19,15 +20,7 @@ import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField, type Pages, type Spot } from '@/components/tasks/pages';
-import {
-  Empty,
-  Faded,
-  Loading,
-  UNREACHED,
-  asks,
-  listRow,
-  type Feel,
-} from '@/components/tasks/parts';
+import { Empty, Faded, Loading, UNREACHED, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
@@ -185,7 +178,6 @@ export function ListPage({
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
       <GoThrough
-        count={yours.open.length}
         foot={spot.foot}
         onPress={() => {
           feel.tick();
@@ -237,6 +229,9 @@ export function ListPage({
               motion.list,
               rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
             ),
+            // Rows coming and going within a stage settle; another stage or a search is another
+            // list, which swaps in whole instead of fading its rows through this one's.
+            id(searching ? 'search' : stage),
           ]}
         >
           {behind ? <Behind width={width} /> : null}
@@ -319,7 +314,7 @@ function Behind({ width }: { width: number }) {
   );
 }
 
-function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPress: () => void }) {
+function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
   return (
     <Row
       alignment="center"
@@ -337,7 +332,7 @@ function GoThrough({ count, foot, onPress }: { count: number; foot: number; onPr
           top: space[3],
           bottom: Math.max(space[4], foot),
         }),
-        accessibilityLabel(`Go through ${asks(count)} with hex, on a call`),
+        accessibilityLabel('Go through them with hex'),
       ]}
     >
       <Spacer flexible />

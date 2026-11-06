@@ -201,11 +201,14 @@ export function Tasks({
     setTyping((was) => (on ? level : was === level ? null : was));
     if (on) pages.go({ to: 'composerFocused' });
   };
-  const moved = rowsKey([...pages.path, pages.task ?? '', pages.stepsOf ?? '']);
+  // The list glides only as you move through the pages; what the page beside it shows changing
+  // doesn't move it, so a stage tab's new list isn't faded in with that page.
+  const moved = (level: Level) =>
+    rowsKey([...pages.path, level === 'list' ? '' : (pages.task ?? ''), pages.stepsOf ?? '']);
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (
-      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
+      <PageAt key={level} spot={at} paged={room.paged} moved={moved(level)}>
         <PageChrome.Provider value={chromeOf(at)}>
           <Showing.Provider value={open && at.shown}>
             <Typing.Provider value={typingOn(level)}>

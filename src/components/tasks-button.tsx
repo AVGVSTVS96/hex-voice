@@ -1,3 +1,4 @@
+import { RNHostView } from '@expo/ui';
 import { Circle, ZStack } from '@expo/ui/swift-ui';
 import {
   Animation,
@@ -5,15 +6,13 @@ import {
   foregroundStyle,
   frame,
   offset,
-  onAppear,
   opacity,
-  rotationEffect,
   scaleEffect,
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
-import { useReducedMotion } from 'react-native-reanimated';
+import { View } from 'react-native';
 
+import { Arc } from '@/components/agent-line';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { GlassButton } from '@/ui/glass-button';
@@ -22,8 +21,6 @@ import { metrics } from '@/ui/tokens';
 const RING = metrics.tool;
 const DOT = 14;
 const LINE = 2;
-const ARC = (Math.PI * (RING - LINE)) / 4;
-const CLEAR = '#00000000';
 
 // The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
 // dot says something needs you. Nothing else on it moves.
@@ -76,30 +73,14 @@ export function TasksButton({
   );
 }
 
+// The agent line's turning arc, turned by Reanimated: a turn SwiftUI repeats forever also carries
+// every move the toolbar makes around it, so the ring flew off the button as places opened.
 function Ring() {
-  const still = useReducedMotion();
-  const [turning, setTurning] = useState(false);
   return (
-    <Circle
-      modifiers={[
-        foregroundStyle(CLEAR),
-        frame({ width: RING, height: RING }),
-        strokeBorder({ content: theme.accentTrack, style: { lineWidth: LINE }, shape: 'circle' }),
-        strokeBorder({
-          content: theme.accent,
-          style: { lineWidth: LINE, lineCap: 'round', dash: [ARC, 3 * ARC] },
-          shape: 'circle',
-        }),
-        rotationEffect(turning ? 360 : 0),
-        animation(
-          Animation.linear({ duration: motion.agent.turn / 1000 }).repeat({
-            repeatCount: 1_000_000,
-            autoreverses: false,
-          }),
-          turning,
-        ),
-        onAppear(() => setTurning(!still)),
-      ]}
-    />
+    <RNHostView matchContents>
+      <View pointerEvents="none" style={{ width: RING, height: RING }}>
+        <Arc size={RING} />
+      </View>
+    </RNHostView>
   );
 }
