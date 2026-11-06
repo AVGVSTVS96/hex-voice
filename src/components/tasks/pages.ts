@@ -1,9 +1,11 @@
 import type { TextInputRef } from '@expo/ui';
 import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 
+import { TASKS } from '@/call/stage';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { PageId } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
+import type { Page } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
@@ -40,8 +42,11 @@ export const START: Stack = {
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
 
-export function shapeOf(width: number, panes: number | undefined): Shape {
-  return panes !== undefined ? 'panes' : width >= COLUMNS ? 'columns' : 'one';
+// On iPhone Duo, two pages side by side where each side of the window's middle has a page as wide
+// as the phone's Tasks: open and held wide, not on its side, folded or beside the call's words.
+export function shapeOf({ width, paged, meet = 0 }: Room): Shape {
+  if (paged) return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
+  return width >= COLUMNS ? 'columns' : 'one';
 }
 
 export function move(stack: Stack, step: Move): Stack {
@@ -105,16 +110,19 @@ export type Pages = ReturnType<typeof usePages>;
 type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
 // Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
-// fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and held wide it
-// takes the fold's two sides as two pages side by side, meeting `panes` from its start.
-export type Room = { width: number; foot: number | 'fold'; paged: boolean; panes?: number };
+// fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and two side by side
+// meet `meet` past its middle.
+export type Room = { width: number; foot: number | 'fold'; paged: boolean; meet?: number };
+
+// A Duo page's room. Its two pages meet in the window's middle, which is where the Duo folds.
+export function pagedRoom({ area, margin, foot }: Page): Room {
+  return { width: area.width, foot, paged: true, meet: (margin.right - margin.left) / 2 };
+}
 
 // A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 
-// A page in a pane is as wide as the pane (`frame`); every page is as tall as the room
-// lets it be, which the keyboard can shorten.
+// Every page is as tall as the room lets it be, which the keyboard can shorten.
 export type Spot = {
-  frame?: { width: number };
   offset: { x: number; y: number };
   shown: boolean;
   width: number;
@@ -143,8 +151,11 @@ export function useField() {
   return field;
 }
 
+// On iPhone Duo, SwiftUI places the pages by the same rule from the width it has
+// (`modules/pages`), so a resize lands in the frame it happens; these spots tell each page's content
+// how wide it is, whether it shows and where its Back goes.
 export function spotOf(level: Level, pages: Placing, room: Room): Spot {
-  if (room.paged && room.panes !== undefined) return spotInPanes(level, pages, room, room.panes);
+  if (pages.shape === 'panes') return spotInPanes(level, pages, room);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -184,7 +195,8 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
 
 // Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
 // wait off the leading edge, shallower ones off the trailing edge.
-function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, panes: number): Spot {
+function spotInPanes(level: Level, { levels, closes }: Placing, room: Room): Spot {
+  const panes = room.width / 2 + (room.meet ?? 0);
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const second = { at: panes, width: room.width - panes };
@@ -196,7 +208,6 @@ function spotInPanes(level: Level, { levels, closes }: Placing, room: Room, pane
         ? { at: -panes, width: panes, shown: false }
         : { ...second, at: room.width, shown: false };
   return {
-    frame: { width },
     offset: { x: at, y: 0 },
     shown,
     width,

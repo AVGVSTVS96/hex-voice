@@ -70,12 +70,13 @@ export type Duo = {
 
 // Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
 // the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
-// Held wide, it takes the two sides of the fold as two pages side by side, meeting `panes` from
-// its start. Its rows keep their own inset, so its pages run flush to the screen's edges, the fold
-// and the bar's buttons.
+// `margin` is how far the window runs past it on each side, which opening or folding the Duo
+// leaves as it was, so Tasks is laid out by it and fills the new window in the frame it changes.
+// Its rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
+// bar's buttons.
 export type Page = {
   area: Rect;
-  panes?: number;
+  margin: Insets;
   foot: number | 'fold';
 };
 
@@ -296,6 +297,7 @@ function besideColumn(
   const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
   const leading = column.x === 0;
   const { tasks, after } = paged(
+    window,
     {
       area: {
         ...(leading
@@ -339,6 +341,7 @@ function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }
     after,
     before: above,
   } = paged(
+    window,
     {
       area: { x: 0, y: top, width: window.width, height: window.height - top },
       foot: insets.bottom,
@@ -362,24 +365,31 @@ function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }
 }
 
 // Tasks over a page's area, and the page after the fold, the one it keeps when the call's words
-// take the one before it. Held wide it takes the fold's two sides as two pages side by side, a
-// list beside its topic, as a split view does on a wide screen. On its side the screen is one tall
-// page, and Tasks takes it whole. The page before the fold is where it types beside the call's
-// words.
+// take the one before it. Held wide that's the page from the fold to the screen's end; on its side
+// the screen is one tall page and the keyboard takes the bottom one, so the page before the fold is
+// where it types beside the call's words.
 function paged(
-  page: Omit<Page, 'panes'>,
+  window: Size,
+  { area, foot }: { area: Rect; foot: number },
   fold?: Fold,
 ): { tasks: Page; after?: Page; before?: Page } {
-  if (!fold) return { tasks: page };
-  const { area } = page;
+  const at = (area: Rect, foot: number | 'fold'): Page => ({
+    area,
+    margin: {
+      top: area.y,
+      right: window.width - area.x - area.width,
+      bottom: window.height - area.y - area.height,
+      left: area.x,
+    },
+    foot,
+  });
+  const tasks = at(area, foot);
+  if (!fold) return { tasks };
   if ('x' in fold)
-    return {
-      tasks: { ...page, panes: fold.x - area.x },
-      after: { ...page, area: { ...area, x: fold.x, width: area.x + area.width - fold.x } },
-    };
+    return { tasks, after: at({ ...area, x: fold.x, width: area.x + area.width - fold.x }, foot) };
   return {
-    tasks: page,
-    after: { ...page, area: { ...area, y: fold.y, height: area.y + area.height - fold.y } },
-    before: { ...page, area: { ...area, height: fold.y - area.y }, foot: 'fold' },
+    tasks,
+    after: at({ ...area, y: fold.y, height: area.y + area.height - fold.y }, foot),
+    before: at({ ...area, height: fold.y - area.y }, 'fold'),
   };
 }

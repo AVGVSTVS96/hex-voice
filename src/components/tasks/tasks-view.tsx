@@ -8,16 +8,17 @@ import {
   foregroundStyle,
   frame,
   offset,
-  opacity,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Linking } from 'react-native';
 
+import { TASKS } from '@/call/stage';
 import { PageChrome, type Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
 import { ListPage } from '@/components/tasks/list';
 import {
+  levelsOf,
   shapeOf,
   spotOf,
   usePages,
@@ -51,6 +52,8 @@ import type { TaskId, TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
+import { PagesView } from '../../../modules/pages';
+
 const NAMED_BACK = 420;
 
 // Every opening passes a new one, which restarts the pages and the list's tab.
@@ -70,8 +73,9 @@ export function TasksView({
   foot = 0,
   ...view
 }: TasksProps & { width: number; foot?: number }) {
-  const pages = usePages({ open: view.open, at: view.at, shape: shapeOf(width, undefined) });
-  return <Tasks {...view} pages={pages} room={{ width, foot, paged: false }} />;
+  const room = { width, foot, paged: false };
+  const pages = usePages({ open: view.open, at: view.at, shape: shapeOf(room) });
+  return <Tasks {...view} pages={pages} room={room} />;
 }
 
 export function Tasks({
@@ -381,21 +385,23 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  const inPanes = room.paged && room.panes !== undefined;
+  // On iPhone Duo SwiftUI picks one page or two from the width it has, and places them.
+  if (room.paged)
+    return (
+      <PagesView
+        pages={['list', 'topic', 'thread', 'steps', 'check']}
+        one={levelsOf(pages, 'one')}
+        two={levelsOf(pages, 'panes')}
+        page={TASKS}
+        meet={room.meet ?? 0}
+        modifiers={[...fill, animation(motion.page, moved)]}
+      >
+        {page('list', list)}
+        {levels}
+      </PagesView>
+    );
   return (
-    <ZStack
-      alignment={inPanes ? 'topLeading' : 'top'}
-      modifiers={
-        inPanes
-          ? [
-              frame({ maxWidth: Infinity, alignment: 'topLeading' }),
-              upTo(Infinity, 'topLeading'),
-              clipped(),
-              scrollDismissesKeyboard('interactively'),
-            ]
-          : fill
-      }
-    >
+    <ZStack alignment="top" modifiers={fill}>
       {page('list', list)}
       {levels}
     </ZStack>
@@ -428,10 +434,8 @@ function Nothing({ loaded }: { loaded: boolean }) {
   );
 }
 
-// On iPhone Duo a page is clear, so it clips to its frame and fades as it leaves instead of
-// covering the page below it.
 // A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
-// changes, as the Duo turns, folds or opens.
+// changes. On iPhone Duo `PagesView` places it, and here it only fills the spot it's given.
 function PageAt({
   spot,
   paged,
@@ -443,21 +447,22 @@ function PageAt({
   moved: number;
   children: ReactNode;
 }) {
-  const { frame: size, offset: at } = spot;
+  const fills = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()];
   return (
     <Column
       alignment="center"
       spacing={0}
-      modifiers={[
-        size
-          ? frame({ width: size.width, alignment: 'top' })
-          : frame({ maxWidth: Infinity, alignment: 'top' }),
-        upTo(),
-        ...(paged ? [clipped(), opacity(spot.shown ? 1 : 0)] : [background(theme.sheet)]),
-        offset(at),
-        animation(motion.page, moved),
-        accessibilityHidden(!spot.shown),
-      ]}
+      modifiers={
+        paged
+          ? fills
+          : [
+              ...fills,
+              background(theme.sheet),
+              offset(spot.offset),
+              animation(motion.page, moved),
+              accessibilityHidden(!spot.shown),
+            ]
+      }
     >
       {children}
     </Column>
@@ -467,6 +472,6 @@ function PageAt({
 // A height is the most a page may take, never a fixed size. The keyboard shortens the Host it
 // covers, and a page taller than its Host is centered in it: pushed half the keyboard up off the
 // top, with its foot, where you type and send, still under the keyboard.
-function upTo(height = Infinity, alignment: 'top' | 'topLeading' = 'top') {
-  return frame({ minHeight: 0, maxHeight: height, alignment });
+function upTo() {
+  return frame({ minHeight: 0, maxHeight: Infinity, alignment: 'top' });
 }

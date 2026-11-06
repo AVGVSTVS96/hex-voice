@@ -5,7 +5,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { shapeOf, usePages } from '@/components/tasks/pages';
+import { pagedRoom, shapeOf, usePages } from '@/components/tasks/pages';
 import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
 import type { Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
@@ -54,11 +54,11 @@ export function TasksPage({
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
-  const { area, panes } = page;
+  const room = pagedRoom(page);
   const pages = usePages({
     open: view.open,
     at: view.at,
-    shape: shapeOf(area.width, panes),
+    shape: shapeOf(room),
     onClose,
   });
   const { back } = pages;
@@ -77,11 +77,7 @@ export function TasksPage({
       pointerEvents={view.open ? 'auto' : 'none'}
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[
-        styles.page,
-        { left: area.x, top: area.y, width: area.width, height: area.height },
-        style,
-      ]}
+      style={[styles.page, page.margin, style]}
     >
       <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <ZStack
@@ -91,11 +87,7 @@ export function TasksPage({
             clipped(),
           ]}
         >
-          <Tasks
-            {...view}
-            pages={pages}
-            room={{ width: area.width, panes, foot: page.foot, paged: true }}
-          />
+          <Tasks {...view} pages={pages} room={room} />
         </ZStack>
       </Host>
       <GestureDetector gesture={swipe}>
