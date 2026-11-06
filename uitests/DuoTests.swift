@@ -135,8 +135,8 @@ final class DuoTests: XCTestCase {
         }
     }
 
-    // Pages that have left stay in the tree off screen, so the first match on screen wins, whole if
-    // one is. Which are on screen comes from one snapshot of the tree, since a live list can change
+    // Pages that have left stay in the tree off screen, so the first match on screen wins, one named
+    // by the query before one that only mentions it, whole if one is. Which are on screen comes from one snapshot of the tree, since a live list can change
     // between reading a match's place and touching it, and asking a live element whether it can be
     // touched fails the run when its frame has just gone.
     private func element(_ query: String) -> XCUIElement? {
@@ -149,7 +149,9 @@ final class DuoTests: XCTestCase {
         let screen = app.windows.firstMatch.frame
         let onScreen = matching(query, in: tree).enumerated()
             .filter { screen.contains(CGPoint(x: $0.element.frame.midX, y: $0.element.frame.midY)) }
-        let pick = onScreen.first { screen.contains($0.element.frame) } ?? onScreen.first
+        // "Working" means the tab "Working 5" before a row that reads "Working: Telegram…".
+        let named = onScreen.filter { $0.element.identifier == query || $0.element.label == query || $0.element.label.hasPrefix(query + " ") }
+        let pick = (named.isEmpty ? onScreen : named).first { screen.contains($0.element.frame) } ?? onScreen.first
         return pick.map { matches.element(boundBy: $0.offset) } ?? matches.firstMatch
     }
 

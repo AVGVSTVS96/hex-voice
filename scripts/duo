@@ -533,14 +533,21 @@ verify() {
   VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
   filmstrips "$dir/duo"
   filmstrips "$dir/ipad"
-  echo "a fresh reviewer is looking at $title"
-  # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says otherwise
-  # (anthropics/claude-code#97074).
-  (cd "$dir" && CLAUDE_CODE_ENTRYPOINT=cli claude -p --model claude-opus-5-5 --effort high \
-    --allowedTools Read Glob 'Bash(magick:*)' <"$repo/scripts/review.md") >"$dir/review.md" ||
-    die "the reviewer didn't answer, so $title isn't verified"
+  echo "three fresh reviewers are looking at $title: the folded Duo, the open Duo and the iPad"
+  local share
+  for share in "duo/cover-up duo/cover-side" "duo/open-up duo/open-side" "ipad/up ipad/side"; do
+    # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says
+    # otherwise (anthropics/claude-code#97074).
+    { cat "$repo/scripts/review.md"; echo; echo "Your share is everything for these poses: $share."; } |
+      (cd "$dir" && CLAUDE_CODE_ENTRYPOINT=cli claude -p --model claude-opus-5-5 --effort high \
+        --tools Read Glob Bash --allowedTools Read Glob 'Bash(magick:*)') >"$dir/review-$(echo "${share%% *}" | tr / -).md" &
+  done
+  wait
+  for share in duo-cover-up duo-open-up ipad-up; do
+    echo "## $share and its pair" && cat "$dir/review-$share.md"
+  done >"$dir/review.md"
   cat "$dir/review.md"
-  if [ "$(tail -n1 "$dir/review.md")" = PASS ]; then
+  if [ "$(grep -cx PASS "$dir/review.md")" = 3 ]; then
     echo "pass $title $dir" >"$verdict"
   else
     echo "fail $title $dir" >"$verdict"
