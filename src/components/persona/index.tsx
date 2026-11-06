@@ -93,6 +93,7 @@ export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
 
 const SIZE = 320;
 const SWAP = 150;
+const GROW_IN = 1000;
 
 function PersonaRenderer({
   variant,
@@ -109,7 +110,10 @@ function PersonaRenderer({
   const { instance: colorModel } = useViewModelInstance(dynamicColor ? file : null, {
     async: true,
   });
-  const initialized = useRef(false);
+  // Whether it has played through its grow-in, and whether it should hold still once it has.
+  const grown = useRef(false);
+  const growing = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const still = useRef(false);
   const originalPalette = useRef<number>(undefined);
   const reducedMotion = useReducedMotion();
   const shown = useColorScheme() === 'light' ? personaColorOnLight(color) : color;
@@ -129,49 +133,43 @@ function PersonaRenderer({
   }, [variant]);
 
   useEffect(() => {
+    still.current = paused || reducedMotion;
+  }, [paused, reducedMotion]);
+  useEffect(() => () => clearTimeout(growing.current), []);
+
+  useEffect(() => {
     if (!riveViewRef) return;
     if (dynamicColor && !colorModel) return;
-    let cancelled = false;
-    let frame = 0;
-    const pause = () => {
-      if (cancelled) return;
+    const pause = () =>
       void riveViewRef.pause().catch(() => {
-        if (!cancelled) setFailed(true);
+        setFailed(true);
       });
-    };
 
     try {
-      if (reducedMotion && initialized.current) {
-        // Input setters resume playback. Keep reduced-motion visuals frozen.
-        pause();
-      } else {
-        // The file's first frame is a dot that grows into the state its inputs ask for; set before
-        // it ever plays, they start it there. A paused one holds that frame until it shows.
-        for (const { name, value } of personaInputValues(state)) {
-          riveViewRef.setBooleanInputValue(name, value);
-        }
-        if (variant === 'opal') {
-          originalPalette.current ??= riveViewRef.getNumberInputValue('color');
-          riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
-        }
-        if (paused) pause();
-        else riveViewRef.playIfNeeded();
-        initialized.current = true;
-        if (reducedMotion && !paused) {
-          // Draw the first frame before pausing so the new visual is visible.
-          frame = requestAnimationFrame(() => {
-            frame = requestAnimationFrame(pause);
-          });
-        }
+      // Input setters resume playback, so a still persona that has grown keeps its frame.
+      if (reducedMotion && grown.current) return pause();
+      for (const { name, value } of personaInputValues(state)) {
+        riveViewRef.setBooleanInputValue(name, value);
       }
+      if (variant === 'opal') {
+        originalPalette.current ??= riveViewRef.getNumberInputValue('color');
+        riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
+      }
+      // The file starts as a dot that grows into its state, and a paused file never advances, so
+      // it plays through that once, hidden or not, and only then holds still while hidden or with
+      // Reduce Motion on.
+      if (!growing.current) {
+        riveViewRef.playIfNeeded();
+        growing.current = setTimeout(() => {
+          grown.current = true;
+          if (still.current) pause();
+        }, GROW_IN);
+      } else if (!grown.current) return;
+      else if (paused) pause();
+      else riveViewRef.playIfNeeded();
     } catch {
       setFailed(true);
     }
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
   }, [riveViewRef, state, variant, palette, dynamicColor, colorModel, reducedMotion, paused]);
 
   useEffect(() => {
