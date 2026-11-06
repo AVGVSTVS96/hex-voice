@@ -2,6 +2,7 @@
 # The simulator has no camera: its drawer shows black, and its shutter makes a still of its own.
 launch hexvoice:///?tasks=media
 wait 3
+shoot media-topic
 tap Opens its messages
 wait 2
 shoot thread-media
