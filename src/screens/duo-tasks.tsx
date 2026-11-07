@@ -27,14 +27,12 @@ import { metrics } from '@/ui/tokens';
 // there Tasks types on that page instead (`above`), and the call's own page steps aside for it.
 export function useDuoTasks(
   duo: Duo | undefined,
-  { open, tasks }: { open: boolean; tasks: boolean },
+  { open, tasks, chosen }: { open: boolean; tasks: boolean; chosen: boolean },
   onCall: boolean,
   reducedMotion: boolean,
+  choose: (on: boolean) => void,
 ) {
-  const [chosen, setChosen] = useState(false);
-  const available = !!duo?.beside && onCall;
-  if (chosen && !available) setChosen(false);
-  const offered = available && tasks;
+  const offered = !!duo?.beside && onCall && tasks;
   const docked = !!duo && open && onCall;
   const beside = offered && chosen;
   const above = useKeyboardUp() && beside && !!duo?.beside?.typing;
@@ -48,7 +46,7 @@ export function useDuoTasks(
     beside,
     above,
     offered,
-    toggleBeside: () => setChosen(!beside),
+    toggleBeside: () => choose(!beside),
     dock,
     covers,
     aside,

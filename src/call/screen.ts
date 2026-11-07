@@ -5,7 +5,7 @@ import type { TasksAt } from '@/components/tasks/tasks-view';
 // (the open Duo, `shared`) it and Tasks take turns in that place like tabs; elsewhere it's a sheet
 // over whatever is open, so opening it leaves Tasks be. `front` stays on the last of the two opened
 // while it closes, so its place fades out. The call's words are pulled down over the orb or not, and
-// show the live call or a past one.
+// show the live call or a past one; on iPhone Duo they can be chosen to sit beside Tasks.
 export type Over = 'none' | 'calls' | 'tasks';
 export type Place = 'tasks' | 'settings';
 export type Screen = {
@@ -13,7 +13,7 @@ export type Screen = {
   settings: boolean;
   front: Place;
   at: TasksAt;
-  words: { pulled: boolean; call: string | null };
+  words: { pulled: boolean; call: string | null; beside: boolean };
 };
 
 export type Action =
@@ -22,6 +22,7 @@ export type Action =
   | { to: 'tasks'; open: false }
   | { to: 'settings'; open: boolean }
   | { to: 'words'; pulled: boolean }
+  | { to: 'beside'; on: boolean }
   | { to: 'call'; id: string | null };
 
 export function start(opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen {
@@ -30,7 +31,7 @@ export function start(opening: { tasks?: TasksAt; open?: 'settings' | 'calls' })
     settings: opening.open === 'settings',
     front: opening.open === 'settings' ? 'settings' : 'tasks',
     at: opening.tasks ?? {},
-    words: { pulled: false, call: null },
+    words: { pulled: false, call: null, beside: false },
   };
 }
 
@@ -65,12 +66,16 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
     case 'words':
       return {
         ...now,
-        words: action.pulled ? { ...now.words, pulled: true } : { pulled: false, call: null },
+        words: action.pulled
+          ? { ...now.words, pulled: true }
+          : { ...now.words, pulled: false, call: null },
       };
+    case 'beside':
+      return { ...now, words: { ...now.words, beside: action.on } };
     case 'call':
       return {
         ...now,
-        words: { pulled: now.words.pulled || action.id !== null, call: action.id },
+        words: { ...now.words, pulled: now.words.pulled || action.id !== null, call: action.id },
       };
   }
 }

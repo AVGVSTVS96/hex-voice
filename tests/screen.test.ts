@@ -112,14 +112,16 @@ test('where settings has a place, only one of Calls, Tasks and settings is ever 
 
 test('opening a past call pulls the words, and letting them go goes back to the live call', () => {
   const past = go(false, { to: 'call', id: 'c1' });
-  assert.deepEqual(past.words, { pulled: true, call: 'c1' });
+  assert.deepEqual(past.words, { pulled: true, call: 'c1', beside: false });
   assert.deepEqual(step(past, { to: 'words', pulled: false }, { shared: false }).words, {
     pulled: false,
     call: null,
+    beside: false,
   });
   assert.deepEqual(step(past, { to: 'call', id: null }, { shared: false }).words, {
     pulled: true,
     call: null,
+    beside: false,
   });
 });
 
@@ -128,4 +130,17 @@ test('what is open never touches the words, and the words never touch what is op
   const opened = step(words, { to: 'tasks', open: true }, { shared: false });
   assert.deepEqual(opened.words, words.words);
   assert.equal(step(opened, { to: 'words', pulled: false }, { shared: false }).over, 'tasks');
+});
+
+test('the words chosen beside Tasks stay chosen as Tasks, settings and the words move, until unchosen', () => {
+  const chosen = go(true, { to: 'tasks', open: true }, { to: 'beside', on: true });
+  const moved = [
+    { to: 'settings', open: true },
+    { to: 'tasks', open: true },
+    { to: 'words', pulled: false },
+    { to: 'call', id: 'c1' },
+  ] as const;
+  const after = moved.reduce((now, action) => step(now, action, { shared: true }), chosen);
+  assert.equal(after.words.beside, true);
+  assert.equal(step(after, { to: 'beside', on: false }, { shared: true }).words.beside, false);
 });
