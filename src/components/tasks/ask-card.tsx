@@ -183,67 +183,65 @@ function AskCard({
   return (
     <Card>
       <HStack
-        alignment="top"
+        alignment="center"
         spacing={space[2]}
         modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
       >
-        <VStack
-          alignment="leading"
-          spacing={space[2]}
-          modifiers={[
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-            contentShape(shapes.rectangle()),
-            onTapGesture(() => setOpen(!open)),
-            accessibilityIdentifier('ask-card'),
-            accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
-          ]}
+        <Text
+          variant="caption"
+          tone="tertiary"
+          modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          <Text
-            variant="headline"
-            paragraph
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-          >
-            {ask.question}
-          </Text>
-          {ask.context ? (
-            <Text
-              variant="detail"
-              tone="secondary"
-              paragraph
-              modifiers={[
-                open ? lineLimit() : lineLimit(3),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
-              ]}
-            >
-              {ask.context}
-            </Text>
-          ) : null}
-        </VStack>
-        <VStack alignment="trailing" spacing={space[1]}>
-          <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
-            {clock(new Date(ask.at))}
-          </Text>
-          <Icon
-            name="square.and.pencil"
-            size={metrics.symbol.bar}
-            color={writing ? theme.accent : theme.secondary}
-            modifiers={[
-              frame({
-                width: metrics.bar.button,
-                height: metrics.bar.button,
-                alignment: 'topTrailing',
-              }),
-              contentShape(shapes.rectangle()),
-              onTapGesture(() => {
-                setOpen(true);
-                setWriting(!writing);
-              }),
-              accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
-              accessibilityAddTraits(['isButton']),
-            ]}
-          />
-        </VStack>
+          {clock(new Date(ask.at))}
+        </Text>
+        <Icon
+          name="square.and.pencil"
+          size={metrics.symbol.bar}
+          color={writing ? theme.text : theme.secondary}
+          modifiers={[
+            frame({ width: metrics.bar.button, height: metrics.symbol.bar, alignment: 'trailing' }),
+            contentShape(shapes.rectangle()),
+            onTapGesture(() => {
+              setOpen(true);
+              setWriting(!writing);
+            }),
+            accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
+            accessibilityAddTraits(['isButton']),
+          ]}
+        />
       </HStack>
+      <VStack
+        alignment="leading"
+        spacing={space[2]}
+        modifiers={[
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          contentShape(shapes.rectangle()),
+          onTapGesture(() => setOpen(!open)),
+          accessibilityIdentifier('ask-card'),
+          accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
+        ]}
+      >
+        <Text
+          variant="headline"
+          paragraph
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
+          {ask.question}
+        </Text>
+        {ask.context ? (
+          <Text
+            variant="detail"
+            tone="secondary"
+            paragraph
+            modifiers={[
+              open ? lineLimit() : lineLimit(3),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+            ]}
+          >
+            {ask.context}
+          </Text>
+        ) : null}
+      </VStack>
       {open && (words || ask.links?.length) ? (
         <VStack
           alignment="leading"
@@ -360,8 +358,8 @@ export function InlineAnswers({
   );
 }
 
-// The choices as Muse's pills: side by side when each fits its share of the row, else one under
-// another across the card. hex's pick is the solid one.
+// The choices as Muse's pills, side by side when each fits its share of the row. Longer ones are
+// read, so each is a block of its own words, whole, one under another. hex's pick is the solid one.
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   const n = ask.options.length;
   if (!n) return null;
@@ -369,23 +367,46 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
   const beside =
     n <= SIDE_BY_SIDE &&
     ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize));
-  const pills = ask.options.map((option) => (
-    <Pill
-      key={option.label}
-      label={option.label}
-      prominent={option.pick}
-      grow
-      accessibility={option.pick ? `${option.label}, hex’s pick` : option.label}
-      onPress={() => onAnswer(ask, option)}
-    />
-  ));
-  return beside ? (
-    <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-      {pills}
-    </Row>
-  ) : (
+  const label = (option: AskOption) => (option.pick ? `${option.label}, hex’s pick` : option.label);
+  if (beside)
+    return (
+      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+        {ask.options.map((option) => (
+          <Pill
+            key={option.label}
+            label={option.label}
+            prominent={option.pick}
+            grow
+            accessibility={label(option)}
+            onPress={() => onAnswer(ask, option)}
+          />
+        ))}
+      </Row>
+    );
+  return (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-      {pills}
+      {ask.options.map((option) => (
+        <Text
+          key={option.label}
+          variant="body"
+          weight={option.pick ? 'medium' : 'regular'}
+          tone={option.pick ? 'onProminent' : 'text'}
+          paragraph
+          onPress={() => onAnswer(ask, option)}
+          modifiers={[
+            padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
+            frame({ minHeight: metrics.pill.regular }),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            background(option.pick ? theme.prominent : theme.fill),
+            clipShape('roundedRectangle', radius.option),
+            contentShape(shapes.rectangle()),
+            accessibilityLabel(label(option)),
+            accessibilityAddTraits(['isButton']),
+          ]}
+        >
+          {option.label}
+        </Text>
+      ))}
     </Column>
   );
 }

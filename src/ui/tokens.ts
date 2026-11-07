@@ -222,6 +222,8 @@ export const radius = {
   field: metrics.field / 2,
   // A tag or a block of code inside something else.
   inner: 12,
+  // A choice too long for a pill: as round as a one-line pill, so the two read as one kind.
+  option: 22,
   // A to-do's square mark in Tasks, as Muse draws its checkboxes.
   mark: 6,
 } as const;
