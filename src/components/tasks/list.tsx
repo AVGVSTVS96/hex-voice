@@ -4,7 +4,6 @@ import {
   accessibilityLabel,
   animation,
   background,
-  clipShape,
   contentShape,
   frame,
   id,
@@ -40,6 +39,7 @@ import {
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
+import { glass, lift } from '@/ui/glass-button';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
@@ -292,8 +292,8 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       modifiers={[
         frame({ height: metrics.pill.height }),
         frame({ maxWidth: Infinity }),
-        background(theme.text),
-        clipShape('capsule'),
+        glass('capsule'),
+        lift,
         contentShape(shapes.capsule()),
         padding({
           leading: space[4],
@@ -305,10 +305,8 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       ]}
     >
       <Spacer flexible />
-      <Icon name="waveform" size={metrics.symbol.small} color={theme.ground} />
-      <Text variant="headline" tone="ground">
-        Go through them with hex
-      </Text>
+      <Icon name="waveform" size={metrics.symbol.small} color={theme.text} />
+      <Text variant="headline">Go through them with hex</Text>
       <Spacer flexible />
     </Row>
   );
