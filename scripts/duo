@@ -439,7 +439,7 @@ mac_fold() {
         echo "$(ms) $at $pose" >>"shots/$state-$screen-moves.txt"
         move "$at" "$pose"
         at=$pose
-        sleep 4
+        sleep "${FOLD_HOLD:-7}"
       done
       kill -INT "$film" 2>/dev/null || true
       wait "$film" || true

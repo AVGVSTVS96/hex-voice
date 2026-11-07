@@ -36,6 +36,10 @@ BEFORE = 0.25
 # A film's first frame comes a little after the simulator says it started, so a cut stops this far
 # short of the next move.
 AFTER = 0.6
+# A move is counted over this long after it, and the Duo is held a while longer (FOLD_HOLD in
+# scripts/duo): the frame at the end of that hold is what settled looks like, so a cut whose last
+# frame isn't it was still changing, or stuck, and isn't counted as settled.
+WINDOW = 4.0
 
 
 def screen_of(pose):
@@ -122,8 +126,11 @@ def cut(folder, state, n, after):
     at = int(marks[n][0])
     start = (at - int(began.read_text())) / 1000 - BEFORE
     until = int(marks[n + 1][0]) if n + 1 < len(marks) else at + 4000
-    seconds = (until - at) / 1000 + BEFORE - AFTER
-    return film, start, seconds, gray(film, start, seconds)
+    held = (until - at) / 1000 + BEFORE - AFTER
+    seconds = min(held, WINDOW + BEFORE)
+    frames = gray(film, start, seconds)
+    later = gray(film, start + held - 0.1, 0.1) if held > seconds + 0.5 else []
+    return film, start, seconds, frames, later[-1] if later else None
 
 
 def main(folder):
@@ -146,7 +153,10 @@ def main(folder):
             if taken is None:
                 rows.append(f'| {state} | {move} | {own} | no film | |')
                 continue
-            film, start, seconds, frames = taken
+            film, start, seconds, frames, held = taken
+            if held is not None and frames and differs(frames[-1], held):
+                rows.append(f'| {state} | {move} | {own} | not settled in {WINDOW:g} s | |')
+                continue
             moved = settle(frames)
             if moved is None:
                 rows.append(f'| {state} | {move} | {own} | nothing moved | 0 |')
