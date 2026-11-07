@@ -162,7 +162,7 @@ export function Detail({
               ) : null}
               {full && lastRun(full) ? (
                 <Column key="run" alignment="start" spacing={0}>
-                  <SectionHead title="Last run" count={taskTime(full)} opens />
+                  <SectionHead title="Last run" opens />
                   <Run thread={full} named={false} onPress={() => onSteps(full.id)} />
                 </Column>
               ) : null}

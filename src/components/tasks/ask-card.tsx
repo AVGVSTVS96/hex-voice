@@ -76,7 +76,7 @@ export function YourCall({
   return (
     <>
       <Column alignment="start" spacing={0} modifiers={listRow(width)}>
-        <StageHead tint="needs" title="Needs you" count={open} />
+        <StageHead tint="needs" title="Needs you" count={open || undefined} />
       </Column>
       {asks.map((ask) => {
         const said = answered[ask.id];
