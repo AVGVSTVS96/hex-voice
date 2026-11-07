@@ -127,14 +127,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const counts = useTaskCounts(listed);
   const { insets, size: screen } = room;
   const { width, height } = screen;
-  const layout = screenLayout(room);
-  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
-  const split = layout.kind === 'split';
-  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
-  // footer and agent line follow the words there instead of spanning the screen.
-  const moves = split || !!orb.dock;
-  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
-  const follows = moves || !!layout.duo?.beside;
   // What the words show. Where the layout pulls the words down over the orb, they show once pulled;
   // everywhere else they take their own page once there's a call or words to show, and before that
   // the orb rests alone in the middle. Opening a past call pulls them, and letting them go goes back
@@ -143,6 +135,23 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const calls = useCalls();
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = usePastCall(shown?.id);
+  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
+  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
+  // its words, its agents and asks, and Tasks talking to it, with End hanging it up.
+  const { call, start, end, toggleMute } = useCall(held);
+  const onCall = call.kind !== 'none';
+  // Whether there's a call to show beside Calls. Calls keeps the room it came in with until it's all
+  // the way out, so a call starting or picked from it never moves it while it's in view.
+  const showing = onCall || !!shown;
+  const [called, setCalled] = useState(showing);
+  const layout = screenLayout(room, { call: called });
+  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
+  const split = layout.kind === 'split';
+  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
+  // footer and agent line follow the words there instead of spanning the screen.
+  const moves = split || !!orb.dock;
+  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
+  const follows = moves || !!layout.duo?.beside;
   // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
   // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
@@ -163,11 +172,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const pullWords = (pulled: boolean) => send({ to: 'words', pulled });
   const showCall = (id: string | null) => send({ to: 'call', id });
   const reducedMotion = useReducedMotion();
-  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
-  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
-  // its words, its agents and asks, and Tasks talking to it, with End hanging it up.
-  const { call, start, end, toggleMute } = useCall(held);
-  const onCall = call.kind !== 'none';
   const live = call.kind === 'here' && call.phase === 'live';
   const reading = layout.pulls
     ? scene.words.pulled
@@ -289,12 +293,19 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   );
 
   const setCalls = (open: boolean) => send({ to: 'calls', open });
-  const { drawer, edgeOpen, listClose, peekClose } = useDrawer({
+  const {
+    drawer,
+    out: drawerOut,
+    edgeOpen,
+    listClose,
+    peekClose,
+  } = useDrawer({
     open: callsOpen,
     width: list.width,
     reducedMotion,
     onChange: setCalls,
   });
+  if (!drawerOut && called !== showing) setCalled(showing);
   const toggleDrawer = () => {
     tick();
     setCalls(!callsOpen);
@@ -527,7 +538,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (call.kind === 'here') void end();
     else if (call.kind === 'elsewhere') tried('Not ended', end());
-    else startCall();
+    else {
+      // A call started with Calls slid over it comes into view.
+      if (list.place === 'slide') setCalls(false);
+      startCall();
+    }
   };
   const onMute = () => {
     haptic(Haptics.selectionAsync);

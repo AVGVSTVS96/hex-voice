@@ -1,6 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
-import { cancelAnimation, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import {
+  cancelAnimation,
+  useAnimatedReaction,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { motion } from '@/motion';
@@ -11,7 +17,7 @@ const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 // and letting go settles it open or shut with a flick or past halfway. Whether it's open belongs to
 // the screen: the drawer settles wherever `open` says, and its pans only tell the screen where they
 // let go (`onChange`). They open it from the screen's edge, close it from the list, and close it
-// from the call it peeks over, where a tap closes it too.
+// from the call it peeks over, where a tap closes it too. `out` is whether any of it is in view.
 export function useDrawer({
   open,
   width,
@@ -26,6 +32,13 @@ export function useDrawer({
   const drawer = useSharedValue(open ? 1 : 0);
   const target = useSharedValue(open);
   const from = useSharedValue(0);
+  const [out, setOut] = useState(open);
+  useAnimatedReaction(
+    () => drawer.get() > 0,
+    (now, before) => {
+      if (now !== before) scheduleOnRN(setOut, now);
+    },
+  );
   // The spring is critically damped, so it comes to rest without passing its end unless it starts
   // faster than its natural frequency times the way left. A faster fling is held to that.
   const settle = (now: boolean, velocity = 0) => {
@@ -68,6 +81,7 @@ export function useDrawer({
       });
   return {
     drawer,
+    out,
     edgeOpen: pan(12),
     listClose: pan(-16),
     peekClose: Gesture.Race(

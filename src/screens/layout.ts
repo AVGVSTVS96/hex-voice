@@ -46,6 +46,9 @@ type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGap
 // looks the same either way. Calls comes in one of two ways:
 // - slide: the call slides aside, showing Calls beneath (the phone, iPhone Duo folded)
 // - beside: the call gives up its leading edge to Calls and moves into the room left
+// On iPhone Duo, with no call to show (`call` false), Calls slides over the whole content instead,
+// short of a page of its own open upright: there's nothing of a call to peek at or sit beside, and
+// its buttons stay in the column or the band.
 // Tasks comes in one of three:
 // - beside: the call gives up its trailing edge to Tasks (iPad)
 // - sheet: Tasks rises as a sheet (phone)
@@ -101,7 +104,7 @@ export type Inbox = {
   controls: Place;
 };
 
-export function screenLayout(room: Room): Layout {
+export function screenLayout(room: Room, { call = true } = {}): Layout {
   const { insets, regular, bar } = room;
   const frame = frameFor(room);
   const { fold } = room;
@@ -132,11 +135,12 @@ export function screenLayout(room: Room): Layout {
   // peek of the call, as on the phone.
   const calls = frame.column ? layout.calls : callsBeside(box.width, frame.top);
   const banded = !frame.column && calls.place === 'beside';
+  const whole = !call && layout.kind !== 'split';
   return {
     ...layout,
     content,
     toolbar,
-    calls,
+    calls: whole ? { ...calls, width: content.width, place: 'slide' } : calls,
     // Beside Calls on its side, the words keep to the room the call has left.
     ...(!banded
       ? {}

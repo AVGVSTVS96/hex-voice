@@ -600,3 +600,13 @@ test('held wide, the call takes the panes: the orb on the first, the words from 
   const before = layout.duo!.beside!.words;
   assert.ok(before.x + before.width <= arranged.first.width);
 });
+
+test('on iPhone Duo with no call to show, Calls slides over the whole content, short of its own page open upright', () => {
+  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+    const room = roomOf(pose, window, insets);
+    const called = screenLayout(room);
+    const { calls, content } = screenLayout(room, { call: false });
+    if (name === 'open upright') assert.deepEqual(calls, called.calls, name);
+    else assert.deepEqual(calls, { ...called.calls, width: content.width, place: 'slide' }, name);
+  }
+});
