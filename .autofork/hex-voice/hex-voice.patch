@@ -105871,10 +105871,10 @@ index 0000000000000000000000000000000000000000..d426d630693303effda88f1320cf01d0
 +esac
 diff --git a/scripts/duo-ask-taps b/scripts/duo-ask-taps
 new file mode 100644
-index 0000000000000000000000000000000000000000..5e756ad51e94d662629ff2291d938fa3f433fb2f
+index 0000000000000000000000000000000000000000..d236d7ffb45a4a2f930d80c8b17e1fb5a6e5b886
 --- /dev/null
 +++ b/scripts/duo-ask-taps
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,69 @@
 +# Answering a question in your own words, and putting one away: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-taps
 +# Words typed on its card and not sent stay there: the page closes, and the app starts again, and
 +# the card opens on them, the keyboard down.
@@ -105934,6 +105934,8 @@ index 0000000000000000000000000000000000000000..5e756ad51e94d662629ff2291d938fa3
 +type ask-input  and the other
 +tap Send a note to markdown
 +wait 1
++no-keyboard after the note
++frame thread-write
 +shoot ask-noted
 +tap Write your own
 +type ask-input Found both
@@ -112243,10 +112245,10 @@ index 0000000000000000000000000000000000000000..8ac4ea84425326a5f4c4451e581972e6
 +}
 diff --git a/src/components/tasks/ask-card.tsx b/src/components/tasks/ask-card.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..af7b645ecd66ef3dc4854acf0130d447a8bbee52
+index 0000000000000000000000000000000000000000..cbe979d8c1cfd65717abc1dc2c79c64b364c2328
 --- /dev/null
 +++ b/src/components/tasks/ask-card.tsx
-@@ -0,0 +1,647 @@
+@@ -0,0 +1,665 @@
 +import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
 +import { HStack, Rectangle, SwipeActions, VStack } from '@expo/ui/swift-ui';
 +import {
@@ -112267,7 +112269,7 @@ index 0000000000000000000000000000000000000000..af7b645ecd66ef3dc4854acf0130d447
 +  strokeBorder,
 +  type ModifierConfig,
 +} from '@expo/ui/swift-ui/modifiers';
-+import { useContext, useState } from 'react';
++import { useContext, useEffect, useRef, useState } from 'react';
 +
 +import { Markdown } from '@/components/markdown';
 +import { Mark } from '@/components/tasks/mark';
@@ -112776,7 +112778,7 @@ index 0000000000000000000000000000000000000000..af7b645ecd66ef3dc4854acf0130d447
 +}) {
 +  const { first, keep } = useDraft(draft);
 +  const [text, setText] = useState(first);
-+  const typing = useContext(Typing);
++  const typing = useTyping();
 +  const field = useField();
 +  const words = sending ? '' : text.trim();
 +  return (
@@ -112875,6 +112877,24 @@ index 0000000000000000000000000000000000000000..af7b645ecd66ef3dc4854acf0130d447
 +      </Row>
 +    </Column>
 +  );
++}
++
++// Says the field is being typed in, and stops saying so when it goes: a note or an answer takes
++// the field away with the keyboard still up, and iOS never tells a field that's gone it lost focus,
++// so the page would keep its foot hidden for typing.
++function useTyping() {
++  const typing = useContext(Typing);
++  const on = useRef(false);
++  useEffect(
++    () => () => {
++      if (on.current) typing(false);
++    },
++    [],
++  );
++  return (now: boolean) => {
++    on.current = now;
++    typing(now);
++  };
 +}
 +
 +// An answer that couldn't reach every place, and the way to finish it.
