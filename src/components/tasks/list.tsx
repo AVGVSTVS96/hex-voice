@@ -25,6 +25,7 @@ import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
+import type { Counts } from '@/hooks/use-tasks';
 import {
   inboxEntries,
   picksOf,
@@ -69,6 +70,7 @@ export function ListPage({
   onUndo,
   onOpenTile,
   onGoThrough,
+  onCounts,
 }: {
   open: boolean;
   at: TasksAt;
@@ -85,6 +87,7 @@ export function ListPage({
   onUndo: (ask: Ask) => void;
   onOpenTile: (tile: Tile) => void;
   onGoThrough: () => void;
+  onCounts: (counts: Counts | undefined) => void;
 }) {
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
@@ -95,6 +98,14 @@ export function ListPage({
   );
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
+  const behind = loaded && (offline || yours.offline);
+  const { needs, working } = counts;
+  const counted = open && loaded && current && yours.current;
+  useEffect(() => {
+    if (!counted) return;
+    onCounts({ needs, working });
+    return () => onCounts(undefined);
+  }, [counted, needs, working, onCounts]);
   useEffect(() => {
     if (open) setQuery(null);
   }, [open, at]);
@@ -171,7 +182,6 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
-  const behind = loaded && !(current && yours.current);
   // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
   // one gives back, its title and search a bar of their own above the stages.
   const compact = spot.width >= TABS_WITH_BAR;

@@ -44,7 +44,7 @@ import { failure } from '@/hooks/use-failures';
 import { useEscape } from '@/hooks/use-escape';
 import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
-import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
+import { raiseTask, useTaskCounts, type Counts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { Viewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
@@ -122,7 +122,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
   const [scene, setScene] = useState<Screen>(() => startScreen(opening));
-  const counts = useTaskCounts();
+  const [listed, setListed] = useState<Counts>();
+  const counts = useTaskCounts(listed);
   const { insets, size: screen } = room;
   const { width, height } = screen;
   const layout = screenLayout(room);
@@ -627,6 +628,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     onTalk: talkAbout,
     onGoThrough: goThrough,
     onOpenCall: openCallFromTasks,
+    onCounts: setListed,
   };
 
   return (

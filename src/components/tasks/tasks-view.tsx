@@ -36,7 +36,7 @@ import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { StepsLoading, Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useChat } from '@/hooks/use-chat';
-import { useTask, useTasks } from '@/hooks/use-tasks';
+import { useTask, useTasks, type Counts } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
@@ -63,6 +63,8 @@ export type TasksProps = {
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
   onOpenCall: (id: string) => void;
+  // What the list's tabs count, while it shows them up to date.
+  onCounts: (counts: Counts | undefined) => void;
 };
 
 export function TasksView({
@@ -80,6 +82,7 @@ export function Tasks({
   onTalk,
   onGoThrough,
   onOpenCall,
+  onCounts,
   at,
   pages,
   room,
@@ -237,6 +240,7 @@ export function Tasks({
       onUndo={undo}
       onOpenTile={openTile}
       onGoThrough={onGoThrough}
+      onCounts={onCounts}
     />
   );
   // The topic and its conversation side by side are one view: the conversation's page shows only

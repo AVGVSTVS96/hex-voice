@@ -20,6 +20,13 @@ export function useWatch<K extends string, T extends { version?: number }>(
 ) {
   const active = useActive();
   const [watching, setWatching] = useState<Watching>('waiting');
+  const [watched, setWatched] = useState(key);
+  // What it took stops being current only as it watches anew, not as it stops, so a view fading
+  // out keeps showing it as it was.
+  if (key !== watched) {
+    setWatched(key);
+    if (key !== null) setWatching('waiting');
+  }
   const version = useRef<number>(undefined);
   const asking = useEffectEvent(ask);
   const taking = useEffectEvent(take);

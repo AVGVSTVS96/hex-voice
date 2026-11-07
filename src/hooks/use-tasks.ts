@@ -6,11 +6,16 @@ import { useKept } from '@/hooks/use-kept';
 import { useAnswer, useWatch } from '@/hooks/use-watch';
 import { TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
 
+export type Counts = { needs: number; working: number };
+
 // What the Tasks button shows: how many things are yours and how many threads are working. hex
-// answers only when one of the counts moves, so this costs nothing while agents take steps.
-export function useTaskCounts() {
+// answers only when one of the counts moves, so this costs nothing while agents take steps. While
+// Tasks shows its list up to date, the button counts what its tabs count (`listed`), so the two
+// never disagree on screen.
+export function useTaskCounts(listed: Counts | undefined): Counts {
   const [counts, keep] = useKept('task-counts', TaskCounts);
   useWatch('counts', hex.tasks.counts, keep);
+  if (listed) return listed;
   return counts
     ? { needs: counts.yours ?? counts.needs, working: counts.working }
     : { needs: 0, working: 0 };
