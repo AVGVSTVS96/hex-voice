@@ -816,7 +816,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           duo={duo}
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
-          shown={places.front === 'tasks'}
+          shown={!shared || places.front === 'tasks'}
           onCall={onCall}
           seconds={callSeconds}
           pane={pane}
