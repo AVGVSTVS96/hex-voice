@@ -1,5 +1,5 @@
 # DEVICE=ipad POSES=up scripts/duo tap <ref> scripts/ipad-sheet-taps: settings opens as a form sheet
-# over Tasks' pane and leaves the pane open beneath it.
+# over Tasks' pane and leaves the pane open beneath it, and closing it either way leaves Tasks open.
 launch hexvoice:///
 wait 3
 tap tasks-button
@@ -8,3 +8,17 @@ selected tasks-button
 tap voice-settings-button
 shoot settings-over-tasks
 selected voice-settings-button
+# Settings goes with a tap outside its sheet, and again with its own button, leaving Tasks open and lit.
+tap-at 60 300
+wait 3
+shoot settings-closed-outside
+unselected voice-settings-button
+selected tasks-button
+tap voice-settings-button
+wait 2
+selected voice-settings-button
+tap voice-settings-button
+wait 3
+shoot settings-closed-by-button
+unselected voice-settings-button
+selected tasks-button
