@@ -1,4 +1,5 @@
-# Opens and closes Calls every way it goes, and checks only one of Calls and Tasks is lit:
+# Opens and closes Calls by its button, an edge swipe and Tasks, and checks only one of Calls and
+# Tasks is lit:
 # scripts/duo tap <ref> scripts/duo-calls-taps
 launch hexvoice:///
 wait 3
@@ -11,8 +12,8 @@ unselected calls-button
 swipe-back calls-edge
 shoot calls-by-edge
 selected calls-button
-tap Close calls
-shoot closed-by-peek
+tap calls-button
+shoot closed-after-edge
 unselected calls-button
 tap calls-button
 tap tasks-button
