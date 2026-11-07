@@ -19,7 +19,7 @@
 # state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 # screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
 # newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
-# iPad Pro 11" on iOS 27.0 through Xcode 27.0 (27.1 and Xcode-beta are the Duo's alone), in place
+# iPad Pro 11" on iOS 27.3 run through Xcode 27.3 beta (27.1 and Xcode-beta are the Duo's), in place
 # of the Duo, shutting the Duo down so only one is booted; its poses are up and side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
 # last ones hex answered (kept on the Mac), so a before/after pair sees the same lists and runs
 # while hex is slow; its notes say when they were kept, and its shots land in kept/. With it,
@@ -51,7 +51,7 @@ use_lane() {
   ipad="${1:+$1 }hexvoice iPad"
   case $DEVICE in
     duo) sim=$duo model=iPhone-Duo os=iOS-27-1 xcode=Xcode-beta ;;
-    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-0 xcode=Xcode ;;
+    ipad) sim=$ipad model=iPad-Pro-11-inch-M5-12GB os=iOS-27-3 xcode=Xcode-27.3-beta ;;
   esac
   case $1 in
     '') hexport=8799 ;;
@@ -87,8 +87,9 @@ pose_of() {
 
 # Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 # js/ its bundle, harness/ this script with what it needs.
-# Checks build and run with their own Xcode, set here per device; .env.local's DEVELOPER_DIR is the
-# one ship:native builds with.
+# Checks run each simulator with its own Xcode, set here per device, and build with the Duo's, since
+# every device installs the same simulator builds; .env.local's DEVELOPER_DIR is the one ship:native
+# builds with.
 on_mac() {
   export DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer
   export PATH=/opt/homebrew/bin:$PATH
@@ -100,7 +101,7 @@ on_mac() {
 
 mac_build() {
   local runtime=$1
-  (cd app && prepare_native && DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
+  (cd app && prepare_native && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer SKIP_BUNDLING=1 xcodebuild -workspace ios/hex.xcworkspace -scheme hex \
     -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
     -derivedDataPath build ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >build/xcodebuild.log 2>&1) || {
     grep -E 'error:' app/build/xcodebuild.log | sort -u >&2
