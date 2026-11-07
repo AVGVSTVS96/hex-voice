@@ -114,6 +114,32 @@ test('your asks lead in hex’s order, then threads that need you without an ask
   assert.equal(entries[2]!.at, at(6, 15));
 });
 
+test('a thread that waits on your ask is in Needs you by its ask alone, never left quiet or done; one still working stays in Working', () => {
+  const entries = stream({
+    asks: [
+      ask('draft', 'yesno', { task: 'telegram:x', topic: 'x', at: at(9) }),
+      ask('merge', 'yesno', { task: 'telegram:autofork', at: at(8) }),
+      ask('shots', 'yesno', { task: 'telegram:Muse', topic: 'Muse', at: at(7) }),
+    ],
+    tasks: [
+      row('x', 'idle', at(9, 30)),
+      row('autofork', 'done', at(9, 40)),
+      row('Muse', 'working'),
+      row('seqno', 'idle'),
+    ],
+  });
+  assert.deepEqual(
+    entries.map((entry) => [entry.id, entry.stage]),
+    [
+      ['draft', 'needs'],
+      ['merge', 'needs'],
+      ['shots', 'needs'],
+      ['telegram:Muse', 'working'],
+      ['telegram:seqno', 'quiet'],
+    ],
+  );
+});
+
 test('after what needs you comes what works, then what finished today, then the rest, quiet', () => {
   const entries = stream({
     tasks: [

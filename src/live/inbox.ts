@@ -101,7 +101,8 @@ const threadTile = (place: Place, link?: string): Tile => ({
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 
 // The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic
-// while it's on the board; a thread that needs you some other way keeps its own row. What finished
+// while it's on the board, so a thread waiting on your ask is never also quiet or done; one still
+// working keeps its row in Working, and a thread that needs you some other way keeps its own. What finished
 // since you looked leads Done until it's read, and a read one from before today has already shown
 // as its thread.
 export function inboxEntries(
@@ -129,7 +130,7 @@ export function inboxEntries(
       ask,
     })),
     ...tasks
-      .filter((task) => task.state !== 'needs' || !asked.has(task.id))
+      .filter((task) => task.state === 'working' || !asked.has(task.id))
       .map((task): Entry => ({
         kind: 'task',
         id: task.id,
