@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { color, space, type } from '../src/ui/tokens';
+
 const files = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory()
@@ -109,4 +111,46 @@ test('every corner comes from the tokens, in every file', () => {
         .flatMap((line, i) => (corner.test(line) ? [`${file}:${i + 1}: ${line.trim()}`] : [])),
     );
   assert.deepEqual(found, []);
+});
+
+// The orb's palettes are what you pick, not the app's look.
+const art = new Set(['src/components/persona/variants.ts', 'src/components/persona-colors.tsx']);
+
+test('every color comes from the tokens, so mint, blue and red each keep one meaning', () => {
+  const found = files('src')
+    .filter((file) => file !== 'src/ui/tokens.ts' && file !== widget && !art.has(file))
+    .flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .flatMap((line, i) =>
+          /#[\dA-Fa-f]{3,8}\b|\brgba?\(|\bhsla?\(/.test(line)
+            ? [`${file}:${i + 1}: ${line.trim()}`]
+            : [],
+        ),
+    );
+  assert.deepEqual(found, []);
+});
+
+test('every symbol takes its size from the scale', () => {
+  const found = files('src')
+    .filter((file) => file !== widget)
+    .flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .flatMap((line, i) =>
+          /\bsize=\{\d/.test(line) ? [`${file}:${i + 1}: ${line.trim()}`] : [],
+        ),
+    );
+  assert.deepEqual(found, []);
+});
+
+test('the type is four sizes in two weights, and every gap is on the 4pt grid', () => {
+  assert.ok(new Set(Object.values(type).map((style) => style.fontSize)).size <= 4);
+  assert.ok(
+    Object.values(type).every(
+      (style) => !('weight' in style) || ['regular', 'semibold'].includes(style.weight),
+    ),
+  );
+  assert.ok(Object.values(space).every((gap) => gap === 2 || gap % 4 === 0));
+  assert.ok(Object.keys(color).length <= 24);
 });

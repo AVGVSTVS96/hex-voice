@@ -91,14 +91,14 @@ export function CallFooter({
 
 const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, gap: metrics.footerGap },
-  wrapUp: { gap: space[2.5], alignItems: 'center' },
+  wrapUp: { gap: space[3], alignItems: 'center' },
   leading: { alignItems: 'flex-start' },
   leadingText: { textAlign: 'left', paddingHorizontal: 0 },
   wrapTitle: { ...textOf('headline'), color: theme.text },
-  ended: { ...textOf('ending'), color: theme.secondary, textAlign: 'center' },
+  ended: { ...textOf('detail'), color: theme.secondary, textAlign: 'center' },
   bad: { color: theme.danger },
   error: {
-    ...textOf('trouble'),
+    ...textOf('detail'),
     color: theme.danger,
     textAlign: 'center',
     paddingHorizontal: space[3],

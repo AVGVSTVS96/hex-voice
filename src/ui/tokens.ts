@@ -1,46 +1,63 @@
 // The app's look: every color, text style, gap and size a component draws with. A component picks
 // a name from these tables, never a value of its own, so it looks the same wherever it sits.
 
-// Every color keeps its job in both appearances.
+// Every color keeps its job in both appearances, and there are few: grounds, fills, three grays of
+// text, and one color per meaning. Mint is what needs you, and nothing else; blue is what hex has
+// under way; red is what went wrong.
 export const color = {
-  // Light is Muse's: an off-white ground, gray cards on it, and a softer gray for details.
-  background: { dark: '#000000', light: '#FCFCFC' },
-  sheet: { dark: '#1C1C1C', light: '#FCFCFC' },
-  group: { dark: '#000000', light: '#F0F0F2' },
-  surface: { dark: '#202020', light: '#EBEBED' },
-  surfaceSelected: { dark: '#363636', light: '#D9D9DE' },
-  bubble: { dark: '#303032', light: '#E9EAEC' },
-  skeleton: { dark: '#2C2C2E', light: '#E3E3E8' },
-  edge: { dark: '#2A2A2C', light: '#E3E3E5' },
-  prominent: { dark: '#F9F9F9', light: '#0A0A0A' },
-  onProminent: { dark: '#080808', light: '#FAFAFA' },
-  tint: { dark: '#FFFFFF', light: '#0A0A0A' },
+  // The call's ground, and the panes and sheets that list things over it: Muse's off-white.
+  ground: { dark: '#000000', light: '#FCFCFC' },
+  sheet: { dark: '#1C1C1E', light: '#FCFCFC' },
+  // A grouped page, like settings, and the cards its rows sit in.
+  grouped: { dark: '#1C1C1E', light: '#F2F3F5' },
+  card: { dark: '#000000', light: '#FFFFFF' },
+  // Something drawn on the ground: a bubble, a block of code, a placeholder; stronger, once chosen.
+  fill: { dark: '#2C2C2E', light: '#EDEEF0' },
+  fillStrong: { dark: '#3A3A3C', light: '#E2E3E6' },
+  edge: { dark: '#2C2C2E', light: '#E3E3E5' },
   text: { dark: '#F5F5F5', light: '#0A0A0A' },
   secondary: { dark: '#98989F', light: '#65676B' },
-  tertiary: { dark: '#5E5E62', light: '#A2A4A8' },
-  switchOn: { dark: '#30D158', light: '#34C759' },
+  tertiary: { dark: '#636366', light: '#A2A4A8' },
+  // The one filled button on a screen, like the call button, and what's drawn on it.
+  prominent: { dark: '#F9F9F9', light: '#0A0A0A' },
+  onProminent: { dark: '#080808', light: '#FAFAFA' },
   accent: { dark: '#C4F3E5', light: '#1F8A6D' },
-  accentMuted: { dark: '#1B3534', light: '#D7F2EA' },
-  accentTrack: { dark: '#2F5552', light: '#A8DCCB' },
+  accentFill: { dark: '#1B3534', light: '#D7F2EA' },
   // The mint that holds white words, for a swipe's button in either appearance.
   accentSolid: { dark: '#1F8A6D', light: '#1F8A6D' },
-  // What hex has under way, as Muse marks what it's tracking.
   progress: { dark: '#8DB8FF', light: '#0A66D2' },
-  progressMuted: { dark: '#1E2C44', light: '#DCE9FA' },
-  // The soft lift under a floating button, only where the ground is light.
-  lift: { dark: '#00000000', light: '#00000014' },
+  progressFill: { dark: '#1E2C44', light: '#DCE9FA' },
   danger: { dark: '#F0A5A8', light: '#D93A42' },
-  dangerMuted: { dark: '#3A2224', light: '#FBE3E4' },
+  dangerFill: { dark: '#3A2224', light: '#FBE3E4' },
+  // A switch that's on, as iOS draws one.
+  switchOn: { dark: '#30D158', light: '#34C759' },
+  // The soft shadow under a floating button, only where the ground is light.
+  lift: { dark: '#00000000', light: '#00000014' },
+} as const;
+
+// A mask shows what it covers where it's opaque, and hides it where it's clear.
+export const mask = { shown: '#000000', hidden: '#00000000' } as const;
+
+// Where a task lives, as a tile in its own app's color with a white symbol, the same in either
+// appearance, and a link's tile.
+export const brand = {
+  telegram: '#2AABEE',
+  t3: '#3A3A3C',
+  buzz: '#E9A23B',
+  discord: '#5865F2',
+  server: '#636366',
+  link: '#8E8E93',
+  ink: '#FFFFFF',
 } as const;
 
 export type Tone = keyof typeof color;
 
-export type Weight = 'regular' | 'medium' | 'semibold' | 'bold';
+// Two weights: regular reads, semibold names.
+export type Weight = 'regular' | 'semibold';
 
 export type TextStyle = {
   // Apple's text style: SwiftUI text that has one follows the system's text size.
-  textStyle?:
-    'title' | 'title2' | 'headline' | 'body' | 'callout' | 'subheadline' | 'footnote' | 'caption';
+  textStyle?: 'title' | 'headline' | 'body' | 'subheadline' | 'footnote';
   fontSize: number;
   // React Native's whole line box. A style without one keeps the font's own.
   lineHeight?: number;
@@ -51,52 +68,25 @@ export type TextStyle = {
   design?: 'monospaced';
 };
 
+// Four sizes, as Muse sets its screens: a page's title, a name and what you read, the detail under
+// it, and the small print beside it.
+export const size = { title: 28, body: 17, detail: 15, caption: 13 } as const;
+
 export const type = {
-  title: { textStyle: 'title', fontSize: 28, lineHeight: 34, weight: 'medium' },
-  title2: { textStyle: 'title2', fontSize: 22, lineHeight: 28, weight: 'semibold' },
-  headline: { textStyle: 'headline', fontSize: 17, lineHeight: 22, weight: 'semibold' },
-  body: { textStyle: 'body', fontSize: 17, lineHeight: 22, lineSpacing: 5 },
-  callout: { textStyle: 'callout', fontSize: 16, lineHeight: 23 },
-  subheadline: { textStyle: 'subheadline', fontSize: 15, lineHeight: 22, lineSpacing: 5 },
-  footnote: { textStyle: 'footnote', fontSize: 13, lineHeight: 18, lineSpacing: 5 },
-  caption: { textStyle: 'caption', fontSize: 12, lineHeight: 16 },
+  title: { textStyle: 'title', fontSize: size.title, lineHeight: 34, weight: 'semibold' },
+  // A name: a row's, a page's in its bar, a question's.
+  headline: { textStyle: 'headline', fontSize: size.body, lineHeight: 22, weight: 'semibold' },
+  body: { textStyle: 'body', fontSize: size.body, lineHeight: 22, lineSpacing: 5 },
   // The call's words, with room between their lines to read along as they come.
-  words: { textStyle: 'body', fontSize: 17, lineHeight: 25 },
-  wordsLarge: { fontSize: 19, lineHeight: 28 },
-  // An ask's question in Tasks.
-  question: {
-    textStyle: 'callout',
-    fontSize: 16,
-    lineHeight: 21,
-    lineSpacing: 5,
-    weight: 'semibold',
-  },
-  // A footnote that ends a subheadline's line, like a time or a place, level with its words.
-  tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
-  // A name in a list, like a project's in Tasks or a call's in Calls, and the details under it.
-  item: { textStyle: 'body', fontSize: 17, lineHeight: 22, weight: 'medium' },
-  itemDetail: { textStyle: 'subheadline', fontSize: 15, lineHeight: 20, lineSpacing: 4 },
-  // A list's section, and a stage's name in Tasks' tabs.
-  head: { textStyle: 'subheadline', fontSize: 15, lineHeight: 20, weight: 'medium' },
-  // What became of something you did, beside its mark, like an answer sent.
-  sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
-  // Code, as written: on its own in a pinned note, and smaller inside what hex said.
-  code: { fontSize: 14, lineSpacing: 6, design: 'monospaced' },
-  snippet: { fontSize: 13, lineSpacing: 3, design: 'monospaced' },
-  // A turn cut to its first few lines, as a thread's row previews it.
-  preview: { textStyle: 'subheadline', fontSize: 15, lineSpacing: 2 },
-  // A count that stands for itself, like what the last check read.
-  stat: { fontSize: 26, weight: 'semibold' },
-  // The one name a carousel's page shows.
-  display: { fontSize: 32, lineHeight: 38, weight: 'semibold' },
-  // Under the call: how the last one ended, and what didn't go through.
-  ending: { fontSize: 15, lineHeight: 20 },
-  trouble: { fontSize: 14, lineHeight: 20 },
+  words: { textStyle: 'body', fontSize: size.body, lineHeight: 25 },
+  detail: { textStyle: 'subheadline', fontSize: size.detail, lineHeight: 20, lineSpacing: 4 },
+  caption: { textStyle: 'footnote', fontSize: size.caption, lineHeight: 18, lineSpacing: 4 },
+  code: { textStyle: 'footnote', fontSize: size.caption, lineSpacing: 4, design: 'monospaced' },
 } as const satisfies Record<string, TextStyle>;
 
 export type TextVariant = keyof typeof type;
 
-const fontWeights = { regular: '400', medium: '500', semibold: '600', bold: '700' } as const;
+const fontWeights = { regular: '400', semibold: '600' } as const;
 
 // A text style for a React Native StyleSheet.
 export function textOf(variant: TextVariant, weight?: Weight) {
@@ -115,26 +105,16 @@ export function labelOf(variant: TextVariant, weight?: Weight) {
   return { fontSize, fontWeight };
 }
 
-// Every gap and padding is a step of this scale, in points: a step is 4pt, so space[2.5] is 10.
+// Every gap and padding is a step of this scale, in points, on a 4pt grid: space[3] is 12.
 export const space = {
-  0.25: 1,
   0.5: 2,
-  0.75: 3,
   1: 4,
-  1.25: 5,
-  1.5: 6,
   2: 8,
-  2.5: 10,
   3: 12,
-  3.5: 14,
   4: 16,
-  4.5: 18,
   5: 20,
-  5.5: 22,
   6: 24,
-  7.5: 30,
   8: 32,
-  10: 40,
   12: 48,
 } as const;
 
@@ -145,17 +125,18 @@ export type GlassSize = keyof typeof glass;
 
 export const metrics = {
   ...glass,
-  // The symbol on a glass button, and on the call button.
-  symbol: { regular: 22, prominent: 27, bar: 17 },
+  // Symbols, by what they sit beside: a mark's glyph, a caption or detail line, a name or a bar
+  // button, a glass button, the call button, and an empty page's.
+  symbol: { mark: 10, small: 13, bar: 17, regular: 22, prominent: 27, hero: 28 },
   // Thin line symbols, as Muse draws its buttons'.
-  stroke: 'light',
+  stroke: 'light' as const,
   // The shadow under a floating button: how soft, and how far down.
   lift: { radius: 12, y: 4 },
   // The call buttons at each size: mute, the call button, and the gap between them.
   controls: {
     regular: { mute: 'mute', call: 'call', gap: space[3] },
     // Where they share iPhone Duo's short side column.
-    compact: { mute: 'tool', call: 'docked', gap: space[2.5] },
+    compact: { mute: 'tool', call: 'docked', gap: space[2] },
     // Beside the toolbar's own buttons.
     tool: { mute: 'tool', call: 'tool', gap: space[3] },
   },
@@ -164,7 +145,7 @@ export const metrics = {
   toolbar: {
     row: space[3],
     regular: { tools: space[8], group: space[4] },
-    compact: { tools: space[3], group: space[2.5] },
+    compact: { tools: space[3], group: space[2] },
   },
   // How far content keeps in from the screen's sides.
   gutter: space[6],
@@ -172,11 +153,11 @@ export const metrics = {
   row: 58,
   rowIcon: 26,
   rowInset: space[4],
-  rowSpacing: space[3.5],
-  groupSpacing: space[4.5],
+  rowSpacing: space[3],
+  groupSpacing: space[6],
   // What you said, inside its bubble.
-  bubbleX: 15,
-  bubbleY: 11,
+  bubbleX: space[4],
+  bubbleY: space[3],
   // The room it leaves on its other side in a Tasks thread.
   bubbleRoom: 52,
   // How tall the call's words fade at their top and bottom edges, and how far their first and
@@ -187,38 +168,40 @@ export const metrics = {
   // How far an empty list's message sits below its title.
   emptyTop: 130,
   // Between the wrap-up, how the last call ended and what didn't go through, under the call.
-  footerGap: 22,
+  footerGap: space[6],
   // The prominent pill at the foot of Tasks' list, Go through: its height and the gap after its
   // symbol.
-  pill: { height: 52, gap: 9 },
+  pill: { height: 52, gap: space[2] },
   // A thread's composer: its field's least height, and its send button's.
   field: 50,
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
-  bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
+  bar: { button: 44, capsule: { leading: space[3], trailing: space[4], gap: space[2] } },
   // Tasks' stage tabs: the gap between a tab's dot, name and count, the room under them, and the
   // selected tab's dot and the tinted badge it sits on.
-  tabs: { gap: 6, under: 10, badge: 18, dot: 7 },
+  tabs: { gap: space[2], under: space[3], badge: 18, dot: 7 },
+  // A row's tile, holding its symbol, as Muse sets one before each row of its history.
+  tile: 40,
   // An app's tile rounds its corners by this share of its size, as iOS rounds app icons.
   tileCorner: 0.27,
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
   // and how far content fades as it meets a bar and rests in from that edge (together with a
   // row's own top padding, nothing at rest sits in the fade). Then a row's padding above and below
-  // its content, and a place's, a point less below.
+  // its content, and a place's.
   list: {
     inset: space[4],
     mark: 20,
     // A to-do's square inside its mark.
     todo: 18,
-    gap: space[2.5],
+    gap: space[3],
     fade: space[6],
     rest: space[3],
-    row: { top: 11, bottom: space[3] },
-    place: 11,
+    row: { top: space[3], bottom: space[3] },
+    place: space[3],
     // A step's first line, which its mark, time and chevron center on.
     line: 20,
     // The gap between a row's time, its count and its tiles.
-    meta: 7,
+    meta: space[2],
   },
 } as const;
 

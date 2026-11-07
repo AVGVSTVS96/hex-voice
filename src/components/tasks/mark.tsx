@@ -24,7 +24,7 @@ export function Mark({ state }: { state: MarkState }) {
             justifyContent: 'center',
           }}
         >
-          <Arc size={15} />
+          <Arc size={metrics.list.todo} />
         </View>
       </RNHostView>
     );
@@ -67,21 +67,24 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
           <Rectangle
             modifiers={[
               frame({ width: metrics.list.todo, height: metrics.list.todo }),
-              foregroundStyle(theme.accentMuted),
+              foregroundStyle(theme.fillStrong),
               clipShape('roundedRectangle', radius.mark),
             ]}
           />
-          <Icon name="checkmark" size={10} color={theme.accent} />
+          <Icon name="checkmark" size={metrics.symbol.mark} color={theme.secondary} />
         </>
       );
     case 'read':
-      return <Icon name="checkmark" size={11} color={theme.tertiary} />;
+      return <Icon name="checkmark" size={metrics.symbol.small} color={theme.tertiary} />;
     case 'failed':
-      return disc(theme.dangerMuted, <Icon name="exclamationmark" size={9} color={theme.danger} />);
+      return disc(
+        theme.dangerFill,
+        <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />,
+      );
     case 'paused':
       return disc(
-        theme.surfaceSelected,
-        <Icon name="pause.fill" size={8} color={theme.secondary} />,
+        theme.fillStrong,
+        <Icon name="pause.fill" size={metrics.symbol.mark} color={theme.secondary} />,
       );
     case 'stopped':
       return (

@@ -197,7 +197,7 @@ function SkeletonSwatch({ size }: { size: number }) {
       <View
         style={{
           ...circle(inner),
-          backgroundColor: theme.skeleton,
+          backgroundColor: theme.fill,
         }}
       />
     </View>

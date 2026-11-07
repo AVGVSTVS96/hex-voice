@@ -16,10 +16,11 @@ import { Glyph } from '@/components/glyph';
 import {
   ENDINGS,
   SOURCES,
-  byDay,
+  byPeriod,
   callDetails,
   callName,
   timeOfDay,
+  whenIn,
   type CallId,
   type CallSummary,
 } from '@/live/calls';
@@ -66,7 +67,7 @@ export function CallsSidebar({
           {offline && (
             <Text style={styles.offline}>Can’t reach hex. These are kept on this device.</Text>
           )}
-          {byDay(calls ?? []).map((day) => (
+          {byPeriod(calls ?? []).map((day) => (
             <View key={day.label}>
               <Text style={styles.day}>{day.label}</Text>
               {day.calls.map((call) => (
@@ -162,7 +163,7 @@ function Row({
           onPress={remove}
           style={styles.delete}
         >
-          <Glyph name="trash" size={19} color={theme.onProminent} />
+          <Glyph name="trash" size={metrics.symbol.bar} color={theme.onProminent} />
         </Pressable>
       </Animated.View>
       <GestureDetector gesture={Gesture.Exclusive(swipe, tap)}>
@@ -177,7 +178,11 @@ function Row({
           style={[styles.slide, selected && styles.selected, slide]}
         >
           <View style={styles.icon}>
-            <Glyph name={SOURCES[call.from].symbol} size={17} color={theme.secondary} />
+            <Glyph
+              name={SOURCES[call.from].symbol}
+              size={metrics.symbol.bar}
+              color={theme.secondary}
+            />
           </View>
           <View style={styles.body}>
             <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
@@ -196,7 +201,7 @@ function Row({
                   <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
                 )}
               </Text>
-              <Text style={styles.when}>{live ? 'Now' : timeOfDay(call.started)}</Text>
+              <Text style={styles.when}>{live ? 'Now' : whenIn(call.started)}</Text>
             </View>
           </View>
         </Animated.View>
@@ -211,7 +216,7 @@ function Empty({ offline }: { offline: boolean }) {
       <View style={styles.ring}>
         <Glyph
           name={offline ? 'wifi.slash' : 'clock.arrow.circlepath'}
-          size={28}
+          size={metrics.symbol.hero}
           color={theme.secondary}
         />
       </View>
@@ -238,22 +243,22 @@ const styles = StyleSheet.create({
     color: theme.text,
     letterSpacing: -0.4,
     paddingHorizontal: metrics.list.inset,
-    paddingTop: space[2.5],
-    paddingBottom: space[2.5],
+    paddingTop: space[3],
+    paddingBottom: space[3],
   },
-  list: { paddingBottom: space[10] },
+  list: { paddingBottom: space[12] },
   offline: {
-    ...textOf('footnote'),
+    ...textOf('caption'),
     color: theme.secondary,
     paddingHorizontal: metrics.list.inset,
     paddingTop: space[2],
   },
   day: {
-    ...textOf('head'),
+    ...textOf('detail', 'semibold'),
     color: theme.secondary,
     paddingHorizontal: metrics.list.inset,
-    paddingTop: space[3.5],
-    paddingBottom: space[1.5],
+    paddingTop: space[6],
+    paddingBottom: space[2],
   },
   row: {
     height: 64,
@@ -261,7 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     borderCurve: 'continuous',
   },
-  selected: { backgroundColor: theme.skeleton },
+  selected: { backgroundColor: theme.fill },
   slide: {
     ...StyleSheet.absoluteFill,
     flexDirection: 'row',
@@ -270,15 +275,24 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: theme.sheet,
   },
-  icon: { width: 44, alignItems: 'center' },
+  icon: {
+    width: metrics.tile,
+    height: metrics.tile,
+    marginHorizontal: space[2],
+    borderRadius: radius.inner,
+    borderCurve: 'continuous',
+    backgroundColor: theme.fill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   body: { flex: 1, paddingRight: space[3], gap: space[0.5] },
-  name: { ...textOf('item'), color: theme.text, letterSpacing: -0.16 },
-  unnamed: { ...textOf('item', 'regular'), color: theme.secondary },
+  name: { ...textOf('headline'), color: theme.text, letterSpacing: -0.16 },
+  unnamed: { ...textOf('headline', 'regular'), color: theme.secondary },
   metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
-  meta: { ...textOf('itemDetail'), flex: 1, color: theme.secondary },
+  meta: { ...textOf('detail'), flex: 1, color: theme.secondary },
   live: { color: theme.switchOn },
   bad: { color: theme.danger },
-  when: { ...textOf('itemDetail'), color: theme.secondary, fontVariant: ['tabular-nums'] },
+  when: { ...textOf('detail'), color: theme.secondary, fontVariant: ['tabular-nums'] },
   action: { position: 'absolute', right: 8, top: 10 },
   delete: {
     ...circle(44),
@@ -286,16 +300,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  empty: { alignItems: 'center', paddingHorizontal: space[7.5], paddingTop: metrics.emptyTop },
+  empty: { alignItems: 'center', paddingHorizontal: space[8], paddingTop: metrics.emptyTop },
   ring: {
     ...circle(72),
-    backgroundColor: theme.skeleton,
+    backgroundColor: theme.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { ...textOf('title2'), color: theme.text, marginTop: space[5.5] },
+  emptyTitle: { ...textOf('headline'), color: theme.text, marginTop: space[6] },
   emptyText: {
-    ...textOf('callout'),
+    ...textOf('body'),
     color: theme.secondary,
     textAlign: 'center',
     marginTop: space[2],

@@ -300,12 +300,12 @@ function Shell({
       >
         <HStack
           alignment="firstTextBaseline"
-          spacing={space[2.5]}
+          spacing={space[3]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           <Text
             numberOfLines={2}
-            variant="subheadline"
+            variant="detail"
             paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
@@ -330,7 +330,7 @@ function Tiles({ tiles }: { tiles: Tile[] }) {
   return (
     <Row alignment="center" spacing={space[1]}>
       {[...looks].map(([look, tile]) => (
-        <TileIcon key={look} tile={tile} size={14} />
+        <TileIcon key={look} tile={tile} size={metrics.symbol.small} />
       ))}
     </Row>
   );
@@ -340,7 +340,7 @@ const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(til
 
 function Meta({ text }: { text: string }) {
   return (
-    <Text numberOfLines={1} variant="footnote" tone="tertiary">
+    <Text numberOfLines={1} variant="caption" tone="tertiary">
       {text}
     </Text>
   );
@@ -351,7 +351,7 @@ function Why({ text }: { text: string }) {
   return (
     <Text
       numberOfLines={3}
-      variant="itemDetail"
+      variant="detail"
       tone="secondary"
       paragraph
       modifiers={[padding({ top: space[0.5] })]}
@@ -365,7 +365,7 @@ function Action({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
     <Text
       onPress={onPress}
-      variant="subheadline"
+      variant="detail"
       weight="semibold"
       tone={onPress ? 'accent' : 'tertiary'}
       modifiers={[padding({ top: space[2], bottom: space[0.5] })]}
@@ -408,25 +408,25 @@ function Folded({
       <Mark state="done" />
       <Column
         alignment="start"
-        spacing={space[0.25]}
+        spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text numberOfLines={1} variant="subheadline" tone="secondary">
+        <Text numberOfLines={1} variant="detail" tone="secondary">
           {ask.question}
         </Text>
-        <Text numberOfLines={2} variant="subheadline">
+        <Text numberOfLines={2} variant="detail">
           {`${label} → ${ask.topic}`}
         </Text>
         {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
         {ask.failed ? <Failure text={ask.failed} /> : null}
       </Column>
       <Text
-        variant="subheadline"
+        variant="detail"
         weight="semibold"
         tone="accent"
         onPress={onUndo}
         modifiers={[
-          padding({ leading: space[2], top: space[1.5], bottom: space[1.5] }),
+          padding({ leading: space[2], top: space[2], bottom: space[2] }),
           accessibilityLabel(`Undo ${label}`),
         ]}
       >
@@ -470,7 +470,7 @@ export function ProjectRow({
   return (
     <Column
       alignment="start"
-      spacing={space[0.75]}
+      spacing={space[0.5]}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
@@ -482,18 +482,18 @@ export function ProjectRow({
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
-        ...listRow(width, { selected }),
+        ...listRow(width, { top: false, bottom: false, selected }),
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
       <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text numberOfLines={1} variant="item" modifiers={[layoutPriority(1)]}>
+        <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
           {topic.name}
         </Text>
         <Spacer flexible />
         {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
         <Text
-          variant="subheadline"
+          variant="detail"
           tone="secondary"
           modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
         >
@@ -503,7 +503,7 @@ export function ProjectRow({
       {headline === topic.name ? null : (
         <Text
           numberOfLines={1}
-          variant="itemDetail"
+          variant="detail"
           tone="secondary"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
@@ -534,7 +534,7 @@ export function DoneRow({
   return (
     <Column
       alignment="start"
-      spacing={space[0.75]}
+      spacing={space[0.5]}
       onPress={onOpen}
       testID="done-row"
       modifiers={[
@@ -546,20 +546,20 @@ export function DoneRow({
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
         contentShape(shapes.rectangle()),
-        ...listRow(width, { selected }),
+        ...listRow(width, { top: false, bottom: false, selected }),
         accessibilityLabel(`${line}. Done in ${where}, ${when}. Opens it`),
       ]}
     >
       <Text
         numberOfLines={2}
-        variant="item"
+        variant="headline"
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         {line}
       </Text>
       <Text
         numberOfLines={1}
-        variant="itemDetail"
+        variant="detail"
         tone="secondary"
         modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >

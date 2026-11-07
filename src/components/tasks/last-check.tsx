@@ -37,7 +37,7 @@ export function LastCheck({ check, ...answered }: Answered & { check?: Check }) 
             <Column
               alignment="start"
               spacing={0}
-              modifiers={[padding({ top: space[5], bottom: space[10] })]}
+              modifiers={[padding({ top: space[5], bottom: space[12] })]}
             >
               <Sections>
                 <Read key="read" read={check.read} />
@@ -76,7 +76,7 @@ function Read({ read }: { read: Record<string, number> }) {
       modifiers={[
         padding({ top: space[4], bottom: space[4], leading: space[2], trailing: space[2] }),
         frame({ maxWidth: Infinity }),
-        background(theme.group),
+        background(theme.card),
         clipShape('roundedRectangle', radius.group),
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
       ]}
@@ -88,8 +88,8 @@ function Read({ read }: { read: Record<string, number> }) {
           spacing={space[0.5]}
           modifiers={[frame({ maxWidth: Infinity })]}
         >
-          <Text variant="stat">{String(count)}</Text>
-          <Text variant="footnote" tone="secondary">
+          <Text variant="title">{String(count)}</Text>
+          <Text variant="caption" tone="secondary">
             {what}
           </Text>
         </Column>
@@ -107,8 +107,8 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
         padding({
           leading: metrics.list.inset - space[0.5],
           trailing: metrics.list.inset,
-          top: space[2.5],
-          bottom: space[2.5],
+          top: space[3],
+          bottom: space[3],
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
@@ -116,17 +116,17 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       <Mark state={fixed ? 'done' : 'needs'} />
       <Column
         alignment="start"
-        spacing={space[0.75]}
+        spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text variant="subheadline" weight="medium" paragraph>
+        <Text variant="detail" weight="semibold" paragraph>
           {note.title}
         </Text>
-        <Text variant="subheadline" tone="secondary" paragraph>
+        <Text variant="detail" tone="secondary" paragraph>
           {note.text}
         </Text>
         {note.did ? (
-          <Text variant="subheadline" weight="medium" tone="accent" paragraph>
+          <Text variant="detail" weight="semibold" tone="accent" paragraph>
             {note.did}
           </Text>
         ) : null}

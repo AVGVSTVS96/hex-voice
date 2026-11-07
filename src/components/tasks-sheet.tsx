@@ -28,7 +28,7 @@ export function TasksSheet({
   }, [view.open, onCall]);
 
   return (
-    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+    <Host seedColor={theme.text} avoids="system" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={view.open}
         onIsPresentedChange={(presented) => {

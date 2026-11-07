@@ -872,7 +872,7 @@ function useEndedCall(call: Call, voice: string, add: (call: CallSummary) => voi
   }, [call.kind, live]);
 }
 
-const FADE = [{ color: theme.background }, { color: 'transparent' }];
+const FADE = [{ color: theme.ground }, { color: 'transparent' }];
 const FADE_BACKDROP = [{ color: theme.sheet }, { color: 'transparent' }];
 
 const styles = StyleSheet.create({
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
   backdrop: { backgroundColor: theme.sheet },
   card: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: theme.background,
+    backgroundColor: theme.ground,
     overflow: 'hidden',
     borderColor: theme.edge,
     borderCurve: 'continuous',

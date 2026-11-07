@@ -12,14 +12,14 @@ export default function RootLayout() {
   const system = useColorScheme() === 'light' ? DefaultTheme : DarkTheme;
   const { demo } = useGlobalSearchParams<{ demo?: string }>();
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.ground }}>
       <ThemeProvider
         value={{
           ...system,
           colors: {
             ...system.colors,
-            background: theme.background,
-            card: theme.surface,
+            background: theme.ground,
+            card: theme.fill,
             primary: theme.accent,
           },
         }}
@@ -29,7 +29,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: theme.background },
+              contentStyle: { backgroundColor: theme.ground },
             }}
           >
             <Stack.Screen name="index" options={{ title: 'hex' }} />

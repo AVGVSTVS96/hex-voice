@@ -94,7 +94,7 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[12] })]}>
             <Sections>
               {task.plan.length ? (
                 <Column key="plan" alignment="start" spacing={0}>
@@ -163,7 +163,7 @@ export function Steps({
               mark ? (
                 <Mark state={mark} />
               ) : (
-                <Icon name={KIND[step.kind]} size={13} color={theme.secondary} />
+                <Icon name={KIND[step.kind]} size={metrics.symbol.small} color={theme.secondary} />
               )
             }
             text={step.text}
@@ -201,7 +201,7 @@ function Output({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: 
         <Text
           key={i}
           numberOfLines={wraps}
-          variant="snippet"
+          variant="code"
           tone={tone}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
@@ -317,7 +317,7 @@ function Under({
   return (
     <Text
       numberOfLines={lines || undefined}
-      variant="subheadline"
+      variant="detail"
       tone={tone}
       paragraph
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -379,7 +379,7 @@ export function TraceLine({
       <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text
           numberOfLines={lines || undefined}
-          variant="subheadline"
+          variant="detail"
           tone={tone}
           paragraph
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -389,7 +389,7 @@ export function TraceLine({
         {children}
       </Column>
       {time ? (
-        <Text numberOfLines={1} variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
+        <Text numberOfLines={1} variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {time}
         </Text>
       ) : null}
@@ -400,7 +400,7 @@ export function TraceLine({
       ) : null}
       {chevron ? (
         <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
-          <Icon name={chevron} size={11} color={theme.tertiary} />
+          <Icon name={chevron} size={metrics.symbol.small} color={theme.tertiary} />
         </Row>
       ) : null}
     </Row>
@@ -412,9 +412,9 @@ function Quiet({ text }: { text: string }) {
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: metrics.list.inset, top: space[1.5] })]}
+      modifiers={[padding({ leading: metrics.list.inset, top: space[2] })]}
     >
-      <Text variant="subheadline" tone="tertiary">
+      <Text variant="detail" tone="tertiary">
         {text}
       </Text>
       <Spacer flexible />

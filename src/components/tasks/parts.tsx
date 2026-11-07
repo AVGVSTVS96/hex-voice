@@ -21,7 +21,7 @@ import { Children, isValidElement, type ReactNode } from 'react';
 import type { Answered } from '@/hooks/use-watch';
 import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { mask, metrics, space } from '@/ui/tokens';
 
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
@@ -48,7 +48,7 @@ export function listRow(
 ): ModifierConfig[] {
   return [
     listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
-    listRowBackground(selected ? theme.surfaceSelected : 'transparent'),
+    listRowBackground(selected ? theme.fillStrong : 'transparent'),
     listRowSeparatorTint(theme.edge),
     alignmentGuide('listRowSeparatorLeading', 0),
     alignmentGuide('listRowSeparatorTrailing', width),
@@ -78,8 +78,8 @@ export function SectionHead({
         padding({
           leading: metrics.list.inset,
           trailing: metrics.list.inset,
-          top: space[5.5],
-          bottom: space[1.5],
+          top: space[6],
+          bottom: space[2],
         }),
         frame({ maxWidth: Infinity }),
         ...(action
@@ -91,23 +91,23 @@ export function SectionHead({
           : []),
       ]}
     >
-      <Text variant="head">{title}</Text>
+      <Text variant="detail">{title}</Text>
       <Spacer flexible />
       {count !== undefined ? (
-        <Text variant="footnote" tone="tertiary">
+        <Text variant="caption" tone="tertiary">
           {String(count)}
         </Text>
       ) : null}
       {opens ? (
         <Icon
           name="chevron.right"
-          size={11}
+          size={metrics.symbol.small}
           color={theme.tertiary}
           modifiers={[padding({ leading: space[2] })]}
         />
       ) : null}
       {action ? (
-        <Text variant="footnote" weight="semibold" tone="accent">
+        <Text variant="caption" weight="semibold" tone="accent">
           {action.label}
         </Text>
       ) : null}
@@ -135,7 +135,7 @@ export function Faded({
         frame({ maxWidth: Infinity }),
         foregroundStyle({
           type: 'linearGradient',
-          colors: ['#00000000', '#000000'],
+          colors: [mask.hidden, mask.shown],
           startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
           endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
         }),
@@ -167,7 +167,7 @@ export function Faded({
           <Rectangle
             modifiers={[
               frame({ maxWidth: Infinity, maxHeight: Infinity }),
-              foregroundStyle('#000000'),
+              foregroundStyle(mask.shown),
             ]}
           />
           {bottom ? edge('bottom') : null}
@@ -216,7 +216,7 @@ export function Hairline() {
 export function Empty({ text, width }: { text: string; width: number }) {
   return (
     <Text
-      variant="subheadline"
+      variant="detail"
       tone="tertiary"
       modifiers={[
         padding({ top: space[12], bottom: space[12] }),
@@ -272,7 +272,7 @@ export function Waiting({ failed, refused, gone }: Answered & { gone: string }) 
       ]}
     >
       {why ? (
-        <Text variant="subheadline" tone="tertiary">
+        <Text variant="detail" tone="tertiary">
           {why}
         </Text>
       ) : (
@@ -288,7 +288,7 @@ export const UNREACHED = 'Can’t reach hex. Trying again…';
 export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
   return (
     <Text
-      variant="footnote"
+      variant="caption"
       tone="danger"
       paragraph
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...modifiers]}

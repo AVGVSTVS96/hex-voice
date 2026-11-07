@@ -188,7 +188,7 @@ function dayStart(date: Date) {
 
 export function dayLabel(iso: string, now = new Date()) {
   const date = new Date(iso);
-  const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000);
+  const days = daysAgo(iso, now);
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7) return date.toLocaleDateString([], { weekday: 'long' });
@@ -205,14 +205,41 @@ export function putBack(calls: CallSummary[], call: CallSummary) {
   return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
 }
 
-export function byDay(calls: CallSummary[], now = new Date()) {
-  const days: { label: string; calls: CallSummary[] }[] = [];
+// Calls in a few spans, newest first, as Muse heads its lists: today, yesterday, the rest of the
+// week, then each month. A call's row says when within its span, so a day with one call needs no
+// heading of its own.
+export function byPeriod(calls: CallSummary[], now = new Date()) {
+  const periods: { label: string; calls: CallSummary[] }[] = [];
   for (const call of calls) {
-    const label = dayLabel(call.started, now);
-    if (days.at(-1)?.label === label) days.at(-1)!.calls.push(call);
-    else days.push({ label, calls: [call] });
+    const label = periodOf(call.started, now);
+    if (periods.at(-1)?.label === label) periods.at(-1)!.calls.push(call);
+    else periods.push({ label, calls: [call] });
   }
-  return days;
+  return periods;
+}
+
+function daysAgo(iso: string, now: Date) {
+  return Math.round((dayStart(now) - dayStart(new Date(iso))) / 86_400_000);
+}
+
+function periodOf(iso: string, now: Date) {
+  const days = daysAgo(iso, now);
+  if (days < 2) return dayLabel(iso, now);
+  if (days < 7) return 'This week';
+  const date = new Date(iso);
+  return date.toLocaleDateString([], {
+    month: 'long',
+    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  });
+}
+
+// When a call started, as much as its span's heading doesn't already say.
+export function whenIn(iso: string, now = new Date()) {
+  const days = daysAgo(iso, now);
+  const date = new Date(iso);
+  if (days < 2) return timeOfDay(iso);
+  if (days < 7) return `${date.toLocaleDateString([], { weekday: 'short' })} ${timeOfDay(iso)}`;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 // What happened to the call shows in it; hex's say and note text is the voice's own words already,

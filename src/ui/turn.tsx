@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   you: {
     alignSelf: 'flex-end',
     maxWidth: '86%',
-    backgroundColor: theme.bubble,
+    backgroundColor: theme.fill,
     borderRadius: radius.bubble,
     borderCurve: 'continuous',
     paddingHorizontal: metrics.bubbleX,

@@ -51,11 +51,11 @@ function Section({ section }: { section: PinSection }) {
         ]}
       >
         <Mark state={section.mark} />
-        <Text variant="subheadline" tone="secondary">
+        <Text variant="detail" tone="secondary">
           {`${section.title} · ${section.lines.length}`}
         </Text>
         <Spacer flexible />
-        <Icon name="chevron.down" size={13} color={theme.tertiary} />
+        <Icon name="chevron.down" size={metrics.symbol.small} color={theme.tertiary} />
       </Row>
     );
   return (
@@ -80,7 +80,7 @@ function Line({ line }: { line: PinLine }) {
           textSelection(selectable),
           padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
-          background(theme.surface),
+          background(theme.fill),
           clipShape('roundedRectangle', radius.inner),
           padding({
             leading: metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap,
@@ -99,15 +99,15 @@ function Line({ line }: { line: PinLine }) {
     return (
       <Markdown
         inline
-        variant="subheadline"
+        variant="detail"
         tone="secondary"
         selectable={selectable}
         modifiers={[
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
-            top: space[1.5],
-            bottom: space[1.5],
+            top: space[2],
+            bottom: space[2],
           }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
@@ -125,8 +125,8 @@ function Line({ line }: { line: PinLine }) {
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
-            top: space[1.5],
-            bottom: space[1.5],
+            top: space[2],
+            bottom: space[2],
           }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
@@ -139,7 +139,7 @@ function Line({ line }: { line: PinLine }) {
         >
           <Markdown
             inline
-            variant="subheadline"
+            variant="detail"
             tone="secondary"
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
@@ -147,7 +147,7 @@ function Line({ line }: { line: PinLine }) {
           </Markdown>
           {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
         </Column>
-        <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
+        <Icon name="arrow.up.right" size={metrics.symbol.small} color={theme.tertiary} />
       </Row>
     );
   return (
@@ -174,7 +174,7 @@ function Line({ line }: { line: PinLine }) {
       >
         <Markdown
           inline
-          variant="subheadline"
+          variant="detail"
           tone={line.mark === 'done' ? 'secondary' : 'text'}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
@@ -182,7 +182,9 @@ function Line({ line }: { line: PinLine }) {
         </Markdown>
         {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
       </Column>
-      {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}
+      {url ? (
+        <Icon name="arrow.up.right" size={metrics.symbol.small} color={theme.tertiary} />
+      ) : null}
     </Row>
   );
 }

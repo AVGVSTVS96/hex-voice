@@ -48,14 +48,18 @@ export function Header({
   );
 }
 
+// A page's bar: its title, as large as Muse's when it's a list's (`large`), and what you can do
+// from it.
 export function PageBar({
   title,
   subtitle,
+  large = false,
   back,
   trailing,
 }: {
   title: string;
   subtitle?: string;
+  large?: boolean;
   back?: Back;
   trailing?: ReactNode;
 }) {
@@ -68,8 +72,8 @@ export function PageBar({
         padding({
           leading: metrics.list.inset - space[1],
           trailing: space[4],
-          top: space[1.5],
-          bottom: space[1.5],
+          top: space[2],
+          bottom: space[2],
         }),
         frame({ minHeight: metrics.bar.button + space[3] }),
         frame({ maxWidth: Infinity }),
@@ -78,14 +82,14 @@ export function PageBar({
       {backButton}
       <Column
         alignment="start"
-        spacing={space[0.25]}
+        spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text numberOfLines={1} variant="headline">
+        <Text numberOfLines={1} variant={large ? 'title' : 'headline'}>
           {title}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} variant="footnote" tone="secondary">
+          <Text numberOfLines={1} variant="caption" tone="secondary">
             {subtitle}
           </Text>
         ) : null}
@@ -103,12 +107,8 @@ export function BackButton({ back }: { back: Back }) {
       testID="task-back"
       onPress={back.onPress}
     >
-      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.accent} />
-      {!back.short ? (
-        <Text numberOfLines={1} weight="medium" tone="accent">
-          {back.to}
-        </Text>
-      ) : null}
+      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
+      {!back.short ? <Text numberOfLines={1}>{back.to}</Text> : null}
     </BarButton>
   );
 }
@@ -118,7 +118,7 @@ export function BackButton({ back }: { back: Back }) {
 function DoorPill({ door }: { door: Door }) {
   return (
     <BarButton shape="circle" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
-      <PlaceTile place={door.place} size={24} />
+      <PlaceTile place={door.place} size={metrics.symbol.regular} />
     </BarButton>
   );
 }
@@ -143,7 +143,7 @@ export function Talk({
     >
       <Icon name="phone.and.waveform" size={metrics.symbol.bar} color={theme.text} />
       {alone ? (
-        <Text numberOfLines={1} variant="callout" weight="semibold">
+        <Text numberOfLines={1} variant="body" weight="semibold">
           Talk it through
         </Text>
       ) : null}

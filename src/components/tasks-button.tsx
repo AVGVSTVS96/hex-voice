@@ -62,7 +62,7 @@ export function TasksButton({
         modifiers={[
           foregroundStyle(theme.accent),
           frame({ width: DOT, height: DOT }),
-          strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
+          strokeBorder({ content: theme.ground, style: { lineWidth: LINE }, shape: 'circle' }),
           offset({ x: (metrics.tool - DOT) / 2, y: -(metrics.tool - DOT) / 2 }),
           scaleEffect(needs > 0 ? 1 : 0.01),
           opacity(needs > 0 ? 1 : 0),

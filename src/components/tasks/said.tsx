@@ -52,8 +52,8 @@ export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
           modifiers={[
             ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
             ...textLook({
-              variant: 'footnote',
-              weight: sent.failed ? 'medium' : 'regular',
+              variant: 'caption',
+              weight: sent.failed ? 'semibold' : 'regular',
               tone: sent.failed ? 'danger' : 'tertiary',
             }),
           ]}
@@ -85,19 +85,19 @@ export function SaidLine({
   return (
     <Row
       alignment="start"
-      spacing={space[2.5]}
+      spacing={space[3]}
       modifiers={[
         padding({
           leading: metrics.list.inset,
           trailing: metrics.list.inset,
-          top: space[1.25],
-          bottom: space[1.25],
+          top: space[1],
+          bottom: space[1],
         }),
       ]}
     >
       <Text
         modifiers={[
-          ...textLook({ variant: 'footnote', weight: 'semibold', tone: 'secondary' }),
+          ...textLook({ variant: 'caption', weight: 'semibold', tone: 'secondary' }),
           frame({ width: 30, alignment: 'leading' }),
         ]}
       >
@@ -106,7 +106,7 @@ export function SaidLine({
       <Markdown
         inline
         lines={lines}
-        variant="preview"
+        variant="detail"
         tone={one.kind === 'event' ? 'secondary' : 'text'}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
@@ -137,7 +137,7 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
             top: metrics.bubbleY,
             bottom: metrics.bubbleY,
           }),
-          background(theme.bubble),
+          background(theme.fill),
           clipShape('roundedRectangle', radius.bubble),
         ]}
       >
@@ -155,7 +155,7 @@ function Event({ text }: { text: string }) {
       modifiers={[padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset })]}
     >
       <Spacer flexible />
-      <Text modifiers={[...textLook({ variant: 'footnote', tone: 'secondary' }), lineLimit(3)]}>
+      <Text modifiers={[...textLook({ variant: 'caption', tone: 'secondary' }), lineLimit(3)]}>
         {text}
       </Text>
     </Row>

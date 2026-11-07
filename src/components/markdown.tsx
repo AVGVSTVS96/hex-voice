@@ -46,7 +46,7 @@ export function Markdown({
         color={theme[tone]}
         secondary={theme.secondary}
         edge={theme.edge}
-        surface={theme.surface}
+        surface={theme.fill}
         accent={theme.accent}
         onLink={(url) => void tries.attempt(url, 'Not opened', () => openURL(url))}
       />

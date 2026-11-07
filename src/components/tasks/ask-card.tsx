@@ -50,7 +50,7 @@ const ROW = 40;
 const SAID = 6;
 // The pencil takes taps across 44 points but only the question's first line of height.
 const PENCIL = metrics.bar.button;
-const LINE = type.question.lineHeight;
+const LINE = type.headline.lineHeight;
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
@@ -107,8 +107,8 @@ export function YourCall({
                 padding({
                   leading: metrics.list.inset - space[0.5],
                   trailing: metrics.list.inset,
-                  top: space[2.5],
-                  bottom: space[3.5],
+                  top: space[3],
+                  bottom: space[4],
                 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
@@ -116,18 +116,18 @@ export function YourCall({
               <Mark state="done" />
               <Column
                 alignment="start"
-                spacing={space[0.25]}
+                spacing={space[0.5]}
                 modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                <Text variant="subheadline" tone="secondary">
+                <Text variant="detail" tone="secondary">
                   {ask.question}
                 </Text>
-                <Text variant="subheadline">{said}</Text>
+                <Text variant="detail">{said}</Text>
                 {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
                 {ask.failed ? <Failure text={ask.failed} /> : null}
               </Column>
               <Text
-                variant="subheadline"
+                variant="detail"
                 weight="semibold"
                 tone="accent"
                 onPress={() => onUndo(ask)}
@@ -204,14 +204,14 @@ function AskCard({
           padding({
             leading: metrics.list.inset,
             top: first ? space[0.5] : space[3],
-            bottom: open ? space[1.5] : space[3],
+            bottom: open ? space[2] : space[3],
           }),
           frame({ maxWidth: Infinity }),
         ]}
       >
         <VStack
           alignment="leading"
-          spacing={space[0.75]}
+          spacing={space[2]}
           modifiers={[
             frame({ maxWidth: Infinity, alignment: 'leading' }),
             contentShape(shapes.rectangle()),
@@ -221,7 +221,7 @@ function AskCard({
           ]}
         >
           <Text
-            variant="question"
+            variant="headline"
             weight={open ? undefined : 'regular'}
             paragraph
             modifiers={[
@@ -233,7 +233,7 @@ function AskCard({
           </Text>
           {open && ask.context ? (
             <Text
-              variant="subheadline"
+              variant="detail"
               paragraph
               modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
             >
@@ -251,8 +251,7 @@ function AskCard({
               contentShape(shapes.rectangle()),
               padding({
                 leading: space[1],
-                // Its symbol, centered in 44 points, then ends at the list's inset, as the date does.
-                trailing: space[1.5],
+                // Its symbol, centered in its square, ends at the list's inset, as the date does.
                 top: (LINE - PENCIL) / 2,
                 bottom: (LINE - PENCIL) / 2,
               }),
@@ -261,13 +260,13 @@ function AskCard({
           >
             <Icon
               name="square.and.pencil"
-              size={15}
+              size={metrics.symbol.small}
               color={writing ? theme.accent : theme.secondary}
             />
           </Row>
         ) : (
           <Text
-            variant="footnote"
+            variant="caption"
             tone="tertiary"
             modifiers={[
               monospacedDigit(),
@@ -281,12 +280,12 @@ function AskCard({
       {open ? (
         <Column
           alignment="start"
-          spacing={space[0.75]}
+          spacing={space[1]}
           modifiers={[
             padding({
               leading: metrics.list.inset,
               trailing: metrics.list.inset,
-              bottom: space[1.5],
+              bottom: space[2],
             }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
@@ -297,7 +296,7 @@ function AskCard({
             <Failure text={notes.failed.note} modifiers={[padding({ top: space[1] })]} />
           ) : noted ? (
             <Text
-              variant="footnote"
+              variant="caption"
               tone="secondary"
               paragraph
               modifiers={[padding({ top: space[1] })]}
@@ -314,7 +313,7 @@ function AskCard({
             padding({
               leading: metrics.list.inset,
               trailing: metrics.list.inset,
-              bottom: open ? space[1.5] : space[3],
+              bottom: open ? space[2] : space[3],
             }),
           ]}
         />
@@ -345,11 +344,11 @@ function Said({ words }: { words: Words }) {
       alignment="top"
       spacing={space[3]}
       modifiers={[
-        padding({ top: space[3], bottom: space[0.5] }),
+        padding({ top: space[4], bottom: space[0.5] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
     >
-      <Capsule modifiers={[frame({ width: 2 }), foregroundStyle(theme.surfaceSelected)]} />
+      <Capsule modifiers={[frame({ width: 2 }), foregroundStyle(theme.fillStrong)]} />
       <Column
         alignment="start"
         spacing={space[1]}
@@ -361,13 +360,13 @@ function Said({ words }: { words: Words }) {
           accessibilityElement('combine'),
         ]}
       >
-        <Text variant="footnote" tone="tertiary">
+        <Text variant="caption" weight="semibold" tone="secondary">
           {`From ${words.place}${when}`}
         </Text>
         <Markdown
           inline={!whole}
           lines={whole ? undefined : SAID}
-          variant="itemDetail"
+          variant="caption"
           tone="secondary"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
@@ -383,24 +382,24 @@ function Links({ links }: { links: AskLink[] }) {
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (
     <Column alignment="start" spacing={space[1]} modifiers={[padding({ top: space[1] })]}>
-      <Row alignment="center" spacing={space[1.5]}>
+      <Row alignment="center" spacing={space[2]}>
         {links.map((link, i) => (
-          <Row key={link.url} alignment="center" spacing={space[1.5]}>
+          <Row key={link.url} alignment="center" spacing={space[2]}>
             {i ? (
-              <Text variant="subheadline" tone="tertiary">
+              <Text variant="detail" tone="tertiary">
                 ·
               </Text>
             ) : null}
             <Row
               alignment="center"
-              spacing={space[0.75]}
+              spacing={space[1]}
               onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
               modifiers={[accessibilityLabel(`Open ${link.label}`)]}
             >
-              <Text numberOfLines={1} variant="subheadline" tone="secondary">
+              <Text numberOfLines={1} variant="detail" tone="secondary">
                 {link.label}
               </Text>
-              <Icon name="arrow.up.right" size={11} color={theme.secondary} />
+              <Icon name="arrow.up.right" size={metrics.symbol.small} color={theme.secondary} />
             </Row>
           </Row>
         ))}
@@ -420,28 +419,30 @@ export function InlineAnswers({
   modifiers: ModifierConfig[];
 }) {
   return (
-    <Row alignment="center" spacing={space[3.5]} modifiers={modifiers}>
+    <Row alignment="center" spacing={space[4]} modifiers={modifiers}>
       {ask.options.map((option, i) => (
-        <Row key={option.label} alignment="center" spacing={space[3.5]}>
+        <Row key={option.label} alignment="center" spacing={space[4]}>
           {i ? (
             <Rectangle
-              modifiers={[frame({ width: 1, height: space[3.5] }), foregroundStyle(theme.edge)]}
+              modifiers={[frame({ width: 1, height: space[4] }), foregroundStyle(theme.edge)]}
             />
           ) : null}
           <Row
             alignment="center"
-            spacing={space[1.25]}
+            spacing={space[1]}
             onPress={() => onAnswer(ask, option)}
             modifiers={[
-              padding({ top: space[1.5], bottom: space[1] }),
+              padding({ top: space[2], bottom: space[1] }),
               accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
             ]}
           >
-            {option.pick ? <Icon name="checkmark" size={12} color={theme.accent} /> : null}
+            {option.pick ? (
+              <Icon name="checkmark" size={metrics.symbol.small} color={theme.accent} />
+            ) : null}
             <Text
               numberOfLines={1}
-              variant="subheadline"
-              weight={option.pick ? 'semibold' : 'medium'}
+              variant="detail"
+              weight={option.pick ? 'semibold' : 'semibold'}
               tone={option.pick ? 'accent' : 'secondary'}
             >
               {option.label}
@@ -455,7 +456,7 @@ export function InlineAnswers({
 
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   if (!ask.options.length) return null;
-  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, type.subheadline.fontSize))
+  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, type.detail.fontSize))
     return (
       <InlineAnswers
         ask={ask}
@@ -465,7 +466,7 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
             top: 0,
-            bottom: space[2.5],
+            bottom: space[3],
           }),
         ]}
       />
@@ -493,8 +494,8 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
         padding({
           leading: metrics.list.inset,
           trailing: metrics.list.inset,
-          top: space[1.5],
-          bottom: space[1.5],
+          top: space[2],
+          bottom: space[2],
         }),
         frame({ minHeight: ROW }),
         frame({ maxWidth: Infinity }),
@@ -503,13 +504,13 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
       ]}
     >
       {option.pick ? (
-        <Icon name="checkmark" size={14} color={theme.accent} />
+        <Icon name="checkmark" size={metrics.symbol.small} color={theme.accent} />
       ) : (
         <Spacer style={{ width: 14 }} />
       )}
       <Text
-        variant="subheadline"
-        weight={option.pick ? 'medium' : 'regular'}
+        variant="detail"
+        weight={option.pick ? 'semibold' : 'regular'}
         tone={option.pick ? 'accent' : 'text'}
         paragraph
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -517,7 +518,7 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
         {option.label}
       </Text>
       {option.pick ? (
-        <Text variant="caption" weight="medium" tone="accent">
+        <Text variant="caption" weight="semibold" tone="accent">
           hex’s pick
         </Text>
       ) : null}
@@ -553,17 +554,17 @@ function Composer({
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Row
         alignment="end"
-        spacing={space[2.5]}
+        spacing={space[3]}
         modifiers={[
           padding({
-            leading: space[3.5],
-            trailing: space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
+            leading: space[4],
+            trailing: space[2],
+            top: space[2],
+            bottom: space[2],
           }),
           frame({ minHeight: ROW - 8 }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
-          background(theme.surface),
+          background(theme.fill),
           clipShape('roundedRectangle', radius.control),
           strokeBorder({
             content: theme.edge,
@@ -572,10 +573,10 @@ function Composer({
             cornerRadius: radius.control,
           }),
           padding({
-            leading: metrics.list.inset - space[1.5],
-            trailing: metrics.list.inset - space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
+            leading: metrics.list.inset - space[2],
+            trailing: metrics.list.inset - space[2],
+            top: space[2],
+            bottom: space[2],
           }),
         ]}
       >
@@ -597,13 +598,13 @@ function Composer({
           textStyle={labelOf('body')}
           modifiers={[
             foregroundStyle(theme.text),
-            padding({ top: space[1.5], bottom: space[1.5] }),
+            padding({ top: space[2], bottom: space[2] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         />
         <Icon
           name="arrow.up.circle.fill"
-          size={30}
+          size={metrics.symbol.hero}
           color={words ? theme.accent : theme.tertiary}
           onPress={words ? () => onNote(words) : undefined}
           modifiers={[accessibilityLabel(`Send a note to ${topic}`)]}
@@ -617,25 +618,29 @@ function Composer({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
             top: space[1],
-            bottom: space[2.5],
+            bottom: space[3],
           }),
           frame({ maxWidth: Infinity }),
         ]}
       >
         <Row
           alignment="center"
-          spacing={space[1.25]}
+          spacing={space[1]}
           onPress={words ? () => onAnswer(words) : undefined}
           modifiers={[accessibilityLabel('Answer with this')]}
         >
-          <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
-          <Text variant="subheadline" weight="semibold" tone={words ? 'text' : 'tertiary'}>
+          <Icon
+            name="checkmark"
+            size={metrics.symbol.small}
+            color={words ? theme.text : theme.tertiary}
+          />
+          <Text variant="detail" weight="semibold" tone={words ? 'text' : 'tertiary'}>
             Answer with this
           </Text>
         </Row>
         <Spacer flexible />
         <Text
-          variant="subheadline"
+          variant="detail"
           weight="regular"
           tone={sending ? 'tertiary' : 'secondary'}
           onPress={sending ? undefined : onDismiss}
@@ -653,11 +658,11 @@ export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => 
     <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Failure text={unreached(missed)} />
       <Text
-        variant="footnote"
+        variant="caption"
         weight="semibold"
         tone="accent"
         onPress={onAgain}
-        modifiers={[padding({ top: space[1.5], bottom: space[1.5] })]}
+        modifiers={[padding({ top: space[2], bottom: space[2] })]}
       >
         Send again
       </Text>

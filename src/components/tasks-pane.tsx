@@ -36,7 +36,7 @@ export function TasksPane({
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
       style={[styles.pane, { width, paddingTop: top }, style]}
     >
-      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
+      <Host seedColor={theme.text} avoids="keyboard" style={styles.fill}>
         <TasksView {...view} width={width} foot={foot} />
       </Host>
     </Animated.View>
@@ -83,7 +83,7 @@ export function TasksPage({
         style,
       ]}
     >
-      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
+      <Host seedColor={theme.text} avoids="keyboard" style={styles.fill}>
         <ZStack
           alignment="top"
           modifiers={[

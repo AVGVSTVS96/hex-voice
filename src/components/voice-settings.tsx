@@ -130,7 +130,7 @@ const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
 const ORB = 190;
 const VOICE_CAROUSEL = 180;
-const HEADER_TOP = space[3.5];
+const HEADER_TOP = space[4];
 const HEADER = 44;
 // The bar over the persona's pane on the open Duo.
 const BAR = 60;
@@ -249,7 +249,7 @@ export function VoiceSettings({
   const page = (shown: boolean, away: number, height: number) => [
     frame({ height, alignment: 'top' }),
     frame({ maxWidth: Infinity }),
-    background(theme.sheet),
+    background(theme.grouped),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
@@ -260,7 +260,7 @@ export function VoiceSettings({
   // pane's bottom half.
   const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
-    background(theme.sheet),
+    background(theme.grouped),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
@@ -351,7 +351,7 @@ export function VoiceSettings({
           testID="voice-row"
         >
           <Text tone="secondary">{selectedVoice.label}</Text>
-          <Icon name="chevron.right" size={13} color={theme.secondary} />
+          <Icon name="chevron.right" size={metrics.symbol.small} color={theme.secondary} />
         </SettingRow>
         <Separator />
         <SettingRow icon="speaker.wave.2" title="Call sounds" width={rowsWidth}>
@@ -472,7 +472,7 @@ export function VoiceSettings({
   return (
     <>
       {placed}
-      <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+      <Host seedColor={theme.text} avoids="system" style={{ position: 'absolute' }}>
         <BottomSheet
           isPresented={!placed && isPresented}
           onIsPresentedChange={(presented) => {
@@ -501,7 +501,7 @@ export function VoiceSettings({
               ...(phone
                 ? []
                 : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
-              presentationBackground(theme.sheet),
+              presentationBackground(theme.grouped),
             ]}
           >
             <ZStack
@@ -617,7 +617,7 @@ function SettingsPlace({
       importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
       style={[StyleSheet.absoluteFill, fade]}
     >
-      <Host seedColor={theme.tint} style={{ flex: 1 }}>
+      <Host seedColor={theme.text} style={{ flex: 1 }}>
         <ZStack
           modifiers={[
             frame({ maxWidth: Infinity, maxHeight: Infinity }),
@@ -626,7 +626,10 @@ function SettingsPlace({
           ]}
         >
           <Rectangle
-            modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
+            modifiers={[
+              foregroundStyle(theme.grouped),
+              padding({ top, leading, trailing, bottom }),
+            ]}
           />
           <ArrangementView
             modifiers={[

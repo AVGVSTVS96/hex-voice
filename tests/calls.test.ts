@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  byDay,
+  byPeriod,
   callLength,
   callName,
   clock,
@@ -46,23 +46,26 @@ const call = (id: string, started: string): CallSummary =>
     preview: 'Is the build green?',
   });
 
-test('calls group by day, newest first, as hex sends them', () => {
+test('calls group into today, yesterday, the rest of the week and each month, newest first', () => {
   const now = new Date(2026, 9, 13, 9);
-  const days = byDay(
+  const periods = byPeriod(
     [
       call('a', new Date(2026, 9, 13, 3, 5).toISOString()),
       call('b', new Date(2026, 9, 13, 1, 31).toISOString()),
       call('c', new Date(2026, 9, 12, 23, 36).toISOString()),
-      call('d', new Date(2026, 8, 30, 12).toISOString()),
+      call('d', new Date(2026, 9, 10, 12).toISOString()),
+      call('e', new Date(2026, 9, 9, 12).toISOString()),
+      call('f', new Date(2026, 8, 30, 12).toISOString()),
     ],
     now,
   );
   assert.deepEqual(
-    days.map((day) => [day.label, day.calls.map(({ id }) => id)]),
+    periods.map((period) => [period.label, period.calls.map(({ id }) => id)]),
     [
       ['Today', ['a', 'b']],
       ['Yesterday', ['c']],
-      ['September 30', ['d']],
+      ['This week', ['d', 'e']],
+      ['September', ['f']],
     ],
   );
 });

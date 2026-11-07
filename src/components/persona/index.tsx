@@ -219,7 +219,7 @@ function PersonaRenderer({
           style={{
             ...circle(size * 0.6),
             borderWidth: 1,
-            borderColor: theme.accentMuted,
+            borderColor: theme.accentFill,
             alignItems: 'center',
             justifyContent: 'center',
           }}

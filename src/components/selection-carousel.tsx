@@ -182,10 +182,10 @@ function SelectionPage({
       testID={testID}
     >
       <Spacer flexible />
-      <Text variant="display" align="center">
+      <Text variant="title" align="center">
         {option.label}
       </Text>
-      <Text variant="callout" tone="secondary" align="center">
+      <Text variant="body" tone="secondary" align="center">
         {option.description}
       </Text>
       <Spacer flexible />

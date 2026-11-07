@@ -174,7 +174,12 @@ export function ListPage({
       ) : (
         <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
           {compact ? null : (
-            <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
+            <PageBar
+              title="Tasks"
+              large
+              back={back}
+              trailing={<SearchButton onPress={startSearch} />}
+            />
           )}
           <Tabs
             counts={counts}
@@ -265,10 +270,10 @@ export function ListPage({
 function Behind({ width }: { width: number }) {
   return (
     <Text
-      variant="footnote"
+      variant="caption"
       tone="tertiary"
       modifiers={[
-        padding({ top: space[1.5], bottom: space[1.5] }),
+        padding({ top: space[2], bottom: space[2] }),
         frame({ maxWidth: Infinity }),
         ...listRow(width, { top: false, bottom: false }),
       ]}
@@ -300,7 +305,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       ]}
     >
       <Spacer flexible />
-      <Icon name="waveform" size={16} color={theme.onProminent} />
+      <Icon name="waveform" size={metrics.symbol.small} color={theme.onProminent} />
       <Text variant="headline" tone="onProminent">
         Go through them with hex
       </Text>

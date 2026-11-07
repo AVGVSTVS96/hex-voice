@@ -79,13 +79,7 @@ export function GlassButton({
   loading = false,
   bare = false,
 }: Props & { bare?: boolean }) {
-  const color = prominent
-    ? theme.onProminent
-    : disabled
-      ? theme.tertiary
-      : selected
-        ? theme.accent
-        : theme.text;
+  const color = prominent ? theme.onProminent : disabled ? theme.tertiary : theme.text;
   const look = face(size, selected);
   return (
     <Button

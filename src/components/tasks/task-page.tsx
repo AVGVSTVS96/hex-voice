@@ -133,7 +133,7 @@ export function Detail({
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[12] })]}>
             <Sections>
               {doneFirst ? done : null}
               {needs ? (
@@ -145,7 +145,7 @@ export function Detail({
                       padding({
                         leading: metrics.list.inset,
                         trailing: metrics.list.inset,
-                        bottom: space[1.5],
+                        bottom: space[2],
                       }),
                       frame({ maxWidth: Infinity, alignment: 'leading' }),
                     ]}
@@ -281,7 +281,7 @@ export function Asked({
             frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
           ]}
         >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
+          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[12] })]}>
             {asks.length ? (
               <YourCall
                 asks={asks}
@@ -318,12 +318,16 @@ function Finished({
       text={finished.title}
       lines={2}
       time={doneAt(finished.at)}
-      after={page ? <Icon name="arrow.up.right" size={11} color={theme.tertiary} /> : undefined}
+      after={
+        page ? (
+          <Icon name="arrow.up.right" size={metrics.symbol.small} color={theme.tertiary} />
+        ) : undefined
+      }
       onPress={page && (() => onOpen(page))}
       label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
     >
       {proof ? (
-        <Text numberOfLines={2} variant="footnote" tone="secondary" paragraph>
+        <Text numberOfLines={2} variant="caption" tone="secondary" paragraph>
           {proof}
         </Text>
       ) : null}
@@ -364,16 +368,16 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
         <Text
           numberOfLines={1}
-          variant="subheadline"
+          variant="detail"
           weight="semibold"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {thread.place}
         </Text>
-        <Text variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {taskTime(thread)}
         </Text>
-        <Icon name="chevron.right" size={11} color={theme.tertiary} />
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
       </Row>
       {steps.length ? (
         <Steps steps={steps} agents={thread.agents} opens={false} />
@@ -382,7 +386,7 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
       ) : null}
       {agents ? (
         <TraceLine
-          lead={<Icon name={KIND.agent} size={13} color={theme.secondary} />}
+          lead={<Icon name={KIND.agent} size={metrics.symbol.small} color={theme.secondary} />}
           text={agents}
           tone="secondary"
         />

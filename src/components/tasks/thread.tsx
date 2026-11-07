@@ -148,7 +148,7 @@ export function ThreadPage({
         >
           <Column
             alignment="start"
-            spacing={space[4.5]}
+            spacing={space[4]}
             modifiers={[
               padding({ top: space[5], bottom: space[5] }),
               contentShape(shapes.rectangle()),
@@ -156,15 +156,15 @@ export function ThreadPage({
             ]}
           >
             {first > 0 ? (
-              <Text variant="footnote" tone="tertiary" modifiers={[frame({ maxWidth: Infinity })]}>
+              <Text variant="caption" tone="tertiary" modifiers={[frame({ maxWidth: Infinity })]}>
                 {`Earlier messages are in ${place}`}
               </Text>
             ) : null}
             {chat && !turns.length && !pending.length ? (
               <Text
-                variant="subheadline"
+                variant="detail"
                 tone="tertiary"
-                modifiers={[padding({ top: space[10] }), frame({ maxWidth: Infinity })]}
+                modifiers={[padding({ top: space[12] }), frame({ maxWidth: Infinity })]}
               >
                 Nothing said here yet
               </Text>
@@ -185,7 +185,7 @@ export function ThreadPage({
           time={taskTime(thread)}
           chevron="chevron.right"
           after={
-            <Text variant="subheadline" weight="semibold" tone="accent">
+            <Text variant="detail" weight="semibold" tone="accent">
               Steps
             </Text>
           }
@@ -275,7 +275,7 @@ function Composer({
           leading: space[4],
           trailing: space[4],
           top: space[2],
-          bottom: typing ? space[2] : Math.max(space[3.5], foot),
+          bottom: typing ? space[2] : Math.max(space[4], foot),
         }),
         frame({ maxWidth: Infinity }),
       ]}
@@ -285,14 +285,14 @@ function Composer({
         spacing={0}
         modifiers={[
           padding({
-            leading: space[4.5],
-            trailing: space[4.5],
-            top: space[3.5],
-            bottom: space[3.5],
+            leading: space[4],
+            trailing: space[4],
+            top: space[4],
+            bottom: space[4],
           }),
           frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity }),
-          background(theme.surface),
+          background(theme.fill),
           clipShape('roundedRectangle', radius.field),
         ]}
       >
@@ -330,7 +330,7 @@ function Composer({
         testID="thread-send"
         modifiers={[
           frame({ width: metrics.field, height: metrics.field }),
-          background(lit ? theme.prominent : theme.surface),
+          background(lit ? theme.prominent : theme.fill),
           clipShape('circle'),
           contentShape(shapes.circle()),
           accessibilityLabel(stops ? 'Stop' : 'Send'),
@@ -358,7 +358,7 @@ export function Foot({ foot, children }: { foot: number; children: ReactNode }) 
           leading: space[4],
           trailing: space[4],
           top: space[2],
-          bottom: Math.max(space[3.5], foot),
+          bottom: Math.max(space[4], foot),
         }),
         frame({ maxWidth: Infinity }),
       ]}
@@ -377,10 +377,10 @@ export function WriteField({ title, onPress }: { title: string; onPress: () => v
       onPress={onPress}
       testID="thread-write"
       modifiers={[
-        padding({ leading: space[4.5], trailing: space[4.5] }),
+        padding({ leading: space[4], trailing: space[4] }),
         frame({ height: metrics.field }),
         frame({ maxWidth: Infinity }),
-        background(theme.surface),
+        background(theme.fill),
         clipShape('roundedRectangle', radius.field),
         contentShape(shapes.rectangle()),
         accessibilityLabel(`Message ${title}`),

@@ -18,7 +18,7 @@ import type { AgentLine as Line } from '@/live/agents';
 import { motion } from '@/motion';
 import { circle, theme } from '@/theme';
 import { Host } from '@/ui/host';
-import { space, textOf } from '@/ui/tokens';
+import { space, textOf, metrics } from '@/ui/tokens';
 
 const { step, turn, rise } = motion.agent;
 const timing = { duration: step, easing: Easing.out(Easing.cubic) };
@@ -93,8 +93,8 @@ function Mark({ state }: { state: Line['state'] }) {
           <Host matchContents>
             <Icon
               name={state === 'done' ? 'checkmark' : 'exclamationmark'}
-              size={11}
-              color={state === 'done' ? theme.accent : theme.danger}
+              size={metrics.symbol.small}
+              color={state === 'done' ? theme.secondary : theme.danger}
             />
           </Host>
         </Animated.View>
@@ -117,29 +117,29 @@ export function Arc({ size = 12 }: { size?: number }) {
 }
 
 const styles = StyleSheet.create({
-  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[2.5] },
+  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[3] },
   mark: {
     ...circle(22),
-    backgroundColor: theme.accentMuted,
+    backgroundColor: theme.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markFailed: { backgroundColor: theme.dangerMuted },
+  markFailed: { backgroundColor: theme.dangerFill },
   arc: {
     borderWidth: 2,
-    borderColor: theme.accentTrack,
-    borderTopColor: theme.accent,
+    borderColor: theme.progressFill,
+    borderTopColor: theme.progress,
   },
   ticker: { flex: 1, height: 22, overflow: 'hidden' },
   text: {
-    ...textOf('subheadline', 'medium'),
+    ...textOf('detail', 'semibold'),
     position: 'absolute',
     left: 0,
     right: 0,
     color: theme.text,
   },
   waiting: { color: theme.secondary },
-  where: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  done: { color: theme.accent },
+  where: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
+  done: { color: theme.secondary },
   failed: { color: theme.danger },
 });

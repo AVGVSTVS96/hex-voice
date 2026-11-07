@@ -29,9 +29,9 @@ const MARKERS: Record<
   CallTask['state'],
   { symbol: SFSymbol; color: ColorValue; fill: ColorValue }
 > = {
-  running: { symbol: 'circle.dotted', color: theme.accent, fill: theme.accentMuted },
-  done: { symbol: 'checkmark', color: theme.accent, fill: theme.accentMuted },
-  failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerMuted },
+  running: { symbol: 'circle.dotted', color: theme.progress, fill: theme.progressFill },
+  done: { symbol: 'checkmark', color: theme.secondary, fill: theme.fill },
+  failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerFill },
 };
 
 type Props = { summary: CallSummary; call?: CallRecord; failed: boolean; live: boolean };
@@ -82,7 +82,7 @@ function Line({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; chil
   const color = bad ? theme.danger : theme.secondary;
   return (
     <View style={styles.line}>
-      <Glyph name={symbol} size={13} color={color} />
+      <Glyph name={symbol} size={metrics.symbol.small} color={color} />
       <Text style={[styles.lineText, { color }]}>{children}</Text>
     </View>
   );
@@ -93,7 +93,7 @@ function Marker({ task }: { task: CallTask }) {
   return (
     <View style={styles.marker}>
       <View style={[styles.dot, { backgroundColor: look.fill }]}>
-        <Glyph name={look.symbol} size={10} color={look.color} />
+        <Glyph name={look.symbol} size={metrics.symbol.mark} color={look.color} />
       </View>
       <Text style={styles.task}>{task.text}</Text>
       <Text style={styles.at}>{clock(task.at)}</Text>
@@ -107,18 +107,18 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[1.5],
+    gap: space[2],
   },
-  lineText: textOf('footnote'),
+  lineText: textOf('caption'),
   text: { ...textOf('words'), color: theme.text },
-  marker: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2.5] },
+  marker: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
   dot: {
     ...circle(22),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  task: { ...textOf('subheadline', 'medium'), flex: 1, color: theme.text },
-  at: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  note: { ...textOf('callout'), color: theme.secondary, textAlign: 'center' },
-  loading: { marginTop: space[10] },
+  task: { ...textOf('detail', 'semibold'), flex: 1, color: theme.text },
+  at: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
+  note: { ...textOf('body'), color: theme.secondary, textAlign: 'center' },
+  loading: { marginTop: space[12] },
 });

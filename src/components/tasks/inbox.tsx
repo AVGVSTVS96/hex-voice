@@ -54,21 +54,21 @@ function Strip({
       ]}
     >
       <Mark state={mark} />
-      <Text numberOfLines={1} variant="subheadline" weight="medium" modifiers={[layoutPriority(1)]}>
+      <Text numberOfLines={1} variant="detail" weight="semibold" modifiers={[layoutPriority(1)]}>
         {title}
       </Text>
       {detail ? (
-        <Text numberOfLines={1} variant="subheadline" tone="secondary">
+        <Text numberOfLines={1} variant="detail" tone="secondary">
           {detail}
         </Text>
       ) : null}
       <Spacer flexible />
       {action ? (
-        <Text variant="subheadline" weight="semibold" tone="accent">
+        <Text variant="detail" weight="semibold" tone="accent">
           {action}
         </Text>
       ) : (
-        <Icon name="chevron.right" size={11} color={theme.tertiary} />
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
       )}
     </Row>
   );

@@ -30,10 +30,10 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
 
 // Each stage's color, as Muse colors a section's name and the dot beside it.
 const STAGE_TONES: Record<Stage, { word: Tone; dot: Tone }> = {
-  needs: { word: 'accent', dot: 'accentMuted' },
-  working: { word: 'progress', dot: 'progressMuted' },
-  done: { word: 'accent', dot: 'accentMuted' },
-  quiet: { word: 'secondary', dot: 'surfaceSelected' },
+  needs: { word: 'accent', dot: 'accentFill' },
+  working: { word: 'progress', dot: 'progressFill' },
+  done: { word: 'text', dot: 'fillStrong' },
+  quiet: { word: 'secondary', dot: 'fill' },
 };
 
 function Badge({ tone }: { tone: { word: Tone; dot: Tone } }) {
@@ -75,10 +75,7 @@ export function Tabs({
     <Column
       alignment="start"
       spacing={0}
-      modifiers={[
-        frame({ maxWidth: Infinity }),
-        ...(onSearch ? [padding({ top: space[2.5] })] : []),
-      ]}
+      modifiers={[frame({ maxWidth: Infinity }), ...(onSearch ? [padding({ top: space[3] })] : [])]}
     >
       <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
         {back ? (
@@ -121,15 +118,15 @@ export function Tabs({
                   {on ? <Badge tone={tone} /> : null}
                   <Text
                     numberOfLines={1}
-                    variant="head"
-                    weight={on ? 'medium' : 'regular'}
+                    variant="detail"
+                    weight={on ? 'semibold' : 'regular'}
                     tone={on ? tone.word : 'secondary'}
                   >
                     {title}
                   </Text>
                   <Text
-                    variant="head"
-                    weight={on || needs ? 'medium' : 'regular'}
+                    variant="detail"
+                    weight={on || needs ? 'semibold' : 'regular'}
                     tone={needs ? 'accent' : on ? tone.word : 'tertiary'}
                     modifiers={[monospacedDigit()]}
                   >
@@ -176,13 +173,13 @@ export function Search({
   return (
     <Row
       alignment="center"
-      spacing={space[2.5]}
+      spacing={space[3]}
       modifiers={[
         padding({
           leading: space[4],
           trailing: metrics.list.inset - space[1],
-          top: space[4.5],
-          bottom: space[2.5],
+          top: space[4],
+          bottom: space[3],
         }),
         frame({ maxWidth: Infinity }),
       ]}
@@ -191,13 +188,13 @@ export function Search({
         alignment="center"
         spacing={space[2]}
         modifiers={[
-          padding({ leading: space[3.5], trailing: space[3.5] }),
+          padding({ leading: space[4], trailing: space[4] }),
           frame({ height: metrics.bar.button }),
           frame({ maxWidth: Infinity }),
           glass('capsule'),
         ]}
       >
-        <Icon name="magnifyingglass" size={14} color={theme.secondary} />
+        <Icon name="magnifyingglass" size={metrics.symbol.small} color={theme.secondary} />
         <TextInput
           ref={field}
           autoFocus
@@ -209,7 +206,7 @@ export function Search({
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={onChange}
-          textStyle={labelOf('callout')}
+          textStyle={labelOf('body')}
           modifiers={[
             foregroundStyle(theme.text),
             frame({ maxWidth: Infinity, alignment: 'leading' }),

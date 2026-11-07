@@ -12,7 +12,7 @@ export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * h
 
 export function Group({ width, children }: { width: number; children: ReactNode }) {
   return (
-    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.group }}>
+    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.card }}>
       {children}
     </Column>
   );
@@ -52,7 +52,12 @@ export function SettingRow({
       testID={testID}
       modifiers={label ? [accessibilityLabel(label)] : []}
     >
-      <Icon name={icon} size={20} color={theme.text} style={{ width: metrics.rowIcon }} />
+      <Icon
+        name={icon}
+        size={metrics.symbol.bar}
+        color={theme.text}
+        style={{ width: metrics.rowIcon }}
+      />
       <Text>{title}</Text>
       <Spacer flexible />
       {children}

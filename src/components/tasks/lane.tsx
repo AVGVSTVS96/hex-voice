@@ -5,17 +5,20 @@ import { laneOf } from '@/live/lane';
 import { laneX, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 
-const HEIGHT = 12;
-const BAR = 4;
+const HEIGHT = 14;
+const BAR = 6;
+const TICK = 3;
+const HALO = 13;
 // The shortest run is still a bar, never a dot.
 const SHORTEST = 6;
 const FAILED = 5;
 const NOW = 7;
 const DAY = 24 * 60 * 60_000;
 
-// A project's last week at a glance, on a thin line: its runs in mint, full for the last day and
-// fading the further back they go, so the latest work reads first; a dot at its head while it
-// works; red where a run failed. A quiet project is the line alone.
+// A project's last week at a glance, on a thin line marked off by day: its runs in blue, as all of
+// hex's work is, full for the last day and fading the further back they go, so the latest work
+// reads first; a glowing dot at its head while it works; red where a run failed. A quiet project
+// is the line alone.
 export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; now: number }) {
   const { spans, failures } = laneOf(tracks, now, width);
   const live = spans.at(-1)?.to === width;
@@ -26,13 +29,23 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
       modifiers={[frame({ width, height: HEIGHT }), accessibilityHidden(true)]}
     >
       <Capsule modifiers={[frame({ width, height: 1 }), foregroundStyle(theme.edge)]} />
+      {[1, 2, 3, 4, 5, 6].map((days) => (
+        <Circle
+          key={`day:${days}`}
+          modifiers={[
+            frame({ width: TICK, height: TICK }),
+            foregroundStyle(theme.fillStrong),
+            offset({ x: laneX(now - days * DAY, now, width) - TICK / 2 }),
+          ]}
+        />
+      ))}
       <Mask alignment="leading">
         <Rectangle
           modifiers={[
             frame({ width, height: BAR }),
             foregroundStyle({
               type: 'linearGradient',
-              colors: [theme.accentTrack, theme.accent],
+              colors: [theme.progressFill, theme.progress],
               startPoint: { x: 0, y: 0.5 },
               endPoint: { x: day, y: 0.5 },
             }),
@@ -59,13 +72,15 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
         </Mask.Content>
       </Mask>
       {live ? (
-        <Circle
-          modifiers={[
-            frame({ width: NOW, height: NOW }),
-            foregroundStyle(theme.accent),
-            offset({ x: width - NOW }),
-          ]}
-        />
+        <ZStack
+          alignment="center"
+          modifiers={[frame({ width: HALO, height: HALO }), offset({ x: width - HALO })]}
+        >
+          <Circle modifiers={[foregroundStyle(theme.progressFill)]} />
+          <Circle
+            modifiers={[frame({ width: NOW, height: NOW }), foregroundStyle(theme.progress)]}
+          />
+        </ZStack>
       ) : null}
       {failures.map((x) => (
         <Circle

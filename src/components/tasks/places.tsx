@@ -12,7 +12,7 @@ import {
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, type ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, SectionHead } from '@/components/tasks/parts';
@@ -20,7 +20,7 @@ import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
 import { clock, type TaskId, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { brand, metrics, space } from '@/ui/tokens';
 
 const GLYPH: Record<Place, SFSymbol> = {
   telegram: 'paperplane.fill',
@@ -29,26 +29,19 @@ const GLYPH: Record<Place, SFSymbol> = {
   discord: 'bubble.left.and.bubble.right.fill',
   server: 'terminal.fill',
 };
-const PLACE_COLOR: Record<Place, string> = {
-  telegram: '#2AABEE',
-  t3: '#3A3A3C',
-  buzz: '#E9A23B',
-  discord: '#5865F2',
-  server: '#636366',
-};
 // Too dark to show as a ring and a symbol on the sheet, so a ghost of theirs is drawn quieter.
 const DARK: Place[] = ['t3', 'server'];
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
-function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
+function look(tile: Tile): { color: ColorValue; glyph: SFSymbol; ink: ColorValue } {
   switch (tile.kind) {
     case 'app':
-      return { color: PLACE_COLOR[tile.place], glyph: GLYPH[tile.place], ink: '#FFFFFF' };
+      return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
     case 'call':
-      return { color: '#1B3534', glyph: 'waveform', ink: '#C4F3E5' };
+      return { color: theme.accentFill, glyph: 'waveform', ink: theme.accent };
     case 'link':
-      return { color: '#8E8E93', glyph: 'arrow.up.right', ink: '#FFFFFF' };
+      return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
   }
 }
 
@@ -64,7 +57,7 @@ export function TileIcon({ tile, size }: { tile: Tile; size: number }) {
 }
 
 export function PlaceTile({ place, size = 28 }: { place: Place; size?: number }) {
-  return <Solid color={PLACE_COLOR[place]} glyph={GLYPH[place]} ink="#FFFFFF" size={size} />;
+  return <Solid color={brand[place]} glyph={GLYPH[place]} ink={brand.ink} size={size} />;
 }
 
 function Solid({
@@ -73,9 +66,9 @@ function Solid({
   ink,
   size,
 }: {
-  color: string;
+  color: ColorValue;
   glyph: SFSymbol;
-  ink: string;
+  ink: ColorValue;
   size: number;
 }) {
   return (
@@ -94,7 +87,7 @@ function Solid({
 }
 
 function Ghost({ place, size }: { place: Place; size: number }) {
-  const ink = DARK.includes(place) ? theme.secondary : PLACE_COLOR[place];
+  const ink = DARK.includes(place) ? theme.secondary : brand[place];
   return (
     <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
       <Spacer
@@ -176,20 +169,20 @@ export function Places({
               <PlaceTile place={place} />
               <Column
                 alignment="start"
-                spacing={space[0.25]}
+                spacing={space[0.5]}
                 modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
               >
-                <Text numberOfLines={1} variant="subheadline" weight="medium">
+                <Text numberOfLines={1} variant="detail" weight="semibold">
                   {thread.place}
                 </Text>
-                <Text numberOfLines={1} variant="footnote" tone={gone ? 'danger' : 'secondary'}>
+                <Text numberOfLines={1} variant="caption" tone={gone ? 'danger' : 'secondary'}>
                   {note}
                 </Text>
               </Column>
               {opens ? (
                 <Icon
                   name={thread.link ? 'arrow.up.right' : 'chevron.right'}
-                  size={12}
+                  size={metrics.symbol.small}
                   color={theme.tertiary}
                 />
               ) : null}
@@ -201,10 +194,10 @@ export function Places({
       {rest > 0 ? (
         <Text
           onPress={() => setEvery(true)}
-          variant="footnote"
+          variant="caption"
           tone="accent"
           modifiers={[
-            padding({ leading: metrics.list.inset + space[10], top: space[2.5], bottom: space[1] }),
+            padding({ leading: metrics.list.inset + space[12], top: space[3], bottom: space[1] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         >

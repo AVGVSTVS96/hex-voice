@@ -146,11 +146,11 @@ const styles = StyleSheet.create({
   },
   centered: { justifyContent: 'center' },
   regular: { ...textOf('words'), color: theme.text },
-  large: { ...textOf('wordsLarge'), color: theme.text },
+  large: { ...textOf('words'), color: theme.text },
   warm: { color: theme.secondary },
   fresh: { color: theme.tertiary },
   empty: {
-    ...textOf('callout'),
+    ...textOf('body'),
     color: theme.secondary,
     textAlign: 'center',
     paddingBottom: space[3],
