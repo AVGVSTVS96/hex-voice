@@ -107426,10 +107426,10 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0e
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..72da3fd25c2dd813958ae1d98c1b95f0299f40e9
+index 0000000000000000000000000000000000000000..63b0d415ddf632c94c1e069f0057173227beb3c3
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,930 @@
+@@ -0,0 +1,932 @@
 +import * as Haptics from 'expo-haptics';
 +import { useEffect, useRef, useState } from 'react';
 +import { Pressable, StyleSheet, View } from 'react-native';
@@ -107476,7 +107476,7 @@ index 0000000000000000000000000000000000000000..72da3fd25c2dd813958ae1d98c1b95f0
 +import { useEscape } from '@/hooks/use-escape';
 +import { useNow } from '@/hooks/use-now';
 +import { answerAsk, raiseAsks } from '@/hooks/use-asks';
-+import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
++import { raiseTask, useTaskCounts, type Counts } from '@/hooks/use-tasks';
 +import { usePersonaPreference } from '@/hooks/use-persona-preference';
 +import { Viewport, type Size } from '@/hooks/use-viewport';
 +import { useVoicePreference } from '@/hooks/use-voice-preference';
@@ -107554,7 +107554,8 @@ index 0000000000000000000000000000000000000000..72da3fd25c2dd813958ae1d98c1b95f0
 +  const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
 +  const preferences = useCallPreferences();
 +  const [scene, setScene] = useState<Screen>(() => startScreen(opening));
-+  const counts = useTaskCounts();
++  const [listed, setListed] = useState<Counts>();
++  const counts = useTaskCounts(listed);
 +  const { insets, size: screen } = room;
 +  const { width, height } = screen;
 +  const layout = screenLayout(room);
@@ -108059,6 +108060,7 @@ index 0000000000000000000000000000000000000000..72da3fd25c2dd813958ae1d98c1b95f0
 +    onTalk: talkAbout,
 +    onGoThrough: goThrough,
 +    onOpenCall: openCallFromTasks,
++    onCounts: setListed,
 +  };
 +
 +  return (
@@ -111377,15 +111379,15 @@ index 148c485d3c9fa713a03434a8c9994adf64f757b2..ac2fa14ac281101926738db1a6bc953f
 +}
 diff --git a/src/components/screen-toolbar.tsx b/src/components/screen-toolbar.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..cb6bc99ddfd7aa4f5d109717228a6b20b68b259d
+index 0000000000000000000000000000000000000000..1fd609e9f0bb3e9a5c9d21151091e473249d8bf0
 --- /dev/null
 +++ b/src/components/screen-toolbar.tsx
-@@ -0,0 +1,86 @@
-+import { HStack, VStack } from '@expo/ui/swift-ui';
+@@ -0,0 +1,91 @@
++import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
 +import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 +import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 +
-+import { TasksButton } from '@/components/tasks-button';
++import { NeedsDot, TasksButton } from '@/components/tasks-button';
 +import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
 +import { Host } from '@/ui/host';
 +import { metrics, type ToolbarGaps } from '@/ui/tokens';
@@ -111442,22 +111444,27 @@ index 0000000000000000000000000000000000000000..cb6bc99ddfd7aa4f5d109717228a6b20
 +            : { width: metrics.tool, height: long }
 +        }
 +      >
-+        <Group spacing={gap} modifiers={[glass('capsule')]}>
-+          <TasksButton
-+            needs={tasks.needs}
-+            working={tasks.working}
-+            selected={tasks.open}
-+            onPress={onTasks}
-+          />
-+          <GlassButton
-+            bare
-+            icon="settings"
-+            label="Voice and appearance settings"
-+            testID="voice-settings-button"
-+            selected={settingsOpen}
-+            onPress={onSettings}
-+          />
-+        </Group>
++        <Overlay alignment="topLeading">
++          <Group spacing={gap} modifiers={[glass('capsule')]}>
++            <TasksButton
++              needs={tasks.needs}
++              working={tasks.working}
++              selected={tasks.open}
++              onPress={onTasks}
++            />
++            <GlassButton
++              bare
++              icon="settings"
++              label="Voice and appearance settings"
++              testID="voice-settings-button"
++              selected={settingsOpen}
++              onPress={onSettings}
++            />
++          </Group>
++          <Overlay.Content>
++            <NeedsDot needs={tasks.needs} />
++          </Overlay.Content>
++        </Overlay>
 +      </Host>
 +    </Animated.View>
 +  );
@@ -111970,10 +111977,10 @@ index 0000000000000000000000000000000000000000..531da49c14fa5f2fed4ffe54aba45f0c
 +}
 diff --git a/src/components/tasks-button.tsx b/src/components/tasks-button.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..af31d851dc2cbe2bf3a57fa71027c691c0b40675
+index 0000000000000000000000000000000000000000..603d8f4e2c08ef91e60a21ad3eba243763d82d76
 --- /dev/null
 +++ b/src/components/tasks-button.tsx
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,93 @@
 +import { RNHostView } from '@expo/ui';
 +import { Circle, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -111999,7 +112006,7 @@ index 0000000000000000000000000000000000000000..af31d851dc2cbe2bf3a57fa71027c691
 +const LINE = 2;
 +
 +// The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
-+// dot says something needs you. Nothing else on it moves.
++// dot (`NeedsDot`) says something needs you. Nothing else on it moves.
 +export function TasksButton({
 +  needs,
 +  working,
@@ -112034,18 +112041,25 @@ index 0000000000000000000000000000000000000000..af31d851dc2cbe2bf3a57fa71027c691
 +        selected={selected}
 +        onPress={onPress}
 +      />
-+      <Circle
-+        modifiers={[
-+          foregroundStyle(theme.accent),
-+          frame({ width: DOT, height: DOT }),
-+          strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
-+          offset({ x: (metrics.tool - DOT) / 2, y: -(metrics.tool - DOT) / 2 }),
-+          scaleEffect(needs > 0 ? 1 : 0.01),
-+          opacity(needs > 0 ? 1 : 0),
-+          animation(Animation.bouncy(), needs > 0),
-+        ]}
-+      />
 +    </ZStack>
++  );
++}
++
++// The mint dot on the Tasks button's top trailing corner, over the glass the button sits on: on
++// it, the glass clipped the dot to its capsule each time a press lit it.
++export function NeedsDot({ needs }: { needs: number }) {
++  return (
++    <Circle
++      modifiers={[
++        foregroundStyle(theme.accent),
++        frame({ width: DOT, height: DOT }),
++        strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
++        offset({ x: metrics.tool - DOT }),
++        scaleEffect(needs > 0 ? 1 : 0.01),
++        opacity(needs > 0 ? 1 : 0),
++        animation(Animation.bouncy(), needs > 0),
++      ]}
++    />
 +  );
 +}
 +
@@ -113752,10 +113766,10 @@ index 0000000000000000000000000000000000000000..4d526f7f242920aa4c278af9f89ae0db
 +}
 diff --git a/src/components/tasks/list.tsx b/src/components/tasks/list.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960bfa95f29e
+index 0000000000000000000000000000000000000000..3aca3b8bd90626fde36891c8728be8b265426db9
 --- /dev/null
 +++ b/src/components/tasks/list.tsx
-@@ -0,0 +1,346 @@
+@@ -0,0 +1,356 @@
 +import { Column, Icon, Row, Spacer } from '@expo/ui';
 +import { List } from '@expo/ui/swift-ui';
 +import {
@@ -113783,6 +113797,7 @@ index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960b
 +import type { TasksAt } from '@/components/tasks/tasks-view';
 +import type { useAsks } from '@/hooks/use-asks';
 +import type { Ask, AskOption } from '@/live/asks';
++import type { Counts } from '@/hooks/use-tasks';
 +import {
 +  inboxEntries,
 +  picksOf,
@@ -113827,6 +113842,7 @@ index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960b
 +  onUndo,
 +  onOpenTile,
 +  onGoThrough,
++  onCounts,
 +}: {
 +  open: boolean;
 +  at: TasksAt;
@@ -113843,6 +113859,7 @@ index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960b
 +  onUndo: (ask: Ask) => void;
 +  onOpenTile: (tile: Tile) => void;
 +  onGoThrough: () => void;
++  onCounts: (counts: Counts | undefined) => void;
 +}) {
 +  const { back } = useChrome();
 +  const [stage, setStage] = useState<Stage>('needs');
@@ -113853,6 +113870,14 @@ index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960b
 +  );
 +  const counts = stageCounts(entries, yours.answered);
 +  const loaded = !!(yours.list && tasks);
++  const behind = loaded && (offline || yours.offline);
++  const { needs, working } = counts;
++  const counted = open && loaded && current && yours.current;
++  useEffect(() => {
++    if (!counted) return;
++    onCounts({ needs, working });
++    return () => onCounts(undefined);
++  }, [counted, needs, working, onCounts]);
 +  useEffect(() => {
 +    if (open) setQuery(null);
 +  }, [open, at]);
@@ -113929,7 +113954,6 @@ index 0000000000000000000000000000000000000000..43bc91e5c722928f6ee372c234a5960b
 +    },
 +  };
 +  const unreachable = (offline || yours.offline) && !loaded;
-+  const behind = loaded && !(current && yours.current);
 +  // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
 +  // one gives back, its title and search a bar of their own above the stages.
 +  const compact = spot.width >= TABS_WITH_BAR;
@@ -116159,10 +116183,10 @@ index 0000000000000000000000000000000000000000..d21c077a7f3ed93ea69e48e744994d49
 +}
 diff --git a/src/components/tasks/tasks-view.tsx b/src/components/tasks/tasks-view.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d631caf056
+index 0000000000000000000000000000000000000000..09b4f231e0fbd9db070c3102f02344eb959af0db
 --- /dev/null
 +++ b/src/components/tasks/tasks-view.tsx
-@@ -0,0 +1,475 @@
+@@ -0,0 +1,480 @@
 +import { Column, Row, Spacer, Text } from '@expo/ui';
 +import { ProgressView, ZStack } from '@expo/ui/swift-ui';
 +import {
@@ -116201,7 +116225,7 @@ index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d6
 +import { StepsLoading, Trace } from '@/components/tasks/trace';
 +import { useAsks, useCheck } from '@/hooks/use-asks';
 +import { useChat } from '@/hooks/use-chat';
-+import { useTask, useTasks } from '@/hooks/use-tasks';
++import { useTask, useTasks, type Counts } from '@/hooks/use-tasks';
 +import type { Ask, AskOption } from '@/live/asks';
 +import {
 +  inboxEntries,
@@ -116228,6 +116252,8 @@ index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d6
 +  onTalk: (task: TaskRow) => void;
 +  onGoThrough: () => void;
 +  onOpenCall: (id: string) => void;
++  // What the list's tabs count, while it shows them up to date.
++  onCounts: (counts: Counts | undefined) => void;
 +};
 +
 +export function TasksView({
@@ -116245,6 +116271,7 @@ index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d6
 +  onTalk,
 +  onGoThrough,
 +  onOpenCall,
++  onCounts,
 +  at,
 +  pages,
 +  room,
@@ -116280,7 +116307,8 @@ index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d6
 +        .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
 +    : [];
 +  const said = useChat(
-+    open && opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
++    opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
++    open,
 +  );
 +
 +  const answer = (ask: Ask, option: AskOption) => {
@@ -116401,6 +116429,7 @@ index 0000000000000000000000000000000000000000..42a298f7ec5294fe7b4f39d4bd90c3d6
 +      onUndo={undo}
 +      onOpenTile={openTile}
 +      onGoThrough={onGoThrough}
++      onCounts={onCounts}
 +    />
 +  );
 +  // The topic and its conversation side by side are one view: the conversation's page shows only
@@ -119340,10 +119369,10 @@ index 0000000000000000000000000000000000000000..62a4faf38a0627b9ef5b9ac58750ed57
 +}
 diff --git a/src/hooks/use-asks.ts b/src/hooks/use-asks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..1fa2bda32264ad7900c51d17c0adc47ef1ad2403
+index 0000000000000000000000000000000000000000..725939b9aae9e835b74bb7568f93ce30daf2db3e
 --- /dev/null
 +++ b/src/hooks/use-asks.ts
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,139 @@
 +import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 +
 +import { hex } from '@/hex';
@@ -119411,11 +119440,18 @@ index 0000000000000000000000000000000000000000..1fa2bda32264ad7900c51d17c0adc47e
 +    keep(list);
 +    dispatch({ type: 'list', list });
 +  });
-+  useEffect(() => {
-+    if (open) return;
-+    dispatch({ type: 'close', keep: Object.keys(missed) });
-+    tries.clear();
-+  }, [open]);
++  // Closing tidies what was folded, and the reasons it showed, only as Tasks opens again, before it
++  // shows, so nothing on it changes while it fades out; a reason that came while it was closed stays.
++  const [wasOpen, setWasOpen] = useState(open);
++  const [shownFailed, setShownFailed] = useState<string[]>([]);
++  if (open !== wasOpen) {
++    setWasOpen(open);
++    if (!open) setShownFailed(Object.keys(tries.failed));
++    else {
++      dispatch({ type: 'close', keep: Object.keys(missed) });
++      tries.clear(shownFailed);
++    }
++  }
 +  const list = useMemo(
 +    () => state.list && failedOn(state.list, tries.failed, missed),
 +    [state.list, tries.failed, missed],
@@ -119796,7 +119832,7 @@ index 0000000000000000000000000000000000000000..6638d2baebe6cc7151e7877629917d95
 +}
 diff --git a/src/hooks/use-chat.ts b/src/hooks/use-chat.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..01114d83e68fdd0b1367b97c21182a038ba23283
+index 0000000000000000000000000000000000000000..7ecf160bfd2ddcddcefdd66c336a1f0d0edf4990
 --- /dev/null
 +++ b/src/hooks/use-chat.ts
 @@ -0,0 +1,45 @@
@@ -119809,15 +119845,15 @@ index 0000000000000000000000000000000000000000..01114d83e68fdd0b1367b97c21182a03
 +import { arrived, newKey, type Sending } from '@/live/chat';
 +import type { Chat, TaskId } from '@/live/tasks';
 +
-+// One thread's chat, live while it's open, with your words showing the moment you send them. The
-+// app names each message it sends, and hex's chat says when it has one: waiting to be taken, or in
-+// the chat itself.
-+export function useChat(id: TaskId | null) {
++// One thread's chat, with your words showing the moment you send them, watched while `live`: once
++// it isn't, the chat stays as it last was. The app names each message it sends, and hex's chat says
++// when it has one: waiting to be taken, or in the chat itself.
++export function useChat(id: TaskId | null, live: boolean) {
 +  const [seen, setSeen] = useState<{ id: TaskId; chat: Chat }>();
 +  const [sending, setSending] = useState<Sending[]>([]);
 +  const tries = useFailures();
 +  useWatch(
-+    id,
++    live ? id : null,
 +    (after, signal, id) => hex.tasks.chat(id, after, signal),
 +    (chat, id) => setSeen({ id, chat }),
 +  );
@@ -119911,10 +119947,10 @@ index 0000000000000000000000000000000000000000..7dbfccca3e3b0312e99a4c0a432d6914
 +}
 diff --git a/src/hooks/use-failures.ts b/src/hooks/use-failures.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..bca1260713a2b430904e2e1d0052bc06a3fcdda6
+index 0000000000000000000000000000000000000000..79d1ea2be346456ad408b750da12a6af5cdc7d8d
 --- /dev/null
 +++ b/src/hooks/use-failures.ts
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,36 @@
 +import { useState } from 'react';
 +import { Linking } from 'react-native';
 +
@@ -119938,7 +119974,11 @@ index 0000000000000000000000000000000000000000..bca1260713a2b430904e2e1d0052bc06
 +      },
 +    );
 +  };
-+  return { failed, attempt, clear: () => setFailed({}) };
++  const clear = (keys: string[]) =>
++    setFailed((now) =>
++      Object.fromEntries(Object.entries(now).filter(([key]) => !keys.includes(key))),
++    );
++  return { failed, attempt, clear };
 +}
 +
 +// iOS turns a link down without a word when no app here takes it.
@@ -120057,10 +120097,10 @@ index 1a0b36e0593546770ec9c52bab29bf75192805d3..f84dcd98a5704e2c70bc0429e44287e0
      [key, isValid],
 diff --git a/src/hooks/use-tasks.ts b/src/hooks/use-tasks.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c41ad37aeb39be7e035814c32d75b6ef53425910
+index 0000000000000000000000000000000000000000..8c626c2b341f983c79437b219ff5956d0d452ff9
 --- /dev/null
 +++ b/src/hooks/use-tasks.ts
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,48 @@
 +import { useState } from 'react';
 +import * as z from 'zod/mini';
 +
@@ -120069,11 +120109,16 @@ index 0000000000000000000000000000000000000000..c41ad37aeb39be7e035814c32d75b6ef
 +import { useAnswer, useWatch } from '@/hooks/use-watch';
 +import { TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
 +
++export type Counts = { needs: number; working: number };
++
 +// What the Tasks button shows: how many things are yours and how many threads are working. hex
-+// answers only when one of the counts moves, so this costs nothing while agents take steps.
-+export function useTaskCounts() {
++// answers only when one of the counts moves, so this costs nothing while agents take steps. While
++// Tasks shows its list up to date, the button counts what its tabs count (`listed`), so the two
++// never disagree on screen.
++export function useTaskCounts(listed: Counts | undefined): Counts {
 +  const [counts, keep] = useKept('task-counts', TaskCounts);
 +  useWatch('counts', hex.tasks.counts, keep);
++  if (listed) return listed;
 +  return counts
 +    ? { needs: counts.yours ?? counts.needs, working: counts.working }
 +    : { needs: 0, working: 0 };
@@ -120229,10 +120274,10 @@ index 0000000000000000000000000000000000000000..13b33fe41c77e0d23b55b36d78d9ee19
 +}
 diff --git a/src/hooks/use-watch.ts b/src/hooks/use-watch.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c6172b8b9d8b4f061e58870abf7d5649878fd0ba
+index 0000000000000000000000000000000000000000..d5f3b72bbdf74aec4cb0f33f8203724fb3aa9004
 --- /dev/null
 +++ b/src/hooks/use-watch.ts
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,101 @@
 +import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 +import { AppState } from 'react-native';
 +
@@ -120255,6 +120300,13 @@ index 0000000000000000000000000000000000000000..c6172b8b9d8b4f061e58870abf7d5649
 +) {
 +  const active = useActive();
 +  const [watching, setWatching] = useState<Watching>('waiting');
++  const [watched, setWatched] = useState(key);
++  // What it took stops being current only as it watches anew, not as it stops, so a view fading
++  // out keeps showing it as it was.
++  if (key !== watched) {
++    setWatched(key);
++    if (key !== null) setWatching('waiting');
++  }
 +  const version = useRef<number>(undefined);
 +  const asking = useEffectEvent(ask);
 +  const taking = useEffectEvent(take);
