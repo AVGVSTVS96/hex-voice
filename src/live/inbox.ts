@@ -31,9 +31,8 @@ export type Entry = Base &
     | { kind: 'fresh'; fresh: Fresh }
   );
 
-// A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
-// last week for its lane.
-export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
+// A topic in a stage: what it has there.
+export type Topic = { name: string; entries: Entry[] };
 
 export const STAGES: { key: Stage; title: string }[] = [
   { key: 'needs', title: 'Needs you' },
@@ -177,25 +176,10 @@ export function inboxEntries(
     .map(({ entry }) => entry);
 }
 
-// The shown entries cut into their topics, in the stream's order. Each topic's marks and lanes
-// come from all it has going, so a topic reads the same on every tab. Its marks put what needs
-// you first; what just finished is news of a thread, not one, so it has none.
-export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
+// The shown entries cut into their topics, in the stream's order.
+export function topicsOf(shown: Entry[]): Topic[] {
   const names = [...new Set(shown.map((entry) => entry.topic))];
-  return names.map((name) => {
-    const threads = new Map<string, Stage>();
-    for (const entry of all) {
-      const thread = entry.topic === name ? taskOf(entry) : undefined;
-      if (!thread) continue;
-      const before = threads.get(thread);
-      if (!before || RANK[entry.stage] < RANK[before]) threads.set(thread, entry.stage);
-    }
-    return {
-      name,
-      entries: shown.filter((entry) => entry.topic === name),
-      marks: [...threads.values()].sort((a, b) => RANK[a] - RANK[b]),
-    };
-  });
+  return names.map((name) => ({ name, entries: shown.filter((entry) => entry.topic === name) }));
 }
 
 // What each tab counts: asks you've answered here are already off your plate.

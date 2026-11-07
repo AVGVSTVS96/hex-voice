@@ -197,10 +197,7 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
     ],
     stuck: [stuck('t3-limit')],
   });
-  const needs = topicsOf(
-    entries.filter((entry) => entry.stage === 'needs'),
-    entries,
-  );
+  const needs = topicsOf(entries.filter((entry) => entry.stage === 'needs'));
   assert.deepEqual(
     needs.map((topic) => [topic.name, ids(topic.entries)]),
     [
@@ -209,10 +206,7 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
       ['Stuck', ['t3-limit']],
     ],
   );
-  const working = topicsOf(
-    entries.filter((entry) => entry.stage === 'working'),
-    entries,
-  );
+  const working = topicsOf(entries.filter((entry) => entry.stage === 'working'));
   assert.deepEqual(
     working.map((topic) => topic.name),
     ['voiceapp', 'autofork'],
@@ -228,42 +222,12 @@ test('an ask sits in the topic of the thread that asked it, and in its own once 
     tasks: [row('General', 'needs', at(9), { id: 'telegram:-100' })],
   });
   assert.deepEqual(
-    topicsOf(entries, entries).map((topic) => [topic.name, ids(topic.entries)]),
+    topicsOf(entries).map((topic) => [topic.name, ids(topic.entries)]),
     [
       ['General', ['g1']],
       ['Data kit', ['o1']],
     ],
   );
-});
-
-test('a topic marks each of its threads once, by its most pressing stage, whichever tab it is in', () => {
-  const tasks = [
-    row('autofork', 'working', at(9), { id: 't3:autofork', app: 't3' }),
-    row('autofork', 'idle', at(8), { id: 'buzz:autofork', app: 'buzz' }),
-    row('pigeon', 'working'),
-  ];
-  const entries = stream({
-    asks: [
-      ask('a1', 'pick', { task: 'telegram:autofork' }),
-      ask('a2', 'yesno', { task: 'telegram:autofork' }),
-      ask('p1', 'pick', { task: 'telegram:pigeon', topic: 'pigeon' }),
-    ],
-    tasks,
-    fresh: [fresh('f', 'autofork')],
-  });
-  const marks = (stage: Entry['stage']) =>
-    topicsOf(
-      entries.filter((entry) => entry.stage === stage),
-      entries,
-    ).map((topic) => [topic.name, topic.marks]);
-  assert.deepEqual(marks('needs'), [
-    ['autofork', ['needs', 'working', 'quiet']],
-    ['pigeon', ['needs']],
-  ]);
-  assert.deepEqual(marks('working'), [
-    ['autofork', ['needs', 'working', 'quiet']],
-    ['pigeon', ['needs']],
-  ]);
 });
 
 test('each tab counts its stage, leaving out the asks you answered here', () => {
@@ -472,9 +436,9 @@ test('an entry’s headline is what it asks or says', () => {
 test('a project opens on its leading thread, or on a page of its own when it has none', () => {
   const [entry] = stream({ tasks: [row('voiceapp', 'needs', at(3))] });
   assert.ok(entry?.kind === 'task');
-  const topic = { name: 'voiceapp', entries: [entry], marks: [] };
+  const topic = { name: 'voiceapp', entries: [entry] };
   assert.equal(pageOf(topic), entry.task.id);
-  const stuck = { name: 'Stuck', entries: [], marks: [] };
+  const stuck = { name: 'Stuck', entries: [] };
   assert.equal(topicIn(pageOf(stuck)), 'Stuck');
   assert.equal(topicIn(entry.task.id), undefined);
 });
