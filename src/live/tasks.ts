@@ -112,7 +112,25 @@ export const TaskOrPage = z.union([
 ]);
 export type TaskOrPage = z.output<typeof TaskOrPage>;
 export type TaskPage = Extract<TaskOrPage, { kind: 'page' }>;
-export const TaskList = z.object({ version: z.number(), tasks: z.array(TaskRow) });
+// A task hex closed in the last day: what it was, the proof it was closed with, and the topic it
+// was done in, named as that project's threads are, with `run` its thread while that's on the board.
+// `app` and `link` are where its thread lives.
+export const Finished = z.object({
+  id: z.string(),
+  title: z.string(),
+  topic: z.string(),
+  app: z.string(),
+  proof: z.string(),
+  at: z.string(),
+  run: z.optional(TaskId),
+  link: z.optional(z.string()),
+});
+export type Finished = z.infer<typeof Finished>;
+export const TaskList = z.object({
+  version: z.number(),
+  tasks: z.array(TaskRow),
+  finished: z.catch(z.array(Finished), []),
+});
 export type TaskList = z.infer<typeof TaskList>;
 // A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
 // of `total`), what you sent that its session hasn't taken in yet, and whether words typed here
@@ -144,6 +162,12 @@ export function taskTime(task: TaskRow, now = new Date()) {
 export function clock(at: Date, now = new Date()) {
   if (at.getTime() >= startOfDay(now)) return timeOfDay(at.toISOString());
   return at.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// When something in Done was done, at most a day ago: its time, after "Yesterday" once the day
+// has turned.
+export function doneAt(at: string, now = new Date()) {
+  return Date.parse(at) >= startOfDay(now) ? timeOfDay(at) : `Yesterday ${timeOfDay(at)}`;
 }
 
 function duration(ms: number) {

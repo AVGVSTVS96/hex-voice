@@ -24,13 +24,14 @@ import {
   fitsOneLine,
   headlineOf,
   opens,
+  proofWords,
   type Entry,
   type Stage,
   type Tile,
   type Topic,
   type PageId,
 } from '@/live/inbox';
-import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
+import { STATE_WORDS, atWork, clock, doneAt, taskTime, type Turn } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
@@ -163,6 +164,25 @@ export function EntryRow({
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
             {fresh.failed ? <Failure text={fresh.failed} /> : null}
+          </Shell>
+        </Swiped>
+      );
+    }
+    case 'finished': {
+      const { finished } = entry;
+      const proof = proofWords(finished.proof);
+      const page = entry.tiles.find((tile) => tile.kind === 'link');
+      return (
+        <Swiped {...swiped}>
+          <Shell
+            mark="done"
+            line={finished.title}
+            time={doneAt(entry.at)}
+            tiles={entry.tiles}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
+            onPress={page && (() => actions.onOpenTile(page))}
+          >
+            {proof ? <Why text={proof} /> : null}
           </Shell>
         </Swiped>
       );
@@ -326,7 +346,7 @@ function Meta({ text }: { text: string }) {
   );
 }
 
-// Why something is stuck, under what it is.
+// Why something is stuck, or what showed a task done, under what it is.
 function Why({ text }: { text: string }) {
   return (
     <Text
@@ -490,6 +510,61 @@ export function ProjectRow({
           {headline}
         </Text>
       )}
+    </Column>
+  );
+}
+
+// Something done in the last day, as its own row in Done whatever its project is doing elsewhere:
+// what was done, then the project, or the app when the project is only its name, and when. Opens
+// the project's page.
+export function DoneRow({
+  entry,
+  width,
+  selected,
+  onOpen,
+}: {
+  entry: Entry;
+  width: number;
+  selected: boolean;
+  onOpen: () => void;
+}) {
+  const line = headlineOf(entry);
+  const when = doneAt(entry.at);
+  const where = entry.topic === line ? PLACES[entry.place] : entry.topic;
+  return (
+    <Column
+      alignment="start"
+      spacing={space[0.75]}
+      onPress={onOpen}
+      testID="done-row"
+      modifiers={[
+        padding({
+          leading: metrics.list.inset,
+          trailing: TRAILING,
+          top: metrics.list.row.top,
+          bottom: metrics.list.row.bottom,
+        }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        contentShape(shapes.rectangle()),
+        ...listRow(width, { selected }),
+        accessibilityLabel(`${line}. Done in ${where}, ${when}. Opens it`),
+      ]}
+    >
+      <Text
+        numberOfLines={2}
+        variant="item"
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        {line}
+      </Text>
+      <Text
+        numberOfLines={1}
+        variant="itemDetail"
+        tone="secondary"
+        modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        {`${where} · ${when}`}
+      </Text>
     </Column>
   );
 }

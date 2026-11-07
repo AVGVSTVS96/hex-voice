@@ -19,7 +19,7 @@ export type Stack = {
 export type Move =
   | { to: 'start'; at: TasksAt }
   | { to: 'topic'; id: PageId; row?: string }
-  | { to: 'beside'; id: PageId | null }
+  | { to: 'beside'; id: PageId | null; row?: string }
   | { to: 'thread'; write?: boolean }
   | { to: 'composerFocused' }
   | { to: 'steps'; id: TaskId }
@@ -51,7 +51,7 @@ export function move(stack: Stack, step: Move): Stack {
     case 'topic':
       return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
     case 'beside':
-      return { ...stack, task: step.id };
+      return { ...stack, task: step.id, row: step.row ?? null };
     case 'thread':
       return { ...stack, path: ['topic', 'thread'], focusComposer: !!step.write };
     case 'composerFocused':

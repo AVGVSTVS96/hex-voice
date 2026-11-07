@@ -10,6 +10,7 @@ import {
   agentsInOrder,
   agentWords,
   atWork,
+  doneAt,
   laneX,
   lastRun,
   stepMark,
@@ -220,4 +221,14 @@ test("a thread that's done shows its last run while it has steps or agents", () 
   assert.equal(lastRun(task({ agents })), true);
   assert.equal(lastRun(task({})), false);
   assert.equal(lastRun(task({ state: 'working', agents })), false);
+});
+
+test('what was done keeps its time past midnight, as yesterday’s', () => {
+  const time = (hours: number, minutes: number, day = 13) =>
+    new Date(2026, 9, day, hours, minutes).toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  assert.equal(doneAt(at(9, 30), now), time(9, 30));
+  assert.equal(doneAt(at(23, 31, 12), now), `Yesterday ${time(23, 31, 12)}`);
 });

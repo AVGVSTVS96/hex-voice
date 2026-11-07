@@ -19,11 +19,19 @@ import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import type { Ask, AskOption } from '@/live/asks';
-import { placeOf, type HexPick, type Place } from '@/live/inbox';
+import {
+  placeOf,
+  proofWords,
+  type FinishedEntry,
+  type HexPick,
+  type Place,
+  type Tile,
+} from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
   clock,
+  doneAt,
   lastRun,
   taskTime,
   type Task,
@@ -41,6 +49,8 @@ export function Detail({
   asks,
   answered,
   threads,
+  finished,
+  row,
   missing,
   width,
   onSteps,
@@ -52,6 +62,7 @@ export function Detail({
   onTalk,
   onOpen,
   onOpenTask,
+  onOpenTile,
   messages,
   beside = false,
   answering = false,
@@ -62,6 +73,10 @@ export function Detail({
   asks: Ask[];
   answered: Record<string, string | null>;
   threads: TaskRow[];
+  // What hex finished in this project in the last day, newest first.
+  finished: FinishedEntry[];
+  // The row the page was opened from: one of what was finished brings them to the top.
+  row?: string | null;
   missing: Set<Place>;
   width: number;
   onSteps: (id: TaskId) => void;
@@ -73,6 +88,7 @@ export function Detail({
   onTalk: () => void;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: TaskId) => void;
+  onOpenTile: (tile: Tile) => void;
   messages?: ReactNode;
   beside?: boolean;
   // Writing your own answer to an ask, so its field is the one on the page.
@@ -88,6 +104,15 @@ export function Detail({
   );
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const door = [task, ...threads].find((one) => one.link);
+  const done = finished.length ? (
+    <Column key="finished" alignment="start" spacing={0}>
+      <SectionHead title="Finished" count={finished.length} />
+      {finished.map((entry) => (
+        <Finished key={entry.id} entry={entry} onOpen={onOpenTile} />
+      ))}
+    </Column>
+  ) : null;
+  const doneFirst = finished.some((entry) => entry.id === row);
   return (
     <Column
       alignment="center"
@@ -110,6 +135,7 @@ export function Detail({
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
             <Sections>
+              {doneFirst ? done : null}
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
                   <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
@@ -159,6 +185,7 @@ export function Detail({
                   <Run thread={full} onPress={() => onSteps(full.id)} />
                 </Column>
               ) : null}
+              {doneFirst ? null : done}
               {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
               {messages}
               {hasPlaces(task, threads) ? (
@@ -272,6 +299,35 @@ export function Asked({
         </ScrollView>
       </Faded>
     </Column>
+  );
+}
+
+// A task finished here, with what showed it done; its proof's link opens from it.
+function Finished({
+  entry: { finished, tiles },
+  onOpen,
+}: {
+  entry: FinishedEntry;
+  onOpen: (tile: Tile) => void;
+}) {
+  const proof = proofWords(finished.proof);
+  const page = tiles.find((tile) => tile.kind === 'link');
+  return (
+    <TraceLine
+      lead={<Mark state="done" />}
+      text={finished.title}
+      lines={2}
+      time={doneAt(finished.at)}
+      after={page ? <Icon name="arrow.up.right" size={11} color={theme.tertiary} /> : undefined}
+      onPress={page && (() => onOpen(page))}
+      label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
+    >
+      {proof ? (
+        <Text numberOfLines={2} variant="footnote" tone="secondary" paragraph>
+          {proof}
+        </Text>
+      ) : null}
+    </TraceLine>
   );
 }
 

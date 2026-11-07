@@ -4,7 +4,7 @@ import * as z from 'zod/mini';
 import { hex } from '@/hex';
 import { useKept } from '@/hooks/use-kept';
 import { useAnswer, useWatch } from '@/hooks/use-watch';
-import { TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
+import { Finished, TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
 
 // What the Tasks button shows: how many things are yours and how many threads are working. hex
 // answers only when one of the counts moves, so this costs nothing while agents take steps.
@@ -19,15 +19,26 @@ export function useTaskCounts() {
 // On a call, the voice brings the task up.
 export const raiseTask = (id: TaskId) => hex.tasks.talk(id);
 
-// Every task, live while the sheet is open: a row changes when its session writes.
+const NONE: Finished[] = [];
+
+// Every task, and what hex finished in the last day, live while the sheet is open: a row changes
+// when its session writes.
 export function useTasks(open: boolean) {
   const [tasks, keep] = useKept('tasks', z.array(TaskRow));
+  const [finished, keepFinished] = useKept('finished', z.array(Finished));
   const [version, setVersion] = useState<number>();
   const watching = useWatch(open ? 'tasks' : null, hex.tasks.list, (list) => {
     keep(list.tasks);
+    keepFinished(list.finished);
     setVersion(list.version);
   });
-  return { tasks, version, offline: watching === 'offline', current: watching === 'current' };
+  return {
+    tasks,
+    finished: finished ?? NONE,
+    version,
+    offline: watching === 'offline',
+    current: watching === 'current',
+  };
 }
 
 // One thread in full, fetched again whenever the list moves: its task while it's on the board

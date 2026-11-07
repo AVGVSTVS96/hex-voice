@@ -21,11 +21,10 @@ import { CheckRow, PicksRow } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField, type Pages, type Spot } from '@/components/tasks/pages';
 import { Empty, Faded, Loading, UNREACHED, listRow, type Feel } from '@/components/tasks/parts';
-import { ProjectRow } from '@/components/tasks/rows';
+import { DoneRow, ProjectRow } from '@/components/tasks/rows';
 import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
 import {
-  inboxEntries,
   picksOf,
   search,
   stageCounts,
@@ -34,6 +33,7 @@ import {
   topicIn,
   topicsOf,
   tracksOf,
+  type Entry,
   type Stage,
   type PageId,
 } from '@/live/inbox';
@@ -48,7 +48,7 @@ const TABS_WITH_BAR = 600;
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
-  done: 'Nothing finished today',
+  done: 'Nothing done in the last day',
   quiet: 'Nothing is quiet',
 };
 
@@ -59,6 +59,7 @@ export function ListPage({
   spot,
   paged,
   tasks,
+  entries,
   offline,
   current,
   yours,
@@ -71,6 +72,7 @@ export function ListPage({
   spot: Spot;
   paged: boolean;
   tasks: TaskRow[] | undefined;
+  entries: Entry[];
   offline: boolean;
   // hex has answered since this list showed what was kept on this device, and nothing failed since.
   current: boolean;
@@ -81,10 +83,6 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
-  const entries = useMemo(
-    () => inboxEntries(tasks ?? [], yours.list, yours.shown),
-    [tasks, yours.list, yours.shown],
-  );
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   useEffect(() => {
@@ -103,10 +101,20 @@ export function ListPage({
   const picks = picksOf(yours.shown, yours.answered);
   const beside = pages.shape !== 'one';
   const searching = query !== null;
-  const first = topics[0] && pageOf(topics[0]);
+  // Done lists what was done, one row each, newest first, whatever else its project has going.
+  const done = !searching && stage === 'done';
+  // Each project's own page, which a row of Done opens whatever tab its thread is in.
+  const projects = useMemo(
+    () => new Map(topicsOf(entries).map((topic) => [topic.name, pageOf(topic)])),
+    [entries],
+  );
+  const first = done ? shown[0] && projects.get(shown[0].topic) : topics[0] && pageOf(topics[0]);
+  // Done opens beside it on its newest row, as a tap on that row would.
+  const firstRow = done ? shown[0]?.id : undefined;
   useEffect(() => {
-    if (beside && open && !pages.task && first) pages.go({ to: 'beside', id: first });
-  }, [beside, open, pages.task, first]);
+    if (beside && open && !pages.task && first)
+      pages.go({ to: 'beside', id: first, row: firstRow });
+  }, [beside, open, pages.task, first, firstRow]);
   // The project open beside the list, by what its page shows.
   const openTopic = beside
     ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
@@ -206,18 +214,28 @@ export function ListPage({
               }}
             />
           ) : null}
-          {topics.map((topic) => (
-            <ProjectRow
-              key={topic.name}
-              topic={topic}
-              stage={searching ? undefined : stage}
-              tracks={tracksOf(topic.name, tasks ?? [])}
-              now={now}
-              width={width}
-              selected={topic.name === openTopic}
-              onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
-            />
-          ))}
+          {done
+            ? shown.map((entry) => (
+                <DoneRow
+                  key={entry.id}
+                  entry={entry}
+                  width={width}
+                  selected={beside && entry.id === pages.row}
+                  onOpen={() => openPage(projects.get(entry.topic)!, entry.id)}
+                />
+              ))
+            : topics.map((topic) => (
+                <ProjectRow
+                  key={topic.name}
+                  topic={topic}
+                  stage={searching ? undefined : stage}
+                  tracks={tracksOf(topic.name, tasks ?? [])}
+                  now={now}
+                  width={width}
+                  selected={topic.name === openTopic}
+                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
+                />
+              ))}
           {!searching && stage === 'needs' && yours.list?.check ? (
             <CheckRow
               check={yours.list.check}
