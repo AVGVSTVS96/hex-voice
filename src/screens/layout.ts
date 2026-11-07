@@ -84,6 +84,10 @@ export type Page = {
 export type Layout = Stage & {
   content: Rect;
   toolbar: Toolbar;
+  // iPhone Duo's side column, laid out natively beside the content (src/screens/side-column.tsx):
+  // the side it's on, how far the system's items sit from its middle, where its tools start and how
+  // far up from the foot its call buttons end.
+  column?: { bar: 'left' | 'right'; shift: number; top: number; foot: number };
   // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
   inbox?: Inbox;
   duo?: Duo;
@@ -144,6 +148,12 @@ export function screenLayout(room: Room): Layout {
           },
         }),
     tasks: { width: content.width, place: 'page' },
+    column: frame.column && {
+      bar: frame.column.x === 0 ? 'left' : 'right',
+      shift: frame.column.center - (frame.column.x + frame.column.width / 2),
+      top: toolbar.y,
+      foot: frame.column.controls.bottom,
+    },
     // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the
     // room the call has left. Upright that room is the words' page, so once there are words it
     // docks in the column, at the spot it takes when Tasks opens on a call; on its side it waits

@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -55,6 +55,7 @@ import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
+import { SideColumn } from '@/screens/side-column';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { hairline, theme } from '@/theme';
@@ -170,7 +171,15 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const reading = layout.pulls
     ? scene.words.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
-  const duoTasks = useDuoTasks(duo, { open: placeOpen, tasks: tasksOpen }, onCall, reducedMotion);
+  // The words beside Tasks are chosen for one call, where the layout has room for them.
+  if (scene.words.beside && !(duo?.beside && onCall)) send({ to: 'beside', on: false });
+  const duoTasks = useDuoTasks(
+    duo,
+    { open: placeOpen, tasks: tasksOpen, chosen: scene.words.beside },
+    onCall,
+    reducedMotion,
+    (on) => send({ to: 'beside', on }),
+  );
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
@@ -338,25 +347,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
-  // The bar sits in the window, and never moves for Tasks. A column down the side never moves at
-  // all; across the top it's placed by barOf, which only Calls moves.
+  // The bar sits in the window, and never moves for Tasks. Down iPhone Duo's side it's laid out
+  // natively in the column (SideColumn); across the top it's placed by barOf, which only Calls moves.
   const { toolbar } = layout;
-  // Its place is all in this one style, whichever way it runs: a prop Reanimated has written stays
-  // on the view after a style React passes stops naming it, so a row's `left` would hold the side
-  // column at the screen's leading edge, over Tasks.
-  const toolbarStyle = useAnimatedStyle(() => {
-    if (toolbar.axis === 'column') {
-      // The column keeps its width at its own edge: iOS grows the screen before the call screen
-      // lays out again as the Duo opens, so a column held by both edges would stretch across it.
-      const leading = toolbar.x < width / 2;
-      return {
-        left: leading ? toolbar.x : 'auto',
-        right: leading ? 'auto' : width - toolbar.x - toolbar.width,
-        width: toolbar.width,
-      };
-    }
-    return { ...barOf(layout, width, drawer.get()), width: 'auto' };
-  });
+  const toolbarStyle = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
   // style only for the shared values it reads directly, not ones a helper worklet reads for it.
@@ -583,17 +577,21 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     />
   );
   const controls = callControls(
-    controlsColumn
-      ? {
-          axis: controlsColumn.axis,
-          size: controlsColumn.size,
-          style: {
-            position: 'absolute',
-            right: controlsColumn.right,
-            bottom: controlsColumn.bottom,
-          },
-        }
-      : {},
+    controlsColumn ? { axis: controlsColumn.axis, size: controlsColumn.size } : {},
+  );
+  const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
+    <ScreenToolbar
+      onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
+      axis={toolbar.axis}
+      gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
+      style={style}
+      callsOpen={callsOpen}
+      tasks={{ ...counts, open: tasksOpen }}
+      settingsOpen={settingsOpen}
+      onCalls={toggleDrawer}
+      onTasks={toggleTasks}
+      onSettings={() => send({ to: 'settings', open: !settingsOpen })}
+    />
   );
   // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
   // whether Tasks is open or not.
@@ -830,19 +828,15 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             },
           })
         : null}
-      <ScreenToolbar
-        onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
-        axis={toolbar.axis}
-        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-        style={[{ top: toolbar.y }, toolbarStyle]}
-        callsOpen={callsOpen}
-        tasks={{ ...counts, open: tasksOpen }}
-        settingsOpen={settingsOpen}
-        onCalls={toggleDrawer}
-        onTasks={toggleTasks}
-        onSettings={() => send({ to: 'settings', open: !settingsOpen })}
-      />
-      {controlsColumn && controls}
+      {layout.column ? (
+        <SideColumn
+          column={layout.column}
+          tools={screenToolbar({ position: 'relative' })}
+          controls={controls}
+        />
+      ) : (
+        screenToolbar([{ top: toolbar.y }, toolbarStyle])
+      )}
     </>
   );
 }
