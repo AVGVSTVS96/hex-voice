@@ -117322,10 +117322,10 @@ index 0000000000000000000000000000000000000000..4b1cefd65d26f9ca8c3b1c07b628f131
 +});
 diff --git a/src/screens/layout.ts b/src/screens/layout.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8f61f5551
+index 0000000000000000000000000000000000000000..a9ea305ba77482f9500b3a8389734b2b65668c90
 --- /dev/null
 +++ b/src/screens/layout.ts
-@@ -0,0 +1,385 @@
+@@ -0,0 +1,392 @@
 +import {
 +  callsBeside,
 +  stageLayout,
@@ -117520,7 +117520,7 @@ index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8
 +  content: Rect;
 +  toolbar: Toolbar;
 +  // iPhone Duo's side column, the tools at its top and the call buttons at its foot.
-+  column?: Span & { controls: ColumnControls };
++  column?: Span & { center: number; controls: ColumnControls };
 +  top: number;
 +};
 +
@@ -117581,13 +117581,19 @@ index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8
 +  const foot = covers
 +    .filter((area) => !high(area))
 +    .reduce((bottom, area) => Math.max(bottom, window.height - area.y + 8), insets.bottom);
++  // The system draws its time, wifi and camera a few points toward the screen from the inset's
++  // middle, where the camera's occlusion is, so the column's buttons center on those.
++  const items = covers.filter((area) => area.width < width);
++  const center = items.length
++    ? items.reduce((sum, area) => sum + area.x + area.width / 2, 0) / items.length
++    : x + width / 2;
 +  // A short column (folded on its side) draws its buttons smaller and closer, so the call's orb and
 +  // time still fit between the tools and the call buttons.
 +  const tight = window.height < SHORT;
 +  return {
 +    content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
 +    toolbar: {
-+      x: x + (width - metrics.tool) / 2,
++      x: center - metrics.tool / 2,
 +      y: Math.max(top, GAP + 4),
 +      width: metrics.tool,
 +      axis: 'column' as const,
@@ -117596,8 +117602,9 @@ index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8
 +    column: {
 +      x,
 +      width,
++      center,
 +      controls: {
-+        right: window.width - x - (width + metrics.call) / 2,
++        right: window.width - center - metrics.call / 2,
 +        bottom: foot,
 +        axis: 'column' as const,
 +        size: tight ? ('compact' as const) : ('regular' as const),
@@ -117620,7 +117627,7 @@ index 0000000000000000000000000000000000000000..a52c8aa04e5924f82463349fbe0a59e8
 +  const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
 +  const size = column.controls.size ?? 'regular';
 +  const sizes = metrics.controls[size];
-+  const x = column.x + column.width / 2;
++  const x = column.center;
 +  const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
 +  const leading = column.x === 0;
 +  const { tasks, after } = paged(
@@ -123774,10 +123781,10 @@ index 0000000000000000000000000000000000000000..2e255d671675a24dc85a4ca9e2214a78
 +});
 diff --git a/tests/layout.test.ts b/tests/layout.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b770fa49f507bcceaebb57b825612f377cf57c49
+index 0000000000000000000000000000000000000000..3bb02e3f45e0fd92ae5ac30357fa3d69704f8c0e
 --- /dev/null
 +++ b/tests/layout.test.ts
-@@ -0,0 +1,574 @@
+@@ -0,0 +1,576 @@
 +import assert from 'node:assert/strict';
 +import { readFileSync } from 'node:fs';
 +import test from 'node:test';
@@ -123823,15 +123830,17 @@ index 0000000000000000000000000000000000000000..b770fa49f507bcceaebb57b825612f37
 +  );
 +  assert.equal(layout.kind, 'single');
 +  assert.deepEqual(layout.content, { x: 0, y: 0, width: 382, height: 678 });
++  // Centered on the camera at 418.2, a few points in from the inset's middle at 424, as the
++  // system draws its own items.
 +  assert.deepEqual(layout.toolbar, {
-+    x: 400,
++    x: 418.2 - 24,
 +    y: 170,
 +    width: 48,
 +    axis: 'column',
 +    gaps: 'regular',
 +  });
 +  assert.deepEqual(layout.controls, {
-+    right: 10,
++    right: 466 - 418.2 - 32,
 +    bottom: 34,
 +    axis: 'column',
 +    size: 'regular',
@@ -124153,7 +124162,7 @@ index 0000000000000000000000000000000000000000..b770fa49f507bcceaebb57b825612f37
 +  const layout = layoutOf(window, insets, pose);
 +  assert.equal(layout.toolbar.y, 170);
 +  assert.deepEqual(layout.duo!.tasks, {
-+    area: { x: 0, y: 0, width: 424 - 32, height: 678 },
++    area: { x: 0, y: 0, width: 418.2 - 32, height: 678 },
 +    foot: 34,
 +  });
 +  assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -124163,7 +124172,7 @@ index 0000000000000000000000000000000000000000..b770fa49f507bcceaebb57b825612f37
 +  const { window, insets, pose } = duo['folded on its side'];
 +  const layout = layoutOf(window, insets, pose);
 +  assert.equal(layout.toolbar.y, 16);
-+  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 636 - 26, height: 466 });
++  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 630.2 - 26, height: 466 });
 +  assert.equal(layout.duo!.beside, undefined);
 +});
 +
