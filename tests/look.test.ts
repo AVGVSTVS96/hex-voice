@@ -152,5 +152,5 @@ test('the type is four sizes in two weights, and every gap is on the 4pt grid', 
     ),
   );
   assert.ok(Object.values(space).every((gap) => gap === 2 || gap % 4 === 0));
-  assert.ok(Object.keys(color).length <= 24);
+  assert.ok(Object.keys(color).length <= 19);
 });

@@ -163,7 +163,7 @@ function Row({
           onPress={remove}
           style={styles.delete}
         >
-          <Glyph name="trash" size={metrics.symbol.bar} color={theme.onProminent} />
+          <Glyph name="trash" size={metrics.symbol.bar} color={theme.ground} />
         </Pressable>
       </Animated.View>
       <GestureDetector gesture={Gesture.Exclusive(swipe, tap)}>

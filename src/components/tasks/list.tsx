@@ -292,7 +292,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       modifiers={[
         frame({ height: metrics.pill.height }),
         frame({ maxWidth: Infinity }),
-        background(theme.prominent),
+        background(theme.text),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
         padding({
@@ -305,8 +305,8 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       ]}
     >
       <Spacer flexible />
-      <Icon name="waveform" size={metrics.symbol.small} color={theme.onProminent} />
-      <Text variant="headline" tone="onProminent">
+      <Icon name="waveform" size={metrics.symbol.small} color={theme.ground} />
+      <Text variant="headline" tone="ground">
         Go through them with hex
       </Text>
       <Spacer flexible />

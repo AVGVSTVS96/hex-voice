@@ -15,12 +15,11 @@ export const color = {
   fill: { dark: '#2C2C2E', light: '#EDEEF0' },
   fillStrong: { dark: '#3A3A3C', light: '#E2E3E6' },
   edge: { dark: '#2C2C2E', light: '#E3E3E5' },
+  // Words, and the one filled button on a screen, like the call button, with the ground's color
+  // drawn on it.
   text: { dark: '#F5F5F5', light: '#0A0A0A' },
   secondary: { dark: '#98989F', light: '#65676B' },
   tertiary: { dark: '#636366', light: '#A2A4A8' },
-  // The one filled button on a screen, like the call button, and what's drawn on it.
-  prominent: { dark: '#F9F9F9', light: '#0A0A0A' },
-  onProminent: { dark: '#080808', light: '#FAFAFA' },
   accent: { dark: '#C4F3E5', light: '#1F8A6D' },
   accentFill: { dark: '#1B3534', light: '#D7F2EA' },
   // The mint that holds white words, for a swipe's button in either appearance.

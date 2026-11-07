@@ -330,7 +330,7 @@ function Composer({
         testID="thread-send"
         modifiers={[
           frame({ width: metrics.field, height: metrics.field }),
-          background(lit ? theme.prominent : theme.fill),
+          background(lit ? theme.text : theme.fill),
           clipShape('circle'),
           contentShape(shapes.circle()),
           accessibilityLabel(stops ? 'Stop' : 'Send'),
@@ -339,7 +339,7 @@ function Composer({
         <Icon
           name={stops ? 'stop.fill' : 'arrow.up'}
           size={stops ? 14 : 18}
-          color={lit ? theme.onProminent : theme.tertiary}
+          color={lit ? theme.ground : theme.tertiary}
         />
       </Row>
       {typing ? null : <Talk about={title} alone={false} onPress={onTalk} />}
