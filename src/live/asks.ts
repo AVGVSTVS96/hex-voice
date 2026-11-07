@@ -66,17 +66,6 @@ export type Sent = z.infer<typeof Sent>;
 // What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
 export const NOT_NEEDED = 'Not needed';
 
-// hex caps a long question with … at a word and carries it on into the context from …, so it reads
-// whole: its first line comes back onto the question, and the context is what follows.
-export function wholeQuestion({ question, context }: Pick<Ask, 'question' | 'context'>) {
-  if (!question.endsWith('…') || !context?.startsWith('…')) return { question, context };
-  const [rest, ...after] = context.slice(1).split('\n');
-  return {
-    question: `${question.slice(0, -1)} ${rest}`,
-    context: after.join('\n').trim() || undefined,
-  };
-}
-
 // The places an answer couldn't reach, which still ask it until it's sent again.
 export const unreached = (missed: number) =>
   missed === 1

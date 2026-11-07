@@ -185,7 +185,7 @@ export function ThreadPage({
           time={taskTime(thread)}
           chevron="chevron.right"
           after={
-            <Text variant="detail" weight="medium" tone="accent">
+            <Text variant="detail" tone="secondary">
               Steps
             </Text>
           }

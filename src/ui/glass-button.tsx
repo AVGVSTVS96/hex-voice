@@ -6,6 +6,7 @@ import {
   buttonStyle,
   contentShape,
   disabled as disable,
+  font,
   frame,
   glassEffect,
   shapes,
@@ -58,6 +59,9 @@ export function glass(
   });
 }
 
+// A button's symbol in Muse's thin line, the same weight on every button.
+const stroke = (size: number) => font({ size, weight: metrics.stroke });
+
 // A round button on glass. A `bare` one leaves the glass to the group it sits in.
 export function GlassButton({
   icon,
@@ -71,13 +75,8 @@ export function GlassButton({
   loading = false,
   bare = false,
 }: Props & { bare?: boolean }) {
-  const color = prominent
-    ? theme.onProminent
-    : disabled
-      ? theme.tertiary
-      : selected
-        ? theme.accent
-        : theme.text;
+  // Chosen, the glass fills a little, as Muse marks the tab you're on; mint stays for what needs you.
+  const color = prominent ? theme.onProminent : disabled ? theme.tertiary : theme.text;
   const look = face(size, selected);
   return (
     <Button
@@ -98,7 +97,7 @@ export function GlassButton({
           systemName={symbols[icon]}
           size={metrics.symbol[prominent ? 'prominent' : 'regular']}
           color={color}
-          modifiers={look}
+          modifiers={[stroke(metrics.symbol[prominent ? 'prominent' : 'regular']), ...look]}
         />
       )}
     </Button>
@@ -118,7 +117,7 @@ export function GlassMenu({
           systemName={symbols[icon]}
           size={metrics.symbol.regular}
           color={theme.text}
-          modifiers={face('tool', false)}
+          modifiers={[stroke(metrics.symbol.regular), ...face('tool', false)]}
         />
       }
       modifiers={[accessibilityLabel(label), glass('circle')]}

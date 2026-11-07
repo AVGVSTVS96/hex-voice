@@ -94,7 +94,7 @@ function Mark({ state }: { state: Line['state'] }) {
             <Icon
               name={state === 'done' ? 'checkmark' : 'exclamationmark'}
               size={11}
-              color={state === 'done' ? theme.accent : theme.danger}
+              color={state === 'done' ? theme.secondary : theme.danger}
             />
           </Host>
         </Animated.View>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[3] },
   mark: {
     ...circle(22),
-    backgroundColor: theme.accentMuted,
+    backgroundColor: theme.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
   },
   waiting: { color: theme.secondary },
   where: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  done: { color: theme.accent },
+  done: { color: theme.text },
   failed: { color: theme.danger },
 });

@@ -6,7 +6,6 @@
 export const color = {
   background: { dark: '#000000', light: '#FFFFFF' },
   sheet: { dark: '#1C1C1C', light: '#F2F2F7' },
-  group: { dark: '#000000', light: '#FFFFFF' },
   surface: { dark: '#202020', light: '#EEEEF0' },
   surfaceSelected: { dark: '#363636', light: '#D9D9DE' },
   // A card on the sheet, as Muse sets its Connectors: a question, the tab and the row you're on.
@@ -128,7 +127,9 @@ export type GlassSize = keyof typeof glass;
 export const metrics = {
   ...glass,
   // The symbol on a glass button, and on the call button.
-  symbol: { mark: 10, small: 13, bar: 17, regular: 24, prominent: 27, send: 30 },
+  symbol: { mark: 10, small: 13, bar: 17, row: 20, regular: 22, prominent: 26, send: 30 },
+  // Glass buttons' symbols in a thin line, as Muse draws its buttons'.
+  stroke: 'light' as const,
   // The call buttons at each size: mute, the call button, and the gap between them.
   controls: {
     regular: { mute: 'mute', call: 'call', gap: space[3] },
@@ -200,6 +201,8 @@ export const metrics = {
     // The gap between a row's time, its count and its tiles.
     meta: space[2],
   },
+  // A call's row in Calls: its name and its details under it, with room above and below.
+  callRow: 68,
   // The widest a page's words run before it holds them in a readable column, on the Duo held open
   // and on iPad.
   readable: 640,

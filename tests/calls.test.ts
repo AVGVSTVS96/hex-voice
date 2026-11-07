@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   byDay,
+  callTime,
   callLength,
   callName,
   clock,
@@ -46,14 +47,15 @@ const call = (id: string, started: string): CallSummary =>
     preview: 'Is the build green?',
   });
 
-test('calls group by day, newest first, as hex sends them', () => {
+test('calls group under today, yesterday and earlier, newest first, as hex sends them', () => {
   const now = new Date(2026, 9, 13, 9);
   const days = byDay(
     [
       call('a', new Date(2026, 9, 13, 3, 5).toISOString()),
       call('b', new Date(2026, 9, 13, 1, 31).toISOString()),
       call('c', new Date(2026, 9, 12, 23, 36).toISOString()),
-      call('d', new Date(2026, 8, 30, 12).toISOString()),
+      call('d', new Date(2026, 9, 10, 12).toISOString()),
+      call('e', new Date(2026, 8, 30, 12).toISOString()),
     ],
     now,
   );
@@ -62,9 +64,11 @@ test('calls group by day, newest first, as hex sends them', () => {
     [
       ['Today', ['a', 'b']],
       ['Yesterday', ['c']],
-      ['September 30', ['d']],
+      ['Earlier', ['d', 'e']],
     ],
   );
+  assert.equal(callTime(new Date(2026, 9, 10, 12).toISOString(), now), 'Sat');
+  assert.equal(callTime(new Date(2026, 8, 30, 12).toISOString(), now), 'Sep 30');
 });
 
 test('a call reads as its title, or your first words until hex names it', () => {

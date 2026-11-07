@@ -194,8 +194,8 @@ export function Places({
       {rest > 0 ? (
         <Text
           onPress={() => setEvery(true)}
-          variant="caption"
-          tone="accent"
+          variant="detail"
+          tone="secondary"
           modifiers={[
             padding({ leading: metrics.list.inset + space[10], top: space[3], bottom: space[1] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),

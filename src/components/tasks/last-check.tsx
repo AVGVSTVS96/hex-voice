@@ -76,7 +76,7 @@ function Read({ read }: { read: Record<string, number> }) {
       modifiers={[
         padding({ top: space[4], bottom: space[4], leading: space[2], trailing: space[2] }),
         frame({ maxWidth: Infinity }),
-        background(theme.group),
+        background(theme.card),
         clipShape('roundedRectangle', radius.group),
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
       ]}
@@ -126,7 +126,7 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
           {note.text}
         </Text>
         {note.did ? (
-          <Text variant="detail" weight="medium" tone="accent" paragraph>
+          <Text variant="detail" weight="medium" paragraph>
             {note.did}
           </Text>
         ) : null}

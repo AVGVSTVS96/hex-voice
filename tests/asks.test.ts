@@ -9,7 +9,6 @@ import {
   keepInPlace,
   openAsks,
   unreached,
-  wholeQuestion,
   yours,
   Ask,
   type AskList,
@@ -228,20 +227,6 @@ test("an ask hex's check took up keeps the ids it was listed under, so what was 
   const taken = ask('check:twilio', 'yesno', { was: ['telegram:-100:1:7', 'telegram:-100:1:8'] });
   assert.deepEqual(taken.was, ['telegram:-100:1:7', 'telegram:-100:1:8']);
   assert.equal(ask('telegram:-100:1:7', 'yesno').was, undefined);
-});
-
-test('a question hex cut with … reads whole, its context carrying on after it', () => {
-  assert.deepEqual(
-    wholeQuestion({
-      question: 'The button sits beside its search…',
-      context: '…field.\nI took it out of the tray.',
-    }),
-    { question: 'The button sits beside its search field.', context: 'I took it out of the tray.' },
-  );
-  assert.deepEqual(wholeQuestion({ question: 'Ship it?', context: 'It passed.' }), {
-    question: 'Ship it?',
-    context: 'It passed.',
-  });
 });
 
 test('a pinned line ticked with a plain ✓ is done, drawn with its mark and not the tick', () => {

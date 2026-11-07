@@ -29,8 +29,8 @@ const MARKERS: Record<
   CallTask['state'],
   { symbol: SFSymbol; color: ColorValue; fill: ColorValue }
 > = {
-  running: { symbol: 'circle.dotted', color: theme.accent, fill: theme.accentMuted },
-  done: { symbol: 'checkmark', color: theme.accent, fill: theme.accentMuted },
+  running: { symbol: 'circle.dotted', color: theme.progress, fill: theme.progressMuted },
+  done: { symbol: 'checkmark', color: theme.secondary, fill: theme.fill },
   failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerMuted },
 };
 

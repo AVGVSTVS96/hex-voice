@@ -19,7 +19,7 @@ import {
   byDay,
   callDetails,
   callName,
-  timeOfDay,
+  callTime,
   type CallId,
   type CallSummary,
 } from '@/live/calls';
@@ -162,14 +162,14 @@ function Row({
           onPress={remove}
           style={styles.delete}
         >
-          <Glyph name="trash" size={19} color={theme.onProminent} />
+          <Glyph name="trash" size={metrics.symbol.bar} color={theme.onProminent} />
         </Pressable>
       </Animated.View>
       <GestureDetector gesture={Gesture.Exclusive(swipe, tap)}>
         <Animated.View
           accessible
           accessibilityRole="button"
-          accessibilityLabel={`${callName(call)}, ${call.failed ?? callDetails(call)}, ${timeOfDay(call.started)}`}
+          accessibilityLabel={`${callName(call)}, ${call.failed ?? callDetails(call)}, ${callTime(call.started)}`}
           accessibilityActions={live ? [] : [{ name: 'delete', label: 'Delete call' }]}
           onAccessibilityAction={({ nativeEvent }) => {
             if (nativeEvent.actionName === 'delete') remove();
@@ -177,27 +177,31 @@ function Row({
           style={[styles.slide, selected && styles.selected, slide]}
         >
           <View style={styles.icon}>
-            <Glyph name={SOURCES[call.from].symbol} size={17} color={theme.secondary} />
+            <Glyph
+              name={SOURCES[call.from].symbol}
+              size={metrics.symbol.bar}
+              color={live ? theme.progress : theme.secondary}
+            />
           </View>
           <View style={styles.body}>
-            <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
-              {callName(call)}
-            </Text>
-            <View style={styles.metaRow}>
-              <Text numberOfLines={1} style={styles.meta}>
-                {live ? (
-                  <Text style={styles.live}>Live now</Text>
-                ) : call.failed ? (
-                  <Text style={styles.bad}>{call.failed}</Text>
-                ) : (
-                  callDetails(call)
-                )}
-                {!live && !call.failed && ending?.short && (
-                  <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
-                )}
+            <View style={styles.nameRow}>
+              <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
+                {callName(call)}
               </Text>
-              <Text style={styles.when}>{live ? 'Now' : timeOfDay(call.started)}</Text>
+              <Text style={styles.when}>{live ? 'Now' : callTime(call.started)}</Text>
             </View>
+            <Text numberOfLines={1} style={styles.meta}>
+              {live ? (
+                <Text style={styles.live}>Live now</Text>
+              ) : call.failed ? (
+                <Text style={styles.bad}>{call.failed}</Text>
+              ) : (
+                callDetails(call)
+              )}
+              {!live && !call.failed && ending?.short && (
+                <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
+              )}
+            </Text>
           </View>
         </Animated.View>
       </GestureDetector>
@@ -211,7 +215,7 @@ function Empty({ offline }: { offline: boolean }) {
       <View style={styles.ring}>
         <Glyph
           name={offline ? 'wifi.slash' : 'clock.arrow.circlepath'}
-          size={28}
+          size={metrics.symbol.regular}
           color={theme.secondary}
         />
       </View>
@@ -236,49 +240,51 @@ const styles = StyleSheet.create({
   title: {
     ...textOf('title'),
     color: theme.text,
-    letterSpacing: -0.4,
-    paddingHorizontal: space[5],
+    paddingHorizontal: metrics.list.inset,
     paddingTop: space[3],
-    paddingBottom: space[3],
+    paddingBottom: space[2],
   },
   list: { paddingBottom: space[10] },
   offline: {
     ...textOf('caption'),
     color: theme.secondary,
-    paddingHorizontal: space[5],
+    paddingHorizontal: metrics.list.inset,
     paddingTop: space[2],
   },
   day: {
-    ...textOf('caption', 'medium'),
+    ...textOf('detail'),
     color: theme.secondary,
-    paddingHorizontal: space[5],
-    paddingTop: space[4],
+    paddingHorizontal: metrics.list.inset,
+    paddingTop: space[6],
     paddingBottom: space[2],
   },
   row: {
-    height: 64,
+    height: metrics.callRow,
     marginHorizontal: space[2],
     borderRadius: radius.control,
     borderCurve: 'continuous',
   },
-  selected: { backgroundColor: theme.skeleton },
+  selected: { backgroundColor: theme.card },
   slide: {
     ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: metrics.list.gap,
+    paddingLeft: metrics.list.inset - space[2],
+    paddingRight: metrics.list.inset - space[2],
     borderRadius: radius.control,
     borderCurve: 'continuous',
     backgroundColor: theme.sheet,
   },
-  icon: { width: 44, alignItems: 'center' },
-  body: { flex: 1, paddingRight: space[3], gap: space[0.5] },
-  name: { ...textOf('headline'), color: theme.text, letterSpacing: -0.16 },
+  icon: { width: metrics.list.mark, alignItems: 'center' },
+  body: { flex: 1, gap: space[1] },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  name: { ...textOf('headline'), flex: 1, color: theme.text },
   unnamed: { ...textOf('headline', 'regular'), color: theme.secondary },
-  metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
-  meta: { ...textOf('detail'), flex: 1, color: theme.secondary },
-  live: { color: theme.switchOn },
+  meta: { ...textOf('detail'), color: theme.secondary },
+  live: { color: theme.progress },
   bad: { color: theme.danger },
-  when: { ...textOf('detail'), color: theme.secondary, fontVariant: ['tabular-nums'] },
+  when: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
   action: { position: 'absolute', right: 8, top: 10 },
   delete: {
     ...circle(44),

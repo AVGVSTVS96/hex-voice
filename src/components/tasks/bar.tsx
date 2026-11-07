@@ -108,12 +108,8 @@ export function BackButton({ back }: { back: Back }) {
       testID="task-back"
       onPress={back.onPress}
     >
-      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.accent} />
-      {!back.short ? (
-        <Text numberOfLines={1} weight="medium" tone="accent">
-          {back.to}
-        </Text>
-      ) : null}
+      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
+      {!back.short ? <Text numberOfLines={1}>{back.to}</Text> : null}
     </BarButton>
   );
 }

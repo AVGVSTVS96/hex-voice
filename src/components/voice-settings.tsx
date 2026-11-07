@@ -348,7 +348,7 @@ export function VoiceSettings({
           testID="voice-row"
         >
           <Text tone="secondary">{selectedVoice.label}</Text>
-          <Icon name="chevron.right" size={13} color={theme.secondary} />
+          <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
         </SettingRow>
         <Separator />
         <SettingRow icon="speaker.wave.2" title="Call sounds" width={rowsWidth}>

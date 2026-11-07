@@ -205,14 +205,38 @@ export function putBack(calls: CallSummary[], call: CallSummary) {
   return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
 }
 
+// Calls under three heads at most, so a day's name doesn't head nearly every call: today,
+// yesterday, and everything before, each newest first, as hex sends them.
 export function byDay(calls: CallSummary[], now = new Date()) {
   const days: { label: string; calls: CallSummary[] }[] = [];
   for (const call of calls) {
-    const label = dayLabel(call.started, now);
+    const label = periodOf(call.started, now);
     if (days.at(-1)?.label === label) days.at(-1)!.calls.push(call);
     else days.push({ label, calls: [call] });
   }
   return days;
+}
+
+function periodOf(iso: string, now: Date) {
+  const days = daysAgo(iso, now);
+  return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : 'Earlier';
+}
+
+const daysAgo = (iso: string, now: Date) =>
+  Math.round((dayStart(now) - dayStart(new Date(iso))) / 86_400_000);
+
+// When a call was, beside its name: the time today and yesterday, as their heads say the day;
+// before that, the day of the week, or the date once it's more than a week back.
+export function callTime(iso: string, now = new Date()) {
+  const days = daysAgo(iso, now);
+  if (days < 2) return timeOfDay(iso);
+  const date = new Date(iso);
+  if (days < 7) return date.toLocaleDateString([], { weekday: 'short' });
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  });
 }
 
 // What happened to the call shows in it; hex's say and note text is the voice's own words already,
