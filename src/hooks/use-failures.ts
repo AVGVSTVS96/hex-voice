@@ -21,7 +21,11 @@ export function useFailures() {
       },
     );
   };
-  return { failed, attempt, clear: () => setFailed({}) };
+  const clear = (keys: string[]) =>
+    setFailed((now) =>
+      Object.fromEntries(Object.entries(now).filter(([key]) => !keys.includes(key))),
+    );
+  return { failed, attempt, clear };
 }
 
 // iOS turns a link down without a word when no app here takes it.

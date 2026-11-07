@@ -65,11 +65,18 @@ export function useAsks(open: boolean) {
     keep(list);
     dispatch({ type: 'list', list });
   });
-  useEffect(() => {
-    if (open) return;
-    dispatch({ type: 'close', keep: Object.keys(missed) });
-    tries.clear();
-  }, [open]);
+  // Closing tidies what was folded, and the reasons it showed, only as Tasks opens again, before it
+  // shows, so nothing on it changes while it fades out; a reason that came while it was closed stays.
+  const [wasOpen, setWasOpen] = useState(open);
+  const [shownFailed, setShownFailed] = useState<string[]>([]);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setShownFailed(Object.keys(tries.failed));
+    else {
+      dispatch({ type: 'close', keep: Object.keys(missed) });
+      tries.clear(shownFailed);
+    }
+  }
   const list = useMemo(
     () => state.list && failedOn(state.list, tries.failed, missed),
     [state.list, tries.failed, missed],

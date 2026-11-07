@@ -115,7 +115,8 @@ export function Tasks({
         .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
     : [];
   const said = useChat(
-    open && opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
+    opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
+    open,
   );
 
   const answer = (ask: Ask, option: AskOption) => {
