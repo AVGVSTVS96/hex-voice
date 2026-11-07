@@ -1,13 +1,16 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, Rectangle, SwipeActions, VStack } from '@expo/ui/swift-ui';
+import { Button, HStack, Rectangle, SwipeActions, VStack } from '@expo/ui/swift-ui';
 import {
   accessibilityElement,
   accessibilityIdentifier,
   accessibilityLabel,
   animation,
   background,
+  buttonBorderShape,
+  buttonStyle,
   clipShape,
   contentShape,
+  disabled,
   foregroundStyle,
   frame,
   lineLimit,
@@ -16,9 +19,10 @@ import {
   padding,
   shapes,
   strokeBorder,
+  tint,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
@@ -27,14 +31,7 @@ import { noteAsk, useWords } from '@/hooks/use-asks';
 import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, NotNeededButton, SectionHead, listRow } from '@/components/tasks/parts';
-import {
-  NOT_NEEDED,
-  unreached,
-  type Ask,
-  type AskLink,
-  type AskOption,
-  type Words,
-} from '@/live/asks';
+import { unreached, type Ask, type AskLink, type AskOption, type Words } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion } from '@/motion';
@@ -127,13 +124,7 @@ export function YourCall({
           );
         return (
           <SwipeActions key={ask.id} modifiers={row(i)}>
-            <AskCard
-              ask={ask}
-              first={i === 0}
-              width={width}
-              onAnswer={onAnswer}
-              onDismiss={onDismiss}
-            />
+            <AskCard ask={ask} first={i === 0} width={width} onAnswer={onAnswer} />
             <SwipeActions.Actions edge="trailing">
               <NotNeededButton onPress={() => onDismiss(ask)} />
             </SwipeActions.Actions>
@@ -151,13 +142,11 @@ function AskCard({
   first,
   width,
   onAnswer,
-  onDismiss,
 }: {
   ask: Ask;
   first: boolean;
   width: number;
   onAnswer: Answer;
-  onDismiss: (ask: Ask) => void;
 }) {
   // Words typed on it and not sent open it on them, so they're never out of sight: after the page
   // closes, and once hex's check lists it under a new id.
@@ -315,7 +304,6 @@ function AskCard({
           sending={noting}
           onNote={note}
           onAnswer={(label) => onAnswer(ask, { label })}
-          onDismiss={() => onDismiss(ask)}
         />
       ) : (
         <Answers ask={ask} width={width} onAnswer={onAnswer} />
@@ -504,10 +492,11 @@ function Choice({ option, onPress }: { option: AskOption; onPress: () => void })
   );
 }
 
-// What you write goes to the ask's thread as a note and leaves the ask open: ↑ is the one accent
-// action. Answering with it instead is the deliberate second step, drawn in text and not accent so
-// it never reads as already answered, and Not needed puts the ask away with no answer at all.
-// None of them goes while a note is on its way.
+// What you write goes where the button you tap says: Answer, the one accent action, answers the
+// ask with your words; Send as note tells its thread and leaves the ask open. Neither goes while a
+// note is on its way. With the keyboard down they sit in the field's box, under the words; while
+// you type they move to the page's foot, just above the keyboard, since the list keeps only the
+// field in sight above it. Not needed is the row's swipe left.
 function Composer({
   draft,
   focus,
@@ -515,7 +504,6 @@ function Composer({
   sending,
   onNote,
   onAnswer,
-  onDismiss,
 }: {
   draft: string;
   focus: boolean;
@@ -523,108 +511,75 @@ function Composer({
   sending: boolean;
   onNote: (text: string) => void;
   onAnswer: (text: string) => void;
-  onDismiss: () => void;
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
-  const typing = useTyping();
+  const [typing, setTyping] = useState(false);
+  const typingHere = useTyping();
+  const toFoot = useContext(AnswerBar);
   const field = useField();
   const words = sending ? '' : text.trim();
+  useEffect(() => {
+    toFoot(draft, typing ? { words, onNote, onAnswer } : null);
+  }, [typing, words]);
+  useEffect(() => () => toFoot(draft, null), []);
+  const type = (now: boolean) => {
+    setTyping(now);
+    typingHere(now);
+  };
   return (
-    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Row
-        alignment="end"
-        spacing={space[2.5]}
+    <VStack
+      alignment="trailing"
+      spacing={0}
+      modifiers={[
+        frame({ maxWidth: Infinity }),
+        background(theme.surface),
+        clipShape('roundedRectangle', radius.control),
+        strokeBorder({
+          content: theme.edge,
+          style: { lineWidth: 1 },
+          shape: 'roundedRectangle',
+          cornerRadius: radius.control,
+        }),
+        padding({
+          leading: metrics.list.inset - space[1.5],
+          trailing: metrics.list.inset - space[1.5],
+          top: space[1.5],
+          bottom: space[3],
+        }),
+      ]}
+    >
+      <TextInput
+        ref={field}
+        autoFocus={focus}
+        multiline
+        testID="ask-input"
+        onFocus={() => type(true)}
+        onBlur={() => type(false)}
+        defaultValue={first}
+        placeholder={`Your answer, or a note for ${topic}`}
+        placeholderTextColor={theme.tertiary}
+        cursorColor={theme.accent}
+        onChangeText={(now) => {
+          setText(now);
+          keep(now);
+        }}
+        textStyle={labelOf('body')}
         modifiers={[
-          padding({
-            leading: space[3.5],
-            trailing: space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
-          }),
-          frame({ minHeight: ROW - 8 }),
+          foregroundStyle(theme.text),
+          padding({ leading: space[3.5], trailing: space[3.5], top: space[3], bottom: space[3] }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
-          background(theme.surface),
-          clipShape('roundedRectangle', radius.control),
-          strokeBorder({
-            content: theme.edge,
-            style: { lineWidth: 1 },
-            shape: 'roundedRectangle',
-            cornerRadius: radius.control,
-          }),
-          padding({
-            leading: metrics.list.inset - space[1.5],
-            trailing: metrics.list.inset - space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
-          }),
         ]}
-      >
-        <TextInput
-          ref={field}
-          autoFocus={focus}
-          multiline
-          testID="ask-input"
-          onFocus={() => typing(true)}
-          onBlur={() => typing(false)}
-          defaultValue={first}
-          placeholder={`A note for ${topic}`}
-          placeholderTextColor={theme.tertiary}
-          cursorColor={theme.accent}
-          onChangeText={(now) => {
-            setText(now);
-            keep(now);
-          }}
-          textStyle={labelOf('body')}
-          modifiers={[
-            foregroundStyle(theme.text),
-            padding({ top: space[1.5], bottom: space[1.5] }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+      />
+      {typing ? null : (
+        <Sends
+          words={words}
+          onNote={onNote}
+          onAnswer={onAnswer}
+          modifiers={[padding({ trailing: space[2.5], bottom: space[2.5] })]}
         />
-        <Icon
-          name="arrow.up.circle.fill"
-          size={30}
-          color={words ? theme.accent : theme.tertiary}
-          onPress={words ? () => onNote(words) : undefined}
-          modifiers={[accessibilityLabel(`Send a note to ${topic}`)]}
-        />
-      </Row>
-      <Row
-        alignment="center"
-        spacing={0}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset,
-            trailing: metrics.list.inset,
-            top: space[1],
-            bottom: space[2.5],
-          }),
-          frame({ maxWidth: Infinity }),
-        ]}
-      >
-        <Row
-          alignment="center"
-          spacing={space[1.25]}
-          onPress={words ? () => onAnswer(words) : undefined}
-          modifiers={[accessibilityLabel('Answer with this')]}
-        >
-          <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
-          <Text variant="subheadline" weight="semibold" tone={words ? 'text' : 'tertiary'}>
-            Answer with this
-          </Text>
-        </Row>
-        <Spacer flexible />
-        <Text
-          variant="subheadline"
-          weight="regular"
-          tone={sending ? 'tertiary' : 'secondary'}
-          onPress={sending ? undefined : onDismiss}
-        >
-          {NOT_NEEDED}
-        </Text>
-      </Row>
-    </Column>
+      )}
+    </VStack>
   );
 }
 
@@ -644,6 +599,69 @@ function useTyping() {
     on.current = now;
     typing(now);
   };
+}
+
+// The sends of the ask being typed on, which its page draws in its foot. Each card says whose they
+// are, so one card's note or leaving never takes away another's.
+export type Typed = {
+  words: string;
+  onNote: (words: string) => void;
+  onAnswer: (words: string) => void;
+};
+const AnswerBar = createContext<(from: string, typed: Typed | null) => void>(() => {});
+
+export function useAnswerBar() {
+  const [shown, setShown] = useState<(Typed & { from: string }) | null>(null);
+  const show = useCallback(
+    (from: string, typed: Typed | null) =>
+      setShown((now) => (typed ? { ...typed, from } : now?.from === from ? null : now)),
+    [],
+  );
+  return { typed: shown, AnswerBar: AnswerBar.Provider, show };
+}
+
+// The page's foot while an ask is typed on: its two sends, just above the keyboard.
+export function AnswerFoot({ typed }: { typed: Typed }) {
+  return (
+    <Sends
+      {...typed}
+      modifiers={[
+        padding({ leading: space[4], trailing: space[4], top: space[2], bottom: space[2] }),
+        frame({ maxWidth: Infinity, alignment: 'trailing' }),
+      ]}
+    />
+  );
+}
+
+// The two ways what's typed can go, the answer the prominent one, each waiting until there's
+// something to send.
+function Sends({ words, onNote, onAnswer, modifiers }: Typed & { modifiers: ModifierConfig[] }) {
+  return (
+    <HStack spacing={space[2]} modifiers={modifiers}>
+      <Button
+        label="Send as note"
+        systemImage="text.bubble"
+        onPress={() => onNote(words)}
+        modifiers={[
+          buttonStyle('bordered'),
+          buttonBorderShape('capsule'),
+          tint(theme.text),
+          disabled(!words),
+        ]}
+      />
+      <Button
+        label="Answer"
+        systemImage="checkmark"
+        onPress={() => onAnswer(words)}
+        modifiers={[
+          buttonStyle('borderedProminent'),
+          buttonBorderShape('capsule'),
+          tint(theme.accentSolid),
+          disabled(!words),
+        ]}
+      />
+    </HStack>
+  );
 }
 
 // An answer that couldn't reach every place, and the way to finish it.

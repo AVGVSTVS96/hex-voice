@@ -8,6 +8,7 @@ wait 1
 tap Write your own
 type ask-input Found one of them
 above-keyboard ask-input
+above-keyboard Answer
 shoot ask-writing
 tap task-back
 wait 1
@@ -50,12 +51,16 @@ shoot row-swiped
 tap xmark
 wait 1
 shoot row-put-away
-# A note says the question is still open; an answer folds it to what was said and clears the
-# words, so the next run starts on none.
+# The button tapped says where the words go: a note, from the foot while typing, leaves the
+# question open and says so; an answer, from the field's box with the keyboard down, folds it to
+# what was said. Either way the page's own foot comes back.
 launch hexvoice:///?tasks=md
 wait 3
-type ask-input  and the other
-tap Send a note to markdown
+tap ask-input
+above-keyboard ask-input
+above-keyboard Answer
+shoot ask-typing-held
+tap Send as note
 wait 1
 no-keyboard after the note
 frame thread-write
@@ -64,6 +69,9 @@ tap Write your own
 type ask-input Found both
 swipe-down ask-input
 wait 1
-tap Answer with this
+no-keyboard before answering
+shoot ask-to-answer
+tap Answer
 wait 1
+frame thread-write
 shoot ask-answered

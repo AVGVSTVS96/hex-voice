@@ -15,7 +15,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 
-import { YourCall } from '@/components/tasks/ask-card';
+import { AnswerFoot, YourCall, useAnswerBar } from '@/components/tasks/ask-card';
 import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, SectionHead, Sections, listRow } from '@/components/tasks/parts';
@@ -92,111 +92,116 @@ export function Detail({
   );
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const door = [task, ...threads].find((one) => one.link);
+  const { typed, AnswerBar, show } = useAnswerBar();
   return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
-      <Header
-        title={task.name}
-        subtitle={`${open ? `${open} need${open === 1 ? 's' : ''} you` : STATE_WORDS[task.state]} · ${taskTime(task)}`}
-        door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
-      />
-      <Faded>
-        <List key={beside ? 'beside' : 'alone'} modifiers={pageList(asks, answered)}>
-          {asks.length ? (
-            <YourCall
-              asks={asks}
-              answered={answered}
-              width={width}
-              onAnswer={onAnswer}
-              onUndo={onUndo}
-              onAgain={onAgain}
-              onDismiss={onDismiss}
-            />
-          ) : null}
-          <Column alignment="start" spacing={0} modifiers={rest(width)}>
-            <Sections follows={asks.length > 0}>
-              {needs ? (
-                <Column key="needs" alignment="start" spacing={0}>
-                  <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
-                  <Text
-                    paragraph
-                    modifiers={[
-                      padding({
-                        leading: metrics.list.inset,
-                        trailing: metrics.list.inset,
-                        bottom: space[1.5],
-                      }),
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    ]}
-                  >
-                    {needs}
-                  </Text>
-                </Column>
-              ) : null}
-              {working.length ? (
-                <Column key="working" alignment="start" spacing={0}>
-                  <SectionHead title="Working" />
-                  {working.map((thread) => (
-                    <Run
-                      key={thread.id}
-                      thread={thread.id === task.id && full ? full : thread}
-                      onPress={() => onSteps(thread.id)}
-                    />
-                  ))}
-                </Column>
-              ) : null}
-              {full && lastRun(full) ? (
-                <Column key="run" alignment="start" spacing={0}>
-                  <SectionHead title="Last run" />
-                  <Run thread={full} onPress={() => onSteps(full.id)} />
-                </Column>
-              ) : null}
-              {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
-              {messages}
-              {hasPlaces(task, threads) ? (
-                <Places
-                  key={`places:${task.id}`}
-                  task={task}
-                  threads={threads}
-                  missing={missing}
-                  onOpen={onOpen}
-                  onOpenTask={onOpenTask}
-                />
-              ) : null}
-              {lately.length ? (
-                <Column key="lately" alignment="start" spacing={0}>
-                  <SectionHead title="Lately" />
-                  {lately.map((moment, i) => (
-                    <TraceLine
-                      key={`${moment.at} ${i}`}
-                      lead={
-                        <Mark
-                          state={
-                            i === 0 ? moment.state : moment.state === 'failed' ? 'failed' : 'read'
-                          }
-                        />
-                      }
-                      text={moment.text}
-                      tone={i > 0 ? 'secondary' : undefined}
-                      time={clock(new Date(moment.at))}
-                    />
-                  ))}
-                </Column>
-              ) : null}
-            </Sections>
-          </Column>
-        </List>
-      </Faded>
-      {beside || answering ? null : (
-        <Foot foot={foot}>
-          {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
-          <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
-        </Foot>
-      )}
-    </Column>
+    <AnswerBar value={show}>
+      <Column
+        alignment="center"
+        spacing={0}
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      >
+        <Header
+          title={task.name}
+          subtitle={`${open ? `${open} need${open === 1 ? 's' : ''} you` : STATE_WORDS[task.state]} · ${taskTime(task)}`}
+          door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
+        />
+        <Faded>
+          <List key={beside ? 'beside' : 'alone'} modifiers={pageList(asks, answered)}>
+            {asks.length ? (
+              <YourCall
+                asks={asks}
+                answered={answered}
+                width={width}
+                onAnswer={onAnswer}
+                onUndo={onUndo}
+                onAgain={onAgain}
+                onDismiss={onDismiss}
+              />
+            ) : null}
+            <Column alignment="start" spacing={0} modifiers={rest(width)}>
+              <Sections follows={asks.length > 0}>
+                {needs ? (
+                  <Column key="needs" alignment="start" spacing={0}>
+                    <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
+                    <Text
+                      paragraph
+                      modifiers={[
+                        padding({
+                          leading: metrics.list.inset,
+                          trailing: metrics.list.inset,
+                          bottom: space[1.5],
+                        }),
+                        frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      ]}
+                    >
+                      {needs}
+                    </Text>
+                  </Column>
+                ) : null}
+                {working.length ? (
+                  <Column key="working" alignment="start" spacing={0}>
+                    <SectionHead title="Working" />
+                    {working.map((thread) => (
+                      <Run
+                        key={thread.id}
+                        thread={thread.id === task.id && full ? full : thread}
+                        onPress={() => onSteps(thread.id)}
+                      />
+                    ))}
+                  </Column>
+                ) : null}
+                {full && lastRun(full) ? (
+                  <Column key="run" alignment="start" spacing={0}>
+                    <SectionHead title="Last run" />
+                    <Run thread={full} onPress={() => onSteps(full.id)} />
+                  </Column>
+                ) : null}
+                {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
+                {messages}
+                {hasPlaces(task, threads) ? (
+                  <Places
+                    key={`places:${task.id}`}
+                    task={task}
+                    threads={threads}
+                    missing={missing}
+                    onOpen={onOpen}
+                    onOpenTask={onOpenTask}
+                  />
+                ) : null}
+                {lately.length ? (
+                  <Column key="lately" alignment="start" spacing={0}>
+                    <SectionHead title="Lately" />
+                    {lately.map((moment, i) => (
+                      <TraceLine
+                        key={`${moment.at} ${i}`}
+                        lead={
+                          <Mark
+                            state={
+                              i === 0 ? moment.state : moment.state === 'failed' ? 'failed' : 'read'
+                            }
+                          />
+                        }
+                        text={moment.text}
+                        tone={i > 0 ? 'secondary' : undefined}
+                        time={clock(new Date(moment.at))}
+                      />
+                    ))}
+                  </Column>
+                ) : null}
+              </Sections>
+            </Column>
+          </List>
+        </Faded>
+        {typed ? (
+          <AnswerFoot typed={typed} />
+        ) : beside || answering ? null : (
+          <Foot foot={foot}>
+            {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
+            <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
+          </Foot>
+        )}
+      </Column>
+    </AnswerBar>
   );
 }
 
@@ -228,35 +233,39 @@ export function Asked({
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
+  const { typed, AnswerBar, show } = useAnswerBar();
   return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
-      <Header
-        title={topic}
-        subtitle={open ? `${open} need${open === 1 ? 's' : ''} you` : `${others} here`}
-        door={door}
-      />
-      <Faded>
-        <List modifiers={pageList(asks, answered)}>
-          {asks.length ? (
-            <YourCall
-              asks={asks}
-              answered={answered}
-              width={width}
-              onAnswer={onAnswer}
-              onUndo={onUndo}
-              onAgain={onAgain}
-              onDismiss={onDismiss}
-            />
-          ) : null}
-          {rows}
-          <Column alignment="start" spacing={0} modifiers={rest(width)} />
-        </List>
-      </Faded>
-    </Column>
+    <AnswerBar value={show}>
+      <Column
+        alignment="center"
+        spacing={0}
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      >
+        <Header
+          title={topic}
+          subtitle={open ? `${open} need${open === 1 ? 's' : ''} you` : `${others} here`}
+          door={door}
+        />
+        <Faded>
+          <List modifiers={pageList(asks, answered)}>
+            {asks.length ? (
+              <YourCall
+                asks={asks}
+                answered={answered}
+                width={width}
+                onAnswer={onAnswer}
+                onUndo={onUndo}
+                onAgain={onAgain}
+                onDismiss={onDismiss}
+              />
+            ) : null}
+            {rows}
+            <Column alignment="start" spacing={0} modifiers={rest(width)} />
+          </List>
+        </Faded>
+        {typed ? <AnswerFoot typed={typed} /> : null}
+      </Column>
+    </AnswerBar>
   );
 }
 
