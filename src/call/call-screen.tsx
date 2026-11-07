@@ -147,8 +147,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
   const duo = layout.duo;
-  // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
-  const settingsPlace = room.fold && duo?.tasks.area;
+  // iPhone Duo shows settings as a place of its own where Tasks goes, beside its column, so the
+  // column's buttons still answer while it's open.
+  const settingsPlace = duo?.tasks.area;
   const shared = !!settingsPlace;
   // Everything that opens and closes goes through `send`, and every open flag and lit button
   // below is read from `scene`.

@@ -1,5 +1,5 @@
-# Opens and closes Calls by its button, an edge swipe and Tasks, and checks only one of Calls and
-# Tasks is lit:
+# Opens and closes Calls by its button, an edge swipe and Tasks, and from settings goes to Tasks,
+# checking only one of Calls, Tasks and settings is lit:
 # scripts/duo tap <ref> scripts/duo-calls-taps
 launch hexvoice:///
 wait 3
@@ -28,3 +28,13 @@ tap calls-button
 shoot closed-after-tasks
 unselected calls-button
 unselected tasks-button
+# From settings, the column's Tasks button still answers: Tasks shows and settings goes.
+tap voice-settings-button
+wait 1
+shoot settings-open
+tap tasks-button
+wait 1
+shoot tasks-from-settings
+selected tasks-button
+unselected voice-settings-button
+tap tasks-button
