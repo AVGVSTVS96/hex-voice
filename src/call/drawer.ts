@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import { cancelAnimation, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -8,11 +8,12 @@ import { motion } from '@/motion';
 const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 
 // Calls comes in from the leading edge and follows the finger: `drawer` runs 0 (shut) to 1 (open),
-// and letting go settles it open or shut with a flick or past halfway. The pans open it from the
-// screen's edge, close it from the list, and close it from the call it peeks over, where a tap
-// closes it too.
+// and letting go settles it open or shut with a flick or past halfway. Whether it's open belongs to
+// the screen: the drawer settles wherever `open` says, and its pans only tell the screen where they
+// let go (`onChange`). They open it from the screen's edge, close it from the list, and close it
+// from the call it peeks over, where a tap closes it too.
 export function useDrawer({
-  open: initially,
+  open,
   width,
   reducedMotion,
   onChange,
@@ -22,17 +23,14 @@ export function useDrawer({
   reducedMotion: boolean;
   onChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(initially);
-  const drawer = useSharedValue(initially ? 1 : 0);
+  const drawer = useSharedValue(open ? 1 : 0);
+  const target = useSharedValue(open);
   const from = useSharedValue(0);
-  const opened = (now: boolean) => {
-    setOpen(now);
-    onChange(now);
-  };
   // The spring is critically damped, so it comes to rest without passing its end unless it starts
   // faster than its natural frequency times the way left. A faster fling is held to that.
   const settle = (now: boolean, velocity = 0) => {
     'worklet';
+    target.set(now);
     const most = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
     drawer.set(
       reducedMotion
@@ -42,8 +40,15 @@ export function useDrawer({
             velocity: Math.min(most, Math.max(-most, velocity / width)),
           }),
     );
-    scheduleOnRN(opened, now);
   };
+  const letGo = (now: boolean, velocity = 0) => {
+    'worklet';
+    settle(now, velocity);
+    scheduleOnRN(onChange, now);
+  };
+  useEffect(() => {
+    if (target.get() !== open) settle(open);
+  }, [open]);
   const pan = (offset: number | [number, number]) =>
     Gesture.Pan()
       .activeOffsetX(offset)
@@ -59,19 +64,17 @@ export function useDrawer({
       })
       .onEnd(({ velocityX }) => {
         'worklet';
-        settle(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
+        letGo(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
       });
   return {
     drawer,
-    open,
-    settle,
     edgeOpen: pan(12),
     listClose: pan(-16),
     peekClose: Gesture.Race(
       pan([-10, 10]),
       Gesture.Tap().onEnd(() => {
         'worklet';
-        settle(false);
+        letGo(false);
       }),
     ),
   };
