@@ -75,7 +75,6 @@ export function YourCall({
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const picks = picksOf(asks, answered);
-  const head = `Your call · ${open}`;
   return (
     <Column
       alignment="start"
@@ -88,13 +87,13 @@ export function YourCall({
         <TakePicks picks={picks} onTake={() => onTakePicks(picks)}>
           {(confirm) => (
             <SectionHead
-              title={head}
-              action={{ label: `Take ${picks.length}`, onPress: confirm }}
+              title={`Your call · ${open}`}
+              action={{ label: `Take hex’s ${picks.length}`, onPress: confirm }}
             />
           )}
         </TakePicks>
       ) : (
-        <SectionHead title={head} />
+        <SectionHead title="Your call" count={open} />
       )}
       {asks.map((ask, i) => {
         const said = answered[ask.id];
