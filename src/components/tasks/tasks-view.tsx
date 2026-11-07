@@ -121,10 +121,7 @@ export function Tasks({
         .filter((ask) => ask.topic === topic)
         .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
     : [];
-  const said = useChat(
-    opened && (pages.shape !== 'one' || pages.path.includes('topic')) ? opened.id : null,
-    open,
-  );
+  const said = useChat(opened ? opened.id : null, open);
 
   const answer = (ask: Ask, option: AskOption) => {
     tap();

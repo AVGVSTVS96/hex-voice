@@ -123,9 +123,11 @@ export function ListPage({
   const beside = pages.shape !== 'one';
   const searching = query !== null;
   const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
+  // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
+  // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
-    if (beside && open && !pages.task && first) pages.go({ to: 'beside', id: first });
-  }, [beside, open, pages.task, first]);
+    if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
+  }, [open, pages.task, first]);
   const selected = beside
     ? ((
         shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
