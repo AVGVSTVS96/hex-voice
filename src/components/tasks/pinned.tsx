@@ -60,7 +60,13 @@ function Section({ section }: { section: PinSection }) {
     );
   return (
     <Column alignment="start" spacing={0}>
-      {section.title ? <SectionHead title={section.title} count={section.lines.length} /> : null}
+      {section.title ? (
+        <SectionHead
+          title={section.title}
+          kind={section.mark === 'idle' ? undefined : section.mark}
+          count={section.lines.length}
+        />
+      ) : null}
       {section.lines.map((line, i) => (
         <Line key={i} line={line} />
       ))}

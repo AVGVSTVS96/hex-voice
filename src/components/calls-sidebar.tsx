@@ -185,10 +185,13 @@ function Row({
             />
           </View>
           <View style={styles.body}>
-            <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
-              {callName(call)}
-            </Text>
-            <View style={styles.metaRow}>
+            <View style={styles.line}>
+              <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
+                {callName(call)}
+              </Text>
+              <Text style={styles.when}>{live ? 'Now' : whenIn(call.started)}</Text>
+            </View>
+            <View style={styles.line}>
               <Text numberOfLines={1} style={styles.meta}>
                 {live ? (
                   <Text style={styles.live}>Live now</Text>
@@ -201,7 +204,6 @@ function Row({
                   <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
                 )}
               </Text>
-              <Text style={styles.when}>{live ? 'Now' : whenIn(call.started)}</Text>
             </View>
           </View>
         </Animated.View>
@@ -286,13 +288,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   body: { flex: 1, paddingRight: space[3], gap: space[0.5] },
-  name: { ...textOf('headline'), color: theme.text, letterSpacing: -0.16 },
+  name: { ...textOf('headline'), flex: 1, color: theme.text, letterSpacing: -0.16 },
   unnamed: { ...textOf('headline', 'regular'), color: theme.secondary },
-  metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  line: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
   meta: { ...textOf('detail'), flex: 1, color: theme.secondary },
   live: { color: theme.switchOn },
   bad: { color: theme.danger },
-  when: { ...textOf('detail'), color: theme.secondary, fontVariant: ['tabular-nums'] },
+  when: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
   action: { position: 'absolute', right: 8, top: 10 },
   delete: {
     ...circle(44),

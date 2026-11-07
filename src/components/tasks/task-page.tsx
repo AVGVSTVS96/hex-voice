@@ -138,7 +138,10 @@ export function Detail({
               {doneFirst ? done : null}
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
-                  <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
+                  <SectionHead
+                    title={`Waiting on you since ${clock(new Date(task.since))}`}
+                    kind="needs"
+                  />
                   <Text
                     paragraph
                     modifiers={[

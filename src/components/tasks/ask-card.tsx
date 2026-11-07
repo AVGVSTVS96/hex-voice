@@ -88,12 +88,13 @@ export function YourCall({
           {(confirm) => (
             <SectionHead
               title={`Your call · ${open}`}
+              kind="needs"
               action={{ label: `Take hex’s ${picks.length}`, onPress: confirm }}
             />
           )}
         </TakePicks>
       ) : (
-        <SectionHead title="Your call" count={open} />
+        <SectionHead title="Your call" kind="needs" count={open} />
       )}
       {asks.map((ask, i) => {
         const said = answered[ask.id];

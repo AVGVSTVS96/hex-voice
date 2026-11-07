@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
+import { Circle, Mask, ProgressView, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -21,7 +21,7 @@ import { Children, isValidElement, type ReactNode } from 'react';
 import type { Answered } from '@/hooks/use-watch';
 import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { mask, metrics, space } from '@/ui/tokens';
+import { mask, metrics, space, type Tone } from '@/ui/tokens';
 
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
@@ -57,13 +57,47 @@ export function listRow(
   ];
 }
 
+// What a list's section or tab holds, by its color, as Muse colors a section's name and the
+// tinted dot beside it: mint what needs you, blue what's under way, red what failed.
+export const KINDS = {
+  needs: { word: 'accent', dot: 'accentFill' },
+  working: { word: 'progress', dot: 'progressFill' },
+  failed: { word: 'danger', dot: 'dangerFill' },
+  done: { word: 'text', dot: 'fillStrong' },
+  quiet: { word: 'secondary', dot: 'fill' },
+} as const satisfies Record<string, { word: Tone; dot: Tone }>;
+
+export type Kind = keyof typeof KINDS;
+
+export function Badge({ kind }: { kind: Kind }) {
+  const { word, dot } = KINDS[kind];
+  return (
+    <ZStack alignment="center">
+      <Circle
+        modifiers={[
+          frame({ width: metrics.tabs.badge, height: metrics.tabs.badge }),
+          foregroundStyle(theme[dot]),
+        ]}
+      />
+      <Circle
+        modifiers={[
+          frame({ width: metrics.tabs.dot, height: metrics.tabs.dot }),
+          foregroundStyle(theme[word]),
+        ]}
+      />
+    </ZStack>
+  );
+}
+
 export function SectionHead({
   title,
+  kind,
   count,
   opens = false,
   action,
 }: {
   title: string;
+  kind?: Kind;
   count?: string | number;
   opens?: boolean;
   // Taken across the whole row, so it's never only a footnote's height to hit.
@@ -91,7 +125,12 @@ export function SectionHead({
           : []),
       ]}
     >
-      <Text variant="detail">{title}</Text>
+      <Row alignment="center" spacing={metrics.tabs.gap}>
+        {kind ? <Badge kind={kind} /> : null}
+        <Text variant="detail" weight="semibold" tone={kind ? KINDS[kind].word : 'text'}>
+          {title}
+        </Text>
+      </Row>
       <Spacer flexible />
       {count !== undefined ? (
         <Text variant="caption" tone="tertiary">
