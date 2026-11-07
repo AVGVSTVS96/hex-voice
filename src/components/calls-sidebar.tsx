@@ -179,7 +179,7 @@ function Row({
           style={[styles.slide, selected && styles.selected, slide]}
         >
           <View style={styles.nameRow}>
-            <Text numberOfLines={2} style={[styles.name, !call.title && styles.unnamed]}>
+            <Text numberOfLines={2} style={styles.name}>
               {callName(call)}
             </Text>
             <Text style={styles.when}>{live ? 'Now' : callTime(call.started)}</Text>
@@ -278,7 +278,6 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   name: { ...textOf('headline'), flex: 1, color: theme.text },
-  unnamed: { ...textOf('headline', 'regular'), color: theme.secondary },
   meta: { ...textOf('detail'), flexShrink: 1, color: theme.secondary },
   live: { color: theme.progress },
   bad: { color: theme.danger },

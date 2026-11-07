@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { failure, openURL } from '@/hooks/use-failures';
 import type { CallCard } from '@/live/agents';
-import type { AskOption } from '@/live/asks';
+import { PICK, type AskOption } from '@/live/asks';
 import { reachedBy } from '@/live/inbox';
 import { circle, theme } from '@/theme';
 import { labelOf, metrics, radius, space, textOf } from '@/ui/tokens';
@@ -76,7 +76,7 @@ export function CallAsk({
           <Pressable
             key={option.label}
             accessibilityRole="button"
-            accessibilityLabel={option.pick ? `${option.label}, hex’s pick` : option.label}
+            accessibilityLabel={option.pick ? `${option.label}, ${PICK}` : option.label}
             accessibilityState={{ selected: sending === option.label, disabled: !!sending }}
             onPress={() => choose(option)}
             style={({ pressed }) => [
@@ -86,6 +86,7 @@ export function CallAsk({
             ]}
           >
             <Text style={[styles.optionText, option.pick && styles.pickText]}>{option.label}</Text>
+            {option.pick ? <Text style={styles.pickNote}>{PICK}</Text> : null}
           </Pressable>
         ))}
       </View>
@@ -153,9 +154,10 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: theme.surfaceSelected,
   },
-  // hex's pick is the solid one, as on a question in Tasks.
-  pick: { backgroundColor: theme.prominent },
-  pickText: { ...labelOf('body', 'medium'), color: theme.onProminent },
+  // hex's pick is tinted and named, as on a question in Tasks, so it never reads as chosen.
+  pick: { backgroundColor: theme.accentMuted, paddingVertical: space[2] },
+  pickText: { ...labelOf('body', 'medium'), color: theme.text },
+  pickNote: { ...labelOf('caption'), color: theme.accent },
   pressed: { opacity: 0.6 },
   optionText: { ...labelOf('body'), color: theme.text },
   links: {

@@ -1,6 +1,6 @@
 import { Icon, RNHostView, Spacer } from '@expo/ui';
 import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
-import { clipShape, foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
+import { foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import { View, type ColorValue } from 'react-native';
 
@@ -14,9 +14,8 @@ import { metrics, radius, space, type Tone } from '@/ui/tokens';
 export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 'read' | 'pending';
 
 // Drawn natively so a long list stays cheap; only the arc moves, so only it animates. What needs
-// you is a to-do's square in mint, with a question mark for a question and a tick on mint for one
-// hex has a pick ready for; what hex has under way is its blue arc, and what's finished a quiet
-// tick.
+// you is an open mint square, with a question mark for a question and a sparkle for one hex has a
+// pick for; what hex has under way is its blue arc. Only what's finished has a tick.
 export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (
@@ -53,47 +52,19 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
   );
   switch (state) {
     case 'needs':
-      return (
-        <Spacer
-          modifiers={[
-            frame({ width: square, height: square }),
-            strokeBorder({
-              content: theme.accent,
-              style: { lineWidth: metrics.list.stroke },
-              shape: 'roundedRectangle',
-              cornerRadius: radius.mark,
-            }),
-          ]}
-        />
-      );
+      return <Box />;
     case 'asks':
       return (
         <>
-          <Spacer
-            modifiers={[
-              frame({ width: square, height: square }),
-              strokeBorder({
-                content: theme.accent,
-                style: { lineWidth: metrics.list.stroke },
-                shape: 'roundedRectangle',
-                cornerRadius: radius.mark,
-              }),
-            ]}
-          />
+          <Box />
           <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />
         </>
       );
     case 'pick':
       return (
         <>
-          <Rectangle
-            modifiers={[
-              frame({ width: square, height: square }),
-              foregroundStyle(theme.accentMuted),
-              clipShape('roundedRectangle', radius.mark),
-            ]}
-          />
-          <Icon name="checkmark" size={metrics.symbol.mark} color={theme.accent} />
+          <Box />
+          <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
         </>
       );
     case 'done':
@@ -114,7 +85,14 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
         </>
       );
     case 'read':
-      return <Icon name="checkmark" size={metrics.symbol.mark} color={theme.tertiary} />;
+      return (
+        <Circle
+          modifiers={[
+            frame({ width: metrics.badge.dot, height: metrics.badge.dot }),
+            foregroundStyle(theme.tertiary),
+          ]}
+        />
+      );
     case 'failed':
       return disc(
         theme.dangerMuted,
@@ -161,6 +139,23 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
         />
       );
   }
+}
+
+function Box() {
+  const square = metrics.list.todo;
+  return (
+    <Spacer
+      modifiers={[
+        frame({ width: square, height: square }),
+        strokeBorder({
+          content: theme.accent,
+          style: { lineWidth: metrics.list.stroke },
+          shape: 'roundedRectangle',
+          cornerRadius: radius.mark,
+        }),
+      ]}
+    />
+  );
 }
 
 // A section's name in its color on a tinted dot, as Muse heads Tracking and Goals: mint for what

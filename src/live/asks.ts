@@ -65,6 +65,8 @@ export type Sent = z.infer<typeof Sent>;
 
 // What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
 export const NOT_NEEDED = 'Not needed';
+// What marks the option hex would answer with, wherever it's offered.
+export const PICK = 'hex’s pick';
 
 // The places an answer couldn't reach, which still ask it until it's sent again.
 export const unreached = (missed: number) =>

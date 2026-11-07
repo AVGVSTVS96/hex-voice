@@ -30,6 +30,7 @@ import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components/tasks/parts';
 import {
   NOT_NEEDED,
+  PICK,
   unreached,
   type Ask,
   type AskLink,
@@ -336,7 +337,7 @@ function Links({ links }: { links: AskLink[] }) {
   );
 }
 
-// An ask's choices on its row in the list, as small pills, hex's pick solid.
+// An ask's choices on its row in the list, as small pills, hex's pick tinted.
 export function InlineAnswers({
   ask,
   onAnswer,
@@ -352,8 +353,7 @@ export function InlineAnswers({
         <Pill
           key={option.label}
           label={option.label}
-          prominent={option.pick}
-          accessibility={option.pick ? `${option.label}, hex’s pick` : option.label}
+          pick={option.pick}
           onPress={() => onAnswer(ask, option)}
           small
         />
@@ -363,15 +363,16 @@ export function InlineAnswers({
 }
 
 // The choices as Muse's pills, side by side when each fits its share of the row. Longer ones are
-// read, so each is a block of its own words, whole, one under another. hex's pick is the solid one.
+// read, so each is a block of its own words, whole, one under another. hex's pick is tinted and
+// named, so the card holds no solid button that reads as already chosen.
 function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
   const n = ask.options.length;
   if (!n) return null;
-  const share = (width - space[2] * (n - 1)) / n - 2 * space[4];
+  // Each pill's share of the row, short of its sides and the sparkle hex's pick wears.
+  const share = (width - space[2] * (n - 1)) / n - 2 * space[4] - metrics.symbol.small - space[2];
   const beside =
     n <= SIDE_BY_SIDE &&
     ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize));
-  const label = (option: AskOption) => (option.pick ? `${option.label}, hex’s pick` : option.label);
   if (beside)
     return (
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -379,9 +380,8 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
           <Pill
             key={option.label}
             label={option.label}
-            prominent={option.pick}
+            pick={option.pick}
             grow
-            accessibility={label(option)}
             onPress={() => onAnswer(ask, option)}
           />
         ))}
@@ -390,26 +390,35 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
   return (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       {ask.options.map((option) => (
-        <Text
+        <Column
           key={option.label}
-          variant="body"
-          weight={option.pick ? 'medium' : 'regular'}
-          tone={option.pick ? 'onProminent' : 'text'}
-          paragraph
+          alignment="start"
+          spacing={0}
           onPress={() => onAnswer(ask, option)}
           modifiers={[
             padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
             frame({ minHeight: metrics.pill.regular }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
-            background(option.pick ? theme.prominent : theme.fill),
+            background(option.pick ? theme.accentMuted : theme.fill),
             clipShape('roundedRectangle', radius.option),
             contentShape(shapes.rectangle()),
-            accessibilityLabel(label(option)),
+            accessibilityElement('combine'),
+            accessibilityLabel(option.pick ? `${option.label}, ${PICK}` : option.label),
             accessibilityAddTraits(['isButton']),
           ]}
         >
-          {option.label}
-        </Text>
+          <Text variant="body" weight={option.pick ? 'medium' : 'regular'} paragraph>
+            {option.label}
+          </Text>
+          {option.pick ? (
+            <Row alignment="center" spacing={space[1]}>
+              <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
+              <Text variant="caption" tone="accent">
+                {PICK}
+              </Text>
+            </Row>
+          ) : null}
+        </Column>
       ))}
     </Column>
   );

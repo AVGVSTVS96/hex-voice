@@ -229,6 +229,15 @@ export function headlineOf(entry: Entry) {
   }
 }
 
+// A run that ended on the API's own error says what went wrong in words, not the raw message.
+export function problemOf(line: string) {
+  const error = /^API Error:\s*(.*)$/s.exec(line.trim());
+  if (!error) return undefined;
+  return /limit/i.test(error[1] ?? '')
+    ? 'Stopped: the server was limiting requests'
+    : 'Stopped on an API error';
+}
+
 function textOf(entry: Entry) {
   switch (entry.kind) {
     case 'ask':

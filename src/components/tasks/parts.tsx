@@ -25,7 +25,7 @@ import { Children, isValidElement, type ReactNode } from 'react';
 
 import { Badge, inkOf, type Tint } from '@/components/tasks/mark';
 import type { Answered } from '@/hooks/use-watch';
-import { NOT_NEEDED } from '@/live/asks';
+import { NOT_NEEDED, PICK } from '@/live/asks';
 import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { mask, metrics, radius, space } from '@/ui/tokens';
@@ -76,12 +76,13 @@ export function rowFrame(selected: boolean, { top = metrics.list.row.top } = {})
   ];
 }
 
-// Muse's button: a capsule, gray for any choice and solid for the one hex picks or the page leads
-// with. `grow` shares a row with the others; `small` sits at the end of a line of text.
+// Muse's button: a gray capsule. hex's pick is tinted mint and says so, so it reads as a
+// suggestion, never as already chosen. `grow` shares a row with the others; `small` sits at the
+// end of a line of text and marks the pick with a sparkle alone.
 export function Pill({
   label,
   onPress,
-  prominent = false,
+  pick = false,
   small = false,
   grow = false,
   icon,
@@ -90,14 +91,15 @@ export function Pill({
 }: {
   label: string;
   onPress?: () => void;
-  prominent?: boolean;
+  pick?: boolean;
   small?: boolean;
   grow?: boolean;
   icon?: SFSymbol;
   accessibility?: string;
   testID?: string;
 }) {
-  const ink = prominent ? 'onProminent' : onPress ? 'text' : 'tertiary';
+  const ink = onPress ? 'text' : 'tertiary';
+  const mark = pick ? 'sparkle' : icon;
   return (
     <Row
       alignment="center"
@@ -108,23 +110,33 @@ export function Pill({
         padding({ leading: small ? space[3] : space[4], trailing: small ? space[3] : space[4] }),
         frame({ minHeight: small ? metrics.pill.small : metrics.pill.regular }),
         ...(grow ? [frame({ maxWidth: Infinity })] : []),
-        background(prominent ? theme.prominent : theme.fill),
+        background(pick ? theme.accentMuted : theme.fill),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
-        accessibilityLabel(accessibility ?? label),
+        accessibilityElement('combine'),
+        accessibilityLabel(accessibility ?? (pick ? `${label}, ${PICK}` : label)),
         accessibilityAddTraits(['isButton']),
       ]}
     >
-      {icon ? <Icon name={icon} size={metrics.symbol.small} color={theme[ink]} /> : null}
-      <Text
-        numberOfLines={grow ? 2 : 1}
-        variant={small ? 'detail' : 'body'}
-        weight={prominent ? 'medium' : 'regular'}
-        tone={ink}
-        align={grow ? 'center' : undefined}
-      >
-        {label}
-      </Text>
+      {mark ? (
+        <Icon name={mark} size={metrics.symbol.small} color={theme[pick ? 'accent' : ink]} />
+      ) : null}
+      <Column alignment={grow ? 'center' : 'start'} spacing={0}>
+        <Text
+          numberOfLines={grow ? 2 : 1}
+          variant={small ? 'detail' : 'body'}
+          weight={pick ? 'medium' : 'regular'}
+          tone={ink}
+          align={grow ? 'center' : undefined}
+        >
+          {label}
+        </Text>
+        {pick && !small ? (
+          <Text numberOfLines={1} variant="caption" tone="accent">
+            {PICK}
+          </Text>
+        ) : null}
+      </Column>
     </Row>
   );
 }

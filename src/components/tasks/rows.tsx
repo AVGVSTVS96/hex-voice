@@ -22,6 +22,7 @@ import {
   STUCK,
   fitsOneLine,
   headlineOf,
+  problemOf,
   opens,
   type Entry,
   type Stage,
@@ -256,7 +257,7 @@ function Shell({
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           <Text
-            numberOfLines={3}
+            numberOfLines={2}
             variant="body"
             paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -301,7 +302,7 @@ function Meta({ text }: { text: string }) {
 // Why something is stuck, under what it is.
 function Why({ text }: { text: string }) {
   return (
-    <Text numberOfLines={3} variant="detail" tone="secondary" paragraph>
+    <Text numberOfLines={2} variant="detail" tone="secondary" paragraph>
       {text}
     </Text>
   );
@@ -386,10 +387,12 @@ export function ProjectRow({
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
   const count = topic.entries.length;
-  const headline = headlineOf(newest);
+  const said = headlineOf(newest);
+  const problem = problemOf(said);
+  const headline = problem ?? said;
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
-  const mark = needs ? waiting(newest) : STAGE_MARK[stage];
+  const mark = needs ? waiting(newest) : problem ? 'failed' : STAGE_MARK[stage];
   return (
     <Row
       alignment="start"
@@ -422,9 +425,9 @@ export function ProjectRow({
         </HStack>
         {headline === topic.name ? null : (
           <Text
-            numberOfLines={3}
+            numberOfLines={2}
             variant="detail"
-            tone="secondary"
+            tone={problem ? 'danger' : 'secondary'}
             paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >

@@ -11,6 +11,7 @@ import {
   topicIn,
   inboxEntries,
   picksOf,
+  problemOf,
   reachedBy,
   search,
   stageCounts,
@@ -495,4 +496,13 @@ test('an answer says it cleared buttons only when hex says it settled some, name
     reachedBy(ask('b', 'pick'), { ...sent, missed: 2 }),
     '. 2 places were out of reach and still ask it',
   );
+});
+
+test('a run that ended on an API error says so in words, and any other line stays as hex wrote it', () => {
+  assert.equal(
+    problemOf('API Error: Server is temporarily limiting requests (not your usage limit) · All…'),
+    'Stopped: the server was limiting requests',
+  );
+  assert.equal(problemOf('API Error: 500 internal'), 'Stopped on an API error');
+  assert.equal(problemOf('remade hero clip sent'), undefined);
 });
