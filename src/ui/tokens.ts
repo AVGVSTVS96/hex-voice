@@ -201,8 +201,6 @@ export const metrics = {
     // The gap between a row's time, its count and its tiles.
     meta: space[2],
   },
-  // A call's row in Calls: its name and its details under it, with room above and below.
-  callRow: 68,
   // The widest a page's words run before it holds them in a readable column, on the Duo held open
   // and on iPad.
   readable: 640,

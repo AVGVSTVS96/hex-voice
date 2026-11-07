@@ -54,6 +54,8 @@ export function CallsSidebar({
   onOpen,
   onDelete,
 }: Props) {
+  // A head only parts one group from another, so a lone one is left off.
+  const days = byDay(calls ?? []);
   return (
     <View style={[styles.sidebar, { width, paddingTop: top }]}>
       <Text accessibilityRole="header" style={styles.title}>
@@ -66,9 +68,9 @@ export function CallsSidebar({
           {offline && (
             <Text style={styles.offline}>Can’t reach hex. These are kept on this device.</Text>
           )}
-          {byDay(calls ?? []).map((day) => (
+          {days.map((day) => (
             <View key={day.label}>
-              <Text style={styles.day}>{day.label}</Text>
+              {days.length > 1 ? <Text style={styles.day}>{day.label}</Text> : null}
               {day.calls.map((call) => (
                 <Row
                   key={call.id}
@@ -176,20 +178,20 @@ function Row({
           }}
           style={[styles.slide, selected && styles.selected, slide]}
         >
-          <View style={styles.icon}>
-            <Glyph
-              name={SOURCES[call.from].symbol}
-              size={metrics.symbol.bar}
-              color={live ? theme.progress : theme.secondary}
-            />
+          <View style={styles.nameRow}>
+            <Text numberOfLines={2} style={[styles.name, !call.title && styles.unnamed]}>
+              {callName(call)}
+            </Text>
+            <Text style={styles.when}>{live ? 'Now' : callTime(call.started)}</Text>
           </View>
-          <View style={styles.body}>
-            <View style={styles.nameRow}>
-              <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
-                {callName(call)}
-              </Text>
-              <Text style={styles.when}>{live ? 'Now' : callTime(call.started)}</Text>
-            </View>
+          <View style={styles.metaRow}>
+            {call.from === 'app' ? null : (
+              <Glyph
+                name={SOURCES[call.from].symbol}
+                size={metrics.symbol.small}
+                color={live ? theme.progress : theme.secondary}
+              />
+            )}
             <Text numberOfLines={1} style={styles.meta}>
               {live ? (
                 <Text style={styles.live}>Live now</Text>
@@ -258,34 +260,30 @@ const styles = StyleSheet.create({
     paddingTop: space[6],
     paddingBottom: space[2],
   },
+  // The row sizes to its words; its delete button waits behind it, uncovered by the swipe.
   row: {
-    height: metrics.callRow,
     marginHorizontal: space[2],
     borderRadius: radius.control,
     borderCurve: 'continuous',
   },
   selected: { backgroundColor: theme.card },
   slide: {
-    ...StyleSheet.absoluteFill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: metrics.list.gap,
-    paddingLeft: metrics.list.inset - space[2],
-    paddingRight: metrics.list.inset - space[2],
+    gap: space[1],
+    paddingHorizontal: metrics.list.inset - space[2],
+    paddingVertical: space[3],
     borderRadius: radius.control,
     borderCurve: 'continuous',
     backgroundColor: theme.sheet,
   },
-  icon: { width: metrics.list.mark, alignItems: 'center' },
-  body: { flex: 1, gap: space[1] },
   nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   name: { ...textOf('headline'), flex: 1, color: theme.text },
   unnamed: { ...textOf('headline', 'regular'), color: theme.secondary },
-  meta: { ...textOf('detail'), color: theme.secondary },
+  meta: { ...textOf('detail'), flexShrink: 1, color: theme.secondary },
   live: { color: theme.progress },
   bad: { color: theme.danger },
   when: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  action: { position: 'absolute', right: 8, top: 10 },
+  action: { position: 'absolute', right: space[2], top: 0, bottom: 0, justifyContent: 'center' },
   delete: {
     ...circle(44),
     backgroundColor: theme.danger,
