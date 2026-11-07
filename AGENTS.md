@@ -43,6 +43,7 @@ scripts/duo phone [update]        a screenshot of his real Duo, once hex runs th
 
 - UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
 - A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
+- A change to what opens and closes (Calls, Tasks, settings) also passes `scripts/duo tap <ref> scripts/duo-calls-taps`.
 - A change meant to make folding, opening or turning smoother proves it with `scripts/duo fold` before and after: it counts the frames the app shows a wrong layout once iOS's own part of each move has landed, timed by a plain UIKit app filmed alongside (`FOLD_PROBE`, its simulator build on the Mac), into `fold/table.md` with a sheet per move.
 - `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 - Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
