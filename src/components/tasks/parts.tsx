@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
+import { Button, Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   alignmentGuide,
@@ -10,12 +10,14 @@ import {
   listRowSeparator,
   listRowSeparatorTint,
   padding,
+  tint,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { Children, isValidElement, type ReactNode } from 'react';
 
 import type { Answered } from '@/hooks/use-watch';
+import { NOT_NEEDED } from '@/live/asks';
 import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
@@ -52,6 +54,19 @@ export function listRow(
     ...(top ? [] : [listRowSeparator('hidden', 'top')]),
     ...(bottom ? [] : [listRowSeparator('hidden', 'bottom')]),
   ];
+}
+
+// Puts an ask away without an answer: a row's swipe action at the trailing edge, where iOS puts the
+// one that clears a row, so a full swipe left takes it, as it does in Mail.
+export function NotNeededButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Button
+      label={NOT_NEEDED}
+      systemImage="xmark"
+      onPress={onPress}
+      modifiers={[tint(theme.secondary)]}
+    />
+  );
 }
 
 export function SectionHead({
@@ -162,7 +177,14 @@ export function Faded({
 
 // A page's sections, a hairline between each and the next so it's clear where one ends. Pass each
 // section only when it shows, so none is drawn above the first.
-export function Sections({ children }: { children: ReactNode }) {
+// Sections that follow others on the page, like its asks, open on the line that parts them too.
+export function Sections({
+  follows = false,
+  children,
+}: {
+  follows?: boolean;
+  children: ReactNode;
+}) {
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       {Children.toArray(children).map((section, i) => (
@@ -172,7 +194,7 @@ export function Sections({ children }: { children: ReactNode }) {
           spacing={0}
           modifiers={[frame({ maxWidth: Infinity })]}
         >
-          {i ? (
+          {i || follows ? (
             <Column alignment="start" spacing={0} modifiers={[padding({ top: space[5] })]}>
               <Hairline />
             </Column>

@@ -16,9 +16,9 @@ import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Dots } from '@/components/tasks/inbox';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
-import { Failure, listRow } from '@/components/tasks/parts';
+import { Failure, NotNeededButton, listRow } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
-import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
+import type { Ask, AskOption } from '@/live/asks';
 import {
   PLACES,
   STUCK,
@@ -91,7 +91,7 @@ export function EntryRow({
         <Swiped
           {...swiped}
           lead={pick && { label: pick.label, onPress: () => actions.onAnswer(ask, pick) }}
-          away={{ label: NOT_NEEDED, onPress: () => actions.onDismiss(ask) }}
+          onAway={() => actions.onDismiss(ask)}
         >
           <Shell
             mark="needs"
@@ -178,7 +178,7 @@ function Swiped({
   first,
   selected,
   lead,
-  away,
+  onAway,
   trail,
   onTile,
   children,
@@ -187,8 +187,7 @@ function Swiped({
   first: boolean;
   selected: boolean;
   lead?: Swipe;
-  // Puts it away without an answer, at the trailing edge, where iOS puts the one that clears a row.
-  away?: Swipe;
+  onAway?: () => void;
   trail: Tile[];
   onTile: (tile: Tile) => void;
   children: ReactNode;
@@ -206,16 +205,9 @@ function Swiped({
           />
         </SwipeActions.Actions>
       ) : null}
-      {away || trail.length ? (
-        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-          {away ? (
-            <Button
-              label={away.label}
-              systemImage="xmark"
-              onPress={away.onPress}
-              modifiers={[tint(theme.secondary)]}
-            />
-          ) : null}
+      {onAway || trail.length ? (
+        <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
+          {onAway ? <NotNeededButton onPress={onAway} /> : null}
           {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
           {[...trail].reverse().map((tile, i) => {
             const { color, glyph } = swipeLook(tile);

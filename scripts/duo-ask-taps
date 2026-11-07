@@ -1,0 +1,67 @@
+# Answering a question in your own words, and putting one away: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-taps
+# Words typed on its card and not sent stay there: the page closes, and the app starts again, and
+# the card opens on them, the keyboard down.
+launch hexvoice:///?tasks=md
+wait 3
+tap ask-card
+wait 1
+tap Write your own
+type ask-input Found one of them
+above-keyboard ask-input
+shoot ask-writing
+tap task-back
+wait 1
+no-keyboard leaving the page
+open hexvoice:///?tasks=md
+wait 2
+shoot ask-held
+launch hexvoice:///?tasks=md
+wait 3
+no-keyboard opening on held words
+shoot ask-held-relaunch
+# A swipe left puts it away, as in Mail: its row folds to Not needed, with Undo.
+swipe-left ask-card
+wait 1
+shoot ask-swiped
+tap xmark
+wait 1
+shoot ask-put-away
+tap Undo
+wait 1
+shoot ask-back
+# Swiped away while typing, it lets go of the keyboard and the page's foot comes back.
+type ask-input  still
+swipe-left ask-card
+wait 1
+tap xmark
+wait 1
+no-keyboard after a swipe while typing
+frame thread-write
+tap Undo
+wait 1
+# The same swipe on its row in the Tasks list.
+launch hexvoice:///?tasks
+wait 3
+tap tasks-search
+type tasks-search-field EDD
+swipe-left markdown asks
+wait 1
+shoot row-swiped
+tap xmark
+wait 1
+shoot row-put-away
+# A note says the question is still open; an answer folds it to what was said and clears the
+# words, so the next run starts on none.
+launch hexvoice:///?tasks=md
+wait 3
+type ask-input  and the other
+tap Send a note to markdown
+wait 1
+shoot ask-noted
+tap Write your own
+type ask-input Found both
+swipe-down ask-input
+wait 1
+tap Answer with this
+wait 1
+shoot ask-answered
