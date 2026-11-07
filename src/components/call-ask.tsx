@@ -6,7 +6,7 @@ import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import { reachedBy } from '@/live/inbox';
 import { circle, theme } from '@/theme';
-import { labelOf, radius, space, textOf } from '@/ui/tokens';
+import { labelOf, metrics, radius, space, textOf } from '@/ui/tokens';
 
 // An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
 // open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
@@ -85,7 +85,7 @@ export function CallAsk({
               (pressed || (sending && sending !== option.label)) && styles.pressed,
             ]}
           >
-            <Text style={styles.optionText}>{option.label}</Text>
+            <Text style={[styles.optionText, option.pick && styles.pickText]}>{option.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[0.5],
   },
   topic: { ...labelOf('caption', 'medium'), color: theme.secondary },
-  question: { ...textOf('body'), color: theme.text, paddingHorizontal: space[0.5] },
+  question: { ...textOf('headline'), color: theme.text, paddingHorizontal: space[0.5] },
   tag: {
     ...labelOf('caption', 'medium'),
     color: theme.text,
@@ -146,16 +146,16 @@ const styles = StyleSheet.create({
   },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   option: {
-    minHeight: 44,
+    minHeight: metrics.pill.regular,
     justifyContent: 'center',
     paddingHorizontal: space[4],
-    borderRadius: radius.control,
+    borderRadius: radius.option,
     borderCurve: 'continuous',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
     backgroundColor: theme.surfaceSelected,
   },
-  pick: { borderColor: theme.accent },
+  // hex's pick is the solid one, as on a question in Tasks.
+  pick: { backgroundColor: theme.prominent },
+  pickText: { ...labelOf('body', 'medium'), color: theme.onProminent },
   pressed: { opacity: 0.6 },
   optionText: { ...labelOf('body'), color: theme.text },
   links: {
@@ -170,11 +170,11 @@ const styles = StyleSheet.create({
   sent: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3], paddingRight: space[6] },
   check: {
     ...circle(26),
-    backgroundColor: theme.accentMuted,
+    backgroundColor: theme.surfaceSelected,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkMark: { ...labelOf('caption', 'medium'), color: theme.accent },
+  checkMark: { ...labelOf('caption', 'medium'), color: theme.secondary },
   sentText: { ...textOf('body'), flex: 1, color: theme.text },
   quiet: { color: theme.secondary },
 });
