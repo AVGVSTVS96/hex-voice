@@ -16,7 +16,7 @@ import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
 import { Failure, listRow } from '@/components/tasks/parts';
-import { PlaceTile, TileIcon, swipeLook } from '@/components/tasks/places';
+import { TileIcon, swipeLook } from '@/components/tasks/places';
 import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 import {
   PLACES,
@@ -435,6 +435,15 @@ function Folded({
   );
 }
 
+// A project leads with the mark of what it holds in the stage shown, as Muse's goals lead with
+// their checkbox.
+const STAGE_MARKS: Record<Stage, MarkState> = {
+  needs: 'needs',
+  working: 'working',
+  done: 'done',
+  quiet: 'idle',
+};
+
 const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   working: 'working',
   done: 'done',
@@ -485,7 +494,7 @@ export function ProjectRow({
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
-      <PlaceTile place={newest.place} size={metrics.symbol.hero} />
+      <Mark state={STAGE_MARKS[stage ?? newest.stage]} />
       <Column
         alignment="start"
         spacing={space[0.5]}
@@ -555,7 +564,7 @@ export function DoneRow({
         accessibilityLabel(`${line}. Done in ${where}, ${when}. Opens it`),
       ]}
     >
-      <PlaceTile place={entry.place} size={metrics.symbol.hero} />
+      <Mark state="done" />
       <Column
         alignment="start"
         spacing={space[0.5]}
