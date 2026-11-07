@@ -1,8 +1,8 @@
-import { HStack, VStack } from '@expo/ui/swift-ui';
+import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
 import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
-import { TasksButton } from '@/components/tasks-button';
+import { NeedsDot, TasksButton } from '@/components/tasks-button';
 import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
 import { metrics, type ToolbarGaps } from '@/ui/tokens';
@@ -59,22 +59,27 @@ export function ScreenToolbar({
             : { width: metrics.tool, height: long }
         }
       >
-        <Group spacing={gap} modifiers={[glass('capsule')]}>
-          <TasksButton
-            needs={tasks.needs}
-            working={tasks.working}
-            selected={tasks.open}
-            onPress={onTasks}
-          />
-          <GlassButton
-            bare
-            icon="settings"
-            label="Voice and appearance settings"
-            testID="voice-settings-button"
-            selected={settingsOpen}
-            onPress={onSettings}
-          />
-        </Group>
+        <Overlay alignment="topLeading">
+          <Group spacing={gap} modifiers={[glass('capsule')]}>
+            <TasksButton
+              needs={tasks.needs}
+              working={tasks.working}
+              selected={tasks.open}
+              onPress={onTasks}
+            />
+            <GlassButton
+              bare
+              icon="settings"
+              label="Voice and appearance settings"
+              testID="voice-settings-button"
+              selected={settingsOpen}
+              onPress={onSettings}
+            />
+          </Group>
+          <Overlay.Content>
+            <NeedsDot needs={tasks.needs} />
+          </Overlay.Content>
+        </Overlay>
       </Host>
     </Animated.View>
   );

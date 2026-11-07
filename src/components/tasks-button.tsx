@@ -23,7 +23,7 @@ const DOT = 14;
 const LINE = 2;
 
 // The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
-// dot says something needs you. Nothing else on it moves.
+// dot (`NeedsDot`) says something needs you. Nothing else on it moves.
 export function TasksButton({
   needs,
   working,
@@ -58,18 +58,25 @@ export function TasksButton({
         selected={selected}
         onPress={onPress}
       />
-      <Circle
-        modifiers={[
-          foregroundStyle(theme.accent),
-          frame({ width: DOT, height: DOT }),
-          strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
-          offset({ x: (metrics.tool - DOT) / 2, y: -(metrics.tool - DOT) / 2 }),
-          scaleEffect(needs > 0 ? 1 : 0.01),
-          opacity(needs > 0 ? 1 : 0),
-          animation(Animation.bouncy(), needs > 0),
-        ]}
-      />
     </ZStack>
+  );
+}
+
+// The mint dot on the Tasks button's top trailing corner, over the glass the button sits on: on
+// it, the glass clipped the dot to its capsule each time a press lit it.
+export function NeedsDot({ needs }: { needs: number }) {
+  return (
+    <Circle
+      modifiers={[
+        foregroundStyle(theme.accent),
+        frame({ width: DOT, height: DOT }),
+        strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
+        offset({ x: metrics.tool - DOT }),
+        scaleEffect(needs > 0 ? 1 : 0.01),
+        opacity(needs > 0 ? 1 : 0),
+        animation(Animation.bouncy(), needs > 0),
+      ]}
+    />
   );
 }
 
