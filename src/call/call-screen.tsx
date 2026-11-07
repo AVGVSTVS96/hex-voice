@@ -61,7 +61,7 @@ import { hairline, theme } from '@/theme';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics, stack } from '@/ui/tokens';
 import { roomOf, type Room } from '@/screens/window';
-import { closed, inView, opened, type Place, type Places } from './places';
+import { shown as inView, start as startScreen, step, type Action, type Screen } from './screen';
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
@@ -121,7 +121,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
-  const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
+  const [scene, setScene] = useState<Screen>(() => startScreen(opening));
   const counts = useTaskCounts();
   const { insets, size: screen } = room;
   const { width, height } = screen;
@@ -133,20 +133,12 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const moves = split || !!orb.dock;
   // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
   const follows = moves || !!layout.duo?.beside;
-  // What the words show, in one place. Where the layout pulls the words down over the orb, they
-  // show once pulled; everywhere else they take their own page once there's a call or words to show,
-  // and before that the orb rests alone in the middle. Opening a past call pulls them, and letting
-  // them go goes back to the live call, so the two never disagree.
-  const [showing, setShowing] = useState<{ pulled: boolean; call: string | null }>({
-    pulled: false,
-    call: null,
-  });
-  const viewing = showing.call;
+  // What the words show. Where the layout pulls the words down over the orb, they show once pulled;
+  // everywhere else they take their own page once there's a call or words to show, and before that
+  // the orb rests alone in the middle. Opening a past call pulls them, and letting them go goes back
+  // to the live call, so the two never disagree (`step` in screen.ts).
+  const viewing = scene.words.call;
   const calls = useCalls();
-  const pullWords = (pulled: boolean) =>
-    setShowing((now) => (pulled ? { ...now, pulled } : { pulled, call: null }));
-  const showCall = (call: string | null) =>
-    setShowing((now) => ({ pulled: now.pulled || call !== null, call }));
   const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
   const past = usePastCall(shown?.id);
   // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
@@ -156,19 +148,17 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
   const settingsPlace = room.fold && duo?.tasks.area;
   const shared = !!settingsPlace;
-  const [places, setPlaces] = useState<Places>({
-    tasks: opening.tasks !== undefined,
-    settings: opening.open === 'settings',
-    front: opening.open === 'settings' ? 'settings' : 'tasks',
-  });
-  const { tasks: tasksOpen, settings: settingsOpen } = inView(places, shared);
-  const placeOpen = tasksOpen || (shared && settingsOpen);
-  const show = (place: Place) => setPlaces((now) => opened(now, place, shared));
-  const close = (place: Place) => setPlaces((now) => closed(now, place));
-  const closePlace = () => {
-    close('tasks');
-    if (shared) close('settings');
-  };
+  // Everything that opens and closes goes through `send`, and every open flag and lit button
+  // below is read from `scene`.
+  const send = (action: Action) => setScene((now) => step(now, action, { shared }));
+  const {
+    calls: callsOpen,
+    tasks: tasksOpen,
+    settings: settingsOpen,
+    place: placeOpen,
+  } = inView(scene, shared);
+  const pullWords = (pulled: boolean) => send({ to: 'words', pulled });
+  const showCall = (id: string | null) => send({ to: 'call', id });
   const reducedMotion = useReducedMotion();
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -177,7 +167,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const onCall = call.kind !== 'none';
   const live = call.kind === 'here' && call.phase === 'live';
   const reading = layout.pulls
-    ? showing.pulled
+    ? scene.words.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
   const duoTasks = useDuoTasks(duo, { open: placeOpen, tasks: tasksOpen }, onCall, reducedMotion);
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
@@ -239,7 +229,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
     tick();
-    closePlace();
+    send({ to: 'tasks', open: false });
   };
   useEscape(tasksOpen ? closeTasks : undefined);
   const now = useNow(docked && call.kind === 'elsewhere');
@@ -287,28 +277,20 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       }),
   );
 
-  const {
-    drawer,
-    open: drawerOpen,
-    settle: settleDrawer,
-    edgeOpen,
-    listClose,
-    peekClose,
-  } = useDrawer({
-    open: opening.open === 'calls',
+  const setCalls = (open: boolean) => send({ to: 'calls', open });
+  const { drawer, edgeOpen, listClose, peekClose } = useDrawer({
+    open: callsOpen,
     width: list.width,
     reducedMotion,
-    onChange: (open) => {
-      if (open && panes) closePlace();
-    },
+    onChange: setCalls,
   });
   const toggleDrawer = () => {
     tick();
-    settleDrawer(!drawerOpen);
+    setCalls(!callsOpen);
   };
   // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
   const openCall = (id: string) => {
-    if (list.place !== 'beside') settleDrawer(false);
+    if (list.place !== 'beside') setCalls(false);
     if (id === calls.live && onCall) return backToCall();
     showCall(id);
   };
@@ -317,7 +299,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     tick();
     showCall(null);
   };
-  const leaveCall = () => setShowing({ pulled: false, call: null });
+  const leaveCall = () => pullWords(false);
 
   // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
   const pane = useSharedValue(panes && placeOpen ? 1 : 0);
@@ -554,14 +536,12 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   };
   const openTasks = (at: TasksAt = {}) => {
     tick();
-    setTasksAt(at);
-    show('tasks');
-    if (panes && drawerOpen) settleDrawer(false);
+    send({ to: 'tasks', open: true, at });
   };
   const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
   // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
-    if (!panes) closePlace();
+    if (!panes) send({ to: 'tasks', open: false });
   };
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
@@ -572,7 +552,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
   const openCallFromTasks = (id: string) => {
     stepAside();
-    if (list.place === 'beside') settleDrawer(true);
+    if (list.place === 'beside') setCalls(true);
     openCall(id);
   };
   const removeShown =
@@ -642,7 +622,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
 
   const tasks = {
     open: tasksOpen,
-    at: tasksAt,
+    at: scene.at,
     haptics: preferences.haptics,
     onTalk: talkAbout,
     onGoThrough: goThrough,
@@ -791,13 +771,19 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             </Animated.View>
           )}
         </Animated.View>
-        {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => close('tasks')} />}
-        {!drawerOpen && !(duo && tasksOpen) && (
+        {!panes && (
+          <TasksSheet
+            {...tasks}
+            onCall={onCall}
+            onDismiss={() => send({ to: 'tasks', open: false })}
+          />
+        )}
+        {!callsOpen && !(duo && tasksOpen) && (
           <GestureDetector gesture={edgeOpen}>
             <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
-        {drawerOpen && list.place !== 'beside' && (
+        {callsOpen && list.place !== 'beside' && (
           <GestureDetector gesture={peekClose}>
             <View accessibilityLabel="Close calls" style={styles.fill} />
           </GestureDetector>
@@ -808,7 +794,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           duo={duo}
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
-          shown={!shared || places.front === 'tasks'}
+          shown={!shared || scene.front === 'tasks'}
           onCall={onCall}
           seconds={callSeconds}
           pane={pane}
@@ -818,11 +804,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
         place={
           settingsPlace
-            ? { area: settingsPlace, shown: places.front === 'settings', pane }
+            ? { area: settingsPlace, shown: scene.front === 'settings', pane }
             : undefined
         }
         isPresented={settingsOpen}
-        onDismiss={() => close('settings')}
+        onDismiss={() => send({ to: 'settings', open: false })}
         voice={voice}
         onVoiceChange={setVoice}
         voiceEnabled={voiceLoaded && !voiceLocked(call)}
@@ -847,15 +833,12 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         axis={toolbar.axis}
         gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
         style={[{ top: toolbar.y }, toolbarStyle]}
-        callsOpen={drawerOpen}
+        callsOpen={callsOpen}
         tasks={{ ...counts, open: tasksOpen }}
         settingsOpen={settingsOpen}
-        onCalls={() => {
-          close('settings');
-          toggleDrawer();
-        }}
+        onCalls={toggleDrawer}
         onTasks={toggleTasks}
-        onSettings={() => (settingsOpen ? close('settings') : show('settings'))}
+        onSettings={() => send({ to: 'settings', open: !settingsOpen })}
       />
       {controlsColumn && controls}
     </>
