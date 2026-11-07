@@ -9,6 +9,8 @@ export interface PersonaProps {
   color?: string;
   palette?: number;
   paused?: boolean;
+  // Whether its view is in a window yet, so it really draws; one in a sheet that hasn't shown isn't.
+  drawn?: boolean;
 }
 
 // All six assets use these state-machine inputs. Color is a view-model property.

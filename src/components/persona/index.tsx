@@ -102,6 +102,7 @@ function PersonaRenderer({
   color = DEFAULT_PERSONA_COLOR,
   palette,
   paused = false,
+  drawn = true,
 }: PersonaProps & { variant: PersonaVariant }) {
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
@@ -155,22 +156,34 @@ function PersonaRenderer({
         originalPalette.current ??= riveViewRef.getNumberInputValue('color');
         riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
       }
-      // The file starts as a dot that grows into its state, and a paused file never advances, so
-      // it plays through that once, hidden or not, and only then holds still while hidden or with
-      // Reduce Motion on.
-      if (!growing.current) {
+      // The file starts as a dot that grows into its state, and a paused file never advances, so it
+      // plays through that once it's drawn, hidden or not, and only then holds still while hidden or
+      // with Reduce Motion on. Until it's drawn it can't grow, so it isn't paused on the dot.
+      if (!grown.current) {
         riveViewRef.playIfNeeded();
-        growing.current = setTimeout(() => {
-          grown.current = true;
-          if (still.current) pause();
-        }, GROW_IN);
-      } else if (!grown.current) return;
-      else if (paused) pause();
+        if (drawn && !growing.current)
+          growing.current = setTimeout(() => {
+            grown.current = true;
+            if (still.current) pause();
+          }, GROW_IN);
+        return;
+      }
+      if (paused) pause();
       else riveViewRef.playIfNeeded();
     } catch {
       setFailed(true);
     }
-  }, [riveViewRef, state, variant, palette, dynamicColor, colorModel, reducedMotion, paused]);
+  }, [
+    riveViewRef,
+    state,
+    variant,
+    palette,
+    dynamicColor,
+    colorModel,
+    reducedMotion,
+    paused,
+    drawn,
+  ]);
 
   useEffect(() => {
     const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;

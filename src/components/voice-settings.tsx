@@ -265,6 +265,9 @@ export function VoiceSettings({
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
   ];
+  // A sheet's content is in a window only once it has shown.
+  const [shownOnce, setShownOnce] = useState(isPresented);
+  if (isPresented && !shownOnce) setShownOnce(true);
   useEffect(() => {
     if (isPresented) preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
   }, [isPresented]);
@@ -287,6 +290,7 @@ export function VoiceSettings({
             size={orbSize}
             state="idle"
             paused={!isPresented}
+            drawn={!!place || shownOnce}
             color={preferences.personaColor}
             palette={opalPaletteInput(preferences.opalPalette)}
           />
