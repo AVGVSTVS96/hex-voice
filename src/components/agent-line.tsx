@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   markFailed: { backgroundColor: theme.dangerFill },
   arc: {
     borderWidth: 2,
-    borderColor: theme.progressFill,
+    borderColor: theme.fillStrong,
     borderTopColor: theme.progress,
   },
   ticker: { flex: 1, height: 22, overflow: 'hidden' },

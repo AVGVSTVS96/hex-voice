@@ -8,11 +8,9 @@ export const color = {
   // The call's ground, and the panes and sheets that list things over it: Muse's off-white.
   ground: { dark: '#000000', light: '#FCFCFC' },
   sheet: { dark: '#1C1C1E', light: '#FCFCFC' },
-  // A grouped page, like settings, and the cards its rows sit in.
-  grouped: { dark: '#1C1C1E', light: '#F2F3F5' },
-  card: { dark: '#000000', light: '#FFFFFF' },
-  // Something drawn on the ground: a bubble, a block of code, a placeholder; stronger, once chosen.
-  fill: { dark: '#2C2C2E', light: '#EDEEF0' },
+  // Something drawn on the ground: a card of settings, a bubble, a block of code, a placeholder;
+  // stronger, once chosen.
+  fill: { dark: '#2C2C2E', light: '#EFF0F2' },
   fillStrong: { dark: '#3A3A3C', light: '#E2E3E6' },
   edge: { dark: '#2C2C2E', light: '#E3E3E5' },
   // Words, and the one filled button on a screen, like the call button, with the ground's color
@@ -179,8 +177,6 @@ export const metrics = {
   // Tasks' stage tabs: the gap between a tab's dot, name and count, the room under them, and the
   // selected tab's dot and the tinted badge it sits on.
   tabs: { gap: space[2], under: space[3], badge: 18, dot: 7 },
-  // A row's tile, holding its symbol, as Muse sets one before each row of its history.
-  tile: 40,
   // An app's tile rounds its corners by this share of its size, as iOS rounds app icons.
   tileCorner: 0.27,
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
@@ -195,7 +191,7 @@ export const metrics = {
     gap: space[3],
     fade: space[6],
     rest: space[3],
-    row: { top: space[3], bottom: space[3] },
+    row: { top: space[2], bottom: space[2] },
     place: space[3],
     // A step's first line, which its mark, time and chevron center on.
     line: 20,

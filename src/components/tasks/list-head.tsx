@@ -68,7 +68,7 @@ export function Tabs({
         >
           <Row
             alignment="end"
-            spacing={space[5]}
+            spacing={space[4]}
             modifiers={[padding({ leading: metrics.list.inset, trailing: metrics.list.inset })]}
           >
             {STAGES.map(({ key, title }) => {

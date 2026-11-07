@@ -12,7 +12,7 @@ export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * h
 
 export function Group({ width, children }: { width: number; children: ReactNode }) {
   return (
-    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.card }}>
+    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.fill }}>
       {children}
     </Column>
   );

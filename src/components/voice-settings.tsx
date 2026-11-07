@@ -249,7 +249,7 @@ export function VoiceSettings({
   const page = (shown: boolean, away: number, height: number) => [
     frame({ height, alignment: 'top' }),
     frame({ maxWidth: Infinity }),
-    background(theme.grouped),
+    background(theme.sheet),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
@@ -260,7 +260,7 @@ export function VoiceSettings({
   // pane's bottom half.
   const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
-    background(theme.grouped),
+    background(theme.sheet),
     offset({ x: shown ? 0 : away }),
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
@@ -501,7 +501,7 @@ export function VoiceSettings({
               ...(phone
                 ? []
                 : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
-              presentationBackground(theme.grouped),
+              presentationBackground(theme.sheet),
             ]}
           >
             <ZStack
@@ -626,10 +626,7 @@ function SettingsPlace({
           ]}
         >
           <Rectangle
-            modifiers={[
-              foregroundStyle(theme.grouped),
-              padding({ top, leading, trailing, bottom }),
-            ]}
+            modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
           />
           <ArrangementView
             modifiers={[
@@ -654,7 +651,11 @@ function SettingsPlace({
                     frame({ maxWidth: Infinity }),
                   ]}
                 >
-                  <PageBar title="Settings" back={{ to: 'Call', short: false, onPress: onBack }} />
+                  <PageBar
+                    title="Settings"
+                    large
+                    back={{ to: 'Call', short: false, onPress: onBack }}
+                  />
                   <Spacer flexible />
                   {persona}
                   <Spacer flexible />

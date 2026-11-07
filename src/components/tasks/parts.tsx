@@ -127,7 +127,7 @@ export function SectionHead({
     >
       <Row alignment="center" spacing={metrics.tabs.gap}>
         {kind ? <Badge kind={kind} /> : null}
-        <Text variant="detail" weight="semibold" tone={kind ? KINDS[kind].word : 'text'}>
+        <Text variant="headline" tone={kind ? KINDS[kind].word : 'text'}>
           {title}
         </Text>
       </Row>

@@ -1,4 +1,4 @@
-import { Column, Row, Spacer } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Button, HStack, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
@@ -16,7 +16,7 @@ import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
 import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
 import { Failure, listRow } from '@/components/tasks/parts';
-import { TileIcon, swipeLook } from '@/components/tasks/places';
+import { PlaceTile, TileIcon, swipeLook } from '@/components/tasks/places';
 import { NOT_NEEDED, type Ask, type AskOption } from '@/live/asks';
 import {
   PLACES,
@@ -467,9 +467,9 @@ export function ProjectRow({
   const headline = headlineOf(newest);
   const counted = `${count} ${!stage ? 'found' : stage === 'needs' ? 'waiting' : STAGE_WORDS[stage]}`;
   return (
-    <Column
-      alignment="start"
-      spacing={space[0.5]}
+    <Row
+      alignment="center"
+      spacing={metrics.list.gap}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
@@ -485,31 +485,37 @@ export function ProjectRow({
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
-      <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
-          {topic.name}
-        </Text>
-        <Spacer flexible />
-        {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
-        <Text
-          variant="detail"
-          tone="secondary"
-          modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
-        >
+      <PlaceTile place={newest.place} size={metrics.symbol.hero} />
+      <Column
+        alignment="start"
+        spacing={space[0.5]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
+          <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
+            {topic.name}
+          </Text>
+          <Spacer flexible />
+          {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
+        </Row>
+        {headline === topic.name ? null : (
+          <Text
+            numberOfLines={1}
+            variant="detail"
+            tone="secondary"
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          >
+            {headline}
+          </Text>
+        )}
+      </Column>
+      <Row alignment="center" spacing={space[1]}>
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {String(count)}
         </Text>
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
       </Row>
-      {headline === topic.name ? null : (
-        <Text
-          numberOfLines={1}
-          variant="detail"
-          tone="secondary"
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-        >
-          {headline}
-        </Text>
-      )}
-    </Column>
+    </Row>
   );
 }
 
@@ -531,9 +537,9 @@ export function DoneRow({
   const when = doneAt(entry.at);
   const where = entry.topic === line ? PLACES[entry.place] : entry.topic;
   return (
-    <Column
-      alignment="start"
-      spacing={space[0.5]}
+    <Row
+      alignment="center"
+      spacing={metrics.list.gap}
       onPress={onOpen}
       testID="done-row"
       modifiers={[
@@ -549,21 +555,29 @@ export function DoneRow({
         accessibilityLabel(`${line}. Done in ${where}, ${when}. Opens it`),
       ]}
     >
-      <Text
-        numberOfLines={2}
-        variant="headline"
+      <PlaceTile place={entry.place} size={metrics.symbol.hero} />
+      <Column
+        alignment="start"
+        spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        {line}
-      </Text>
-      <Text
-        numberOfLines={1}
-        variant="detail"
-        tone="secondary"
-        modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        {`${where} · ${when}`}
-      </Text>
-    </Column>
+        <Text
+          numberOfLines={2}
+          variant="headline"
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
+          {line}
+        </Text>
+        <Text
+          numberOfLines={1}
+          variant="detail"
+          tone="secondary"
+          modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        >
+          {`${where} · ${when}`}
+        </Text>
+      </Column>
+      <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+    </Row>
   );
 }
