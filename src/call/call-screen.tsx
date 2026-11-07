@@ -387,10 +387,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     column(layout.agent, drawer.get(), pane.get(), aside.get()),
   );
   // The call's own lines make way for the iPad inbox, for iPhone Duo's Tasks where it covers them,
-  // and for Calls where it docks the call at the screen's edge and they'd run off it.
+  // and for Calls where it slides over all but a peek of the call and they'd run off the screen.
+  const slides = list.place === 'slide';
   const linesStyle = useAnimatedStyle(() => {
     const { d, t } = besideness(drawer.get(), pane.get());
-    const docked = follows ? 0 : d;
+    const docked = slides ? d : 0;
     return { opacity: (1 - wide.get() * t) * (1 - docked) * uncovered(covers.get()) };
   });
   const wordsStyle = useAnimatedStyle(() => {
