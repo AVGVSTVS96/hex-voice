@@ -25,9 +25,14 @@ final class PoseRootViewController: ExpoRootViewController {
     turns ? .all : .portrait
   }
 
+  // Once seen, a bar edge stays seen: iOS leaves the edge unspecified in orientations without a
+  // vertical bar, so an answer read fresh each time could undo the turn it allowed.
+  private var barSeen = false
+
   private var turns: Bool {
-    if traitCollection.userInterfaceIdiom == .pad { return true }
+    if UIDevice.current.userInterfaceIdiom == .pad { return true }
     guard #available(iOS 27.1, *) else { return false }
-    return traitCollection.verticalBarEdge != .unspecified
+    if traitCollection.verticalBarEdge != .unspecified { barSeen = true }
+    return barSeen
   }
 }
