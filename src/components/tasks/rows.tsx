@@ -304,9 +304,8 @@ function Shell({
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           <Text
-            numberOfLines={2}
+            numberOfLines={1}
             variant="detail"
-            paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {line}
