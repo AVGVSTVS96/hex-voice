@@ -14,9 +14,9 @@ shoot page-dragged
 launch hexvoice:///?tasks
 wait 3
 tap tasks-search
-type tasks-search-field a
+type tasks-search-field voice
 above-keyboard tasks-search-field
-scroll
+scroll voiceapp
 wait 1
 no-keyboard after a drag of the list
 shoot list-dragged
