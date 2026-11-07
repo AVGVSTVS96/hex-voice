@@ -189,7 +189,6 @@ function Row({
               <Text numberOfLines={1} style={[styles.name, !call.title && styles.unnamed]}>
                 {callName(call)}
               </Text>
-              <Text style={styles.when}>{live ? 'Now' : whenIn(call.started)}</Text>
             </View>
             <View style={styles.line}>
               <Text numberOfLines={1} style={styles.meta}>
@@ -204,6 +203,7 @@ function Row({
                   <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
                 )}
               </Text>
+              <Text style={styles.when}>{live ? 'Now' : whenIn(call.started)}</Text>
             </View>
           </View>
         </Animated.View>
