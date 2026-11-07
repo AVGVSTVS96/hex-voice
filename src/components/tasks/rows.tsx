@@ -24,6 +24,7 @@ import {
   headlineOf,
   problemOf,
   opens,
+  proofWords,
   type Entry,
   type Stage,
   type Tile,
@@ -158,6 +159,26 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
             {fresh.failed ? <Failure text={fresh.failed} /> : null}
+          </Shell>
+        </Swiped>
+      );
+    }
+    case 'finished': {
+      const { finished } = entry;
+      const proof = proofWords(finished.proof);
+      const page = entry.tiles.find((tile) => tile.kind === 'link');
+      return (
+        <Swiped {...swiped}>
+          <Shell
+            selected={selected}
+            mark="done"
+            line={finished.title}
+            time={clock(new Date(entry.at))}
+            tiles={entry.tiles}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
+            onPress={page && (() => actions.onOpenTile(page))}
+          >
+            {proof ? <Why text={proof} /> : null}
           </Shell>
         </Swiped>
       );
@@ -450,6 +471,8 @@ function waiting(entry: Entry): MarkState {
     case 'task':
     case 'fresh':
       return 'needs';
+    case 'finished':
+      return 'done';
   }
 }
 

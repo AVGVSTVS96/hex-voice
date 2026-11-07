@@ -27,7 +27,6 @@ import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
 import type { Counts } from '@/hooks/use-tasks';
 import {
-  inboxEntries,
   picksOf,
   search,
   stageCounts,
@@ -35,8 +34,10 @@ import {
   taskOf,
   topicIn,
   topicsOf,
+  type Entry,
   type Stage,
   type Tile,
+  type Topic,
   type PageId,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
@@ -50,7 +51,7 @@ const TABS_WITH_BAR = 600;
 const EMPTY: Record<Stage, string> = {
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
-  done: 'Nothing finished today',
+  done: 'Nothing done in the last day',
   quiet: 'Nothing is quiet',
 };
 
@@ -60,6 +61,7 @@ export function ListPage({
   pages,
   spot,
   tasks,
+  entries,
   offline,
   current,
   yours,
@@ -75,6 +77,7 @@ export function ListPage({
   pages: Pages;
   spot: Spot;
   tasks: TaskRow[] | undefined;
+  entries: Entry[];
   offline: boolean;
   // hex has answered since this list showed what was kept on this device, and nothing failed since.
   current: boolean;
@@ -89,10 +92,6 @@ export function ListPage({
   const { back } = useChrome();
   const [stage, setStage] = useState<Stage>('needs');
   const [query, setQuery] = useState<string | null>(null);
-  const entries = useMemo(
-    () => inboxEntries(tasks ?? [], yours.list, yours.shown),
-    [tasks, yours.list, yours.shown],
-  );
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   const behind = loaded && (offline || yours.offline);
@@ -120,7 +119,14 @@ export function ListPage({
       query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
     [entries, stage, query],
   );
-  const topics = useMemo(() => topicsOf(shown, entries), [shown, entries]);
+  // Done lists each thing done on its own, newest first, whatever else its project has going.
+  const topics = useMemo(
+    () =>
+      query === null && stage === 'done'
+        ? shown.flatMap((entry) => topicsOf([entry], entries))
+        : topicsOf(shown, entries),
+    [shown, entries, query, stage],
+  );
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
   const searching = query !== null;
@@ -148,6 +154,13 @@ export function ListPage({
     feel.tick();
     searchField.current?.blur();
     pages.go({ to: 'topic', id, row });
+  };
+  // A row of Done opens what showed it done, when that's a link, else its project's page.
+  const openRow = (topic: Topic) => {
+    const [entry] = topic.entries;
+    const proof = stage === 'done' && entry?.tiles.find((tile) => tile.kind === 'link');
+    if (proof) onOpenTile(proof);
+    else openPage(pageOf(topic), entry?.id);
   };
   const chooseStage = (next: Stage) => {
     feel.tick();
@@ -267,12 +280,15 @@ export function ListPage({
             if (!searching)
               return [
                 <ProjectRow
-                  key={topic.name}
+                  key={stage === 'done' ? topic.entries[0]!.id : topic.name}
                   topic={topic}
                   stage={stage}
                   width={width}
-                  selected={topic.name === openTopic}
-                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
+                  selected={
+                    topic.name === openTopic &&
+                    (stage !== 'done' || topics.find((one) => one.name === topic.name) === topic)
+                  }
+                  onOpen={() => openRow(topic)}
                 />,
               ];
             const lead = topic.entries.map(taskOf).find(Boolean);

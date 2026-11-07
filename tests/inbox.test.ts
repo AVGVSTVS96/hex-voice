@@ -10,8 +10,10 @@ import {
   pageOf,
   topicIn,
   inboxEntries,
+  linkName,
   picksOf,
   problemOf,
+  proofWords,
   reachedBy,
   search,
   stageCounts,
@@ -20,7 +22,7 @@ import {
   topicsOf,
   type Entry,
 } from '../src/live/inbox';
-import { TaskRow } from '../src/live/tasks';
+import { Finished, TaskRow } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
 const at = (hours: number, minutes = 0, day = 13) =>
@@ -81,9 +83,32 @@ const fresh = (id: string, topic: string, when = at(9), read = false): Fresh =>
     read,
   });
 
-type Parts = { tasks?: TaskRow[]; asks?: Ask[]; stuck?: Stuck[]; fresh?: Fresh[] };
-const stream = ({ tasks = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
-  inboxEntries(tasks, { stuck, fresh }, asks, now);
+const done = (
+  id: string,
+  topic: string,
+  when = at(9),
+  extra: Partial<z.input<typeof Finished>> = {},
+): Finished =>
+  Finished.parse({
+    id,
+    title: `${id} title`,
+    topic,
+    app: 'telegram',
+    proof: `${id} proof`,
+    at: when,
+    run: `telegram:${topic}`,
+    ...extra,
+  });
+
+type Parts = {
+  tasks?: TaskRow[];
+  finished?: Finished[];
+  asks?: Ask[];
+  stuck?: Stuck[];
+  fresh?: Fresh[];
+};
+const stream = ({ tasks = [], finished = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
+  inboxEntries(tasks, finished, { stuck, fresh }, asks, now);
 const ids = (entries: Entry[]) => entries.map((entry) => entry.id);
 
 test('your asks lead in hex’s order, then threads that need you without an ask, then what is stuck', () => {
@@ -114,7 +139,7 @@ test('your asks lead in hex’s order, then threads that need you without an ask
   assert.equal(entries[2]!.at, at(6, 15));
 });
 
-test('a thread that waits on your ask is in Needs you by its ask alone, never left quiet or done; one still working stays in Working', () => {
+test('a thread that waits on your ask is in Needs you by its ask alone, never left quiet; one still working stays in Working', () => {
   const entries = stream({
     asks: [
       ask('draft', 'yesno', { task: 'telegram:x', topic: 'x', at: at(9) }),
@@ -140,7 +165,7 @@ test('a thread that waits on your ask is in Needs you by its ask alone, never le
   );
 });
 
-test('after what needs you comes what works, then what finished today, then the rest, quiet', () => {
+test('after what needs you comes what works, then what was done in the last day, then the rest, quiet', () => {
   const entries = stream({
     tasks: [
       row('older', 'done', at(15, 0, 11)),
@@ -153,26 +178,28 @@ test('after what needs you comes what works, then what finished today, then the 
     ],
     fresh: [
       fresh('read-today', 'pigeon', at(9, 45), true),
-      fresh('read-old', 'seqno', at(15, 0, 12), true),
+      fresh('read-last-night', 'seqno', at(15, 0, 12), true),
+      fresh('read-old', 'jev', at(9, 0, 12), true),
       fresh('unread-old', 'jev', at(15, 0, 11)),
       fresh('unread', 'antibody', at(8)),
     ],
   });
   assert.deepEqual(ids(entries), [
     'telegram:working',
-    'unread',
-    'unread-old',
     'read-today',
+    'unread',
+    'read-last-night',
     'telegram:done-late',
+    'telegram:idle',
     'telegram:done-early',
     'telegram:failed',
-    'telegram:idle',
     'telegram:old',
     'telegram:older',
+    'unread-old',
   ]);
   assert.deepEqual(
     entries.map((entry) => entry.stage),
-    ['working', 'done', 'done', 'done', 'done', 'done', 'done', 'quiet', 'quiet', 'quiet'],
+    ['working', 'done', 'done', 'done', ...Array(7).fill('quiet')],
   );
 });
 
@@ -531,4 +558,79 @@ test('a run that ended on an API error says so in words, and any other line stay
   );
   assert.equal(problemOf('API Error: 500 internal'), 'Stopped on an API error');
   assert.equal(problemOf('remade hero clip sent'), undefined);
+});
+
+test('each task hex finished in the last day is in Done, while its project works on in another tab', () => {
+  const entries = stream({
+    tasks: [row('voiceapp', 'working'), row('iikb', 'needs'), row('seqno', 'idle')],
+    finished: [
+      done('t-2', 'voiceapp', at(9, 30)),
+      done('t-1', 'voiceapp', at(8)),
+      done('t-3', 'iikb', at(9, 45)),
+      done('t-4', 'seqno', at(7)),
+      done('t-0', 'voiceapp', at(9, 0, 12)),
+    ],
+  });
+  const tab = entries.filter((entry) => entry.stage === 'done');
+  assert.deepEqual(ids(tab), ['t-3', 't-2', 't-1', 't-4']);
+  assert.deepEqual(
+    topicsOf(tab, entries).map(({ name, entries }) => [name, entries.length]),
+    [
+      ['iikb', 1],
+      ['voiceapp', 2],
+      ['seqno', 1],
+    ],
+  );
+  assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
+  assert.equal(pageOf(topicsOf(tab, entries)[1]!), 'telegram:voiceapp');
+  assert.equal(headlineOf(tab[0]!), 't-3 title');
+});
+
+test('Done is what was done, not who stopped: a thread between runs is quiet', () => {
+  const entries = stream({
+    tasks: [row('voiceapp', 'done', at(9, 40)), row('pigeon', 'done', at(9, 50))],
+    finished: [done('t-1', 'voiceapp', at(9, 30))],
+  });
+  assert.deepEqual(
+    entries.map((entry) => [entry.id, entry.stage]),
+    [
+      ['t-1', 'done'],
+      ['telegram:pigeon', 'quiet'],
+      ['telegram:voiceapp', 'quiet'],
+    ],
+  );
+});
+
+test('a finished task with no thread on the board opens its project’s own page, and its proof link is a tile', () => {
+  const [entry] = stream({
+    finished: [
+      done('t-5', 'Launch plan', at(9), {
+        run: undefined,
+        link: 'https://t.me/c/1/1',
+        proof: 'https://github.com/AVGVSTVS96/hex/pull/180 (5b2b282, live)',
+      }),
+    ],
+  });
+  assert.equal(taskOf(entry!), undefined);
+  assert.equal(pageOf(topicsOf([entry!], [entry!])[0]!), 'topic:Launch plan');
+  assert.deepEqual(entry!.tiles, [
+    { kind: 'app', place: 'telegram', label: 'Telegram', link: 'https://t.me/c/1/1' },
+    { kind: 'link', label: 'hex #180', url: 'https://github.com/AVGVSTVS96/hex/pull/180' },
+  ]);
+  assert.deepEqual(ids(search([entry!], 'hex #180')), ['t-5']);
+});
+
+test('a proof reads with each link by its name', () => {
+  assert.equal(
+    proofWords(
+      'https://github.com/AVGVSTVS96/iikb/commit/b9330a0c1 and https://github.com/AVGVSTVS96/grokx',
+    ),
+    'iikb b9330a0 and grokx',
+  );
+  assert.equal(linkName('https://x.com/avgvstvs96/status/2118'), 'x.com');
+  assert.equal(
+    proofWords('(see http://100.64.0.7:4800/iikb-context)'),
+    '(see 100.64.0.7)',
+  );
+  assert.equal(proofWords('iikb 7e9ac84, build 501 on Duo'), 'iikb 7e9ac84, build 501 on Duo');
 });

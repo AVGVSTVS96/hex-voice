@@ -7,11 +7,11 @@ import {
   type Stuck,
   type Sent,
 } from './asks';
-import { startOfDay, type TaskId, type TaskRow, type Turn } from './tasks';
+import { type Finished, type TaskId, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
-// stuck, then what's working, then what finished today, then the rest, quiet. Tasks shows it a
-// stage at a time, each stage cut into its topics.
+// stuck, then what's working, then what was done in the last day (each task hex closed, in whatever
+// project), then the rest, quiet. Tasks shows it a stage at a time.
 export type Stage = 'needs' | 'working' | 'done' | 'quiet';
 export type Place = 'telegram' | 't3' | 'buzz' | 'discord' | 'server';
 
@@ -29,6 +29,15 @@ export type Entry = Base &
     | { kind: 'stuck'; stuck: Stuck }
     | { kind: 'task'; task: TaskRow }
     | { kind: 'fresh'; fresh: Fresh }
+    | { kind: 'finished'; finished: Finished }
+  );
+
+export type FinishedEntry = Extract<Entry, { kind: 'finished' }>;
+
+// What hex finished in a project in the last day, newest first.
+export const finishedIn = (entries: Entry[], topic: string) =>
+  entries.filter(
+    (entry): entry is FinishedEntry => entry.kind === 'finished' && entry.topic === topic,
   );
 
 // A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
@@ -99,25 +108,44 @@ const threadTile = (place: Place, link?: string): Tile => ({
 });
 
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
+const DAY = 24 * 60 * 60_000;
+
+const LINKS = /https?:\/\/[^\s)]+/g;
+
+// What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
+// by its name, else its site.
+export function linkName(url: string) {
+  const github = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/);
+  if (github?.[2])
+    return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3]!.slice(0, 7)}`;
+  if (github) return github[1]!;
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/[:/].*$/, '');
+}
+
+// A task's proof as its row reads it, each link by its name.
+export const proofWords = (proof: string) => proof.replace(LINKS, linkName).trim();
+
+const proofTile = (proof: string): Tile[] => {
+  const [url] = proof.match(LINKS) ?? [];
+  return url ? [{ kind: 'link', label: linkName(url), url }] : [];
+};
 
 // The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic
-// while it's on the board, so a thread waiting on your ask is never also quiet or done; one still
-// working keeps its row in Working, and a thread that needs you some other way keeps its own. What finished
-// since you looked leads Done until it's read, and a read one from before today has already shown
-// as its thread.
+// while it's on the board, so a thread waiting on your ask is never also quiet; one still working
+// keeps its row in Working, and a thread that needs you some other way keeps its own. Done is what
+// was done, not who stopped: the tasks hex closed and the T3 threads that finished in the last day,
+// newest first. A thread between runs is quiet, and so is a finished T3 thread you haven't read
+// from before then.
 export function inboxEntries(
   tasks: TaskRow[],
+  finished: Finished[],
   list: Pick<AskList, 'stuck' | 'fresh'> | undefined,
   asks: Ask[],
   now = new Date(),
 ): Entry[] {
-  const today = startOfDay(now);
+  const since = now.getTime() - DAY;
   const asked = new Set(asks.map((ask) => ask.task));
   const names = new Map(tasks.map((task) => [task.id, task.name]));
-  const stageOf = (task: TaskRow): Stage => {
-    if (task.state === 'needs' || task.state === 'working') return task.state;
-    return task.state !== 'idle' && Date.parse(task.at) >= today ? 'done' : 'quiet';
-  };
   const entries: Entry[] = [
     ...asks.map((ask): Entry => ({
       kind: 'ask',
@@ -137,7 +165,7 @@ export function inboxEntries(
         topic: task.name,
         place: placeOf(task.app),
         tiles: [threadTile(placeOf(task.app), task.link)],
-        stage: stageOf(task),
+        stage: task.state === 'needs' || task.state === 'working' ? task.state : 'quiet',
         at: task.state === 'needs' ? task.since : task.at,
         task,
       })),
@@ -152,26 +180,36 @@ export function inboxEntries(
       stuck,
     })),
     ...(list?.fresh ?? [])
-      .filter((fresh) => !fresh.read || Date.parse(fresh.at) >= today)
+      .filter((fresh) => !fresh.read || Date.parse(fresh.at) >= since)
       .map((fresh): Entry => ({
         kind: 'fresh',
         id: fresh.id,
         topic: fresh.topic,
         place: placeOf(fresh.app),
         tiles: [threadTile(placeOf(fresh.app))],
-        stage: 'done',
+        stage: Date.parse(fresh.at) >= since ? 'done' : 'quiet',
         at: fresh.at,
         fresh,
       })),
+    ...finished
+      .filter((one) => Date.parse(one.at) >= since)
+      .map((one): Entry => ({
+        kind: 'finished',
+        id: one.id,
+        topic: one.topic,
+        place: placeOf(one.app),
+        tiles: [threadTile(placeOf(one.app), one.link), ...proofTile(one.proof)],
+        stage: 'done',
+        at: one.at,
+        finished: one,
+      })),
   ];
   const settled = (entry: Entry) => entry.stage === 'done' || entry.stage === 'quiet';
-  const unread = (entry: Entry) => entry.kind === 'fresh' && !entry.fresh.read;
   return entries
     .map((entry, i) => ({ entry, i }))
     .sort(
       (a, b) =>
         RANK[a.entry.stage] - RANK[b.entry.stage] ||
-        Number(unread(b.entry)) - Number(unread(a.entry)) ||
         (settled(a.entry) ? Date.parse(b.entry.at) - Date.parse(a.entry.at) : 0) ||
         a.i - b.i,
     )
@@ -227,6 +265,8 @@ export function headlineOf(entry: Entry) {
       return entry.stuck.title;
     case 'fresh':
       return entry.fresh.title;
+    case 'finished':
+      return entry.finished.title;
   }
 }
 
@@ -249,6 +289,8 @@ function textOf(entry: Entry) {
       return [entry.stuck.title, entry.stuck.why];
     case 'fresh':
       return [entry.fresh.title, entry.fresh.line];
+    case 'finished':
+      return [entry.finished.title, proofWords(entry.finished.proof)];
   }
 }
 
@@ -301,10 +343,11 @@ export function tracksOf(name: string, tasks: TaskRow[]): Turn[][] {
   return tasks.flatMap((task) => (task.name === name && task.track?.length ? [task.track] : []));
 }
 
-// The task a row opens, when it has one.
+// The thread a row is about and opens, when it has one on the board.
 export function taskOf(entry: Entry) {
   if (entry.kind === 'ask') return entry.ask.task;
   if (entry.kind === 'task') return entry.task.id;
+  if (entry.kind === 'finished') return entry.finished.run;
   return undefined;
 }
 
