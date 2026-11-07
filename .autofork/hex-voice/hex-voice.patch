@@ -294,10 +294,10 @@ index 0000000000000000000000000000000000000000..67abb4f1c0fdac1ce07aa7413dead54c
 +  ]
 +}
 diff --git a/AGENTS.md b/AGENTS.md
-index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..58a02b1f36a73d0d5d7c9a2bb9ea85546cf3d24a 100644
+index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..a7b8b7d4d41f051d996c5bfcf518b6c69b6e95b6 100644
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -1,21 +1,71 @@
+@@ -1,21 +1,72 @@
  # Development
  
 -Read https://docs.expo.dev/versions/v57.0.0/ before changing Expo code.
@@ -353,6 +353,7 @@ index 0813bc1f1bd6605269797ad8414ebfb2be2b839a..58a02b1f36a73d0d5d7c9a2bb9ea8554
 -- PR titles use the user's area format, for example `[web] ...` or `[be] ...`.
 +- UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
 +- A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
++- A change to what opens and closes (Calls, Tasks, settings) also passes `scripts/duo tap <ref> scripts/duo-calls-taps`.
 +- A change meant to make folding, opening or turning smoother proves it with `scripts/duo fold` before and after: it counts the frames the app shows a wrong layout once iOS's own part of each move has landed, timed by a plain UIKit app filmed alongside (`FOLD_PROBE`, its simulator build on the Mac), into `fold/table.md` with a sheet per move.
 +- `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 +- Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
@@ -100069,6 +100070,42 @@ index 0000000000000000000000000000000000000000..d426d630693303effda88f1320cf01d0
 +  phone) phone "${2:-}" ;;
 +  *) die "usage: scripts/duo build [ref] | shoot [ref] [states] | tap [ref] [taps] | fold [ref] [states] | verify [ref] | phone [update]" ;;
 +esac
+diff --git a/scripts/duo-calls-taps b/scripts/duo-calls-taps
+new file mode 100644
+index 0000000000000000000000000000000000000000..f391dd5d4ce644f46b75374e324acd80cf40e5cc
+--- /dev/null
++++ b/scripts/duo-calls-taps
+@@ -0,0 +1,30 @@
++# Opens and closes Calls by its button, an edge swipe and Tasks, and checks only one of Calls and
++# Tasks is lit:
++# scripts/duo tap <ref> scripts/duo-calls-taps
++launch hexvoice:///
++wait 3
++tap calls-button
++shoot calls-by-button
++selected calls-button
++tap calls-button
++shoot closed-by-button
++unselected calls-button
++swipe-back calls-edge
++shoot calls-by-edge
++selected calls-button
++tap calls-button
++shoot closed-after-edge
++unselected calls-button
++tap calls-button
++tap tasks-button
++shoot tasks-over-calls
++selected tasks-button
++unselected calls-button
++tap calls-button
++shoot calls-over-tasks
++selected calls-button
++unselected tasks-button
++tap calls-button
++shoot closed-after-tasks
++unselected calls-button
++unselected tasks-button
 diff --git a/scripts/duo-fold-taps b/scripts/duo-fold-taps
 new file mode 100644
 index 0000000000000000000000000000000000000000..eb6533cfc1434e1a3de00b22c083a1f96c89f3fd
@@ -101515,10 +101552,10 @@ index 26601b5cc3a19634cddb83886e484c70840f376d..35a55b54b1d618484730871d975d7b0e
 +}
 diff --git a/src/call/call-screen.tsx b/src/call/call-screen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e01f584f08
+index 0000000000000000000000000000000000000000..72da3fd25c2dd813958ae1d98c1b95f0299f40e9
 --- /dev/null
 +++ b/src/call/call-screen.tsx
-@@ -0,0 +1,947 @@
+@@ -0,0 +1,930 @@
 +import * as Haptics from 'expo-haptics';
 +import { useEffect, useRef, useState } from 'react';
 +import { Pressable, StyleSheet, View } from 'react-native';
@@ -101582,7 +101619,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +import { HostedGlassButton } from '@/ui/glass-button';
 +import { metrics, stack } from '@/ui/tokens';
 +import { roomOf, type Room } from '@/screens/window';
-+import { closed, inView, opened, type Place, type Places } from './places';
++import { shown as inView, start as startScreen, step, type Action, type Screen } from './screen';
 +import { PoseView, type Pose } from '../../modules/pose';
 +
 +const AGENT_ROW = 22;
@@ -101642,7 +101679,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
 +  const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
 +  const preferences = useCallPreferences();
-+  const [tasksAt, setTasksAt] = useState<TasksAt>(opening.tasks ?? {});
++  const [scene, setScene] = useState<Screen>(() => startScreen(opening));
 +  const counts = useTaskCounts();
 +  const { insets, size: screen } = room;
 +  const { width, height } = screen;
@@ -101654,20 +101691,12 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  const moves = split || !!orb.dock;
 +  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
 +  const follows = moves || !!layout.duo?.beside;
-+  // What the words show, in one place. Where the layout pulls the words down over the orb, they
-+  // show once pulled; everywhere else they take their own page once there's a call or words to show,
-+  // and before that the orb rests alone in the middle. Opening a past call pulls them, and letting
-+  // them go goes back to the live call, so the two never disagree.
-+  const [showing, setShowing] = useState<{ pulled: boolean; call: string | null }>({
-+    pulled: false,
-+    call: null,
-+  });
-+  const viewing = showing.call;
++  // What the words show. Where the layout pulls the words down over the orb, they show once pulled;
++  // everywhere else they take their own page once there's a call or words to show, and before that
++  // the orb rests alone in the middle. Opening a past call pulls them, and letting them go goes back
++  // to the live call, so the two never disagree (`step` in screen.ts).
++  const viewing = scene.words.call;
 +  const calls = useCalls();
-+  const pullWords = (pulled: boolean) =>
-+    setShowing((now) => (pulled ? { ...now, pulled } : { pulled, call: null }));
-+  const showCall = (call: string | null) =>
-+    setShowing((now) => ({ pulled: now.pulled || call !== null, call }));
 +  const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
 +  const past = usePastCall(shown?.id);
 +  // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
@@ -101677,19 +101706,17 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  // Open, iPhone Duo shows settings as a place of its own where Tasks goes.
 +  const settingsPlace = room.fold && duo?.tasks.area;
 +  const shared = !!settingsPlace;
-+  const [places, setPlaces] = useState<Places>({
-+    tasks: opening.tasks !== undefined,
-+    settings: opening.open === 'settings',
-+    front: opening.open === 'settings' ? 'settings' : 'tasks',
-+  });
-+  const { tasks: tasksOpen, settings: settingsOpen } = inView(places, shared);
-+  const placeOpen = tasksOpen || (shared && settingsOpen);
-+  const show = (place: Place) => setPlaces((now) => opened(now, place, shared));
-+  const close = (place: Place) => setPlaces((now) => closed(now, place));
-+  const closePlace = () => {
-+    close('tasks');
-+    if (shared) close('settings');
-+  };
++  // Everything that opens and closes goes through `send`, and every open flag and lit button
++  // below is read from `scene`.
++  const send = (action: Action) => setScene((now) => step(now, action, { shared }));
++  const {
++    calls: callsOpen,
++    tasks: tasksOpen,
++    settings: settingsOpen,
++    place: placeOpen,
++  } = inView(scene, shared);
++  const pullWords = (pulled: boolean) => send({ to: 'words', pulled });
++  const showCall = (id: string | null) => send({ to: 'call', id });
 +  const reducedMotion = useReducedMotion();
 +  const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
 +  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -101698,7 +101725,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  const onCall = call.kind !== 'none';
 +  const live = call.kind === 'here' && call.phase === 'live';
 +  const reading = layout.pulls
-+    ? showing.pulled
++    ? scene.words.pulled
 +    : showsWords(call, { viewing: !!shown, cards: cards.length });
 +  const duoTasks = useDuoTasks(duo, { open: placeOpen, tasks: tasksOpen }, onCall, reducedMotion);
 +  // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
@@ -101760,7 +101787,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  const before = duo?.beside?.words ?? { ...words, raise: 0 };
 +  const closeTasks = () => {
 +    tick();
-+    closePlace();
++    send({ to: 'tasks', open: false });
 +  };
 +  useEscape(tasksOpen ? closeTasks : undefined);
 +  const now = useNow(docked && call.kind === 'elsewhere');
@@ -101808,28 +101835,20 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +      }),
 +  );
 +
-+  const {
-+    drawer,
-+    open: drawerOpen,
-+    settle: settleDrawer,
-+    edgeOpen,
-+    listClose,
-+    peekClose,
-+  } = useDrawer({
-+    open: opening.open === 'calls',
++  const setCalls = (open: boolean) => send({ to: 'calls', open });
++  const { drawer, edgeOpen, listClose, peekClose } = useDrawer({
++    open: callsOpen,
 +    width: list.width,
 +    reducedMotion,
-+    onChange: (open) => {
-+      if (open && panes) closePlace();
-+    },
++    onChange: setCalls,
 +  });
 +  const toggleDrawer = () => {
 +    tick();
-+    settleDrawer(!drawerOpen);
++    setCalls(!callsOpen);
 +  };
 +  // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
 +  const openCall = (id: string) => {
-+    if (list.place !== 'beside') settleDrawer(false);
++    if (list.place !== 'beside') setCalls(false);
 +    if (id === calls.live && onCall) return backToCall();
 +    showCall(id);
 +  };
@@ -101838,7 +101857,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +    tick();
 +    showCall(null);
 +  };
-+  const leaveCall = () => setShowing({ pulled: false, call: null });
++  const leaveCall = () => pullWords(false);
 +
 +  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
 +  const pane = useSharedValue(panes && placeOpen ? 1 : 0);
@@ -102075,14 +102094,12 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  };
 +  const openTasks = (at: TasksAt = {}) => {
 +    tick();
-+    setTasksAt(at);
-+    show('tasks');
-+    if (panes && drawerOpen) settleDrawer(false);
++    send({ to: 'tasks', open: true, at });
 +  };
 +  const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
 +  // A sheet steps aside for the call it starts; a pane stays open beside it.
 +  const stepAside = () => {
-+    if (!panes) closePlace();
++    if (!panes) send({ to: 'tasks', open: false });
 +  };
 +  // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
 +  const talkAbout = (task: TaskRow) => {
@@ -102093,7 +102110,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
 +  const openCallFromTasks = (id: string) => {
 +    stepAside();
-+    if (list.place === 'beside') settleDrawer(true);
++    if (list.place === 'beside') setCalls(true);
 +    openCall(id);
 +  };
 +  const removeShown =
@@ -102163,7 +102180,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +
 +  const tasks = {
 +    open: tasksOpen,
-+    at: tasksAt,
++    at: scene.at,
 +    haptics: preferences.haptics,
 +    onTalk: talkAbout,
 +    onGoThrough: goThrough,
@@ -102312,13 +102329,19 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +            </Animated.View>
 +          )}
 +        </Animated.View>
-+        {!panes && <TasksSheet {...tasks} onCall={onCall} onDismiss={() => close('tasks')} />}
-+        {!drawerOpen && !(duo && tasksOpen) && (
++        {!panes && (
++          <TasksSheet
++            {...tasks}
++            onCall={onCall}
++            onDismiss={() => send({ to: 'tasks', open: false })}
++          />
++        )}
++        {!callsOpen && !(duo && tasksOpen) && (
 +          <GestureDetector gesture={edgeOpen}>
 +            <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
 +          </GestureDetector>
 +        )}
-+        {drawerOpen && list.place !== 'beside' && (
++        {callsOpen && list.place !== 'beside' && (
 +          <GestureDetector gesture={peekClose}>
 +            <View accessibilityLabel="Close calls" style={styles.fill} />
 +          </GestureDetector>
@@ -102329,7 +102352,7 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +          duo={duo}
 +          tasks={{ ...tasks, onClose: closeTasks }}
 +          state={duoTasks}
-+          shown={!shared || places.front === 'tasks'}
++          shown={!shared || scene.front === 'tasks'}
 +          onCall={onCall}
 +          seconds={callSeconds}
 +          pane={pane}
@@ -102339,11 +102362,11 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +        sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
 +        place={
 +          settingsPlace
-+            ? { area: settingsPlace, shown: places.front === 'settings', pane }
++            ? { area: settingsPlace, shown: scene.front === 'settings', pane }
 +            : undefined
 +        }
 +        isPresented={settingsOpen}
-+        onDismiss={() => close('settings')}
++        onDismiss={() => send({ to: 'settings', open: false })}
 +        voice={voice}
 +        onVoiceChange={setVoice}
 +        voiceEnabled={voiceLoaded && !voiceLocked(call)}
@@ -102368,15 +102391,12 @@ index 0000000000000000000000000000000000000000..87e1f4008a04a9f1d0f057374465d2e0
 +        axis={toolbar.axis}
 +        gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
 +        style={[{ top: toolbar.y }, toolbarStyle]}
-+        callsOpen={drawerOpen}
++        callsOpen={callsOpen}
 +        tasks={{ ...counts, open: tasksOpen }}
 +        settingsOpen={settingsOpen}
-+        onCalls={() => {
-+          close('settings');
-+          toggleDrawer();
-+        }}
++        onCalls={toggleDrawer}
 +        onTasks={toggleTasks}
-+        onSettings={() => (settingsOpen ? close('settings') : show('settings'))}
++        onSettings={() => send({ to: 'settings', open: !settingsOpen })}
 +      />
 +      {controlsColumn && controls}
 +    </>
@@ -102727,11 +102747,11 @@ index 0000000000000000000000000000000000000000..c528ad2b7055c20c532bfcf5e24fbdae
 +}
 diff --git a/src/call/drawer.ts b/src/call/drawer.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a95518c308
+index 0000000000000000000000000000000000000000..8aa3a4798b781b4626340b0257077b30eb60a256
 --- /dev/null
 +++ b/src/call/drawer.ts
-@@ -0,0 +1,78 @@
-+import { useState } from 'react';
+@@ -0,0 +1,81 @@
++import { useEffect } from 'react';
 +import { Gesture } from 'react-native-gesture-handler';
 +import { cancelAnimation, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 +import { scheduleOnRN } from 'react-native-worklets';
@@ -102741,11 +102761,12 @@ index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a9
 +const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 +
 +// Calls comes in from the leading edge and follows the finger: `drawer` runs 0 (shut) to 1 (open),
-+// and letting go settles it open or shut with a flick or past halfway. The pans open it from the
-+// screen's edge, close it from the list, and close it from the call it peeks over, where a tap
-+// closes it too.
++// and letting go settles it open or shut with a flick or past halfway. Whether it's open belongs to
++// the screen: the drawer settles wherever `open` says, and its pans only tell the screen where they
++// let go (`onChange`). They open it from the screen's edge, close it from the list, and close it
++// from the call it peeks over, where a tap closes it too.
 +export function useDrawer({
-+  open: initially,
++  open,
 +  width,
 +  reducedMotion,
 +  onChange,
@@ -102755,17 +102776,14 @@ index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a9
 +  reducedMotion: boolean;
 +  onChange: (open: boolean) => void;
 +}) {
-+  const [open, setOpen] = useState(initially);
-+  const drawer = useSharedValue(initially ? 1 : 0);
++  const drawer = useSharedValue(open ? 1 : 0);
++  const target = useSharedValue(open);
 +  const from = useSharedValue(0);
-+  const opened = (now: boolean) => {
-+    setOpen(now);
-+    onChange(now);
-+  };
 +  // The spring is critically damped, so it comes to rest without passing its end unless it starts
 +  // faster than its natural frequency times the way left. A faster fling is held to that.
 +  const settle = (now: boolean, velocity = 0) => {
 +    'worklet';
++    target.set(now);
 +    const most = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
 +    drawer.set(
 +      reducedMotion
@@ -102775,8 +102793,15 @@ index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a9
 +            velocity: Math.min(most, Math.max(-most, velocity / width)),
 +          }),
 +    );
-+    scheduleOnRN(opened, now);
 +  };
++  const letGo = (now: boolean, velocity = 0) => {
++    'worklet';
++    settle(now, velocity);
++    scheduleOnRN(onChange, now);
++  };
++  useEffect(() => {
++    if (target.get() !== open) settle(open);
++  }, [open]);
 +  const pan = (offset: number | [number, number]) =>
 +    Gesture.Pan()
 +      .activeOffsetX(offset)
@@ -102792,19 +102817,17 @@ index 0000000000000000000000000000000000000000..0527a2a1c704646921307784f77644a9
 +      })
 +      .onEnd(({ velocityX }) => {
 +        'worklet';
-+        settle(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
++        letGo(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
 +      });
 +  return {
 +    drawer,
-+    open,
-+    settle,
 +    edgeOpen: pan(12),
 +    listClose: pan(-16),
 +    peekClose: Gesture.Race(
 +      pan([-10, 10]),
 +      Gesture.Tap().onEnd(() => {
 +        'worklet';
-+        settle(false);
++        letGo(false);
 +      }),
 +    ),
 +  };
@@ -103144,37 +103167,6 @@ index 0000000000000000000000000000000000000000..017a617a1562ff1f2a5d2d9c5835f05b
 +
 +  return { wake, breath, level, pitch, tone };
 +}
-diff --git a/src/call/places.ts b/src/call/places.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..4bdd766b4844172b4a4a7efd377f9bde562242ec
---- /dev/null
-+++ b/src/call/places.ts
-@@ -0,0 +1,25 @@
-+// What's open of Tasks and settings. Where settings has a place of its own (the open Duo) the two
-+// take turns in it like tabs; elsewhere settings is a sheet over whatever is open, so opening it
-+// leaves Tasks be. `front` stays on the last one opened while it closes, so its place fades out.
-+export type Place = 'tasks' | 'settings';
-+export type Places = { tasks: boolean; settings: boolean; front: Place };
-+
-+const other = (place: Place): Place => (place === 'tasks' ? 'settings' : 'tasks');
-+
-+export const opened = (now: Places, place: Place, shared: boolean): Places => ({
-+  ...now,
-+  ...(shared && { [other(place)]: false }),
-+  [place]: true,
-+  front: place,
-+});
-+
-+export const closed = (now: Places, place: Place): Places => ({ ...now, [place]: false });
-+
-+// Both can be open only where settings is a sheet; unfolded into the one place, the front one shows.
-+export function inView(now: Places, shared: boolean) {
-+  const both = shared && now.tasks && now.settings;
-+  return {
-+    tasks: now.tasks && !(both && now.front === 'settings'),
-+    settings: now.settings && !(both && now.front === 'tasks'),
-+  };
-+}
 diff --git a/src/call/pose-report.tsx b/src/call/pose-report.tsx
 new file mode 100644
 index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c61bbe72f5
@@ -103205,6 +103197,96 @@ index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c6
 +    logPose('pose', { window, size, insets, pose, room });
 +  }, [window, size, insets, pose, room]);
 +  return null;
++}
+diff --git a/src/call/screen.ts b/src/call/screen.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a5f98c5b9af54c65f47a2112d748c39fbe3062ea
+--- /dev/null
++++ b/src/call/screen.ts
+@@ -0,0 +1,84 @@
++import type { TasksAt } from '@/components/tasks/tasks-view';
++
++// What the call screen has open, in one place, so no two parts of it can disagree. Calls and Tasks
++// come in over the call one at a time (`over`). Settings is a layer: where it has a place of its own
++// (the open Duo, `shared`) it and Tasks take turns in that place like tabs; elsewhere it's a sheet
++// over whatever is open, so opening it leaves Tasks be. `front` stays on the last of the two opened
++// while it closes, so its place fades out. The call's words are pulled down over the orb or not, and
++// show the live call or a past one.
++export type Over = 'none' | 'calls' | 'tasks';
++export type Place = 'tasks' | 'settings';
++export type Screen = {
++  over: Over;
++  settings: boolean;
++  front: Place;
++  at: TasksAt;
++  words: { pulled: boolean; call: string | null };
++};
++
++export type Action =
++  | { to: 'calls'; open: boolean }
++  | { to: 'tasks'; open: true; at?: TasksAt }
++  | { to: 'tasks'; open: false }
++  | { to: 'settings'; open: boolean }
++  | { to: 'words'; pulled: boolean }
++  | { to: 'call'; id: string | null };
++
++export function start(opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen {
++  return {
++    over: opening.open === 'calls' ? 'calls' : opening.tasks ? 'tasks' : 'none',
++    settings: opening.open === 'settings',
++    front: opening.open === 'settings' ? 'settings' : 'tasks',
++    at: opening.tasks ?? {},
++    words: { pulled: false, call: null },
++  };
++}
++
++export function step(now: Screen, action: Action, { shared }: { shared: boolean }): Screen {
++  switch (action.to) {
++    case 'calls':
++      return action.open
++        ? { ...now, over: 'calls', settings: false }
++        : { ...now, over: now.over === 'calls' ? 'none' : now.over };
++    case 'tasks':
++      if (!action.open)
++        return {
++          ...now,
++          over: now.over === 'tasks' ? 'none' : now.over,
++          settings: shared ? false : now.settings,
++        };
++      return {
++        ...now,
++        over: 'tasks',
++        at: action.at ?? {},
++        front: 'tasks',
++        settings: shared ? false : now.settings,
++      };
++    case 'settings':
++      if (!action.open) return { ...now, settings: false };
++      return {
++        ...now,
++        settings: true,
++        front: 'settings',
++        over: shared && now.over === 'tasks' ? 'none' : now.over,
++      };
++    case 'words':
++      return {
++        ...now,
++        words: action.pulled ? { ...now.words, pulled: true } : { pulled: false, call: null },
++      };
++    case 'call':
++      return {
++        ...now,
++        words: { pulled: now.words.pulled || action.id !== null, call: action.id },
++      };
++  }
++}
++
++// What shows: where settings has a place and both were left open (a fold), the one in front.
++export function shown(now: Screen, shared: boolean) {
++  const both = shared && now.over === 'tasks' && now.settings;
++  const tasks = now.over === 'tasks' && !(both && now.front === 'settings');
++  const settings = now.settings && !(both && now.front === 'tasks');
++  return { calls: now.over === 'calls', tasks, settings, place: tasks || (shared && settings) };
 +}
 diff --git a/src/call/stage.ts b/src/call/stage.ts
 new file mode 100644
@@ -126117,41 +126199,120 @@ index 0000000000000000000000000000000000000000..31777bd689c59329523fb93cce8b2e5f
 +test('every persona fills the same number of color slots', () => {
 +  assert.equal(PERSONA_COLORS.length + 1, OPAL_PALETTES.length);
 +});
-diff --git a/tests/places.test.ts b/tests/places.test.ts
+diff --git a/tests/screen.test.ts b/tests/screen.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7fa9c9b37bbb8ffcefee34bcb0044b63970028b9
+index 0000000000000000000000000000000000000000..0330d9ac7c93d46303a12db2ecafec6d72676984
 --- /dev/null
-+++ b/tests/places.test.ts
-@@ -0,0 +1,30 @@
++++ b/tests/screen.test.ts
+@@ -0,0 +1,109 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
-+import { closed, inView, opened, type Places } from '../src/call/places';
++import { TaskId } from '../src/live/tasks';
++import { shown, start, step, type Action, type Screen } from '../src/call/screen';
 +
-+const none: Places = { tasks: false, settings: false, front: 'tasks' };
++const go = (shared: boolean, ...actions: Action[]) =>
++  actions.reduce((now, action) => step(now, action, { shared }), start({}));
++const A = TaskId.parse('a');
++
++test('nothing is open at first, unless the link opens something', () => {
++  assert.deepEqual(shown(start({}), false), {
++    calls: false,
++    tasks: false,
++    settings: false,
++    place: false,
++  });
++  assert.equal(shown(start({ open: 'calls' }), false).calls, true);
++  assert.equal(shown(start({ tasks: { task: A } }), true).tasks, true);
++  assert.deepEqual(start({ tasks: { task: A } }).at, { task: A });
++});
++
++test('Calls and Tasks come in one at a time: opening one closes the other', () => {
++  for (const shared of [false, true]) {
++    const tasks = go(shared, { to: 'calls', open: true }, { to: 'tasks', open: true });
++    assert.deepEqual([shown(tasks, shared).calls, shown(tasks, shared).tasks], [false, true]);
++    const calls = step(tasks, { to: 'calls', open: true }, { shared });
++    assert.deepEqual([shown(calls, shared).calls, shown(calls, shared).tasks], [true, false]);
++  }
++});
++
++test('closing Calls leaves Tasks alone, and closing Tasks leaves Calls alone', () => {
++  const tasks = go(false, { to: 'tasks', open: true }, { to: 'calls', open: false });
++  assert.equal(shown(tasks, false).tasks, true);
++  const calls = go(false, { to: 'calls', open: true }, { to: 'tasks', open: false });
++  assert.equal(shown(calls, false).calls, true);
++});
++
++test('Tasks opens where it was sent', () => {
++  assert.deepEqual(go(false, { to: 'tasks', open: true, at: { stage: 'working' } }).at, {
++    stage: 'working',
++  });
++  assert.deepEqual(go(false, { to: 'tasks', open: true }).at, {});
++});
 +
 +test('where settings is a sheet, opening it leaves Tasks open beneath, and closing it brings Tasks back', () => {
-+  const tasks = opened(none, 'tasks', false);
-+  const both = opened(tasks, 'settings', false);
-+  assert.deepEqual(inView(both, false), { tasks: true, settings: true });
-+  assert.deepEqual(inView(closed(both, 'settings'), false), { tasks: true, settings: false });
++  const both = go(false, { to: 'tasks', open: true }, { to: 'settings', open: true });
++  assert.deepEqual(shown(both, false), { calls: false, tasks: true, settings: true, place: true });
++  const back = step(both, { to: 'settings', open: false }, { shared: false });
++  assert.deepEqual(shown(back, false), { calls: false, tasks: true, settings: false, place: true });
 +});
 +
 +test('where settings has a place, it and Tasks swap in one tap and only one is open', () => {
-+  const tasks = opened(none, 'tasks', true);
-+  const settings = opened(tasks, 'settings', true);
-+  assert.deepEqual(inView(settings, true), { tasks: false, settings: true });
-+  assert.deepEqual(inView(opened(settings, 'tasks', true), true), { tasks: true, settings: false });
++  const settings = go(true, { to: 'tasks', open: true }, { to: 'settings', open: true });
++  assert.deepEqual(shown(settings, true), {
++    calls: false,
++    tasks: false,
++    settings: true,
++    place: true,
++  });
++  const tasks = step(settings, { to: 'tasks', open: true }, { shared: true });
++  assert.deepEqual(shown(tasks, true), { calls: false, tasks: true, settings: false, place: true });
++});
++
++test('where settings has a place, closing Tasks closes the place, settings too', () => {
++  const both: Screen = { ...go(false, { to: 'tasks', open: true }), settings: true };
++  const closed = step(both, { to: 'tasks', open: false }, { shared: true });
++  assert.equal(shown(closed, true).place, false);
 +});
 +
 +test('unfolding with both open shows the one in front, and a fold brings the other back', () => {
-+  const both = opened(opened(none, 'tasks', false), 'settings', false);
-+  assert.deepEqual(inView(both, true), { tasks: false, settings: true });
-+  assert.deepEqual(inView(both, false), { tasks: true, settings: true });
++  const both = go(false, { to: 'tasks', open: true }, { to: 'settings', open: true });
++  assert.deepEqual([shown(both, true).tasks, shown(both, true).settings], [false, true]);
++  assert.deepEqual([shown(both, false).tasks, shown(both, false).settings], [true, true]);
 +});
 +
 +test('closing keeps the closed one in front, so its place fades out', () => {
-+  assert.equal(closed(opened(none, 'settings', true), 'settings').front, 'settings');
++  assert.equal(
++    go(true, { to: 'settings', open: true }, { to: 'settings', open: false }).front,
++    'settings',
++  );
++});
++
++test('Calls closes settings; settings over Calls leaves Calls open', () => {
++  const settings = go(false, { to: 'settings', open: true }, { to: 'calls', open: true });
++  assert.deepEqual([shown(settings, false).calls, shown(settings, false).settings], [true, false]);
++  const over = step(settings, { to: 'settings', open: true }, { shared: true });
++  assert.deepEqual([shown(over, true).calls, shown(over, true).settings], [true, true]);
++});
++
++test('opening a past call pulls the words, and letting them go goes back to the live call', () => {
++  const past = go(false, { to: 'call', id: 'c1' });
++  assert.deepEqual(past.words, { pulled: true, call: 'c1' });
++  assert.deepEqual(step(past, { to: 'words', pulled: false }, { shared: false }).words, {
++    pulled: false,
++    call: null,
++  });
++  assert.deepEqual(step(past, { to: 'call', id: null }, { shared: false }).words, {
++    pulled: true,
++    call: null,
++  });
++});
++
++test('what is open never touches the words, and the words never touch what is open', () => {
++  const words = go(false, { to: 'words', pulled: true }, { to: 'call', id: 'c1' });
++  const opened = step(words, { to: 'tasks', open: true }, { shared: false });
++  assert.deepEqual(opened.words, words.words);
++  assert.equal(step(opened, { to: 'words', pulled: false }, { shared: false }).over, 'tasks');
 +});
 diff --git a/tests/setup.test.ts b/tests/setup.test.ts
 deleted file mode 100644
