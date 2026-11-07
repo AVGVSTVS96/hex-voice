@@ -37,8 +37,12 @@ wait 0.3
 snap settings-tap-later
 shoot settings
 swipe-down voice-settings-sheet
-# A swiped sheet takes a moment to go, and a tap before then lands on it.
+# A swiped sheet takes a moment to go, and a tap before then lands on it. Settings opened over
+# Tasks, so Tasks is still there, lit, once it's gone.
 wait 3
+shoot settings-swiped
+selected tasks-button
+unselected voice-settings-button
 tap tasks-button
 shoot tasks-closed
 unselected tasks-button
