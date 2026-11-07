@@ -18,13 +18,15 @@ import type { ReactNode } from 'react';
 import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, listRow } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, StageHead, listRow } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
+import { useNow } from '@/hooks/use-now';
 import type { Ask, AskOption } from '@/live/asks';
-import { placeOf, type Place } from '@/live/inbox';
+import { Lane } from '@/components/tasks/lane';
+import { placeOf, tracksOf, type Place } from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
@@ -92,12 +94,12 @@ export function Detail({
   );
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const door = [task, ...threads].find((one) => one.link);
+  const page = Math.min(width, metrics.readable);
+  const tracks = tracksOf(task.name, threads.length ? threads : [task]);
+  // The lane ends at now, as of when the page opened.
+  const now = useNow(false).getTime();
   return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
+    <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
         title={task.name}
         subtitle={`${open ? `${open} need${open === 1 ? 's' : ''} you` : STATE_WORDS[task.state]} · ${taskTime(task)}`}
@@ -109,7 +111,7 @@ export function Detail({
             <YourCall
               asks={asks}
               answered={answered}
-              width={width}
+              width={page}
               onAnswer={onAnswer}
               onUndo={onUndo}
               onAgain={onAgain}
@@ -120,25 +122,34 @@ export function Detail({
             <Sections follows={asks.length > 0}>
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
-                  <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
+                  <StageHead tint="needs" title="Needs you" />
                   <Text
                     paragraph
                     modifiers={[
-                      padding({
-                        leading: metrics.list.inset,
-                        trailing: metrics.list.inset,
-                        bottom: space[1.5],
-                      }),
+                      padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
                       frame({ maxWidth: Infinity, alignment: 'leading' }),
                     ]}
                   >
                     {needs}
                   </Text>
+                  <Text
+                    variant="detail"
+                    tone="secondary"
+                    modifiers={[
+                      padding({
+                        leading: metrics.list.inset,
+                        trailing: metrics.list.inset,
+                        top: space[1],
+                      }),
+                    ]}
+                  >
+                    {`Waiting on you since ${clock(new Date(task.since))}`}
+                  </Text>
                 </Column>
               ) : null}
               {working.length ? (
                 <Column key="working" alignment="start" spacing={0}>
-                  <SectionHead title="Working" />
+                  <StageHead tint="working" title="Working" count={working.length} />
                   {working.map((thread) => (
                     <Run
                       key={thread.id}
@@ -165,6 +176,20 @@ export function Detail({
                   onOpen={onOpen}
                   onOpenTask={onOpenTask}
                 />
+              ) : null}
+              {tracks.length ? (
+                <Column key="week" alignment="start" spacing={0}>
+                  <SectionHead title="This week" />
+                  <Row
+                    alignment="center"
+                    spacing={0}
+                    modifiers={[
+                      padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
+                    ]}
+                  >
+                    <Lane tracks={tracks} width={page - 2 * metrics.list.inset} now={now} />
+                  </Row>
+                </Column>
               ) : null}
               {lately.length ? (
                 <Column key="lately" alignment="start" spacing={0}>
@@ -228,12 +253,9 @@ export function Asked({
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
+  const page = Math.min(width, metrics.readable);
   return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
+    <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
         title={topic}
         subtitle={open ? `${open} need${open === 1 ? 's' : ''} you` : `${others} here`}
@@ -245,7 +267,7 @@ export function Asked({
             <YourCall
               asks={asks}
               answered={answered}
-              width={width}
+              width={page}
               onAnswer={onAnswer}
               onUndo={onUndo}
               onAgain={onAgain}
@@ -273,11 +295,17 @@ function pageList(asks: Ask[], answered: Record<string, string | null>) {
   ];
 }
 
+// A page's words keep a readable measure, centered, however wide its room.
+const readable = [
+  frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
+  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+];
+
 // The page's last row, which holds the rest of it and ends clear of the fade.
 const rest = (width: number) => [
   padding({ bottom: space[10] }),
   frame({ maxWidth: Infinity }),
-  ...listRow(width, { top: false, bottom: false }),
+  ...listRow(width),
 ];
 
 function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
@@ -313,13 +341,13 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
         <Text
           numberOfLines={1}
-          variant="subheadline"
-          weight="semibold"
+          variant="detail"
+          weight="medium"
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {thread.place}
         </Text>
-        <Text variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {taskTime(thread)}
         </Text>
         <Icon name="chevron.right" size={11} color={theme.tertiary} />

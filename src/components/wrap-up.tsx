@@ -68,18 +68,18 @@ export function WrapUp({ why, summary, waiting = [], center, onOpen, onMore }: P
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space[3.5] },
+  wrap: { gap: space[4] },
   center: { alignItems: 'center' },
   centered: { textAlign: 'center' },
-  summary: { ...textOf('callout'), color: theme.secondary },
+  summary: { ...textOf('body'), color: theme.secondary },
   waiting: { gap: space[2] },
-  label: { ...textOf('footnote', 'semibold'), color: theme.secondary },
-  item: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2.5] },
+  label: { ...textOf('caption', 'medium'), color: theme.secondary },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
   dot: {
     ...circle(6),
     marginTop: space[2],
     backgroundColor: theme.accent,
   },
-  itemText: { ...textOf('subheadline'), flexShrink: 1, color: theme.text },
+  itemText: { ...textOf('detail'), flexShrink: 1, color: theme.text },
   more: { color: theme.accent },
 });

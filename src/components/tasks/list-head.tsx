@@ -1,8 +1,9 @@
-import { Column, Icon, Row, ScrollView, TextInput, type TextInputRef } from '@expo/ui';
-import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
+import { Icon, Row, ScrollView, TextInput, type TextInputRef } from '@expo/ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
+  background,
+  clipShape,
   contentShape,
   foregroundStyle,
   frame,
@@ -28,6 +29,8 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+// The stages as capsules, the chosen one filled, as Muse marks the tab you're on. Only a count of
+// what needs you is mint.
 export function Tabs({
   counts,
   stage,
@@ -45,96 +48,89 @@ export function Tabs({
   onSearch?: () => void;
 }) {
   return (
-    <Column
-      alignment="start"
+    <Row
+      alignment="center"
       spacing={0}
       modifiers={[
+        padding({ top: onSearch ? space[2] : 0, bottom: space[2] }),
         frame({ maxWidth: Infinity }),
-        ...(onSearch ? [padding({ top: space[2.5] })] : []),
       ]}
     >
-      <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-        {back ? (
-          <Row
-            alignment="center"
-            spacing={0}
-            modifiers={[padding({ leading: metrics.list.inset - space[1], bottom: space[2] })]}
-          >
-            <BackButton back={back} />
-          </Row>
-        ) : null}
-        <ScrollView
-          direction="horizontal"
-          showsIndicators={false}
-          modifiers={[frame({ maxWidth: Infinity })]}
+      {back ? (
+        <Row
+          alignment="center"
+          spacing={0}
+          modifiers={[padding({ leading: metrics.list.inset - space[1] })]}
         >
-          <Row
-            alignment="end"
-            spacing={space[5]}
-            modifiers={[padding({ leading: metrics.list.inset, trailing: metrics.list.inset })]}
-          >
-            {STAGES.map(({ key, title }) => {
-              const on = key === stage;
-              const count = counts[key];
-              const needs = !unknown && key === 'needs' && count > 0;
-              return (
-                <Overlay key={key} alignment="bottom">
-                  <Row
-                    alignment="center"
-                    spacing={metrics.tabs.gap}
-                    onPress={() => onChange(key)}
-                    modifiers={[
-                      padding({ bottom: metrics.tabs.underline }),
-                      contentShape(shapes.rectangle()),
-                      accessibilityLabel(unknown ? title : `${title}, ${count}`),
-                      ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-                    ]}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      variant="subheadline"
-                      weight={on ? 'semibold' : 'medium'}
-                      tone={on ? 'text' : 'secondary'}
-                    >
-                      {title}
-                    </Text>
-                    <Text
-                      variant="subheadline"
-                      weight={on || needs ? 'semibold' : 'medium'}
-                      tone={needs ? 'accent' : on ? 'text' : 'tertiary'}
-                      modifiers={[monospacedDigit()]}
-                    >
-                      {unknown ? '–' : String(count)}
-                    </Text>
-                  </Row>
-                  {on ? (
-                    <Overlay.Content>
-                      <Capsule modifiers={[frame({ height: 2 }), foregroundStyle(theme.accent)]} />
-                    </Overlay.Content>
-                  ) : null}
-                </Overlay>
-              );
-            })}
-          </Row>
-        </ScrollView>
-        {onSearch ? (
-          <Row
-            alignment="center"
-            spacing={0}
-            modifiers={[padding({ trailing: metrics.list.inset - space[1], bottom: space[2] })]}
-          >
-            <SearchButton onPress={onSearch} />
-          </Row>
-        ) : null}
-      </Row>
-      <Rectangle
-        modifiers={[
-          frame({ height: 1 }),
-          frame({ maxWidth: Infinity }),
-          foregroundStyle(theme.edge),
-        ]}
-      />
-    </Column>
+          <BackButton back={back} />
+        </Row>
+      ) : null}
+      <ScrollView
+        direction="horizontal"
+        showsIndicators={false}
+        modifiers={[frame({ maxWidth: Infinity })]}
+      >
+        <Row
+          alignment="center"
+          spacing={space[1]}
+          modifiers={[
+            padding({
+              leading: metrics.list.inset - metrics.tabs.pad,
+              trailing: metrics.list.inset - metrics.tabs.pad,
+            }),
+          ]}
+        >
+          {STAGES.map(({ key, title }) => {
+            const on = key === stage;
+            const count = counts[key];
+            const needs = !unknown && key === 'needs' && count > 0;
+            return (
+              <Row
+                key={key}
+                alignment="center"
+                spacing={metrics.tabs.gap}
+                onPress={() => onChange(key)}
+                modifiers={[
+                  padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
+                  frame({ height: metrics.tabs.height }),
+                  ...(on ? [background(theme.card)] : []),
+                  clipShape('capsule'),
+                  contentShape(shapes.capsule()),
+                  accessibilityLabel(unknown ? title : `${title}, ${count}`),
+                  ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  variant="detail"
+                  weight={on ? 'medium' : 'regular'}
+                  tone={on ? 'text' : 'secondary'}
+                >
+                  {title}
+                </Text>
+                <Text
+                  variant="detail"
+                  weight={needs ? 'medium' : 'regular'}
+                  tone={needs ? 'accent' : 'tertiary'}
+                  modifiers={[monospacedDigit()]}
+                >
+                  {unknown ? '–' : String(count)}
+                </Text>
+              </Row>
+            );
+          })}
+        </Row>
+      </ScrollView>
+      {onSearch ? (
+        <Row
+          alignment="center"
+          spacing={0}
+          modifiers={[padding({ trailing: metrics.list.inset - space[1] })]}
+        >
+          <SearchButton onPress={onSearch} />
+        </Row>
+      ) : null}
+    </Row>
   );
 }
 
@@ -153,13 +149,13 @@ export function Search({
   return (
     <Row
       alignment="center"
-      spacing={space[2.5]}
+      spacing={space[3]}
       modifiers={[
         padding({
           leading: space[4],
           trailing: metrics.list.inset - space[1],
-          top: space[4.5],
-          bottom: space[2.5],
+          top: space[5],
+          bottom: space[3],
         }),
         frame({ maxWidth: Infinity }),
       ]}
@@ -168,13 +164,13 @@ export function Search({
         alignment="center"
         spacing={space[2]}
         modifiers={[
-          padding({ leading: space[3.5], trailing: space[3.5] }),
+          padding({ leading: space[4], trailing: space[4] }),
           frame({ height: metrics.bar.button }),
           frame({ maxWidth: Infinity }),
           glass('capsule'),
         ]}
       >
-        <Icon name="magnifyingglass" size={14} color={theme.secondary} />
+        <Icon name="magnifyingglass" size={metrics.symbol.small} color={theme.secondary} />
         <TextInput
           ref={field}
           autoFocus
@@ -186,7 +182,7 @@ export function Search({
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={onChange}
-          textStyle={labelOf('callout')}
+          textStyle={labelOf('body')}
           modifiers={[
             foregroundStyle(theme.text),
             frame({ maxWidth: Infinity, alignment: 'leading' }),

@@ -1,6 +1,7 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, Rectangle, SwipeActions, VStack } from '@expo/ui/swift-ui';
+import { HStack, SwipeActions, VStack } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
   accessibilityElement,
   accessibilityIdentifier,
   accessibilityLabel,
@@ -15,10 +16,9 @@ import {
   onTapGesture,
   padding,
   shapes,
-  strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
@@ -26,7 +26,7 @@ import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
 import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { Failure, NotNeededButton, SectionHead, listRow } from '@/components/tasks/parts';
+import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components/tasks/parts';
 import {
   NOT_NEEDED,
   unreached,
@@ -42,18 +42,17 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
 
-// Compact, so a page of many asks scans: folded, a question and a line of why; open, its choices
-// on one line where they fit.
-const ROW = 40;
 // How much of the thread's own words show before a tap shows them all.
 const SAID = 6;
-// The pencil takes taps across 44 points but only the question's first line of height.
-const PENCIL = metrics.bar.button;
-const LINE = type.question.lineHeight;
+// Most choices that share a row, each its own pill, as Muse sets Deny and Allow.
+const SIDE_BY_SIDE = 3;
+// A card keeps in from the page's sides, and its words from its own edges.
+const MARGIN = space[3];
+const INSIDE = space[4];
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
-// The project page's asks, each a row of its list, so a swipe left on one puts it away.
+// The project page's asks, each a card in a row of its list, so a swipe left on one puts it away.
 export function YourCall({
   asks,
   answered,
@@ -72,68 +71,46 @@ export function YourCall({
   onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
-  const row = (i: number) => listRow(width, { top: i > 0, bottom: i < asks.length - 1 });
   return (
     <>
-      <Column
-        alignment="start"
-        spacing={0}
-        modifiers={listRow(width, { top: false, bottom: false })}
-      >
-        <SectionHead title="Your call" count={open} />
+      <Column alignment="start" spacing={0} modifiers={listRow(width)}>
+        <StageHead tint="needs" title="Needs you" count={open} />
       </Column>
-      {asks.map((ask, i) => {
+      {asks.map((ask) => {
         const said = answered[ask.id];
         if (said)
           return (
-            <Row
-              key={ask.id}
-              alignment="center"
-              spacing={metrics.list.gap}
-              modifiers={[
-                padding({
-                  leading: metrics.list.inset - space[0.5],
-                  trailing: metrics.list.inset,
-                  top: space[2.5],
-                  bottom: space[3.5],
-                }),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
-                ...row(i),
-              ]}
-            >
-              <Mark state="done" />
-              <Column
-                alignment="start"
-                spacing={space[0.25]}
-                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-              >
-                <Text variant="subheadline" tone="secondary">
-                  {ask.question}
-                </Text>
-                <Text variant="subheadline">{said}</Text>
-                {ask.missed ? <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} /> : null}
-                {ask.failed ? <Failure text={ask.failed} /> : null}
-              </Column>
-              <Text
-                variant="subheadline"
-                weight="semibold"
-                tone="accent"
-                onPress={() => onUndo(ask)}
-                modifiers={[accessibilityLabel(`Undo ${said}`)]}
-              >
-                Undo
-              </Text>
-            </Row>
+            <Card key={ask.id} width={width}>
+              <HStack alignment="top" spacing={metrics.list.gap}>
+                <Mark state="done" />
+                <VStack
+                  alignment="leading"
+                  spacing={space[1]}
+                  modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+                >
+                  <Text variant="detail" tone="secondary" paragraph>
+                    {ask.question}
+                  </Text>
+                  <Text variant="body" paragraph>
+                    {said}
+                  </Text>
+                  {ask.missed ? (
+                    <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} />
+                  ) : null}
+                  {ask.failed ? <Failure text={ask.failed} /> : null}
+                </VStack>
+                <Pill
+                  label="Undo"
+                  accessibility={`Undo ${said}`}
+                  onPress={() => onUndo(ask)}
+                  small
+                />
+              </HStack>
+            </Card>
           );
         return (
-          <SwipeActions key={ask.id} modifiers={row(i)}>
-            <AskCard
-              ask={ask}
-              first={i === 0}
-              width={width}
-              onAnswer={onAnswer}
-              onDismiss={onDismiss}
-            />
+          <SwipeActions key={ask.id} modifiers={listRow(width)}>
+            <AskCard ask={ask} width={width} onAnswer={onAnswer} onDismiss={onDismiss} />
             <SwipeActions.Actions edge="trailing">
               <NotNeededButton onPress={() => onDismiss(ask)} />
             </SwipeActions.Actions>
@@ -144,17 +121,35 @@ export function YourCall({
   );
 }
 
-// Folded like a project row, the question and the first line of its background; a tap opens the
-// background whole, the thread's own words, and the answers. Writing on it keeps it open.
+// A card on the page, as Muse sets an approval: its own surface, apart from the next by air.
+function Card({ width, children }: { width?: number; children: ReactNode }) {
+  return (
+    <VStack
+      alignment="leading"
+      spacing={space[3]}
+      modifiers={[
+        padding({ all: INSIDE }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        background(theme.card),
+        clipShape('roundedRectangle', radius.group),
+        padding({ leading: MARGIN, trailing: MARGIN, bottom: space[3] }),
+        ...(width === undefined ? [] : listRow(width)),
+      ]}
+    >
+      {children}
+    </VStack>
+  );
+}
+
+// The question first and large, why hex asks under it in gray, then the choices as pills; a tap
+// on the words opens where it was asked and the thread's own words. Writing on it keeps it open.
 function AskCard({
   ask,
-  first,
   width,
   onAnswer,
   onDismiss,
 }: {
   ask: Ask;
-  first: boolean;
   width: number;
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
@@ -184,27 +179,17 @@ function AskCard({
   };
   // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
+  const inner = width - 2 * (MARGIN + INSIDE);
   return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
-    >
+    <Card>
       <HStack
         alignment="top"
-        spacing={0}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset,
-            top: first ? space[0.5] : space[3],
-            bottom: open ? space[1.5] : space[3],
-          }),
-          frame({ maxWidth: Infinity }),
-        ]}
+        spacing={space[2]}
+        modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, open)]}
       >
         <VStack
           alignment="leading"
-          spacing={space[0.75]}
+          spacing={space[2]}
           modifiers={[
             frame({ maxWidth: Infinity, alignment: 'leading' }),
             contentShape(shapes.rectangle()),
@@ -214,22 +199,19 @@ function AskCard({
           ]}
         >
           <Text
-            variant="question"
+            variant="headline"
             paragraph
-            modifiers={[
-              open ? lineLimit() : lineLimit(2),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
-            ]}
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
             {ask.question}
           </Text>
           {ask.context ? (
             <Text
-              variant="itemDetail"
+              variant="detail"
               tone="secondary"
               paragraph
               modifiers={[
-                open ? lineLimit() : lineLimit(1),
+                open ? lineLimit() : lineLimit(3),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
               ]}
             >
@@ -237,77 +219,48 @@ function AskCard({
             </Text>
           ) : null}
         </VStack>
-        {open ? (
-          <Row
-            alignment="center"
-            spacing={0}
-            style={{ width: PENCIL, height: PENCIL }}
-            onPress={() => setWriting(!writing)}
-            modifiers={[
-              padding({ top: (LINE - PENCIL) / 2, bottom: (LINE - PENCIL) / 2 }),
-              accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
-            ]}
-          >
-            <Spacer flexible />
-            <Icon
-              name="square.and.pencil"
-              size={15}
-              color={writing ? theme.accent : theme.secondary}
-            />
-          </Row>
-        ) : (
-          <Text
-            variant="footnote"
-            tone="tertiary"
-            modifiers={[
-              monospacedDigit(),
-              padding({ leading: metrics.list.gap, trailing: metrics.list.inset }),
-            ]}
-          >
+        <VStack alignment="trailing" spacing={space[1]}>
+          <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
             {clock(new Date(ask.at))}
           </Text>
-        )}
+          <Icon
+            name="square.and.pencil"
+            size={metrics.symbol.bar}
+            color={writing ? theme.accent : theme.secondary}
+            modifiers={[
+              frame({
+                width: metrics.bar.button,
+                height: metrics.bar.button,
+                alignment: 'topTrailing',
+              }),
+              contentShape(shapes.rectangle()),
+              onTapGesture(() => {
+                setOpen(true);
+                setWriting(!writing);
+              }),
+              accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
+              accessibilityAddTraits(['isButton']),
+            ]}
+          />
+        </VStack>
       </HStack>
-      {open ? (
-        <Column
-          alignment="start"
-          spacing={space[0.75]}
-          modifiers={[
-            padding({
-              leading: metrics.list.inset,
-              trailing: metrics.list.inset,
-              bottom: space[1.5],
-            }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ]}
+      {open && (words || ask.links?.length) ? (
+        <VStack
+          alignment="leading"
+          spacing={space[2]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {words ? <Said words={words} /> : null}
           {ask.links?.length ? <Links links={ask.links} /> : null}
-          {noted && !notes.failed.note ? (
-            <Text
-              variant="footnote"
-              tone="secondary"
-              paragraph
-              modifiers={[padding({ top: space[1] })]}
-            >
-              {`Sent to ${ask.topic} as a note. The question is still open.`}
-            </Text>
-          ) : null}
-        </Column>
+        </VStack>
       ) : null}
-      {failed ? (
-        <Failure
-          text={failed}
-          modifiers={[
-            padding({
-              leading: metrics.list.inset,
-              trailing: metrics.list.inset,
-              bottom: open ? space[1.5] : space[3],
-            }),
-          ]}
-        />
+      {noted && !notes.failed.note ? (
+        <Text variant="caption" tone="secondary" paragraph>
+          {`Sent to ${ask.topic} as a note. The question is still open.`}
+        </Text>
       ) : null}
-      {!open ? null : writing ? (
+      {failed ? <Failure text={failed} /> : null}
+      {writing ? (
         <Composer
           draft={`ask:${ask.id}`}
           focus={writing === true}
@@ -318,9 +271,9 @@ function AskCard({
           onDismiss={() => onDismiss(ask)}
         />
       ) : (
-        <Answers ask={ask} width={width} onAnswer={onAnswer} />
+        <Answers ask={ask} width={inner} onAnswer={onAnswer} />
       )}
-    </Column>
+    </Card>
   );
 }
 
@@ -331,23 +284,25 @@ function Said({ words }: { words: Words }) {
   return (
     <Column
       alignment="start"
-      spacing={space[0.5]}
+      spacing={space[1]}
       onPress={() => setWhole(!whole)}
       modifiers={[
-        padding({ top: space[2], bottom: space[0.5] }),
+        padding({ all: space[3] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
+        background(theme.fill),
+        clipShape('roundedRectangle', radius.inner),
         contentShape(shapes.rectangle()),
         animation(motion.list, whole),
         accessibilityElement('combine'),
       ]}
     >
-      <Text variant="footnote" weight="semibold" tone="secondary">
+      <Text variant="caption" tone="secondary">
         {`From ${words.place}${when}`}
       </Text>
       <Markdown
         inline={!whole}
         lines={whole ? undefined : SAID}
-        variant="itemDetail"
+        variant="detail"
         tone="secondary"
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
@@ -361,27 +316,17 @@ function Links({ links }: { links: AskLink[] }) {
   const tries = useFailures();
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (
-    <Column alignment="start" spacing={space[1]} modifiers={[padding({ top: space[1] })]}>
-      <Row alignment="center" spacing={space[1.5]}>
-        {links.map((link, i) => (
-          <Row key={link.url} alignment="center" spacing={space[1.5]}>
-            {i ? (
-              <Text variant="subheadline" tone="tertiary">
-                ·
-              </Text>
-            ) : null}
-            <Row
-              alignment="center"
-              spacing={space[0.75]}
-              onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
-              modifiers={[accessibilityLabel(`Open ${link.label}`)]}
-            >
-              <Text numberOfLines={1} variant="subheadline" tone="secondary">
-                {link.label}
-              </Text>
-              <Icon name="arrow.up.right" size={11} color={theme.secondary} />
-            </Row>
-          </Row>
+    <Column alignment="start" spacing={space[1]}>
+      <Row alignment="center" spacing={space[2]}>
+        {links.map((link) => (
+          <Pill
+            key={link.url}
+            label={link.label}
+            icon="arrow.up.right"
+            accessibility={`Open ${link.label}`}
+            onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
+            small
+          />
         ))}
       </Row>
       {failed ? <Failure text={failed} /> : null}
@@ -389,6 +334,7 @@ function Links({ links }: { links: AskLink[] }) {
   );
 }
 
+// An ask's choices on its row in the list, as small pills, hex's pick solid.
 export function InlineAnswers({
   ask,
   onAnswer,
@@ -399,108 +345,48 @@ export function InlineAnswers({
   modifiers: ModifierConfig[];
 }) {
   return (
-    <Row alignment="center" spacing={space[3.5]} modifiers={modifiers}>
-      {ask.options.map((option, i) => (
-        <Row key={option.label} alignment="center" spacing={space[3.5]}>
-          {i ? (
-            <Rectangle
-              modifiers={[frame({ width: 1, height: space[3.5] }), foregroundStyle(theme.edge)]}
-            />
-          ) : null}
-          <Row
-            alignment="center"
-            spacing={space[1.25]}
-            onPress={() => onAnswer(ask, option)}
-            modifiers={[
-              padding({ top: space[1.5], bottom: space[1] }),
-              accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
-            ]}
-          >
-            {option.pick ? <Icon name="checkmark" size={12} color={theme.accent} /> : null}
-            <Text
-              numberOfLines={1}
-              variant="subheadline"
-              weight={option.pick ? 'semibold' : 'medium'}
-              tone={option.pick ? 'accent' : 'secondary'}
-            >
-              {option.label}
-            </Text>
-          </Row>
-        </Row>
-      ))}
-    </Row>
-  );
-}
-
-function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
-  if (!ask.options.length) return null;
-  if (fitsOneLine(ask.options, width - 2 * metrics.list.inset, type.subheadline.fontSize))
-    return (
-      <InlineAnswers
-        ask={ask}
-        onAnswer={onAnswer}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset,
-            trailing: metrics.list.inset,
-            top: 0,
-            bottom: space[2.5],
-          }),
-        ]}
-      />
-    );
-  return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity }), padding({ bottom: space[1] })]}
-    >
+    <Row alignment="center" spacing={space[2]} modifiers={modifiers}>
       {ask.options.map((option) => (
-        <Choice key={option.label} option={option} onPress={() => onAnswer(ask, option)} />
+        <Pill
+          key={option.label}
+          label={option.label}
+          prominent={option.pick}
+          accessibility={option.pick ? `${option.label}, hex’s pick` : option.label}
+          onPress={() => onAnswer(ask, option)}
+          small
+        />
       ))}
-    </Column>
+    </Row>
   );
 }
 
-function Choice({ option, onPress }: { option: AskOption; onPress: () => void }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={space[3]}
-      onPress={onPress}
-      modifiers={[
-        padding({
-          leading: metrics.list.inset,
-          trailing: metrics.list.inset,
-          top: space[1.5],
-          bottom: space[1.5],
-        }),
-        frame({ minHeight: ROW }),
-        frame({ maxWidth: Infinity }),
-        contentShape(shapes.rectangle()),
-        accessibilityLabel(option.pick ? `${option.label}, hex’s pick` : option.label),
-      ]}
-    >
-      {option.pick ? (
-        <Icon name="checkmark" size={14} color={theme.accent} />
-      ) : (
-        <Spacer style={{ width: 14 }} />
-      )}
-      <Text
-        variant="subheadline"
-        weight={option.pick ? 'medium' : 'regular'}
-        tone={option.pick ? 'accent' : 'text'}
-        paragraph
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        {option.label}
-      </Text>
-      {option.pick ? (
-        <Text variant="caption" weight="medium" tone="accent">
-          hex’s pick
-        </Text>
-      ) : null}
+// The choices as Muse's pills: side by side when each fits its share of the row, else one under
+// another across the card. hex's pick is the solid one.
+function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
+  const n = ask.options.length;
+  if (!n) return null;
+  const share = (width - space[2] * (n - 1)) / n - 2 * space[4];
+  const beside =
+    n <= SIDE_BY_SIDE &&
+    ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize));
+  const pills = ask.options.map((option) => (
+    <Pill
+      key={option.label}
+      label={option.label}
+      prominent={option.pick}
+      grow
+      accessibility={option.pick ? `${option.label}, hex’s pick` : option.label}
+      onPress={() => onAnswer(ask, option)}
+    />
+  ));
+  return beside ? (
+    <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+      {pills}
     </Row>
+  ) : (
+    <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+      {pills}
+    </Column>
   );
 }
 
@@ -531,33 +417,16 @@ function Composer({
   const field = useField();
   const words = sending ? '' : text.trim();
   return (
-    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Column alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Row
         alignment="end"
-        spacing={space[2.5]}
+        spacing={space[2]}
         modifiers={[
-          padding({
-            leading: space[3.5],
-            trailing: space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
-          }),
-          frame({ minHeight: ROW - 8 }),
+          padding({ leading: space[4], trailing: space[1], top: space[1], bottom: space[1] }),
+          frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
-          background(theme.surface),
-          clipShape('roundedRectangle', radius.control),
-          strokeBorder({
-            content: theme.edge,
-            style: { lineWidth: 1 },
-            shape: 'roundedRectangle',
-            cornerRadius: radius.control,
-          }),
-          padding({
-            leading: metrics.list.inset - space[1.5],
-            trailing: metrics.list.inset - space[1.5],
-            top: space[1.5],
-            bottom: space[1.5],
-          }),
+          background(theme.fill),
+          clipShape('roundedRectangle', radius.field),
         ]}
       >
         <TextInput
@@ -570,7 +439,7 @@ function Composer({
           defaultValue={first}
           placeholder={`A note for ${topic}`}
           placeholderTextColor={theme.tertiary}
-          cursorColor={theme.accent}
+          cursorColor={theme.text}
           onChangeText={(now) => {
             setText(now);
             keep(now);
@@ -578,48 +447,34 @@ function Composer({
           textStyle={labelOf('body')}
           modifiers={[
             foregroundStyle(theme.text),
-            padding({ top: space[1.5], bottom: space[1.5] }),
+            padding({ top: space[2], bottom: space[2] }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
           ]}
         />
         <Icon
           name="arrow.up.circle.fill"
-          size={30}
-          color={words ? theme.accent : theme.tertiary}
+          size={metrics.symbol.send}
+          color={words ? theme.text : theme.tertiary}
           onPress={words ? () => onNote(words) : undefined}
-          modifiers={[accessibilityLabel(`Send a note to ${topic}`)]}
+          modifiers={[
+            frame({ width: metrics.bar.button, height: metrics.bar.button }),
+            accessibilityLabel(`Send a note to ${topic}`),
+          ]}
         />
       </Row>
-      <Row
-        alignment="center"
-        spacing={0}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset,
-            trailing: metrics.list.inset,
-            top: space[1],
-            bottom: space[2.5],
-          }),
-          frame({ maxWidth: Infinity }),
-        ]}
-      >
-        <Row
-          alignment="center"
-          spacing={space[1.25]}
+      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Pill
+          label="Answer with this"
+          icon="checkmark"
           onPress={words ? () => onAnswer(words) : undefined}
-          modifiers={[accessibilityLabel('Answer with this')]}
-        >
-          <Icon name="checkmark" size={12} color={words ? theme.text : theme.tertiary} />
-          <Text variant="subheadline" weight="semibold" tone={words ? 'text' : 'tertiary'}>
-            Answer with this
-          </Text>
-        </Row>
+          small
+        />
         <Spacer flexible />
         <Text
-          variant="subheadline"
-          weight="regular"
+          variant="detail"
           tone={sending ? 'tertiary' : 'secondary'}
           onPress={sending ? undefined : onDismiss}
+          modifiers={[padding({ top: space[2], bottom: space[2], leading: space[2] })]}
         >
           {NOT_NEEDED}
         </Text>
@@ -652,11 +507,11 @@ export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => 
     <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Failure text={unreached(missed)} />
       <Text
-        variant="footnote"
-        weight="semibold"
+        variant="caption"
+        weight="medium"
         tone="accent"
         onPress={onAgain}
-        modifiers={[padding({ top: space[1.5], bottom: space[1.5] })]}
+        modifiers={[padding({ top: space[2], bottom: space[2] })]}
       >
         Send again
       </Text>

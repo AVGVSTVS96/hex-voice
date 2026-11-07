@@ -1,9 +1,11 @@
-import { Icon, Row, Spacer } from '@expo/ui';
-import { Button, Circle, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
+import { Button, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
 import {
+  accessibilityElement,
   accessibilityLabel,
+  background,
+  clipShape,
   contentShape,
-  foregroundStyle,
   frame,
   layoutPriority,
   padding,
@@ -12,14 +14,12 @@ import {
 import { useState } from 'react';
 
 import { Mark } from '@/components/tasks/mark';
-import { asks, listRow } from '@/components/tasks/parts';
+import { Pill, asks, listRow } from '@/components/tasks/parts';
 import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
-import type { Stage, Topic } from '@/live/inbox';
+import type { Topic } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
-
-const MARKS = 6;
+import { metrics, radius, space } from '@/ui/tokens';
 
 export function TopicHead({
   topic,
@@ -38,55 +38,29 @@ export function TopicHead({
       modifiers={[
         padding({
           leading: metrics.list.inset,
-          trailing: metrics.list.inset - space[1],
-          top: space[3.5],
-          bottom: space[0.5],
+          trailing: metrics.list.inset,
+          top: space[5],
+          bottom: space[1],
         }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
-        ...listRow(width, { bottom: false }),
+        ...listRow(width),
         ...(onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
       ]}
     >
-      <Text
-        numberOfLines={1}
-        variant="subheadline"
-        weight="semibold"
-        modifiers={[layoutPriority(1)]}
-      >
+      <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
         {topic.name}
       </Text>
-      {topic.marks.length ? <Dots marks={topic.marks} /> : null}
       <Spacer flexible />
-      {onPress ? <Icon name="chevron.right" size={11} color={theme.tertiary} /> : null}
+      {onPress ? (
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+      ) : null}
     </Row>
   );
 }
 
-export function Dots({ marks }: { marks: Stage[] }) {
-  return (
-    <Row alignment="center" spacing={metrics.dots.gap}>
-      {marks.slice(0, MARKS).map((stage, i) => (
-        <Circle
-          key={i}
-          modifiers={[
-            frame({ width: metrics.dots.size, height: metrics.dots.size }),
-            foregroundStyle(
-              stage === 'needs'
-                ? theme.accent
-                : stage === 'working'
-                  ? theme.accentTrack
-                  : stage === 'done'
-                    ? theme.secondary
-                    : theme.surfaceSelected,
-            ),
-          ]}
-        />
-      ))}
-    </Row>
-  );
-}
-
+// Something about the whole list, apart from its projects: a card on the ground with its one
+// action as a pill.
 function Strip({
   width,
   mark,
@@ -111,33 +85,46 @@ function Strip({
       onPress={onPress}
       modifiers={[
         padding({
-          leading: metrics.list.inset - space[0.5],
-          trailing: metrics.list.inset,
-          top: space[3],
-          bottom: space[3],
+          leading: space[3],
+          trailing: action ? space[2] : space[4],
+          top: space[2],
+          bottom: space[2],
         }),
+        frame({ minHeight: metrics.pill.regular + space[4] }),
         frame({ maxWidth: Infinity }),
+        background(theme.card),
+        clipShape('roundedRectangle', radius.group),
         contentShape(shapes.rectangle()),
+        padding({
+          leading: metrics.list.inset - space[3],
+          trailing: metrics.list.inset - space[3],
+          top: space[1],
+          bottom: space[2],
+        }),
         ...listRow(width),
+        accessibilityElement('combine'),
         accessibilityLabel(label),
       ]}
     >
       <Mark state={mark} />
-      <Text numberOfLines={1} variant="subheadline" weight="medium" modifiers={[layoutPriority(1)]}>
-        {title}
-      </Text>
-      {detail ? (
-        <Text numberOfLines={1} variant="subheadline" tone="secondary">
-          {detail}
+      <Column
+        alignment="start"
+        spacing={0}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        <Text numberOfLines={2} variant="body">
+          {title}
         </Text>
-      ) : null}
-      <Spacer flexible />
+        {detail ? (
+          <Text numberOfLines={2} variant="detail" tone="secondary">
+            {detail}
+          </Text>
+        ) : null}
+      </Column>
       {action ? (
-        <Text variant="subheadline" weight="semibold" tone="accent">
-          {action}
-        </Text>
+        <Pill label={action} onPress={onPress} small />
       ) : (
-        <Icon name="chevron.right" size={11} color={theme.tertiary} />
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
       )}
     </Row>
   );

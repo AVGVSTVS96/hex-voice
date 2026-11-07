@@ -51,7 +51,7 @@ function Section({ section }: { section: PinSection }) {
         ]}
       >
         <Mark state={section.mark} />
-        <Text variant="subheadline" tone="secondary">
+        <Text variant="detail" tone="secondary">
           {`${section.title} · ${section.lines.length}`}
         </Text>
         <Spacer flexible />
@@ -99,15 +99,15 @@ function Line({ line }: { line: PinLine }) {
     return (
       <Markdown
         inline
-        variant="subheadline"
+        variant="detail"
         tone="secondary"
         selectable={selectable}
         modifiers={[
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
-            top: space[1.5],
-            bottom: space[1.5],
+            top: space[2],
+            bottom: space[2],
           }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
@@ -125,8 +125,8 @@ function Line({ line }: { line: PinLine }) {
           padding({
             leading: metrics.list.inset,
             trailing: metrics.list.inset,
-            top: space[1.5],
-            bottom: space[1.5],
+            top: space[2],
+            bottom: space[2],
           }),
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
@@ -139,7 +139,7 @@ function Line({ line }: { line: PinLine }) {
         >
           <Markdown
             inline
-            variant="subheadline"
+            variant="detail"
             tone="secondary"
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
@@ -174,7 +174,7 @@ function Line({ line }: { line: PinLine }) {
       >
         <Markdown
           inline
-          variant="subheadline"
+          variant="detail"
           tone={line.mark === 'done' ? 'secondary' : 'text'}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >

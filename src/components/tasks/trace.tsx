@@ -201,7 +201,7 @@ function Output({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: 
         <Text
           key={i}
           numberOfLines={wraps}
-          variant="snippet"
+          variant="code"
           tone={tone}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
@@ -317,7 +317,7 @@ function Under({
   return (
     <Text
       numberOfLines={lines || undefined}
-      variant="subheadline"
+      variant="detail"
       tone={tone}
       paragraph
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -379,7 +379,7 @@ export function TraceLine({
       <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text
           numberOfLines={lines || undefined}
-          variant="subheadline"
+          variant="detail"
           tone={tone}
           paragraph
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -389,7 +389,7 @@ export function TraceLine({
         {children}
       </Column>
       {time ? (
-        <Text numberOfLines={1} variant="footnote" tone="tertiary" modifiers={[monospacedDigit()]}>
+        <Text numberOfLines={1} variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {time}
         </Text>
       ) : null}
@@ -412,9 +412,9 @@ function Quiet({ text }: { text: string }) {
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: metrics.list.inset, top: space[1.5] })]}
+      modifiers={[padding({ leading: metrics.list.inset, top: space[2] })]}
     >
-      <Text variant="subheadline" tone="tertiary">
+      <Text variant="detail" tone="tertiary">
         {text}
       </Text>
       <Spacer flexible />

@@ -117,7 +117,7 @@ export function Arc({ size = 12 }: { size?: number }) {
 }
 
 const styles = StyleSheet.create({
-  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[2.5] },
+  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[3] },
   mark: {
     ...circle(22),
     backgroundColor: theme.accentMuted,
@@ -127,12 +127,12 @@ const styles = StyleSheet.create({
   markFailed: { backgroundColor: theme.dangerMuted },
   arc: {
     borderWidth: 2,
-    borderColor: theme.accentTrack,
-    borderTopColor: theme.accent,
+    borderColor: theme.progressMuted,
+    borderTopColor: theme.progress,
   },
   ticker: { flex: 1, height: 22, overflow: 'hidden' },
   text: {
-    ...textOf('subheadline', 'medium'),
+    ...textOf('detail', 'medium'),
     position: 'absolute',
     left: 0,
     right: 0,

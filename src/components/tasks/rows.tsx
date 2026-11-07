@@ -2,21 +2,19 @@ import { Column, Row, Spacer } from '@expo/ui';
 import { Button, HStack, SwipeActions } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
-  contentShape,
+  background,
+  clipShape,
   frame,
   layoutPriority,
   monospacedDigit,
   padding,
-  shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 
 import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
-import { Dots } from '@/components/tasks/inbox';
-import { Lane, laneWidth } from '@/components/tasks/lane';
 import { Mark, type MarkState } from '@/components/tasks/mark';
-import { Failure, NotNeededButton, listRow } from '@/components/tasks/parts';
+import { Failure, NotNeededButton, Pill, listRow, rowFrame } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
 import {
@@ -31,7 +29,7 @@ import {
   type Topic,
   type PageId,
 } from '@/live/inbox';
-import { STATE_WORDS, atWork, clock, taskTime, type Turn } from '@/live/tasks';
+import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
@@ -51,21 +49,13 @@ export type RowActions = {
 };
 
 // The room an ask's choices have under its line.
-const LEADING = metrics.list.inset - space[0.5];
-const TRAILING = metrics.list.inset - space[1];
 const choicesWidth = (width: number) =>
-  width - LEADING - metrics.list.mark - metrics.list.gap - TRAILING;
+  width - 2 * metrics.list.inset - metrics.list.mark - metrics.list.gap;
 
-export function EntryRow({
-  entry,
-  first,
-  ...actions
-}: { entry: Entry; first: boolean } & RowActions) {
+export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
   const selected = actions.selected === entry.id;
   const swiped = {
     width: actions.width,
-    first,
-    selected,
     trail: entry.tiles.filter(opens),
     onTile: actions.onOpenTile,
   };
@@ -79,7 +69,6 @@ export function EntryRow({
             ask={ask}
             label={said}
             width={actions.width}
-            first={first}
             onUndo={() => actions.onUndo(ask)}
             onAgain={() => actions.onAgain(ask)}
           />
@@ -94,6 +83,7 @@ export function EntryRow({
           onAway={() => actions.onDismiss(ask)}
         >
           <Shell
+            selected={selected}
             mark="needs"
             line={ask.question}
             time={clock(new Date(entry.at))}
@@ -120,6 +110,7 @@ export function EntryRow({
       return (
         <Swiped {...swiped}>
           <Shell
+            selected={selected}
             mark={mark}
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
@@ -137,6 +128,7 @@ export function EntryRow({
       return (
         <Swiped {...swiped} lead={act && { label: stuck.action, onPress: act }}>
           <Shell
+            selected={selected}
             mark={stuck.mark}
             line={stuck.title}
             time={clock(new Date(entry.at))}
@@ -156,6 +148,7 @@ export function EntryRow({
       return (
         <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
           <Shell
+            selected={selected}
             mark={fresh.read ? 'read' : 'done'}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
@@ -175,8 +168,6 @@ type Swipe = { label: string; onPress: () => void };
 
 function Swiped({
   width,
-  first,
-  selected,
   lead,
   onAway,
   trail,
@@ -184,8 +175,6 @@ function Swiped({
   children,
 }: {
   width: number;
-  first: boolean;
-  selected: boolean;
   lead?: Swipe;
   onAway?: () => void;
   trail: Tile[];
@@ -193,7 +182,7 @@ function Swiped({
   children: ReactNode;
 }) {
   return (
-    <SwipeActions modifiers={[...listRow(width, { top: !first, selected })]}>
+    <SwipeActions modifiers={listRow(width)}>
       {children}
       {lead ? (
         <SwipeActions.Actions edge="leading">
@@ -228,6 +217,7 @@ function Swiped({
 }
 
 function Shell({
+  selected,
   mark,
   line,
   time,
@@ -237,6 +227,7 @@ function Shell({
   onPress,
   children,
 }: {
+  selected: boolean;
   mark: MarkState;
   line: string;
   time: string;
@@ -251,34 +242,22 @@ function Shell({
       alignment="start"
       spacing={metrics.list.gap}
       onPress={onPress}
-      modifiers={[
-        padding({
-          leading: LEADING,
-          trailing: TRAILING,
-          top: metrics.list.row.top,
-          bottom: metrics.list.row.bottom,
-        }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        accessibilityLabel(label),
-      ]}
+      modifiers={[...rowFrame(selected), accessibilityLabel(label)]}
     >
-      <Column alignment="center" spacing={0} modifiers={[padding({ top: space[0.5] })]}>
-        <Mark state={mark} />
-      </Column>
+      <Mark state={mark} />
       <Column
         alignment="start"
-        spacing={0}
+        spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
         <HStack
           alignment="firstTextBaseline"
-          spacing={space[2.5]}
+          spacing={space[3]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           <Text
-            numberOfLines={2}
-            variant="subheadline"
+            numberOfLines={3}
+            variant="body"
             paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >
@@ -303,7 +282,7 @@ function Tiles({ tiles }: { tiles: Tile[] }) {
   return (
     <Row alignment="center" spacing={space[1]}>
       {[...looks].map(([look, tile]) => (
-        <TileIcon key={look} tile={tile} size={14} />
+        <TileIcon key={look} tile={tile} size={metrics.symbol.small} />
       ))}
     </Row>
   );
@@ -313,7 +292,7 @@ const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(til
 
 function Meta({ text }: { text: string }) {
   return (
-    <Text numberOfLines={1} variant="footnote" tone="tertiary">
+    <Text numberOfLines={1} variant="caption" tone="tertiary">
       {text}
     </Text>
   );
@@ -322,13 +301,7 @@ function Meta({ text }: { text: string }) {
 // Why something is stuck, under what it is.
 function Why({ text }: { text: string }) {
   return (
-    <Text
-      numberOfLines={3}
-      variant="itemDetail"
-      tone="secondary"
-      paragraph
-      modifiers={[padding({ top: space[0.5] })]}
-    >
+    <Text numberOfLines={3} variant="detail" tone="secondary" paragraph>
       {text}
     </Text>
   );
@@ -336,15 +309,9 @@ function Why({ text }: { text: string }) {
 
 function Action({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
-    <Text
-      onPress={onPress}
-      variant="subheadline"
-      weight="semibold"
-      tone={onPress ? 'accent' : 'tertiary'}
-      modifiers={[padding({ top: space[2], bottom: space[0.5] })]}
-    >
-      {label}
-    </Text>
+    <Row alignment="center" spacing={0} modifiers={[padding({ top: space[2] })]}>
+      <Pill label={label} onPress={onPress} small />
+    </Row>
   );
 }
 
@@ -352,59 +319,37 @@ function Folded({
   ask,
   label,
   width,
-  first,
   onUndo,
   onAgain,
 }: {
   ask: Ask;
   label: string;
   width: number;
-  first: boolean;
   onUndo: () => void;
   onAgain: () => void;
 }) {
   return (
     <Row
-      alignment="center"
+      alignment="start"
       spacing={metrics.list.gap}
-      modifiers={[
-        padding({
-          leading: LEADING,
-          trailing: metrics.list.inset,
-          top: metrics.list.row.top,
-          bottom: metrics.list.row.bottom,
-        }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ...listRow(width, { top: !first }),
-      ]}
+      modifiers={[...rowFrame(false), ...listRow(width)]}
     >
       <Mark state="done" />
       <Column
         alignment="start"
-        spacing={space[0.25]}
+        spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text numberOfLines={1} variant="subheadline" tone="secondary">
+        <Text numberOfLines={2} variant="detail" tone="secondary">
           {ask.question}
         </Text>
-        <Text numberOfLines={2} variant="subheadline">
+        <Text numberOfLines={2} variant="body">
           {`${label} → ${ask.topic}`}
         </Text>
         {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
         {ask.failed ? <Failure text={ask.failed} /> : null}
       </Column>
-      <Text
-        variant="subheadline"
-        weight="semibold"
-        tone="accent"
-        onPress={onUndo}
-        modifiers={[
-          padding({ leading: space[2], top: space[1.5], bottom: space[1.5] }),
-          accessibilityLabel(`Undo ${label}`),
-        ]}
-      >
-        Undo
-      </Text>
+      <Pill label="Undo" accessibility={`Undo ${label}`} onPress={onUndo} small />
     </Row>
   );
 }
@@ -415,21 +360,25 @@ const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   quiet: 'quiet',
 };
 
-// A project as one row in the list: its name and how its threads stand, its week on a lane, how
-// many it has here, then the newest thing in it and when. Opens its page.
+const STAGE_MARK: Record<Stage, MarkState> = {
+  needs: 'needs',
+  working: 'working',
+  done: 'done',
+  quiet: 'idle',
+};
+
+// A project as one row in the list, as Muse lists goals: its mark, its name, and the newest thing
+// in it in gray, as many lines as it needs to be read; how many it has here and when, quietly to
+// the side. Opens its page.
 export function ProjectRow({
   topic,
   stage,
-  tracks,
-  now,
   width,
   selected,
   onOpen,
 }: {
   topic: Topic;
   stage: Stage;
-  tracks: Turn[][];
-  now: number;
   width: number;
   selected: boolean;
   onOpen: () => void;
@@ -438,59 +387,70 @@ export function ProjectRow({
   if (!newest) return null;
   const count = topic.entries.length;
   const headline = headlineOf(newest);
-  // Mint means it waits on you, so only Needs you counts in mint.
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
+  const mark = newest.kind === 'stuck' ? newest.stuck.mark : STAGE_MARK[stage];
   return (
-    <Column
+    <Row
       alignment="start"
-      spacing={space[0.75]}
+      spacing={metrics.list.gap}
       onPress={onOpen}
       testID="project-row"
       modifiers={[
-        padding({
-          leading: metrics.list.inset,
-          trailing: TRAILING,
-          top: metrics.list.row.top,
-          bottom: metrics.list.row.bottom,
-        }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        ...listRow(width, { selected }),
+        ...rowFrame(selected),
+        ...listRow(width),
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >
-      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text numberOfLines={1} variant="callout" weight="semibold" modifiers={[layoutPriority(1)]}>
-          {topic.name}
-        </Text>
-        {topic.marks.length ? <Dots marks={topic.marks} /> : null}
-        <Spacer flexible />
-        {tracks.length ? <Lane tracks={tracks} width={laneWidth(width)} now={now} /> : null}
-        <Text
-          variant="subheadline"
-          weight="semibold"
-          tone={needs ? 'accent' : 'tertiary'}
-          modifiers={[monospacedDigit(), frame({ minWidth: 22, alignment: 'trailing' })]}
-        >
-          {String(count)}
-        </Text>
-      </Row>
-      <Row
-        alignment="center"
-        spacing={metrics.list.gap}
-        modifiers={[frame({ maxWidth: Infinity })]}
+      <Mark state={mark} />
+      <Column
+        alignment="start"
+        spacing={space[1]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text
-          numberOfLines={1}
-          variant="itemDetail"
-          tone="secondary"
+        <HStack
+          alignment="firstTextBaseline"
+          spacing={space[2]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          {headline === topic.name ? '' : headline}
-        </Text>
-        <Meta text={clock(new Date(newest.at))} />
-      </Row>
-    </Column>
+          <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
+            {topic.name}
+          </Text>
+          {count > 1 ? <Count count={count} needs={needs} /> : null}
+          <Spacer flexible />
+          <Meta text={clock(new Date(newest.at))} />
+        </HStack>
+        {headline === topic.name ? null : (
+          <Text
+            numberOfLines={3}
+            variant="detail"
+            tone="secondary"
+            paragraph
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          >
+            {headline}
+          </Text>
+        )}
+      </Column>
+    </Row>
+  );
+}
+
+// How many a project has here: in mint while they wait on you, in gray otherwise.
+function Count({ count, needs }: { count: number; needs: boolean }) {
+  return (
+    <Text
+      variant="caption"
+      weight="medium"
+      tone={needs ? 'accent' : 'tertiary'}
+      modifiers={[
+        monospacedDigit(),
+        padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
+        ...(needs ? [background(theme.accentMuted)] : []),
+        clipShape('capsule'),
+      ]}
+    >
+      {String(count)}
+    </Text>
   );
 }

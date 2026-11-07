@@ -11,7 +11,7 @@ const BAR = 4;
 const SHORTEST = 6;
 const FAILED = 5;
 
-// A project's last week at a glance, on a thin line: mint where it worked, red where a run failed.
+// A project's last week at a glance, on a thin line: blue where hex worked, red where a run failed.
 // A quiet project is the line alone.
 export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; now: number }) {
   const { spans, failures } = laneOf(tracks, now, width);
@@ -28,7 +28,7 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
             key={`span:${span.from}`}
             modifiers={[
               frame({ width: length, height: BAR }),
-              foregroundStyle(theme.accent),
+              foregroundStyle(theme.progress),
               offset({ x: Math.min(span.from, width - length) }),
             ]}
           />
@@ -46,8 +46,4 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
       ))}
     </ZStack>
   );
-}
-
-export function laneWidth(width: number) {
-  return Math.round(Math.min(160, Math.max(72, width * 0.22)));
 }

@@ -88,8 +88,8 @@ function Read({ read }: { read: Record<string, number> }) {
           spacing={space[0.5]}
           modifiers={[frame({ maxWidth: Infinity })]}
         >
-          <Text variant="stat">{String(count)}</Text>
-          <Text variant="footnote" tone="secondary">
+          <Text variant="title">{String(count)}</Text>
+          <Text variant="caption" tone="secondary">
             {what}
           </Text>
         </Column>
@@ -107,8 +107,8 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
         padding({
           leading: metrics.list.inset - space[0.5],
           trailing: metrics.list.inset,
-          top: space[2.5],
-          bottom: space[2.5],
+          top: space[3],
+          bottom: space[3],
         }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
@@ -116,17 +116,17 @@ function NoteRow({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       <Mark state={fixed ? 'done' : 'needs'} />
       <Column
         alignment="start"
-        spacing={space[0.75]}
+        spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text variant="subheadline" weight="medium" paragraph>
+        <Text variant="detail" weight="medium" paragraph>
           {note.title}
         </Text>
-        <Text variant="subheadline" tone="secondary" paragraph>
+        <Text variant="detail" tone="secondary" paragraph>
           {note.text}
         </Text>
         {note.did ? (
-          <Text variant="subheadline" weight="medium" tone="accent" paragraph>
+          <Text variant="detail" weight="medium" tone="accent" paragraph>
             {note.did}
           </Text>
         ) : null}

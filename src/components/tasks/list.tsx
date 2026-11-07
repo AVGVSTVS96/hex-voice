@@ -35,7 +35,6 @@ import {
   taskOf,
   topicIn,
   topicsOf,
-  tracksOf,
   type Stage,
   type Tile,
   type PageId,
@@ -60,7 +59,6 @@ export function ListPage({
   at,
   pages,
   spot,
-  paged,
   tasks,
   offline,
   current,
@@ -76,7 +74,6 @@ export function ListPage({
   at: TasksAt;
   pages: Pages;
   spot: Spot;
-  paged: boolean;
   tasks: TaskRow[] | undefined;
   offline: boolean;
   // hex has answered since this list showed what was kept on this device, and nothing failed since.
@@ -140,9 +137,6 @@ export function ListPage({
   const openTopic = beside
     ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
     : undefined;
-  // Lanes end at now, as of the last time the list moved.
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => setNow(Date.now()), [tasks]);
 
   const searchField = useField();
   const openPage = (id: PageId, row?: string) => {
@@ -219,7 +213,12 @@ export function ListPage({
       ) : (
         <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
           {compact ? null : (
-            <PageBar title="Tasks" back={back} trailing={<SearchButton onPress={startSearch} />} />
+            <PageBar
+              title="Tasks"
+              large
+              back={back}
+              trailing={<SearchButton onPress={startSearch} />}
+            />
           )}
           <Tabs
             counts={counts}
@@ -237,7 +236,6 @@ export function ListPage({
             listStyle('plain'),
             scrollContentBackground('hidden'),
             scrollClipDisabled(),
-            ...(paged ? [] : [background(theme.sheet)]),
             frame({ maxWidth: Infinity, maxHeight: Infinity }),
             animation(
               motion.list,
@@ -266,8 +264,6 @@ export function ListPage({
                   key={topic.name}
                   topic={topic}
                   stage={stage}
-                  tracks={tracksOf(topic.name, tasks ?? [])}
-                  now={now}
                   width={width}
                   selected={topic.name === openTopic}
                   onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
@@ -281,8 +277,8 @@ export function ListPage({
                 width={width}
                 onPress={() => openPage(lead ?? pageOf(topic))}
               />,
-              ...topic.entries.map((entry, i) => (
-                <EntryRow key={entry.id} entry={entry} first={i === 0} {...actions} />
+              ...topic.entries.map((entry) => (
+                <EntryRow key={entry.id} entry={entry} {...actions} />
               )),
             ];
           })}
@@ -315,12 +311,12 @@ export function ListPage({
 function Behind({ width }: { width: number }) {
   return (
     <Text
-      variant="footnote"
+      variant="caption"
       tone="tertiary"
       modifiers={[
-        padding({ top: space[1.5], bottom: space[1.5] }),
-        frame({ maxWidth: Infinity }),
-        ...listRow(width, { top: false, bottom: false }),
+        padding({ leading: metrics.list.inset, top: space[2], bottom: space[2] }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ...listRow(width),
       ]}
     >
       Last from hex · waiting for an update
@@ -350,7 +346,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       ]}
     >
       <Spacer flexible />
-      <Icon name="waveform" size={16} color={theme.onProminent} />
+      <Icon name="waveform" size={metrics.symbol.bar} color={theme.onProminent} />
       <Text variant="headline" tone="onProminent">
         Go through them with hex
       </Text>

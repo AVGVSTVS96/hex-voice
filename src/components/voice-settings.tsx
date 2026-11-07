@@ -130,7 +130,7 @@ const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
 const ORB = 190;
 const VOICE_CAROUSEL = 180;
-const HEADER_TOP = space[3.5];
+const HEADER_TOP = space[4];
 const HEADER = 44;
 // The bar over the persona's pane on the open Duo.
 const BAR = 60;

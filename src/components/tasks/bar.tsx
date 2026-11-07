@@ -42,20 +42,25 @@ export function Header({
     <PageBar
       title={title}
       subtitle={subtitle}
+      large
       back={back}
       trailing={door ? <DoorPill door={door} /> : undefined}
     />
   );
 }
 
+// A page's bar: its way back, its name and a line under it, and what it leads to. A `large` name is
+// the list's own, at title size, as Muse names its pages.
 export function PageBar({
   title,
   subtitle,
+  large = false,
   back,
   trailing,
 }: {
   title: string;
   subtitle?: string;
+  large?: boolean;
   back?: Back;
   trailing?: ReactNode;
 }) {
@@ -68,8 +73,8 @@ export function PageBar({
         padding({
           leading: metrics.list.inset - space[1],
           trailing: space[4],
-          top: space[1.5],
-          bottom: space[1.5],
+          top: space[2],
+          bottom: space[2],
         }),
         frame({ minHeight: metrics.bar.button + space[3] }),
         frame({ maxWidth: Infinity }),
@@ -78,14 +83,14 @@ export function PageBar({
       {backButton}
       <Column
         alignment="start"
-        spacing={space[0.25]}
+        spacing={space[0.5]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <Text numberOfLines={1} variant="headline">
+        <Text numberOfLines={1} variant={large ? 'title' : 'headline'}>
           {title}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} variant="footnote" tone="secondary">
+          <Text numberOfLines={1} variant="detail" tone="secondary">
             {subtitle}
           </Text>
         ) : null}
@@ -143,7 +148,7 @@ export function Talk({
     >
       <Icon name="phone.and.waveform" size={metrics.symbol.bar} color={theme.text} />
       {alone ? (
-        <Text numberOfLines={1} variant="callout" weight="semibold">
+        <Text numberOfLines={1} variant="body" weight="medium">
           Talk it through
         </Text>
       ) : null}

@@ -1,4 +1,4 @@
-import { RNHostView, Icon, Spacer } from '@expo/ui';
+import { Icon, RNHostView, Spacer } from '@expo/ui';
 import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import { foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
@@ -7,11 +7,13 @@ import { View, type ColorValue } from 'react-native';
 import { Arc } from '@/components/agent-line';
 import type { TaskState } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { metrics, radius, space, type Tone } from '@/ui/tokens';
 
 export type MarkState = TaskState | 'paused' | 'stopped' | 'read' | 'pending';
 
-// Drawn natively so a long list stays cheap; only the arc moves, so only it animates.
+// Drawn natively so a long list stays cheap; only the arc moves, so only it animates. What needs
+// you is a to-do's square in mint, what hex has under way its blue arc, and what's finished a
+// quiet tick.
 export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (
@@ -24,7 +26,7 @@ export function Mark({ state }: { state: MarkState }) {
             justifyContent: 'center',
           }}
         >
-          <Arc size={13} />
+          <Arc size={metrics.list.arc} />
         </View>
       </RNHostView>
     );
@@ -39,38 +41,74 @@ export function Mark({ state }: { state: MarkState }) {
 }
 
 function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
+  const square = metrics.list.todo;
   const disc = (color: ColorValue, children: ReactNode) => (
     <>
-      <Circle modifiers={[frame({ width: 14, height: 14 }), foregroundStyle(color)]} />
+      <Circle modifiers={[frame({ width: square, height: square }), foregroundStyle(color)]} />
       {children}
     </>
   );
   switch (state) {
     case 'needs':
-      return <Circle modifiers={[frame({ width: 8, height: 8 }), foregroundStyle(theme.accent)]} />;
+      return (
+        <Spacer
+          modifiers={[
+            frame({ width: square, height: square }),
+            strokeBorder({
+              content: theme.accent,
+              style: { lineWidth: metrics.list.stroke },
+              shape: 'roundedRectangle',
+              cornerRadius: radius.mark,
+            }),
+          ]}
+        />
+      );
     case 'done':
-      return disc(theme.accentMuted, <Icon name="checkmark" size={8} color={theme.accent} />);
+      return (
+        <>
+          <Spacer
+            modifiers={[
+              frame({ width: square, height: square }),
+              strokeBorder({
+                content: theme.tertiary,
+                style: { lineWidth: metrics.list.stroke },
+                shape: 'roundedRectangle',
+                cornerRadius: radius.mark,
+              }),
+            ]}
+          />
+          <Icon name="checkmark" size={metrics.symbol.mark} color={theme.secondary} />
+        </>
+      );
     case 'read':
-      return <Icon name="checkmark" size={10} color={theme.tertiary} />;
+      return <Icon name="checkmark" size={metrics.symbol.mark} color={theme.tertiary} />;
     case 'failed':
-      return disc(theme.dangerMuted, <Icon name="exclamationmark" size={8} color={theme.danger} />);
+      return disc(
+        theme.dangerMuted,
+        <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />,
+      );
     case 'paused':
       return disc(
         theme.surfaceSelected,
-        <Icon name="pause.fill" size={7} color={theme.secondary} />,
+        <Icon name="pause.fill" size={metrics.symbol.mark} color={theme.secondary} />,
       );
     case 'stopped':
       return (
-        <Rectangle modifiers={[frame({ width: 7, height: 7 }), foregroundStyle(theme.tertiary)]} />
+        <Rectangle
+          modifiers={[
+            frame({ width: metrics.badge.dot, height: metrics.badge.dot }),
+            foregroundStyle(theme.tertiary),
+          ]}
+        />
       );
     case 'pending':
       return (
         <Spacer
           modifiers={[
-            frame({ width: 10, height: 10 }),
+            frame({ width: square - space[1], height: square - space[1] }),
             strokeBorder({
               content: theme.tertiary,
-              style: { lineWidth: 1.5, dash: [2, 2] },
+              style: { lineWidth: metrics.list.stroke, dash: [2, 2] },
               shape: 'circle',
             }),
           ]}
@@ -80,10 +118,49 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
       return (
         <Spacer
           modifiers={[
-            frame({ width: 8, height: 8 }),
-            strokeBorder({ content: theme.tertiary, style: { lineWidth: 1.5 }, shape: 'circle' }),
+            frame({ width: metrics.badge.dot, height: metrics.badge.dot }),
+            strokeBorder({
+              content: theme.tertiary,
+              style: { lineWidth: metrics.list.stroke },
+              shape: 'circle',
+            }),
           ]}
         />
       );
   }
 }
+
+// A section's name in its color on a tinted dot, as Muse heads Tracking and Goals: mint for what
+// needs you, blue for what hex is doing, red for what went wrong.
+export type Tint = 'needs' | 'working' | 'failed';
+
+const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
+  needs: { ink: 'accent', wash: 'accentMuted' },
+  working: { ink: 'progress', wash: 'progressMuted' },
+  failed: { ink: 'danger', wash: 'dangerMuted' },
+};
+
+export function Badge({ tint }: { tint: Tint }) {
+  const { ink, wash } = TINTS[tint];
+  return (
+    <ZStack
+      alignment="center"
+      modifiers={[frame({ width: metrics.list.mark, height: metrics.list.mark })]}
+    >
+      <Circle
+        modifiers={[
+          frame({ width: metrics.badge.size, height: metrics.badge.size }),
+          foregroundStyle(theme[wash]),
+        ]}
+      />
+      <Circle
+        modifiers={[
+          frame({ width: metrics.badge.dot, height: metrics.badge.dot }),
+          foregroundStyle(theme[ink]),
+        ]}
+      />
+    </ZStack>
+  );
+}
+
+export const inkOf = (tint: Tint) => TINTS[tint].ink;

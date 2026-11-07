@@ -1,26 +1,34 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { Button, Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
+  accessibilityElement,
   accessibilityLabel,
   alignmentGuide,
+  background,
+  clipShape,
+  contentShape,
   foregroundStyle,
   frame,
   listRowBackground,
   listRowInsets,
   listRowSeparator,
-  listRowSeparatorTint,
+  monospacedDigit,
   padding,
+  shapes,
   tint,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
+import type { SFSymbol } from 'sf-symbols-typescript';
 import { Children, isValidElement, type ReactNode } from 'react';
 
+import { Badge, inkOf, type Tint } from '@/components/tasks/mark';
 import type { Answered } from '@/hooks/use-watch';
 import { NOT_NEEDED } from '@/live/asks';
 import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { mask, metrics, radius, space } from '@/ui/tokens';
 
 // Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const asks = (n: number) => `${n} ask${n === 1 ? '' : 's'}`;
@@ -39,21 +47,86 @@ export function feel(haptics: boolean) {
 
 export type Feel = ReturnType<typeof feel>;
 
-// No inset or fill of its own, so the list's ground shows behind it, unless it's the selected row.
-// A row takes the fill set closest to it, so the selection is set here and not on top.
-export function listRow(
-  width: number,
-  { top = true, bottom = true, selected = false } = {},
-): ModifierConfig[] {
+// No inset, fill or line of its own, so the list's ground shows behind it and rows part by the
+// air between them, as Muse's do. Lines part sections, never rows.
+export function listRow(width: number): ModifierConfig[] {
   return [
     listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
-    listRowBackground(selected ? theme.surfaceSelected : 'transparent'),
-    listRowSeparatorTint(theme.edge),
+    listRowBackground('transparent'),
+    listRowSeparator('hidden'),
     alignmentGuide('listRowSeparatorLeading', 0),
     alignmentGuide('listRowSeparatorTrailing', width),
-    ...(top ? [] : [listRowSeparator('hidden', 'top')]),
-    ...(bottom ? [] : [listRowSeparator('hidden', 'bottom')]),
   ];
+}
+
+// A row's padding, inside the rounded fill that shows it's the one open beside the list.
+export function rowFrame(selected: boolean, { top = metrics.list.row.top } = {}) {
+  return [
+    padding({
+      leading: metrics.list.inset - space[2],
+      trailing: metrics.list.inset - space[2],
+      top,
+      bottom: metrics.list.row.bottom,
+    }),
+    frame({ maxWidth: Infinity, alignment: 'leading' }),
+    ...(selected ? [background(theme.card)] : []),
+    clipShape('roundedRectangle', radius.control),
+    contentShape(shapes.rectangle()),
+    padding({ leading: space[2], trailing: space[2] }),
+  ];
+}
+
+// Muse's button: a capsule, gray for any choice and solid for the one hex picks or the page leads
+// with. `grow` shares a row with the others; `small` sits at the end of a line of text.
+export function Pill({
+  label,
+  onPress,
+  prominent = false,
+  small = false,
+  grow = false,
+  icon,
+  accessibility,
+  testID,
+}: {
+  label: string;
+  onPress?: () => void;
+  prominent?: boolean;
+  small?: boolean;
+  grow?: boolean;
+  icon?: SFSymbol;
+  accessibility?: string;
+  testID?: string;
+}) {
+  const ink = prominent ? 'onProminent' : onPress ? 'text' : 'tertiary';
+  return (
+    <Row
+      alignment="center"
+      spacing={space[2]}
+      onPress={onPress}
+      testID={testID}
+      modifiers={[
+        padding({ leading: small ? space[3] : space[4], trailing: small ? space[3] : space[4] }),
+        frame({ minHeight: small ? metrics.pill.small : metrics.pill.regular }),
+        ...(grow ? [frame({ maxWidth: Infinity })] : []),
+        background(prominent ? theme.prominent : theme.fill),
+        clipShape('capsule'),
+        contentShape(shapes.capsule()),
+        accessibilityLabel(accessibility ?? label),
+        accessibilityAddTraits(['isButton']),
+      ]}
+    >
+      {icon ? <Icon name={icon} size={metrics.symbol.small} color={theme[ink]} /> : null}
+      <Text
+        numberOfLines={grow ? 2 : 1}
+        variant={small ? 'detail' : 'body'}
+        weight={prominent ? 'medium' : 'regular'}
+        tone={ink}
+        align={grow ? 'center' : undefined}
+      >
+        {label}
+      </Text>
+    </Row>
+  );
 }
 
 // Puts an ask away without an answer: a row's swipe action at the trailing edge, where iOS puts the
@@ -69,6 +142,7 @@ export function NotNeededButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+// A section's quiet name, like Muse's Connected and Available: gray, at detail size.
 export function SectionHead({
   title,
   count,
@@ -86,28 +160,60 @@ export function SectionHead({
         padding({
           leading: metrics.list.inset,
           trailing: metrics.list.inset,
-          top: space[5.5],
-          bottom: space[1.5],
+          top: space[6],
+          bottom: space[2],
         }),
         frame({ maxWidth: Infinity }),
       ]}
     >
-      <Text variant="footnote" weight="semibold" tone="secondary">
+      <Text variant="detail" tone="secondary">
         {title}
       </Text>
       <Spacer flexible />
       {count !== undefined ? (
-        <Text variant="footnote" tone="tertiary">
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
           {String(count)}
         </Text>
       ) : null}
       {opens ? (
         <Icon
           name="chevron.right"
-          size={11}
+          size={metrics.symbol.small}
           color={theme.tertiary}
           modifiers={[padding({ leading: space[2] })]}
         />
+      ) : null}
+    </Row>
+  );
+}
+
+// A section that holds a state: its name in that state's color on a tinted dot, its count beside.
+export function StageHead({ tint, title, count }: { tint: Tint; title: string; count?: number }) {
+  return (
+    <Row
+      alignment="center"
+      spacing={metrics.list.gap}
+      modifiers={[
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset,
+          top: space[5],
+          bottom: space[3],
+        }),
+        frame({ maxWidth: Infinity }),
+        accessibilityElement('combine'),
+        accessibilityAddTraits(['isHeader']),
+      ]}
+    >
+      <Badge tint={tint} />
+      <Text variant="headline" tone={inkOf(tint)}>
+        {title}
+      </Text>
+      <Spacer flexible />
+      {count !== undefined ? (
+        <Text variant="detail" tone="tertiary" modifiers={[monospacedDigit()]}>
+          {String(count)}
+        </Text>
       ) : null}
     </Row>
   );
@@ -133,7 +239,7 @@ export function Faded({
         frame({ maxWidth: Infinity }),
         foregroundStyle({
           type: 'linearGradient',
-          colors: ['#00000000', '#000000'],
+          colors: [mask.hidden, mask.shown],
           startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
           endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
         }),
@@ -165,7 +271,7 @@ export function Faded({
           <Rectangle
             modifiers={[
               frame({ maxWidth: Infinity, maxHeight: Infinity }),
-              foregroundStyle('#000000'),
+              foregroundStyle(mask.shown),
             ]}
           />
           {bottom ? edge('bottom') : null}
@@ -221,12 +327,12 @@ export function Hairline() {
 export function Empty({ text, width }: { text: string; width: number }) {
   return (
     <Text
-      variant="subheadline"
+      variant="detail"
       tone="tertiary"
       modifiers={[
         padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
-        ...listRow(width, { top: false, bottom: false }),
+        ...listRow(width),
       ]}
     >
       {text}
@@ -243,7 +349,7 @@ export function Loading({ width }: { width: number }) {
       modifiers={[
         padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
-        ...listRow(width, { top: false, bottom: false }),
+        ...listRow(width),
         accessibilityLabel('Loading'),
       ]}
     >
@@ -277,7 +383,7 @@ export function Waiting({ failed, refused, gone }: Answered & { gone: string }) 
       ]}
     >
       {why ? (
-        <Text variant="subheadline" tone="tertiary">
+        <Text variant="detail" tone="tertiary">
           {why}
         </Text>
       ) : (
@@ -293,7 +399,7 @@ export const UNREACHED = 'Can’t reach hex. Trying again…';
 export function Failure({ text, modifiers = [] }: { text: string; modifiers?: ModifierConfig[] }) {
   return (
     <Text
-      variant="footnote"
+      variant="caption"
       tone="danger"
       paragraph
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...modifiers]}

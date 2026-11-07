@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
   spacer: { width: metrics.tool },
   title: { flex: 1, alignItems: 'center' },
   name: { ...textOf('headline'), color: theme.text },
-  when: { ...textOf('footnote'), color: theme.secondary },
-  back: { flexDirection: 'row', alignItems: 'center', gap: space[1.5] },
+  when: { ...textOf('caption'), color: theme.secondary },
+  back: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   liveDot: { ...circle(7), backgroundColor: theme.switchOn },
-  backText: { ...textOf('footnote', 'medium'), color: theme.switchOn },
+  backText: { ...textOf('caption', 'medium'), color: theme.switchOn },
 });

@@ -231,7 +231,6 @@ export function Tasks({
       at={at}
       pages={pages}
       spot={spot('list')}
-      paged={room.paged}
       tasks={tasks}
       offline={offline}
       current={current}
@@ -293,11 +292,10 @@ export function Tasks({
           door={asked && doorOf(asked)}
           rows={entries
             .filter((entry) => entry.topic === topic && entry.kind !== 'ask')
-            .map((entry, i) => (
+            .map((entry) => (
               <EntryRow
                 key={entry.id}
                 entry={entry}
-                first={i === 0}
                 width={spot('topic').width}
                 answered={yours.answered}
                 onOpen={(id) => pages.go({ to: 'topic', id })}
