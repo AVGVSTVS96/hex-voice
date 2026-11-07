@@ -32,14 +32,6 @@ export type Entry = Base &
     | { kind: 'finished'; finished: Finished }
   );
 
-export type FinishedEntry = Extract<Entry, { kind: 'finished' }>;
-
-// What hex finished in a project in the last day, newest first.
-export const finishedIn = (entries: Entry[], topic: string) =>
-  entries.filter(
-    (entry): entry is FinishedEntry => entry.kind === 'finished' && entry.topic === topic,
-  );
-
 // A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
 // last week for its lane.
 export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
@@ -110,7 +102,8 @@ const threadTile = (place: Place, link?: string): Tile => ({
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 const DAY = 24 * 60 * 60_000;
 
-const LINKS = /https?:\/\/[^\s)]+/g;
+// A link ends before the punctuation of the sentence it sits in.
+const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]/g;
 
 // What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
 // by its name, else its site.

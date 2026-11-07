@@ -24,6 +24,7 @@ import {
   headlineOf,
   problemOf,
   opens,
+  pageOf,
   proofWords,
   type Entry,
   type Stage,
@@ -175,8 +176,15 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
             line={finished.title}
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
-            label={`${finished.title}, done${proof ? `: ${proof}` : ''}${page ? `. Opens ${page.label}` : ''}`}
-            onPress={page && (() => actions.onOpenTile(page))}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ''}. Opens ${page ? page.label : entry.topic}`}
+            onPress={() =>
+              page
+                ? actions.onOpenTile(page)
+                : actions.onOpen(
+                    pageOf({ name: entry.topic, entries: [entry], marks: [] }),
+                    entry.id,
+                  )
+            }
           >
             {proof ? <Why text={proof} /> : null}
           </Shell>

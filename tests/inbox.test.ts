@@ -633,4 +633,16 @@ test('a proof reads with each link by its name', () => {
     '(see 100.64.0.7)',
   );
   assert.equal(proofWords('iikb 7e9ac84, build 501 on Duo'), 'iikb 7e9ac84, build 501 on Duo');
+  assert.equal(
+    proofWords('site https://autofork.com; PR https://github.com/AVGVSTVS96/hex/pull/180, live.'),
+    'site autofork.com; PR hex #180, live.',
+  );
+  const [entry] = stream({
+    finished: [done('t-6', 'autofork', at(9), { proof: 'https://autofork.com; npm' })],
+  });
+  assert.deepEqual(entry!.tiles.at(-1), {
+    kind: 'link',
+    label: 'autofork.com',
+    url: 'https://autofork.com',
+  });
 });
