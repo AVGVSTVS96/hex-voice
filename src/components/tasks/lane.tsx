@@ -46,7 +46,10 @@ export function Lane({ tracks, width, now }: { tracks: Turn[][]; width: number; 
           ]}
         />
         <Mask.Content>
-          <ZStack alignment="leading" modifiers={[frame({ width, height: BAR })]}>
+          <ZStack
+            alignment="leading"
+            modifiers={[frame({ width, height: BAR, alignment: 'leading' })]}
+          >
             {spans.map((span) => {
               const length = Math.max(SHORTEST, span.to - span.from);
               return (
