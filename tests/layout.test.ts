@@ -43,15 +43,17 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
   );
   assert.equal(layout.kind, 'single');
   assert.deepEqual(layout.content, { x: 0, y: 0, width: 382, height: 678 });
+  // Centered on the camera at 418.2, a few points in from the inset's middle at 424, as the
+  // system draws its own items.
   assert.deepEqual(layout.toolbar, {
-    x: 400,
+    x: 418.2 - 24,
     y: 170,
     width: 48,
     axis: 'column',
     gaps: 'regular',
   });
   assert.deepEqual(layout.controls, {
-    right: 10,
+    right: 466 - 418.2 - 32,
     bottom: 34,
     axis: 'column',
     size: 'regular',
@@ -373,7 +375,7 @@ test('folded upright, Tasks runs from the screen edge to the column buttons and 
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 170);
   assert.deepEqual(layout.duo!.tasks, {
-    area: { x: 0, y: 0, width: 424 - 32, height: 678 },
+    area: { x: 0, y: 0, width: 418.2 - 32, height: 678 },
     foot: 34,
   });
   assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -383,7 +385,7 @@ test('folded on its side, the short column keeps the tools at its top and its sm
   const { window, insets, pose } = duo['folded on its side'];
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 16);
-  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 636 - 26, height: 466 });
+  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 630.2 - 26, height: 466 });
   assert.equal(layout.duo!.beside, undefined);
 });
 

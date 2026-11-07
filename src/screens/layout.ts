@@ -192,7 +192,7 @@ type Frame = {
   content: Rect;
   toolbar: Toolbar;
   // iPhone Duo's side column, the tools at its top and the call buttons at its foot.
-  column?: Span & { controls: ColumnControls };
+  column?: Span & { center: number; controls: ColumnControls };
   top: number;
 };
 
@@ -253,13 +253,19 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
   const foot = covers
     .filter((area) => !high(area))
     .reduce((bottom, area) => Math.max(bottom, window.height - area.y + 8), insets.bottom);
+  // The system draws its time, wifi and camera a few points toward the screen from the inset's
+  // middle, where the camera's occlusion is, so the column's buttons center on those.
+  const items = covers.filter((area) => area.width < width);
+  const center = items.length
+    ? items.reduce((sum, area) => sum + area.x + area.width / 2, 0) / items.length
+    : x + width / 2;
   // A short column (folded on its side) draws its buttons smaller and closer, so the call's orb and
   // time still fit between the tools and the call buttons.
   const tight = window.height < SHORT;
   return {
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
-      x: x + (width - metrics.tool) / 2,
+      x: center - metrics.tool / 2,
       y: Math.max(top, GAP + 4),
       width: metrics.tool,
       axis: 'column' as const,
@@ -268,8 +274,9 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
     column: {
       x,
       width,
+      center,
       controls: {
-        right: window.width - x - (width + metrics.call) / 2,
+        right: window.width - center - metrics.call / 2,
         bottom: foot,
         axis: 'column' as const,
         size: tight ? ('compact' as const) : ('regular' as const),
@@ -292,7 +299,7 @@ function besideColumn(
   const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
   const size = column.controls.size ?? 'regular';
   const sizes = metrics.controls[size];
-  const x = column.x + column.width / 2;
+  const x = column.center;
   const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
   const leading = column.x === 0;
   const { tasks, after } = paged(
