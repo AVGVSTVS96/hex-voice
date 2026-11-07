@@ -124,10 +124,12 @@ export function ListPage({
   const searching = query !== null;
   const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
   // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
-  // out as two pages it's already there; on one page it waits unpicked behind the list.
+  // out as two pages it's already there; on one page it waits unpicked behind the list. Opening
+  // starts the pages afresh after this has run (a parent's effect runs after its child's), and the
+  // fresh path is what makes it pick again.
   useEffect(() => {
     if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
-  }, [open, pages.task, first]);
+  }, [open, pages.task, pages.path, first]);
   const selected = beside
     ? ((
         shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
