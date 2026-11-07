@@ -39,6 +39,11 @@ final class DuoTests: XCTestCase {
         // scripts/duo acts on each line as it's printed, so none may wait in a buffer.
         setvbuf(stdout, nil, _IONBF, 0)
         continueAfterFailure = true
+        switch ProcessInfo.processInfo.environment["DUO_TURN"] {
+        case "landscape-right": XCUIDevice.shared.orientation = .landscapeRight
+        case "portrait": XCUIDevice.shared.orientation = .portrait
+        default: break
+        }
         app.terminate()
         app.launch()
     }

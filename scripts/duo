@@ -332,7 +332,9 @@ mac_tap() {
       }
       rm -rf build/sync && mkdir -p build/sync
       answered=0
-      TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
+      # The Device Hub's turn only drives the Duo, so on the iPad XCUITest turns the device itself.
+      TEST_RUNNER_DUO_TURN=$([ "$DEVICE" != ipad ] || echo "$orientation") \
+        TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
         case $line in
