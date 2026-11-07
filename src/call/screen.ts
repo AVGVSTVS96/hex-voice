@@ -60,7 +60,7 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
         ...now,
         settings: true,
         front: 'settings',
-        over: shared && now.over === 'tasks' ? 'none' : now.over,
+        over: shared ? 'none' : now.over,
       };
     case 'words':
       return {
@@ -75,10 +75,12 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
   }
 }
 
-// What shows: where settings has a place and both were left open (a fold), the one in front.
+// What shows: where settings has a place and a fold left something else open with it, settings
+// over Calls shows settings, and settings with Tasks shows the one in front.
 export function shown(now: Screen, shared: boolean) {
   const both = shared && now.over === 'tasks' && now.settings;
   const tasks = now.over === 'tasks' && !(both && now.front === 'settings');
   const settings = now.settings && !(both && now.front === 'tasks');
-  return { calls: now.over === 'calls', tasks, settings, place: tasks || (shared && settings) };
+  const calls = now.over === 'calls' && !(shared && now.settings);
+  return { calls, tasks, settings, place: tasks || (shared && settings) };
 }
