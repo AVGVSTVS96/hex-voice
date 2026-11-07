@@ -17,7 +17,7 @@ An iPhone app for calling [hex](https://github.com/AVGVSTVS96/hex), your persona
   </tr>
 </table>
 
-Built on David Mokos's [expo-gpt-live](https://github.com/davidmokos/expo-gpt-live) template (MIT): Expo SDK 58, native Expo UI controls, and six [AI Elements Persona](https://elements.ai-sdk.dev/components/persona) animations. It's a personal fork that updates itself with [autofork](https://autofork.com).
+Built on David Mokos's [expo-gpt-live](https://github.com/davidmokos/expo-gpt-live) template (MIT): Expo SDK 58, native Expo UI controls, and six [AI Elements Persona](https://elements.ai-sdk.dev/components/persona) animations.
 
 ```
 iPhone ── WebRTC offer ──► hex voice plugin ──► gpt-live-1 session

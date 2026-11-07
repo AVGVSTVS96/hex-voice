@@ -1,5 +1,0 @@
-{
-  "upstream": "davidmokos/expo-gpt-live",
-  "follow": "main",
-  "verify": "npm ci && npm run check"
-}

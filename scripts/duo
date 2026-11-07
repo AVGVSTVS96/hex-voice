@@ -614,7 +614,7 @@ verify() {
   local dir moves
   resolve "${1:-}"
   verdict=$home/verdicts/$(git -C "$repo" ls-tree "$commit" |
-    grep -vP '\t(tests|scripts|uitests|docs|\.autofork|[^/]*\.md)$' | git hash-object --stdin)
+    grep -vP '\t(tests|scripts|uitests|docs|[^/]*\.md)$' | git hash-object --stdin)
   passed && return
   take_lane verify
   passed && return
