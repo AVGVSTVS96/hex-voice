@@ -57,6 +57,8 @@ wait 3
 type ask-input  and the other
 tap Send a note to markdown
 wait 1
+no-keyboard after the note
+frame thread-write
 shoot ask-noted
 tap Write your own
 type ask-input Found both

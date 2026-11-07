@@ -18,7 +18,7 @@ import {
   strokeBorder,
   type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
@@ -527,7 +527,7 @@ function Composer({
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
-  const typing = useContext(Typing);
+  const typing = useTyping();
   const field = useField();
   const words = sending ? '' : text.trim();
   return (
@@ -626,6 +626,24 @@ function Composer({
       </Row>
     </Column>
   );
+}
+
+// Says the field is being typed in, and stops saying so when it goes: a note or an answer takes
+// the field away with the keyboard still up, and iOS never tells a field that's gone it lost focus,
+// so the page would keep its foot hidden for typing.
+function useTyping() {
+  const typing = useContext(Typing);
+  const on = useRef(false);
+  useEffect(
+    () => () => {
+      if (on.current) typing(false);
+    },
+    [],
+  );
+  return (now: boolean) => {
+    on.current = now;
+    typing(now);
+  };
 }
 
 // An answer that couldn't reach every place, and the way to finish it.
