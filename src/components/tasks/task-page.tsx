@@ -154,6 +154,7 @@ export function Detail({
                     <Run
                       key={thread.id}
                       thread={thread.id === task.id && full ? full : thread}
+                      named={working.length > 1 || thread.id !== task.id}
                       onPress={() => onSteps(thread.id)}
                     />
                   ))}
@@ -161,8 +162,8 @@ export function Detail({
               ) : null}
               {full && lastRun(full) ? (
                 <Column key="run" alignment="start" spacing={0}>
-                  <SectionHead title="Last run" />
-                  <Run thread={full} onPress={() => onSteps(full.id)} />
+                  <SectionHead title="Last run" count={taskTime(full)} opens />
+                  <Run thread={full} named={false} onPress={() => onSteps(full.id)} />
                 </Column>
               ) : null}
               {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
@@ -308,7 +309,17 @@ const rest = (width: number) => [
   ...listRow(width),
 ];
 
-function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
+// A run's steps. It's `named` by its thread, its app and when, only where that tells it apart from
+// the page it's on; on its own it's the page's, whose name and door the bar already shows.
+function Run({
+  thread,
+  named,
+  onPress,
+}: {
+  thread: TaskRow | Task;
+  named: boolean;
+  onPress: () => void;
+}) {
   const working = thread.state === 'working';
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
   const agents = agentWords(thread.agents, working);
@@ -325,33 +336,35 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
         ),
       ]}
     >
-      <Row
-        alignment="center"
-        spacing={metrics.list.gap}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset - space[0.5],
-            trailing: metrics.list.inset - space[0.5],
-            top: space[1],
-            bottom: space[0.5],
-          }),
-          frame({ maxWidth: Infinity }),
-        ]}
-      >
-        <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
-        <Text
-          numberOfLines={1}
-          variant="detail"
-          weight="medium"
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      {named ? (
+        <Row
+          alignment="center"
+          spacing={metrics.list.gap}
+          modifiers={[
+            padding({
+              leading: metrics.list.inset - space[0.5],
+              trailing: metrics.list.inset - space[0.5],
+              top: space[1],
+              bottom: space[0.5],
+            }),
+            frame({ maxWidth: Infinity }),
+          ]}
         >
-          {thread.place}
-        </Text>
-        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
-          {taskTime(thread)}
-        </Text>
-        <Icon name="chevron.right" size={11} color={theme.tertiary} />
-      </Row>
+          <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
+          <Text
+            numberOfLines={1}
+            variant="detail"
+            weight="medium"
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          >
+            {thread.place}
+          </Text>
+          <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
+            {taskTime(thread)}
+          </Text>
+          <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+        </Row>
+      ) : null}
       {steps.length ? (
         <Steps steps={steps} agents={thread.agents} opens={false} />
       ) : working ? (
@@ -359,7 +372,7 @@ function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void 
       ) : null}
       {agents ? (
         <TraceLine
-          lead={<Icon name={KIND.agent} size={13} color={theme.secondary} />}
+          lead={<Icon name={KIND.agent} size={metrics.symbol.small} color={theme.secondary} />}
           text={agents}
           tone="secondary"
         />

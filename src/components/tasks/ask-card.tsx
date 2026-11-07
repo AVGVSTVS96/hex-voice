@@ -9,6 +9,7 @@ import {
   background,
   clipShape,
   contentShape,
+  fixedSize,
   foregroundStyle,
   frame,
   lineLimit,
@@ -30,6 +31,7 @@ import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components
 import {
   NOT_NEEDED,
   unreached,
+  wholeQuestion,
   type Ask,
   type AskLink,
   type AskOption,
@@ -180,6 +182,7 @@ function AskCard({
   // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
   const inner = width - 2 * (MARGIN + INSIDE);
+  const { question, context } = wholeQuestion(ask);
   return (
     <Card>
       <HStack
@@ -218,17 +221,20 @@ function AskCard({
           contentShape(shapes.rectangle()),
           onTapGesture(() => setOpen(!open)),
           accessibilityIdentifier('ask-card'),
-          accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
+          accessibilityLabel(`${question}. ${open ? 'Folds it' : 'Opens it'}`),
         ]}
       >
         <Text
           variant="headline"
           paragraph
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[
+            fixedSize({ horizontal: false, vertical: true }),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ]}
         >
-          {ask.question}
+          {question}
         </Text>
-        {ask.context ? (
+        {context ? (
           <Text
             variant="detail"
             tone="secondary"
@@ -238,7 +244,7 @@ function AskCard({
               frame({ maxWidth: Infinity, alignment: 'leading' }),
             ]}
           >
-            {ask.context}
+            {context}
           </Text>
         ) : null}
       </VStack>

@@ -84,7 +84,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         >
           <Shell
             selected={selected}
-            mark="needs"
+            mark={pick ? 'pick' : 'asks'}
             line={ask.question}
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
@@ -389,7 +389,7 @@ export function ProjectRow({
   const headline = headlineOf(newest);
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
-  const mark = newest.kind === 'stuck' ? newest.stuck.mark : STAGE_MARK[stage];
+  const mark = needs ? waiting(newest) : STAGE_MARK[stage];
   return (
     <Row
       alignment="start"
@@ -434,6 +434,20 @@ export function ProjectRow({
       </Column>
     </Row>
   );
+}
+
+// What kind of thing waits on you, by the row's newest: a question, one hex has a pick for, a
+// problem, or a reply.
+function waiting(entry: Entry): MarkState {
+  switch (entry.kind) {
+    case 'ask':
+      return entry.ask.options.some((option) => option.pick) ? 'pick' : 'asks';
+    case 'stuck':
+      return entry.stuck.mark;
+    case 'task':
+    case 'fresh':
+      return 'needs';
+  }
 }
 
 // How many a project has here: in mint while they wait on you, in gray otherwise.

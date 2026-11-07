@@ -1,4 +1,4 @@
-import { Icon, Row, ScrollView, TextInput, type TextInputRef } from '@expo/ui';
+import { Icon, Row, TextInput, type TextInputRef } from '@expo/ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -7,6 +7,7 @@ import {
   contentShape,
   foregroundStyle,
   frame,
+  minimumScaleFactor,
   monospacedDigit,
   padding,
   shapes,
@@ -29,8 +30,9 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-// The stages as capsules, the chosen one filled, as Muse marks the tab you're on. Only a count of
-// what needs you is mint.
+// The stages as capsules, the chosen one filled, as Muse marks the tab you're on, all four always
+// in sight: on the narrowest page their words tighten a little rather than run off. Only a count
+// of what needs you is mint.
 export function Tabs({
   counts,
   stage,
@@ -65,62 +67,58 @@ export function Tabs({
           <BackButton back={back} />
         </Row>
       ) : null}
-      <ScrollView
-        direction="horizontal"
-        showsIndicators={false}
-        modifiers={[frame({ maxWidth: Infinity })]}
+      <Row
+        alignment="center"
+        spacing={0}
+        modifiers={[
+          padding({
+            leading: metrics.list.inset - metrics.tabs.pad,
+            trailing: metrics.list.inset - metrics.tabs.pad,
+          }),
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+        ]}
       >
-        <Row
-          alignment="center"
-          spacing={space[1]}
-          modifiers={[
-            padding({
-              leading: metrics.list.inset - metrics.tabs.pad,
-              trailing: metrics.list.inset - metrics.tabs.pad,
-            }),
-          ]}
-        >
-          {STAGES.map(({ key, title }) => {
-            const on = key === stage;
-            const count = counts[key];
-            const needs = !unknown && key === 'needs' && count > 0;
-            return (
-              <Row
-                key={key}
-                alignment="center"
-                spacing={metrics.tabs.gap}
-                onPress={() => onChange(key)}
-                modifiers={[
-                  padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
-                  frame({ height: metrics.tabs.height }),
-                  ...(on ? [background(theme.card)] : []),
-                  clipShape('capsule'),
-                  contentShape(shapes.capsule()),
-                  accessibilityLabel(unknown ? title : `${title}, ${count}`),
-                  ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-                ]}
+        {STAGES.map(({ key, title }) => {
+          const on = key === stage;
+          const count = counts[key];
+          const needs = !unknown && key === 'needs' && count > 0;
+          return (
+            <Row
+              key={key}
+              alignment="center"
+              spacing={metrics.tabs.gap}
+              onPress={() => onChange(key)}
+              modifiers={[
+                padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
+                frame({ height: metrics.tabs.height }),
+                ...(on ? [background(theme.card)] : []),
+                clipShape('capsule'),
+                contentShape(shapes.capsule()),
+                accessibilityLabel(unknown ? title : `${title}, ${count}`),
+                ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                variant="detail"
+                weight={on ? 'medium' : 'regular'}
+                tone={on ? 'text' : 'secondary'}
+                modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
               >
-                <Text
-                  numberOfLines={1}
-                  variant="detail"
-                  weight={on ? 'medium' : 'regular'}
-                  tone={on ? 'text' : 'secondary'}
-                >
-                  {title}
-                </Text>
-                <Text
-                  variant="detail"
-                  weight={needs ? 'medium' : 'regular'}
-                  tone={needs ? 'accent' : 'tertiary'}
-                  modifiers={[monospacedDigit()]}
-                >
-                  {unknown ? '–' : String(count)}
-                </Text>
-              </Row>
-            );
-          })}
-        </Row>
-      </ScrollView>
+                {title}
+              </Text>
+              <Text
+                variant="detail"
+                weight={needs ? 'medium' : 'regular'}
+                tone={needs ? 'accent' : 'tertiary'}
+                modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
+              >
+                {unknown ? '–' : String(count)}
+              </Text>
+            </Row>
+          );
+        })}
+      </Row>
       {onSearch ? (
         <Row
           alignment="center"

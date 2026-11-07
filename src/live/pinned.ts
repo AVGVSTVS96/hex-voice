@@ -18,7 +18,7 @@ const EMOJI = /^(\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 const TITLES =
   /^((?:\*\*|__)?(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(.+)$/i;
 const EMOJI_MARKS: [RegExp, PinMark][] = [
-  [/^(✅|☑️|✔️)\s*/u, 'done'],
+  [/^(✅|☑️|✔️|✔|✓)\s*/u, 'done'],
   [/^(❌|⚠️|🔴|🛑)\s*/u, 'failed'],
   [/^(🔄|⏳|🏃|🟡)\s*/u, 'working'],
   [/^(❓|👉|🟢)\s*/u, 'needs'],
