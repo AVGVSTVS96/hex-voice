@@ -38,6 +38,7 @@ export function Tabs({
   stage,
   unknown,
   onChange,
+  title,
   back,
   onSearch,
 }: {
@@ -46,6 +47,8 @@ export function Tabs({
   // Not loaded yet, or hex can't be reached: no count is better than a made-up 0.
   unknown: boolean;
   onChange: (stage: Stage) => void;
+  // Where the stages share the bar's row: the page's name, and its way back.
+  title?: string;
   back?: Back;
   onSearch?: () => void;
 }) {
@@ -58,13 +61,16 @@ export function Tabs({
         frame({ maxWidth: Infinity }),
       ]}
     >
-      {back ? (
+      {title ? (
         <Row
           alignment="center"
-          spacing={0}
-          modifiers={[padding({ leading: metrics.list.inset - space[1] })]}
+          spacing={space[3]}
+          modifiers={[padding({ leading: metrics.list.inset - space[1], trailing: space[2] })]}
         >
-          <BackButton back={back} />
+          {back ? <BackButton back={back} /> : null}
+          <Text numberOfLines={1} variant="title">
+            {title}
+          </Text>
         </Row>
       ) : null}
       <Row

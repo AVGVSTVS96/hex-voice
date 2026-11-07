@@ -12,7 +12,6 @@ import {
   fixedSize,
   foregroundStyle,
   frame,
-  lineLimit,
   monospacedDigit,
   onTapGesture,
   padding,
@@ -239,7 +238,7 @@ function AskCard({
             tone="secondary"
             paragraph
             modifiers={[
-              open ? lineLimit() : lineLimit(3),
+              fixedSize({ horizontal: false, vertical: true }),
               frame({ maxWidth: Infinity, alignment: 'leading' }),
             ]}
           >

@@ -363,7 +363,7 @@ export function VoiceSettings({
           />
         </SettingRow>
         <Separator />
-        <SettingRow icon="iphone.radiowaves.left.and.right" title="Haptics" width={rowsWidth}>
+        <SettingRow icon="hand.tap" title="Haptics" width={rowsWidth}>
           <Toggle
             isOn={preferences.haptics}
             onIsOnChange={(on) => {
@@ -653,11 +653,7 @@ function SettingsPlace({
                     frame({ maxWidth: Infinity }),
                   ]}
                 >
-                  <PageBar
-                    title="Settings"
-                    large
-                    back={{ to: 'Call', short: false, onPress: onBack }}
-                  />
+                  <PageBar title="Settings" large back={{ to: 'Call', onPress: onBack }} />
                   <Spacer flexible />
                   {persona}
                   <Spacer flexible />

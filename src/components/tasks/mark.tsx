@@ -14,8 +14,8 @@ import { metrics, radius, space, type Tone } from '@/ui/tokens';
 export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 'read' | 'pending';
 
 // Drawn natively so a long list stays cheap; only the arc moves, so only it animates. What needs
-// you is an open mint square, with a question mark for a question and a sparkle for one hex has a
-// pick for; what hex has under way is its blue arc. Only what's finished has a tick.
+// you is a mint disc, with a question mark for a question and a sparkle for one hex has a pick
+// for; what hex has under way is its blue arc. Only what's finished sits in a square, with a tick.
 export function Mark({ state }: { state: MarkState }) {
   if (state === 'working')
     return (
@@ -52,20 +52,24 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
   );
   switch (state) {
     case 'needs':
-      return <Box />;
+      return disc(
+        theme.accentMuted,
+        <Circle
+          modifiers={[
+            frame({ width: metrics.badge.dot, height: metrics.badge.dot }),
+            foregroundStyle(theme.accent),
+          ]}
+        />,
+      );
     case 'asks':
-      return (
-        <>
-          <Box />
-          <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />
-        </>
+      return disc(
+        theme.accentMuted,
+        <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />,
       );
     case 'pick':
-      return (
-        <>
-          <Box />
-          <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
-        </>
+      return disc(
+        theme.accentMuted,
+        <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />,
       );
     case 'done':
       return (
@@ -139,23 +143,6 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
         />
       );
   }
-}
-
-function Box() {
-  const square = metrics.list.todo;
-  return (
-    <Spacer
-      modifiers={[
-        frame({ width: square, height: square }),
-        strokeBorder({
-          content: theme.accent,
-          style: { lineWidth: metrics.list.stroke },
-          shape: 'roundedRectangle',
-          cornerRadius: radius.mark,
-        }),
-      ]}
-    />
-  );
 }
 
 // A section's name in its color on a tinted dot, as Muse heads Tracking and Goals: mint for what

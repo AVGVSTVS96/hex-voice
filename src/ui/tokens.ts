@@ -167,7 +167,7 @@ export const metrics = {
   emptyTop: 130,
   // Between the wrap-up, how the last call ended and what didn't go through, under the call.
   footerGap: space[6],
-  // The prominent pill at the foot of Tasks' list, Go through: its height and the gap after its
+  // The pill at the foot of Tasks' list, Go through: its height and the gap after its
   // symbol.
   pill: { height: 52, gap: space[2], regular: 44, small: 32 },
   // A thread's composer: its field's least height, and its send button's.
@@ -186,7 +186,7 @@ export const metrics = {
   // its content, and a place's.
   list: {
     inset: space[5],
-    // A row's mark, the to-do square and the working arc inside it, and their line.
+    // A row's mark, the disc or square inside it, the working arc, and their line.
     mark: 20,
     todo: 18,
     arc: 15,
@@ -227,7 +227,7 @@ export const radius = {
   inner: 12,
   // A choice too long for a pill: as round as a one-line pill, so the two read as one kind.
   option: 22,
-  // A to-do's square mark in Tasks, as Muse draws its checkboxes.
+  // A done row's square mark in Tasks, as Muse draws its checkboxes.
   mark: 6,
 } as const;
 

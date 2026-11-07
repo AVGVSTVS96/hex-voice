@@ -111,7 +111,7 @@ export function Detail({
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
         title={task.name}
-        subtitle={`${open ? `${open} need${open === 1 ? 's' : ''} you` : STATE_WORDS[task.state]} · ${taskTime(task)}`}
+        subtitle={subtitleOf(task, open)}
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
@@ -541,4 +541,13 @@ function Run({
       ) : null}
     </Column>
   );
+}
+
+// What needs you and since when, or what it's doing and for how long: a bare time never says which.
+function subtitleOf(task: TaskRow | Task, open: number) {
+  const time = taskTime(task);
+  const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
+  if (task.state === 'working') return [asks, `working for ${time}`].filter(Boolean).join(' · ');
+  if (task.state === 'needs') return `${asks || STATE_WORDS.needs} since ${time}`;
+  return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
 }

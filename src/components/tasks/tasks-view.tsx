@@ -55,8 +55,6 @@ import { theme } from '@/theme';
 
 import { PagesView } from '../../../modules/pages';
 
-const NAMED_BACK = 420;
-
 // Every opening passes a new one, which restarts the pages and the list's tab.
 export type TasksAt = { task?: TaskId; stage?: Stage };
 
@@ -189,12 +187,9 @@ export function Tasks({
     steps: 'Steps',
     check: 'Last check',
   };
-  // A narrow page's back is its chevron alone, as iOS shortens a back button with no room for its
-  // title.
-  const chromeOf = ({ back, width }: Spot): Chrome => ({
+  const chromeOf = ({ back }: Spot): Chrome => ({
     back: back && {
       to: names[back],
-      short: width < NAMED_BACK,
       onPress:
         back === 'call'
           ? pages.back

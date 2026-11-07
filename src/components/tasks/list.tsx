@@ -136,8 +136,8 @@ export function ListPage({
   // starts the pages afresh after this has run (a parent's effect runs after its child's), and the
   // fresh path is what makes it pick again.
   useEffect(() => {
-    if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
-  }, [open, pages.task, pages.path, first]);
+    if (open && openedAt === at && !pages.task && first) pages.go({ to: 'beside', id: first });
+  }, [open, openedAt, at, pages.task, pages.path, first]);
   const selected = beside
     ? ((
         shown.find((entry) => entry.id === doneIn(pages.task)) ??
@@ -193,8 +193,8 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
-  // A page as wide as a landscape phone holds back, the stages and search in one row; a narrower
-  // one gives back, its title and search a bar of their own above the stages.
+  // A page as wide as a landscape phone holds back, its title, the stages and search in one row; a
+  // narrower one gives back, its title and search a bar of their own above the stages.
   const compact = spot.width >= TABS_WITH_BAR;
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
@@ -238,6 +238,7 @@ export function ListPage({
             stage={stage}
             unknown={!loaded}
             onChange={chooseStage}
+            title={compact ? 'Tasks' : undefined}
             back={compact ? back : undefined}
             onSearch={compact ? startSearch : undefined}
           />
@@ -348,7 +349,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       modifiers={[
         frame({ height: metrics.pill.height }),
         frame({ maxWidth: metrics.readable }),
-        background(theme.prominent),
+        background(theme.fill),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
         padding({
@@ -362,10 +363,8 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       ]}
     >
       <Spacer flexible />
-      <Icon name="waveform" size={metrics.symbol.bar} color={theme.onProminent} />
-      <Text variant="headline" tone="onProminent">
-        Go through them with hex
-      </Text>
+      <Icon name="bubble.left.and.bubble.right" size={metrics.symbol.bar} color={theme.text} />
+      <Text variant="headline">Go through them with hex</Text>
       <Spacer flexible />
     </Row>
   );

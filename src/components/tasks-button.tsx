@@ -1,5 +1,4 @@
-import { RNHostView } from '@expo/ui';
-import { Circle, ZStack } from '@expo/ui/swift-ui';
+import { Circle } from '@expo/ui/swift-ui';
 import {
   Animation,
   animation,
@@ -10,20 +9,16 @@ import {
   scaleEffect,
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
-import { View } from 'react-native';
 
-import { Arc } from '@/components/agent-line';
-import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { GlassButton } from '@/ui/glass-button';
 import { metrics } from '@/ui/tokens';
 
-const RING = metrics.tool;
 const DOT = 14;
 const LINE = 2;
 
-// The Tasks button wears the agent line's marks: its arc turns while anything works, and a mint
-// dot (`NeedsDot`) says something needs you. Nothing else on it moves.
+// The Tasks button says one thing on its glass: a mint dot (`NeedsDot`) while something needs
+// you. What's working is told to VoiceOver only; Tasks' Working tab shows it.
 export function TasksButton({
   needs,
   working,
@@ -43,22 +38,14 @@ export function TasksButton({
     .filter(Boolean)
     .join(', ');
   return (
-    <ZStack
-      modifiers={[
-        frame({ width: metrics.tool, height: metrics.tool }),
-        animation(Animation.easeInOut({ duration: motion.toolbar / 1000 }), working > 0),
-      ]}
-    >
-      {working > 0 && <Ring />}
-      <GlassButton
-        bare
-        icon="tasks"
-        label={label}
-        testID="tasks-button"
-        selected={selected}
-        onPress={onPress}
-      />
-    </ZStack>
+    <GlassButton
+      bare
+      icon="tasks"
+      label={label}
+      testID="tasks-button"
+      selected={selected}
+      onPress={onPress}
+    />
   );
 }
 
@@ -77,17 +64,5 @@ export function NeedsDot({ needs }: { needs: number }) {
         animation(Animation.bouncy(), needs > 0),
       ]}
     />
-  );
-}
-
-// The agent line's turning arc, turned by Reanimated: a turn SwiftUI repeats forever also carries
-// every move the toolbar makes around it, so the ring flew off the button as places opened.
-function Ring() {
-  return (
-    <RNHostView matchContents>
-      <View pointerEvents="none" style={{ width: RING, height: RING }}>
-        <Arc size={RING} />
-      </View>
-    </RNHostView>
   );
 }

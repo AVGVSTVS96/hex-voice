@@ -77,7 +77,7 @@ export function ScreenToolbar({
             />
           </Group>
           <Overlay.Content>
-            <NeedsDot needs={tasks.needs} />
+            <NeedsDot needs={tasks.open ? 0 : tasks.needs} />
           </Overlay.Content>
         </Overlay>
       </Host>

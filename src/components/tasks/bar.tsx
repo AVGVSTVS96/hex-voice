@@ -19,8 +19,8 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
-// Back names where it goes; `short`, it shows only its chevron, and still says where to VoiceOver.
-export type Back = { to: string; short: boolean; onPress: () => void };
+// Back is its chevron alone in every pose, and says where it goes to VoiceOver.
+export type Back = { to: string; onPress: () => void };
 
 export type Chrome = { back?: Back };
 export const PageChrome = createContext<Chrome>({});
@@ -103,13 +103,12 @@ export function PageBar({
 export function BackButton({ back }: { back: Back }) {
   return (
     <BarButton
-      shape={back.short ? 'circle' : 'capsule'}
+      shape="circle"
       label={`Back to ${back.to}`}
       testID="task-back"
       onPress={back.onPress}
     >
       <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
-      {!back.short ? <Text numberOfLines={1}>{back.to}</Text> : null}
     </BarButton>
   );
 }
