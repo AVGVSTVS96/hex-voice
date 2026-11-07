@@ -361,12 +361,13 @@ export function Tasks({
     page('check', <LastCheck {...checked} />),
   ];
 
-  // A drag down any of Tasks' scrolling content pulls the keyboard down with it, as iOS apps do.
+  // Any drag of Tasks' scrolling content lets the keyboard go, as the call's words do: interactive
+  // dismissal would wait for the finger to reach the keyboard.
   const fill = [
     frame({ maxWidth: Infinity, alignment: 'top' }),
     upTo(),
     clipped(),
-    scrollDismissesKeyboard('interactively'),
+    scrollDismissesKeyboard('immediately'),
   ];
   if (pages.shape === 'columns')
     return (

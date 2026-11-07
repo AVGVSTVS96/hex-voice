@@ -1,0 +1,22 @@
+# A short drag of Tasks' content lets the keyboard go, wherever you type in Tasks:
+# ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-keyboard-taps
+launch hexvoice:///?tasks=md
+wait 3
+tap ask-card
+wait 1
+tap Write your own
+type ask-input typed
+above-keyboard ask-input
+scroll ask-card
+wait 1
+no-keyboard after a drag of the page
+shoot page-dragged
+launch hexvoice:///?tasks
+wait 3
+tap tasks-search
+type tasks-search-field a
+above-keyboard tasks-search-field
+scroll
+wait 1
+no-keyboard after a drag of the list
+shoot list-dragged
