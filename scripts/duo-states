@@ -5,3 +5,4 @@ call-live   hexvoice:///?demo=call
 tasks-call  hexvoice:///?tasks&demo=call
 settings    hexvoice:///?open=settings
 calls       hexvoice:///?open=calls
+calls-call  hexvoice:///?open=calls&demo=call
