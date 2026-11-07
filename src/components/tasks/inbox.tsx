@@ -71,7 +71,7 @@ function Strip({
   onPress,
 }: {
   width: number;
-  mark: 'done' | 'read';
+  mark: 'pick' | 'read';
   title: string;
   detail?: string;
   action?: string;
@@ -175,7 +175,7 @@ export function PicksRow({
       <ConfirmationDialog.Trigger>
         <Strip
           width={width}
-          mark="done"
+          mark="pick"
           title={`hex has a pick for ${asks(n)}`}
           action={`Take ${n}`}
           label={`hex has a pick for ${asks(n)}. Take them`}
