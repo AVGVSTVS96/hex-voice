@@ -28,7 +28,7 @@ export const color = {
   // The mint that holds white words, for a swipe's button in either appearance.
   accentSolid: { dark: '#1F8A6D', light: '#1F8A6D' },
   progress: { dark: '#8DB8FF', light: '#0A66D2' },
-  progressMuted: { dark: '#1A2A42', light: '#DCE9FA' },
+  progressMuted: { dark: '#1F3354', light: '#CFE0F7' },
   danger: { dark: '#F0A5A8', light: '#D93A42' },
   dangerMuted: { dark: '#3A2224', light: '#FBE3E4' },
 } as const;

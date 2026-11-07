@@ -153,7 +153,8 @@ export function ListPage({
     feel.tick();
     setQuery('');
   };
-  const width = spot.width;
+  // Rows keep a readable measure, centered, however wide the page.
+  const width = Math.min(spot.width, metrics.readable);
   const actions = {
     width,
     selected,
@@ -236,7 +237,7 @@ export function ListPage({
             listStyle('plain'),
             scrollContentBackground('hidden'),
             scrollClipDisabled(),
-            frame({ maxWidth: Infinity, maxHeight: Infinity }),
+            frame({ maxWidth: metrics.readable, maxHeight: Infinity }),
             animation(
               motion.list,
               rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
@@ -332,7 +333,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
       onPress={onPress}
       modifiers={[
         frame({ height: metrics.pill.height }),
-        frame({ maxWidth: Infinity }),
+        frame({ maxWidth: metrics.readable }),
         background(theme.prominent),
         clipShape('capsule'),
         contentShape(shapes.capsule()),
@@ -342,6 +343,7 @@ function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
           top: space[3],
           bottom: Math.max(space[4], foot),
         }),
+        frame({ maxWidth: Infinity }),
         accessibilityLabel('Go through them with hex'),
       ]}
     >
