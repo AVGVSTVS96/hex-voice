@@ -265,9 +265,6 @@ export function VoiceSettings({
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
   ];
-  // A sheet's content is in a window only once it has shown.
-  const [shownOnce, setShownOnce] = useState(isPresented);
-  if (isPresented && !shownOnce) setShownOnce(true);
   useEffect(() => {
     if (isPresented) preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
   }, [isPresented]);
@@ -290,7 +287,7 @@ export function VoiceSettings({
             size={orbSize}
             state="idle"
             paused={!isPresented}
-            drawn={!!place || shownOnce}
+            drawn={!!place || isPresented}
             color={preferences.personaColor}
             palette={opalPaletteInput(preferences.opalPalette)}
           />
@@ -474,6 +471,7 @@ export function VoiceSettings({
       {placed}
       <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
         <BottomSheet
+          keepMounted
           isPresented={!placed && isPresented}
           onIsPresentedChange={(presented) => {
             if (!presented && !placed) onDismiss();
@@ -531,7 +529,11 @@ export function VoiceSettings({
               <RNHostView>
                 <View
                   pointerEvents="none"
-                  onLayout={({ nativeEvent }) => setGiven(nativeEvent.layout.width)}
+                  onLayout={({ nativeEvent }) => {
+                    // The sheet keeps its contents on the open Duo, laid out there at the window's
+                    // width rather than a sheet's.
+                    if (!place) setGiven(nativeEvent.layout.width);
+                  }}
                   style={StyleSheet.absoluteFill}
                 />
               </RNHostView>

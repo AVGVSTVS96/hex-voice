@@ -11,9 +11,10 @@ die() {
   exit 1
 }
 
+# npm ci applies patches/ too, so a change to either installs again.
 install_modules() {
   local lock
-  lock=$(git hash-object package-lock.json)
+  lock=$({ cat package-lock.json; cat patches/* 2>/dev/null || true; } | git hash-object --stdin)
   [ "$(cat node_modules/.lock 2>/dev/null)" = "$lock" ] && return
   npm ci --no-audit --no-fund >/dev/null
   echo "$lock" >node_modules/.lock

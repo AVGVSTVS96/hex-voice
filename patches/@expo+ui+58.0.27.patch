@@ -1,0 +1,89 @@
+diff --git a/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.d.ts b/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.d.ts
+index c39af1a..ebdc984 100644
+--- a/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.d.ts
++++ b/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.d.ts
+@@ -17,6 +17,12 @@ export interface BottomSheetProps extends CommonViewModifierProps {
+      * on iOS 26 and later.
+      */
+     presentationBackground?: ReactNode;
++    /**
++     * Keeps the content mounted after the sheet is dismissed, so its state, and native views like an
++     * animation inside it, carry over to the next presentation instead of starting again.
++     * @default false
++     */
++    keepMounted?: boolean;
+     /**
+      * Whether the `BottomSheet` is presented.
+      */
+diff --git a/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.js b/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.js
+index 74ef9a4..622ce4d 100644
+--- a/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.js
++++ b/node_modules/@expo/ui/build/swift-ui/BottomSheet/index.js
+@@ -8,13 +8,13 @@ const BottomSheetNativeView = requireNativeView('ExpoUI', 'BottomSheetView');
+ /**
+  * `BottomSheet` presents content from the bottom of the screen.
+  */ function BottomSheet(props) {
+-    const { modifiers, onIsPresentedChange, onDismiss, anchor, presentationBackground, children, ...restProps } = props;
++    const { modifiers, onIsPresentedChange, onDismiss, anchor, presentationBackground, keepMounted = false, children, ...restProps } = props;
+     const [isMounted, setIsMounted] = useState(props.isPresented);
+     if (props.isPresented && !isMounted) {
+         setIsMounted(true);
+     }
+     // The anchor stays mounted so it's always visible; the content mounts on present and unmounts
+-    // after dismiss.
++    // after dismiss, unless `keepMounted`.
+     return /*#__PURE__*/ _jsxs(BottomSheetNativeView, {
+         modifiers: modifiers,
+         ...modifiers ? createViewModifierEventListener(modifiers) : undefined,
+@@ -23,7 +23,7 @@ const BottomSheetNativeView = requireNativeView('ExpoUI', 'BottomSheetView');
+             onIsPresentedChange?.(isPresented);
+         },
+         onDismiss: ()=>{
+-            setIsMounted(false);
++            if (!keepMounted) setIsMounted(false);
+             onDismiss?.();
+         },
+         children: [
+diff --git a/node_modules/@expo/ui/src/swift-ui/BottomSheet/index.tsx b/node_modules/@expo/ui/src/swift-ui/BottomSheet/index.tsx
+index 3f111f5..e095421 100644
+--- a/node_modules/@expo/ui/src/swift-ui/BottomSheet/index.tsx
++++ b/node_modules/@expo/ui/src/swift-ui/BottomSheet/index.tsx
+@@ -24,6 +24,12 @@ export interface BottomSheetProps extends CommonViewModifierProps {
+    * on iOS 26 and later.
+    */
+   presentationBackground?: ReactNode;
++  /**
++   * Keeps the content mounted after the sheet is dismissed, so its state, and native views like an
++   * animation inside it, carry over to the next presentation instead of starting again.
++   * @default false
++   */
++  keepMounted?: boolean;
+   /**
+    * Whether the `BottomSheet` is presented.
+    */
+@@ -67,6 +73,7 @@ function BottomSheet(props: BottomSheetProps) {
+     onDismiss,
+     anchor,
+     presentationBackground,
++    keepMounted = false,
+     children,
+     ...restProps
+   } = props;
+@@ -77,7 +84,7 @@ function BottomSheet(props: BottomSheetProps) {
+   }
+ 
+   // The anchor stays mounted so it's always visible; the content mounts on present and unmounts
+-  // after dismiss.
++  // after dismiss, unless `keepMounted`.
+   return (
+     <BottomSheetNativeView
+       modifiers={modifiers}
+@@ -87,7 +94,7 @@ function BottomSheet(props: BottomSheetProps) {
+         onIsPresentedChange?.(isPresented);
+       }}
+       onDismiss={() => {
+-        setIsMounted(false);
++        if (!keepMounted) setIsMounted(false);
+         onDismiss?.();
+       }}>
+       {anchor != null ? <Slot name="anchor">{anchor}</Slot> : null}
