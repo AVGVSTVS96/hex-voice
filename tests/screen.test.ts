@@ -81,11 +81,33 @@ test('closing keeps the closed one in front, so its place fades out', () => {
   );
 });
 
-test('Calls closes settings; settings over Calls leaves Calls open', () => {
-  const settings = go(false, { to: 'settings', open: true }, { to: 'calls', open: true });
-  assert.deepEqual([shown(settings, false).calls, shown(settings, false).settings], [true, false]);
-  const over = step(settings, { to: 'settings', open: true }, { shared: true });
-  assert.deepEqual([shown(over, true).calls, shown(over, true).settings], [true, true]);
+test('Calls closes settings; settings is a sheet over Calls, but where it has a place it takes Calls’ place', () => {
+  const calls = go(false, { to: 'settings', open: true }, { to: 'calls', open: true });
+  assert.deepEqual([shown(calls, false).calls, shown(calls, false).settings], [true, false]);
+  const sheet = step(calls, { to: 'settings', open: true }, { shared: false });
+  assert.deepEqual([shown(sheet, false).calls, shown(sheet, false).settings], [true, true]);
+  const place = step(calls, { to: 'settings', open: true }, { shared: true });
+  assert.deepEqual([shown(place, true).calls, shown(place, true).settings], [false, true]);
+  // The sheet over Calls, unfolded: settings takes the place, and folding brings Calls back.
+  assert.deepEqual([shown(sheet, true).calls, shown(sheet, true).settings], [false, true]);
+});
+
+test('where settings has a place, only one of Calls, Tasks and settings is ever lit', () => {
+  const actions = [
+    { to: 'calls', open: true },
+    { to: 'tasks', open: true },
+    { to: 'settings', open: true },
+    { to: 'calls', open: false },
+    { to: 'tasks', open: false },
+    { to: 'settings', open: false },
+  ] as const;
+  for (const a of actions)
+    for (const b of actions)
+      for (const c of actions) {
+        const now = go(true, a, b, c);
+        const { calls, tasks, settings } = shown(now, true);
+        assert.ok([calls, tasks, settings].filter(Boolean).length <= 1, JSON.stringify([a, b, c]));
+      }
 });
 
 test('opening a past call pulls the words, and letting them go goes back to the live call', () => {
