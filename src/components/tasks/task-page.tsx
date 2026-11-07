@@ -1,11 +1,16 @@
-import { Column, Icon, Row, ScrollView } from '@expo/ui';
+import { Column, Icon, Row } from '@expo/ui';
+import { List } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
+  animation,
   contentShape,
   frame,
+  listStyle,
   monospacedDigit,
   padding,
   scrollClipDisabled,
+  scrollContentBackground,
+  scrollIndicators,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
@@ -13,7 +18,7 @@ import type { ReactNode } from 'react';
 import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections } from '@/components/tasks/parts';
+import { Faded, SectionHead, Sections, listRow } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
@@ -30,6 +35,7 @@ import {
   type TaskRow,
   type TaskId,
 } from '@/live/tasks';
+import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
@@ -98,16 +104,20 @@ export function Detail({
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
-        <ScrollView
-          key={beside ? 'beside' : 'alone'}
-          showsIndicators={false}
-          modifiers={[
-            scrollClipDisabled(),
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-          ]}
-        >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
-            <Sections>
+        <List key={beside ? 'beside' : 'alone'} modifiers={pageList(asks, answered)}>
+          {asks.length ? (
+            <YourCall
+              asks={asks}
+              answered={answered}
+              width={width}
+              onAnswer={onAnswer}
+              onUndo={onUndo}
+              onAgain={onAgain}
+              onDismiss={onDismiss}
+            />
+          ) : null}
+          <Column alignment="start" spacing={0} modifiers={rest(width)}>
+            <Sections follows={asks.length > 0}>
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
                   <SectionHead title={`Waiting on you since ${clock(new Date(task.since))}`} />
@@ -125,18 +135,6 @@ export function Detail({
                     {needs}
                   </Text>
                 </Column>
-              ) : null}
-              {asks.length ? (
-                <YourCall
-                  key="call"
-                  asks={asks}
-                  answered={answered}
-                  width={width}
-                  onAnswer={onAnswer}
-                  onUndo={onUndo}
-                  onAgain={onAgain}
-                  onDismiss={onDismiss}
-                />
               ) : null}
               {working.length ? (
                 <Column key="working" alignment="start" spacing={0}>
@@ -190,7 +188,7 @@ export function Detail({
               ) : null}
             </Sections>
           </Column>
-        </ScrollView>
+        </List>
       </Faded>
       {beside || answering ? null : (
         <Foot foot={foot}>
@@ -242,32 +240,45 @@ export function Asked({
         door={door}
       />
       <Faded>
-        <ScrollView
-          showsIndicators={false}
-          modifiers={[
-            scrollClipDisabled(),
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-          ]}
-        >
-          <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
-            {asks.length ? (
-              <YourCall
-                asks={asks}
-                answered={answered}
-                width={width}
-                onAnswer={onAnswer}
-                onUndo={onUndo}
-                onAgain={onAgain}
-                onDismiss={onDismiss}
-              />
-            ) : null}
-            {rows}
-          </Column>
-        </ScrollView>
+        <List modifiers={pageList(asks, answered)}>
+          {asks.length ? (
+            <YourCall
+              asks={asks}
+              answered={answered}
+              width={width}
+              onAnswer={onAnswer}
+              onUndo={onUndo}
+              onAgain={onAgain}
+              onDismiss={onDismiss}
+            />
+          ) : null}
+          {rows}
+          <Column alignment="start" spacing={0} modifiers={rest(width)} />
+        </List>
       </Faded>
     </Column>
   );
 }
+
+// A project's page is a list, so each ask on it is a row a swipe left puts away; an answer folds
+// its row where it sits.
+function pageList(asks: Ask[], answered: Record<string, string | null>) {
+  return [
+    listStyle('plain'),
+    scrollContentBackground('hidden'),
+    scrollIndicators('hidden'),
+    scrollClipDisabled(),
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+    animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
+  ];
+}
+
+// The page's last row, which holds the rest of it and ends clear of the fade.
+const rest = (width: number) => [
+  padding({ bottom: space[10] }),
+  frame({ maxWidth: Infinity }),
+  ...listRow(width, { top: false, bottom: false }),
+];
 
 function Run({ thread, onPress }: { thread: TaskRow | Task; onPress: () => void }) {
   const working = thread.state === 'working';

@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, Rectangle, VStack } from '@expo/ui/swift-ui';
+import { HStack, Rectangle, SwipeActions, VStack } from '@expo/ui/swift-ui';
 import {
   accessibilityElement,
   accessibilityIdentifier,
@@ -26,7 +26,7 @@ import { Typing, useField } from '@/components/tasks/pages';
 import { noteAsk, useWords } from '@/hooks/use-asks';
 import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { Failure, Hairline, SectionHead } from '@/components/tasks/parts';
+import { Failure, NotNeededButton, SectionHead, listRow } from '@/components/tasks/parts';
 import {
   NOT_NEEDED,
   unreached,
@@ -37,7 +37,7 @@ import {
 } from '@/live/asks';
 import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
-import { motion, rowsKey } from '@/motion';
+import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
@@ -53,6 +53,7 @@ const LINE = type.question.lineHeight;
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
+// The project page's asks, each a row of its list, so a swipe left on one puts it away.
 export function YourCall({
   asks,
   answered,
@@ -71,15 +72,16 @@ export function YourCall({
   onDismiss: (ask: Ask) => void;
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
+  const row = (i: number) => listRow(width, { top: i > 0, bottom: i < asks.length - 1 });
   return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[
-        animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
-      ]}
-    >
-      <SectionHead title="Your call" count={open} />
+    <>
+      <Column
+        alignment="start"
+        spacing={0}
+        modifiers={listRow(width, { top: false, bottom: false })}
+      >
+        <SectionHead title="Your call" count={open} />
+      </Column>
       {asks.map((ask, i) => {
         const said = answered[ask.id];
         if (said)
@@ -96,6 +98,7 @@ export function YourCall({
                   bottom: space[3.5],
                 }),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
+                ...row(i),
               ]}
             >
               <Mark state="done" />
@@ -123,13 +126,7 @@ export function YourCall({
             </Row>
           );
         return (
-          <Column
-            key={ask.id}
-            alignment="start"
-            spacing={0}
-            modifiers={[frame({ maxWidth: Infinity })]}
-          >
-            {i ? <Hairline /> : null}
+          <SwipeActions key={ask.id} modifiers={row(i)}>
             <AskCard
               ask={ask}
               first={i === 0}
@@ -137,10 +134,13 @@ export function YourCall({
               onAnswer={onAnswer}
               onDismiss={onDismiss}
             />
-          </Column>
+            <SwipeActions.Actions edge="trailing">
+              <NotNeededButton onPress={() => onDismiss(ask)} />
+            </SwipeActions.Actions>
+          </SwipeActions>
         );
       })}
-    </Column>
+    </>
   );
 }
 
@@ -165,7 +165,7 @@ function AskCard({
     () => !!carryDraft(`ask:${ask.id}`, ask.was?.map((id) => `ask:${id}`) ?? []).trim(),
   );
   const [open, setOpen] = useState(held);
-  // 'held' opens the field without raising the keyboard; the pencil raises it.
+  // 'held' opens the field without raising the keyboard; a tap in it raises it.
   const [writing, setWriting] = useState<boolean | 'held'>(held && 'held');
   const words = useWords(open ? ask.id : null);
   // A note leaves the ask open, so the card stays and says it went, or why it didn't.
