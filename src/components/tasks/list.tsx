@@ -103,12 +103,17 @@ export function ListPage({
     onCounts({ needs, working });
     return () => onCounts(undefined);
   }, [counted, needs, working, onCounts]);
-  useEffect(() => {
-    if (open) setQuery(null);
-  }, [open, at]);
-  useEffect(() => {
-    if (open && loaded) setStage(at.stage ?? (counts.needs ? 'needs' : 'working'));
-  }, [open, loaded, at]);
+  // Opening starts on the tab it's sent to, else Needs you while anything waits, set in the render
+  // that opens so the tab it was left on never shows first.
+  const opening = open && loaded ? at : null;
+  const [openedAt, setOpenedAt] = useState<TasksAt | null>(null);
+  if (opening !== openedAt) {
+    setOpenedAt(opening);
+    if (opening) {
+      setStage(opening.stage ?? (counts.needs ? 'needs' : 'working'));
+      setQuery(null);
+    }
+  }
 
   const shown = useMemo(
     () =>
