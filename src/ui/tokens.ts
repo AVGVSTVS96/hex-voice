@@ -3,26 +3,32 @@
 
 // Every color keeps its job in both appearances.
 export const color = {
-  background: { dark: '#000000', light: '#FFFFFF' },
-  sheet: { dark: '#1C1C1C', light: '#F2F2F7' },
-  group: { dark: '#000000', light: '#FFFFFF' },
-  surface: { dark: '#202020', light: '#EEEEF0' },
+  // Light is Muse's: an off-white ground, gray cards on it, and a softer gray for details.
+  background: { dark: '#000000', light: '#FCFCFC' },
+  sheet: { dark: '#1C1C1C', light: '#FCFCFC' },
+  group: { dark: '#000000', light: '#F0F0F2' },
+  surface: { dark: '#202020', light: '#EBEBED' },
   surfaceSelected: { dark: '#363636', light: '#D9D9DE' },
-  bubble: { dark: '#303032', light: '#ECECEE' },
+  bubble: { dark: '#303032', light: '#E9EAEC' },
   skeleton: { dark: '#2C2C2E', light: '#E3E3E8' },
-  edge: { dark: '#262628', light: '#D9D9DE' },
+  edge: { dark: '#2A2A2C', light: '#E3E3E5' },
   prominent: { dark: '#F9F9F9', light: '#0A0A0A' },
   onProminent: { dark: '#080808', light: '#FAFAFA' },
   tint: { dark: '#FFFFFF', light: '#0A0A0A' },
   text: { dark: '#F5F5F5', light: '#0A0A0A' },
-  secondary: { dark: '#98989F', light: '#6E6E73' },
-  tertiary: { dark: '#5E5E62', light: '#AEAEB2' },
+  secondary: { dark: '#98989F', light: '#65676B' },
+  tertiary: { dark: '#5E5E62', light: '#A2A4A8' },
   switchOn: { dark: '#30D158', light: '#34C759' },
   accent: { dark: '#C4F3E5', light: '#1F8A6D' },
   accentMuted: { dark: '#1B3534', light: '#D7F2EA' },
   accentTrack: { dark: '#2F5552', light: '#A8DCCB' },
   // The mint that holds white words, for a swipe's button in either appearance.
   accentSolid: { dark: '#1F8A6D', light: '#1F8A6D' },
+  // What hex has under way, as Muse marks what it's tracking.
+  progress: { dark: '#8DB8FF', light: '#0A66D2' },
+  progressMuted: { dark: '#1E2C44', light: '#DCE9FA' },
+  // The soft lift under a floating button, only where the ground is light.
+  lift: { dark: '#00000000', light: '#00000014' },
   danger: { dark: '#F0A5A8', light: '#D93A42' },
   dangerMuted: { dark: '#3A2224', light: '#FBE3E4' },
 } as const;
@@ -46,7 +52,7 @@ export type TextStyle = {
 };
 
 export const type = {
-  title: { textStyle: 'title', fontSize: 28, lineHeight: 34, weight: 'bold' },
+  title: { textStyle: 'title', fontSize: 28, lineHeight: 34, weight: 'medium' },
   title2: { textStyle: 'title2', fontSize: 22, lineHeight: 28, weight: 'semibold' },
   headline: { textStyle: 'headline', fontSize: 17, lineHeight: 22, weight: 'semibold' },
   body: { textStyle: 'body', fontSize: 17, lineHeight: 22, lineSpacing: 5 },
@@ -67,9 +73,11 @@ export const type = {
   },
   // A footnote that ends a subheadline's line, like a time or a place, level with its words.
   tag: { textStyle: 'footnote', fontSize: 13, lineHeight: 22 },
-  // A name in a list, like a call's in Calls, and the details under it.
-  item: { textStyle: 'callout', fontSize: 16, lineHeight: 21, weight: 'medium' },
-  itemDetail: { fontSize: 14, lineHeight: 19, lineSpacing: 5 },
+  // A name in a list, like a project's in Tasks or a call's in Calls, and the details under it.
+  item: { textStyle: 'body', fontSize: 17, lineHeight: 22, weight: 'medium' },
+  itemDetail: { textStyle: 'subheadline', fontSize: 15, lineHeight: 20, lineSpacing: 4 },
+  // A list's section, and a stage's name in Tasks' tabs.
+  head: { textStyle: 'subheadline', fontSize: 15, lineHeight: 20, weight: 'medium' },
   // What became of something you did, beside its mark, like an answer sent.
   sent: { textStyle: 'callout', fontSize: 16, lineHeight: 22 },
   // Code, as written: on its own in a pinned note, and smaller inside what hex said.
@@ -138,7 +146,11 @@ export type GlassSize = keyof typeof glass;
 export const metrics = {
   ...glass,
   // The symbol on a glass button, and on the call button.
-  symbol: { regular: 24, prominent: 27, bar: 17 },
+  symbol: { regular: 22, prominent: 27, bar: 17 },
+  // Thin line symbols, as Muse draws its buttons'.
+  stroke: 'light',
+  // The shadow under a floating button: how soft, and how far down.
+  lift: { radius: 12, y: 4 },
   // The call buttons at each size: mute, the call button, and the gap between them.
   controls: {
     regular: { mute: 'mute', call: 'call', gap: space[3] },
@@ -159,7 +171,7 @@ export const metrics = {
   // A settings row, its icon's width, its inset and the gap after its icon, and the gap between groups.
   row: 58,
   rowIcon: 26,
-  rowInset: space[4.5],
+  rowInset: space[4],
   rowSpacing: space[3.5],
   groupSpacing: space[4.5],
   // What you said, inside its bubble.
@@ -184,9 +196,9 @@ export const metrics = {
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: 13, trailing: 15, gap: space[1.5] } },
-  // Tasks' stage tabs: the gap between a tab's name and its count, and the room under them for
-  // the selected tab's underline.
-  tabs: { gap: 5, underline: 11 },
+  // Tasks' stage tabs: the gap between a tab's dot, name and count, the room under them, and the
+  // selected tab's dot and the tinted badge it sits on.
+  tabs: { gap: 6, under: 10, badge: 18, dot: 7 },
   // An app's tile rounds its corners by this share of its size, as iOS rounds app icons.
   tileCorner: 0.27,
   // Tasks' lists: how far their rows keep in from the sides, a row's mark and the gap after it,
@@ -194,8 +206,10 @@ export const metrics = {
   // row's own top padding, nothing at rest sits in the fade). Then a row's padding above and below
   // its content, and a place's, a point less below.
   list: {
-    inset: space[5],
-    mark: 16,
+    inset: space[4],
+    mark: 20,
+    // A to-do's square inside its mark.
+    todo: 18,
     gap: space[2.5],
     fade: space[6],
     rest: space[3],
@@ -223,6 +237,8 @@ export const radius = {
   field: metrics.field / 2,
   // A tag or a block of code inside something else.
   inner: 12,
+  // A to-do's square mark in Tasks, as Muse draws its checkboxes.
+  mark: 5,
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;

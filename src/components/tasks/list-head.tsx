@@ -1,5 +1,5 @@
 import { Column, Icon, Row, ScrollView, TextInput, type TextInputRef } from '@expo/ui';
-import { Capsule, Overlay, Rectangle } from '@expo/ui/swift-ui';
+import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -18,13 +18,40 @@ import { STAGES, type Stage } from '@/live/inbox';
 import { theme } from '@/theme';
 import { glass } from '@/ui/glass-button';
 import { Text } from '@/ui/text';
-import { labelOf, metrics, space } from '@/ui/tokens';
+import { labelOf, metrics, space, type Tone } from '@/ui/tokens';
 
 export function SearchButton({ onPress }: { onPress: () => void }) {
   return (
     <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
       <Icon name="magnifyingglass" size={metrics.symbol.bar} color={theme.text} />
     </BarButton>
+  );
+}
+
+// Each stage's color, as Muse colors a section's name and the dot beside it.
+const STAGE_TONES: Record<Stage, { word: Tone; dot: Tone }> = {
+  needs: { word: 'accent', dot: 'accentMuted' },
+  working: { word: 'progress', dot: 'progressMuted' },
+  done: { word: 'accent', dot: 'accentMuted' },
+  quiet: { word: 'secondary', dot: 'surfaceSelected' },
+};
+
+function Badge({ tone }: { tone: { word: Tone; dot: Tone } }) {
+  return (
+    <ZStack alignment="center">
+      <Circle
+        modifiers={[
+          frame({ width: metrics.tabs.badge, height: metrics.tabs.badge }),
+          foregroundStyle(theme[tone.dot]),
+        ]}
+      />
+      <Circle
+        modifiers={[
+          frame({ width: metrics.tabs.dot, height: metrics.tabs.dot }),
+          foregroundStyle(theme[tone.word]),
+        ]}
+      />
+    </ZStack>
   );
 }
 
@@ -77,42 +104,38 @@ export function Tabs({
               const on = key === stage;
               const count = counts[key];
               const needs = !unknown && key === 'needs' && count > 0;
+              const tone = STAGE_TONES[key];
               return (
-                <Overlay key={key} alignment="bottom">
-                  <Row
-                    alignment="center"
-                    spacing={metrics.tabs.gap}
-                    onPress={() => onChange(key)}
-                    modifiers={[
-                      padding({ bottom: metrics.tabs.underline }),
-                      contentShape(shapes.rectangle()),
-                      accessibilityLabel(unknown ? title : `${title}, ${count}`),
-                      ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-                    ]}
+                <Row
+                  key={key}
+                  alignment="center"
+                  spacing={metrics.tabs.gap}
+                  onPress={() => onChange(key)}
+                  modifiers={[
+                    padding({ bottom: metrics.tabs.under }),
+                    contentShape(shapes.rectangle()),
+                    accessibilityLabel(unknown ? title : `${title}, ${count}`),
+                    ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
+                  ]}
+                >
+                  {on ? <Badge tone={tone} /> : null}
+                  <Text
+                    numberOfLines={1}
+                    variant="head"
+                    weight={on ? 'medium' : 'regular'}
+                    tone={on ? tone.word : 'secondary'}
                   >
-                    <Text
-                      numberOfLines={1}
-                      variant="subheadline"
-                      weight={on ? 'semibold' : 'medium'}
-                      tone={on ? 'text' : 'secondary'}
-                    >
-                      {title}
-                    </Text>
-                    <Text
-                      variant="subheadline"
-                      weight={on || needs ? 'semibold' : 'medium'}
-                      tone={needs ? 'accent' : on ? 'text' : 'tertiary'}
-                      modifiers={[monospacedDigit()]}
-                    >
-                      {unknown ? '–' : String(count)}
-                    </Text>
-                  </Row>
-                  {on ? (
-                    <Overlay.Content>
-                      <Capsule modifiers={[frame({ height: 2 }), foregroundStyle(theme.accent)]} />
-                    </Overlay.Content>
-                  ) : null}
-                </Overlay>
+                    {title}
+                  </Text>
+                  <Text
+                    variant="head"
+                    weight={on || needs ? 'medium' : 'regular'}
+                    tone={needs ? 'accent' : on ? tone.word : 'tertiary'}
+                    modifiers={[monospacedDigit()]}
+                  >
+                    {unknown ? '–' : String(count)}
+                  </Text>
+                </Row>
               );
             })}
           </Row>

@@ -3,7 +3,7 @@ import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'reac
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
 import { TasksButton } from '@/components/tasks-button';
-import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
+import { GlassButton, HostedGlassButton, glass, lift } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
 import { metrics, type ToolbarGaps } from '@/ui/tokens';
 
@@ -59,7 +59,7 @@ export function ScreenToolbar({
             : { width: metrics.tool, height: long }
         }
       >
-        <Group spacing={gap} modifiers={[glass('capsule')]}>
+        <Group spacing={gap} modifiers={[glass('capsule'), lift]}>
           <TasksButton
             needs={tasks.needs}
             working={tasks.working}

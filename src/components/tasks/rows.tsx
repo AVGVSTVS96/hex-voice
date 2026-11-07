@@ -487,7 +487,7 @@ export function ProjectRow({
       ]}
     >
       <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text numberOfLines={1} variant="callout" weight="semibold" modifiers={[layoutPriority(1)]}>
+        <Text numberOfLines={1} variant="item" modifiers={[layoutPriority(1)]}>
           {topic.name}
         </Text>
         <Spacer flexible />

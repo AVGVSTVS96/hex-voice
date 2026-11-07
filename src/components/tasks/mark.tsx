@@ -1,13 +1,13 @@
 import { RNHostView, Icon, Spacer } from '@expo/ui';
 import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
-import { foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
+import { clipShape, foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
 import { View, type ColorValue } from 'react-native';
 
 import { Arc } from '@/components/agent-line';
 import type { TaskState } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { metrics, radius } from '@/ui/tokens';
 
 export type MarkState = TaskState | 'paused' | 'stopped' | 'read' | 'pending';
 
@@ -24,7 +24,7 @@ export function Mark({ state }: { state: MarkState }) {
             justifyContent: 'center',
           }}
         >
-          <Arc size={13} />
+          <Arc size={15} />
         </View>
       </RNHostView>
     );
@@ -41,33 +41,57 @@ export function Mark({ state }: { state: MarkState }) {
 function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
   const disc = (color: ColorValue, children: ReactNode) => (
     <>
-      <Circle modifiers={[frame({ width: 14, height: 14 }), foregroundStyle(color)]} />
+      <Circle modifiers={[frame({ width: 16, height: 16 }), foregroundStyle(color)]} />
       {children}
     </>
   );
   switch (state) {
+    // A to-do: yours while open, ticked once hex has it, as Muse draws one.
     case 'needs':
-      return <Circle modifiers={[frame({ width: 8, height: 8 }), foregroundStyle(theme.accent)]} />;
+      return (
+        <Spacer
+          modifiers={[
+            frame({ width: metrics.list.todo, height: metrics.list.todo }),
+            strokeBorder({
+              content: theme.accent,
+              style: { lineWidth: 1.5 },
+              shape: 'roundedRectangle',
+              cornerRadius: radius.mark,
+            }),
+          ]}
+        />
+      );
     case 'done':
-      return disc(theme.accentMuted, <Icon name="checkmark" size={8} color={theme.accent} />);
+      return (
+        <>
+          <Rectangle
+            modifiers={[
+              frame({ width: metrics.list.todo, height: metrics.list.todo }),
+              foregroundStyle(theme.accentMuted),
+              clipShape('roundedRectangle', radius.mark),
+            ]}
+          />
+          <Icon name="checkmark" size={10} color={theme.accent} />
+        </>
+      );
     case 'read':
-      return <Icon name="checkmark" size={10} color={theme.tertiary} />;
+      return <Icon name="checkmark" size={11} color={theme.tertiary} />;
     case 'failed':
-      return disc(theme.dangerMuted, <Icon name="exclamationmark" size={8} color={theme.danger} />);
+      return disc(theme.dangerMuted, <Icon name="exclamationmark" size={9} color={theme.danger} />);
     case 'paused':
       return disc(
         theme.surfaceSelected,
-        <Icon name="pause.fill" size={7} color={theme.secondary} />,
+        <Icon name="pause.fill" size={8} color={theme.secondary} />,
       );
     case 'stopped':
       return (
-        <Rectangle modifiers={[frame({ width: 7, height: 7 }), foregroundStyle(theme.tertiary)]} />
+        <Rectangle modifiers={[frame({ width: 8, height: 8 }), foregroundStyle(theme.tertiary)]} />
       );
     case 'pending':
       return (
         <Spacer
           modifiers={[
-            frame({ width: 10, height: 10 }),
+            frame({ width: 12, height: 12 }),
             strokeBorder({
               content: theme.tertiary,
               style: { lineWidth: 1.5, dash: [2, 2] },
@@ -80,7 +104,7 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
       return (
         <Spacer
           modifiers={[
-            frame({ width: 8, height: 8 }),
+            frame({ width: 9, height: 9 }),
             strokeBorder({ content: theme.tertiary, style: { lineWidth: 1.5 }, shape: 'circle' }),
           ]}
         />

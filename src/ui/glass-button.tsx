@@ -7,7 +7,9 @@ import {
   contentShape,
   disabled as disable,
   frame,
+  font,
   glassEffect,
+  shadow,
   shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -58,6 +60,12 @@ export function glass(
   });
 }
 
+// The soft shadow a floating button casts on a light ground, as Muse's do. Dark grounds hide it.
+export const lift = shadow({ radius: metrics.lift.radius, y: metrics.lift.y, color: theme.lift });
+
+// A button's symbol in thin line weight.
+const stroke = (size: number) => font({ size, weight: metrics.stroke });
+
 // A round button on glass. A `bare` one leaves the glass to the group it sits in.
 export function GlassButton({
   icon,
@@ -88,7 +96,7 @@ export function GlassButton({
         disable(disabled),
         accessibilityLabel(label),
         accessibilityAddTraits(selected ? ['isSelected'] : []),
-        ...(bare ? [] : [glass('circle', { prominent, disabled })]),
+        ...(bare ? [] : [glass('circle', { prominent, disabled }), lift]),
       ]}
     >
       {loading ? (
@@ -96,9 +104,8 @@ export function GlassButton({
       ) : (
         <Image
           systemName={symbols[icon]}
-          size={metrics.symbol[prominent ? 'prominent' : 'regular']}
           color={color}
-          modifiers={look}
+          modifiers={[stroke(metrics.symbol[prominent ? 'prominent' : 'regular']), ...look]}
         />
       )}
     </Button>
@@ -116,12 +123,11 @@ export function GlassMenu({
       label={
         <Image
           systemName={symbols[icon]}
-          size={metrics.symbol.regular}
           color={theme.text}
-          modifiers={face('tool', false)}
+          modifiers={[stroke(metrics.symbol.regular), ...face('tool', false)]}
         />
       }
-      modifiers={[accessibilityLabel(label), glass('circle')]}
+      modifiers={[accessibilityLabel(label), glass('circle'), lift]}
     >
       {children}
     </Menu>

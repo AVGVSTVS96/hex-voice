@@ -91,9 +91,7 @@ export function SectionHead({
           : []),
       ]}
     >
-      <Text variant="footnote" weight="semibold" tone="secondary">
-        {title}
-      </Text>
+      <Text variant="head">{title}</Text>
       <Spacer flexible />
       {count !== undefined ? (
         <Text variant="footnote" tone="tertiary">
