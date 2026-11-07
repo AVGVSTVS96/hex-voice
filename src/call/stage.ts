@@ -190,7 +190,9 @@ function pad(box: Box): Stage {
   const agentLow = bottomInset;
   const agentHigh = bottomInset + metrics.call + 14;
   const docked = (from: number, to: number) => {
-    const center = from + (to - from) / 2;
+    // The orb and the buttons are centered as one group, so the orb keeps clear of the card's
+    // rounded corner in a narrow room.
+    const center = from + (to - from) / 2 + (BESIDE_BUTTONS + GAP) / 2;
     const buttons = center - stack('regular', { add: true }) / 2;
     return {
       orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },

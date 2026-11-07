@@ -88,7 +88,7 @@ export type Layout = Stage & {
   // the side it's on, how far the system's items sit from its middle, where its tools start and how
   // far up from the foot its call buttons end.
   column?: { bar: 'left' | 'right'; shift: number; top: number; foot: number };
-  // Before a call on a wide iPad, Tasks opens as a two-column inbox and the call waits in a rail.
+  // Before a call on iPad, Tasks opens across the screen as an inbox and the call waits in a rail.
   inbox?: Inbox;
   duo?: Duo;
 };
@@ -121,7 +121,7 @@ export function screenLayout(room: Room): Layout {
       ...layout,
       content,
       toolbar,
-      inbox: regular && box.width > box.height ? rail(frame) : undefined,
+      inbox: regular ? rail(frame) : undefined,
     };
   const before = box.fold && wordsBefore(box, layout, box.fold);
   const duo = frame.column
@@ -185,7 +185,7 @@ function roomFor(
   return { calls: rest, read: frame.column ? docked : undefined, tasks: docked };
 }
 
-// Before a call on a wide iPad, the rail the call waits in beside the inbox.
+// Before a call on iPad, the rail the call waits in beside the inbox.
 function rail({ window, top, bottomInset }: Frame): Inbox {
   const foot = window.height - bottomInset - metrics.call / 2;
   return {

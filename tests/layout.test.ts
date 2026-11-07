@@ -125,7 +125,15 @@ test('iPad portrait stacks the orb over the words, always shown, with no pull-do
   assert.ok(layout.words.top > layout.orb.read.y + layout.orb.size / 2);
   assert.deepEqual(layout.calls, { width: 360, place: 'beside' });
   assert.deepEqual(layout.tasks, { width: 834 - 368, place: 'beside' });
-  assert.equal(layout.inbox, undefined);
+});
+
+test('before a call, iPad either way up opens Tasks across the screen with the call waiting in a rail', () => {
+  for (const size of Object.values(iPads)) {
+    const inbox = layoutOf(size, pad, { regular: true }).inbox!;
+    assert.equal(inbox.width, size.width - 96);
+    assert.equal(inbox.orb.x, 48, 'the orb waits whole in the rail');
+    assert.ok(inbox.orb.x - inbox.orb.size / 2 >= 24, 'clear of the screen’s corner');
+  }
 });
 
 test('Tasks takes two thirds of a landscape iPad, and standing up leaves the call 368', () => {
@@ -157,7 +165,8 @@ test('with a pane open the orb sits drawn 56 just before the call buttons’ +, 
     const buttons = layout.controls.center[pane];
     const spot = layout.orb.dock![pane];
     const where = `${size.width} wide, ${pane}: ${card} card`;
-    assert.equal(buttons.x, from + card / 2, where);
+    assert.equal(buttons.x - (56 + 12) / 2, from + card / 2, `${where}: orb and buttons centered`);
+    assert.ok(spot.x - 28 - from >= 40, `${where}: the orb clear of the card's corner`);
     assert.equal(Math.round(spot.size * 0.75), 56, `${where}: drawn 56`);
     const add = buttons.x - (60 + 12 + 60 + 12 + 64) / 2;
     assert.equal(add - (spot.x + 28), 12, `${where}: 12 from the +`);
