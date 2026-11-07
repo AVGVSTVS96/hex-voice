@@ -103200,10 +103200,10 @@ index 0000000000000000000000000000000000000000..f632df41c75c5091917dc6da0ea9a3c6
 +}
 diff --git a/src/call/screen.ts b/src/call/screen.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a5f98c5b9af54c65f47a2112d748c39fbe3062ea
+index 0000000000000000000000000000000000000000..f34fde134e30ef260d343c48f9a4a12e49f3154b
 --- /dev/null
 +++ b/src/call/screen.ts
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,86 @@
 +import type { TasksAt } from '@/components/tasks/tasks-view';
 +
 +// What the call screen has open, in one place, so no two parts of it can disagree. Calls and Tasks
@@ -103266,7 +103266,7 @@ index 0000000000000000000000000000000000000000..a5f98c5b9af54c65f47a2112d748c39f
 +        ...now,
 +        settings: true,
 +        front: 'settings',
-+        over: shared && now.over === 'tasks' ? 'none' : now.over,
++        over: shared ? 'none' : now.over,
 +      };
 +    case 'words':
 +      return {
@@ -103281,12 +103281,14 @@ index 0000000000000000000000000000000000000000..a5f98c5b9af54c65f47a2112d748c39f
 +  }
 +}
 +
-+// What shows: where settings has a place and both were left open (a fold), the one in front.
++// What shows: where settings has a place and a fold left something else open with it, settings
++// over Calls shows settings, and settings with Tasks shows the one in front.
 +export function shown(now: Screen, shared: boolean) {
 +  const both = shared && now.over === 'tasks' && now.settings;
 +  const tasks = now.over === 'tasks' && !(both && now.front === 'settings');
 +  const settings = now.settings && !(both && now.front === 'tasks');
-+  return { calls: now.over === 'calls', tasks, settings, place: tasks || (shared && settings) };
++  const calls = now.over === 'calls' && !(shared && now.settings);
++  return { calls, tasks, settings, place: tasks || (shared && settings) };
 +}
 diff --git a/src/call/stage.ts b/src/call/stage.ts
 new file mode 100644
@@ -126201,10 +126203,10 @@ index 0000000000000000000000000000000000000000..31777bd689c59329523fb93cce8b2e5f
 +});
 diff --git a/tests/screen.test.ts b/tests/screen.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0330d9ac7c93d46303a12db2ecafec6d72676984
+index 0000000000000000000000000000000000000000..e43c8ef93c759dc7e7d8929f7f1b373c6f61929b
 --- /dev/null
 +++ b/tests/screen.test.ts
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,131 @@
 +import assert from 'node:assert/strict';
 +import test from 'node:test';
 +
@@ -126288,11 +126290,33 @@ index 0000000000000000000000000000000000000000..0330d9ac7c93d46303a12db2ecafec6d
 +  );
 +});
 +
-+test('Calls closes settings; settings over Calls leaves Calls open', () => {
-+  const settings = go(false, { to: 'settings', open: true }, { to: 'calls', open: true });
-+  assert.deepEqual([shown(settings, false).calls, shown(settings, false).settings], [true, false]);
-+  const over = step(settings, { to: 'settings', open: true }, { shared: true });
-+  assert.deepEqual([shown(over, true).calls, shown(over, true).settings], [true, true]);
++test('Calls closes settings; settings is a sheet over Calls, but where it has a place it takes Calls’ place', () => {
++  const calls = go(false, { to: 'settings', open: true }, { to: 'calls', open: true });
++  assert.deepEqual([shown(calls, false).calls, shown(calls, false).settings], [true, false]);
++  const sheet = step(calls, { to: 'settings', open: true }, { shared: false });
++  assert.deepEqual([shown(sheet, false).calls, shown(sheet, false).settings], [true, true]);
++  const place = step(calls, { to: 'settings', open: true }, { shared: true });
++  assert.deepEqual([shown(place, true).calls, shown(place, true).settings], [false, true]);
++  // The sheet over Calls, unfolded: settings takes the place, and folding brings Calls back.
++  assert.deepEqual([shown(sheet, true).calls, shown(sheet, true).settings], [false, true]);
++});
++
++test('where settings has a place, only one of Calls, Tasks and settings is ever lit', () => {
++  const actions = [
++    { to: 'calls', open: true },
++    { to: 'tasks', open: true },
++    { to: 'settings', open: true },
++    { to: 'calls', open: false },
++    { to: 'tasks', open: false },
++    { to: 'settings', open: false },
++  ] as const;
++  for (const a of actions)
++    for (const b of actions)
++      for (const c of actions) {
++        const now = go(true, a, b, c);
++        const { calls, tasks, settings } = shown(now, true);
++        assert.ok([calls, tasks, settings].filter(Boolean).length <= 1, JSON.stringify([a, b, c]));
++      }
 +});
 +
 +test('opening a past call pulls the words, and letting them go goes back to the live call', () => {
