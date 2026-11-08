@@ -105,7 +105,9 @@ final class DuoTests: XCTestCase {
                 let parts = argument.split(separator: " ", maxSplits: 1).map(String.init)
                 guard let field = element(parts[0]) else { break }
                 touch()
-                field.tap()
+                // A second tap on a field that already has the keyboard opens iOS's edit menu
+                // (Paste, AutoFill) over the screen, which a person typing never sees.
+                if (field.value(forKey: "hasKeyboardFocus") as? Bool) != true { field.tap() }
                 field.typeText(parts.count > 1 ? parts[1] : "")
             case "above-keyboard":
                 let keyboard = app.keyboards.firstMatch
