@@ -1,5 +1,3 @@
-// A thread's pinned status post, as the app draws it: its sections, each line marked by what the
-// section says it is, commands set apart to copy, links kept, and Done folded away.
 export type PinMark = 'done' | 'working' | 'needs' | 'failed' | 'idle';
 
 export type PinLine =
@@ -17,13 +15,11 @@ export interface PinSection {
 const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/u;
 const LINK = /\[(?<label>[^\]]+)\]\((?<url>https?:\/\/[^)\s]+)\)/u;
 
-// A line bold from its title to its end, colon inside: bold the title alone.
 const WHOLE_BOLD = /^(?<bold>\*\*|__)(?<title>[^:*_]{1,40}:)(?<rest>.*?)\k<bold>$/u;
 const PIN = /^📌\s*/u;
 const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/u;
 
-// A heading's own emoji: the section's mark already says what it is.
-const EMOJI = /^(?:\p{Extended_Pictographic}\uFE0F?\s*)+/u;
+const HEADING_EMOJI = /^(?:\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 
 const TITLES =
   /^(?<title>(?:\*\*|__)?(?:done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(?<rest>.+)$/iu;
@@ -92,18 +88,17 @@ export const pinSections = (text: string): PinSection[] => {
   return sections;
 };
 
-// A short line that names what follows: bold on its own, or ending in a colon, or a known title.
 const headingOf = (line: string): string | undefined => {
   const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups;
 
   if (bold) {
-    return bold.title.replace(EMOJI, '').replace(/:$/u, '').trim();
+    return bold.title.replace(HEADING_EMOJI, '').replace(/:$/u, '').trim();
   }
 
   const bare = plain(line);
 
   if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line)) {
-    return bare.slice(0, -1).replace(EMOJI, '').trim();
+    return bare.slice(0, -1).replace(HEADING_EMOJI, '').trim();
   }
 
   return undefined;
@@ -146,7 +141,6 @@ const item = (text: string, mark: PinMark): PinLine => {
   return { kind: 'item', ...linked(rest), mark: own };
 };
 
-// A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
 const linked = (text: string) => {
   const link = LINK.exec(text);
   const url = link?.groups?.url ?? URL.exec(text)?.[0];
