@@ -9,6 +9,7 @@ import {
   pagedRoom,
   shapeOf,
   spotOf,
+  startAt,
   type Level,
   type Move,
   type Room,
@@ -112,7 +113,7 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
 });
 
 test('Tasks opened on a topic goes back to the list before the call', () => {
-  const stack = go({ to: 'start', at: { task: A } });
+  const stack = startAt({ task: A });
   assert.deepEqual(levelsOf(stack, 'one'), ['list', 'topic']);
   assert.equal(backLeavesTasks(stack, 'one'), false);
   assert.equal(backLeavesTasks(move(stack, { to: 'back' }), 'one'), true);

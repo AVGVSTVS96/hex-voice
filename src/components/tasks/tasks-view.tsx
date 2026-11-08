@@ -10,7 +10,7 @@ import {
   offset,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Linking } from 'react-native';
 
 import { TASKS } from '@/call/stage';
@@ -23,9 +23,11 @@ import {
   spotOf,
   usePages,
   type Level,
+  type Move,
   type Pages,
   type Room,
   type Spot,
+  type Stack,
   Showing,
   Typing,
 } from '@/components/tasks/pages';
@@ -51,7 +53,6 @@ import {
   taskIn,
   topicIn,
   type Place,
-  type Stage,
   type Tile,
 } from '@/live/inbox';
 import type { TaskId, TaskRow } from '@/live/tasks';
@@ -60,12 +61,11 @@ import { theme } from '@/theme';
 
 import { PagesView } from '../../../modules/pages';
 
-// Every opening passes a new one, which restarts the pages and the list's tab.
-export type TasksAt = { task?: TaskId; stage?: Stage };
-
 export type TasksProps = {
   open: boolean;
-  at: TasksAt;
+  // Where you are in Tasks, which the call screen keeps whichever container shows it.
+  stack: Stack;
+  onMove: (move: Move) => void;
   haptics: boolean;
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
@@ -80,7 +80,7 @@ export function TasksView({
   ...view
 }: TasksProps & { width: number; foot?: number }) {
   const room = { width, foot, paged: false };
-  const pages = usePages({ open: view.open, at: view.at, shape: shapeOf(room) });
+  const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room) });
   return <Tasks {...view} pages={pages} room={room} />;
 }
 
@@ -91,7 +91,6 @@ export function Tasks({
   onGoThrough,
   onOpenCall,
   onCounts,
-  at,
   pages,
   room,
 }: TasksProps & { pages: Pages; room: Room }) {
@@ -107,12 +106,17 @@ export function Tasks({
     () => inboxEntries(tasks ?? [], finished, yours.list, yours.shown),
     [tasks, finished, yours.list, yours.shown],
   );
-  // Beside the list, before the list has picked, the page is the first project of the tab Tasks
-  // opens on, so the pane is never blank while it picks.
-  const [leading] =
-    pages.shape !== 'one' && !pages.task
-      ? stageTopics(entries, openingStage(at.stage, stageCounts(entries, yours.answered)))
-      : [];
+  // Opening starts on the tab it's sent to, else Needs you while anything waits, kept once the list
+  // has loaded so it stays put as the counts change.
+  const loaded = !!(yours.list && tasks);
+  const stage =
+    pages.stage ?? (loaded ? openingStage(stageCounts(entries, yours.answered)) : 'needs');
+  useEffect(() => {
+    if (open && loaded && !pages.stage) pages.go({ to: 'stage', stage });
+  }, [open, loaded, pages.stage, stage]);
+  // Beside the list, before the list has picked, the page is the first project of its tab, so the
+  // pane is never blank while it picks.
+  const [leading] = pages.shape !== 'one' && !pages.task ? stageTopics(entries, stage) : [];
   const showing = pages.task ?? (leading ? pageOf(leading) : null);
   // A project with no thread to show has a page of its own, with nothing to fetch.
   const { task } = useTask(taskIn(showing), version);
@@ -246,7 +250,7 @@ export function Tasks({
   const list = (
     <ListPage
       open={open}
-      at={at}
+      stage={stage}
       pages={pages}
       spot={spot('list')}
       tasks={tasks}
