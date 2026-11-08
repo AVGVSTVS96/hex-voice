@@ -10,7 +10,7 @@ import {
   type CallRecord,
   type CallSource,
 } from '@/live/calls';
-import type { MediaId, Picked, Shown } from '@/live/media';
+import type { Sent } from '@/live/shares';
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from '@/live/types';
 
 export type Mic = { muted: boolean; interrupted: boolean };
@@ -93,17 +93,6 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
     },
   };
 }
-
-// A photo or clip you sent a call from here (`picked`), as its words show it until hex's record has
-// it: going, or why it didn't.
-// What's sent together shares a `batch`, and goes again together.
-export type Sent = {
-  call: CallId;
-  batch: string;
-  picked: Picked;
-  id?: MediaId;
-  entry: TranscriptEntry & { media: Shown };
-};
 
 // The call with what you sent it among its words. One hex holds elsewhere shows each from its own
 // record once that has it, so a sent one shows only until then.

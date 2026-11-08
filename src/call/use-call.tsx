@@ -11,13 +11,14 @@ import {
 } from 'react';
 import { Alert, AppState } from 'react-native';
 
-import { callIdOf, callOf, isHere, withSent, type Call, type Sent } from '@/call/call';
+import { callIdOf, callOf, isHere, withSent, type Call } from '@/call/call';
 import { hex } from '@/hex';
 import { Refused } from '@/hex/client';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import type { CallId } from '@/live/calls';
 import { newKey } from '@/live/chat';
 import type { Picked } from '@/live/media';
+import { batchOf, deliver, retrying, settle, type Sent } from '@/live/shares';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
@@ -59,66 +60,22 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
   }, [session]);
   const [value] = useState({ session, demo });
   const [sent, setSent] = useState<Sent[]>([]);
-  // Each photo or clip goes up on its own, then the batch goes to the call in one request. What
-  // went up stays up, so trying again sends only what didn't.
   const [go] = useState(() => async (call: CallId, batch: Sent[]) => {
-    const uploads = await Promise.allSettled(
-      batch.map(({ id, picked }) =>
-        id ? Promise.resolve({ id, kind: picked.kind }) : hex.media.upload(picked),
-      ),
-    );
-    const shared = uploads.map((one) => (one.status === 'fulfilled' ? one.value : undefined));
-    const lost = uploads.find((one) => one.status === 'rejected');
-    let failed = lost && reason(lost.reason);
-    if (!failed)
-      await hex.calls
-        .media(
-          call,
-          shared.map((one) => one!.id),
-        )
-        .catch((error: unknown) => {
-          failed = reason(error);
-          if (error instanceof Refused && error.status === 409) ended();
-        });
-    setSent((now) =>
-      now.map((one) => {
-        const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
-        const kept = shared[i];
-        if (i < 0) return one;
-        // A clip's file is one no image view draws, so once hex has it, it shows hex's still.
-        const still = kept && one.picked.kind === 'video' ? { media: kept } : {};
-        return {
-          ...one,
-          id: kept?.id ?? one.id,
-          entry: { ...one.entry, ...still, sending: false, failed },
-        };
-      }),
-    );
+    const outcome = await deliver(call, batch, {
+      upload: hex.media.upload,
+      media: hex.calls.media,
+    });
+    if (outcome.error instanceof Refused && outcome.error.status === 409) ended();
+    setSent((now) => settle(now, batch, outcome));
   });
   // What was sent to an earlier call goes as the next call's first one does.
   const send = (call: CallId, at: number, picked: Picked[]) => {
-    const batch = `${call} ${at} ${newKey()}`;
-    const sending = picked.map((media, i) => ({
-      call,
-      batch,
-      picked: media,
-      entry: {
-        id: `sent ${batch} ${i}`,
-        role: 'user' as const,
-        text: '',
-        startMs: at,
-        media,
-        sending: true,
-      },
-    }));
-    setSent((now) => [...now.filter((each) => each.call === call), ...sending]);
-    void go(call, sending);
+    const batch = batchOf(call, at, picked, newKey());
+    setSent((now) => [...now.filter((one) => one.call === call), ...batch]);
+    void go(call, batch);
   };
-  const retry = (id: string) => {
-    const batch = sent.find(({ entry }) => entry.id === id)?.batch;
-    const again = sent
-      .filter((one) => one.batch === batch && one.entry.failed)
-      .map((one) => ({ ...one, entry: { ...one.entry, sending: true, failed: undefined } }));
+  const retry = (entry: string) => {
+    const again = retrying(sent, entry);
     if (!again.length) return;
     setSent((now) => now.map((one) => again.find(({ entry }) => entry.id === one.entry.id) ?? one));
     void go(again[0]!.call, again);
@@ -159,8 +116,6 @@ export function useCall(held: CallId | null) {
     toggleMute: session.toggleMute,
   };
 }
-
-const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 // The call ended before what you picked could go to it.
 function ended() {
