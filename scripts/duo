@@ -628,10 +628,12 @@ verify() {
   git -C "$verify" show HEAD:scripts/duo-moves >"$moves" 2>/dev/null || cp "$repo/scripts/duo-moves" "$moves"
   VIDEO=dark APPEARANCES=dark DEVICE=duo POSES='cover-up cover-side open-up open-side' tap "$moves" "$dir/duo"
   VIDEO=dark APPEARANCES=dark DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
-  # Light comes from cold launches in light, since switching mid-walk leaves shots half redrawn.
-  git -C "$verify" show HEAD:scripts/duo-states >"$dir/duo-states" 2>/dev/null || cp "$repo/scripts/duo-states" "$dir/duo-states"
-  DEVICE=duo POSES='cover-up cover-side open-up open-side' APPEARANCES=light out=$dir/duo-light shoot "$dir/duo-states"
-  DEVICE=ipad POSES='up side' APPEARANCES=light out=$dir/ipad-light shoot "$dir/duo-states"
+  # Light comes from launches in light (the tap runner launches after the appearance is set, and
+  # turns the iPad), since switching mid-walk leaves shots half redrawn.
+  { git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"; } |
+    awk '!/^#/ && NF { print "launch " $2; print "shoot " $1 }' >"$dir/duo-states"
+  APPEARANCES=light DEVICE=duo POSES='cover-up cover-side open-up open-side' tap "$dir/duo-states" "$dir/duo-light"
+  APPEARANCES=light DEVICE=ipad POSES='up side' tap "$dir/duo-states" "$dir/ipad-light"
   filmstrips "$dir/duo"
   filmstrips "$dir/ipad"
   echo "three fresh reviewers are looking at $title: the folded Duo, the open Duo and the iPad"

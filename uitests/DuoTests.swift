@@ -2,7 +2,7 @@ import XCTest
 
 // Plays a tap script (scripts/duo-taps by default, or the file scripts/duo tap is given) on the
 // installed hex app, one command a line:
-//   launch <url>          starts the app afresh from a link
+//   launch <url>          starts the app afresh from a link, and waits until it has drawn and loaded
 //   open <url>            opens a link in the running app
 //   tap <query>           taps the element whose id is the query, or whose label holds it; with the
 //                         keyboard up, in the middle of what shows of it above the keyboard
@@ -71,6 +71,13 @@ final class DuoTests: XCTestCase {
                 app.terminate()
                 XCUIDevice.shared.system.open(try XCTUnwrap(URL(string: argument)))
                 XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "\(argument) didn't open the app")
+                // In front isn't drawn: every screen of the app has buttons once it has drawn.
+                XCTAssertTrue(app.buttons.firstMatch.waitForExistence(timeout: 20), "\(argument) drew nothing in 20 s")
+                // Then its lists load, 15 s at most (a spinner shows until they have), and the orb starts drawing.
+                let loading = app.activityIndicators.firstMatch
+                let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: loading)
+                _ = XCTWaiter().wait(for: [loaded], timeout: 15)
+                sleep(1)
             case "open": app.open(try XCTUnwrap(URL(string: argument)))
             case "tap": element(argument).map { tap($0, argument) }
             case "tap-at":
