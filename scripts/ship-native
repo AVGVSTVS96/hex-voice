@@ -6,8 +6,9 @@
 # installs with devicectl on the devices it reaches by cable or Wi-Fi. Never let xtool revoke the
 # certificate to make its own: that breaks what Xcode signs, hex keyboard included.
 # Runs queue up: one that waited behind another builds the newest main, or nothing when the
-# devices already run it. Installing ends a call the app carries, so installs wait for that call
-# to end; phone, web and Discord calls don't run in the app.
+# devices already run it, and reuses a signed build of that main already on the Mac. When the Mac
+# doesn't answer, it's asleep, and the run stops and says so. Installing ends a call the app
+# carries, so installs wait for that call to end; phone, web and Discord calls don't run in the app.
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
@@ -73,26 +74,36 @@ done
   echo "the iPhone and iPad already run $title"
   exit
 }
+ssh -o ConnectTimeout=15 -o BatchMode=yes "$mac" true </dev/null 2>/dev/null ||
+  die "the Mac didn't answer, so it's asleep: $title wasn't built or installed"
+trap '[ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't installed" >&2' EXIT
 runtime=$(runtime_version)
-rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$release/" "$mac:$folder/"
-flock -u 9
-
-echo "building $title on the Mac"
-built=$(ssh "$mac" "$folder/scripts/ship-native build" </dev/null)
-[ "$built" = "$runtime" ] || die "the Mac built runtime $built, but main's runtime is $runtime"
-
-echo "making its profiles with xtool and signing it with the Mac's certificate"
 signed=build/signed/hex.app
-rsync -a --delete "$mac:$folder/$app/" "$home/hex.app/"
-xtool sign "$home/hex.app" </dev/null
-ssh "$mac" "mkdir -p $folder/build/signed"
-rsync -a --delete "$home/hex.app/" "$mac:$folder/$signed/"
-serial=$(python3 -c "
+# A signed build is reused while its free-team profile, good for 7 days, has a day left.
+if [ "$(cat "$home/signed" 2>/dev/null)" = "$commit" ] && [ -n "$(find "$home/signed" -mtime -6)" ]; then
+  flock -u 9
+  echo "the Mac already holds $title, signed"
+else
+  rsync -a --delete --exclude={/node_modules,/ios,/build,/dist,/.expo,/.git} "$release/" "$mac:$folder/"
+  flock -u 9
+
+  echo "building $title on the Mac"
+  built=$(ssh "$mac" "$folder/scripts/ship-native build" </dev/null)
+  [ "$built" = "$runtime" ] || die "the Mac built runtime $built, but main's runtime is $runtime"
+
+  echo "making its profiles with xtool and signing it with the Mac's certificate"
+  rsync -a --delete "$mac:$folder/$app/" "$home/hex.app/"
+  xtool sign "$home/hex.app" </dev/null
+  ssh "$mac" "mkdir -p $folder/build/signed"
+  rsync -a --delete "$home/hex.app/" "$mac:$folder/$signed/"
+  serial=$(python3 -c "
 import glob, os, plistlib, subprocess
 path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key=os.path.getmtime)
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
-ssh "$mac" sh "$folder/scripts/resign" "$serial" "$folder/$signed" </dev/null
+  ssh "$mac" sh "$folder/scripts/resign" "$serial" "$folder/$signed" </dev/null
+  echo "$commit" >"$home/signed"
+fi
 
 wait_for_no_call
 failed=
