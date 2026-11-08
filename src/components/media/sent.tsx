@@ -27,9 +27,8 @@ export const SentMedia = ({
       <View style={[styles.thumb, sending && styles.dim]}>
         <Thumb media={media} width="100%" corner={radius.media} />
       </View>
-      {sending ? (
-        <Text style={styles.note}>Sending</Text>
-      ) : failed ? (
+      {sending && <Text style={styles.note}>Sending</Text>}
+      {!sending && failed !== undefined && failed !== '' && (
         <Pressable
           accessibilityRole="button"
           onPress={() => {
@@ -38,7 +37,7 @@ export const SentMedia = ({
         >
           <Text style={styles.failed}>{`Not sent · ${failed} · Tap to try again`}</Text>
         </Pressable>
-      ) : null}
+      )}
     </View>
   );
 };

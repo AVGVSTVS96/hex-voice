@@ -77,7 +77,7 @@ export const CallButtons = ({
           prominent
           size={sizes.call}
           loading={primary.loading}
-          disabled={primary.off || !ready}
+          disabled={primary.off === true || !ready}
           onPress={onPrimary}
         />
       </Stack>

@@ -156,8 +156,6 @@ const Row = ({
     transform: [{ scale: 0.6 + 0.4 * Math.min(1, -x.get() / ACTION) }],
   }));
 
-  const ending = call.end && ENDINGS[call.end];
-
   return (
     <Animated.View
       exiting={FadeOut.duration(motion.rowOut)}
@@ -203,21 +201,33 @@ const Row = ({
               />
             )}
             <Text numberOfLines={1} style={styles.meta}>
-              {live ? (
-                <Text style={styles.live}>Live now</Text>
-              ) : call.failed ? (
-                <Text style={styles.bad}>{call.failed}</Text>
-              ) : (
-                callDetails(call)
-              )}
-              {!live && !call.failed && ending?.short && (
-                <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
-              )}
+              <CallStatus call={call} live={live} />
             </Text>
           </View>
         </Animated.View>
       </GestureDetector>
     </Animated.View>
+  );
+};
+
+const CallStatus = ({ call, live }: { call: CallSummary; live: boolean }) => {
+  if (live) {
+    return <Text style={styles.live}>Live now</Text>;
+  }
+
+  if (call.failed !== undefined && call.failed !== '') {
+    return <Text style={styles.bad}>{call.failed}</Text>;
+  }
+
+  const ending = call.end && ENDINGS[call.end];
+
+  return (
+    <>
+      {callDetails(call)}
+      {ending?.short !== undefined && (
+        <Text style={ending.bad && styles.bad}>{` · ${ending.short}`}</Text>
+      )}
+    </>
   );
 };
 

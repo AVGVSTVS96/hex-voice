@@ -38,7 +38,7 @@ export const Transcript = ({
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
-  const visible = entries.filter((entry) => entry.media || entry.text.trim());
+  const visible = entries.filter((entry) => entry.media !== undefined || entry.text.trim() !== '');
   const moments = interleave(visible, cards);
 
   useEffect(() => {

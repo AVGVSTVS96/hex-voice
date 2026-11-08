@@ -187,7 +187,7 @@ const Swatch = ({
         style={{
           ...circle(inner),
           backgroundColor: color,
-          experimental_backgroundImage: color ? undefined : ORIGINAL_OPAL,
+          experimental_backgroundImage: (color ?? '') === '' ? ORIGINAL_OPAL : undefined,
         }}
       />
     </Pressable>

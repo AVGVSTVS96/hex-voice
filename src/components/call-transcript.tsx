@@ -79,7 +79,15 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
   );
 };
 
-const Line = ({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; children: string }) => {
+const Line = ({
+  symbol,
+  bad = false,
+  children,
+}: {
+  symbol: SFSymbol;
+  bad?: boolean;
+  children: string;
+}) => {
   const color = bad ? theme.danger : theme.secondary;
 
   return (

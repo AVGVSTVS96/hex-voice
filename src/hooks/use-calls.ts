@@ -118,7 +118,7 @@ export const usePastCall = (id: CallId | undefined) => {
     (fresh) => {
       setCall(fresh);
 
-      if (fresh.ended) {
+      if ((fresh.ended ?? '') !== '') {
         store(saved(fresh.id), fresh);
       }
     },

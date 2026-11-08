@@ -83,7 +83,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     camera.current?.stopRecording();
   };
 
-  if (!permission?.granted) {
+  if (permission?.granted !== true) {
     return permission && !permission.canAskAgain ? (
       <View style={[styles.fill, styles.blocked]}>
         <Text style={styles.words}>Allow hex to use the camera in Settings.</Text>

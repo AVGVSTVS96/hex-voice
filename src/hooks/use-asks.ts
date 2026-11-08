@@ -43,7 +43,9 @@ export const useAsks = (open: boolean) => {
   const [missed, setMissed] = useState<Record<string, number>>({});
 
   const reached = (id: AskId, sent?: Sent) => {
-    setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
+    setMissed(({ [id]: _, ...rest }) =>
+      sent !== undefined && sent.missed !== 0 ? { ...rest, [id]: sent.missed } : rest,
+    );
   };
 
   // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
@@ -108,9 +110,9 @@ export const useAsks = (open: boolean) => {
   };
 
   const undo = (id: AskId) => {
-    const label = state.answered[id];
+    const label = state.answered[id] ?? '';
 
-    if (!label) {
+    if (label === '') {
       return;
     }
 

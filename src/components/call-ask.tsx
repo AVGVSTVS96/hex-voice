@@ -28,7 +28,7 @@ export const CallAsk = ({
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
 
-  if (card.answer && (sent || failed)) {
+  if ((card.answer ?? '') !== '' && ((sent ?? '') !== '' || failed !== undefined)) {
     setSent(undefined);
     setFailed(undefined);
   }
@@ -36,7 +36,7 @@ export const CallAsk = ({
   const answer = card.answer ?? sent;
 
   const choose = (option: AskOption) => {
-    if (sending) {
+    if ((sending ?? '') !== '') {
       return;
     }
 
@@ -54,7 +54,7 @@ export const CallAsk = ({
     );
   };
 
-  if (answer) {
+  if ((answer ?? '') !== '') {
     return (
       <View style={styles.sent}>
         <View style={styles.check}>
@@ -75,7 +75,7 @@ export const CallAsk = ({
           <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
             <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
           </Pressable>
-          {ask.tag ? <Text style={styles.tag}>{ask.tag}</Text> : null}
+          {(ask.tag ?? '') === '' ? null : <Text style={styles.tag}>{ask.tag}</Text>}
         </View>
         <Text selectable style={styles.question}>
           {ask.question}
@@ -86,23 +86,28 @@ export const CallAsk = ({
           <Pressable
             key={option.label}
             accessibilityRole="button"
-            accessibilityLabel={option.pick ? `${option.label}, ${PICK}` : option.label}
-            accessibilityState={{ selected: sending === option.label, disabled: !!sending }}
+            accessibilityLabel={option.pick === true ? `${option.label}, ${PICK}` : option.label}
+            accessibilityState={{
+              selected: sending === option.label,
+              disabled: (sending ?? '') !== '',
+            }}
             onPress={() => {
               choose(option);
             }}
             style={({ pressed }) => [
               styles.option,
-              option.pick && styles.pick,
-              (pressed || (sending && sending !== option.label)) && styles.pressed,
+              option.pick === true && styles.pick,
+              (pressed || ((sending ?? '') !== '' && sending !== option.label)) && styles.pressed,
             ]}
           >
-            <Text style={[styles.optionText, option.pick && styles.pickText]}>{option.label}</Text>
-            {option.pick ? <Text style={styles.pickNote}>{PICK}</Text> : null}
+            <Text style={[styles.optionText, option.pick === true && styles.pickText]}>
+              {option.label}
+            </Text>
+            {option.pick === true ? <Text style={styles.pickNote}>{PICK}</Text> : null}
           </Pressable>
         ))}
       </View>
-      {ask.links?.length ? (
+      {ask.links !== undefined && ask.links.length > 0 ? (
         <View style={styles.links}>
           {ask.links.map((link) => (
             <Pressable
@@ -120,12 +125,14 @@ export const CallAsk = ({
           ))}
         </View>
       ) : null}
-      {failed ? (
+      {failed === undefined ? (
+        <Text style={styles.hint}>
+          {sending === undefined || sending === '' ? 'Tap, or just say it' : `Sending ${sending}…`}
+        </Text>
+      ) : (
         <Text accessibilityRole="alert" style={[styles.hint, styles.failed]}>
           {failed}
         </Text>
-      ) : (
-        <Text style={styles.hint}>{sending ? `Sending ${sending}…` : 'Tap, or just say it'}</Text>
       )}
     </View>
   );

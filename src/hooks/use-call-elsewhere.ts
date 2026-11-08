@@ -21,10 +21,10 @@ export const useCallElsewhere = (live: CallId | undefined, here: boolean) => {
   }
 
   const { call } = usePastCall(shown);
-  const on = !!call && !call.ended;
+  const on = call !== undefined && (call.ended ?? '') === '';
 
   const hangUp = async () => {
-    if (!call || call.ended) {
+    if (call === undefined || (call.ended ?? '') !== '') {
       return;
     }
 

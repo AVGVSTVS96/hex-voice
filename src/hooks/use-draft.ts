@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { Settings } from 'react-native';
+import * as z from 'zod/mini';
 
 // What you've typed and not sent yet, kept by where you typed it, so leaving the page, a restart
 // into an update or a crash never loses it. The app's defaults read at once, so a field opens with
 // its draft already in it.
 const KEY = 'HexDrafts';
 
-const saved = (): Record<string, string> => {
-  const all: unknown = Settings.get(KEY);
+const Drafts = z.record(z.string(), z.string());
 
-  return all && typeof all === 'object' ? (all as Record<string, string>) : {};
-};
+const saved = () => Drafts.safeParse(Settings.get(KEY)).data ?? {};
 
 export const keepDraft = (where: string, text: string) => {
   const { [where]: _, ...rest } = saved();
@@ -30,7 +29,7 @@ export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
 
-  if (!old) {
+  if (old === undefined || old === '') {
     return all[where] ?? '';
   }
 

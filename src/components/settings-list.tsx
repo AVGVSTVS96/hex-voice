@@ -45,7 +45,7 @@ export const SettingRow = ({
     style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
     onPress={onPress}
     testID={testID}
-    modifiers={label ? [accessibilityLabel(label)] : []}
+    modifiers={label === undefined || label === '' ? [] : [accessibilityLabel(label)]}
   >
     <Icon
       name={icon}

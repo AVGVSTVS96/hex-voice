@@ -6,7 +6,7 @@ export const useSavedPreference = <T extends string>(
   defaultValue: T,
   isValid: (value: unknown) => value is T,
 ) => {
-  const [value, updateValue] = useState(defaultValue);
+  const [saved, setSaved] = useState(defaultValue);
   const [loaded, setLoaded] = useState(false);
   const changed = useRef(false);
   const writes = useRef(Promise.resolve());
@@ -17,7 +17,7 @@ export const useSavedPreference = <T extends string>(
       .then((stored) => {
         // A delayed read must not replace a selection made during startup.
         if (active && !changed.current && isValid(stored)) {
-          updateValue(stored);
+          setSaved(stored);
         }
       })
       .catch(() => {})
@@ -39,7 +39,7 @@ export const useSavedPreference = <T extends string>(
       }
 
       changed.current = true;
-      updateValue(next);
+      setSaved(next);
       // Keep rapid carousel selections in order when writing to storage.
       writes.current = writes.current
         .then(async () => {
@@ -52,5 +52,5 @@ export const useSavedPreference = <T extends string>(
     [key, isValid],
   );
 
-  return { value, setValue, loaded };
+  return { value: saved, setValue, loaded };
 };
