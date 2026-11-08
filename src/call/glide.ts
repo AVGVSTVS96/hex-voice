@@ -16,6 +16,52 @@ const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 
+const bandOf = (over: number, limit: number) => {
+  'worklet';
+
+  return limit * (1 - 1 / ((over * 0.55) / limit + 1));
+};
+
+const rubberBanded = (raw: number, limit: number) => {
+  'worklet';
+
+  if (raw < 0) {
+    return -bandOf(-raw, limit);
+  }
+
+  return raw > 1 ? 1 + bandOf(raw - 1, limit) : raw;
+};
+
+const landingOf = (velocity: number, from: number, crossed: boolean) => {
+  'worklet';
+
+  if (velocity > FLICK) {
+    return 1;
+  }
+
+  if (velocity < -FLICK) {
+    return 0;
+  }
+
+  return crossed ? 1 - from : from;
+};
+
+const snapped = (p: number) => {
+  'worklet';
+
+  return p < 0.5 ? 0 : 1;
+};
+
+const arcOf = (t: number) => {
+  'worklet';
+
+  if (t <= 0) {
+    return 0;
+  }
+
+  return t <= 1 ? t * t : 2 * t - 1;
+};
+
 interface Glide {
   // Where it's going: 1 reads the words, 0 rests.
   reading: boolean;
@@ -116,10 +162,7 @@ export const useGlide = ({
         'worklet';
         const { offset, line, crossed } = grab.get();
         const raw = offset + translationY / travel;
-        const limit = RUBBER_BAND / travel;
-        const over = raw < 0 ? -raw : raw > 1 ? raw - 1 : 0;
-        const banded = limit * (1 - 1 / ((over * 0.55) / limit + 1));
-        progress.set(raw < 0 ? -banded : raw > 1 ? 1 + banded : raw);
+        progress.set(rubberBanded(raw, RUBBER_BAND / travel));
         const past = goal.get() === 0 ? raw >= line : raw <= line;
 
         if (past !== crossed) {
@@ -129,10 +172,7 @@ export const useGlide = ({
       })
       .onEnd(({ velocityY }) => {
         'worklet';
-        const from = goal.get();
-
-        const target =
-          velocityY > FLICK ? 1 : velocityY < -FLICK ? 0 : grab.get().crossed ? 1 - from : from;
+        const target = landingOf(velocityY, goal.get(), grab.get().crossed);
 
         glideTo(target, velocityY / travel);
         scheduleOnRN(onRelease, target === 1);
@@ -142,9 +182,9 @@ export const useGlide = ({
   // (`arc`), which starts slow so it drops before it slides. What travels with it uses the same two.
   const glide = (p: number) => {
     'worklet';
-    const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
+    const t = reducedMotion ? snapped(p) : p;
 
-    return { t, arc: t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1 };
+    return { t, arc: arcOf(t) };
   };
 
   return { progress, glideTo, drag, glide };

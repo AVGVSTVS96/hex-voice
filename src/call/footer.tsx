@@ -46,16 +46,16 @@ export const CallFooter = ({
   const footing = footerOf(call, viewing);
   const ended = footing?.kind === 'ended' ? footing : undefined;
   const wrapUp = ended && calls?.find(({ id }) => id === ended.id);
-  const error = trouble ?? errorOf(call);
+  const error = trouble ?? errorOf(call) ?? '';
 
   return (
     <Animated.View pointerEvents="box-none" onLayout={onLayout} style={[styles.footer, style]}>
-      {wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (
+      {wrapUp && hasWrapUp(wrapUp) ? (
         <Animated.View
           entering={FadeIn.duration(motion.toolbar)}
           style={[styles.wrapUp, leading && styles.leading]}
         >
-          {wrapUp.title && (
+          {(wrapUp.title ?? '') === '' ? null : (
             <Text numberOfLines={1} style={styles.wrapTitle}>
               {wrapUp.title}
             </Text>
@@ -74,20 +74,23 @@ export const CallFooter = ({
       {footing ? (
         <Text
           accessibilityRole={footing.kind === 'elsewhere' ? undefined : 'alert'}
-          style={[styles.ended, leading && styles.leadingText, ended?.bad && styles.bad]}
+          style={[styles.ended, leading && styles.leadingText, ended?.bad === true && styles.bad]}
         >
           {footing.text}
         </Text>
       ) : null}
-      {error ? (
+      {error === '' ? null : (
         <Text accessibilityRole="alert" style={[styles.error, leading && styles.leadingText]}>
           {error}
         </Text>
-      ) : null}
+      )}
       {children}
     </Animated.View>
   );
 };
+
+const hasWrapUp = ({ title, summary, waiting }: CallSummary) =>
+  (title ?? '') !== '' || (summary ?? '') !== '' || (waiting ?? []).length > 0;
 
 const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, gap: metrics.footerGap },

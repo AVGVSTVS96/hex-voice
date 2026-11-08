@@ -31,8 +31,21 @@ export type Action =
   | { to: 'call'; id: string | null }
   | { to: 'pages'; move: Move };
 
-export const start = (opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen => ({
-  over: opening.open === 'calls' ? 'calls' : opening.tasks ? 'tasks' : 'none',
+interface Opening {
+  tasks?: TasksAt;
+  open?: 'settings' | 'calls';
+}
+
+const overAt = (opening: Opening): Over => {
+  if (opening.open === 'calls') {
+    return 'calls';
+  }
+
+  return opening.tasks ? 'tasks' : 'none';
+};
+
+export const start = (opening: Opening): Screen => ({
+  over: overAt(opening),
   settings: opening.open === 'settings',
   front: opening.open === 'settings' ? 'settings' : 'tasks',
   pages: startAt(opening.tasks ?? {}),
@@ -100,6 +113,10 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
 
     case 'pages': {
       return { ...now, pages: move(now.pages, action.move) };
+    }
+
+    default: {
+      return now;
     }
   }
 };

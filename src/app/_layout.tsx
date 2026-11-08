@@ -25,7 +25,7 @@ const RootLayout = () => {
           },
         }}
       >
-        <StatusBar style="auto" />
+        <StatusBar />
         <CallProvider demo={demo === 'call'}>
           <Stack
             screenOptions={{

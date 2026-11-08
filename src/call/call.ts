@@ -60,7 +60,7 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
     };
   }
 
-  if (record && !record.ended) {
+  if (record && (record.ended ?? '') === '') {
     return {
       kind: 'elsewhere',
       phase: leaving ? 'ending' : 'live',
@@ -82,7 +82,7 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
     };
   }
 
-  if (!session.callId && !session.error) {
+  if (!session.callId && (session.error ?? '') === '') {
     return { kind: 'none' };
   }
 
@@ -112,21 +112,21 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
     call.kind === 'elsewhere' ? (call.record.moments ?? []).map((m) => m.media) : [],
   );
 
-  const ours = sent
-    .filter((one) => one.call === id && !(one.id && kept.has(one.id)))
-    .map((one) => one.entry);
+  const ours = sent.flatMap((one) =>
+    one.call === id && !(one.id && kept.has(one.id)) ? [one.entry] : [],
+  );
 
   if (!ours.length) {
     return call;
   }
 
-  return { ...call, words: [...call.words, ...ours].sort((a, b) => a.startMs - b.startMs) };
+  return { ...call, words: [...call.words, ...ours].toSorted((a, b) => a.startMs - b.startMs) };
 };
 
 // The call going on now, here or elsewhere; hex names this phone's once it answers.
-export const callIdOf = (call: Call) => {
+export const callIdOf = (call: Call): CallId | undefined => {
   if (call.kind === 'none') {
-    return;
+    return undefined;
   }
 
   return call.kind === 'here' ? call.id : call.record.id;
@@ -154,7 +154,11 @@ export const personaOf = (call: Call, speaking: boolean): PersonaState => {
     return 'listening';
   }
 
-  return speaking ? 'speaking' : call.mic.muted ? 'idle' : 'listening';
+  if (speaking) {
+    return 'speaking';
+  }
+
+  return call.mic.muted ? 'idle' : 'listening';
 };
 
 // How awake the orb rests: asleep and breathing with no call, half while one connects or ends.
@@ -194,9 +198,19 @@ export type CallButton = 'start' | 'retry' | 'cancel' | 'end' | 'ending';
 export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
 
 // A photo or clip goes to a call once it's live.
-export const buttonsOf = (call: Call): { call: CallButton; mute: MuteButton; add: boolean } => {
+interface Buttons {
+  call: CallButton;
+  mute: MuteButton;
+  add: boolean;
+}
+
+export const buttonsOf = (call: Call): Buttons => {
   if (call.kind === 'none') {
-    return { call: call.last?.error ? 'retry' : 'start', mute: undefined, add: false };
+    return {
+      call: (call.last?.error ?? '') === '' ? 'start' : 'retry',
+      mute: undefined,
+      add: false,
+    };
   }
 
   if (call.phase === 'ending') {
@@ -245,7 +259,7 @@ export const footerOf = (call: Call, viewing: boolean): Footer | undefined => {
       : undefined;
   }
 
-  const last = call.last;
+  const { last } = call;
 
   if (viewing || !last?.ending) {
     return undefined;

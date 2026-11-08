@@ -58,9 +58,9 @@ export interface Box {
   regular: boolean;
 }
 
-export interface Pane<Place> {
+export interface Pane<Where> {
   width: number;
-  place: Place;
+  place: Where;
 }
 
 // Calls that starts `below` a band of status and bar buttons leaves that band whole.
