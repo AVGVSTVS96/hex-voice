@@ -666,10 +666,7 @@ test('a proof reads with each link by its name', () => {
     'iikb b9330a0 and grokx',
   );
   assert.equal(linkName('https://x.com/avgvstvs96/status/2118'), 'x.com');
-  assert.equal(
-    proofWords('(see http://100.64.0.7:4800/iikb-context)'),
-    '(see 100.64.0.7)',
-  );
+  assert.equal(proofWords('(see http://100.64.0.7:4800/iikb-context)'), '(see 100.64.0.7)');
   assert.equal(proofWords('iikb 7e9ac84, build 501 on Duo'), 'iikb 7e9ac84, build 501 on Duo');
   assert.equal(
     proofWords('site https://autofork.com; PR https://github.com/AVGVSTVS96/hex/pull/180, live.'),

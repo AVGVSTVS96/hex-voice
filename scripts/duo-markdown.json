@@ -101,10 +101,10 @@
         "context": "Its build is signed and waits on a cable.",
         "options": [
           {
-            "label": "Found them"
+            "label": "Plugged in"
           },
           {
-            "label": "Not there"
+            "label": "Not now"
           },
           {
             "label": "Later"
