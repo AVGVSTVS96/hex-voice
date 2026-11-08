@@ -413,7 +413,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   const { toolbar } = layout;
 
-  const besideness = (drawn: number, paned: number) => {
+  const besidenessOfStyleReads = (drawn: number, paned: number) => {
     'worklet';
 
     return {
@@ -422,14 +422,20 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   };
 
-  const column = (own: { x: number; width: number }, drawn: number, paned: number, a: number) => {
+  // Both branches write left, width and marginBottom: Reanimated keeps a value it wrote after the style stops writing it, https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedStyle#remarks
+  const columnOfStyleReads = (
+    own: { x: number; width: number },
+    drawn: number,
+    paned: number,
+    a: number,
+  ) => {
     'worklet';
 
     if (!follows) {
       return { left: own.x, width: own.width, marginBottom: 0 };
     }
 
-    const { d, t } = besideness(drawn, paned);
+    const { d, t } = besidenessOfStyleReads(drawn, paned);
 
     return {
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
@@ -441,24 +447,24 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
 
   const footerStyle = useAnimatedStyle(() =>
-    column(layout.footer, drawer.get(), pane.get(), aside.get()),
+    columnOfStyleReads(layout.footer, drawer.get(), pane.get(), aside.get()),
   );
 
   const agentStyle = useAnimatedStyle(() =>
-    column(layout.agent, drawer.get(), pane.get(), aside.get()),
+    columnOfStyleReads(layout.agent, drawer.get(), pane.get(), aside.get()),
   );
 
   const slides = list.place === 'slide';
 
   const linesStyle = useAnimatedStyle(() => {
-    const { t } = besideness(drawer.get(), pane.get());
+    const { t } = besidenessOfStyleReads(drawer.get(), pane.get());
     const slid = slides ? drawer.get() : 0;
 
     return { opacity: (1 - wide.get() * t) * (1 - slid) * uncovered(covers.get()) };
   });
 
   const wordsStyle = useAnimatedStyle(() => {
-    const { d, t } = besideness(drawer.get(), pane.get());
+    const { d, t } = besidenessOfStyleReads(drawer.get(), pane.get());
     const a = aside.get();
 
     return {
@@ -479,7 +485,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       return {};
     }
 
-    const { d, t } = besideness(drawer.get(), pane.get());
+    const { d, t } = besidenessOfStyleReads(drawer.get(), pane.get());
     const w = rail ? wide.get() : 0;
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
     const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
@@ -506,7 +512,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     let at = y + (orb.read.y - y) * t;
 
     if (orb.dock) {
-      const beside = besideness(drawer.get(), pane.get());
+      const beside = besidenessOfStyleReads(drawer.get(), pane.get());
       const w = rail ? wide.get() : 0;
 
       const tasks = {
@@ -593,7 +599,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
 
-    const { d, t } = besideness(drawer.get(), pane.get());
+    const { d, t } = besidenessOfStyleReads(drawer.get(), pane.get());
 
     return {
       bottom:
@@ -946,7 +952,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           controls={buttons}
         />
       ) : (
-        <Bar layout={layout} width={width} drawer={drawer} toolbar={screenToolbar} />
+        <BarStyledWhenMounted
+          layout={layout}
+          width={width}
+          drawer={drawer}
+          toolbar={screenToolbar}
+        />
       )}
     </ToolbarBackProvider>
   );
@@ -1244,7 +1255,7 @@ const CallsEdges = ({
   </>
 );
 
-const Bar = ({
+const BarStyledWhenMounted = ({
   layout,
   width,
   drawer,

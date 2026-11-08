@@ -293,6 +293,7 @@ const Swiped = ({
     {onAway || trail.length ? (
       <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
         {onAway ? <NotNeededButton onPress={onAway} /> : null}
+        {/* SwiftUI lays actions out in the order listed from the swipe's edge in: https://developer.apple.com/documentation/swiftui/view/swipeactions(edge:allowsfullswipe:content:) */}
         {trail.toReversed().map((tile, i) => {
           const { color, glyph } = swipeLook(tile);
 
@@ -561,9 +562,11 @@ const Count = ({ count, needs }: { count: number; needs: boolean }) => (
   </Text>
 );
 
+const newTextForNewPieces = (parts: Part[]) => parts.map((part) => part.text).join('\u0000');
+
 const Found = ({ parts }: { parts: Part[] }) => (
   <NativeText
-    key={parts.map((part) => part.text).join('\u0000')}
+    key={newTextForNewPieces(parts)}
     modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
   >
     {parts.map((part, at) =>

@@ -597,14 +597,14 @@ const Composer = ({
 const useTyping = () => {
   const typing = useContext(Typing);
   const on = useRef(false);
-  useEffect(
-    () => () => {
-      if (on.current) {
-        typing?.(false);
-      }
-    },
-    [],
-  );
+
+  const stopOnRemovalSinceIOSSendsNoBlur = () => () => {
+    if (on.current) {
+      typing?.(false);
+    }
+  };
+
+  useEffect(stopOnRemovalSinceIOSSendsNoBlur, []);
 
   return (now: boolean) => {
     on.current = now;
