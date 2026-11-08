@@ -104,14 +104,14 @@ export const ListPage = ({
   const { needs, working } = counts;
   const counted = open && loaded && current && yours.current;
   useEffect(() => {
-    if (counted) {
-      onCounts({ needs, working });
+    if (!counted) {
+      return;
     }
 
+    onCounts({ needs, working });
+
     return () => {
-      if (counted) {
-        onCounts(undefined);
-      }
+      onCounts(undefined);
     };
   }, [counted, needs, working, onCounts]);
 
