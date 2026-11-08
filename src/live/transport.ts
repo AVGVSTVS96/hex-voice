@@ -90,7 +90,8 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       }
       return pc.localDescription.sdp;
     },
-    answer: (sdp) => pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp })),
+    answer: async (sdp) =>
+      pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp })),
     send(event) {
       if (closed || channel.readyState !== 'open') {
         return false;

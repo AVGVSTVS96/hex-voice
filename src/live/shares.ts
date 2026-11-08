@@ -40,7 +40,7 @@ export const batchOf = (call: CallId, at: number, picked: Picked[], key: string)
 // them once. What already went up isn't sent again.
 export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promise<Outcome> => {
   const uploads = await Promise.allSettled(
-    batch.map(({ id, picked }) =>
+    batch.map(async ({ id, picked }) =>
       id ? Promise.resolve({ id, kind: picked.kind }) : api.upload(picked),
     ),
   );

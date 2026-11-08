@@ -97,7 +97,7 @@ class FakeTransport implements LiveTransport {
   });
 
   constructor(readonly callbacks: TransportCallbacks) {}
-  offer() {
+  async offer() {
     return this.offerResult();
   }
   async answer(sdp: string) {
@@ -161,9 +161,9 @@ const harness = () => {
       return transport;
     },
   };
-  const factory: TransportFactory = (callbacks) => control.factory(callbacks);
+  const factory: TransportFactory = async (callbacks) => control.factory(callbacks);
   const api: SessionAPI = {
-    create: (sdp, voice) => {
+    create: async (sdp, voice) => {
       created.push(sdp);
       voices.push(voice);
       return control.create(sdp);
@@ -332,7 +332,7 @@ test('allows a fresh start after cancellation while microphone permission is pen
 test('a late session creation is closed without applying its answer after cancellation', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = () => response.promise;
+  h.control.create = async () => response.promise;
   try {
     const starting = h.session.start();
     await settle();
@@ -354,7 +354,7 @@ test('a late session creation is closed without applying its answer after cancel
 test('late creation cleanup failure is visible after cancellation has finished', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = () => response.promise;
+  h.control.create = async () => response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
@@ -377,7 +377,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
 test('stop finalization cannot erase a late creation cleanup failure', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = () => response.promise;
+  h.control.create = async () => response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
@@ -405,8 +405,8 @@ test('late creation cleanup failure preserves a newer connected conversation', a
   const response = deferred<{ sdp: string; sessionId: CallId }>();
   const cleanup = deferred<void>();
   const originalCreate = h.control.create;
-  h.control.create = () => response.promise;
-  h.control.close = () => cleanup.promise;
+  h.control.create = async () => response.promise;
+  h.control.close = async () => cleanup.promise;
   const originalWarn = console.warn;
   const warnings: unknown[][] = [];
   console.warn = (...messages: unknown[]) => {
@@ -612,7 +612,7 @@ test('a muted microphone stays muted when returning from the background', async 
 test('a session connecting during background transition is kept without starting visual stats', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = () => response.promise;
+  h.control.create = async () => response.promise;
   try {
     const starting = h.session.start();
     await settle();
@@ -636,7 +636,7 @@ test('a stats result arriving in the background does not restore visual levels',
   const pending = deferred<AudioStats>();
   try {
     await h.session.start();
-    h.transports[0].statsResult = () => pending.promise;
+    h.transports[0].statsResult = async () => pending.promise;
     await h.clock.fire(120);
     h.session.setAppActive(false);
     pending.resolve({ inputLevel: 0.2, outputLevel: 0.3, sentPackets: 10, receivedPackets: 20 });
@@ -652,7 +652,7 @@ test('an earlier stalled stats operation cannot block a new session', async () =
   const h = harness();
   try {
     await h.session.start();
-    h.transports[0].statsResult = () => new Promise(() => {});
+    h.transports[0].statsResult = async () => new Promise(() => {});
     await h.clock.fire(120);
     await h.session.stop();
     await h.session.start();

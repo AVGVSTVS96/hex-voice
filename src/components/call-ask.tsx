@@ -103,7 +103,7 @@ export const CallAsk = ({
               key={link.url}
               accessibilityRole="link"
               hitSlop={8}
-              onPress={() =>
+              onPress={async () =>
                 openURL(link.url).catch((error: Error) => {
                   setFailed(failure('Not opened', error));
                 })

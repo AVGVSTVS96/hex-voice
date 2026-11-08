@@ -172,7 +172,7 @@ const AskCard = ({
   const note = (text: string) => {
     setNoting(true);
     void notes
-      .attempt('note', 'Note not sent', () => noteAsk(ask, text))
+      .attempt('note', 'Note not sent', async () => noteAsk(ask, text))
       .then((sent) => {
         setNoting(false);
         setNoted(sent);
@@ -363,7 +363,7 @@ export const Links = ({ links }: { links: AskLink[] }) => {
             icon="arrow.up.right"
             accessibility={`Open ${link.label}`}
             onPress={() => {
-              void tries.attempt(link.url, 'Not opened', () => openURL(link.url));
+              void tries.attempt(link.url, 'Not opened', async () => openURL(link.url));
             }}
             small
           />

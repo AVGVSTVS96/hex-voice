@@ -96,7 +96,7 @@ test('an answer this app can’t read names where, instead of reaching the scree
 });
 
 test('hex turning a request down is a refusal in its own words; its own failure is not', async () => {
-  const answer = (response: Response) =>
+  const answer = async (response: Response) =>
     hexAt(async () => response).asks.answer(AskId.parse('a'), 'Yes');
   await assert.rejects(
     answer(new Response('that question is already answered or settled', { status: 409 })),
@@ -172,7 +172,7 @@ test('lists are asked for, then waited on from the version they last saw', async
 test('closing a list stops its waiting request as it is', async () => {
   const controller = new AbortController();
   const hex = hexAt(
-    (_input, init) =>
+    async (_input, init) =>
       new Promise((_resolve, reject) =>
         init?.signal?.addEventListener('abort', () => {
           reject(new DOMException('', 'AbortError'));

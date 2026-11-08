@@ -384,7 +384,7 @@ export class LiveSession {
     }
   };
 
-  stop = (reason?: string): Promise<void> => {
+  stop = async (reason?: string): Promise<void> => {
     if (this.closing) {
       return this.closing;
     }
@@ -393,7 +393,7 @@ export class LiveSession {
       if (reason) {
         this.update({ status: 'error', error: reason });
       }
-      return Promise.resolve();
+      return;
     }
     const was = this.snapshot.status;
     const ending: CallEnding | null = reason

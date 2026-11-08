@@ -4,7 +4,7 @@ import test from 'node:test';
 import { demoAPI, demoTransport } from '../src/live/demo-call';
 import { LiveSession } from '../src/live/session';
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
+const tick = async () => new Promise((resolve) => setTimeout(resolve, 5));
 
 test('the demo call connects, talks, mutes and ends like a real one', async () => {
   const session = new LiveSession(demoTransport, demoAPI);

@@ -28,7 +28,7 @@ export type { PersonaState, PersonaProps } from './animation';
 // Cache the six decoded files. Each rendered view keeps its own animation state.
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
-const loadFile = (variant: PersonaVariant) => {
+const loadFile = async (variant: PersonaVariant) => {
   let promise = fileCache.get(variant);
   if (!promise) {
     promise = RiveFileFactory.fromSource(PERSONA_ASSETS[variant], undefined, false).catch(

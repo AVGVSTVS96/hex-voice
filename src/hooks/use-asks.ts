@@ -24,7 +24,7 @@ export const noteAsk = async (ask: Ask, text: string) => {
 };
 
 // On a call, the voice starts going through your asks with you.
-export const raiseAsks = () => hex.asks.talk();
+export const raiseAsks = async () => hex.asks.talk();
 
 // Where an option's screenshot is read from.
 export const shotOf = (ask: Ask, shot: number) => hex.asks.shot(ask.id, shot);
@@ -48,7 +48,7 @@ export const useAsks = (open: boolean) => {
     const now = queue.current.get(id) ?? { last: Promise.resolve(), turn: 0 };
     const turn = now.turn + 1;
     const latest = () => queue.current.get(id)?.turn === turn;
-    queue.current.set(id, { last: now.last.then(() => work(latest)), turn });
+    queue.current.set(id, { last: now.last.then(async () => work(latest)), turn });
   };
   // What went out for each ask and hasn't been taken back, sent the same way by Send again.
   const out = useRef(new Map<AskId, () => Promise<Sent>>());
@@ -105,7 +105,7 @@ export const useAsks = (open: boolean) => {
       if (!out.current.has(id)) {
         return;
       }
-      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) {
+      if (await tries.attempt(id, 'Not undone', async () => hex.asks.undo(id))) {
         out.current.delete(id);
       } else if (latest()) {
         dispatch({ type: 'answer', id, label });
@@ -120,10 +120,10 @@ export const useAsks = (open: boolean) => {
     offline: watching === 'offline',
     current: watching === 'current',
     answer: (ask: Ask, option: AskOption) => {
-      settle(ask, option.label, 'Not answered', () => answerAsk(ask, option));
+      settle(ask, option.label, 'Not answered', async () => answerAsk(ask, option));
     },
     dismiss: (ask: Ask) => {
-      settle(ask, NOT_NEEDED, 'Not put away', () => hex.asks.dismiss(ask.id));
+      settle(ask, NOT_NEEDED, 'Not put away', async () => hex.asks.dismiss(ask.id));
     },
     // What went out stands, so sending it again only reaches the places it missed, and it stays
     // folded whether or not they answer this time.
@@ -133,24 +133,24 @@ export const useAsks = (open: boolean) => {
         return;
       }
       reached(ask.id);
-      inTurn(ask.id, () =>
+      inTurn(ask.id, async () =>
         tries.attempt(ask.id, 'Not sent again', async () => {
           reached(ask.id, await send());
         }),
       );
     },
     undo,
-    act: (id: string) => tries.attempt(id, 'Not sent', () => hex.asks.act(id)),
-    read: (id: string) => tries.attempt(id, 'Not marked read', () => hex.asks.read(id)),
+    act: async (id: string) => tries.attempt(id, 'Not sent', async () => hex.asks.act(id)),
+    read: async (id: string) => tries.attempt(id, 'Not marked read', async () => hex.asks.read(id)),
   };
 };
 
 // The last check in full, fetched when its page opens and again whenever a new one lands.
 export const useCheck = (at: string | undefined) => {
-  const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
+  const { answer, ...answered } = useAnswer(at ?? null, undefined, async () => hex.asks.check());
   return { check: answer, ...answered };
 };
 
 // An ask's thread's own words, asked for while its card is open. Where hex has none, there are none.
 export const useWords = (id: AskId | null) =>
-  useAnswer(id, undefined, (open) => hex.asks.words(open)).answer;
+  useAnswer(id, undefined, async (open) => hex.asks.words(open)).answer;

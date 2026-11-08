@@ -88,7 +88,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
     }
   };
 
-  const call = (path: string, { method = 'GET', body, after, ...options }: Options) =>
+  const call = async (path: string, { method = 'GET', body, after, ...options }: Options) =>
     reach(after === undefined ? path : `${path}?after=${after}`, options, async (url, signal) => {
       const response = await fetch(url, {
         method,
@@ -140,7 +140,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       return read(
         path,
         schema,
-        await reach(path, { timeout: UPLOAD }, (url, signal) =>
+        await reach(path, { timeout: UPLOAD }, async (url, signal) =>
           sendFile(url, file, { headers, signal }),
         ),
       );

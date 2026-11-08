@@ -101,7 +101,7 @@ const Line = ({ line }: { line: PinLine }) => {
   const url = line.url;
   const open = url
     ? () => {
-        void tries.attempt(url, 'Not opened', () => openURL(url));
+        void tries.attempt(url, 'Not opened', async () => openURL(url));
       }
     : undefined;
   if (line.kind === 'text' && !url) {

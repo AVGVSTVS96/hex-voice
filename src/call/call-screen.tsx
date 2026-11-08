@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -232,7 +232,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     haptic(Haptics.selectionAsync);
   };
   const land = () => {
-    haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
+    haptic(async () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
   };
 
   const size = orb.size;
@@ -621,7 +621,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     if ((onCall && call.phase === 'ending') || !voiceLoaded) {
       return;
     }
-    haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+    haptic(async () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     if (call.kind === 'here') {
       void end();
     } else if (call.kind === 'elsewhere') {
@@ -826,7 +826,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
                       size={layout.text}
                       emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
-                      onAnswer={(card, option) => answerAsk(card.ask, option)}
+                      onAnswer={async (card, option) => answerAsk(card.ask, option)}
                       onOpenTask={(task) => {
                         openTasks({ task });
                       }}
@@ -1027,7 +1027,7 @@ const Bar = ({
   layout: Layout;
   width: number;
   drawer: SharedValue<number>;
-  toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactNode;
+  toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactElement;
 }) => {
   const style = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
   return toolbar([{ top: layout.toolbar.y }, style]);

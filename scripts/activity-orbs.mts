@@ -26,7 +26,7 @@ const page = `<body style="margin:0;background:transparent">
 
 const render = async (browser: Browser, orb: ActivityOrb, color = orb.color) => {
   const tab = await browser.newPage({ viewport: { width: CANVAS, height: CANVAS } });
-  await tab.route('http://orbs.local/**', (route) => {
+  await tab.route('http://orbs.local/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/') {
       return route.fulfill({ contentType: 'text/html', body: page });

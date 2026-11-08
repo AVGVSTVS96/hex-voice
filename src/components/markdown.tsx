@@ -52,7 +52,7 @@ export const Markdown = ({
         surface={theme.surface}
         accent={theme.accent}
         onLink={(url) => {
-          void tries.attempt(url, 'Not opened', () => openURL(url));
+          void tries.attempt(url, 'Not opened', async () => openURL(url));
         }}
       />
       {failed ? <Failure text={failed} /> : null}

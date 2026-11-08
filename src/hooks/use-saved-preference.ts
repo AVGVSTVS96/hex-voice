@@ -40,7 +40,7 @@ export const useSavedPreference = <T extends string>(
       updateValue(next);
       // Keep rapid carousel selections in order when writing to storage.
       writes.current = writes.current
-        .then(() => AsyncStorage.setItem(key, next))
+        .then(async () => AsyncStorage.setItem(key, next))
         .catch(() => {
           console.warn(`[hex] Could not save preference: ${key}`);
         });
