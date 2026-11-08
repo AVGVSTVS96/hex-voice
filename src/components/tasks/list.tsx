@@ -122,17 +122,21 @@ export function ListPage({
   useEffect(() => {
     if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
   }, [open, pages.task, first]);
-  const selected = beside
-    ? ((
-        shown.find((entry) => entry.id === doneIn(pages.task)) ??
-        shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
-        shown.find((entry) => taskOf(entry) === pages.task)
-      )?.id ?? null)
-    : null;
+  // hex's picks or the last check open beside the list in place of a project's page.
+  const apart = beside && (pages.path[0] === 'picks' || pages.path[0] === 'check');
+  const selected =
+    beside && !apart
+      ? ((
+          shown.find((entry) => entry.id === doneIn(pages.task)) ??
+          shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
+          shown.find((entry) => taskOf(entry) === pages.task)
+        )?.id ?? null)
+      : null;
   // The project open beside the list, by what its page shows.
-  const openTopic = beside
-    ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
-    : undefined;
+  const openTopic =
+    beside && !apart
+      ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
+      : undefined;
 
   const searchField = useField();
   const openPage = (id: PageId, row?: string) => {
@@ -250,11 +254,12 @@ export function ListPage({
           {behind ? <Behind width={width} /> : null}
           {!searching && stage === 'needs' && picks.length > 1 ? (
             <PicksRow
-              picks={picks}
+              n={picks.length}
               width={width}
-              onTake={() => {
-                feel.tap();
-                for (const { ask, option } of picks) yours.answer(ask, option);
+              selected={apart && pages.path[0] === 'picks'}
+              onOpen={() => {
+                feel.tick();
+                pages.go({ to: 'picks' });
               }}
             />
           ) : null}
@@ -288,6 +293,7 @@ export function ListPage({
             <CheckRow
               check={yours.list.check}
               width={width}
+              selected={apart && pages.path[0] === 'check'}
               onPress={() => {
                 feel.tick();
                 pages.go({ to: 'check' });

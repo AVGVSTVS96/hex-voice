@@ -17,6 +17,7 @@ import { TASKS } from '@/call/stage';
 import { PageChrome, type Back, type Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
 import { ListPage } from '@/components/tasks/list';
+import { PickPage, PicksPage, usePickChoices } from '@/components/tasks/picks';
 import {
   levelsOf,
   shapeOf,
@@ -46,6 +47,7 @@ import {
   inboxEntries,
   openingStage,
   pageOf,
+  picksOf,
   placeOf,
   doneIn,
   stageCounts,
@@ -98,6 +100,7 @@ export function Tasks({
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
+  const choices = usePickChoices();
   const traced = useTask(pages.stepsOf, version);
   const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
@@ -202,6 +205,8 @@ export function Tasks({
     thread: (opened?.place || opened?.name) ?? 'Thread',
     steps: 'Steps',
     check: 'Last check',
+    picks: 'hex’s picks',
+    pick: 'Question',
   };
   const backTo = (back: Level | 'call'): Back => ({
     to: names[back],
@@ -231,7 +236,7 @@ export function Tasks({
   // nothing, so it lands at once: an animation there would fade each changed word through the last.
   // Nor does one page or two: the project beside the list comes and goes with the width, and lands
   // with the turn that changed it.
-  const moved = rowsKey([...pages.path, pages.stepsOf ?? '']);
+  const moved = rowsKey([...pages.path, pages.stepsOf ?? '', pages.pick ?? '']);
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (
@@ -247,6 +252,7 @@ export function Tasks({
     );
   };
 
+  const picks = picksOf(entries, yours.answered);
   const list = (
     <ListPage
       open={open}
@@ -399,6 +405,28 @@ export function Tasks({
       ),
     ),
     page('check', <LastCheck {...checked} />),
+    page(
+      'picks',
+      <PicksPage
+        picks={picks}
+        choices={choices}
+        foot={spot('picks').foot}
+        onOpen={(id) => {
+          tick();
+          pages.go({ to: 'pick', id });
+        }}
+        onTake={(taken) => {
+          tap();
+          for (const { ask, option } of taken) yours.answer(ask, option);
+          choices.clear();
+          pages.go({ to: 'back' });
+        }}
+      />,
+    ),
+    page(
+      'pick',
+      <PickPage picked={picks.find(({ ask }) => ask.id === pages.pick)} choices={choices} />,
+    ),
   ];
 
   // Any drag of Tasks' scrolling content lets the keyboard go, as the call's words do: interactive

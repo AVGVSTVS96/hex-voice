@@ -16,6 +16,8 @@ const AskOption = z.object({
   // height.
   shot: z.optional(z.number()),
   shape: z.optional(z.number()),
+  // What answering with it does, costs and gives up.
+  detail: z.optional(z.string()),
 });
 export type AskOption = z.infer<typeof AskOption>;
 const AskLink = z.object({ label: z.string(), url: z.string() });
@@ -40,6 +42,8 @@ export const Ask = z.object({
   at: z.string(),
   question: z.string(),
   context: z.optional(z.string()),
+  // Why hex picks the option it marks.
+  why: z.optional(z.string()),
   options: z.array(AskOption),
   links: z.optional(z.array(AskLink)),
   places: z.array(AskPlace),

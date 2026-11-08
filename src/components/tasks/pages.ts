@@ -2,11 +2,12 @@ import type { TextInputRef } from '@expo/ui';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { TASKS } from '@/call/stage';
+import type { AskId } from '@/live/asks';
 import type { PageId, Tab } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
 import type { Page } from '@/screens/layout';
 
-export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
+export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check' | 'picks' | 'pick';
 type Pushed = Exclude<Level, 'list'>;
 
 // Every opening passes a new one, which starts Tasks afresh there.
@@ -20,6 +21,8 @@ export type Stack = {
   task: PageId | null;
   row: string | null;
   stepsOf: TaskId | null;
+  // The question of hex's picks open on its own page.
+  pick: AskId | null;
   focusComposer: boolean;
   // The tab Tasks was sent to, or once the list has loaded, the one it opened on or was moved to.
   stage: Tab | null;
@@ -33,6 +36,8 @@ export type Move =
   | { to: 'composerFocused' }
   | { to: 'steps'; id: TaskId }
   | { to: 'check' }
+  | { to: 'picks' }
+  | { to: 'pick'; id: AskId }
   | { to: 'back' }
   | { to: 'stage'; stage: Tab }
   | { to: 'search'; query: string | null };
@@ -44,6 +49,7 @@ export const START: Stack = {
   task: null,
   row: null,
   stepsOf: null,
+  pick: null,
   focusComposer: false,
   stage: null,
   query: null,
@@ -87,7 +93,10 @@ export function move(stack: Stack, step: Move): Stack {
         path: [...stack.path.filter((at) => at !== 'steps'), 'steps'],
       };
     case 'check':
-      return { ...stack, path: ['check'] };
+    case 'picks':
+      return { ...stack, path: [step.to] };
+    case 'pick':
+      return { ...stack, pick: step.id, path: ['picks', 'pick'] };
     case 'back':
       return { ...stack, path: stack.path.slice(0, -1), focusComposer: false };
     case 'stage':

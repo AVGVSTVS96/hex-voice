@@ -283,7 +283,7 @@ function AskCard({
 
 // What each option looks like, when the choice is between looks: its screenshot, over its answer
 // when every option has one, and all of them full screen on a tap.
-function Shots({ ask }: { ask: Ask }) {
+export function Shots({ ask }: { ask: Ask }) {
   const shown = ask.options.filter((option) => option.shot !== undefined);
   if (!shown.length) return null;
   const shots = shown.map((option) => shotOf(ask, option.shot!));
@@ -305,7 +305,7 @@ function Shots({ ask }: { ask: Ask }) {
 }
 
 // The thread's own words, under where and when they were said: a few lines, all of them on a tap.
-function Said({ words }: { words: Words }) {
+export function Said({ words }: { words: Words }) {
   const [whole, setWhole] = useState(false);
   const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
   return (
@@ -339,7 +339,7 @@ function Said({ words }: { words: Words }) {
   );
 }
 
-function Links({ links }: { links: AskLink[] }) {
+export function Links({ links }: { links: AskLink[] }) {
   const tries = useFailures();
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (

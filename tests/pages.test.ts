@@ -25,7 +25,7 @@ const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
   screenLayout(windowRoom(pose, window, insets));
 
 const A = TaskId.parse('a');
-const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check'];
+const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check', 'picks'];
 
 const openUpright = layoutOf(
   { width: 951, height: 669 },
@@ -73,6 +73,7 @@ const stacks: [string, Stack][] = [
   ['a thread', go({ to: 'topic', id: A }, { to: 'thread' })],
   ['its steps', go({ to: 'topic', id: A }, { to: 'thread' }, { to: 'steps', id: A })],
   ['the last check', go({ to: 'check' })],
+  ['hex’s picks', go({ to: 'picks' })],
 ];
 
 test('the Duo shows two pages where Tasks is wide enough, held wide open; on its side and folded one at a time', () => {

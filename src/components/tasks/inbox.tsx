@@ -1,5 +1,4 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { Button, ConfirmationDialog, Text as NativeText } from '@expo/ui/swift-ui';
 import {
   accessibilityElement,
   accessibilityLabel,
@@ -11,11 +10,9 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
-
 import { Mark } from '@/components/tasks/mark';
 import { Pill, questions, listRow } from '@/components/tasks/parts';
-import { checkLine, type Ask, type AskOption, type CheckSummary } from '@/live/asks';
+import { checkLine, type CheckSummary } from '@/live/asks';
 import type { Topic } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
@@ -68,6 +65,8 @@ function Strip({
   detail,
   action,
   label,
+  testID,
+  selected = false,
   onPress,
 }: {
   width: number;
@@ -76,6 +75,8 @@ function Strip({
   detail?: string;
   action?: string;
   label: string;
+  testID?: string;
+  selected?: boolean;
   onPress?: () => void;
 }) {
   return (
@@ -83,6 +84,7 @@ function Strip({
       alignment="center"
       spacing={metrics.list.gap}
       onPress={onPress}
+      testID={testID}
       modifiers={[
         padding({
           leading: space[3],
@@ -92,7 +94,7 @@ function Strip({
         }),
         frame({ minHeight: metrics.pill.regular + space[4] }),
         frame({ maxWidth: Infinity }),
-        background(theme.card),
+        background(selected ? theme.fill : theme.card),
         clipShape('roundedRectangle', radius.group),
         contentShape(shapes.rectangle()),
         padding({
@@ -133,10 +135,12 @@ function Strip({
 export function CheckRow({
   check,
   width,
+  selected,
   onPress,
 }: {
   check: CheckSummary;
   width: number;
+  selected: boolean;
   onPress: () => void;
 }) {
   const { title, did } = checkLine(check);
@@ -144,6 +148,7 @@ export function CheckRow({
     <Strip
       width={width}
       mark="read"
+      selected={selected}
       title={title}
       detail={did}
       label={`${title}${did ? `, ${did}` : ''}. Opens the last check`}
@@ -152,51 +157,27 @@ export function CheckRow({
   );
 }
 
-// It asks once more first, since it answers for you many times over, naming each question and the
-// answer it would give.
+// Opens hex's picks on a page of their own, to look over before taking them.
 export function PicksRow({
-  picks,
+  n,
   width,
-  onTake,
+  selected,
+  onOpen,
 }: {
-  picks: { ask: Ask; option: AskOption }[];
+  n: number;
   width: number;
-  onTake: () => void;
+  selected: boolean;
+  onOpen: () => void;
 }) {
-  const [asking, setAsking] = useState(false);
-  const n = picks.length;
   return (
-    <ConfirmationDialog
-      title={`Take hex’s ${n} picks?`}
-      isPresented={asking}
-      onIsPresentedChange={setAsking}
-      titleVisibility="visible"
-    >
-      <ConfirmationDialog.Trigger>
-        <Strip
-          width={width}
-          mark="pick"
-          title={`hex picked for ${questions(n)}`}
-          action={`Take ${n}`}
-          label={`hex picked for ${questions(n)}. Take them`}
-          onPress={() => setAsking(true)}
-        />
-      </ConfirmationDialog.Trigger>
-      <ConfirmationDialog.Actions>
-        <Button label={`Take ${n} picks`} onPress={onTake} />
-        <Button label="Cancel" role="cancel" />
-      </ConfirmationDialog.Actions>
-      <ConfirmationDialog.Message>
-        <NativeText>
-          {picks.map(({ ask, option }) => `${clip(ask.question)} → ${option.label}`).join('\n\n')}
-        </NativeText>
-      </ConfirmationDialog.Message>
-    </ConfirmationDialog>
+    <Strip
+      selected={selected}
+      width={width}
+      mark="pick"
+      title={`hex picked for ${questions(n)}`}
+      label={`hex picked for ${questions(n)}. Opens them`}
+      testID="picks-open"
+      onPress={onOpen}
+    />
   );
-}
-
-const CLIP = 70;
-
-function clip(text: string) {
-  return text.length > CLIP ? `${text.slice(0, CLIP - 1).trimEnd()}…` : text;
 }
