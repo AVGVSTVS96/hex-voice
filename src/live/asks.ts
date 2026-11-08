@@ -246,14 +246,15 @@ export const openAsks = ({ list, answered }: Yours) =>
 export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => boolean) => {
   const shown = [...after];
   const at = (id: string) => shown.findIndex((ask) => ask.id === id);
-  before.forEach((ask, i) => {
+
+  for (const [i, ask] of before.entries()) {
     if (!held(ask.id) || at(ask.id) !== -1) {
-      return;
+      continue;
     }
 
     const prior = before.slice(0, i).findLast((one) => at(one.id) !== -1);
     shown.splice(prior ? at(prior.id) + 1 : 0, 0, ask);
-  });
+  }
 
   return shown;
 };

@@ -40,13 +40,13 @@ export const pinSections = (text: string): PinSection[] => {
   let current: PinSection = { title: '', mark: 'idle', folded: false, lines: [] };
   const lines = text.split('\n');
 
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 0; i < lines.length; i += 1) {
     const raw = lines[i];
 
     if (/^\s*```/u.test(raw)) {
       const code: string[] = [];
 
-      for (i++; i < lines.length && !/^\s*```/u.test(lines[i]); i++) {
+      for (i += 1; i < lines.length && !/^\s*```/u.test(lines[i]); i += 1) {
         code.push(lines[i]);
       }
 
@@ -93,7 +93,7 @@ export const pinSections = (text: string): PinSection[] => {
 };
 
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
-const headingOf = (line: string) => {
+const headingOf = (line: string): string | undefined => {
   const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups;
 
   if (bold) {
@@ -105,6 +105,8 @@ const headingOf = (line: string) => {
   if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line)) {
     return bare.slice(0, -1).replace(EMOJI, '').trim();
   }
+
+  return undefined;
 };
 
 const sectionMark = (title: string): PinMark => {

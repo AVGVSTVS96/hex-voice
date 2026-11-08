@@ -1,10 +1,30 @@
 import { mediaDevices, RTCPeerConnection, RTCSessionDescription } from 'react-native-webrtc';
 import InCallManager from 'react-native-incall-manager';
+import * as z from 'zod/mini';
+
 import { parseEvent } from './types';
 import type { AudioStats, TransportFactory } from './types';
 
 // On iOS, WebRTC owns the audio session, set up by plugins/with-call-audio.js.
 const callManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
+
+const loose = <T extends z.core.SomeType>(schema: T) => z.catch(z.optional(schema), undefined);
+
+const Report = z.object({
+  id: z.catch(z.string(), ''),
+  type: z.catch(z.string(), ''),
+  kind: loose(z.string()),
+  mediaType: loose(z.string()),
+  audioLevel: loose(z.number()),
+  totalAudioEnergy: loose(z.number()),
+  totalSamplesDuration: loose(z.number()),
+  packetsReceived: loose(z.number()),
+  packetsSent: loose(z.number()),
+});
+
+const Reports = z.map(z.unknown(), Report);
+
+const Description = z.object({ sdp: z.string(), type: z.nullable(z.string()) });
 
 // Native WebRTC uses iOS voice processing for acoustic echo cancellation.
 // Both RTP directions stay open throughout the call, including assistant speech.
@@ -25,9 +45,10 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
     // Every setup failure after capture must release the microphone too.
-    stream.getTracks().forEach((track) => {
+    for (const track of stream.getTracks()) {
       track.stop();
-    });
+    }
+
     peer?.close();
     stream.release();
     callManager?.stop();
@@ -72,7 +93,10 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
   return {
     async offer() {
-      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+      const offer = Description.parse(
+        await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false }),
+      );
+
       await pc.setLocalDescription(offer);
 
       if (pc.iceGatheringState !== 'complete') {
@@ -126,9 +150,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       }
     },
     setMuted(muted) {
-      stream.getAudioTracks().forEach((track) => {
+      for (const track of stream.getAudioTracks()) {
         track.enabled = !muted;
-      });
+      }
     },
     async stats() {
       const result: AudioStats = {
@@ -142,38 +166,26 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
         return result;
       }
 
-      const reports = await pc.getStats();
-      reports.forEach((report: Record<string, unknown>) => {
+      const reports = Reports.parse(await pc.getStats());
+
+      for (const report of reports.values()) {
         if (report.kind !== 'audio' && report.mediaType !== 'audio') {
-          return;
+          continue;
         }
 
-        let level = typeof report.audioLevel === 'number' ? report.audioLevel : 0;
+        const { audioLevel, totalAudioEnergy: energy, totalSamplesDuration: duration } = report;
+        let level = audioLevel ?? 0;
 
-        if (
-          typeof report.totalAudioEnergy === 'number' &&
-          typeof report.totalSamplesDuration === 'number'
-        ) {
-          const previous = energies.get(String(report.id));
+        if (energy !== undefined && duration !== undefined) {
+          const previous = energies.get(report.id);
 
-          if (
-            previous &&
-            report.totalSamplesDuration > previous.duration &&
-            typeof report.audioLevel !== 'number'
-          ) {
+          if (previous && duration > previous.duration && audioLevel === undefined) {
             level = Math.sqrt(
-              Math.max(
-                0,
-                (report.totalAudioEnergy - previous.energy) /
-                  (report.totalSamplesDuration - previous.duration),
-              ),
+              Math.max(0, (energy - previous.energy) / (duration - previous.duration)),
             );
           }
 
-          energies.set(String(report.id), {
-            energy: report.totalAudioEnergy,
-            duration: report.totalSamplesDuration,
-          });
+          energies.set(report.id, { energy, duration });
         }
 
         if (report.type === 'media-source') {
@@ -182,13 +194,13 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
         if (report.type === 'inbound-rtp') {
           result.outputLevel = Math.max(result.outputLevel, level);
-          result.receivedPackets += Number(report.packetsReceived || 0);
+          result.receivedPackets += report.packetsReceived ?? 0;
         }
 
         if (report.type === 'outbound-rtp') {
-          result.sentPackets += Number(report.packetsSent || 0);
+          result.sentPackets += report.packetsSent ?? 0;
         }
-      });
+      }
 
       return result;
     },
@@ -199,9 +211,11 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
       closed = true;
       clearTimeout(disconnectTimer);
-      stream.getTracks().forEach((track) => {
+
+      for (const track of stream.getTracks()) {
         track.stop();
-      });
+      }
+
       channel.close();
       pc.close();
       stream.release();

@@ -41,13 +41,16 @@ export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: varian
   }));
 });
 
+const orbName = (variant: PersonaVariant, color: string, palette: OpalPalette) => {
+  if (variant === 'opal') {
+    return named(variant, palette === 'original' ? undefined : palette);
+  }
+
+  return PERSONA_MODELS[variant].dynamicColor ? named(variant, color.slice(1)) : named(variant);
+};
+
 export const activityOrb = (variant: PersonaVariant, color: string, palette: OpalPalette) => {
-  const name =
-    variant === 'opal'
-      ? named(variant, palette === 'original' ? undefined : palette)
-      : PERSONA_MODELS[variant].dynamicColor
-        ? named(variant, color.slice(1))
-        : named(variant);
+  const name = orbName(variant, color, palette);
 
   return ACTIVITY_ORBS.some((orb) => orb.name === name)
     ? name

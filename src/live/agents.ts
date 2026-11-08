@@ -72,9 +72,7 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
 
 // The task a new snapshot shows finishing: running in the last one, done or failed now.
 export const justFinished = (before: AgentTask[], after: AgentTask[]) => {
-  const wasRunning = new Set(
-    before.filter((task) => task.state === 'running').map((task) => task.id),
-  );
+  const wasRunning = new Set(before.flatMap((task) => (task.state === 'running' ? [task.id] : [])));
 
   return after.find((task) => task.state !== 'running' && wasRunning.has(task.id));
 };

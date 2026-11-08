@@ -43,7 +43,7 @@ const AgentState = z.catch(z.enum(['working', 'done', 'failed', 'stopped']), 'do
 
 export type AgentState = z.infer<typeof AgentState>;
 
-const agent = {
+const agentFields = {
   id: z.string(),
   label: z.string(),
   state: AgentState,
@@ -55,11 +55,11 @@ const agent = {
   link: z.optional(z.string()),
 };
 
-const TaskAgent = z.object(agent);
+const TaskAgent = z.object(agentFields);
 
 export type TaskAgent = z.infer<typeof TaskAgent>;
 
-const AgentTrail = z.object({ ...agent, steps: z.array(TaskStep) });
+const AgentTrail = z.object({ ...agentFields, steps: z.array(TaskStep) });
 
 export type AgentTrail = z.infer<typeof AgentTrail>;
 
@@ -236,7 +236,7 @@ const took = (ms: number) => {
 
 // A step's mark when its state says more than its kind: turning while it runs, red when it failed.
 // Only a running step turns, so a thread waiting on its agents shows them at work instead.
-export const stepMark = (step: TaskStep) => {
+export const stepMark = (step: TaskStep): 'failed' | 'working' | undefined => {
   if (step.state === 'failed') {
     return 'failed';
   }
@@ -244,6 +244,8 @@ export const stepMark = (step: TaskStep) => {
   if (step.state === 'running') {
     return 'working';
   }
+
+  return undefined;
 };
 
 // How long each step took, newest first: from when it began until its result came back, and while
@@ -278,8 +280,10 @@ const ended = (agent: TaskAgent) =>
   agent.end === undefined || agent.end === '' ? started(agent) : Date.parse(agent.end);
 
 const inOrder = <A extends TaskAgent>(agents: A[]) => [
-  ...agents.filter((agent) => agent.state === 'working').sort((a, b) => started(b) - started(a)),
-  ...agents.filter((agent) => agent.state !== 'working').sort((a, b) => ended(b) - ended(a)),
+  ...agents
+    .filter((agent) => agent.state === 'working')
+    .toSorted((a, b) => started(b) - started(a)),
+  ...agents.filter((agent) => agent.state !== 'working').toSorted((a, b) => ended(b) - ended(a)),
 ];
 
 // A thread's agents as the Trace lists them: those at work first, newest started first, then the
@@ -302,9 +306,11 @@ export const atWork = <A extends TaskAgent>(agents: A[]) =>
 // How many agents are in each state, those at work first: "2 working · 9 done".
 export const agentCounts = (agents: TaskAgent[]) =>
   (['working', 'done', 'failed', 'stopped'] as const)
-    .map((state) => [state, agents.filter((agent) => agent.state === state).length] as const)
-    .filter(([, count]) => count)
-    .map(([state, count]) => `${count} ${state}`)
+    .flatMap((state) => {
+      const count = agents.filter((agent) => agent.state === state).length;
+
+      return count > 0 ? [`${count} ${state}`] : [];
+    })
     .join(' · ');
 
 // Who an agent is and how it's going: "Opus 5.5 · 4 min" while it works or how long it took once
@@ -335,11 +341,11 @@ export const agentSteps = (agent: AgentTrail) => {
 
 // A thread's agents in a few words, each by its name up to a colon: those at work while it works,
 // "2 agents working · today, sol", and once it's done all it ran, "2 agents · voice, sol".
-export const agentWords = (agents: TaskAgent[], working: boolean) => {
+export const agentWords = (agents: TaskAgent[], working: boolean): string | undefined => {
   const named = working ? atWork(agents) : agentsInOrder(agents).shown;
 
   if (!named.length) {
-    return;
+    return undefined;
   }
 
   const names = named.map((agent) => agent.label.split(':')[0].trim());

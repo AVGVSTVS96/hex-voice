@@ -22,12 +22,24 @@ const initialSnapshot = (): LiveSnapshot => ({
   interrupted: false,
 });
 
+type Caption = Extract<
+  LiveEvent,
+  { type: 'session.input_transcript.delta' | 'session.output_transcript.delta' }
+>;
+
+type MuteChange = Extract<
+  LiveEvent,
+  { type: 'session.input_audio.muted' | 'session.input_audio.unmuted' }
+>;
+
 const SILENT: Levels = { input: 0, output: 0 };
 
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
 
 export class LiveSession {
+  private readonly factory: TransportFactory;
+  private readonly api: SessionAPI;
   private snapshot = initialSnapshot();
   private readonly listeners = new Set<() => void>();
   // Levels change several times a second, so they have their own listeners and the snapshot
@@ -52,10 +64,10 @@ export class LiveSession {
   private lastSentPackets = 0;
   private appActive = true;
 
-  constructor(
-    private readonly factory: TransportFactory,
-    private readonly api: SessionAPI,
-  ) {}
+  constructor(factory: TransportFactory, api: SessionAPI) {
+    this.factory = factory;
+    this.api = api;
+  }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -66,9 +78,10 @@ export class LiveSession {
   };
   private update(change: Partial<LiveSnapshot>) {
     this.snapshot = { ...this.snapshot, ...change };
-    this.listeners.forEach((listener) => {
+
+    for (const listener of this.listeners) {
       listener();
-    });
+    }
   }
   getLevels = () => this.levels;
   subscribeLevels = (listener: () => void) => {
@@ -86,21 +99,19 @@ export class LiveSession {
     }
 
     this.levels = levels;
-    this.levelListeners.forEach((listener) => {
+
+    for (const listener of this.levelListeners) {
       listener();
-    });
+    }
   }
 
   start = async (voice: LiveVoice = DEFAULT_VOICE, about?: CallAbout) => {
-    if (
-      this.closing ||
-      this.snapshot.status === 'connecting' ||
-      this.snapshot.status === 'connected'
-    ) {
+    if (this.busy()) {
       return;
     }
 
-    const generation = ++this.generation;
+    this.generation += 1;
+    const { generation } = this;
     this.snapshot = initialSnapshot();
     this.serverClosed = false;
     this.serverEnding = null;
@@ -183,6 +194,14 @@ export class LiveSession {
     }
   };
 
+  private busy() {
+    return (
+      this.closing !== null ||
+      this.snapshot.status === 'connecting' ||
+      this.snapshot.status === 'connected'
+    );
+  }
+
   private onEvent(event: LiveEvent) {
     if (
       event.type !== 'session.closed' &&
@@ -210,58 +229,13 @@ export class LiveSession {
 
       case 'session.input_transcript.delta':
       case 'session.output_transcript.delta': {
-        if (typeof event.delta !== 'string' || !event.delta) {
-          break;
-        }
-
-        const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
-        const entries = [...this.snapshot.transcript];
-        // Each speaker has an independent caption stream, so overlapping speech
-        // must not split a sentence every time the other speaker emits a delta.
-        const index = entries.findLastIndex((entry) => entry.role === role);
-        const previous = index === -1 ? undefined : entries[index];
-        const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
-
-        if (previous === undefined || startMs - (previous.endMs ?? previous.startMs) > 2000) {
-          entries.push({
-            id: `${role}-${startMs}-${entries.length}`,
-            role,
-            text: event.delta,
-            startMs,
-            endMs: event.end_ms ?? startMs,
-          });
-        } else {
-          entries[index] = {
-            ...previous,
-            text: previous.text + event.delta,
-            endMs: event.end_ms ?? startMs,
-          };
-        }
-
-        entries.sort((a, b) => a.startMs - b.startMs);
-        this.update({ transcript: entries.slice(-200) });
+        this.caption(event);
         break;
       }
 
       case 'session.input_audio.muted':
       case 'session.input_audio.unmuted': {
-        const command = this.muteCommand;
-
-        if (
-          !command ||
-          event.client_event_id !== command.id ||
-          (event.type === 'session.input_audio.muted') !== command.muted
-        ) {
-          break;
-        }
-
-        clearTimeout(this.muteTimer);
-        this.muteCommand = null;
-
-        if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted) {
-          this.transport?.setMuted(false);
-        }
-
+        this.confirmMute(event);
         break;
       }
 
@@ -288,6 +262,58 @@ export class LiveSession {
         );
         break;
       }
+    }
+  }
+
+  private caption(event: Caption) {
+    if (event.delta === '') {
+      return;
+    }
+
+    const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
+    const entries = [...this.snapshot.transcript];
+    // Each speaker has an independent caption stream, so overlapping speech
+    // must not split a sentence every time the other speaker emits a delta.
+    const index = entries.findLastIndex((entry) => entry.role === role);
+    const previous = index === -1 ? undefined : entries[index];
+    const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
+
+    if (previous === undefined || startMs - (previous.endMs ?? previous.startMs) > 2000) {
+      entries.push({
+        id: `${role}-${startMs}-${entries.length}`,
+        role,
+        text: event.delta,
+        startMs,
+        endMs: event.end_ms ?? startMs,
+      });
+    } else {
+      entries[index] = {
+        ...previous,
+        text: previous.text + event.delta,
+        endMs: event.end_ms ?? startMs,
+      };
+    }
+
+    entries.sort((a, b) => a.startMs - b.startMs);
+    this.update({ transcript: entries.slice(-200) });
+  }
+
+  private confirmMute(event: MuteChange) {
+    const command = this.muteCommand;
+
+    if (
+      !command ||
+      event.client_event_id !== command.id ||
+      (event.type === 'session.input_audio.muted') !== command.muted
+    ) {
+      return;
+    }
+
+    clearTimeout(this.muteTimer);
+    this.muteCommand = null;
+
+    if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted) {
+      this.transport?.setMuted(false);
     }
   }
 
@@ -330,11 +356,11 @@ export class LiveSession {
   }
 
   private async poll() {
-    if (!this.transport || !this.appActive || !this.refreshElapsed()) {
+    const { transport } = this;
+
+    if (!transport || !this.appActive || !this.refreshElapsed()) {
       return;
     }
-
-    const transport = this.transport;
 
     if (this.statsPending === transport) {
       return;
@@ -392,9 +418,10 @@ export class LiveSession {
 
     if (!this.snapshot.muted) {
       this.transport.setMuted(began);
+      this.nextCommand += 1;
       this.transport.send({
         type: began ? 'session.input_audio.mute' : 'session.input_audio.unmute',
-        event_id: `interruption-${++this.nextCommand}`,
+        event_id: `interruption-${this.nextCommand}`,
       });
     }
 
@@ -430,7 +457,8 @@ export class LiveSession {
 
     this.update({ muted });
     this.hear({ input: 0 });
-    const id = `mute-${++this.nextCommand}`;
+    this.nextCommand += 1;
+    const id = `mute-${this.nextCommand}`;
     this.muteCommand = { id, muted };
     this.muteTimer = setTimeout(() => {
       void this.stop('The microphone change was not confirmed. Please reconnect.');
@@ -470,14 +498,13 @@ export class LiveSession {
     const ended = this.serverEnding ?? (connected ? 'you' : null);
     const ending = failure === undefined ? ended : failed;
 
-    ++this.generation;
+    this.generation += 1;
     clearInterval(this.statsTimer);
     clearTimeout(this.startupTimer);
     clearTimeout(this.muteTimer);
     this.muteCommand = null;
     this.statsPending = null;
-    const transport = this.transport;
-    const id = this.sessionId;
+    const { transport, sessionId: id } = this;
     this.update({ status: 'disconnecting' });
     this.hear(SILENT);
     // Silence capture immediately; session.close preserves final usage events.

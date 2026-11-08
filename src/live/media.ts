@@ -31,11 +31,15 @@ export const CLIP_SECONDS = 60;
 // How a turn that's only media reads where its words would: "Photo", "2 videos", "2 photos and a video".
 export const mediaWords = (media: readonly { kind: MediaKind }[]) => {
   const words = MediaKind.options
-    .map((kind) => [kind, media.filter((one) => one.kind === kind).length] as const)
-    .filter(([, count]) => count)
-    .map(([kind, count]) =>
-      count > 1 ? `${count} ${kind}s` : media.length > 1 ? `a ${kind}` : kind,
-    )
+    .flatMap((kind) => {
+      const count = media.filter((one) => one.kind === kind).length;
+
+      if (count > 1) {
+        return [`${count} ${kind}s`];
+      }
+
+      return count === 1 ? [media.length > 1 ? `a ${kind}` : kind] : [];
+    })
     .join(' and ');
 
   return words.charAt(0).toUpperCase() + words.slice(1);

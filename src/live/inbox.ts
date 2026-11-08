@@ -195,18 +195,22 @@ export const inboxEntries = (
       at: ask.at,
       ask,
     })),
-    ...tasks
-      .filter((task) => task.state === 'working' || !asked.has(task.id))
-      .map((task): Entry => ({
-        kind: 'task',
-        id: task.id,
-        topic: task.name,
-        place: placeOf(task.app),
-        tiles: [threadTile(placeOf(task.app), task.link)],
-        stage: task.state === 'needs' || task.state === 'working' ? task.state : 'quiet',
-        at: task.state === 'needs' ? task.since : task.at,
-        task,
-      })),
+    ...tasks.flatMap((task): Entry[] =>
+      task.state === 'working' || !asked.has(task.id)
+        ? [
+            {
+              kind: 'task',
+              id: task.id,
+              topic: task.name,
+              place: placeOf(task.app),
+              tiles: [threadTile(placeOf(task.app), task.link)],
+              stage: task.state === 'needs' || task.state === 'working' ? task.state : 'quiet',
+              at: task.state === 'needs' ? task.since : task.at,
+              task,
+            },
+          ]
+        : [],
+    ),
     ...(list?.stuck ?? []).map((stuck): Entry => ({
       kind: 'stuck',
       id: stuck.id,
@@ -229,25 +233,29 @@ export const inboxEntries = (
         at: fresh.at,
         fresh,
       })),
-    ...finished
-      .filter((one) => Date.parse(one.at) >= since)
-      .map((one): Entry => ({
-        kind: 'finished',
-        id: one.id,
-        topic: one.topic,
-        place: placeOf(one.app),
-        tiles: [threadTile(placeOf(one.app), one.link), ...proofLinks(one.proof).slice(0, 1)],
-        stage: 'done',
-        at: one.at,
-        finished: one,
-      })),
+    ...finished.flatMap((one): Entry[] =>
+      Date.parse(one.at) >= since
+        ? [
+            {
+              kind: 'finished',
+              id: one.id,
+              topic: one.topic,
+              place: placeOf(one.app),
+              tiles: [threadTile(placeOf(one.app), one.link), ...proofLinks(one.proof).slice(0, 1)],
+              stage: 'done',
+              at: one.at,
+              finished: one,
+            },
+          ]
+        : [],
+    ),
   ];
 
   const settled = (entry: Entry) => entry.stage === 'done' || entry.stage === 'quiet';
 
   return entries
     .map((entry, i) => ({ entry, i }))
-    .sort(
+    .toSorted(
       (a, b) =>
         RANK[a.entry.stage] - RANK[b.entry.stage] ||
         (settled(a.entry) ? Date.parse(b.entry.at) - Date.parse(a.entry.at) : 0) ||
@@ -282,7 +290,7 @@ export const topicsOf = (shown: Entry[], all: Entry[]): Topic[] => {
     return {
       name,
       entries: shown.filter((entry) => entry.topic === name),
-      marks: [...threads.values()].sort((a, b) => RANK[a] - RANK[b]),
+      marks: [...threads.values()].toSorted((a, b) => RANK[a] - RANK[b]),
     };
   });
 };
@@ -325,7 +333,7 @@ export const stageCounts = (entries: Entry[], answered: Record<string, string | 
 
   for (const entry of entries) {
     if (!isAnswered(answered, entry.id)) {
-      counts[entry.stage]++;
+      counts[entry.stage] += 1;
     }
   }
 
@@ -423,11 +431,11 @@ export const headlineOf = (entry: Entry) => {
 };
 
 // A run that ended on the API's own error says what went wrong in words, not the raw message.
-export const problemOf = (line: string) => {
+export const problemOf = (line: string): string | undefined => {
   const error = /^API Error:\s*(?<message>.*)$/su.exec(line.trim())?.groups;
 
   if (!error) {
-    return;
+    return undefined;
   }
 
   return /limit/iu.test(error.message)
@@ -506,7 +514,7 @@ export const tracksOf = (name: string, tasks: TaskRow[]): Turn[][] =>
   tasks.flatMap((task) => (task.name === name && task.track?.length ? [task.track] : []));
 
 // The thread a row is about and opens, when it has one on the board.
-export const taskOf = (entry: Entry) => {
+export const taskOf = (entry: Entry): TaskId | undefined => {
   if (entry.kind === 'ask') {
     return entry.ask.task;
   }
@@ -518,6 +526,8 @@ export const taskOf = (entry: Entry) => {
   if (entry.kind === 'finished') {
     return entry.finished.run;
   }
+
+  return undefined;
 };
 
 // What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, only
@@ -530,9 +540,9 @@ export const reachedBy = (ask: Ask, sent: Sent | undefined) => {
 
   const apps = sent.missed
     ? []
-    : [...new Set(ask.places.map((place) => placeOf(place.app)))]
-        .filter((place) => place === 'telegram' || place === 'discord')
-        .map((place) => PLACES[place]);
+    : [...new Set(ask.places.map((place) => placeOf(place.app)))].flatMap((place) =>
+        place === 'telegram' || place === 'discord' ? [PLACES[place]] : [],
+      );
 
   const cleared = sent.settled
     ? ` and cleared its ${apps.length ? `${apps.join(' and ')} ` : ''}buttons`

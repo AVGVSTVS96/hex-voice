@@ -28,7 +28,7 @@ export const CallEnding = z.enum([
 
 export type CallEnding = z.infer<typeof CallEnding>;
 
-const call = {
+const callFields = {
   id: CallId,
   started: z.string(),
   ended: z.optional(z.string()),
@@ -43,7 +43,7 @@ const call = {
 };
 
 export const CallSummary = z.object({
-  ...call,
+  ...callFields,
   seconds: z.number(),
   tasks: z.number(),
   preview: z.string(),
@@ -97,7 +97,7 @@ export type CallMark = z.infer<typeof CallMark>;
 
 // A live call's record carries a version, and asking with it waits for the next word.
 export const CallRecord = z.object({
-  ...call,
+  ...callFields,
   turns: z.array(CallTurn),
   tasks: z.array(CallTask),
   moments: z.optional(z.array(CallMark)),
@@ -154,8 +154,16 @@ export const isNaming = (call: CallSummary, now = Date.now()) =>
   call.ended !== '' &&
   now - Date.parse(call.ended) < 10 * 60_000;
 
+const tasksWord = (count: number) => {
+  if (count === 1) {
+    return '1 task';
+  }
+
+  return count ? `${count} tasks` : '';
+};
+
 export const callDetails = (call: CallSummary) => {
-  const tasks = call.tasks === 1 ? '1 task' : call.tasks ? `${call.tasks} tasks` : '';
+  const tasks = tasksWord(call.tasks);
 
   return [callLength(call.seconds), isNaming(call) ? 'naming…' : tasks].filter(Boolean).join(' · ');
 };
@@ -171,15 +179,21 @@ export const transcriptText = (call: CallRecord) => {
     ...(waiting.length > 0 ? ['Waiting on you:', ...waiting.map((item) => `- ${item}`)] : []),
   ].filter(Boolean);
 
-  const moments = timeline(call).map((moment) =>
-    moment.kind === 'turn'
-      ? `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`
-      : moment.kind === 'media'
-        ? `You: (${moment.media.kind})`
-        : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
-  );
+  const moments = timeline(call).map(momentText);
 
   return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
+};
+
+const momentText = (moment: Moment) => {
+  if (moment.kind === 'turn') {
+    return `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`;
+  }
+
+  if (moment.kind === 'media') {
+    return `You: (${moment.media.kind})`;
+  }
+
+  return `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`;
 };
 
 // A call's turns and what you sent it as the live transcript shows them, each keyed by where it
@@ -202,7 +216,7 @@ export const liveEntries = ({
         ? [{ id: `media ${media.id}`, role: 'user' as const, text: '', startMs: mark.at, media }]
         : [];
     }),
-  ].sort((a, b) => a.startMs - b.startMs);
+  ].toSorted((a, b) => a.startMs - b.startMs);
 
 // The photo or clip a moment says you sent.
 const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
@@ -280,8 +294,10 @@ export const byDay = (calls: CallSummary[], now = new Date()) => {
   for (const call of calls) {
     const label = periodOf(call.started, now);
 
-    if (days.at(-1)?.label === label) {
-      days.at(-1)!.calls.push(call);
+    const last = days.at(-1);
+
+    if (last?.label === label) {
+      last.calls.push(call);
     } else {
       days.push({ label, calls: [call] });
     }
@@ -293,7 +309,11 @@ export const byDay = (calls: CallSummary[], now = new Date()) => {
 const periodOf = (iso: string, now: Date) => {
   const days = daysAgo(iso, now);
 
-  return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : 'Earlier';
+  if (days === 0) {
+    return 'Today';
+  }
+
+  return days === 1 ? 'Yesterday' : 'Earlier';
 };
 
 const daysAgo = (iso: string, now: Date) =>
@@ -365,5 +385,5 @@ export const timeline = ({
         ? [{ kind: 'media' as const, key: `media-${media.id}`, at: mark.at, media }]
         : [];
     }),
-  ].sort((a, b) => a.at - b.at);
+  ].toSorted((a, b) => a.at - b.at);
 };

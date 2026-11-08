@@ -62,18 +62,18 @@ export type LiveEvent = z.infer<typeof LiveEvent>;
 const Message = z.object({ data: z.string() });
 
 // A data channel message as one of the events above, or nothing when it's none of them.
-const parseJson = (text: string): unknown => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
-export const parseEvent = (message: unknown) => {
+export const parseEvent = (message: unknown): LiveEvent | undefined => {
   const text = Message.safeParse(message).data?.data;
 
-  return text === undefined ? undefined : LiveEvent.safeParse(parseJson(text)).data;
+  if (text === undefined) {
+    return undefined;
+  }
+
+  try {
+    return LiveEvent.safeParse(JSON.parse(text)).data;
+  } catch {
+    return undefined;
+  }
 };
 
 export interface LiveCommand {

@@ -68,8 +68,8 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
 // The batch as it went: each item keeps hex's id once it went up, and a clip shows hex's still in
 // place of its file, which no image view draws. Every item says why when the batch didn't go.
 export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] => {
-  const failed =
-    error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
+  const why = error instanceof Error ? error.message : 'Not sent';
+  const failed = error === undefined ? undefined : why;
 
   return sent.map((one) => {
     const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
@@ -93,7 +93,9 @@ export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome):
 export const retrying = (sent: Sent[], entry: string): Sent[] => {
   const batch = sent.find((one) => one.entry.id === entry)?.batch;
 
-  return sent
-    .filter((one) => one.batch === batch && (one.entry.failed ?? '') !== '')
-    .map((one) => ({ ...one, entry: { ...one.entry, sending: true, failed: undefined } }));
+  return sent.flatMap((one) =>
+    one.batch === batch && (one.entry.failed ?? '') !== ''
+      ? [{ ...one, entry: { ...one.entry, sending: true, failed: undefined } }]
+      : [],
+  );
 };
