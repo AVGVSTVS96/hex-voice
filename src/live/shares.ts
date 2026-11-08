@@ -34,7 +34,7 @@ export const batchOf = (call: CallId, at: number, picked: Picked[], key: string)
 export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promise<Outcome> => {
   const uploads = await Promise.allSettled(
     batch.map(async ({ id, picked }) =>
-      id ? await Promise.resolve({ id, kind: picked.kind }) : await api.upload(picked),
+      id ? { id, kind: picked.kind } : await api.upload(picked),
     ),
   );
 
