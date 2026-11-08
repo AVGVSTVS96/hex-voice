@@ -1,8 +1,11 @@
 import { fetch } from 'expo/fetch';
 import { File, UploadType } from 'expo-file-system';
+import * as z from 'zod/mini';
 
 import { createHex } from './api';
 import { createClient } from './client';
+
+const Setting = z.optional(z.string());
 
 export const hex = createHex(
   createClient({
@@ -18,7 +21,7 @@ export const hex = createHex(
 
       return { status, text: body };
     },
-    url: process.env.EXPO_PUBLIC_HEX_URL,
-    token: process.env.EXPO_PUBLIC_HEX_TOKEN,
+    url: Setting.parse(process.env.EXPO_PUBLIC_HEX_URL),
+    token: Setting.parse(process.env.EXPO_PUBLIC_HEX_TOKEN),
   }),
 );

@@ -31,12 +31,12 @@ export const createHex = ({ request, send, source, upload }: Client) => {
 
   const session: SessionAPI = {
     create: async (sdp, voice, about) => {
-      const { session, transport } = await request('/session', Opened, {
+      const { session: opened, transport } = await request('/session', Opened, {
         method: 'POST',
         body: { sdp, voice, from: 'app', about: about === 'asks' ? about : about?.task },
       });
 
-      return { sdp: transport.sdp, sessionId: session.id };
+      return { sdp: transport.sdp, sessionId: opened.id };
     },
     close: async (sessionId) => {
       await send('/session', { method: 'DELETE', body: { sessionId } });
@@ -62,8 +62,8 @@ export const createHex = ({ request, send, source, upload }: Client) => {
         await send(`/calls/${enc(id)}`, { method: 'DELETE' });
       },
       // Photos and clips hex already keeps go to the call together, so it hears of them once.
-      media: async (id: CallId, media: MediaId[]) => {
-        await send(`/calls/${enc(id)}/media`, { body: { media } });
+      media: async (id: CallId, shared: MediaId[]) => {
+        await send(`/calls/${enc(id)}/media`, { body: { media: shared } });
       },
     },
     tasks: {
