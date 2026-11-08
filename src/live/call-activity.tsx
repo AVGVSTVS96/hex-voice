@@ -30,11 +30,15 @@ const CallActivity = (props: CallActivityProps) => {
   // DynamicColorIOS exist, so each color is the object DynamicColorIOS would make. The Lock Screen
   // follows the system; the island is always dark.
   const color = (dark: string, light: string) =>
+    // SAFETY: DynamicColorIOS makes this same { dynamic } object and types it ColorValue.
     ({ dynamic: { dark, light } }) as unknown as ColorValue;
 
   const text = color('#F5F5F5', '#0A0A0A');
   const secondary = color('#A1A1A6', '#6E6E73');
   const muted = props.state === 'muted';
+  const outcome = props.outcome ?? '';
+  const micSymbol = muted ? 'mic.slash.fill' : 'mic.fill';
+  const micFill = muted ? color('#363636', '#D9D9DE') : color('#202020', '#EEEEF0');
 
   const orb = (size: number) => (
     <Image assetName={props.orb} modifiers={[resizable(), frame({ width: size, height: size })]} />
@@ -54,20 +58,25 @@ const CallActivity = (props: CallActivityProps) => {
     />
   );
 
-  const subtitle = props.outcome ? (
-    <Text
-      modifiers={[
-        font({ size: 15 }),
-        foregroundStyle(props.bad ? color('#F0A5A8', '#D93A42') : secondary),
-      ]}
-    >
-      {props.outcome}
-    </Text>
-  ) : props.since ? (
+  const progress = props.since ? (
     timer(15, 64, 'leading')
   ) : (
     <Text modifiers={[font({ size: 15 }), foregroundStyle(secondary)]}>Connecting</Text>
   );
+
+  const subtitle =
+    outcome === '' ? (
+      progress
+    ) : (
+      <Text
+        modifiers={[
+          font({ size: 15 }),
+          foregroundStyle(props.bad === true ? color('#F0A5A8', '#D93A42') : secondary),
+        ]}
+      >
+        {outcome}
+      </Text>
+    );
 
   const title = (
     <VStack alignment="leading" spacing={2}>
@@ -82,19 +91,12 @@ const CallActivity = (props: CallActivityProps) => {
     return (
       <Button target={target} modifiers={[buttonStyle('plain')]}>
         <Image
-          systemName={end ? 'xmark' : muted ? 'mic.slash.fill' : 'mic.fill'}
+          systemName={end ? 'xmark' : micSymbol}
           size={size * 0.38}
           color={end ? color('#080808', '#FAFAFA') : text}
           modifiers={[
             frame({ width: size, height: size }),
-            background(
-              end
-                ? color('#F9F9F9', '#0A0A0A')
-                : muted
-                  ? color('#363636', '#D9D9DE')
-                  : color('#202020', '#EEEEF0'),
-              shapes.circle(),
-            ),
+            background(end ? color('#F9F9F9', '#0A0A0A') : micFill, shapes.circle()),
           ]}
         />
       </Button>
@@ -107,6 +109,9 @@ const CallActivity = (props: CallActivityProps) => {
       {props.state === 'ended' ? null : control('end', size)}
     </HStack>
   );
+
+  const running = props.since ? timer(15, 44, 'trailing') : null;
+  const trailing = muted ? <Image systemName="mic.slash.fill" color={text} size={14} /> : running;
 
   return {
     banner: (
@@ -121,11 +126,7 @@ const CallActivity = (props: CallActivityProps) => {
       </HStack>
     ),
     compactLeading: orb(24),
-    compactTrailing: props.outcome ? null : muted ? (
-      <Image systemName="mic.slash.fill" color={text} size={14} />
-    ) : props.since ? (
-      timer(15, 44, 'trailing')
-    ) : null,
+    compactTrailing: outcome === '' ? trailing : null,
     minimal: orb(24),
     expandedLeading: (
       <HStack spacing={12} modifiers={[padding({ leading: 6, top: 6 })]}>

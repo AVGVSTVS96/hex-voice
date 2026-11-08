@@ -147,7 +147,7 @@ const item = (text: string, mark: PinMark): PinLine => {
 };
 
 // A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
-const linked = (text: string): { text: string; url?: string } => {
+const linked = (text: string) => {
   const link = LINK.exec(text);
   const url = link?.groups?.url ?? URL.exec(text)?.[0];
 

@@ -56,7 +56,7 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
   try {
     await api.media(
       call,
-      shared.map((one) => one!.id),
+      shared.flatMap((one) => (one === undefined ? [] : [one.id])),
     );
 
     return { shared };
