@@ -120,6 +120,7 @@ test('an animated style styles only views that mount with the component making i
 // A width handed down in JS reaches a SwiftUI view only once the turn that changed it is over, and
 // then lays it out a second time. Tasks' content takes its width from SwiftUI, which lays it out in
 // the turn: one line or stacked is `Fits`' choice, and only the pages' container knows a page's width.
+// A token's fixed size (`metrics`) is no layout's, so it may be handed down.
 test('Tasks’ rows and pages never take a width from JS', () => {
   const found = files('src/components/tasks')
     .filter((file) => file.endsWith('.tsx') && !file.endsWith('tasks-view.tsx'))
@@ -135,7 +136,10 @@ test('Tasks’ rows and pages never take a width from JS', () => {
         const named =
           (ts.isJsxAttribute(node) || ts.isBindingElement(node) || ts.isPropertySignature(node)) &&
           node.name.getText(source) === 'width';
-        if (named)
+        const token =
+          ts.isJsxAttribute(node) &&
+          (node.initializer?.getText(source) ?? '').startsWith('{metrics.');
+        if (named && !token)
           widths.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
         ts.forEachChild(node, visit);
       };
