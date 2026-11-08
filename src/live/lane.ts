@@ -1,22 +1,22 @@
 import { laneX, type Turn } from './tasks';
 
-// A project's last week as one lane `width` wide, now at the right, with two kinds of mark: when
+// A project's last week as one lane, its marks at shares of the lane's width, now at the right: when
 // any of its threads worked (`spans`) and where a run failed (`failures`). All its threads share
 // the one lane, so stretches close enough to read as one merge, and failures too close to tell
 // apart keep the newest.
 export type Lane = { spans: { from: number; to: number }[]; failures: number[] };
 
-const JOIN = 5;
-const APART = 7;
+const JOIN = 0.008;
+export const APART = 0.012;
 
-export function laneOf(tracks: Turn[][], now: number, width: number): Lane {
-  const x = (at: string) => laneX(Date.parse(at), now, width);
+export function laneOf(tracks: Turn[][], now: number): Lane {
+  const x = (at: string) => laneX(Date.parse(at), now, 1);
   const spans: Lane['spans'] = [];
   const failures: number[] = [];
   for (const track of tracks)
     track.forEach((turn, i) => {
       const next = track[i + 1];
-      if (turn.state === 'working') spans.push({ from: x(turn.at), to: next ? x(next.at) : width });
+      if (turn.state === 'working') spans.push({ from: x(turn.at), to: next ? x(next.at) : 1 });
       else if (turn.state === 'failed') failures.push(x(turn.at));
     });
   return { spans: merged(spans), failures: apart(failures) };

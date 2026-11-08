@@ -18,15 +18,7 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
-export function TopicHead({
-  topic,
-  width,
-  onPress,
-}: {
-  topic: Topic;
-  width: number;
-  onPress?: () => void;
-}) {
+export function TopicHead({ topic, onPress }: { topic: Topic; onPress?: () => void }) {
   return (
     <Row
       alignment="center"
@@ -41,7 +33,7 @@ export function TopicHead({
         }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
-        ...listRow(width),
+        ...listRow(),
         ...(onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
       ]}
     >
@@ -59,7 +51,6 @@ export function TopicHead({
 // Something about the whole list, apart from its projects: a card on the ground with its one
 // action as a pill.
 function Strip({
-  width,
   mark,
   title,
   detail,
@@ -69,7 +60,6 @@ function Strip({
   selected = false,
   onPress,
 }: {
-  width: number;
   mark: 'pick' | 'read';
   title: string;
   detail?: string;
@@ -103,7 +93,7 @@ function Strip({
           top: space[1],
           bottom: space[2],
         }),
-        ...listRow(width),
+        ...listRow(),
         accessibilityElement('combine'),
         accessibilityLabel(label),
       ]}
@@ -134,19 +124,16 @@ function Strip({
 
 export function CheckRow({
   check,
-  width,
   selected,
   onPress,
 }: {
   check: CheckSummary;
-  width: number;
   selected: boolean;
   onPress: () => void;
 }) {
   const { title, did } = checkLine(check);
   return (
     <Strip
-      width={width}
       mark="read"
       selected={selected}
       title={title}
@@ -160,19 +147,16 @@ export function CheckRow({
 // Opens hex's picks on a page of their own, to look over before taking them.
 export function PicksRow({
   n,
-  width,
   selected,
   onOpen,
 }: {
   n: number;
-  width: number;
   selected: boolean;
   onOpen: () => void;
 }) {
   return (
     <Strip
       selected={selected}
-      width={width}
       mark="pick"
       title={`hex picked for ${questions(n)}`}
       label={`hex picked for ${questions(n)}. Opens them`}

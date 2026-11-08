@@ -36,13 +36,13 @@ import {
   type AskOption,
   type Words,
 } from '@/live/asks';
-import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
+import { EvenRow, Fits } from '../../../modules/rows';
 import { ShotsView } from '../../../modules/shots';
 import { Text } from '@/ui/text';
-import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
+import { labelOf, metrics, radius, space } from '@/ui/tokens';
 
 // How much of the thread's own words show before a tap shows them all.
 const SAID = 6;
@@ -58,7 +58,6 @@ type Answer = (ask: Ask, option: AskOption) => void;
 export function YourCall({
   asks,
   answered,
-  width,
   onAnswer,
   onUndo,
   onAgain,
@@ -66,7 +65,6 @@ export function YourCall({
 }: {
   asks: Ask[];
   answered: Record<string, string | null>;
-  width: number;
   onAnswer: Answer;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
@@ -75,14 +73,14 @@ export function YourCall({
   const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
     <>
-      <Column alignment="start" spacing={0} modifiers={listRow(width)}>
+      <Column alignment="start" spacing={0} modifiers={listRow()}>
         <StageHead tint="needs" title="Needs you" count={open || undefined} />
       </Column>
       {asks.map((ask) => {
         const said = answered[ask.id];
         if (said)
           return (
-            <Card key={ask.id} width={width}>
+            <Card key={ask.id}>
               <HStack alignment="top" spacing={metrics.list.gap}>
                 <Mark state="done" />
                 <VStack
@@ -111,8 +109,8 @@ export function YourCall({
             </Card>
           );
         return (
-          <SwipeActions key={ask.id} modifiers={listRow(width)}>
-            <AskCard ask={ask} width={width} onAnswer={onAnswer} onDismiss={onDismiss} />
+          <SwipeActions key={ask.id} modifiers={listRow()}>
+            <AskCard ask={ask} onAnswer={onAnswer} onDismiss={onDismiss} />
             <SwipeActions.Actions edge="trailing">
               <NotNeededButton onPress={() => onDismiss(ask)} />
             </SwipeActions.Actions>
@@ -124,7 +122,7 @@ export function YourCall({
 }
 
 // A card on the page, as Muse sets an approval: its own surface, apart from the next by air.
-function Card({ width, children }: { width?: number; children: ReactNode }) {
+function Card({ children }: { children: ReactNode }) {
   return (
     <VStack
       alignment="leading"
@@ -135,7 +133,7 @@ function Card({ width, children }: { width?: number; children: ReactNode }) {
         background(theme.card),
         clipShape('roundedRectangle', radius.group),
         padding({ leading: MARGIN, trailing: MARGIN, bottom: space[3] }),
-        ...(width === undefined ? [] : listRow(width)),
+        ...listRow(),
       ]}
     >
       {children}
@@ -147,12 +145,10 @@ function Card({ width, children }: { width?: number; children: ReactNode }) {
 // on the words opens where it was asked and the thread's own words. Writing on it keeps it open.
 function AskCard({
   ask,
-  width,
   onAnswer,
   onDismiss,
 }: {
   ask: Ask;
-  width: number;
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
 }) {
@@ -181,7 +177,6 @@ function AskCard({
   };
   // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
-  const inner = width - 2 * (MARGIN + INSIDE);
   return (
     <Card>
       <HStack
@@ -275,7 +270,7 @@ function AskCard({
           onDismiss={() => onDismiss(ask)}
         />
       ) : (
-        <Answers ask={ask} width={inner} onAnswer={onAnswer} />
+        <Answers ask={ask} onAnswer={onAnswer} />
       )}
     </Card>
   );
@@ -388,35 +383,29 @@ export function InlineAnswers({
 
 // The choices as Muse's pills, side by side when each fits its share of the row. Longer ones are
 // read, so each is a block of its own words, whole, one under another. hex's pick is tinted and
-// named, so the card holds no solid button that reads as already chosen.
-function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: Answer }) {
+// named, so the card holds no solid button that reads as already chosen. Under screenshots, each
+// answer sits under its own as a small pill, so its name says which is which in one line.
+function Answers({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) {
   const n = ask.options.length;
   if (!n) return null;
-  // Each pill's share of the row, short of its sides and the sparkle hex's pick wears.
-  const share = (width - space[2] * (n - 1)) / n - 2 * space[4] - metrics.symbol.small - space[2];
-  // Under screenshots, each answer sits under its own as a small pill, so its name says which is
-  // which in one line.
   const shots = ask.options.every((option) => option.shot !== undefined);
-  const beside =
-    shots ||
-    (n <= SIDE_BY_SIDE &&
-      ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize)));
-  if (beside)
+  const pills = ask.options.map((option) => (
+    <Pill
+      key={option.label}
+      label={option.label}
+      pick={option.pick}
+      grow
+      small={shots}
+      onPress={() => onAnswer(ask, option)}
+    />
+  ));
+  if (shots)
     return (
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-        {ask.options.map((option) => (
-          <Pill
-            key={option.label}
-            label={option.label}
-            pick={option.pick}
-            grow
-            small={shots}
-            onPress={() => onAnswer(ask, option)}
-          />
-        ))}
+        {pills}
       </Row>
     );
-  return (
+  const blocks = (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       {ask.options.map((option) => (
         <Column
@@ -450,6 +439,15 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
         </Column>
       ))}
     </Column>
+  );
+  if (n > SIDE_BY_SIDE) return blocks;
+  return (
+    <Fits>
+      <EvenRow spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+        {pills}
+      </EvenRow>
+      {blocks}
+    </Fits>
   );
 }
 

@@ -1,12 +1,4 @@
-import {
-  unreached,
-  type Ask,
-  type AskList,
-  type AskOption,
-  type Fresh,
-  type Stuck,
-  type Sent,
-} from './asks';
+import { unreached, type Ask, type AskList, type Fresh, type Stuck, type Sent } from './asks';
 import { type Finished, type TaskId, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
@@ -371,22 +363,6 @@ export function picksOf(entries: Entry[], answered: Record<string, string | null
     const option = entry.ask.options.find((one) => one.pick);
     return option ? [{ ask: entry.ask, option }] : [];
   });
-}
-
-// An ask's answers sit on one line only when every one fits in `width` points: their words at
-// `size` (the list's 15 or a topic page's 17), hex's pick with its check, a gap and a rule between
-// each. Measured at 15; the words, the check and the gaps all scale with the size.
-const SIZE = 15;
-const CHARACTER = 8.4;
-const CHECK = 18;
-const BETWEEN = 29;
-
-export function fitsOneLine(options: AskOption[], width: number, size = SIZE) {
-  const words = options.reduce(
-    (sum, option) => sum + option.label.length * CHARACTER + (option.pick ? CHECK : 0),
-    0,
-  );
-  return ((words + BETWEEN * (options.length - 1)) * size) / SIZE <= width;
 }
 
 // A page in Tasks: a thread's, a project's own when it has no thread to show, or a thing hex did.

@@ -117,6 +117,34 @@ test('an animated style styles only views that mount with the component making i
   assert.deepEqual(found, []);
 });
 
+// A width handed down in JS reaches a SwiftUI view only once the turn that changed it is over, and
+// then lays it out a second time. Tasks' content takes its width from SwiftUI, which lays it out in
+// the turn: one line or stacked is `Fits`' choice, and only the pages' container knows a page's width.
+test('Tasks’ rows and pages never take a width from JS', () => {
+  const found = files('src/components/tasks')
+    .filter((file) => file.endsWith('.tsx') && !file.endsWith('tasks-view.tsx'))
+    .flatMap((file) => {
+      const source = ts.createSourceFile(
+        file,
+        readFileSync(file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      const widths: string[] = [];
+      const visit = (node: ts.Node): void => {
+        const named =
+          (ts.isJsxAttribute(node) || ts.isBindingElement(node) || ts.isPropertySignature(node)) &&
+          node.name.getText(source) === 'width';
+        if (named)
+          widths.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return widths;
+    });
+  assert.deepEqual(found, []);
+});
+
 // iPhone Duo held wide and open: 951×669, the side column's 84 on the right, the fold 40 wide at
 // the middle. In Split View each app gets half; the app on the right keeps the column.
 const open = { width: 951, height: 669 };

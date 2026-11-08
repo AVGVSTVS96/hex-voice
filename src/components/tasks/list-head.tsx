@@ -11,6 +11,7 @@ import {
   monospacedDigit,
   padding,
   shapes,
+  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, type RefObject } from 'react';
 
@@ -41,6 +42,7 @@ export function Tabs({
   title,
   back,
   onSearch,
+  modifiers = [],
 }: {
   counts: Record<Stage, number>;
   stage: Tab;
@@ -51,12 +53,14 @@ export function Tabs({
   title?: string;
   back?: Back;
   onSearch?: () => void;
+  modifiers?: ModifierConfig[];
 }) {
   return (
     <Row
       alignment="center"
       spacing={0}
       modifiers={[
+        ...modifiers,
         padding({ top: onSearch ? space[2] : 0, bottom: space[2] }),
         frame({ maxWidth: Infinity }),
       ]}

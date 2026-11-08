@@ -46,9 +46,9 @@ import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { breakpoint, metrics, space } from '@/ui/tokens';
 
-const TABS_WITH_BAR = 600;
+import { Fits } from '../../../modules/rows';
 
 const EMPTY: Record<Tab, string> = {
   all: 'Nothing from hex yet',
@@ -156,10 +156,7 @@ export function ListPage({
     feel.tick();
     setQuery('');
   };
-  // Rows keep a readable measure, centered, however wide the page.
-  const width = Math.min(spot.width, metrics.readable);
   const actions = {
-    width,
     selected,
     answered: yours.answered,
     onOpen: openPage,
@@ -184,9 +181,10 @@ export function ListPage({
     },
   };
   const unreachable = (offline || yours.offline) && !loaded;
-  // A page as wide as a landscape phone holds back, its title, the stages and search in one row; a
-  // narrower one gives back, its title and search a bar of their own above the stages.
-  const compact = spot.width >= TABS_WITH_BAR;
+  // A page as wide as a landscape phone holds back, its title, the stages and search in one row,
+  // where they fit; a narrower one gives back, its title and search a bar of their own above the
+  // stages. SwiftUI picks from the width it lays the page out at.
+  const tabs = { counts, stage, unknown: !loaded, onChange: chooseStage };
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
       <GoThrough
@@ -215,25 +213,24 @@ export function ListPage({
           }}
         />
       ) : (
-        <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-          {compact ? null : (
+        <Fits>
+          <Tabs
+            {...tabs}
+            title="Tasks"
+            back={back}
+            onSearch={startSearch}
+            modifiers={[frame({ minWidth: breakpoint.beside })]}
+          />
+          <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
             <PageBar
               title="Tasks"
               large
               back={back}
               trailing={<SearchButton onPress={startSearch} />}
             />
-          )}
-          <Tabs
-            counts={counts}
-            stage={stage}
-            unknown={!loaded}
-            onChange={chooseStage}
-            title={compact ? 'Tasks' : undefined}
-            back={compact ? back : undefined}
-            onSearch={compact ? startSearch : undefined}
-          />
-        </Column>
+            <Tabs {...tabs} />
+          </Column>
+        </Fits>
       )}
       <Faded>
         <List
@@ -251,11 +248,10 @@ export function ListPage({
             id(searching ? 'search' : stage),
           ]}
         >
-          {behind ? <Behind width={width} /> : null}
+          {behind ? <Behind /> : null}
           {!searching && stage === 'needs' && picks.length > 1 ? (
             <PicksRow
               n={picks.length}
-              width={width}
               selected={apart && pages.path[0] === 'picks'}
               onOpen={() => {
                 feel.tick();
@@ -269,7 +265,6 @@ export function ListPage({
                 <ProjectRow
                   key={stage === 'done' ? topic.entries[0]!.id : topic.name}
                   topic={topic}
-                  width={width}
                   selected={
                     stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic
                   }
@@ -281,7 +276,6 @@ export function ListPage({
               <TopicHead
                 key={`${topic.name}:head`}
                 topic={topic}
-                width={width}
                 onPress={() => openPage(lead ?? pageOf(topic))}
               />,
               ...topic.entries.map((entry) => (
@@ -292,7 +286,6 @@ export function ListPage({
           {!searching && stage === 'needs' && yours.list?.check ? (
             <CheckRow
               check={yours.list.check}
-              width={width}
               selected={apart && pages.path[0] === 'check'}
               onPress={() => {
                 feel.tick();
@@ -301,13 +294,9 @@ export function ListPage({
             />
           ) : null}
           {loaded && !topics.length ? (
-            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} width={width} />
+            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} />
           ) : null}
-          {unreachable ? (
-            <Empty text={UNREACHED} width={width} />
-          ) : !loaded ? (
-            <Loading width={width} />
-          ) : null}
+          {unreachable ? <Empty text={UNREACHED} /> : !loaded ? <Loading /> : null}
         </List>
       </Faded>
       {goThrough}
@@ -316,7 +305,7 @@ export function ListPage({
 }
 
 // While hex is slow or out of reach, what's shown is what it last sent, and says so quietly.
-function Behind({ width }: { width: number }) {
+function Behind() {
   return (
     <Text
       variant="caption"
@@ -324,7 +313,7 @@ function Behind({ width }: { width: number }) {
       modifiers={[
         padding({ leading: metrics.list.inset, top: space[2], bottom: space[2] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ...listRow(width),
+        ...listRow(),
       ]}
     >
       Last from hex · waiting for an update

@@ -285,7 +285,6 @@ export function Tasks({
           answered={yours.answered}
           threads={threads}
           missing={missing}
-          width={spot('topic').width}
           onSteps={openSteps}
           onAnswer={answer}
           onUndo={undo}
@@ -315,7 +314,6 @@ export function Tasks({
       ) : did ? (
         <DonePage
           finished={did}
-          width={spot('topic').width}
           door={
             did.link
               ? { place: placeOf(did.app), onPress: () => openLink(did.link!, placeOf(did.app)) }
@@ -336,7 +334,6 @@ export function Tasks({
           topic={topic}
           asks={topicAsks}
           answered={yours.answered}
-          width={spot('topic').width}
           door={asked && doorOf(asked)}
           rows={entries
             .filter((entry) => entry.topic === topic && entry.kind !== 'ask')
@@ -344,7 +341,6 @@ export function Tasks({
               <EntryRow
                 key={entry.id}
                 entry={entry}
-                width={spot('topic').width}
                 answered={yours.answered}
                 onOpen={(id) => pages.go({ to: 'topic', id })}
                 onOpenTile={openTile}
