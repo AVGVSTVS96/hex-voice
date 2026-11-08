@@ -1,6 +1,6 @@
 // Runs in the browser page that scripts/activity-orbs.mts drives.
 window.loadOrb = async ({ color, palette }) =>
-  new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     const { Rive, RuntimeLoader, Layout, Fit } = window.rive;
     RuntimeLoader.setWasmUrl('/rive.wasm');
     const rive = new Rive({

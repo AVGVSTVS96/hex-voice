@@ -103,11 +103,11 @@ export const CallAsk = ({
               key={link.url}
               accessibilityRole="link"
               hitSlop={8}
-              onPress={async () =>
-                openURL(link.url).catch((error: Error) => {
+              onPress={async () => {
+                await openURL(link.url).catch((error: Error) => {
                   setFailed(failure('Not opened', error));
-                })
-              }
+                });
+              }}
             >
               <Text style={styles.link}>{`${link.label} ↗`}</Text>
             </Pressable>

@@ -101,7 +101,7 @@ class FakeTransport implements LiveTransport {
 
   constructor(readonly callbacks: TransportCallbacks) {}
   async offer() {
-    return this.offerResult();
+    return await this.offerResult();
   }
   async answer(sdp: string) {
     this.answers.push(sdp);
@@ -127,7 +127,7 @@ class FakeTransport implements LiveTransport {
   }
   async stats() {
     this.statsCalls++;
-    return this.statsResult();
+    return await this.statsResult();
   }
   close() {
     this.closed = true;
@@ -164,12 +164,12 @@ const harness = () => {
       return transport;
     },
   };
-  const factory: TransportFactory = async (callbacks) => control.factory(callbacks);
+  const factory: TransportFactory = async (callbacks) => await control.factory(callbacks);
   const api: SessionAPI = {
     create: async (sdp, voice) => {
       created.push(sdp);
       voices.push(voice);
-      return control.create(sdp);
+      return await control.create(sdp);
     },
     close: async (id) => {
       closed.push(id);
@@ -313,7 +313,7 @@ test('allows a fresh start after cancellation while microphone permission is pen
   let callbacks!: TransportCallbacks;
   h.control.factory = async (value) => {
     callbacks = value;
-    return ready.promise;
+    return await ready.promise;
   };
   try {
     const starting = h.session.start();
@@ -335,7 +335,7 @@ test('allows a fresh start after cancellation while microphone permission is pen
 test('a late session creation is closed without applying its answer after cancellation', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = async () => response.promise;
+  h.control.create = async () => await response.promise;
   try {
     const starting = h.session.start();
     await settle();
@@ -357,7 +357,7 @@ test('a late session creation is closed without applying its answer after cancel
 test('late creation cleanup failure is visible after cancellation has finished', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = async () => response.promise;
+  h.control.create = async () => await response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
@@ -380,7 +380,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
 test('stop finalization cannot erase a late creation cleanup failure', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = async () => response.promise;
+  h.control.create = async () => await response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
@@ -408,8 +408,10 @@ test('late creation cleanup failure preserves a newer connected conversation', a
   const response = deferred<{ sdp: string; sessionId: CallId }>();
   const cleanup = deferred<void>();
   const originalCreate = h.control.create;
-  h.control.create = async () => response.promise;
-  h.control.close = async () => cleanup.promise;
+  h.control.create = async () => await response.promise;
+  h.control.close = async () => {
+    await cleanup.promise;
+  };
   const originalWarn = console.warn;
   const warnings: unknown[][] = [];
   console.warn = (...messages: unknown[]) => {
@@ -615,7 +617,7 @@ test('a muted microphone stays muted when returning from the background', async 
 test('a session connecting during background transition is kept without starting visual stats', async () => {
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
-  h.control.create = async () => response.promise;
+  h.control.create = async () => await response.promise;
   try {
     const starting = h.session.start();
     await settle();
@@ -639,7 +641,7 @@ test('a stats result arriving in the background does not restore visual levels',
   const pending = deferred<AudioStats>();
   try {
     await h.session.start();
-    h.transports[0].statsResult = async () => pending.promise;
+    h.transports[0].statsResult = async () => await pending.promise;
     await h.clock.fire(120);
     h.session.setAppActive(false);
     pending.resolve({ inputLevel: 0.2, outputLevel: 0.3, sentPackets: 10, receivedPackets: 20 });
@@ -655,7 +657,7 @@ test('an earlier stalled stats operation cannot block a new session', async () =
   const h = harness();
   try {
     await h.session.start();
-    h.transports[0].statsResult = async () => new Promise(() => {});
+    h.transports[0].statsResult = async () => await new Promise(() => {});
     await h.clock.fire(120);
     await h.session.stop();
     await h.session.start();

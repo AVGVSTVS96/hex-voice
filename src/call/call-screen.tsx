@@ -232,7 +232,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     haptic(Haptics.selectionAsync);
   };
   const land = () => {
-    haptic(async () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
+    haptic(async () => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    });
   };
 
   const size = orb.size;
@@ -621,7 +623,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     if ((onCall && call.phase === 'ending') || !voiceLoaded) {
       return;
     }
-    haptic(async () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+    haptic(async () => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
     if (call.kind === 'here') {
       void end();
     } else if (call.kind === 'elsewhere') {
@@ -826,7 +830,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
                       size={layout.text}
                       emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
-                      onAnswer={async (card, option) => answerAsk(card.ask, option)}
+                      onAnswer={async (card, option) => await answerAsk(card.ask, option)}
                       onOpenTask={(task) => {
                         openTasks({ task });
                       }}

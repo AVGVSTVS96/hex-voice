@@ -23,7 +23,7 @@ export const useChat = (id: TaskId | null, live: boolean) => {
   const tries = useFailures();
   useWatch(
     live ? id : null,
-    async (after, signal, id) => hex.tasks.chat(id, after, signal),
+    async (after, signal, id) => await hex.tasks.chat(id, after, signal),
     (chat, id) => {
       setSeen({ id, chat });
       if (writable?.[id] !== chat.sends) {
@@ -58,7 +58,9 @@ export const useChat = (id: TaskId | null, live: boolean) => {
     retry: deliver,
     stop: async () => {
       if (id) {
-        await tries.attempt(id, 'Not stopped', async () => hex.tasks.stop(id));
+        await tries.attempt(id, 'Not stopped', async () => {
+          await hex.tasks.stop(id);
+        });
       }
     },
     failed: id ? tries.failed[id] : undefined,

@@ -28,7 +28,9 @@ export const useTaskCounts = (listed: Counts | undefined): Counts => {
 };
 
 // On a call, the voice brings the task up.
-export const raiseTask = async (id: TaskId) => hex.tasks.talk(id);
+export const raiseTask = async (id: TaskId) => {
+  await hex.tasks.talk(id);
+};
 
 const NONE: Finished[] = [];
 

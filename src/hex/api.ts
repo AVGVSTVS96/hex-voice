@@ -24,7 +24,7 @@ const enc = encodeURIComponent;
 export const createHex = ({ request, send, source, upload }: Client) => {
   const media = {
     // hex keeps the file and answers with the id it goes by.
-    upload: async (picked: Picked) => upload('/media', Shared, picked),
+    upload: async (picked: Picked) => await upload('/media', Shared, picked),
     // The photo, or for a clip a still from it.
     image: (id: MediaId) => source(`/media/${enc(id)}`),
   };
@@ -36,35 +36,44 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       });
       return { sdp: transport.sdp, sessionId: session.id };
     },
-    close: async (sessionId) => send('/session', { method: 'DELETE', body: { sessionId } }),
-    mark: async (sessionId, kind) => send(`/calls/${enc(sessionId)}/moments`, { body: { kind } }),
+    close: async (sessionId) => {
+      await send('/session', { method: 'DELETE', body: { sessionId } });
+    },
+    mark: async (sessionId, kind) => {
+      await send(`/calls/${enc(sessionId)}/moments`, { body: { kind } });
+    },
   };
   return {
     session,
     media,
     activity: {
       watch: async (after: number | undefined, signal: AbortSignal) =>
-        request('/activity', AgentActivity, { after, signal }),
+        await request('/activity', AgentActivity, { after, signal }),
     },
     calls: {
       list: async (after?: number, signal?: AbortSignal) =>
-        request('/calls', CallList, { after, signal }),
+        await request('/calls', CallList, { after, signal }),
       get: async (id: CallId, after?: number, signal?: AbortSignal) =>
-        request(`/calls/${enc(id)}`, CallRecord, { after, signal }),
-      remove: async (id: CallId) => send(`/calls/${enc(id)}`, { method: 'DELETE' }),
+        await request(`/calls/${enc(id)}`, CallRecord, { after, signal }),
+      remove: async (id: CallId) => {
+        await send(`/calls/${enc(id)}`, { method: 'DELETE' });
+      },
       // Photos and clips hex already keeps go to the call together, so it hears of them once.
-      media: async (id: CallId, media: MediaId[]) =>
-        send(`/calls/${enc(id)}/media`, { body: { media } }),
+      media: async (id: CallId, media: MediaId[]) => {
+        await send(`/calls/${enc(id)}/media`, { body: { media } });
+      },
     },
     tasks: {
       list: async (after?: number, signal?: AbortSignal) =>
-        request('/tasks', TaskList, { after, signal }),
+        await request('/tasks', TaskList, { after, signal }),
       counts: async (after?: number, signal?: AbortSignal) =>
-        request('/tasks/summary', TaskCounts, { after, signal }),
-      get: async (id: TaskId) => request(`/tasks/${enc(id)}`, TaskOrPage),
+        await request('/tasks/summary', TaskCounts, { after, signal }),
+      get: async (id: TaskId) => await request(`/tasks/${enc(id)}`, TaskOrPage),
       chat: async (id: TaskId, after?: number, signal?: AbortSignal) =>
-        request(`/tasks/${enc(id)}/chat`, Chat, { after, signal }),
-      talk: async (id: TaskId) => send(`/tasks/${enc(id)}/talk`),
+        await request(`/tasks/${enc(id)}/chat`, Chat, { after, signal }),
+      talk: async (id: TaskId) => {
+        await send(`/tasks/${enc(id)}/talk`);
+      },
       // Media goes up first, then the words with the ids hex gave it.
       send: async (id: TaskId, text: string, key: string, picked: Picked[] = []) => {
         const shared = await Promise.all(picked.map(media.upload));
@@ -73,23 +82,34 @@ export const createHex = ({ request, send, source, upload }: Client) => {
           body: ids.length ? { text, key, media: ids } : { text, key },
         });
       },
-      stop: async (id: TaskId) => send(`/tasks/${enc(id)}/stop`),
+      stop: async (id: TaskId) => {
+        await send(`/tasks/${enc(id)}/stop`);
+      },
     },
     asks: {
       list: async (after?: number, signal?: AbortSignal) =>
-        request('/asks', AskList, { after, signal }),
-      check: async () => request('/asks/check', Check),
+        await request('/asks', AskList, { after, signal }),
+      check: async () => await request('/asks/check', Check),
       shot: (id: AskId, n: number) => source(`/asks/${enc(id)}/shots/${n}`),
-      words: async (id: AskId) => request(`/asks/${enc(id)}/words`, Words),
+      words: async (id: AskId) => await request(`/asks/${enc(id)}/words`, Words),
       answer: async (id: AskId, label: string) =>
-        request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),
+        await request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),
       note: async (id: AskId, text: string) =>
-        request(`/asks/${enc(id)}/note`, Sent, { method: 'POST', body: { text } }),
-      dismiss: async (id: AskId) => request(`/asks/${enc(id)}/dismiss`, Sent, { method: 'POST' }),
-      undo: async (id: AskId) => send(`/asks/${enc(id)}/undo`),
-      act: async (id: string) => send(`/stuck/${enc(id)}/act`),
-      read: async (id: string) => send(`/fresh/${enc(id)}/read`),
-      talk: async () => send('/asks/talk'),
+        await request(`/asks/${enc(id)}/note`, Sent, { method: 'POST', body: { text } }),
+      dismiss: async (id: AskId) =>
+        await request(`/asks/${enc(id)}/dismiss`, Sent, { method: 'POST' }),
+      undo: async (id: AskId) => {
+        await send(`/asks/${enc(id)}/undo`);
+      },
+      act: async (id: string) => {
+        await send(`/stuck/${enc(id)}/act`);
+      },
+      read: async (id: string) => {
+        await send(`/fresh/${enc(id)}/read`);
+      },
+      talk: async () => {
+        await send('/asks/talk');
+      },
     },
   };
 };

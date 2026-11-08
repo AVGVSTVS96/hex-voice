@@ -29,15 +29,17 @@ const render = async (browser: Browser, orb: ActivityOrb, color = orb.color) => 
   await tab.route('http://orbs.local/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/') {
-      return route.fulfill({ contentType: 'text/html', body: page });
+      await route.fulfill({ contentType: 'text/html', body: page });
+      return;
     }
     if (path === '/orb.riv') {
-      return route.fulfill({
+      await route.fulfill({
         body: readFileSync(join(ROOT, 'src/components/persona/assets', `${orb.variant}.riv`)),
       });
+      return;
     }
     const [file, contentType] = files[path];
-    return route.fulfill({ contentType, body: readFileSync(file) });
+    await route.fulfill({ contentType, body: readFileSync(file) });
   });
   await tab.goto('http://orbs.local/');
   await tab.evaluate((orb) => (window as any).loadOrb(orb), { color, palette: orb.palette });

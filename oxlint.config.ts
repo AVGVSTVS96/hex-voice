@@ -120,7 +120,6 @@ const pending = {
   'typescript/parameter-properties': 'off',
   'typescript/prefer-nullish-coalescing': 'off',
   'typescript/restrict-template-expressions': 'off',
-  'typescript/return-await': 'off',
   'typescript/strict-boolean-expressions': 'off',
   'typescript/strict-void-return': 'off',
   'typescript/use-unknown-in-catch-callback-variable': 'off',

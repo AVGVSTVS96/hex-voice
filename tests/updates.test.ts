@@ -9,7 +9,14 @@ import test, { after } from 'node:test';
 import { publish, serve } from '../updates/store.mjs';
 
 const made: string[] = [];
-after(async () => Promise.all(made.map(async (dir) => rm(dir, { recursive: true, force: true }))));
+after(
+  async () =>
+    await Promise.all(
+      made.map(async (dir) => {
+        await rm(dir, { recursive: true, force: true });
+      }),
+    ),
+);
 
 const scratch = async (prefix: string) => {
   const dir = await mkdtemp(join(tmpdir(), prefix));
@@ -46,7 +53,7 @@ const store = async () => {
 };
 
 const manifest = async (origin: string, runtime: string) =>
-  fetch(`${origin}/manifest`, {
+  await fetch(`${origin}/manifest`, {
     headers: {
       'expo-protocol-version': '1',
       'expo-platform': 'ios',

@@ -121,8 +121,16 @@ export const useCall = (held: CallId | null) => {
   }, [session, demo]);
   return {
     call,
-    start: async (voice: LiveVoice, about?: CallAbout) => session.start(voice, about),
-    end: async () => (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop()),
+    start: async (voice: LiveVoice, about?: CallAbout) => {
+      await session.start(voice, about);
+    },
+    end: async () => {
+      if (call.kind === 'elsewhere') {
+        await elsewhere.hangUp();
+      } else {
+        await session.stop();
+      }
+    },
     toggleMute: session.toggleMute,
   };
 };

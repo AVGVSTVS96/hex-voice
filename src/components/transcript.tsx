@@ -89,7 +89,7 @@ export const Transcript = ({
             <CallAsk
               key={`ask ${moment.ask.id}`}
               card={moment}
-              onAnswer={async (option) => onAnswer?.(moment, option) ?? Promise.resolve()}
+              onAnswer={async (option) => await (onAnswer?.(moment, option) ?? Promise.resolve())}
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : moment.media ? (

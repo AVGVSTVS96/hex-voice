@@ -39,7 +39,7 @@ const loadFile = async (variant: PersonaVariant) => {
     );
     fileCache.set(variant, promise);
   }
-  return promise;
+  return await promise;
 };
 
 // Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.

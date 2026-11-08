@@ -53,7 +53,9 @@ export const useCalls = () => {
     setListed((current) => current && others(current));
     setJustEnded(others);
     void tries
-      .attempt(id, 'Not deleted', async () => hex.calls.remove(id))
+      .attempt(id, 'Not deleted', async () => {
+        await hex.calls.remove(id);
+      })
       .then((deleted) => {
         if (deleted) {
           void AsyncStorage.removeItem(saved(id)).catch(() => {});
@@ -105,7 +107,7 @@ export const usePastCall = (id: CallId | undefined) => {
 
   const watching = useWatch(
     id ?? null,
-    async (after, signal, id) => hex.calls.get(id, after, signal),
+    async (after, signal, id) => await hex.calls.get(id, after, signal),
     (fresh) => {
       setCall(fresh);
       if (fresh.ended) {

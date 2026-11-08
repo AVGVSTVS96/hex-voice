@@ -12,7 +12,7 @@ export const useFailures = () => {
   const [failed, setFailed] = useState<Record<string, string>>({});
   const attempt = async (key: string, what: string, work: () => Promise<unknown>) => {
     setFailed(({ [key]: _, ...rest }) => rest);
-    return work().then(
+    return await work().then(
       () => true,
       (error: unknown) => {
         setFailed((now) => ({ ...now, [key]: failure(what, error) }));
@@ -29,7 +29,8 @@ export const useFailures = () => {
 };
 
 // iOS turns a link down without a word when no app here takes it.
-export const openURL = async (url: string) =>
-  Linking.openURL(url).catch(() => {
+export const openURL = async (url: string) => {
+  await Linking.openURL(url).catch(() => {
     throw new Error('No app on this device opens this link');
   });
+};

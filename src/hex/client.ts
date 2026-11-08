@@ -89,18 +89,22 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
   };
 
   const call = async (path: string, { method = 'GET', body, after, ...options }: Options) =>
-    reach(after === undefined ? path : `${path}?after=${after}`, options, async (url, signal) => {
-      const response = await fetch(url, {
-        method,
-        headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal,
-      });
-      return {
-        status: response.status,
-        text: response.status === 204 ? '' : await response.text(),
-      };
-    });
+    await reach(
+      after === undefined ? path : `${path}?after=${after}`,
+      options,
+      async (url, signal) => {
+        const response = await fetch(url, {
+          method,
+          headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          signal,
+        });
+        return {
+          status: response.status,
+          text: response.status === 204 ? '' : await response.text(),
+        };
+      },
+    );
 
   const read = <S extends z.ZodMiniType>(path: string, schema: S, answer: unknown) => {
     const parsed = schema.safeParse(answer);
@@ -140,8 +144,10 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       return read(
         path,
         schema,
-        await reach(path, { timeout: UPLOAD }, async (url, signal) =>
-          sendFile(url, file, { headers, signal }),
+        await reach(
+          path,
+          { timeout: UPLOAD },
+          async (url, signal) => await sendFile(url, file, { headers, signal }),
         ),
       );
     },

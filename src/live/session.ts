@@ -386,7 +386,8 @@ export class LiveSession {
 
   stop = async (reason?: string): Promise<void> => {
     if (this.closing) {
-      return this.closing;
+      await this.closing;
+      return;
     }
     this.refreshElapsed();
     if (!this.transport && this.snapshot.status !== 'connecting') {
@@ -452,6 +453,6 @@ export class LiveSession {
       });
       this.closing = null;
     });
-    return this.closing;
+    await this.closing;
   };
 }
