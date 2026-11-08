@@ -15,7 +15,7 @@
 #
 # POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
 # hinge at 110°, upright) and APPEARANCES dark, light or both. Shots land in
-# $home/shots/<commit>/ (tap's in tap/), with one sheet per pose and notes.txt naming each
+# $home/shots/<commit>/ (tap's in tap/<tap script>/), with one sheet per pose and notes.txt naming each
 # state the app wasn't running in (how a crash or a JS error shows in a release build) or the
 # screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
 # newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
@@ -330,10 +330,11 @@ mac_shoot() {
 # moves the Duo there without relaunching the app (turning it again if the screen didn't turn), a
 # step opened with ?report=pose keeps the pose the app had as <pose>-<name>-<appearance>.json and its
 # last changes as …-log.json, "pose-burst <pose>" also shoots three frames right as the hinge lands,
-# failures go to notes.txt, and the
-# accessibility tree at the end lands beside the shots.
+# failures go to notes.txt, and the accessibility tree at the end lands beside the shots. A pose whose
+# tests fail, or whose runner never starts, fails the run once every pose has played, naming why.
 mac_tap() {
   local tests=~/$folder/build/uitests taps pose hinge orientation display appearance result line prefs step
+  local failed=() code why
   mac_install "$1"
   prefs=$(xcrun simctl get_app_container "$id" "$bundle" data)/Library/Preferences/$bundle
   taps=$(cat)
@@ -366,7 +367,7 @@ mac_tap() {
       TEST_RUNNER_DUO_TURN=$([ "$DEVICE" != ipad ] || echo "$orientation") \
         TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
-        -collect-test-diagnostics never 2>&1 | { while IFS= read -r line; do
+        -collect-test-diagnostics never 2>&1 | tee "$tests-$pose-$appearance.log" | { while IFS= read -r line; do
         case $line in
           *"duo-line "*)
             [ "${VIDEO:-}" != "$appearance" ] || echo "$(($(ms) - filmed)) ${line##*duo-}" >>"shots/$pose-$appearance-steps.txt"
@@ -411,9 +412,14 @@ mac_tap() {
       done; wait; } &
       # In the background, so a stop isn't held off until the tests end. The tests' own poses moved
       # the hinge there, out of this shell's sight.
-      wait $! || true
+      wait $! || {
+        code=$?
+        why=$(sed -n '/Testing failed:/{n;s/^[[:space:]]*//;p;q;}' "$tests-$pose-$appearance.log" | cut -c1-400)
+        failed+=("$pose $appearance: ${why:-xcodebuild exited $code}")
+      }
       hinge_at=
       [ "${VIDEO:-}" != "$appearance" ] || { kill -INT "$recording" && wait "$recording"; } || true
+      [ -d "$result" ] || continue
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
       jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
         "\(.exportedFileName) \(.suggestedHumanReadableName | sub("_[0-9]+_[0-9A-F-]+.*$"; ""))"' \
@@ -422,6 +428,10 @@ mac_tap() {
       done
     done
   done
+  [ ${#failed[@]} = 0 ] || {
+    printf 'failed in %s\n' "${failed[@]}" | tee -a shots/notes.txt >&2
+    exit 1
+  }
 }
 
 # Moves the Duo from one pose to the next as a hand would, at once: the hinge or the turn, whichever
@@ -570,15 +580,19 @@ shoot() {
   echo "$title" >"$out/done"
 }
 
-# A tap script's line that starts "duo: " or "ipad: " plays only on that device.
+# A tap script's line that starts "duo: " or "ipad: " plays only on that device. Each tap script's
+# shots land in a folder of their own, emptied first, so none is left from an earlier run.
 tap() {
+  local into=${2:-$out/tap/$(basename "${1:-duo-taps}")} status=0
   echo "tapping through $title"
+  rm -rf "$into"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
   fi; } | sed -E -e "s/^$DEVICE: //" -e '/^(duo|ipad): /d' |
     ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime" &
-  wait $!
-  collect "${2:-$out/tap}"
+  wait $! || status=$?
+  collect "$into"
+  [ "$status" = 0 ] || die "the taps failed on $title, see $into/notes.txt"
 }
 
 # Turns each film in $1 into the frames the screen drew in the second after each touch (a tap, swipe
