@@ -59,7 +59,6 @@ export function Detail({
   answered,
   threads,
   missing,
-  width,
   onSteps,
   onAnswer,
   onUndo,
@@ -79,7 +78,6 @@ export function Detail({
   answered: Record<string, string | null>;
   threads: TaskRow[];
   missing: Set<Place>;
-  width: number;
   onSteps: (id: TaskId) => void;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
@@ -103,7 +101,6 @@ export function Detail({
   );
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const door = [task, ...threads].find((one) => one.link);
-  const page = Math.min(width, metrics.readable);
   const tracks = tracksOf(task.name, threads.length ? threads : [task]);
   // The lane ends at now, as of when the page opened.
   const now = useNow(false).getTime();
@@ -120,14 +117,13 @@ export function Detail({
             <YourCall
               asks={asks}
               answered={answered}
-              width={page}
               onAnswer={onAnswer}
               onUndo={onUndo}
               onAgain={onAgain}
               onDismiss={onDismiss}
             />
           ) : null}
-          <Column alignment="start" spacing={0} modifiers={rest(width)}>
+          <Column alignment="start" spacing={0} modifiers={rest()}>
             <Sections follows={asks.length > 0}>
               {needs ? (
                 <Column key="needs" alignment="start" spacing={0}>
@@ -197,7 +193,7 @@ export function Detail({
                       padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
                     ]}
                   >
-                    <Lane tracks={tracks} width={page - 2 * metrics.list.inset} now={now} />
+                    <Lane tracks={tracks} now={now} />
                   </Row>
                 </Column>
               ) : null}
@@ -242,7 +238,6 @@ export function Asked({
   topic,
   asks,
   answered,
-  width,
   door,
   rows,
   onAnswer,
@@ -253,7 +248,6 @@ export function Asked({
   topic: string;
   asks: Ask[];
   answered: Record<string, string | null>;
-  width: number;
   door?: Door;
   rows?: ReactNode[];
   onAnswer: (ask: Ask, option: AskOption) => void;
@@ -263,7 +257,6 @@ export function Asked({
 }) {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
-  const page = Math.min(width, metrics.readable);
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
@@ -277,7 +270,6 @@ export function Asked({
             <YourCall
               asks={asks}
               answered={answered}
-              width={page}
               onAnswer={onAnswer}
               onUndo={onUndo}
               onAgain={onAgain}
@@ -285,7 +277,7 @@ export function Asked({
             />
           ) : null}
           {rows}
-          <Column alignment="start" spacing={0} modifiers={rest(width)} />
+          <Column alignment="start" spacing={0} modifiers={rest()} />
         </List>
       </Faded>
     </Column>
@@ -296,13 +288,11 @@ export function Asked({
 // the pages that proof links to, and the way to the rest of its project.
 export function DonePage({
   finished,
-  width,
   door,
   onOpenLink,
   onOpenProject,
 }: {
   finished: Finished;
-  width: number;
   door?: Door;
   onOpenLink: (tile: Tile) => void;
   onOpenProject?: () => void;
@@ -315,7 +305,7 @@ export function DonePage({
       <Header title={finished.topic} subtitle={`Done · ${at}`} door={door} />
       <Faded>
         <List modifiers={pageList([], {})}>
-          <Column alignment="start" spacing={0} modifiers={rest(width)}>
+          <Column alignment="start" spacing={0} modifiers={rest()}>
             <Row
               alignment="start"
               spacing={metrics.list.gap}
@@ -466,11 +456,7 @@ const readable = [
 ];
 
 // The page's last row, which holds the rest of it and ends clear of the fade.
-const rest = (width: number) => [
-  padding({ bottom: space[10] }),
-  frame({ maxWidth: Infinity }),
-  ...listRow(width),
-];
+const rest = () => [padding({ bottom: space[10] }), frame({ maxWidth: Infinity }), ...listRow()];
 
 // A run's steps. It's `named` by its thread, its app and when, only where that tells it apart from
 // the page it's on; on its own it's the page's, whose name and door the bar already shows.

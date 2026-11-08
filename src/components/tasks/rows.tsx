@@ -21,7 +21,6 @@ import type { Ask, AskOption } from '@/live/asks';
 import {
   PLACES,
   STUCK,
-  fitsOneLine,
   headlineOf,
   problemOf,
   opens,
@@ -39,8 +38,9 @@ import { theme } from '@/theme';
 import { Text, textLook } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
+import { Fits } from '../../../modules/rows';
+
 export type RowActions = {
-  width: number;
   selected?: string | null;
   answered: Record<string, string | null>;
   onOpen: (task: PageId, entry: string) => void;
@@ -53,14 +53,9 @@ export type RowActions = {
   onRead: (id: string) => void;
 };
 
-// The room an ask's choices have under its line.
-const choicesWidth = (width: number) =>
-  width - 2 * metrics.list.inset - metrics.list.mark - metrics.list.gap;
-
 export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[] } & RowActions) {
   const selected = actions.selected === entry.id;
   const swiped = {
-    width: actions.width,
     trail: entry.tiles.filter(opens),
     onTile: actions.onOpenTile,
   };
@@ -73,14 +68,11 @@ export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[
           <Folded
             ask={ask}
             label={said}
-            width={actions.width}
             onUndo={() => actions.onUndo(ask)}
             onAgain={() => actions.onAgain(ask)}
           />
         );
       const pick = ask.options.find((option) => option.pick);
-      const inline =
-        ask.options.length > 0 && fitsOneLine(ask.options, choicesWidth(actions.width));
       return (
         <Swiped
           {...swiped}
@@ -97,12 +89,14 @@ export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[
             label={`${entry.topic} asks: ${ask.question}`}
             onPress={() => actions.onOpen(ask.task, entry.id)}
           >
-            {inline ? (
-              <InlineAnswers
-                ask={ask}
-                onAnswer={actions.onAnswer}
-                modifiers={[padding({ top: space[1] })]}
-              />
+            {ask.options.length > 0 ? (
+              <Fits>
+                <InlineAnswers
+                  ask={ask}
+                  onAnswer={actions.onAnswer}
+                  modifiers={[padding({ top: space[1] })]}
+                />
+              </Fits>
             ) : null}
             {ask.failed ? <Failure text={ask.failed} /> : null}
           </Shell>
@@ -198,14 +192,12 @@ export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[
 type Swipe = { label: string; onPress: () => void };
 
 function Swiped({
-  width,
   lead,
   onAway,
   trail,
   onTile,
   children,
 }: {
-  width: number;
   lead?: Swipe;
   onAway?: () => void;
   trail: Tile[];
@@ -213,7 +205,7 @@ function Swiped({
   children: ReactNode;
 }) {
   return (
-    <SwipeActions modifiers={listRow(width)}>
+    <SwipeActions modifiers={listRow()}>
       {children}
       {lead ? (
         <SwipeActions.Actions edge="leading">
@@ -352,13 +344,11 @@ function Action({ label, onPress }: { label: string; onPress?: () => void }) {
 function Folded({
   ask,
   label,
-  width,
   onUndo,
   onAgain,
 }: {
   ask: Ask;
   label: string;
-  width: number;
   onUndo: () => void;
   onAgain: () => void;
 }) {
@@ -366,7 +356,7 @@ function Folded({
     <Row
       alignment="start"
       spacing={metrics.list.gap}
-      modifiers={[...rowFrame(false), ...listRow(width)]}
+      modifiers={[...rowFrame(false), ...listRow()]}
     >
       <Mark state="done" />
       <Column
@@ -407,13 +397,11 @@ const STAGE_MARK: Record<Stage, MarkState> = {
 export function ProjectRow({
   topic,
   stage,
-  width,
   selected,
   onOpen,
 }: {
   topic: Topic;
   stage: Stage;
-  width: number;
   selected: boolean;
   onOpen: () => void;
 }) {
@@ -434,7 +422,7 @@ export function ProjectRow({
       testID="project-row"
       modifiers={[
         ...rowFrame(selected),
-        ...listRow(width),
+        ...listRow(),
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}
     >

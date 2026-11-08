@@ -21,15 +21,7 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
-export function TopicHead({
-  topic,
-  width,
-  onPress,
-}: {
-  topic: Topic;
-  width: number;
-  onPress?: () => void;
-}) {
+export function TopicHead({ topic, onPress }: { topic: Topic; onPress?: () => void }) {
   return (
     <Row
       alignment="center"
@@ -44,7 +36,7 @@ export function TopicHead({
         }),
         frame({ maxWidth: Infinity }),
         contentShape(shapes.rectangle()),
-        ...listRow(width),
+        ...listRow(),
         ...(onPress ? [accessibilityLabel(`${topic.name}. Opens it`)] : []),
       ]}
     >
@@ -62,7 +54,6 @@ export function TopicHead({
 // Something about the whole list, apart from its projects: a card on the ground with its one
 // action as a pill.
 function Strip({
-  width,
   mark,
   title,
   detail,
@@ -70,7 +61,6 @@ function Strip({
   label,
   onPress,
 }: {
-  width: number;
   mark: 'pick' | 'read';
   title: string;
   detail?: string;
@@ -101,7 +91,7 @@ function Strip({
           top: space[1],
           bottom: space[2],
         }),
-        ...listRow(width),
+        ...listRow(),
         accessibilityElement('combine'),
         accessibilityLabel(label),
       ]}
@@ -130,19 +120,10 @@ function Strip({
   );
 }
 
-export function CheckRow({
-  check,
-  width,
-  onPress,
-}: {
-  check: CheckSummary;
-  width: number;
-  onPress: () => void;
-}) {
+export function CheckRow({ check, onPress }: { check: CheckSummary; onPress: () => void }) {
   const { title, did } = checkLine(check);
   return (
     <Strip
-      width={width}
       mark="read"
       title={title}
       detail={did}
@@ -156,11 +137,9 @@ export function CheckRow({
 // answer it would give.
 export function PicksRow({
   picks,
-  width,
   onTake,
 }: {
   picks: { ask: Ask; option: AskOption }[];
-  width: number;
   onTake: () => void;
 }) {
   const [asking, setAsking] = useState(false);
@@ -174,7 +153,6 @@ export function PicksRow({
     >
       <ConfirmationDialog.Trigger>
         <Strip
-          width={width}
           mark="pick"
           title={`hex picked for ${questions(n)}`}
           action={`Take ${n}`}

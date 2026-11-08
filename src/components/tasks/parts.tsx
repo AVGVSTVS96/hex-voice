@@ -4,7 +4,6 @@ import {
   accessibilityAddTraits,
   accessibilityElement,
   accessibilityLabel,
-  alignmentGuide,
   background,
   clipShape,
   contentShape,
@@ -49,13 +48,11 @@ export type Feel = ReturnType<typeof feel>;
 
 // No inset, fill or line of its own, so the list's ground shows behind it and rows part by the
 // air between them, as Muse's do. Lines part sections, never rows.
-export function listRow(width: number): ModifierConfig[] {
+export function listRow(): ModifierConfig[] {
   return [
     listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
     listRowBackground('transparent'),
     listRowSeparator('hidden'),
-    alignmentGuide('listRowSeparatorLeading', 0),
-    alignmentGuide('listRowSeparatorTrailing', width),
   ];
 }
 
@@ -336,7 +333,7 @@ export function Hairline() {
   );
 }
 
-export function Empty({ text, width }: { text: string; width: number }) {
+export function Empty({ text }: { text: string }) {
   return (
     <Text
       variant="detail"
@@ -344,7 +341,7 @@ export function Empty({ text, width }: { text: string; width: number }) {
       modifiers={[
         padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
-        ...listRow(width),
+        ...listRow(),
       ]}
     >
       {text}
@@ -353,7 +350,7 @@ export function Empty({ text, width }: { text: string; width: number }) {
 }
 
 // Until hex first answers: the system's spinner where the rows will be.
-export function Loading({ width }: { width: number }) {
+export function Loading() {
   return (
     <Row
       alignment="center"
@@ -361,7 +358,7 @@ export function Loading({ width }: { width: number }) {
       modifiers={[
         padding({ top: space[12], bottom: space[12] }),
         frame({ maxWidth: Infinity }),
-        ...listRow(width),
+        ...listRow(),
         accessibilityLabel('Loading'),
       ]}
     >

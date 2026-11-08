@@ -5,7 +5,6 @@ import type * as z from 'zod/mini';
 
 import { Ask, Fresh, Stuck } from '../src/live/asks';
 import {
-  fitsOneLine,
   headlineOf,
   doneIn,
   pageOf,
@@ -415,27 +414,6 @@ test('hex’s picks are the open asks with a pick, never money', () => {
     ['page', 'Later'],
     ['answered', 'Yes'],
   ]);
-});
-
-test('an ask’s choices answer in its row only when every one fits one line of the room it has', () => {
-  const short = [{ label: 'Neon via Vercel', pick: true }, { label: 'Something else' }];
-  const long = [
-    { label: 'Plan B $20/mo' },
-    { label: 'Photon free first' },
-    { label: '2nd Apple ID on Mac' },
-  ];
-  assert.equal(fitsOneLine(short, 330), true);
-  assert.equal(fitsOneLine(long, 330), false);
-  assert.equal(fitsOneLine(long, 700), true);
-  assert.equal(fitsOneLine([{ label: 'Done' }, { label: 'Later' }], 120), true);
-  assert.equal(fitsOneLine([{ label: 'Done' }, { label: 'Later' }], 90), false);
-});
-
-test('a topic’s page measures its answers at its own size', () => {
-  const answers = [{ label: 'Do the prompt change', pick: true }, { label: 'Leave it' }];
-  assert.equal(fitsOneLine(answers, 300), true);
-  assert.equal(fitsOneLine(answers, 300, 17), false);
-  assert.equal(fitsOneLine(answers, 362, 17), true);
 });
 
 const duo = ask('check:duo-order', 'do', {
