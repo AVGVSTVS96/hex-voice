@@ -8,7 +8,7 @@ import {
   type Stage,
   type Words,
 } from '@/call/stage';
-import { metrics, stack, type ToolbarGaps } from '@/ui/tokens';
+import { metrics, space, stack, type ToolbarGaps } from '@/ui/tokens';
 
 import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 
@@ -336,7 +336,7 @@ function besideColumn(
   const buttons = window.height - column.controls.bottom - stack(size);
   const below = TIME + (after ? 12 + metrics.tool : 0);
   // Folded on its side the column is too short for Back and the orb both: the call there is its time.
-  const orb = buttons - tools >= CALL_ORB + 4 + below + 2 * GAP ? CALL_ORB : 0;
+  const orb = buttons - tools >= CALL_ORB + 4 + below + 2 * space[1] ? CALL_ORB : 0;
   const group = (orb && orb + 4) + below;
   const y = (tools + buttons - group) / 2;
   const time = y + (orb && orb + 4);
