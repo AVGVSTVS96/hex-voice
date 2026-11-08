@@ -14,13 +14,9 @@ import { metrics, space, textOf } from '@/ui/tokens';
 
 interface Props {
   call: Call;
-  // A past call on screen, which hides how the last one ended.
   viewing: boolean;
-  // hex's calls, where the one that just ended finds its wrap-up.
   calls: CallSummary[] | undefined;
-  // What an action on this call couldn't do.
   trouble: string | undefined;
-  // Words that start at the leading edge, where the call shares the screen.
   leading: boolean;
   style: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>;
   onLayout: (event: LayoutChangeEvent) => void;
@@ -29,8 +25,6 @@ interface Props {
   children?: ReactNode;
 }
 
-// Under the call: hex's wrap-up and how the last call ended, where a call held elsewhere is, that
-// iOS paused the microphone, what didn't go through, and on the phone the call buttons.
 export const CallFooter = ({
   call,
   viewing,

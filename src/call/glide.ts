@@ -63,21 +63,15 @@ const arcOf = (t: number) => {
 };
 
 interface Glide {
-  // Where it's going: 1 reads the words, 0 rests.
   reading: boolean;
-  // How far down the orb travels from resting to reading (negative goes up), and how far it goes.
   travel: number;
   reach: number;
   reducedMotion: boolean;
-  // A drag crossing the line where letting go changes where it lands.
   onCross: () => void;
   onLand: () => void;
   onRelease: (reading: boolean) => void;
 }
 
-// The orb's glide between resting and reading the words: `progress` runs 0 to 1, a drag past
-// either end stretches on a rubber band, and letting go lands it on the side the drag committed
-// to, or where a flick sends it, at the drag's own speed.
 export const useGlide = ({
   reading,
   travel,
@@ -122,8 +116,6 @@ export const useGlide = ({
     );
   };
 
-  // A drag or a tap has already sent it on its way, so this only moves it when something else
-  // changed what shows, like turning the device or opening a call.
   useEffect(() => {
     const target = reading ? 1 : 0;
 
@@ -178,8 +170,6 @@ export const useGlide = ({
         scheduleOnRN(onRelease, target === 1);
       });
 
-  // How far along its way from resting to reading the orb is (`t`), and its sideways share of that
-  // (`arc`), which starts slow so it drops before it slides. What travels with it uses the same two.
   const glide = (p: number) => {
     'worklet';
     const t = reducedMotion ? snapped(p) : p;

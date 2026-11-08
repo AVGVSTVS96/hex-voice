@@ -1,14 +1,6 @@
 import { move, startAt } from '@/components/tasks/pages';
 import type { Move, Stack, TasksAt } from '@/components/tasks/pages';
 
-// What the call screen has open, in one place, so no two parts of it can disagree. Calls and Tasks
-// come in over the call one at a time (`over`). Settings is a layer: where it has a place of its own
-// (the open Duo, `shared`) it and Tasks take turns in that place like tabs; elsewhere it's a sheet
-// over whatever is open, so opening it leaves Tasks be. `front` stays on the last of the two opened
-// while it closes, so its place fades out. The call's words are pulled down over the orb or not, and
-// show the live call or a past one; on iPhone Duo they can be chosen to sit beside Tasks. Where you
-// are in Tasks is here too (`pages`), so it lasts while the window's size swaps the container
-// showing it, and only an opening starts it afresh.
 export type Over = 'none' | 'calls' | 'tasks';
 
 export type Place = 'tasks' | 'settings';
@@ -121,8 +113,6 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
   }
 };
 
-// What shows: where settings has a place and a fold left something else open with it, settings
-// over Calls shows settings, and settings with Tasks shows the one in front.
 export const shown = (now: Screen, shared: boolean) => {
   const both = shared && now.over === 'tasks' && now.settings;
   const tasks = now.over === 'tasks' && !(both && now.front === 'settings');

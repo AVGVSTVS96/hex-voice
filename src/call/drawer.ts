@@ -13,11 +13,6 @@ import { motion } from '@/motion';
 
 const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 
-// Calls comes in from the leading edge and follows the finger: `drawer` runs 0 (shut) to 1 (open),
-// and letting go settles it open or shut with a flick or past halfway. Whether it's open belongs to
-// the screen: the drawer settles wherever `open` says, and its pans only tell the screen where they
-// let go (`onChange`). They open it from the screen's edge, close it from the list, and close it
-// from the call it peeks over, where a tap closes it too. `out` is whether any of it is in view.
 export const useDrawer = ({
   open,
   width,
@@ -42,18 +37,16 @@ export const useDrawer = ({
     },
   );
 
-  // The spring is critically damped, so it comes to rest without passing its end unless it starts
-  // faster than its natural frequency times the way left. A faster fling is held to that.
   const settle = (now: boolean, velocity = 0) => {
     'worklet';
     target.set(now);
-    const most = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
+    const noOvershoot = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
     drawer.set(
       reducedMotion
         ? withTiming(now ? 1 : 0, motion.reduced)
         : withSpring(now ? 1 : 0, {
             ...motion.drawer,
-            velocity: Math.min(most, Math.max(-most, velocity / width)),
+            velocity: Math.min(noOvershoot, Math.max(-noOvershoot, velocity / width)),
           }),
     );
   };

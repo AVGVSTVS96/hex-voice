@@ -31,15 +31,12 @@ import { CallInterruptions } from '../../modules/call-interruptions';
 
 const Session = createContext<{ session: LiveSession; demo: boolean } | null>(null);
 
-// What you sent the call from here, and how to send it more.
 const Sending = createContext<{
   sent: Sent[];
   send: (call: CallId, at: number, picked: Picked[]) => void;
   retry: (entry: string) => void;
 } | null>(null);
 
-// The call's audio lives above every screen, so moving between them never ends it. A demo session
-// plays a pretend call (src/live/demo-call.ts), starting as the call screen opens.
 export const CallProvider = ({ demo, children }: { demo: boolean; children: ReactNode }) => {
   const [value] = useState(() => ({
     session: demo
@@ -52,8 +49,6 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
 
   useEffect(() => {
     const onAppStateChange = (state: typeof AppState.currentState) => {
-      // Native iOS audio continues while the screen is locked or another app is
-      // open. Only visual updates pause; the microphone keeps its chosen state.
       session.setAppActive(state === 'active');
 
       if (state === 'background' && process.env.EXPO_OS !== 'ios') {
@@ -83,13 +78,12 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
     });
 
     if (outcome.error instanceof Refused && outcome.error.status === 409) {
-      ended();
+      endedBeforeSent();
     }
 
     setSent((now) => settle(now, batch, outcome));
   };
 
-  // What was sent to an earlier call goes as the next call's first one does.
   const send = (call: CallId, at: number, picked: Picked[]) => {
     const batch = batchOf(call, at, picked, newKey());
     setSent((now) => [...now.filter((one) => one.call === call), ...batch]);
@@ -116,8 +110,6 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
   );
 };
 
-// The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
-// /activity), followed word by word until it ends.
 export const useCall = (held: CallId | null) => {
   const { session, demo } = useProvided(Session);
 
@@ -169,12 +161,10 @@ const useProvided = <Value,>(context: Context<Value | null>) => {
   return value;
 };
 
-// The call ended before what you picked could go to it.
-const ended = () => {
+const endedBeforeSent = () => {
   Alert.alert('The call has ended', 'What you picked wasn’t sent.');
 };
 
-// Whether a call on this phone holds the microphone, so nothing else here records sound.
 export const useMicHeld = () => {
   const { session } = useProvided(Session);
 
@@ -187,8 +177,6 @@ export const useMicHeld = () => {
   return isHere(status);
 };
 
-// What you send a call shows in its words at once, going, then sent or why it didn't. It goes to
-// the call on screen when you send it, which may have ended while you picked.
 export const useShare = (call: Call) => {
   const { send } = useProvided(Sending);
   const now = useRef(call);
@@ -201,7 +189,7 @@ export const useShare = (call: Call) => {
     const id = callIdOf(live);
 
     if (live.kind === 'none' || !id) {
-      ended();
+      endedBeforeSent();
 
       return;
     }
@@ -213,11 +201,8 @@ export const useShare = (call: Call) => {
   };
 };
 
-// Sends again what you sent a call that didn't get there.
 export const useRetry = () => useProvided(Sending).retry;
 
-// The call's audio levels, from where they are as the screen first draws, then as they change,
-// outside React's renders.
 export const useLevels = (hear: (levels: Levels) => void) => {
   const { session } = useProvided(Session);
   const take = useEffectEvent(hear);

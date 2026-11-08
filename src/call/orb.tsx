@@ -15,7 +15,6 @@ import type { PersonaProps } from '@/components/persona';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { motion } from '@/motion';
 
-// The orb's face. Only it redraws as hex starts and stops speaking.
 export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaProps, 'state'>) => {
   const [speaking, setSpeaking] = useState(false);
   useLevels(({ output }) => {
@@ -25,8 +24,6 @@ export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaP
   return <Persona {...persona} state={personaOf(call, speaking)} />;
 };
 
-// How the orb's body answers the call: `wake` settles from asleep (0, breathing) to awake (1), and
-// on a live call here `level`, `pitch` and `tone` follow your voice, by `reaction`.
 export const useOrbLife = (
   call: Call,
   { reducedMotion, reaction }: { reducedMotion: boolean; reaction: number },

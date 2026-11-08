@@ -9,7 +9,6 @@ export interface Mic {
   interrupted: boolean;
 }
 
-// What a call leaves on screen once it ends, whether it was here or hex held it elsewhere.
 export interface Ended {
   id?: CallId;
   from: CallSource;
@@ -19,8 +18,6 @@ export interface Ended {
   words: TranscriptEntry[];
 }
 
-// The one call the screen shows. hex holds one call at a time, so a call on this phone and one
-// hex holds elsewhere (a phone call, the web page) never both show; the one here wins.
 export type Call =
   | { kind: 'none'; last?: Ended }
   | {
@@ -99,8 +96,6 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
   };
 };
 
-// The call with what you sent it among its words. One hex holds elsewhere shows each from its own
-// record once that has it, so a sent one shows only until then.
 export const withSent = (call: Call, sent: Sent[]): Call => {
   if (call.kind === 'none') {
     return call;
@@ -108,12 +103,12 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
 
   const id = callIdOf(call);
 
-  const kept = new Set(
+  const inRecord = new Set(
     call.kind === 'elsewhere' ? (call.record.moments ?? []).map((m) => m.media) : [],
   );
 
   const ours = sent.flatMap((one) =>
-    one.call === id && !(one.id && kept.has(one.id)) ? [one.entry] : [],
+    one.call === id && !(one.id && inRecord.has(one.id)) ? [one.entry] : [],
   );
 
   if (!ours.length) {
@@ -123,7 +118,6 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
   return { ...call, words: [...call.words, ...ours].toSorted((a, b) => a.startMs - b.startMs) };
 };
 
-// The call going on now, here or elsewhere; hex names this phone's once it answers.
 export const callIdOf = (call: Call): CallId | undefined => {
   if (call.kind === 'none') {
     return undefined;
@@ -135,12 +129,9 @@ export const callIdOf = (call: Call): CallId | undefined => {
 export const wordsOf = (call: Call) =>
   call.kind === 'none' ? (call.last?.words ?? []) : call.words;
 
-// Where the words have a page of their own, it opens once there's a call or anything to read,
-// and before that the orb rests alone.
 export const showsWords = (call: Call, { viewing, cards }: { viewing: boolean; cards: number }) =>
   viewing || call.kind !== 'none' || wordsOf(call).length > 0 || cards > 0;
 
-// `speaking` is hex's voice on this phone's call, from the audio levels.
 export const personaOf = (call: Call, speaking: boolean): PersonaState => {
   if (call.kind === 'none') {
     return 'idle';
@@ -161,7 +152,6 @@ export const personaOf = (call: Call, speaking: boolean): PersonaState => {
   return call.mic.muted ? 'idle' : 'listening';
 };
 
-// How awake the orb rests: asleep and breathing with no call, half while one connects or ends.
 export const wakeOf = (call: Call) => {
   if (call.kind === 'none') {
     return 0;
@@ -194,10 +184,8 @@ export const statusOf = (call: Call) => {
 
 export type CallButton = 'start' | 'retry' | 'cancel' | 'end' | 'ending';
 
-// With no call there's nothing to mute. A call held elsewhere mutes there, not here.
 export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
 
-// A photo or clip goes to a call once it's live.
 interface Buttons {
   call: CallButton;
   mute: MuteButton;
@@ -235,12 +223,8 @@ const muteOf = (call: Exclude<Call, { kind: 'none' }>): MuteButton => {
   };
 };
 
-// The voice is fixed when a call here starts.
 export const voiceLocked = (call: Call) => call.kind === 'here';
 
-// What the footer says about the call: how the last one ended, with hex's wrap-up under it once
-// hex has written one, where a call held elsewhere is, or that iOS paused the microphone. A past
-// call on screen hides how the last one ended.
 export type Footer =
   | { kind: 'ended'; id?: string; text: string; bad: boolean }
   | { kind: 'elsewhere'; text: string }
