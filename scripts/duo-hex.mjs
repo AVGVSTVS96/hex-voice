@@ -23,28 +23,28 @@ const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOW
 const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 
 // hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
-const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
-const NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
+const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(?:answer|note|dismiss)(?:\?|$)/u;
+const REACHED_NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
 
 const answers = existsSync(DUO_HEX_ANSWERS)
   ? JSON.parse(readFileSync(DUO_HEX_ANSWERS, 'utf-8'))
   : {};
 
-const also = Object.fromEntries(
+const ownAnswers = Object.fromEntries(
   Object.entries(DUO_HEX_ALSO ? JSON.parse(readFileSync(DUO_HEX_ALSO, 'utf-8')) : {}).map(
     ([path, answer]) => [path, JSON.stringify(answer)],
   ),
 );
 
-const sample = {
+const standInJpeg = {
   type: 'image/jpeg',
   body: readFileSync(new URL('duo-media.jpg', import.meta.url)),
 };
 
 const media = new Map();
-const MEDIA = /^\/media(?:\/([^/?]+))?(?:\?|$)/;
+const MEDIA = /^\/media(?:\/(?<id>[^/?]+))?(?:\?|$)/u;
 
-const TYPES = [
+const HEX_MEDIA_TYPES = [
   'image/jpeg',
   'image/png',
   'image/heic',
@@ -56,7 +56,8 @@ const TYPES = [
   'video/quicktime',
 ];
 
-const SENDS_MEDIA = /^\/(calls|tasks)\/[^/?]+\/(media|chat)(\?|$)/;
+const KEPT_AS_SENT = new Set(['image/jpeg', 'image/png']);
+const SENDS_MEDIA = /^\/(?:calls|tasks)\/[^/?]+\/(?:media|chat)(?:\?|$)/u;
 
 const bodyOf = async (request) => {
   const chunks = [];
@@ -69,7 +70,7 @@ const bodyOf = async (request) => {
 };
 
 // The ids a call's or a thread's write names: { media: id } or { media: [ids] }.
-const named = (body) => {
+const mediaIdsNamed = (body) => {
   try {
     const { media: ids } = JSON.parse(body.toString());
 
@@ -85,85 +86,66 @@ const tls = {
   allowHTTP1: true,
 };
 
-createSecureServer(tls, async (request, response) => {
-  const shared = (request.url ?? '').match(MEDIA);
+const keepMedia = async (request, response) => {
+  const body = await bodyOf(request);
+  const type = request.headers['content-type'] ?? '';
 
-  if (shared && request.method === 'POST' && !shared[1]) {
-    const body = await bodyOf(request);
-    const type = request.headers['content-type'] ?? '';
-
-    if (!TYPES.includes(type)) {
-      response.writeHead(415).end(`hex takes ${TYPES.join(', ')}, not ${type || 'no type'}`);
-
-      return;
-    }
-
-    const kind = type.startsWith('video/') ? 'video' : 'photo';
-    const id = `duo-${media.size + 1}`;
-    media.set(id, type === 'image/jpeg' || type === 'image/png' ? { type, body } : sample);
+  if (!HEX_MEDIA_TYPES.includes(type)) {
     response
-      .writeHead(201, { 'content-type': 'application/json' })
-      .end(JSON.stringify({ id, kind }));
+      .writeHead(415)
+      .end(`hex takes ${HEX_MEDIA_TYPES.join(', ')}, not ${type === '' ? 'no type' : type}`);
 
     return;
   }
 
-  if (shared?.[1] && request.method === 'GET') {
-    const { type, body } = media.get(decodeURIComponent(shared[1])) ?? sample;
-    response.writeHead(200, { 'content-type': type }).end(body);
+  const kind = type.startsWith('video/') ? 'video' : 'photo';
+  const id = `duo-${media.size + 1}`;
+  media.set(id, KEPT_AS_SENT.has(type) ? { type, body } : standInJpeg);
+  response.writeHead(201, { 'content-type': 'application/json' }).end(JSON.stringify({ id, kind }));
+};
 
+const giveMedia = (id, response) => {
+  const { type, body } = media.get(decodeURIComponent(id)) ?? standInJpeg;
+  response.writeHead(200, { 'content-type': type }).end(body);
+};
+
+const checkMediaNamed = async (request, response) => {
+  const neverGivenOut = mediaIdsNamed(await bodyOf(request)).filter((id) => !media.has(id));
+
+  if (neverGivenOut.length) {
+    response.writeHead(400).end(`no media ${neverGivenOut.join(', ')}`);
+  } else {
+    response.writeHead(204).end();
+  }
+};
+
+const dropWrite = (request, response) => {
+  request.resume();
+
+  if (SAYS_WHAT_IT_REACHED.test(request.url ?? '')) {
+    response.writeHead(200, { 'content-type': 'application/json' }).end(REACHED_NOTHING);
+  } else {
+    response.writeHead(204).end();
+  }
+};
+
+const replay = (url, response) => {
+  const waitsForChange = url.searchParams.has('after');
+
+  if (waitsForChange) {
     return;
   }
 
-  if (request.method === 'POST' && SENDS_MEDIA.test(request.url ?? '')) {
-    const unknown = named(await bodyOf(request)).filter((id) => !media.has(id));
+  const kept = ownAnswers[url.pathname] ?? answers[url.pathname];
 
-    if (unknown.length) {
-      response.writeHead(400).end(`no media ${unknown.join(', ')}`);
-    } else {
-      response.writeHead(204).end();
-    }
-
-    return;
+  if (kept === undefined) {
+    response.writeHead(404).end();
+  } else {
+    response.writeHead(200, { 'content-type': 'application/json' }).end(kept);
   }
+};
 
-  if (request.method !== 'GET') {
-    request.resume();
-
-    if (SAYS_WHAT_IT_REACHED.test(request.url ?? '')) {
-      response.writeHead(200, { 'content-type': 'application/json' }).end(NOTHING);
-    } else {
-      response.writeHead(204).end();
-    }
-
-    return;
-  }
-
-  if (DUO_HEX_DOWN && existsSync(DUO_HEX_DOWN)) {
-    request.socket.destroy();
-
-    return;
-  }
-
-  const url = new URL(request.url, 'http://hex');
-  const watch = url.searchParams.has('after');
-
-  if (DUO_HEX_REPLAY) {
-    if (watch) {
-      return;
-    }
-
-    const kept = also[url.pathname] ?? answers[url.pathname];
-
-    if (kept === undefined) {
-      response.writeHead(404).end();
-    } else {
-      response.writeHead(200, { 'content-type': 'application/json' }).end(kept);
-    }
-
-    return;
-  }
-
+const forward = async (request, url, response) => {
   try {
     const upstream = await fetch(EXPO_PUBLIC_HEX_URL + request.url, {
       headers: { authorization: `Bearer ${EXPO_PUBLIC_HEX_TOKEN}` },
@@ -175,11 +157,59 @@ createSecureServer(tls, async (request, response) => {
     });
     response.end(body);
 
-    if (upstream.ok && !watch) {
+    if (upstream.ok && !url.searchParams.has('after')) {
       answers[url.pathname] = body.toString();
       writeFileSync(DUO_HEX_ANSWERS, JSON.stringify(answers));
     }
   } catch {
     response.writeHead(502).end();
   }
+};
+
+const respond = async (request, response) => {
+  const mediaPath = MEDIA.exec(request.url ?? '')?.groups;
+
+  if (mediaPath && request.method === 'POST' && !mediaPath.id) {
+    await keepMedia(request, response);
+
+    return;
+  }
+
+  if (mediaPath?.id && request.method === 'GET') {
+    giveMedia(mediaPath.id, response);
+
+    return;
+  }
+
+  if (request.method === 'POST' && SENDS_MEDIA.test(request.url ?? '')) {
+    await checkMediaNamed(request, response);
+
+    return;
+  }
+
+  if (request.method !== 'GET') {
+    dropWrite(request, response);
+
+    return;
+  }
+
+  if (DUO_HEX_DOWN && existsSync(DUO_HEX_DOWN)) {
+    request.socket.destroy();
+
+    return;
+  }
+
+  const url = new URL(request.url, 'http://hex');
+
+  if (DUO_HEX_REPLAY) {
+    replay(url, response);
+
+    return;
+  }
+
+  await forward(request, url, response);
+};
+
+createSecureServer(tls, (request, response) => {
+  void respond(request, response);
 }).listen(Number(DUO_HEX_PORT), '127.0.0.1');
