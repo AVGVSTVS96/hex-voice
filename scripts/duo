@@ -190,7 +190,6 @@ mac_simulator() {
       "$approvals" >/dev/null
   }
   xcrun simctl bootstatus "$id" -b >/dev/null
-  rm -f build/hinge
   xcrun simctl status_bar "$id" clear
   [ build/devicehub -nt harness/devicehub.c ] || {
     mkdir -p build
@@ -203,16 +202,15 @@ mac_simulator() {
 hub() { xcrun simctl spawn "$id" "$PWD/build/devicehub" "$@" </dev/null; }
 
 # Opens the Duo to a pose: the hinge only moves when it changes, since that takes a few seconds, and
-# sweeps from where it is (kept in build/hinge since the simulator booted), never through the closed Duo.
+# sweeps from where this shell last set it (hinge_at), never through the closed Duo. The simulator
+# can't say where its hinge is, so until this shell has set it, it goes straight to the pose.
 place() {
-  local at
   pose_of "$1"
-  at=$(cat build/hinge 2>/dev/null || true)
-  [ -z "$hinge" ] || [ "$hinge" = "$at" ] || {
-    hub hinge "$hinge" ${at:+"$at"}
+  [ -z "$hinge" ] || [ "$hinge" = "${hinge_at:-}" ] || {
+    hub hinge "$hinge" ${hinge_at:+"$hinge_at"}
     [ -z "${burst:-}" ] || shoot_burst
     sleep 3
-    echo "$hinge" >build/hinge
+    hinge_at=$hinge
   }
   hub orientation "$orientation"
   sleep 1
@@ -405,8 +403,10 @@ mac_tap() {
           *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
       done; wait; } &
-      # In the background, so a stop isn't held off until the tests end.
+      # In the background, so a stop isn't held off until the tests end. The tests' own poses moved
+      # the hinge there, out of this shell's sight.
       wait $! || true
+      hinge_at=
       [ "${VIDEO:-}" != "$appearance" ] || { kill -INT "$recording" && wait "$recording"; } || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
       jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
@@ -428,7 +428,7 @@ move() {
   pose_of "$2"
   [ "${from%:*}" = "$hinge" ] || hub hinge "$hinge" "${from%:*}"
   [ "${from#*:}" = "$orientation" ] || { hub orientation "$orientation" && sleep 1 && hub orientation "$orientation"; }
-  echo "$hinge" >build/hinge
+  hinge_at=$hinge
 }
 
 # Films each state it reads moving through FOLDS from cover-up, once filming the open screen and

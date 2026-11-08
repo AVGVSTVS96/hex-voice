@@ -49,9 +49,9 @@ static void hinge(double degrees) {
 int main(int argc, char **argv) {
     client = IOHIDEventSystemClientCreateWithType(NULL, 4, NULL);
     if (argc >= 3 && !strcmp(argv[1], "hinge") && client) {
-        // Sweeps from the angle the hinge is at, when given; a sweep from the far side passes through
-        // the closed Duo, which moves the app to the cover for a moment.
-        double to = fmin(fmax(atof(argv[2]), 0), 180), from = argc >= 4 ? fmin(fmax(atof(argv[3]), 0), 180) : 180 - to;
+        // Sweeps from the angle the hinge is at, when given, and otherwise goes straight to `to`: a
+        // sweep from the wrong side passes through the closed Duo, which moves the app to the cover.
+        double to = fmin(fmax(atof(argv[2]), 0), 180), from = argc >= 4 ? fmin(fmax(atof(argv[3]), 0), 180) : to;
         for (int step = 1; step <= 36; step++) {
             double t = step / 36.0;
             hinge(from + (to - from) * (1 - pow(1 - t, 3)));
