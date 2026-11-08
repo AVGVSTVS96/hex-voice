@@ -296,7 +296,6 @@ function Shots({ ask }: { ask: Ask }) {
       height={metrics.shot}
       gap={space[2]}
       radius={radius.inner}
-      size={type.caption.fontSize}
       secondary={theme.secondary}
       surface={theme.fill}
       edge={theme.edge}

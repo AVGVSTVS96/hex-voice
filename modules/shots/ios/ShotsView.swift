@@ -13,11 +13,10 @@ final class ShotsProps: UIBaseViewProps {
   @Field var labels: [String] = []
   // What reading a screenshot from hex takes, its token.
   @Field var headers: [String: String] = [:]
-  // The most a screenshot stands, the gap between two, their corners and the expand mark's size.
+  // The most a screenshot stands, the gap between two and their corners.
   @Field var height: CGFloat = 200
   @Field var gap: CGFloat = 8
   @Field var radius: CGFloat = 12
-  @Field var size: CGFloat = 13
   @Field var secondary: Color = .secondary
   @Field var surface: Color = .gray
   @Field var edge: Color = .gray
@@ -58,14 +57,6 @@ struct ShotsView: ExpoSwiftUI.View {
         } else {
           ProgressView()
         }
-      }
-      .overlay(alignment: .topTrailing) {
-        Image(systemName: "arrow.up.left.and.arrow.down.right")
-          .font(.system(size: props.size * 0.75, weight: .semibold))
-          .foregroundStyle(.primary)
-          .padding(props.gap * 0.75)
-          .background(.ultraThinMaterial, in: Circle())
-          .padding(props.gap * 0.75)
       }
       .clipShape(corner)
       .overlay(corner.strokeBorder(props.edge, lineWidth: 1 / scale))
