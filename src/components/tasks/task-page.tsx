@@ -26,7 +26,15 @@ import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import { useNow } from '@/hooks/use-now';
 import type { Ask, AskOption } from '@/live/asks';
 import { Lane } from '@/components/tasks/lane';
-import { placeOf, proofLinks, proofWords, tracksOf, type Place, type Tile } from '@/live/inbox';
+import {
+  placeOf,
+  proofLinks,
+  proofSays,
+  proofWords,
+  tracksOf,
+  type Place,
+  type Tile,
+} from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
@@ -299,7 +307,7 @@ export function DonePage({
   onOpenLink: (tile: Tile) => void;
   onOpenProject?: () => void;
 }) {
-  const proof = proofWords(finished.proof);
+  const says = proofSays(finished.proof);
   const links = proofLinks(finished.proof);
   const at = clock(new Date(finished.at));
   return (
@@ -330,35 +338,40 @@ export function DonePage({
                 {finished.title}
               </Text>
             </Row>
-            {proof ? (
+            {says || links.length ? (
               <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
                 <SectionHead title="Proof" />
-                <Text
-                  paragraph
-                  variant="detail"
-                  tone="secondary"
-                  modifiers={[
-                    padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                  ]}
-                >
-                  {proof}
-                </Text>
-              </Column>
-            ) : null}
-            {links.length ? (
-              <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-                <SectionHead title="Links" count={links.length} />
-                {links.map((link) => (
-                  <Way
-                    key={link.url}
-                    lead={<TileIcon tile={link} size={metrics.list.tile} />}
-                    title={link.label}
-                    note={link.url.replace(/^https?:\/\//, '')}
-                    out
-                    onPress={() => onOpenLink(link)}
-                  />
-                ))}
+                {says ? (
+                  <Text
+                    paragraph
+                    variant="detail"
+                    tone="secondary"
+                    modifiers={[
+                      padding({
+                        leading: metrics.list.inset,
+                        trailing: metrics.list.inset,
+                        bottom: space[2],
+                      }),
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    ]}
+                  >
+                    {proofWords(finished.proof)}
+                  </Text>
+                ) : null}
+                {links.map((link) => {
+                  const url =
+                    link.kind === 'link' ? link.url : link.kind === 'app' ? link.link : '';
+                  return (
+                    <Way
+                      key={url}
+                      lead={<TileIcon tile={link} size={metrics.list.tile} />}
+                      title={link.label}
+                      note={url?.replace(/^https?:\/\//, '') ?? ''}
+                      out
+                      onPress={() => onOpenLink(link)}
+                    />
+                  );
+                })}
               </Column>
             ) : null}
             {onOpenProject ? (

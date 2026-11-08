@@ -127,10 +127,17 @@ const urlOf = (found: string) => {
 export const proofWords = (proof: string) =>
   proof.replace(LINKS, (found) => linkName(urlOf(found))).trim();
 
-// Each page a proof links to, once.
-export function proofLinks(proof: string): Extract<Tile, { kind: 'link' }>[] {
+// Whether a proof says anything besides its links.
+export const proofSays = (proof: string) => /\w/.test(proof.replace(LINKS, ''));
+
+// Each page a proof links to, once: a Telegram message as Telegram's, any other as the web's.
+export function proofLinks(proof: string): Tile[] {
   const urls = [...new Set((proof.match(LINKS) ?? []).map(urlOf))];
-  return urls.map((url) => ({ kind: 'link', label: linkName(url), url }));
+  return urls.map((url) =>
+    url.startsWith('https://t.me/')
+      ? { kind: 'app', place: 'telegram', label: linkName(url), link: url }
+      : { kind: 'link', label: linkName(url), url },
+  );
 }
 
 // The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic

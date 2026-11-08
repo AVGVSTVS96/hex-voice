@@ -10,6 +10,7 @@ import {
   doneIn,
   pageOf,
   proofLinks,
+  proofSays,
   taskIn,
   topicIn,
   inboxEntries,
@@ -646,9 +647,22 @@ test('a proof reads with each link by its name', () => {
   assert.equal(proofWords('telegram:-1001234567890:7350'), 'message 7350');
   assert.deepEqual(
     proofLinks('telegram:-1001234567890:7350, and again telegram:-1001234567890:7350'),
-    [{ kind: 'link', label: 'message 7350', url: 'https://t.me/c/1234567890/7350' }],
+    [
+      {
+        kind: 'app',
+        place: 'telegram',
+        label: 'message 7350',
+        link: 'https://t.me/c/1234567890/7350',
+      },
+    ],
   );
   assert.deepEqual(proofLinks('telegram:123456789:12 in the DM'), []);
+  assert.equal(proofSays('telegram:-1001234567890:7350'), false);
+  assert.equal(
+    proofSays('https://github.com/AVGVSTVS96/hex/pull/184, https://seqno.vercel.app/app/'),
+    false,
+  );
+  assert.equal(proofSays('PR https://github.com/AVGVSTVS96/hex/pull/184 live'), true);
   const [entry] = stream({
     finished: [done('t-6', 'autofork', at(9), { proof: 'https://autofork.com; npm' })],
   });
