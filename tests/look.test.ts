@@ -16,7 +16,7 @@ const files = (dir: string): string[] =>
 
 // Files still drawing with numbers of their own, until each moves onto the tokens. This list only
 // shrinks.
-const unmigrated = new Set(['src/components/tasks/tasks-view.tsx', 'src/screens/duo-tasks.tsx']);
+const unmigrated = new Set(['src/components/tasks/tasks-view.tsx']);
 
 // The Live Activity runs as a string in the widget extension, where the tokens don't exist.
 const widget = 'src/live/call-activity.tsx';

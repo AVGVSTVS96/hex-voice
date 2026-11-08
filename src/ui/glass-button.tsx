@@ -18,7 +18,7 @@ import { theme } from '@/theme';
 import { Host } from '@/ui/host';
 import { metrics, type GlassSize } from '@/ui/tokens';
 
-const symbols = {
+export const SYMBOLS = {
   back: 'chevron.left',
   settings: 'slider.horizontal.3',
   transcript: 'text.bubble',
@@ -34,7 +34,7 @@ const symbols = {
 } as const;
 
 type Props = {
-  icon: keyof typeof symbols;
+  icon: keyof typeof SYMBOLS;
   label: string;
   onPress: () => void;
   testID: string;
@@ -95,7 +95,7 @@ export function GlassButton({
         <ProgressView modifiers={[tint(color), ...look]} />
       ) : (
         <Image
-          systemName={symbols[icon]}
+          systemName={SYMBOLS[icon]}
           size={metrics.symbol[prominent ? 'prominent' : 'regular']}
           color={color}
           modifiers={[stroke(metrics.symbol[prominent ? 'prominent' : 'regular']), ...look]}
@@ -115,7 +115,7 @@ export function GlassMenu({
     <Menu
       label={
         <Image
-          systemName={symbols[icon]}
+          systemName={SYMBOLS[icon]}
           size={metrics.symbol.regular}
           color={theme.text}
           modifiers={[stroke(metrics.symbol.regular), ...face('tool', false)]}

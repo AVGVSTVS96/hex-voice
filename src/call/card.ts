@@ -1,5 +1,5 @@
 import type { Layout } from '@/screens/layout';
-import { metrics, radius } from '@/ui/tokens';
+import { radius } from '@/ui/tokens';
 
 // The call is a card, and Calls and Tasks only move it. Calls takes its leading edge up to where
 // Calls ends, or slides it aside, and its top too where Calls starts below a band; Tasks takes its
@@ -34,25 +34,4 @@ export function cardOf(
     lined: top > 0 || slid > 0,
     stage: { top: -top, left: content.x + slid - left },
   };
-}
-
-// The least a bar across the top holds: Calls, then Tasks and settings.
-const BAR = 3 * metrics.tool + 2 * metrics.toolbar.row;
-
-// Where a bar across the top runs, from the window's left and right. It spans the card's top edge as
-// it is with Tasks open, open or not, so opening or closing Tasks never moves a button: beside a
-// pane, Tasks and settings keep to the room the call has left either way. Calls still carries it,
-// unless Calls starts below it and leaves the band whole, and where Calls takes so much that Tasks'
-// room can't hold it, it runs on past that room. It takes no `pane`, so it can't follow Tasks.
-export function barOf(
-  layout: Pick<Layout, 'calls' | 'tasks' | 'content' | 'toolbar'>,
-  window: number,
-  drawer: number,
-) {
-  'worklet';
-  const { toolbar, calls } = layout;
-  const card = cardOf(layout, calls.below === undefined ? drawer : 0, 1, layout.tasks.width);
-  const left = toolbar.x + card.left;
-  const end = Math.max(toolbar.x + toolbar.width - card.right, left + BAR);
-  return { left, right: window - end };
 }

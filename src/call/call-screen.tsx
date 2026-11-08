@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,12 +10,11 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { barOf, cardOf } from '@/call/card';
+import { cardOf } from '@/call/card';
 import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
@@ -28,7 +27,6 @@ import { CallControls } from '@/components/call-controls';
 import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
-import { ScreenToolbar } from '@/components/screen-toolbar';
 import { ToolbarBackProvider, useToolbarBacks } from '@/components/toolbar-back';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
@@ -44,7 +42,6 @@ import { useAppUpdates } from '@/hooks/use-app-updates';
 import { useCalls, usePastCall } from '@/hooks/use-calls';
 import { failure } from '@/hooks/use-failures';
 import { useEscape } from '@/hooks/use-escape';
-import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts, type Counts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
@@ -55,10 +52,9 @@ import type { TaskRow } from '@/live/tasks';
 import type { CallAbout } from '@/live/types';
 import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
+import { Bars } from '@/screens/bars';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout, type Layout } from '@/screens/layout';
-import { SideColumn } from '@/screens/side-column';
-import { logPose } from '@/screens/pose-log';
+import { screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
 import { hairline, theme } from '@/theme';
 import { AnimatedView } from '@/ui/animated-view';
@@ -129,7 +125,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const [listed, setListed] = useState<Counts>();
   const counts = useTaskCounts(listed);
   const { insets, size: screen } = room;
-  const { width, height } = screen;
+  const { height } = screen;
   // What the words show. Where the layout pulls the words down over the orb, they show once pulled;
   // everywhere else they take their own page once there's a call or words to show, and before that
   // the orb rests alone in the middle. Opening a past call pulls them, and letting them go goes back
@@ -240,9 +236,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     restScale.set(settle(rest.scale));
     footerHeight.set(settle(footer));
   }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
-  // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
-  // the voice, with the call's time by it; tapping it closes Tasks for the call.
-  const { docked, dock, covers, aside } = duoTasks;
+  const { covers, aside } = duoTasks;
   // Where the call's words and the lines under them go when they take the page before the fold.
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
@@ -250,13 +244,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     send({ to: 'tasks', open: false });
   };
   useEscape(tasksOpen ? closeTasks : undefined);
-  const now = useNow(docked && call.kind === 'elsewhere');
-  const callSeconds =
-    call.kind === 'here'
-      ? call.seconds
-      : call.kind === 'elsewhere'
-        ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
-        : 0;
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
   const { progress, glideTo, drag, glide } = useGlide({
@@ -277,15 +264,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // into its place. Tapping the orb comes back to it: from the words on the phone, from a past call
   // beside it.
   const orbGesture = Gesture.Race(
-    drag().enabled(pulls && reading && !docked),
+    drag().enabled(pulls && reading),
     Gesture.Tap()
-      .enabled(docked || (pulls ? reading : viewing !== null))
+      .enabled(pulls ? reading : viewing !== null)
       .onEnd(() => {
         'worklet';
-        if (docked) {
-          scheduleOnRN(closeTasks);
-          return;
-        }
         if (!pulls) {
           scheduleOnRN(showCall, null);
           return;
@@ -369,10 +352,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     'worklet';
     return { opacity: Math.min(1, pane.get() * 4) };
   };
-  // The bar sits in the window, and never moves for Tasks. Down iPhone Duo's side it's laid out
-  // natively in the column (SideColumn); across the top Bar places it by barOf, which only Calls
-  // moves.
-  const { toolbar } = layout;
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
   // style only for the shared values it reads directly, not ones a helper worklet reads for it.
@@ -429,12 +408,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         (before.width - words.width) * a,
     };
   });
-  const controlsAt =
-    layout.controls !== 'inline' && 'center' in layout.controls
-      ? layout.controls.center
-      : undefined;
-  const controlsColumn =
-    layout.controls !== 'inline' && 'axis' in layout.controls ? layout.controls : undefined;
+  const controlsAt = typeof layout.controls === 'object' ? layout.controls.center : undefined;
   const rail = layout.inbox;
   const controlsPlace = () => {
     'worklet';
@@ -485,16 +459,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       at = toward(at, calls.y, tasks.y, beside.d, beside.t);
       visual = toward(visual, calls.size, tasks.size, beside.d, beside.t);
     }
-    let shown = 1;
-    if (duo) {
-      const k = dock.get();
-      const spot = duo.call.orb;
-      x += (spot.x - layout.content.x - x) * k;
-      at += (spot.y - at) * k;
-      visual += (spot.size - visual) * k;
-      const under = uncovered(covers.get());
-      shown = under + (1 - under) * k;
-    }
+    const shown = duo ? uncovered(covers.get()) : 1;
     visual *= 1 + 0.025 * breath.get();
     return {
       opacity:
@@ -617,31 +582,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     mute: !inboxShown,
     onMute,
     onPrimary: onPrimaryPress,
-    ...(controlsColumn && { axis: controlsColumn.axis, size: controlsColumn.size }),
   };
   const controls = <CallControls {...buttons} />;
-  // On iPhone Duo the way back is the toolbar's: the one of whatever is in front.
+  // On iPhone Duo the way back is the bar's: the one of whatever is in front.
   const { backs, publish } = useToolbarBacks();
   const back = settingsOpen ? backs.settings : tasksOpen ? backs.tasks : backs.call;
-  const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
-    <ScreenToolbar
-      onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
-      axis={toolbar.axis}
-      gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
-      style={style}
-      callsOpen={callsOpen}
-      tasks={{ ...counts, open: tasksOpen }}
-      settingsOpen={settingsOpen}
-      holdsBack={!!duo}
-      back={back}
-      onCalls={toggleDrawer}
-      onTasks={toggleTasks}
-      onSettings={() => send({ to: 'settings', open: !settingsOpen })}
-    />
-  );
-  // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
-  // whether Tasks is open or not.
-  const inRow = !!duo?.call.controls;
   const sidebar = (
     <GestureDetector gesture={listClose}>
       <Animated.View
@@ -780,7 +725,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                 <Animated.View
                   accessible
                   accessibilityLabel={status}
-                  accessibilityHint={docked ? 'Closes Tasks for the call' : undefined}
                   style={[styles.orb, { width: size, height: size }, orbStyle]}
                 >
                   <CallPersona
@@ -805,7 +749,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             onOpen={showCall}
             onMore={() => openTasks({ stage: 'needs' })}
           >
-            {layout.controls === 'inline' && !inRow && controls}
+            {layout.controls === 'inline' && controls}
           </CallFooter>
           <AnimatedPressable
             pointerEvents={agent ? 'auto' : 'none'}
@@ -849,8 +793,6 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
           shown={!shared || scene.front === 'tasks'}
-          onCall={onCall}
-          seconds={callSeconds}
           pane={pane}
         />
       )}
@@ -872,47 +814,27 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         personaEnabled={personaLoaded}
         preferences={preferences}
       />
-      {duo?.call.controls && inRow ? (
-        <CallControls
-          {...buttons}
-          size="tool"
-          style={{
-            position: 'absolute',
-            right: duo.call.controls.right,
-            top: duo.call.controls.top,
-          }}
-        />
-      ) : null}
-      {layout.column ? (
-        <SideColumn
-          column={layout.column}
-          tools={screenToolbar({ position: 'relative' })}
-          controls={buttons}
-        />
-      ) : (
-        <Bar layout={layout} width={width} drawer={drawer} toolbar={screenToolbar} />
-      )}
+      <Bars
+        back={duo ? back : undefined}
+        calls={{ open: callsOpen, onPress: toggleDrawer }}
+        tasks={{ ...counts, open: tasksOpen, onPress: toggleTasks }}
+        settings={{
+          open: settingsOpen,
+          onPress: () => send({ to: 'settings', open: !settingsOpen }),
+        }}
+        call={duo && buttons}
+        beside={
+          duoTasks.offered
+            ? {
+                open: duoTasks.beside,
+                onPress: duoTasks.toggleBeside,
+                stacks: !!duo?.beside && duo.beside.tasks.area.y > duo.tasks.area.y,
+              }
+            : undefined
+        }
+      />
     </ToolbarBackProvider>
   );
-}
-
-// The toolbar across the top, following the call's card as Calls slides. Its style is made as it
-// mounts: Reanimated starts each view at the value a style had when it was first made, so a style
-// made at launch would show iPhone Duo's band, which mounts when it turns on its side, at the
-// column's old place until something next moved it.
-function Bar({
-  layout,
-  width,
-  drawer,
-  toolbar,
-}: {
-  layout: Layout;
-  width: number;
-  drawer: SharedValue<number>;
-  toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactNode;
-}) {
-  const style = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
-  return toolbar([{ top: layout.toolbar.y }, style]);
 }
 
 // The call you just hung up on is at the top of Calls before hex's copy arrives.

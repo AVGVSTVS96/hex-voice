@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import LiveScreen from '@/call/call-screen';
 import { STAGES } from '@/live/inbox';
@@ -33,9 +34,10 @@ export default function Index() {
       }}
     />
   );
+  // The screen's own safe area, which keeps clear of its bars too, not the window's.
   return split === 'first' || split === 'second' ? (
     <SplitView side={split}>{screen}</SplitView>
   ) : (
-    screen
+    <SafeAreaProvider>{screen}</SafeAreaProvider>
   );
 }

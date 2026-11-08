@@ -1,4 +1,4 @@
-import { breakpoint, metrics, stack, type ControlsSize } from '@/ui/tokens';
+import { breakpoint, metrics, stack } from '@/ui/tokens';
 
 import type { Fold } from '@/screens/window';
 
@@ -23,24 +23,16 @@ type Place = { x: number; y: number };
 type Spot = Place & { size?: number };
 type Span = { x: number; width: number };
 export type Words = Span & { top: number };
-export type ColumnControls = {
-  right: number;
-  bottom: number;
-  axis: 'row' | 'column';
-  size?: ControlsSize;
-};
 
 // The room the call stage lays out in, as the screen gives it: its size, the window's safe area
-// along its top and foot, how far down it a bar across the top reaches (none where the bar runs
-// down the side), the fold across it in its own coordinates, where its call buttons sit when
-// they're out in a side column, and whether its width is regular.
+// along its top and foot (the system's bars included), the fold across it in its own coordinates,
+// whether its call buttons are out in the system's bar, and whether its width is regular.
 export type Box = {
   width: number;
   height: number;
   safe: { top: number; bottom: number };
-  bar: number;
   fold?: Fold;
-  controls?: ColumnControls;
+  inBar?: boolean;
   regular: boolean;
 };
 
@@ -62,10 +54,10 @@ export type Beside<T> = { open: T; calls: T; tasks: T };
 // (single), and everywhere else they have a place of their own and always show.
 export type Stage = {
   kind: 'single' | 'split' | 'stacked';
-  // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
-  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
-  // `rest` under the orb while it rests alone.
-  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
+  // Inline, the call buttons close the footer as on the phone; on iPhone Duo they're in the system's
+  // bar; on iPad they're centered at `center`, moving with the room a pane leaves, and at `rest`
+  // under the orb while it rests alone.
+  controls: 'inline' | 'bar' | { center: Beside<Place> & { rest: Place } };
   // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
   // when the words show: docked small in the corner, or at full size on its own page. On iPad it
   // docks just before the call buttons' stack in the room a pane leaves (`dock`), never covered or
@@ -95,15 +87,15 @@ export type Stage = {
 
 export function stageLayout(box: Box): Stage {
   const { fold } = box;
-  if (box.regular && !fold && !box.controls) return pad(box);
+  if (box.regular && !fold && !box.inBar) return pad(box);
   if (fold && 'y' in fold) return stacked(box, fold.y);
   if (box.regular && box.width > box.height) return split(box, fold?.x);
   return single(box);
 }
 
-// Where the content starts: under the status items, and under a bar across the top.
-export function topOf({ safe, bar }: Box) {
-  return Math.max(safe.top, bar);
+// Where the content starts: under the status items and any bar across the top.
+export function topOf({ safe }: Box) {
+  return safe.top;
 }
 
 // How far the footer keeps above the box's foot, clear of the home indicator.
@@ -112,7 +104,7 @@ export function footOf({ safe }: Box) {
 }
 
 function single(box: Box): Stage {
-  const { width: across, height, safe, controls } = box;
+  const { width: across, height, safe, inBar } = box;
   const top = topOf(box);
   const bottomInset = footOf(box);
   const center = across / 2;
@@ -129,7 +121,7 @@ function single(box: Box): Stage {
     tasks: { width: TASKS, place: 'sheet' as const },
     pulls: true,
   };
-  if (!controls) {
+  if (!inBar) {
     const top12 = { ...words, top: top + 12 };
     return {
       ...shared,
@@ -151,13 +143,13 @@ function single(box: Box): Stage {
       calls: { width: Math.min(across - PEEK, SIDEBAR), place: 'slide' },
     };
   }
-  // With the buttons in the side column, the docked orb takes the content's bottom corner and the
-  // footer sits above it.
+  // With the buttons in the bar, the docked orb takes the content's bottom corner and the footer
+  // sits above it.
   const dock = height - safe.bottom - 8 - metrics.docked / 2;
   const below = { ...words, top: safe.top + 72 };
   return {
     ...shared,
-    controls,
+    controls: 'bar',
     orb: {
       size,
       rest: { x: center, y: (safe.top + height - safe.bottom) / 2 },
@@ -185,7 +177,7 @@ function pad(box: Box): Stage {
   const landscape = width > height;
   const size = Math.round(Math.min(width, height) * 0.32);
   const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
-  const below = box.bar;
+  const below = topOf(box);
   const foot = height - bottomInset - metrics.call / 2;
   const agentLow = bottomInset;
   const agentHigh = bottomInset + metrics.call + 14;
@@ -288,17 +280,17 @@ function measure(from: number, to: number): Span {
 
 // iPhone Duo open: the orb on the page before the fold at `fold`, the words on the page after it.
 function split(box: Box, fold?: number): Stage {
-  const { width: across, height, safe, controls } = box;
+  const { width: across, height, safe, inBar } = box;
   const bottomInset = footOf(box);
   const pane = fold ?? across / 2;
   const page = fold === undefined ? pane : fold + OFF_FOLD;
   const right = across - metrics.gutter;
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
-  const agentBottom = controls ? safe.bottom : bottomInset + metrics.call + 14;
-  const top = controls ? safe.top + 72 : box.bar + 16;
+  const agentBottom = inBar ? safe.bottom : bottomInset + metrics.call + 14;
+  const top = inBar ? safe.top + 72 : safe.top + 16;
   return {
     kind: 'split',
-    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
+    controls: inBar ? 'bar' : 'inline',
     orb: {
       size: Math.min(pane * 0.62, height * 0.42, 300),
       rest: { x: across / 2, y: height / 2 },

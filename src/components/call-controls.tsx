@@ -17,7 +17,7 @@ type Props = {
   onPrimary: () => void;
 };
 
-const PRIMARY: Record<
+export const PRIMARY: Record<
   CallButton,
   { icon: 'close' | 'waveform'; label: string; loading?: true; off?: true }
 > = {

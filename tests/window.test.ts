@@ -231,12 +231,6 @@ test('in Split View each app lays out as one page in the window it has, as the D
     assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
     for (const span of [layout.words, layout.footer, layout.agent])
       assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
-    assert.ok(layout.toolbar.y >= 0 && layout.toolbar.x >= 0, `${side}: the toolbar is on screen`);
-    assert.ok(
-      layout.toolbar.x + (layout.toolbar.axis === 'row' ? layout.toolbar.width : 48) <=
-        window.width,
-      `${side}: the toolbar ends inside the window`,
-    );
   }
 });
 
