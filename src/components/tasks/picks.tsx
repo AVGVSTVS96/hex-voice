@@ -210,9 +210,9 @@ function AnswerTag({ choice }: { choice: Choice }) {
   );
 }
 
-// One question in full, read top to bottom: what it is, why hex picks its answer, every answer with
-// what it does and gives up, and the thread's own words. Choosing an answer here sets the one
-// "Answer" sends; nothing is sent from this page.
+// One question in full, read top to bottom: the question, why hex picks its answer, every answer
+// with what it does and gives up, then what it's about and the thread's own words. Choosing an
+// answer here sets the one "Answer" sends; nothing is sent from this page.
 export function PickPage({ picked, choices }: { picked?: Picked; choices: PickChoices }) {
   if (!picked)
     return (
@@ -255,11 +255,6 @@ export function PickPage({ picked, choices }: { picked?: Picked; choices: PickCh
               <Text variant="title" paragraph modifiers={wraps}>
                 {ask.question}
               </Text>
-              {ask.context ? (
-                <Text variant="body" tone="secondary" paragraph modifiers={wraps}>
-                  {ask.context}
-                </Text>
-              ) : null}
             </Column>
             {ask.why && hexs ? (
               <Column
@@ -308,6 +303,27 @@ export function PickPage({ picked, choices }: { picked?: Picked; choices: PickCh
                 onPress={() => choices.choose(ask.id, 'later')}
               />
             </Column>
+            {ask.context ? (
+              <Column
+                alignment="start"
+                spacing={space[2]}
+                modifiers={[frame({ maxWidth: Infinity })]}
+              >
+                <Heading title="What it’s about" />
+                <Text
+                  variant="body"
+                  paragraph
+                  modifiers={[
+                    ...wraps,
+                    padding({ all: space[4] }),
+                    background(theme.card),
+                    clipShape('roundedRectangle', radius.group),
+                  ]}
+                >
+                  {ask.context}
+                </Text>
+              </Column>
+            ) : null}
             <Thread id={ask.id} links={links} />
           </Column>
         </ScrollView>
