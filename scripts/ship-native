@@ -18,8 +18,9 @@ app=build/Build/Products/Release-iphoneos/hex.app
 # hex (plugins/siri), ad-hoc signed with its and the Live Activity extension's entitlements for xtool
 # to read, and prints its runtime version.
 build() {
+  export DEVELOPER_DIR=/Applications/Xcode-27.3-beta.app/Contents/Developer
   prepare_native
-  DEVELOPER_DIR=/Applications/Xcode-27.3-beta.app/Contents/Developer xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
+  xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
     -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
     build >build/xcodebuild.log 2>&1 || {
     grep -E 'error:' build/xcodebuild.log | sort -u >&2
