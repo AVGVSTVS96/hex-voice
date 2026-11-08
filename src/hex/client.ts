@@ -1,6 +1,5 @@
 import * as z from 'zod/mini';
 
-// hex heard the request and said no, so sending the same thing again gets the same answer.
 export class Refused extends Error {
   readonly status: number;
 
@@ -10,7 +9,6 @@ export class Refused extends Error {
   }
 }
 
-// A file on this phone sent as a request's body, streamed from where it lies.
 export type SendFile = (
   url: string,
   file: { uri: string; type: string },
@@ -34,25 +32,19 @@ interface Options {
   timeout?: number;
 }
 
-// How long to give hex, which can take a minute to answer when its machine is busy: a read, a
-// write, and a watch, which hex holds open until something changes before it answers.
 const READ = 90_000;
 const WRITE = 60_000;
-const WAIT = 120_000;
+const WATCH = 120_000;
 
-// A minute of video over a slow link.
 const UPLOAD = 300_000;
 const UNREACHABLE = new Set(['Network request failed', 'Failed to fetch', 'fetch failed']);
 
-// The one way this app talks to hex: the address and token are read once, every request has a
-// deadline, and every answer is parsed before anything sees it.
 export const createClient = ({ url, token, fetch, sendFile }: Config) => {
   const origin = url?.trim().replace(/\/+$/u, '');
 
   const auth: Record<string, string> =
     token === undefined || token === '' ? {} : { Authorization: `Bearer ${token}` };
 
-  // Reaches hex at `path` within `timeout`, through `go`, and reads its answer.
   const reach = async (
     path: string,
     { signal, timeout }: Pick<Options, 'signal' | 'timeout'>,
@@ -131,10 +123,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
         schema,
         await call(path, {
           ...options,
-          timeout: options.timeout ?? (options.after === undefined ? READ : WAIT),
+          timeout: options.timeout ?? (options.after === undefined ? READ : WATCH),
         }),
       ),
-    // A file on this phone as the request's body, under its own Content-Type.
     upload: async <S extends z.ZodMiniType>(
       path: string,
       schema: S,
@@ -156,7 +147,6 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
         ),
       );
     },
-    // A file of hex's for a native view to read itself: its address and the token it takes.
     source: (path: string) => ({ uri: `${origin}${path}`, headers: auth }),
     send: async (path: string, options: Omit<Options, 'after' | 'signal'> = {}) => {
       await call(path, { method: 'POST', ...options, timeout: options.timeout ?? WRITE });
@@ -185,7 +175,6 @@ const wordsIn = (text: string) => {
   }
 };
 
-// hex's own words, or OpenAI's error message it passed on. A 4xx is hex turning the request down.
 const refusal = (status: number, text: string) => {
   const said = wordsIn(text).slice(0, 300) || `hex answered HTTP ${status}.`;
   const message = said[0].toUpperCase() + said.slice(1);

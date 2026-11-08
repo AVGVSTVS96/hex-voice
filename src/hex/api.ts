@@ -12,7 +12,6 @@ import type { SessionAPI } from '../live/types';
 
 import type { Client } from './client';
 
-// OpenAI's session, as hex hands it back for the app's offer.
 const Opened = z.object({
   session: z.object({ id: CallId }),
   transport: z.object({ sdp: z.string() }),
@@ -20,12 +19,9 @@ const Opened = z.object({
 
 const enc = encodeURIComponent;
 
-// Every request the app makes to hex's voice plugin, each one answered in the app's own types.
 export const createHex = ({ request, send, source, upload }: Client) => {
   const media = {
-    // hex keeps the file and answers with the id it goes by.
     upload: async (picked: Picked) => await upload('/media', Shared, picked),
-    // The photo, or for a clip a still from it.
     image: (id: MediaId) => source(`/media/${enc(id)}`),
   };
 
@@ -61,7 +57,6 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       remove: async (id: CallId) => {
         await send(`/calls/${enc(id)}`, { method: 'DELETE' });
       },
-      // Photos and clips hex already keeps go to the call together, so it hears of them once.
       media: async (id: CallId, shared: MediaId[]) => {
         await send(`/calls/${enc(id)}/media`, { body: { media: shared } });
       },
@@ -77,7 +72,6 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       talk: async (id: TaskId) => {
         await send(`/tasks/${enc(id)}/talk`);
       },
-      // Media goes up first, then the words with the ids hex gave it.
       send: async (id: TaskId, text: string, key: string, picked: Picked[] = []) => {
         const shared = await Promise.all(picked.map(media.upload));
         const ids = shared.map((one) => one.id);
