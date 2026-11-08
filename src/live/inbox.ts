@@ -268,13 +268,49 @@ export function stageCounts(entries: Entry[], answered: Record<string, string | 
 }
 
 // Search runs over every word a row shows, its topic and where it lives.
+const wordsOf = (query: string) => query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
 export function search(entries: Entry[], query: string) {
-  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const words = wordsOf(query);
   if (!words.length) return entries;
   return entries.filter((entry) => {
     const text = [entry.topic, PLACES[entry.place], ...textOf(entry)].join(' ').toLowerCase();
     return words.every((word) => text.includes(word));
   });
+}
+
+// Why a search found an entry its row doesn't show the reason for: the stretch of its words
+// around the first search word that neither its line nor its topic holds, with every search word
+// in it marked. Nothing when the row already shows why.
+export type Part = { text: string; hit: boolean };
+
+export function whyOf(entry: Entry, query: string): Part[] | undefined {
+  const words = wordsOf(query);
+  const shown = `${entry.topic} ${headlineOf(entry)}`.toLowerCase();
+  const hidden = words.find((word) => !shown.includes(word));
+  if (!hidden) return undefined;
+  const text =
+    textOf(entry).find((one) => one.toLowerCase().includes(hidden)) ?? PLACES[entry.place];
+  const at = text.toLowerCase().indexOf(hidden);
+  if (at < 0) return undefined;
+  const start = Math.max(0, text.lastIndexOf(' ', Math.max(0, at - WHY_BEFORE)) + 1);
+  const end = Math.min(text.length, at + hidden.length + WHY_AFTER);
+  const stretch = `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`;
+  return marked(stretch, words);
+}
+
+const WHY_BEFORE = 30;
+const WHY_AFTER = 80;
+
+function marked(text: string, words: string[]): Part[] {
+  const pattern = new RegExp(
+    `(${words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'gi',
+  );
+  return text
+    .split(pattern)
+    .filter(Boolean)
+    .map((piece) => ({ text: piece, hit: words.includes(piece.toLowerCase()) }));
 }
 
 // What an entry asks or says, in one line: the question, the stuck thing, what's new.

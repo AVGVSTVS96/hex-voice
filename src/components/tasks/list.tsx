@@ -31,6 +31,7 @@ import {
   openingStage,
   picksOf,
   search,
+  whyOf,
   stageCounts,
   stageTopics,
   pageOf,
@@ -295,7 +296,7 @@ export function ListPage({
                 onPress={() => openPage(lead ?? pageOf(topic))}
               />,
               ...topic.entries.map((entry) => (
-                <EntryRow key={entry.id} entry={entry} {...actions} />
+                <EntryRow key={entry.id} entry={entry} why={whyOf(entry, query)} {...actions} />
               )),
             ];
           })}

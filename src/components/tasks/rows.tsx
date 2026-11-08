@@ -1,11 +1,12 @@
 import { Column, Row, Spacer } from '@expo/ui';
-import { Button, HStack, SwipeActions } from '@expo/ui/swift-ui';
+import { Button, HStack, SwipeActions, Text as NativeText } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   background,
   clipShape,
   frame,
   layoutPriority,
+  lineLimit,
   monospacedDigit,
   padding,
   tint,
@@ -27,6 +28,7 @@ import {
   pageOf,
   proofWords,
   type Entry,
+  type Part,
   type Stage,
   type Tile,
   type Topic,
@@ -34,7 +36,7 @@ import {
 } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
-import { Text } from '@/ui/text';
+import { Text, textLook } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
 export type RowActions = {
@@ -55,7 +57,7 @@ export type RowActions = {
 const choicesWidth = (width: number) =>
   width - 2 * metrics.list.inset - metrics.list.mark - metrics.list.gap;
 
-export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
+export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[] } & RowActions) {
   const selected = actions.selected === entry.id;
   const swiped = {
     width: actions.width,
@@ -87,6 +89,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         >
           <Shell
             selected={selected}
+            why={why}
             mark={pick ? 'pick' : 'asks'}
             line={ask.question}
             time={clock(new Date(entry.at))}
@@ -114,6 +117,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         <Swiped {...swiped}>
           <Shell
             selected={selected}
+            why={why}
             mark={mark}
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
@@ -132,6 +136,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         <Swiped {...swiped} lead={act && { label: stuck.action, onPress: act }}>
           <Shell
             selected={selected}
+            why={why}
             mark={stuck.mark}
             line={stuck.title}
             time={clock(new Date(entry.at))}
@@ -152,6 +157,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
           <Shell
             selected={selected}
+            why={why}
             mark={fresh.read ? 'read' : 'done'}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
@@ -171,6 +177,7 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
         <Swiped {...swiped}>
           <Shell
             selected={selected}
+            why={why}
             mark="done"
             line={finished.title}
             time={clock(new Date(entry.at))}
@@ -248,6 +255,7 @@ function Shell({
   meta,
   tiles,
   label,
+  why,
   onPress,
   children,
 }: {
@@ -258,6 +266,7 @@ function Shell({
   meta?: string;
   tiles: Tile[];
   label: string;
+  why?: Part[];
   onPress?: () => void;
   children?: ReactNode;
 }) {
@@ -293,6 +302,7 @@ function Shell({
             <Tiles tiles={tiles} />
           </Row>
         </HStack>
+        {why ? <Found parts={why} /> : null}
         {children}
       </Column>
     </Row>
@@ -494,5 +504,22 @@ function Count({ count, needs }: { count: number; needs: boolean }) {
     >
       {String(count)}
     </Text>
+  );
+}
+
+// Why a search found this row: its matching words in the text tone, the rest secondary.
+function Found({ parts }: { parts: Part[] }) {
+  return (
+    <NativeText modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}>
+      {parts.map((part, at) =>
+        part.hit ? (
+          <NativeText key={at} modifiers={textLook({ variant: 'detail', weight: 'medium' })}>
+            {part.text}
+          </NativeText>
+        ) : (
+          part.text
+        ),
+      )}
+    </NativeText>
   );
 }

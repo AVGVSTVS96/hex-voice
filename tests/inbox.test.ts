@@ -20,6 +20,7 @@ import {
   proofWords,
   reachedBy,
   search,
+  whyOf,
   stageCounts,
   stageTopics,
   taskOf,
@@ -366,6 +367,26 @@ test('search needs every word, in any case, across the question, the line, the t
   assert.deepEqual(found('t3 code'), ['t3-limit', 'shipped']);
   assert.deepEqual(found('telegram'), ['twilio', 'telegram:autofork']);
   assert.equal(search(entries, '   '), entries);
+});
+
+test('a search result says why it was found when its row doesn’t show it', () => {
+  const [entry] = stream({
+    asks: [
+      ask('twilio', 'yesno', {
+        task: 'telegram:calls',
+        topic: 'calls',
+        question: 'Upgrade Twilio from trial?',
+        context: 'Card ends 4242, renewed for the voice line',
+      }),
+    ],
+  });
+  assert.equal(whyOf(entry!, 'twilio'), undefined);
+  assert.equal(whyOf(entry!, 'calls'), undefined);
+  assert.deepEqual(whyOf(entry!, 'twilio Voice'), [
+    { text: 'Card ends 4242, renewed for the ', hit: false },
+    { text: 'voice', hit: true },
+    { text: ' line', hit: false },
+  ]);
 });
 
 test('hex’s picks are the open asks with a pick, never money', () => {
