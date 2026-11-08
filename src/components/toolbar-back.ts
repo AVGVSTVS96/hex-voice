@@ -12,6 +12,7 @@ import type { Back } from '@/components/tasks/bar';
 
 // Who has a way back: Tasks' pages, settings' voice page, and a past call while one is live.
 export type BackFrom = 'tasks' | 'settings' | 'call';
+
 type Publish = (from: BackFrom, back: Back | undefined) => void;
 
 // On iPhone Duo a page's Back sits in the toolbar, down the side column under the status items or
@@ -22,9 +23,11 @@ export const ToolbarBackProvider = ToolbarBack.Provider;
 
 export const useToolbarBacks = () => {
   const [backs, setBacks] = useState<Partial<Record<BackFrom, Back>>>({});
+
   const publish = useCallback<Publish>((from, back) => {
     setBacks((was) => (was[from] === back ? was : { ...was, [from]: back }));
   }, []);
+
   return { backs, publish };
 };
 
@@ -42,10 +45,13 @@ export const useToolbarBack = (from: BackFrom, back: Back | undefined, when = tr
     if (!publish || !takes) {
       return;
     }
+
     publish(from, to === undefined ? undefined : { to, onPress: () => press.current?.() });
+
     return () => {
       publish(from, undefined);
     };
   }, [publish, takes, from, to]);
+
   return takes;
 };

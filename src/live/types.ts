@@ -6,6 +6,7 @@ import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
+
 // A photo or clip you sent shows as your turn: going while hex takes it in, which for a clip
 // takes a few seconds, then sent, or why it didn't go.
 export interface TranscriptEntry {
@@ -18,6 +19,7 @@ export interface TranscriptEntry {
   sending?: boolean;
   failed?: string;
 }
+
 export interface LiveSnapshot {
   status: LiveStatus;
   error: string | null;
@@ -54,6 +56,7 @@ const LiveEvent = z.discriminatedUnion('type', [
     error: z.catch(z.optional(z.object({ message: z.optional(z.string()) })), undefined),
   }),
 ]);
+
 export type LiveEvent = z.infer<typeof LiveEvent>;
 
 const Message = z.object({ data: z.string() });
@@ -69,6 +72,7 @@ const parseJson = (text: string): unknown => {
 
 export const parseEvent = (message: unknown) => {
   const text = Message.safeParse(message).data?.data;
+
   return text === undefined ? undefined : LiveEvent.safeParse(parseJson(text)).data;
 };
 
@@ -76,12 +80,14 @@ export interface LiveCommand {
   type: 'session.input_audio.mute' | 'session.input_audio.unmute' | 'session.close';
   event_id?: string;
 }
+
 export interface AudioStats {
   inputLevel: number;
   outputLevel: number;
   sentPackets: number;
   receivedPackets: number;
 }
+
 export interface LiveTransport {
   offer: () => Promise<string>;
   answer: (sdp: string) => Promise<void>;
@@ -90,13 +96,17 @@ export interface LiveTransport {
   stats: () => Promise<AudioStats>;
   close: () => void;
 }
+
 export interface TransportCallbacks {
   onEvent: (event: LiveEvent) => void;
   onFailure: (message: string) => void;
 }
+
 export type TransportFactory = (callbacks: TransportCallbacks) => Promise<LiveTransport>;
+
 // What a call is about when it starts: a task, or going through your asks.
 export type CallAbout = { task: TaskId } | 'asks';
+
 export interface SessionAPI {
   create: (
     sdp: string,

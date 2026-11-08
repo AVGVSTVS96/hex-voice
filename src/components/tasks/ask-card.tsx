@@ -40,8 +40,10 @@ import { labelOf, metrics, radius, space } from '@/ui/tokens';
 
 // How much of the thread's own words show before a tap shows them all.
 const SAID = 6;
+
 // Most choices that share a row, each its own pill, as Muse sets Deny and Allow.
 const SIDE_BY_SIDE = 3;
+
 // A card keeps in from the page's sides, and its words from its own edges.
 const MARGIN = space[3];
 const INSIDE = space[4];
@@ -65,6 +67,7 @@ export const YourCall = ({
   onDismiss: (ask: Ask) => void;
 }) => {
   const open = asks.filter((ask) => !answered[ask.id]).length;
+
   return (
     <>
       <Column alignment="start" spacing={0} modifiers={listRow()}>
@@ -72,6 +75,7 @@ export const YourCall = ({
       </Column>
       {asks.map((ask) => {
         const said = answered[ask.id];
+
         if (said) {
           return (
             <Card key={ask.id}>
@@ -110,6 +114,7 @@ export const YourCall = ({
             </Card>
           );
         }
+
         return (
           <SwipeActions key={ask.id} modifiers={listRow()}>
             <AskCard ask={ask} onAnswer={onAnswer} onDismiss={onDismiss} />
@@ -161,6 +166,7 @@ const AskCard = ({
   const [held] = useState(
     () => !!carryDraft(`ask:${ask.id}`, ask.was?.map((id) => `ask:${id}`) ?? []).trim(),
   );
+
   const [open, setOpen] = useState(held);
   // 'held' opens the field without raising the keyboard; a tap in it raises it.
   const [writing, setWriting] = useState<boolean | 'held'>(held && 'held');
@@ -169,6 +175,7 @@ const AskCard = ({
   const notes = useFailures();
   const [noting, setNoting] = useState(false);
   const [noted, setNoted] = useState(false);
+
   const note = (text: string) => {
     setNoting(true);
     void notes
@@ -178,13 +185,16 @@ const AskCard = ({
       .then((sent) => {
         setNoting(false);
         setNoted(sent);
+
         if (sent) {
           setWriting(false);
         }
       });
   };
+
   // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
+
   return (
     <Card>
       <HStack
@@ -294,10 +304,13 @@ const AskCard = ({
 // when every option has one, and all of them full screen on a tap.
 export const Shots = ({ ask }: { ask: Ask }) => {
   const shown = ask.options.filter((option) => option.shot !== undefined);
+
   if (!shown.length) {
     return null;
   }
+
   const shots = shown.map((option) => shotOf(ask, option.shot!));
+
   return (
     <ShotsView
       uris={shots.map((shot) => shot.uri)}
@@ -319,6 +332,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
 export const Said = ({ words }: { words: Words }) => {
   const [whole, setWhole] = useState(false);
   const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
+
   return (
     <Column
       alignment="start"
@@ -355,6 +369,7 @@ export const Said = ({ words }: { words: Words }) => {
 export const Links = ({ links }: { links: AskLink[] }) => {
   const tries = useFailures();
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
+
   return (
     <Column alignment="start" spacing={space[1]}>
       <Row alignment="center" spacing={space[2]}>
@@ -409,10 +424,13 @@ export const InlineAnswers = ({
 // answer sits under its own as a small pill, so its name says which is which in one line.
 const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const n = ask.options.length;
+
   if (!n) {
     return null;
   }
+
   const shots = ask.options.every((option) => option.shot !== undefined);
+
   const pills = ask.options.map((option) => (
     <Pill
       key={option.label}
@@ -425,6 +443,7 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       }}
     />
   ));
+
   if (shots) {
     return (
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -432,6 +451,7 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       </Row>
     );
   }
+
   const blocks = (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       {ask.options.map((option) => (
@@ -469,9 +489,11 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       ))}
     </Column>
   );
+
   if (n > SIDE_BY_SIDE) {
     return blocks;
   }
+
   return (
     <Fits>
       <EvenRow spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -508,6 +530,7 @@ const Composer = ({
   const typing = useTyping();
   const field = useField();
   const words = sending ? '' : text.trim();
+
   return (
     <Column alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Row
@@ -605,6 +628,7 @@ const useTyping = () => {
     },
     [],
   );
+
   return (now: boolean) => {
     on.current = now;
     typing(now);

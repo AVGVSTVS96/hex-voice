@@ -11,6 +11,7 @@ import { theme } from '@/theme';
 const RootLayout = () => {
   const system = useColorScheme() === 'light' ? DefaultTheme : DarkTheme;
   const { demo } = useGlobalSearchParams<{ demo?: string }>();
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
       <ThemeProvider

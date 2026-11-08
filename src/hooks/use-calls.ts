@@ -60,9 +60,11 @@ export const useCalls = () => {
         if (deleted) {
           void AsyncStorage.removeItem(saved(id)).catch(() => {});
         }
+
         if (!deleted && fromHex) {
           setListed((current) => putBack(current ?? [], fromHex));
         }
+
         if (!deleted && fromHere) {
           setJustEnded((current) => putBack(current, fromHere));
         }
@@ -74,14 +76,17 @@ export const useCalls = () => {
     if (!listed && !justEnded.length) {
       return;
     }
+
     const calls = [
       ...justEnded,
       ...(listed ?? []).filter(({ id }) => !justEnded.some((call) => call.id === id)),
     ];
+
     return calls.map((call) =>
       tries.failed[call.id] ? { ...call, failed: tries.failed[call.id] } : call,
     );
   }, [listed, justEnded, tries.failed]);
+
   return { calls: shown, live, offline: watching === 'offline', add, remove };
 };
 
@@ -94,12 +99,14 @@ export const usePastCall = (id: CallId | undefined) => {
     if (!id) {
       return;
     }
+
     let active = true;
     void restore(saved(id), CallRecord).then((kept) => {
       if (active && kept) {
         setCall((current) => (current?.id === id ? current : kept));
       }
     });
+
     return () => {
       active = false;
     };
@@ -110,6 +117,7 @@ export const usePastCall = (id: CallId | undefined) => {
     async (after, signal, id) => await hex.calls.get(id, after, signal),
     (fresh) => {
       setCall(fresh);
+
       if (fresh.ended) {
         store(saved(fresh.id), fresh);
       }

@@ -29,6 +29,7 @@ const CONTENT_TYPES: Record<string, string> = {
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
 };
+
 const contentType = (ext: string) => CONTENT_TYPES[ext] ?? 'application/octet-stream';
 const NAME = /^\w[\w.-]*$/;
 
@@ -46,13 +47,17 @@ export interface Publish {
 
 export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) => {
   const runtime = join(dir, platform, runtimeVersion);
+
   if (!(await stat(runtime).catch(() => null))) {
     throw new Error(`no native build has runtime ${runtimeVersion}`);
   }
+
   const metadata = await readFile(join(dist, 'metadata.json'));
+
   const { bundle, assets } = (JSON.parse(metadata.toString()) as ExportMetadata).fileMetadata[
     platform
   ];
+
   await mkdir(join(dir, 'assets'), { recursive: true });
 
   const add = async (path: string, ext: string) => {
@@ -60,6 +65,7 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
     const hash = createHash('sha256').update(data).digest('base64url');
     const name = `${hash}.${ext}`;
     await replace(join(dir, 'assets', name), data);
+
     return {
       hash,
       key: createHash('md5').update(data).digest('hex'),
@@ -71,6 +77,7 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
   const hash = createHash('sha256').update(runtimeVersion).update(metadata).digest('hex');
   const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
   const latest = join(runtime, 'manifest.json');
+
   if (JSON.parse(await readFile(latest, 'utf-8').catch(() => '{}')).id === id) {
     return { id, published: false };
   }
@@ -89,7 +96,9 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
     metadata: {},
     extra: { expoClient: expoConfig },
   };
+
   await replace(latest, JSON.stringify(manifest));
+
   return { id, published: true };
 };
 
@@ -102,6 +111,7 @@ const replace = async (path: string, data: string | Buffer) => {
 export const serve = (dir: string) =>
   createServer(async (request, response) => {
     const { pathname } = new URL(request.url ?? '/', 'http://localhost');
+
     try {
       if (pathname === '/manifest') {
         await sendManifest(dir, request, response);
@@ -110,9 +120,11 @@ export const serve = (dir: string) =>
       }
     } catch (error) {
       console.error(error);
+
       if (!response.headersSent) {
         response.writeHead(500);
       }
+
       response.end();
     }
   });
@@ -123,19 +135,25 @@ const sendManifest = async (dir: string, request: IncomingMessage, response: Ser
     'expo-sfv-version': '0',
     'cache-control': 'private, max-age=0',
   };
+
   const platform = request.headers['expo-platform'];
   const runtime = request.headers['expo-runtime-version'];
+
   if (typeof platform !== 'string' || !NAME.test(platform)) {
     return response.writeHead(400).end();
   }
+
   if (typeof runtime !== 'string' || !NAME.test(runtime)) {
     return response.writeHead(400).end();
   }
+
   console.log(`${platform} ${runtime} runs ${request.headers['expo-current-update-id']}`);
   const manifest = await readFile(join(dir, platform, runtime, 'manifest.json')).catch(() => null);
+
   if (!manifest) {
     return response.writeHead(204, headers).end();
   }
+
   response.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(manifest);
 };
 
@@ -147,9 +165,11 @@ const sendAsset = async (
 ) => {
   const name = /^\/assets\/([^/]+)$/.exec(pathname)?.[1];
   const path = name && NAME.test(name) ? join(dir, 'assets', name) : undefined;
+
   if (!path || !(await stat(path).catch(() => null))) {
     return response.writeHead(404).end();
   }
+
   const gzip = /\bgzip\b/.test(request.headers['accept-encoding'] ?? '');
   response.writeHead(200, {
     'content-type': contentType(path.slice(path.lastIndexOf('.') + 1)),
@@ -163,9 +183,11 @@ const sendAsset = async (
 const main = async () => {
   const [command, ...args] = process.argv.slice(2);
   const dir = process.env.HEX_UPDATES_DIR;
+
   if (!dir) {
     throw new Error('HEX_UPDATES_DIR is not set');
   }
+
   if (command === 'serve') {
     const port = Number(process.env.PORT ?? 8791);
     serve(dir).listen(port, '127.0.0.1', () => {

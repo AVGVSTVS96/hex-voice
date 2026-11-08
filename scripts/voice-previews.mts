@@ -8,6 +8,7 @@ const KEY = process.env.OPENAI_API_KEY;
 const OUT = join(import.meta.dirname, '..', 'assets', 'voices');
 const RATE = 24_000;
 const CHUNK_MS = 100;
+
 // Output audio streams silence between turns and has no done event, so the transcript marks where
 // the line ends: no new words for QUIET_MS, then audio up to the last word's end plus TAIL_MS.
 const QUIET_MS = 1500;
@@ -20,6 +21,7 @@ const render = async (voice: LiveVoice, name: string) => {
   const socket = new WebSocket('wss://api.openai.com/v1/live/sessions', {
     headers: { Authorization: `Bearer ${KEY}` },
   } as unknown as string[]);
+
   const audio: Buffer[] = [];
   let transcript = '';
   let spokenUntil = 0;
@@ -33,6 +35,7 @@ const render = async (voice: LiveVoice, name: string) => {
       if (!quiet || received < spokenUntil + TAIL_MS) {
         return;
       }
+
       quiet = false;
       clearInterval(silence);
       socket.send(JSON.stringify({ type: 'session.close' }));
@@ -41,6 +44,7 @@ const render = async (voice: LiveVoice, name: string) => {
       }, 500);
       resolve();
     };
+
     socket.onopen = () => {
       socket.send(
         JSON.stringify({
@@ -55,11 +59,14 @@ const render = async (voice: LiveVoice, name: string) => {
         }),
       );
     };
+
     socket.onmessage = ({ data }) => {
       const event = JSON.parse(String(data));
+
       if (event.type === 'error') {
         reject(new Error(`${voice}: ${JSON.stringify(event.error)}`));
       }
+
       if (event.type === 'session.started') {
         const zeros = Buffer.alloc((RATE * 2 * CHUNK_MS) / 1000).toString('base64');
         silence = setInterval(() => {
@@ -73,6 +80,7 @@ const render = async (voice: LiveVoice, name: string) => {
           }),
         );
       }
+
       if (event.type === 'session.output_transcript.delta') {
         transcript += event.delta;
         spokenUntil = event.end_ms;
@@ -82,6 +90,7 @@ const render = async (voice: LiveVoice, name: string) => {
           finish();
         }, QUIET_MS);
       }
+
       if (event.type === 'session.output_audio.delta') {
         const chunk = Buffer.from(event.delta, 'base64');
         audio.push(chunk);
@@ -89,6 +98,7 @@ const render = async (voice: LiveVoice, name: string) => {
         finish();
       }
     };
+
     socket.onerror = () => {
       reject(new Error(`${voice}: socket error`));
     };
@@ -112,7 +122,9 @@ const render = async (voice: LiveVoice, name: string) => {
 if (!KEY) {
   throw new Error('Set OPENAI_API_KEY.');
 }
+
 const only = process.argv.slice(2);
+
 for (const { id, label } of VOICES) {
   if (!only.length || only.includes(id)) {
     await render(id, label);

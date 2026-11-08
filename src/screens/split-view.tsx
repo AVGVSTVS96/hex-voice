@@ -15,6 +15,7 @@ export type Side = 'first' | 'second';
 export const SplitView = ({ side, children }: { side: Side; children: ReactNode }) => {
   const [across, setAcross] = useState(true);
   const other = <View style={styles.other} />;
+
   return (
     <View
       style={[styles.screen, { flexDirection: across ? 'row' : 'column' }]}

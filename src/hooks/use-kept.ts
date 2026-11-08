@@ -7,6 +7,7 @@ import type * as z from 'zod/mini';
 export const restore = async <S extends z.ZodMiniType>(key: string, schema: S) => {
   try {
     const saved = await AsyncStorage.getItem(key);
+
     return saved ? schema.safeParse(JSON.parse(saved)).data : undefined;
   } catch {}
 };
@@ -26,6 +27,7 @@ export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
       }
     });
   }, [key]);
+
   const keep = useCallback(
     (next: z.output<S>) => {
       setValue(next);
@@ -33,5 +35,6 @@ export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
     },
     [key],
   );
+
   return [value, keep] as const;
 };

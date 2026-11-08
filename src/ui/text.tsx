@@ -22,6 +22,7 @@ export const textLook = ({
   paragraph = false,
 }: Look = {}) => {
   const style: TextStyle = type[variant];
+
   return [
     font({
       textStyle: style.textStyle,

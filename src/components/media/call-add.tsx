@@ -11,6 +11,7 @@ import { metrics } from '@/ui/tokens';
 // goes to the call as you send it. Off a live call it's off, though a camera it opened stays up.
 export const CallAdd = ({ call }: { call: Call }) => {
   const share = useShare(call);
+
   return (
     <Host matchContents style={{ width: metrics.docked, height: metrics.docked }}>
       <AddMedia

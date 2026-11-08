@@ -26,6 +26,7 @@ export const useSavedPreference = <T extends string>(
           setLoaded(true);
         }
       });
+
     return () => {
       active = false;
     };
@@ -36,6 +37,7 @@ export const useSavedPreference = <T extends string>(
       if (!isValid(next)) {
         return;
       }
+
       changed.current = true;
       updateValue(next);
       // Keep rapid carousel selections in order when writing to storage.

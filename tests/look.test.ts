@@ -27,14 +27,18 @@ const token = /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\
 
 const raw = (value: string, constants: Map<string, string>, strict: boolean): boolean => {
   const rest = value.replaceAll(token, '').replaceAll(/\/\s*2\b/g, '');
+
   if (strict && rest.trim()) {
     return true;
   }
+
   if ([...rest.matchAll(/(?<![\w$.])\d*\.?\d+/g)].some(([number]) => Number(number) !== 0)) {
     return true;
   }
+
   return [...rest.matchAll(/\b[A-Z][A-Z\d_]+\b/g)].some(([name]) => {
     const defined = constants.get(name);
+
     return defined === undefined || raw(defined, constants, false);
   });
 };
@@ -43,12 +47,15 @@ const rawLooks = (file: string) => {
   if (!existsSync(file)) {
     return [];
   }
+
   const source = readFileSync(file, 'utf-8');
+
   const constants = new Map(
     [...source.matchAll(/^(?:export )?const ([A-Z][A-Z\d_]+) = ([^;\n]+);/gm)].map(
       ([, name, value]) => [name, value] as [string, string],
     ),
   );
+
   const looks = [
     // Type comes from a text style, whole.
     ...[...source.matchAll(/\b(?:fontSize|lineHeight|fontWeight): ([^,}\n]+)/g)].map(
@@ -87,6 +94,7 @@ const rawLooks = (file: string) => {
       strict: false,
     })),
   ];
+
   return looks
     .filter(({ value }) => !/^(?:number|string)\b/.test(value.trim()))
     .filter(({ value, strict }) => raw(value, constants, strict))
@@ -98,6 +106,7 @@ test('every look comes from the tokens, so a component looks the same wherever i
     .filter((file) => !file.endsWith('theme.ts') && !file.startsWith('src/ui/'))
     .filter((file) => file !== widget && !unmigrated.has(file))
     .flatMap(rawLooks);
+
   assert.deepEqual(found, []);
 });
 
@@ -108,6 +117,7 @@ test('the files left to move onto the tokens still have something to move', () =
 
 test('every corner comes from the tokens, in every file', () => {
   const corner = /borderRadius: [\d.]|roundedRectangle', [\d.]|cornerRadius: [\d.]/;
+
   const found = files('src')
     .filter((file) => !file.endsWith('theme.ts'))
     .flatMap((file) =>
@@ -115,6 +125,7 @@ test('every corner comes from the tokens, in every file', () => {
         .split('\n')
         .flatMap((line, i) => (corner.test(line) ? [`${file}:${i + 1}: ${line.trim()}`] : [])),
     );
+
   assert.deepEqual(found, []);
 });
 
@@ -133,6 +144,7 @@ test('every color comes from the tokens, so mint, blue and red each keep one mea
             : [],
         ),
     );
+
   assert.deepEqual(found, []);
 });
 

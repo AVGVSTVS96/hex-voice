@@ -80,6 +80,7 @@ export const GlassButton = ({
   // Chosen, the glass fills a little, as Muse marks the tab you're on; mint stays for what needs you.
   const color = prominent ? theme.onProminent : disabled ? theme.tertiary : theme.text;
   const look = face(size, selected);
+
   return (
     <Button
       onPress={onPress}
@@ -129,6 +130,7 @@ export const GlassFace = ({ icon, size = 'tool' }: { icon: Props['icon']; size?:
 
 const face = (size: GlassSize, selected: boolean) => {
   const diameter = metrics[size];
+
   return [
     frame({ width: diameter, height: diameter }),
     ...(selected
@@ -141,6 +143,7 @@ const face = (size: GlassSize, selected: boolean) => {
 // A GlassButton that React Native lays out, in a Host of its own.
 export const HostedGlassButton = (props: Props) => {
   const diameter = metrics[props.size ?? 'tool'];
+
   return (
     <Host matchContents style={{ width: diameter, height: diameter }}>
       <GlassButton {...props} />

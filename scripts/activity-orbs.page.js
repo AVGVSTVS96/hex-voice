@@ -3,6 +3,7 @@ window.loadOrb = async ({ color, palette }) =>
   await new Promise((resolve, reject) => {
     const { Rive, RuntimeLoader, Layout, Fit } = window.rive;
     RuntimeLoader.setWasmUrl('/rive.wasm');
+
     const rive = new Rive({
       src: '/orb.riv',
       canvas: document.getElementById('orb'),
@@ -14,23 +15,28 @@ window.loadOrb = async ({ color, palette }) =>
       onLoad: () => {
         rive.resizeDrawingSurfaceToCanvas();
         const model = rive.defaultViewModel()?.defaultInstance();
+
         if (model) {
           rive.bindViewModelInstance(model);
           // The first advance writes the file's own color back, as in the native renderer.
           const tint = model.color('color');
           const rgb = color && [1, 3, 5].map((at) => parseInt(color.slice(at, at + 2), 16));
+
           if (tint && rgb) {
             setInterval(() => tint.argb(255, ...rgb), 16);
           }
         }
+
         for (const input of rive.stateMachineInputs('default')) {
           if (['listening', 'thinking', 'speaking', 'asleep'].includes(input.name)) {
             input.value = false;
           }
+
           if (input.name === 'color' && palette) {
             input.value = palette;
           }
         }
+
         resolve();
       },
     });
@@ -44,6 +50,7 @@ window.cropOrb = async ({ shot, size }) => {
   read.drawImage(image, 0, 0);
   const { data, width, height } = read.getImageData(0, 0, image.width, image.height);
   let [left, top, right, bottom] = [width, height, 0, 0];
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (data[(y * width + x) * 4 + 3] > 8) {
@@ -54,6 +61,7 @@ window.cropOrb = async ({ shot, size }) => {
       }
     }
   }
+
   const side = Math.max(right - left, bottom - top) + 2;
   const out = new OffscreenCanvas(size, size);
   out
@@ -69,8 +77,10 @@ window.cropOrb = async ({ shot, size }) => {
       size,
       size,
     );
+
   const bytes = new Uint8Array(
     await (await out.convertToBlob({ type: 'image/png' })).arrayBuffer(),
   );
+
   return btoa(String.fromCharCode(...bytes));
 };

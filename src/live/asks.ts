@@ -4,6 +4,7 @@ import { CallId, timeOfDay } from './calls';
 import { TaskId } from './tasks';
 
 export const AskId = z.string().brand<'AskId'>();
+
 export type AskId = z.infer<typeof AskId>;
 
 // An answer: each tells hex something. A page an ask points to is a link, and opening it answers
@@ -19,9 +20,13 @@ const AskOption = z.object({
   // What answering with it does, costs and gives up.
   detail: z.optional(z.string()),
 });
+
 export type AskOption = z.infer<typeof AskOption>;
+
 const AskLink = z.object({ label: z.string(), url: z.string() });
+
 export type AskLink = z.infer<typeof AskLink>;
+
 // Each place an ask was asked: a thread in its app (`task` is its id among the tasks) or a call
 // (`app: 'voice'`, opened in Calls by `call`). Without a link we know it's from there but can't open
 // it. hex sends the ones that open first, then the rest, each newest first.
@@ -32,7 +37,9 @@ const AskPlace = z.object({
   call: z.optional(CallId),
   link: z.optional(z.string()),
 });
+
 export type AskPlace = z.infer<typeof AskPlace>;
+
 export const Ask = z.object({
   id: AskId,
   kind: z.catch(z.enum(['pick', 'yesno', 'do', 'look']), 'pick'),
@@ -51,14 +58,18 @@ export const Ask = z.object({
   // The ids it was listed under before hex's check took it up.
   was: z.optional(z.array(AskId)),
 });
+
 // Where an ask came from in its thread's own words, read when its card opens: the place as Tasks
 // names it, when it was said there, and the words, as written.
 export const Words = z.object({ place: z.string(), at: z.optional(z.string()), text: z.string() });
+
 export type Words = z.infer<typeof Words>;
+
 // Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
 // `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
 // how many places an answer from here couldn't reach, which still ask it.
 export type Ask = z.infer<typeof Ask> & { failed?: string; missed?: number };
+
 // What an answer, a note or a not needed reached: the hex thread it told and that thread's name, how
 // many open copies of the ask (buttons or polls) it sent an answer or settle to, and how many copies
 // or threads it couldn't reach because their app's hub was down. Hubs don't confirm, so `settled`
@@ -69,10 +80,12 @@ export const Sent = z.object({
   settled: z.number(),
   missed: z.number(),
 });
+
 export type Sent = z.infer<typeof Sent>;
 
 // What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
 export const NOT_NEEDED = 'Not needed';
+
 // What marks the option hex would answer with, wherever it's offered.
 export const PICK = 'hex’s pick';
 
@@ -81,6 +94,7 @@ export const unreached = (missed: number) =>
   missed === 1
     ? 'One place was out of reach and still asks it'
     : `${missed} places were out of reach and still ask it`;
+
 export const Stuck = z.object({
   id: z.string(),
   app: z.string(),
@@ -92,7 +106,9 @@ export const Stuck = z.object({
   request: z.optional(z.string()),
   sent: z.optional(z.string()),
 });
+
 export type Stuck = z.infer<typeof Stuck> & { failed?: string };
+
 export const Fresh = z.object({
   id: z.string(),
   app: z.string(),
@@ -102,16 +118,22 @@ export const Fresh = z.object({
   at: z.string(),
   read: z.boolean(),
 });
+
 export type Fresh = z.infer<typeof Fresh> & { failed?: string };
+
 const CheckSummary = z.object({
   at: z.string(),
   why: z.string(),
   fixed: z.number(),
   flagged: z.number(),
 });
+
 export type CheckSummary = z.infer<typeof CheckSummary>;
+
 const CheckNote = z.object({ title: z.string(), text: z.string(), did: z.optional(z.string()) });
+
 export type CheckNote = z.infer<typeof CheckNote>;
+
 export const Check = z.object({
   at: z.string(),
   why: z.string(),
@@ -119,7 +141,9 @@ export const Check = z.object({
   fixed: z.array(CheckNote),
   flagged: z.array(CheckNote),
 });
+
 export type Check = z.infer<typeof Check>;
+
 export const AskList = z.object({
   version: z.number(),
   asks: z.array(Ask),
@@ -127,6 +151,7 @@ export const AskList = z.object({
   fresh: z.array(Fresh),
   check: z.nullable(CheckSummary),
 });
+
 // What this app holds of hex's list, with what didn't go through here on each item it's about.
 export type AskList = Omit<z.infer<typeof AskList>, 'asks' | 'stuck' | 'fresh'> & {
   asks: Ask[];
@@ -142,6 +167,7 @@ export interface Yours {
   list?: AskList;
   answered: Record<string, string | null>;
 }
+
 export type YoursAction =
   | { type: 'list'; list: AskList }
   | { type: 'answer'; id: string; label: string }
@@ -151,26 +177,33 @@ export type YoursAction =
 
 export const yours = (state: Yours, action: YoursAction): Yours => {
   const { list, answered } = state;
+
   switch (action.type) {
     case 'list': {
       const held = (id: string) => id in answered;
       const back = action.list.asks.map((ask) => ask.id).filter((id) => answered[id] === null);
+
       return {
         list: { ...action.list, asks: keepInPlace(list?.asks ?? [], action.list.asks, held) },
         answered: back.length ? without(answered, back) : answered,
       };
     }
+
     case 'answer': {
       return { list, answered: { ...answered, [action.id]: action.label } };
     }
+
     case 'undo': {
       return { list, answered: { ...answered, [action.id]: null } };
     }
+
     case 'failed': {
       return { list, answered: without(answered, [action.id]) };
     }
+
     case 'close': {
       const kept = new Set(action.keep?.filter((id) => answered[id]));
+
       return {
         list: list && {
           ...list,
@@ -191,6 +224,7 @@ export const failedOn = (
 ): AskList => {
   const on = <T extends { id: string }>(item: T) =>
     failed[item.id] ? { ...item, failed: failed[item.id] } : item;
+
   return {
     ...list,
     asks: list.asks.map((ask) =>
@@ -213,9 +247,11 @@ export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => b
     if (!held(ask.id) || at(ask.id) !== -1) {
       return;
     }
+
     const prior = before.slice(0, i).findLast((one) => at(one.id) !== -1);
     shown.splice(prior ? at(prior.id) + 1 : 0, 0, ask);
   });
+
   return shown;
 };
 
@@ -227,5 +263,6 @@ export const checkLine = (check: CheckSummary) => {
   const did = [check.fixed && `fixed ${check.fixed}`, check.flagged && `flagged ${check.flagged}`]
     .filter(Boolean)
     .join(' · ');
+
   return { title: `Checked ${timeOfDay(check.at)}`, did };
 };

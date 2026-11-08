@@ -19,18 +19,24 @@ export const useAppUpdates = (callLive: boolean) => {
     if (!Updates.isEnabled) {
       return;
     }
+
     let last = AppState.currentState;
+
     const listener = AppState.addEventListener('change', (state) => {
       const back = last === 'background' && state === 'active';
       last = state;
+
       if (state !== 'active') {
         return;
       }
+
       if (back) {
         apply();
       }
+
       void download();
     });
+
     return () => {
       listener.remove();
     };

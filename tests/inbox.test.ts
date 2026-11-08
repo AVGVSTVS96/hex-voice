@@ -31,6 +31,7 @@ import type { Entry } from '../src/live/inbox';
 import { Finished, TaskRow } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
+
 const at = (hours: number, minutes = 0, day = 13) =>
   new Date(2026, 9, day, hours, minutes).toISOString();
 
@@ -54,6 +55,7 @@ const row = (
     track: [],
     ...extra,
   });
+
 const ask = (id: string, kind: Ask['kind'], extra: Partial<z.input<typeof Ask>> = {}): Ask =>
   Ask.parse({
     id,
@@ -67,6 +69,7 @@ const ask = (id: string, kind: Ask['kind'], extra: Partial<z.input<typeof Ask>> 
     places: [],
     ...extra,
   });
+
 const stuck = (id: string, extra: Partial<z.input<typeof Stuck>> = {}): Stuck =>
   Stuck.parse({
     id,
@@ -78,6 +81,7 @@ const stuck = (id: string, extra: Partial<z.input<typeof Stuck>> = {}): Stuck =>
     at: at(6),
     ...extra,
   });
+
 const fresh = (id: string, topic: string, when = at(9), read = false): Fresh =>
   Fresh.parse({
     id,
@@ -113,8 +117,10 @@ interface Parts {
   stuck?: Stuck[];
   fresh?: Fresh[];
 }
+
 const stream = ({ tasks = [], finished = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
   inboxEntries(tasks, finished, { stuck, fresh }, asks, now);
+
 const ids = (entries: Entry[]) => entries.map((entry) => entry.id);
 
 test('your asks lead in hex’s order, then threads that need you without an ask, then what is stuck', () => {
@@ -130,6 +136,7 @@ test('your asks lead in hex’s order, then threads that need you without an ask
     ],
     stuck: [stuck('t3-limit'), stuck('check:music')],
   });
+
   assert.deepEqual(ids(entries), [
     'late',
     'early',
@@ -159,6 +166,7 @@ test('a thread that waits on your ask is in Needs you by its ask alone, never le
       row('seqno', 'idle'),
     ],
   });
+
   assert.deepEqual(
     entries.map((entry) => [entry.id, entry.stage]),
     [
@@ -190,6 +198,7 @@ test('after what needs you comes what works, then what was done in the last day,
       fresh('unread', 'antibody', at(8)),
     ],
   });
+
   assert.deepEqual(ids(entries), [
     'telegram:working',
     'read-today',
@@ -225,6 +234,7 @@ test('a row’s place is the app hex names for it, and anything outside the four
     stuck: [stuck('t3-limit'), stuck('check-music', { app: 'hex' })],
     fresh: [fresh('f-t3', 'pigeon'), { ...fresh('f-telegram', 'General'), app: 'telegram' }],
   });
+
   assert.deepEqual(Object.fromEntries(entries.map((entry) => [entry.id, entry.place])), {
     'ask-telegram': 'telegram',
     'ask-t3': 't3',
@@ -257,10 +267,12 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
     ],
     stuck: [stuck('t3-limit')],
   });
+
   const needs = topicsOf(
     entries.filter((entry) => entry.stage === 'needs'),
     entries,
   );
+
   assert.deepEqual(
     needs.map((topic) => [topic.name, ids(topic.entries)]),
     [
@@ -269,10 +281,12 @@ test('a tab cuts its entries into topics in the stream’s order, with Stuck whe
       ['Stuck', ['t3-limit']],
     ],
   );
+
   const working = topicsOf(
     entries.filter((entry) => entry.stage === 'working'),
     entries,
   );
+
   assert.deepEqual(
     working.map((topic) => topic.name),
     ['voiceapp', 'autofork'],
@@ -287,6 +301,7 @@ test('an ask sits in the topic of the thread that asked it, and in its own once 
     ],
     tasks: [row('General', 'needs', at(9), { id: 'telegram:-100' })],
   });
+
   assert.deepEqual(
     topicsOf(entries, entries).map((topic) => [topic.name, ids(topic.entries)]),
     [
@@ -302,6 +317,7 @@ test('a topic marks each of its threads once, by its most pressing stage, whiche
     row('autofork', 'idle', at(8), { id: 'buzz:autofork', app: 'buzz' }),
     row('pigeon', 'working'),
   ];
+
   const entries = stream({
     asks: [
       ask('a1', 'pick', { task: 'telegram:autofork' }),
@@ -311,11 +327,13 @@ test('a topic marks each of its threads once, by its most pressing stage, whiche
     tasks,
     fresh: [fresh('f', 'autofork')],
   });
+
   const marks = (stage: Entry['stage']) =>
     topicsOf(
       entries.filter((entry) => entry.stage === stage),
       entries,
     ).map((topic) => [topic.name, topic.marks]);
+
   assert.deepEqual(marks('needs'), [
     ['autofork', ['needs', 'working', 'quiet']],
     ['pigeon', ['needs']],
@@ -333,6 +351,7 @@ test('each tab counts its stage, leaving out the asks you answered here', () => 
     stuck: [stuck('t3-limit')],
     fresh: [fresh('f', 'pigeon')],
   });
+
   assert.deepEqual(stageCounts(entries), { needs: 3, working: 1, done: 1, quiet: 2 });
   assert.deepEqual(stageCounts(entries, { a: 'Yes', b: null }), {
     needs: 2,
@@ -356,6 +375,7 @@ test('search needs every word, in any case, across the question, the line, the t
     stuck: [stuck('t3-limit', { title: 'T3 rate limit', why: 'Opus is out until 4am' })],
     fresh: [{ ...fresh('shipped', 'pigeon'), line: 'npm 0.1.0 is live' }],
   });
+
   const found = (query: string) => ids(search(entries, query));
   assert.deepEqual(found('twilio'), ['twilio']);
   assert.deepEqual(found('TWILIO trial'), ['twilio']);
@@ -380,6 +400,7 @@ test('a search result says why it was found when its row doesn’t show it', () 
       }),
     ],
   });
+
   assert.equal(whyOf(entry, 'twilio'), undefined);
   assert.equal(whyOf(entry, 'calls'), undefined);
   assert.deepEqual(whyOf(entry, 'twilio Voice'), [
@@ -404,8 +425,10 @@ test('hex’s picks are the open asks with a pick, never money', () => {
     tasks: [row('voiceapp', 'working')],
     stuck: [stuck('t3-limit')],
   });
+
   const taken = (answered?: Record<string, string | null>) =>
     picksOf(entries, answered).map(({ ask, option }) => [ask.id, option.label]);
+
   assert.deepEqual(taken({ answered: 'Yes' }), [
     ['ok', 'Deep'],
     ['page', 'Later'],
@@ -457,6 +480,7 @@ test('a place that can’t open comes after every one that can, and a call opens
       ],
     }),
   );
+
   assert.deepEqual(tiles, [
     {
       kind: 'app',
@@ -477,6 +501,7 @@ test('two places in one app are each named by their thread', () => {
       { app: 'telegram', place: 'DM' },
     ],
   });
+
   assert.deepEqual(
     tilesOf(buried).map((tile) => tile.label),
     ['antibody', 'hex', 'Telegram'],
@@ -493,6 +518,7 @@ test('every row has a tile where it lives, filled only when it has a link', () =
     stuck: [stuck('t3-limit')],
     fresh: [fresh('shipped', 'pigeon')],
   });
+
   assert.deepEqual(
     entries.map((entry) =>
       entry.tiles.map((tile) => (tile.kind === 'app' ? tile.link : tile.kind)),
@@ -514,6 +540,7 @@ test('a row opens the task it came from, when it has one', () => {
     stuck: [stuck('t3-limit')],
     fresh: [fresh('shipped', 'pigeon')],
   });
+
   assert.deepEqual(
     entries.map((entry) => taskOf(entry)),
     ['telegram:autofork', undefined, 'telegram:voiceapp', undefined],
@@ -542,6 +569,7 @@ test('an answer says it cleared buttons only when hex says it settled some, name
       { app: 'voice', place: 'Desk setup', call: 'call_1' },
     ],
   });
+
   const sent = { thread: 'telegram:-1:2', topic: 'hex', settled: 0, missed: 0 };
   assert.equal(reachedBy(asked, undefined), '');
   assert.equal(reachedBy(asked, sent), '');
@@ -576,6 +604,7 @@ test('each task hex finished in the last day is in Done, while its project works
       done('t-0', 'voiceapp', at(9, 0, 12)),
     ],
   });
+
   const tab = entries.filter((entry) => entry.stage === 'done');
   assert.deepEqual(ids(tab), ['t-3', 't-2', 't-1', 't-4']);
   assert.deepEqual(
@@ -608,6 +637,7 @@ test('All lists every project once, in the first stage it has, as that stage rea
     tasks: [row('voiceapp', 'working'), row('iikb', 'needs'), row('seqno', 'idle')],
     finished: [done('t-2', 'voiceapp', at(9, 30)), done('t-3', 'pigeon', at(9, 45))],
   });
+
   assert.deepEqual(
     stageTopics(entries, 'all').map(({ name, entries }) => [
       name,
@@ -629,6 +659,7 @@ test('Done is what was done, not who stopped: a thread between runs is quiet', (
     tasks: [row('voiceapp', 'done', at(9, 40)), row('pigeon', 'done', at(9, 50))],
     finished: [done('t-1', 'voiceapp', at(9, 30))],
   });
+
   assert.deepEqual(
     entries.map((entry) => [entry.id, entry.stage]),
     [
@@ -649,6 +680,7 @@ test('a finished task with no thread on the board still opens its own page, and 
       }),
     ],
   });
+
   assert.equal(taskOf(entry), undefined);
   assert.equal(pageOf(topicsOf([entry], [entry])[0]), 'done:t-5');
   assert.deepEqual(entry.tiles, [
@@ -691,9 +723,11 @@ test('a proof reads with each link by its name', () => {
     false,
   );
   assert.equal(proofSays('PR https://github.com/AVGVSTVS96/hex/pull/184 live'), true);
+
   const [entry] = stream({
     finished: [done('t-6', 'autofork', at(9), { proof: 'https://autofork.com; npm' })],
   });
+
   assert.deepEqual(entry.tiles.at(-1), {
     kind: 'link',
     label: 'autofork.com',

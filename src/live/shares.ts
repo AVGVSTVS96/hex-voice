@@ -28,6 +28,7 @@ export interface Outcome {
 // What you picked, sent together `at` that far into the call, each going.
 export const batchOf = (call: CallId, at: number, picked: Picked[], key: string): Sent[] => {
   const batch = `${call} ${at} ${key}`;
+
   return picked.map((media, i) => ({
     call,
     batch,
@@ -44,16 +45,20 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
       id ? await Promise.resolve({ id, kind: picked.kind }) : await api.upload(picked),
     ),
   );
+
   const shared = uploads.map((one) => (one.status === 'fulfilled' ? one.value : undefined));
   const lost = uploads.find((one) => one.status === 'rejected');
+
   if (lost) {
     return { shared, error: lost.reason };
   }
+
   try {
     await api.media(
       call,
       shared.map((one) => one!.id),
     );
+
     return { shared };
   } catch (error) {
     return { shared, error };
@@ -65,13 +70,17 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
 export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] => {
   const failed =
     error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
+
   return sent.map((one) => {
     const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
+
     if (i === -1) {
       return one;
     }
+
     const kept = shared[i];
     const still = kept && one.picked.kind === 'video' ? { media: kept } : {};
+
     return {
       ...one,
       id: kept?.id ?? one.id,
@@ -83,6 +92,7 @@ export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome):
 // What a tap on `entry` sends again: whatever of its batch didn't go, going.
 export const retrying = (sent: Sent[], entry: string): Sent[] => {
   const batch = sent.find((one) => one.entry.id === entry)?.batch;
+
   return sent
     .filter((one) => one.batch === batch && one.entry.failed)
     .map((one) => ({ ...one, entry: { ...one.entry, sending: true, failed: undefined } }));

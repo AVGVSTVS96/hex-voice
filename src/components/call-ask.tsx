@@ -27,15 +27,19 @@ export const CallAsk = ({
   const [sending, setSending] = useState<string>();
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
+
   if (card.answer && (sent || failed)) {
     setSent(undefined);
     setFailed(undefined);
   }
+
   const answer = card.answer ?? sent;
+
   const choose = (option: AskOption) => {
     if (sending) {
       return;
     }
+
     setSending(option.label);
     setFailed(undefined);
     onAnswer(option).then(
@@ -49,6 +53,7 @@ export const CallAsk = ({
       },
     );
   };
+
   if (answer) {
     return (
       <View style={styles.sent}>
@@ -62,6 +67,7 @@ export const CallAsk = ({
       </View>
     );
   }
+
   return (
     <View style={styles.card}>
       <View style={styles.title}>

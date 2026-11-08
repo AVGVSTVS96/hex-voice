@@ -30,12 +30,15 @@ const openUpright = layoutOf(
   { top: 0, right: 84, bottom: 21, left: 0 },
   { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669 } },
 ).duo!.tasks;
+
 const openOnSideDuo = layoutOf(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
   { regular: true, fold: { x: 0, y: 455, width: 669, height: 40 } },
 ).duo!;
+
 const openOnSide = openOnSideDuo.tasks;
+
 const folded = layoutOf(
   { width: 466, height: 678 },
   { top: 0, right: 84, bottom: 34, left: 0 },
@@ -50,18 +53,25 @@ const meetOf = (room: Room) => room.width / 2 + room.meet!;
 const sheet: Room = { width: 440, foot: 34, paged: false };
 
 const go = (...moves: Move[]) => moves.reduce(move, START);
+
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
   const shape = shapeOf(room);
+
   return { levels: levelsOf(stack, shape), shape, closes };
 };
+
 const onScreen = (stack: Stack, room: PagedRoom) => {
   const pages = pagesOf(stack, room);
+
   return LEVELS.filter((level) => spotOf(level, pages, room).shown);
 };
+
 const box = (level: Level, stack: Stack, room: PagedRoom) => {
   const spot = spotOf(level, pagesOf(stack, room), room);
+
   return { x: spot.offset.x, y: spot.offset.y, width: spot.width, height: room.height };
 };
+
 const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
@@ -103,10 +113,12 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
     ['columns', go({ to: 'topic', id: A }), 'call'],
     ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
+
   for (const [shape, stack, after] of cases) {
     const result = backLeavesTasks(stack, shape)
       ? 'call'
       : levelsOf(move(stack, { to: 'back' }), shape);
+
     assert.deepEqual(result, after, `${shape} from ${levelsOf(stack, shape).join(' > ')}`);
   }
 });
@@ -137,6 +149,7 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
     [stacks[0][1], stacks[1][1], stacks[2][1], stacks[3][1]],
     [stacks[0][1], stacks[4][1]],
   ];
+
   for (const [name, page] of [
     ['open upright', openUpright],
     ['open on its side', openOnSide],
@@ -144,10 +157,12 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
   ] as const) {
     const room = roomOf(page);
     const screen = { x: 0, y: 0, width: room.width, height: room.height };
+
     const seen = (from: Stack, to: Stack, t: number) =>
       LEVELS.map((level) => {
         const [a, b] = [box(level, from, room), box(level, to, room)];
         const mix = (p: number, q: number) => p + (q - p) * t;
+
         return [
           level,
           {
@@ -158,6 +173,7 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
           },
         ] as const;
       }).filter(([, frame]) => overlap(frame, screen));
+
     for (const walk of walks) {
       for (const [i, from] of walk.slice(0, -1).entries()) {
         for (const [a, b] of [
@@ -166,9 +182,11 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
         ]) {
           for (const t of [0, 0.25, 0.5, 0.75, 1]) {
             const frames = seen(a, b, t);
+
             const fades = (level: Level) =>
               spotOf(level, pagesOf(a, room), room).shown !==
               spotOf(level, pagesOf(b, room), room).shown;
+
             for (const [j, [one, first]] of frames.entries()) {
               for (const [other, second] of frames.slice(j + 1)) {
                 assert.ok(
@@ -181,10 +199,13 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
         }
       }
     }
+
     if (shapeOf(room) !== 'panes') {
       continue;
     }
+
     const fold = { x: meetOf(room), y: 0, width: 0, height: room.height };
+
     for (const [at, stack] of stacks) {
       for (const level of LEVELS) {
         assert.ok(
@@ -246,6 +267,7 @@ test('on its side, Tasks is one page: the list fills it and a topic pushes over 
     { top: 82, right: 0, bottom: 34, left: 0 },
     { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40 } },
   ).duo!.tasks;
+
   const room = roomOf(page);
   assert.equal(shapeOf(room), 'one');
   assert.deepEqual(onScreen(go(), room), ['list']);

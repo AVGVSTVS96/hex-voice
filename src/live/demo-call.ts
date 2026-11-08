@@ -8,6 +8,7 @@ type Line = [
   at: number,
   text: string,
 ];
+
 const LINES: Line[] = [
   ['session.input_transcript.delta', 4, "What's left on the voice app's Duo pass?"],
   [
@@ -24,10 +25,12 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
     setTimeout(() => {
       onEvent(event);
     }, 0);
+
   return {
     offer: async () => '',
     answer: async () => {
       emit({ type: 'session.started' });
+
       for (const [type, at, delta] of LINES) {
         emit({ type, delta, start_ms: at * 1000, end_ms: (at + 4) * 1000 });
       }
@@ -38,6 +41,7 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
       } else {
         emit({ type: `${event.type}d`, client_event_id: event.event_id });
       }
+
       return true;
     },
     setMuted: () => {},

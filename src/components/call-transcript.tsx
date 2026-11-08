@@ -36,6 +36,7 @@ interface Props {
 
 export const CallTranscript = ({ summary, call, failed, live }: Props) => {
   const ending = summary.end && !live ? ENDINGS[summary.end] : undefined;
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
       <Line symbol={SOURCES[summary.from].symbol}>
@@ -80,6 +81,7 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
 
 const Line = ({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; children: string }) => {
   const color = bad ? theme.danger : theme.secondary;
+
   return (
     <View style={styles.line}>
       <Glyph name={symbol} size={13} color={color} />
@@ -90,6 +92,7 @@ const Line = ({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; chil
 
 const Marker = ({ task }: { task: CallTask }) => {
   const look = MARKERS[task.state];
+
   return (
     <View style={styles.marker}>
       <View style={[styles.dot, { backgroundColor: look.fill }]}>

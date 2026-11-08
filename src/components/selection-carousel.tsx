@@ -50,9 +50,11 @@ export const SelectionCarousel = ({
   testID: string;
 }) => {
   const totalHeight = height + previewHeight;
+
   // A static page prevents both swipe and page-dot changes during a call.
   if (!enabled) {
     const selected = options.find((option) => option.id === value) ?? options[0];
+
     return (
       <SelectionPage
         option={{ ...selected, description: disabledHint ?? selected.description }}
@@ -101,6 +103,7 @@ export const SelectionCarousel = ({
     <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.pageDots })]}>
       {options.map((option, i) => {
         const current = option.id === value;
+
         return (
           <Row
             key={option.id}
@@ -131,6 +134,7 @@ export const SelectionCarousel = ({
       })}
     </Row>
   );
+
   return (
     <ZStack alignment="bottom" modifiers={[frame({ width, height: totalHeight })]}>
       {preview ? (

@@ -49,8 +49,10 @@ export const KIND: Record<StepKind, SFSymbol> = {
   agent: 'arrow.triangle.branch',
   tool: 'wrench.and.screwdriver',
 };
+
 const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
 const TEXT = metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap;
+
 // An open agent's rail runs from just under its mark to the middle of its last line.
 const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
 const RAIL_FOOT = space[2] + metrics.list.line / 2;
@@ -72,6 +74,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
   const done = task.plan.filter((item) => item.state === 'done').length;
   const { shown, tries } = agentsInOrder(task.agents);
   const place = PLACES[placeOf(task.app)];
+
   return (
     <Column
       alignment="center"
@@ -144,6 +147,7 @@ export const Steps = ({
   const [open, setOpen] = useState<string | null>(null);
   const now = useNow(steps.some((step) => step.state === 'running'));
   const times = stepTimes(steps, now);
+
   return (
     <Column alignment="start" spacing={0}>
       {steps.map((step, i) => {
@@ -152,6 +156,7 @@ export const Steps = ({
         const opened = open === key;
         const mark = stepMark(step);
         const agent = step.agent && agents.find((one) => one.id === step.agent);
+
         return (
           <TraceLine
             key={key}
@@ -217,6 +222,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
   const steps = open ? agentSteps(agent) : [];
   const meta = agentMeta(agent);
   const link = open ? agent.link : undefined;
+
   return (
     <Background alignment="topLeading">
       <Column alignment="start" spacing={0}>
@@ -292,6 +298,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
 const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
   const words = `${tries.length} earlier ${tries.length === 1 ? 'try' : 'tries'}, stopped`;
+
   return (
     <Column alignment="start" spacing={0}>
       <TraceLine

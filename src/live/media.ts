@@ -1,13 +1,16 @@
 import * as z from 'zod/mini';
 
 export const MediaKind = z.enum(['photo', 'video']);
+
 export type MediaKind = z.infer<typeof MediaKind>;
 
 export const MediaId = z.string().brand<'MediaId'>();
+
 export type MediaId = z.infer<typeof MediaId>;
 
 // A photo or clip hex keeps, by the id it gave it.
 export const Shared = z.object({ id: MediaId, kind: MediaKind });
+
 export type Shared = z.infer<typeof Shared>;
 
 // A photo or clip on this phone, shot or picked, before it goes to hex. `type` is its file's
@@ -34,5 +37,6 @@ export const mediaWords = (media: readonly { kind: MediaKind }[]) => {
       count > 1 ? `${count} ${kind}s` : media.length > 1 ? `a ${kind}` : kind,
     )
     .join(' and ');
+
   return words.charAt(0).toUpperCase() + words.slice(1);
 };

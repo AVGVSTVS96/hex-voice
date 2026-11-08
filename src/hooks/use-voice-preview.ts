@@ -12,6 +12,7 @@ const PREVIEW_AUDIO: Partial<AudioMode> = {
   playsInSilentMode: true,
   interruptionMode: 'duckOthers',
 };
+
 // The call's chimes keep the audio session awake, so leaving the previews doesn't let it go: music
 // comes back up only once the mode stops asking to duck it.
 const SHARED_AUDIO: Partial<AudioMode> = {
@@ -27,6 +28,7 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
     if (!playing) {
       return;
     }
+
     let open = true;
     void setAudioModeAsync(PREVIEW_AUDIO)
       .catch(() => {})
@@ -35,6 +37,7 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
           setReady(true);
         }
       });
+
     return () => {
       open = false;
       setReady(false);
@@ -49,6 +52,7 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
     if (!ready) {
       return;
     }
+
     let current = true;
     void setIsAudioActiveAsync(true)
       .catch(() => {})
@@ -56,9 +60,11 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
         if (!current) {
           return;
         }
+
         player.replace(VOICE_PREVIEWS[voice]);
         player.play();
       });
+
     return () => {
       current = false;
     };

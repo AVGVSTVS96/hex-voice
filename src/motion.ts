@@ -35,6 +35,7 @@ export const motion = {
 // pitch lifts it, and a brighter tone draws it a little taller and narrower.
 export const heard = (amount: number, size: number, level: number, pitch: number, tone: number) => {
   'worklet';
+
   return [
     { translateY: -0.4 * amount * size * pitch },
     { scale: 1 + amount * level },
@@ -47,8 +48,10 @@ export const heard = (amount: number, size: number, level: number, pitch: number
 // number, so a row arriving, leaving or changing settles with the list's animation.
 export const rowsKey = (rows: string[]) => {
   let key = 0;
+
   for (const char of rows.join('\n')) {
     key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
   }
+
   return key;
 };

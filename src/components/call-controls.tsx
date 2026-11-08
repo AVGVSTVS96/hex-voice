@@ -50,6 +50,7 @@ export const CallButtons = ({
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
   const Stack = axis === 'row' ? HStack : VStack;
+
   return (
     <GlassEffectContainer modifiers={modifiers}>
       <Stack spacing={sizes.gap}>
@@ -90,6 +91,7 @@ export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle })
   const sizes = metrics.controls[size];
   const callSide = metrics[sizes.call];
   const along = (mute ? metrics[sizes.mute] + sizes.gap : 0) + callSide;
+
   return (
     <View
       pointerEvents="box-none"

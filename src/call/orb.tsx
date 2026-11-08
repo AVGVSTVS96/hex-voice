@@ -21,6 +21,7 @@ export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaP
   useLevels(({ output }) => {
     setSpeaking(output > 0.035);
   });
+
   return <Persona {...persona} state={personaOf(call, speaking)} />;
 };
 
@@ -35,20 +36,24 @@ export const useOrbLife = (
   const level = useSharedValue(0);
   const input = useSharedValue(0);
   const awake = wakeOf(call);
+
   const reacting =
     call.kind === 'here' &&
     call.phase === 'live' &&
     !call.mic.muted &&
     !reducedMotion &&
     reaction > 0;
+
   const { pitch, tone } = useVoiceTone(reacting);
 
   useEffect(() => {
     if (reducedMotion) {
       wake.set(awake);
       breath.set(0);
+
       return;
     }
+
     wake.set(
       awake === 1
         ? withSpring(1, motion.wake)

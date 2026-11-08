@@ -29,6 +29,7 @@ export type MarkdownProps = CommonViewModifierProps & {
 type NativeProps = Omit<MarkdownProps, keyof Colors | 'onLink'> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 } & { onLink: (event: NativeSyntheticEvent<{ url: string }>) => void };
+
 type Colors = Pick<MarkdownProps, 'color' | 'secondary' | 'edge' | 'surface' | 'accent'>;
 
 const Native =
@@ -47,6 +48,7 @@ export const MarkdownView = ({
   if (!Native) {
     return null;
   }
+
   return (
     <Native
       modifiers={modifiers}

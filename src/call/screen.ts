@@ -10,7 +10,9 @@ import type { Move, Stack, TasksAt } from '@/components/tasks/pages';
 // are in Tasks is here too (`pages`), so it lasts while the window's size swaps the container
 // showing it, and only an opening starts it afresh.
 export type Over = 'none' | 'calls' | 'tasks';
+
 export type Place = 'tasks' | 'settings';
+
 export interface Screen {
   over: Over;
   settings: boolean;
@@ -44,6 +46,7 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
         ? { ...now, over: 'calls', settings: false }
         : { ...now, over: now.over === 'calls' ? 'none' : now.over };
     }
+
     case 'tasks': {
       if (!action.open) {
         return {
@@ -52,6 +55,7 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
           settings: shared ? false : now.settings,
         };
       }
+
       return {
         ...now,
         over: 'tasks',
@@ -60,10 +64,12 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
         settings: shared ? false : now.settings,
       };
     }
+
     case 'settings': {
       if (!action.open) {
         return { ...now, settings: false };
       }
+
       return {
         ...now,
         settings: true,
@@ -71,6 +77,7 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
         over: shared ? 'none' : now.over,
       };
     }
+
     case 'words': {
       return {
         ...now,
@@ -79,15 +86,18 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
           : { ...now.words, pulled: false, call: null },
       };
     }
+
     case 'beside': {
       return { ...now, words: { ...now.words, beside: action.on } };
     }
+
     case 'call': {
       return {
         ...now,
         words: { ...now.words, pulled: now.words.pulled || action.id !== null, call: action.id },
       };
     }
+
     case 'pages': {
       return { ...now, pages: move(now.pages, action.move) };
     }
@@ -101,5 +111,6 @@ export const shown = (now: Screen, shared: boolean) => {
   const tasks = now.over === 'tasks' && !(both && now.front === 'settings');
   const settings = now.settings && !(both && now.front === 'tasks');
   const calls = now.over === 'calls' && !(shared && now.settings);
+
   return { calls, tasks, settings, place: tasks || (shared && settings) };
 };

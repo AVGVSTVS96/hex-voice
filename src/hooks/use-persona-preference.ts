@@ -7,5 +7,6 @@ export const usePersonaPreference = () => {
     DEFAULT_PERSONA,
     isPersonaVariant,
   );
+
   return { variant: value, setVariant: setValue, loaded };
 };

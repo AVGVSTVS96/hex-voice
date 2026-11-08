@@ -26,9 +26,11 @@ export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: varian
         : { name: named(variant, id), variant, palette: Number(id) },
     );
   }
+
   if (!PERSONA_MODELS[variant].dynamicColor) {
     return [{ name: named(variant), variant }];
   }
+
   return PERSONA_COLORS.map(({ id: color }) => ({
     name: named(variant, color.slice(1)),
     variant,
@@ -44,6 +46,7 @@ export const activityOrb = (variant: PersonaVariant, color: string, palette: Opa
       : PERSONA_MODELS[variant].dynamicColor
         ? named(variant, color.slice(1))
         : named(variant);
+
   return ACTIVITY_ORBS.some((orb) => orb.name === name)
     ? name
     : named(variant, PERSONA_COLORS[0].id.slice(1));

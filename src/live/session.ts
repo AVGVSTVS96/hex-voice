@@ -21,7 +21,9 @@ const initialSnapshot = (): LiveSnapshot => ({
   ending: null,
   interrupted: false,
 });
+
 const SILENT: Levels = { input: 0, output: 0 };
+
 const SESSION_CLOSE_MESSAGE =
   'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
 
@@ -57,6 +59,7 @@ export class LiveSession {
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
+
     return () => {
       this.listeners.delete(listener);
     };
@@ -70,15 +73,18 @@ export class LiveSession {
   getLevels = () => this.levels;
   subscribeLevels = (listener: () => void) => {
     this.levelListeners.add(listener);
+
     return () => {
       this.levelListeners.delete(listener);
     };
   };
   private hear(change: Partial<Levels>) {
     const levels = { ...this.levels, ...change };
+
     if (levels.input === this.levels.input && levels.output === this.levels.output) {
       return;
     }
+
     this.levels = levels;
     this.levelListeners.forEach((listener) => {
       listener();
@@ -93,6 +99,7 @@ export class LiveSession {
     ) {
       return;
     }
+
     const generation = ++this.generation;
     this.snapshot = initialSnapshot();
     this.serverClosed = false;
@@ -101,6 +108,7 @@ export class LiveSession {
     this.update({ status: 'connecting' });
     const isCurrent = () => generation === this.generation;
     let transport: LiveTransport | undefined;
+
     try {
       transport = await this.factory({
         onEvent: (event) => {
@@ -117,26 +125,34 @@ export class LiveSession {
           }
         },
       });
+
       if (!isCurrent()) {
         transport.close();
+
         return;
       }
+
       this.transport = transport;
       const sdp = await transport.offer();
+
       if (!isCurrent()) {
         return;
       }
+
       const session = await this.api.create(sdp, voice, about);
+
       // A cancelled create can still finish on the server. Close its returned session.
       if (!isCurrent()) {
         try {
           await this.api.close(session.sessionId);
         } catch {
           const message = SESSION_CLOSE_MESSAGE;
+
           if (this.generation === generation + 1) {
             // The local close may still be publishing its final idle state.
             // Surface this warning afterward without touching a newer call.
             await this.closing;
+
             if (this.generation === generation + 1) {
               this.update({ status: 'error', error: message });
             } else {
@@ -146,8 +162,10 @@ export class LiveSession {
             console.warn('[hex] A cancelled session could not be confirmed closed.');
           }
         }
+
         return;
       }
+
       this.sessionId = session.sessionId;
       this.update({ callId: session.sessionId });
       this.startupTimer = setTimeout(() => {
@@ -173,12 +191,15 @@ export class LiveSession {
     ) {
       return;
     }
+
     switch (event.type) {
       case 'session.started': {
         clearTimeout(this.startupTimer);
+
         if (this.snapshot.status !== 'connecting') {
           break;
         }
+
         this.startedAt = Date.now();
         this.reportedDuplex = false;
         this.lastSentPackets = 0;
@@ -186,11 +207,13 @@ export class LiveSession {
         this.startStats();
         break;
       }
+
       case 'session.input_transcript.delta':
       case 'session.output_transcript.delta': {
         if (typeof event.delta !== 'string' || !event.delta) {
           break;
         }
+
         const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
         const entries = [...this.snapshot.transcript];
         // Each speaker has an independent caption stream, so overlapping speech
@@ -198,6 +221,7 @@ export class LiveSession {
         const index = entries.findLastIndex((entry) => entry.role === role);
         const previous = entries[index];
         const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
+
         if (!previous || startMs - (previous.endMs ?? previous.startMs) > 2000) {
           entries.push({
             id: `${role}-${startMs}-${entries.length}`,
@@ -213,13 +237,16 @@ export class LiveSession {
             endMs: event.end_ms ?? startMs,
           };
         }
+
         entries.sort((a, b) => a.startMs - b.startMs);
         this.update({ transcript: entries.slice(-200) });
         break;
       }
+
       case 'session.input_audio.muted':
       case 'session.input_audio.unmuted': {
         const command = this.muteCommand;
+
         if (
           !command ||
           event.client_event_id !== command.id ||
@@ -227,22 +254,29 @@ export class LiveSession {
         ) {
           break;
         }
+
         clearTimeout(this.muteTimer);
         this.muteCommand = null;
+
         if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted) {
           this.transport?.setMuted(false);
         }
+
         break;
       }
+
       case 'session.closed': {
         this.serverClosed = true;
         this.confirmClosed?.();
+
         if (!this.closing) {
           this.serverEnding = event.reason === 'expired' ? 'expired' : 'hex';
           void this.stop();
         }
+
         break;
       }
+
       case 'error':
       case 'session.error': {
         void this.stop(
@@ -256,9 +290,11 @@ export class LiveSession {
   setAppActive = (active: boolean) => {
     this.appActive = active;
     clearInterval(this.statsTimer);
+
     if (!this.refreshElapsed()) {
       return;
     }
+
     if (active) {
       this.startStats();
       void this.poll();
@@ -279,10 +315,13 @@ export class LiveSession {
     if (this.snapshot.status !== 'connected') {
       return false;
     }
+
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
+
     if (elapsedSeconds !== this.snapshot.elapsedSeconds) {
       this.update({ elapsedSeconds });
     }
+
     return true;
   }
 
@@ -290,20 +329,27 @@ export class LiveSession {
     if (!this.transport || !this.appActive || !this.refreshElapsed()) {
       return;
     }
+
     const transport = this.transport;
+
     if (this.statsPending === transport) {
       return;
     }
+
     this.statsPending = transport;
+
     try {
       const stats = await transport.stats();
+
       if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) {
         return;
       }
+
       this.hear({
         input: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
         output: Math.min(1, stats.outputLevel * 5),
       });
+
       if (
         typeof __DEV__ !== 'undefined' &&
         __DEV__ &&
@@ -318,6 +364,7 @@ export class LiveSession {
         );
         this.reportedDuplex = true;
       }
+
       this.lastSentPackets = stats.sentPackets;
     } catch {
       /* A stats failure does not interrupt the audio connection. */
@@ -334,9 +381,11 @@ export class LiveSession {
     if (this.snapshot.status !== 'connected' || !this.transport) {
       return;
     }
+
     if (began === this.snapshot.interrupted) {
       return;
     }
+
     if (!this.snapshot.muted) {
       this.transport.setMuted(began);
       this.transport.send({
@@ -344,8 +393,10 @@ export class LiveSession {
         event_id: `interruption-${++this.nextCommand}`,
       });
     }
+
     this.update({ interrupted: began });
     this.hear({ input: 0 });
+
     if (this.sessionId) {
       void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
     }
@@ -357,17 +408,22 @@ export class LiveSession {
     if (this.snapshot.status !== 'connected' || !this.transport) {
       return;
     }
+
     if (this.snapshot.interrupted) {
       this.interrupt(false);
+
       if (!this.snapshot.muted) {
         return;
       }
     }
+
     clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
+
     if (muted) {
       this.transport.setMuted(true);
     }
+
     this.update({ muted });
     this.hear({ input: 0 });
     const id = `mute-${++this.nextCommand}`;
@@ -375,10 +431,12 @@ export class LiveSession {
     this.muteTimer = setTimeout(() => {
       void this.stop('The microphone change was not confirmed. Please reconnect.');
     }, 5000);
+
     const sent = this.transport.send({
       type: muted ? 'session.input_audio.mute' : 'session.input_audio.unmute',
       event_id: id,
     });
+
     if (!sent) {
       void this.stop('The voice connection is unavailable. Start again to reconnect.');
     }
@@ -387,21 +445,28 @@ export class LiveSession {
   stop = async (reason?: string): Promise<void> => {
     if (this.closing) {
       await this.closing;
+
       return;
     }
+
     this.refreshElapsed();
+
     if (!this.transport && this.snapshot.status !== 'connecting') {
       if (reason) {
         this.update({ status: 'error', error: reason });
       }
+
       return;
     }
+
     const was = this.snapshot.status;
+
     const ending: CallEnding | null = reason
       ? was === 'connected'
         ? 'dropped'
         : 'no-connect'
       : (this.serverEnding ?? (was === 'connected' ? 'you' : null));
+
     ++this.generation;
     clearInterval(this.statsTimer);
     clearTimeout(this.startupTimer);
@@ -416,26 +481,31 @@ export class LiveSession {
     transport?.setMuted(true);
     this.closing = Promise.resolve().then(async () => {
       let confirmed = this.serverClosed;
+
       if (transport && !confirmed) {
         confirmed = await new Promise<boolean>((resolve) => {
           const timeout = setTimeout(() => {
             this.confirmClosed = undefined;
             resolve(false);
           }, 1500);
+
           this.confirmClosed = () => {
             clearTimeout(timeout);
             resolve(true);
           };
+
           if (!transport.send({ type: 'session.close', event_id: 'close-you-app' })) {
             clearTimeout(timeout);
             resolve(false);
           }
         });
       }
+
       transport?.close();
       this.transport = null;
       this.sessionId = null;
       let closeError: string | null = null;
+
       if (!confirmed && id) {
         try {
           await this.api.close(id);
@@ -443,6 +513,7 @@ export class LiveSession {
           closeError = SESSION_CLOSE_MESSAGE;
         }
       }
+
       this.confirmClosed = undefined;
       this.update({
         status: reason || closeError ? 'error' : 'idle',

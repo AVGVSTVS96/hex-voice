@@ -48,6 +48,7 @@ export const CallsSidebar = ({
 }: Props) => {
   // A head only parts one group from another, so a lone one is left off.
   const days = byDay(calls ?? []);
+
   return (
     <View style={[styles.sidebar, { width, paddingTop: top }]}>
       <Text accessibilityRole="header" style={styles.title}>
@@ -104,17 +105,21 @@ const Row = ({
   const from = useSharedValue(0);
   // Swiped open, its delete button is there for VoiceOver too; closed, the row's own action is.
   const [open, setOpen] = useState(false);
+
   const remove = () => {
     if (process.env.EXPO_OS === 'ios' && haptics) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+
     onDelete(call.id);
   };
+
   const settle = (to: number, velocity = 0) => {
     'worklet';
     x.set(withSpring(to, { ...motion.row, velocity }));
     scheduleOnRN(setOpen, to !== 0);
   };
+
   const swipe = Gesture.Pan()
     .enabled(!live)
     .activeOffsetX([-12, 12])
@@ -127,6 +132,7 @@ const Row = ({
     })
     .onEnd(({ translationX, velocityX }) => {
       const at = from.get() + translationX;
+
       if (at < -DELETE_AT) {
         x.set(withTiming(-width, { duration: motion.rowOut }));
         scheduleOnRN(remove);
@@ -134,6 +140,7 @@ const Row = ({
         settle(at < -ACTION / 2 || velocityX < -400 ? -ACTION : 0, velocityX);
       }
     });
+
   const tap = Gesture.Tap().onEnd(() => {
     if (x.get() < -1) {
       settle(0);
@@ -141,13 +148,16 @@ const Row = ({
       scheduleOnRN(onOpen, call);
     }
   });
+
   const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
+
   const action = useAnimatedStyle(() => ({
     opacity: Math.min(1, -x.get() / ACTION),
     transform: [{ scale: 0.6 + 0.4 * Math.min(1, -x.get() / ACTION) }],
   }));
 
   const ending = call.end && ENDINGS[call.end];
+
   return (
     <Animated.View
       exiting={FadeOut.duration(motion.rowOut)}

@@ -6,13 +6,16 @@ import type { Shared } from './media';
 import type { TranscriptEntry } from './types';
 
 export const CallId = z.string().brand<'CallId'>();
+
 export type CallId = z.infer<typeof CallId>;
 
 export const CallSource = z.catch(
   z.enum(['app', 'web', 'phone-in', 'phone-out', 'discord', 'other']),
   'other',
 );
+
 export type CallSource = z.infer<typeof CallSource>;
+
 export const CallEnding = z.enum([
   'you',
   'hex',
@@ -22,6 +25,7 @@ export const CallEnding = z.enum([
   'no-answer',
   'busy',
 ]);
+
 export type CallEnding = z.infer<typeof CallEnding>;
 
 const call = {
@@ -44,6 +48,7 @@ export const CallSummary = z.object({
   tasks: z.number(),
   preview: z.string(),
 });
+
 // `failed` is this app's, never hex's: why deleting it here didn't go through.
 export type CallSummary = z.infer<typeof CallSummary> & { failed?: string };
 
@@ -52,14 +57,18 @@ const CallTurn = z.object({
   at: z.number(),
   text: z.string(),
 });
+
 export type CallTurn = z.infer<typeof CallTurn>;
+
 const CallTask = z.object({
   id: z.string(),
   state: z.catch(z.enum(['running', 'done', 'failed']), 'done'),
   at: z.number(),
   text: z.string(),
 });
+
 export type CallTask = z.infer<typeof CallTask>;
+
 // hex's exact words to the voice (say, note), things that happened to the call itself, the asks
 // it put on screen with their answers and the undos that took one back, and the photos and clips
 // you sent it.
@@ -83,7 +92,9 @@ const CallMark = z.object({
   text: z.string(),
   media: z.optional(MediaId),
 });
+
 export type CallMark = z.infer<typeof CallMark>;
+
 // A live call's record carries a version, and asking with it waits for the next word.
 export const CallRecord = z.object({
   ...call,
@@ -92,12 +103,15 @@ export const CallRecord = z.object({
   moments: z.optional(z.array(CallMark)),
   version: z.optional(z.number()),
 });
+
 export type CallRecord = z.infer<typeof CallRecord>;
+
 export const CallList = z.object({
   version: z.number(),
   live: z.optional(CallId),
   calls: z.array(CallSummary),
 });
+
 export type CallList = z.infer<typeof CallList>;
 
 // `where` is what the call screen says while it shows a call held somewhere other than this app.
@@ -139,6 +153,7 @@ export const isNaming = (call: CallSummary, now = Date.now()) =>
 
 export const callDetails = (call: CallSummary) => {
   const tasks = call.tasks === 1 ? '1 task' : call.tasks ? `${call.tasks} tasks` : '';
+
   return [callLength(call.seconds), isNaming(call) ? 'naming…' : tasks].filter(Boolean).join(' · ');
 };
 
@@ -152,6 +167,7 @@ export const transcriptText = (call: CallRecord) => {
       ? ['Waiting on you:', ...call.waiting.map((item) => `- ${item}`)]
       : []),
   ].filter(Boolean);
+
   const moments = timeline(call).map((moment) =>
     moment.kind === 'turn'
       ? `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`
@@ -159,6 +175,7 @@ export const transcriptText = (call: CallRecord) => {
         ? `You: (${moment.media.kind})`
         : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
   );
+
   return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
 };
 
@@ -177,6 +194,7 @@ export const liveEntries = ({
     })),
     ...moments.flatMap((mark) => {
       const media = sharedOf(mark);
+
       return media
         ? [{ id: `media ${media.id}`, role: 'user' as const, text: '', startMs: mark.at, media }]
         : [];
@@ -194,16 +212,20 @@ export const callLength = (seconds: number) => {
   if (seconds < 60) {
     return `${Math.max(seconds, 1)} sec`;
   }
+
   const minutes = Math.round(seconds / 60);
+
   if (minutes < 60) {
     return `${minutes} min`;
   }
+
   return `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
 };
 
 export const clock = (ms: number) => {
   const seconds = Math.floor(ms / 1000);
   const rest = String(seconds % 60).padStart(2, '0');
+
   return seconds < 3600
     ? `${Math.floor(seconds / 60)}:${rest}`
     : `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${rest}`;
@@ -218,15 +240,19 @@ const dayStart = (date: Date) =>
 export const dayLabel = (iso: string, now = new Date()) => {
   const date = new Date(iso);
   const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000);
+
   if (days === 0) {
     return 'Today';
   }
+
   if (days === 1) {
     return 'Yesterday';
   }
+
   if (days < 7) {
     return date.toLocaleDateString([], { weekday: 'long' });
   }
+
   return date.toLocaleDateString([], {
     month: 'long',
     day: 'numeric',
@@ -237,6 +263,7 @@ export const dayLabel = (iso: string, now = new Date()) => {
 // A call back among the others, newest first, where it sat before.
 export const putBack = (calls: CallSummary[], call: CallSummary) => {
   const at = calls.findIndex((one) => one.started < call.started);
+
   return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
 };
 
@@ -244,19 +271,23 @@ export const putBack = (calls: CallSummary[], call: CallSummary) => {
 // yesterday, and everything before, each newest first, as hex sends them.
 export const byDay = (calls: CallSummary[], now = new Date()) => {
   const days: { label: string; calls: CallSummary[] }[] = [];
+
   for (const call of calls) {
     const label = periodOf(call.started, now);
+
     if (days.at(-1)?.label === label) {
       days.at(-1)!.calls.push(call);
     } else {
       days.push({ label, calls: [call] });
     }
   }
+
   return days;
 };
 
 const periodOf = (iso: string, now: Date) => {
   const days = daysAgo(iso, now);
+
   return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : 'Earlier';
 };
 
@@ -267,13 +298,17 @@ const daysAgo = (iso: string, now: Date) =>
 // before that, the day of the week, or the date once it's more than a week back.
 export const callTime = (iso: string, now = new Date()) => {
   const days = daysAgo(iso, now);
+
   if (days < 2) {
     return timeOfDay(iso);
   }
+
   const date = new Date(iso);
+
   if (days < 7) {
     return date.toLocaleDateString([], { weekday: 'short' });
   }
+
   return date.toLocaleDateString([], {
     month: 'short',
     day: 'numeric',
@@ -284,7 +319,9 @@ export const callTime = (iso: string, now = new Date()) => {
 // What happened to the call shows in it; hex's say and note text is the voice's own words already,
 // and its asks show as cards.
 const SHOWN = { paused: true, resumed: true, warned: true };
+
 export type ShownMark = CallMark & { kind: keyof typeof SHOWN };
+
 const shown = (mark: CallMark): mark is ShownMark => mark.kind in SHOWN;
 
 export type Moment =
@@ -300,9 +337,11 @@ export const timeline = ({
   moments = [],
 }: Pick<CallRecord, 'turns' | 'tasks' | 'moments'>): Moment[] => {
   const markers = new Map<string, CallTask>();
+
   for (const task of tasks) {
     markers.set(task.id, { ...task, at: markers.get(task.id)?.at ?? task.at });
   }
+
   return [
     ...turns.map((turn, i) => ({ kind: 'turn' as const, key: `turn-${i}`, at: turn.at, turn })),
     ...[...markers.values()].map((task) => ({
@@ -316,6 +355,7 @@ export const timeline = ({
       .map((mark, i) => ({ kind: 'mark' as const, key: `mark-${i}`, at: mark.at, mark })),
     ...moments.flatMap((mark) => {
       const media = sharedOf(mark);
+
       return media
         ? [{ kind: 'media' as const, key: `media-${media.id}`, at: mark.at, media }]
         : [];

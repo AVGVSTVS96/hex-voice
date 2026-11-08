@@ -21,6 +21,7 @@ export const SentMedia = ({
   failed?: string;
 }) => {
   const retry = useRetry();
+
   return (
     <View style={styles.you}>
       <View style={[styles.thumb, sending && styles.dim]}>

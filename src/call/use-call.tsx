@@ -29,6 +29,7 @@ import type { LiveVoice } from '@/live/voices';
 import { CallInterruptions } from '../../modules/call-interruptions';
 
 const Session = createContext<{ session: LiveSession; demo: boolean } | null>(null);
+
 // What you sent the call from here, and how to send it more.
 const Sending = createContext<{
   sent: Sent[];
@@ -42,20 +43,25 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
   const [session] = useState(() =>
     demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
   );
+
   useEffect(() => {
     const onAppStateChange = (state: typeof AppState.currentState) => {
       // Native iOS audio continues while the screen is locked or another app is
       // open. Only visual updates pause; the microphone keeps its chosen state.
       session.setAppActive(state === 'active');
+
       if (state === 'background' && process.env.EXPO_OS !== 'ios') {
         void session.stop();
       }
     };
+
     onAppStateChange(AppState.currentState);
     const listener = AppState.addEventListener('change', onAppStateChange);
+
     const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) => {
       session.interrupt(began);
     });
+
     return () => {
       listener.remove();
       interruptions?.remove();
@@ -64,30 +70,38 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
   }, [session]);
   const [value] = useState({ session, demo });
   const [sent, setSent] = useState<Sent[]>([]);
+
   const [go] = useState(() => async (call: CallId, batch: Sent[]) => {
     const outcome = await deliver(call, batch, {
       upload: hex.media.upload,
       media: hex.calls.media,
     });
+
     if (outcome.error instanceof Refused && outcome.error.status === 409) {
       ended();
     }
+
     setSent((now) => settle(now, batch, outcome));
   });
+
   // What was sent to an earlier call goes as the next call's first one does.
   const send = (call: CallId, at: number, picked: Picked[]) => {
     const batch = batchOf(call, at, picked, newKey());
     setSent((now) => [...now.filter((one) => one.call === call), ...batch]);
     void go(call, batch);
   };
+
   const retry = (entry: string) => {
     const again = retrying(sent, entry);
+
     if (!again.length) {
       return;
     }
+
     setSent((now) => now.map((one) => again.find(({ entry }) => entry.id === one.entry.id) ?? one));
     void go(again[0].call, again);
   };
+
   return (
     <Session value={value}>
       <Sending value={{ sent, send, retry }}>{children}</Sending>
@@ -99,26 +113,33 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
 // /activity), followed word by word until it ends.
 export const useCall = (held: CallId | null) => {
   const { session, demo } = use(Session)!;
+
   const snapshot = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
     session.getSnapshot,
   );
+
   const here = isHere(snapshot.status);
+
   const elsewhere = useCallElsewhere(
     held && !here && held !== snapshot.callId ? held : undefined,
     here,
   );
+
   const { sent } = use(Sending)!;
+
   const call = withSent(
     callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving }),
     sent,
   );
+
   useEffect(() => {
     if (demo) {
       void session.start();
     }
   }, [session, demo]);
+
   return {
     call,
     start: async (voice: LiveVoice, about?: CallAbout) => {
@@ -143,11 +164,13 @@ const ended = () => {
 // Whether a call on this phone holds the microphone, so nothing else here records sound.
 export const useMicHeld = () => {
   const { session } = use(Session)!;
+
   const { status } = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
     session.getSnapshot,
   );
+
   return isHere(status);
 };
 
@@ -159,15 +182,20 @@ export const useShare = (call: Call) => {
   useEffect(() => {
     now.current = call;
   });
+
   return (picked: Picked[]) => {
     const live = now.current;
     const id = callIdOf(live);
+
     if (live.kind === 'none' || !id) {
       ended();
+
       return;
     }
+
     const at =
       live.kind === 'here' ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
+
     send(id, at, picked);
   };
 };
@@ -184,7 +212,9 @@ export const useLevels = (hear: (levels: Levels) => void) => {
     const now = () => {
       take(session.getLevels());
     };
+
     now();
+
     return session.subscribeLevels(now);
   }, [session]);
 };

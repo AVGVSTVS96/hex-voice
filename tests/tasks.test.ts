@@ -20,8 +20,10 @@ import {
 import type { AgentTrail, Task, TaskStep } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
+
 const at = (hours: number, minutes = 0, day = 13) =>
   new Date(2026, 9, day, hours, minutes).toISOString();
+
 const row = (
   name: string,
   state: TaskRow['state'],
@@ -56,6 +58,7 @@ test('a step without an end lasts until the next began, and a reply says when it
     kind,
     text: 'step',
   });
+
   const steps = [step(59, 20), step(59, 12, 'think'), step(56, 12), step(55, 50)];
   assert.deepEqual(stepTimes(steps, now), ['', '8s', '3 min', '22s']);
   assert.deepEqual(stepTimes([], now), []);
@@ -96,6 +99,7 @@ const agent = (id: string, extra: Partial<AgentTrail>): AgentTrail => ({
   steps: [],
   ...extra,
 });
+
 const agents = [
   agent('t3:recipes-1', {
     label: 'recipes: what the pantry can make',
@@ -149,6 +153,7 @@ test('a step takes as long as its result took to come back, and only a running s
     { at: second(55), kind: 'agent', text: 'Handed off review', agent: 't3:review' },
     { at: second(50), kind: 'think', text: 'thinking' },
   ];
+
   assert.deepEqual(stepTimes(steps, now), ['10s', '8s', '3 min', '1 min', '5 min']);
   assert.deepEqual(steps.map(stepMark), ['working', undefined, 'failed', undefined, undefined]);
   assert.equal(stepTimes(steps, new Date(2026, 9, 13, 10, 3))[0], '3 min');
@@ -214,6 +219,7 @@ test("a thread that's done shows its last run while it has steps or agents", () 
     agents: [],
     ...extra,
   });
+
   assert.equal(lastRun(task({ steps: [{ at: at(9), kind: 'run', text: 'Build it' }] })), true);
   assert.equal(lastRun(task({ agents })), true);
   assert.equal(lastRun(task({})), false);

@@ -28,6 +28,7 @@ export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
   if (!Native) {
     return null;
   }
+
   return (
     <Native
       modifiers={modifiers}

@@ -15,14 +15,18 @@ export const useVoiceTone = (listening: boolean) => {
   const on = listening && active;
   useEffect(() => {
     const voice = VoiceTone;
+
     if (!on || !voice) {
       return;
     }
+
     const subscription = voice.addListener('onTone', (heard) => {
       pitch.set(withSpring(heard.pitch, motion.tone));
       tone.set(withSpring(heard.tone, motion.tone));
     });
+
     voice.start();
+
     return () => {
       subscription.remove();
       voice.stop();
@@ -30,5 +34,6 @@ export const useVoiceTone = (listening: boolean) => {
       tone.set(withSpring(0, motion.tone));
     };
   }, [on, pitch, tone]);
+
   return { pitch, tone };
 };

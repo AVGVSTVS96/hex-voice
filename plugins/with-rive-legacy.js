@@ -7,6 +7,7 @@ module.exports = function withRiveLegacy(config) {
     if (!config.modResults.contents.includes('$UseRiveLegacy')) {
       config.modResults.contents = `$UseRiveLegacy = true\n${config.modResults.contents}`;
     }
+
     return config;
   });
 };

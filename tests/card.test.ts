@@ -101,11 +101,13 @@ test('on every screen, a call card with nothing beside it fills the screen squar
 test('what is on the call card stays put in the window unless the card slides aside to Calls’ edge', () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
+
     for (const drawer of [0.5, 1]) {
       const card = cardOf(layout, drawer, 0, layout.tasks.width);
       const slid = layout.calls.place === 'slide' ? drawer * layout.calls.width : 0;
       assert.equal(card.left + card.stage.left, layout.content.x + slid, `${name} at ${drawer}`);
       assert.equal(card.top + card.stage.top, 0, `${name} at ${drawer}`);
+
       if (layout.calls.place === 'slide' && drawer === 1) {
         assert.equal(card.stage.left, 0, `${name}: the call's content peeks from Calls' edge`);
       }
@@ -118,16 +120,19 @@ test('what is on the call card stays put in the window unless the card slides as
 // or the card covers any of Calls.
 test('in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square', () => {
   const problems: string[] = [];
+
   for (const width of [375, 440, 466, 669, 834, 951, 1194]) {
     for (const height of [466, 669, 678, 834, 951, 1194]) {
       for (const side of [undefined, 'left', 'right'] as const) {
         for (const folded of [false, true]) {
           const across = width > height;
+
           const fold = folded
             ? across
               ? { x: width / 2 - 20, y: 0, width: 40, height }
               : { x: 0, y: height / 2 - 20, width, height: 40 }
             : undefined;
+
           const layout = layoutOf({
             window: { width, height },
             insets: {
@@ -138,14 +143,18 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
             },
             pose: { regular: width >= 669, bar: side, fold },
           });
+
           const name = `${width}x${height} ${side ?? 'no'} column${folded ? ', folded' : ''}`;
           const calls = cardOf(layout, 1, 0, layout.tasks.width);
+
           if (calls.borderRadius !== radius.card) {
             problems.push(`${name}: Calls in, square`);
           }
+
           if (calls.left !== layout.content.x + layout.calls.width) {
             problems.push(`${name}: card at ${calls.left}, Calls ends at ${layout.calls.width}`);
           }
+
           if (cardOf(layout, 0, 0, layout.tasks.width).borderRadius !== 0) {
             problems.push(`${name}: nothing in, rounded`);
           }
@@ -153,6 +162,7 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
       }
     }
   }
+
   assert.deepEqual(problems, []);
 });
 
@@ -160,28 +170,36 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
 // it keeps is clear of Tasks and holds every button.
 test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
   const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
+
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const { toolbar, calls, tasks } = layout;
+
     if (toolbar.axis !== 'row') {
       continue;
     }
+
     const window = screen.window.width;
+
     for (const drawer of [0, 0.5, 1]) {
       const { left, right } = barOf(layout, window, drawer);
       const end = window - right;
       const where = `${name}, Calls at ${drawer}`;
       assert.ok(end - left >= least, `${where}: holds its buttons`);
+
       if (calls.below !== undefined) {
         assert.deepEqual([left, end], [toolbar.x, toolbar.x + toolbar.width], `${where}: whole`);
       }
+
       if (drawer === 0) {
         assert.ok(left >= 0 && end <= window, `${where}: inside the window`);
+
         if (tasks.place === 'beside') {
           assert.ok(end <= window - tasks.width, `${where}: clear of Tasks`);
         }
       }
     }
+
     if (layout.inbox) {
       assert.ok(
         toolbar.y + metrics.tool <= layout.inbox.top,

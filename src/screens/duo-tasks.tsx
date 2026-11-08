@@ -44,6 +44,7 @@ export const useDuoTasks = (
   const covers = useSettle(!!duo && open && !callBeside, reducedMotion);
   const aside = useSettle(callBeside, reducedMotion);
   const offer = useSettle(offered, reducedMotion);
+
   return {
     docked,
     beside,
@@ -62,6 +63,7 @@ export const useDuoTasks = (
 // How much of the call's own page shows while Tasks covers it: gone by the time Tasks is halfway in.
 export const uncovered = (covers: number) => {
   'worklet';
+
   return 1 - Math.min(1, 2 * covers);
 };
 
@@ -71,6 +73,7 @@ const useSettle = (on: boolean, reducedMotion: boolean) => {
     const to = on ? 1 : 0;
     value.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
   }, [on, reducedMotion, value]);
+
   return value;
 };
 
@@ -100,15 +103,20 @@ export const DuoTasks = ({
   const pageStyle = useAnimatedStyle(() => ({
     opacity: shown ? interpolate(pane.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
+
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
+
   const offerFade = () => {
     'worklet';
+
     return { opacity: state.offer.get() };
   };
+
   const { time } = duo.call;
   const button = duo.beside?.button;
   // The switch shows what it does: the call and Tasks side by side, or one over the other.
   const stacks = !!duo.beside && duo.beside.tasks.area.y > duo.tasks.area.y;
+
   return (
     <>
       <TasksPage

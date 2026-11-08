@@ -28,12 +28,14 @@ export const createHex = ({ request, send, source, upload }: Client) => {
     // The photo, or for a clip a still from it.
     image: (id: MediaId) => source(`/media/${enc(id)}`),
   };
+
   const session: SessionAPI = {
     create: async (sdp, voice, about) => {
       const { session, transport } = await request('/session', Opened, {
         method: 'POST',
         body: { sdp, voice, from: 'app', about: about === 'asks' ? about : about?.task },
       });
+
       return { sdp: transport.sdp, sessionId: session.id };
     },
     close: async (sessionId) => {
@@ -43,6 +45,7 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       await send(`/calls/${enc(sessionId)}/moments`, { body: { kind } });
     },
   };
+
   return {
     session,
     media,

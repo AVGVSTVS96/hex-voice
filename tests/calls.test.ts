@@ -22,6 +22,7 @@ test('a phone call’s turns read as the live transcript, each keeping its place
     { who: 'you' as const, at: 1000, text: 'is the build' },
     { who: 'voice' as const, at: 2500, text: 'One sec.' },
   ];
+
   const before = liveEntries({ turns });
   const after = liveEntries({ turns: [{ ...turns[0], text: 'is the build green?' }, turns[1]] });
   assert.deepEqual(before, [
@@ -50,6 +51,7 @@ const call = (id: string, started: string): CallSummary =>
 
 test('calls group under today, yesterday and earlier, newest first, as hex sends them', () => {
   const now = new Date(2026, 9, 13, 9);
+
   const days = byDay(
     [
       call('a', new Date(2026, 9, 13, 3, 5).toISOString()),
@@ -60,6 +62,7 @@ test('calls group under today, yesterday and earlier, newest first, as hex sends
     ],
     now,
   );
+
   assert.deepEqual(
     days.map((day) => [day.label, day.calls.map(({ id }) => id)]),
     [
@@ -93,6 +96,7 @@ test('each of hex’s tasks is one marker where it started, showing how it ended
       { id: 'plan', state: 'done', at: 12_000, text: 'plan page ready' },
     ],
   });
+
   assert.deepEqual(
     moments.map((moment) => (moment.kind === 'task' ? moment.task : moment.kind)),
     ['turn', { id: 'plan', state: 'done', at: 4000, text: 'plan page ready' }, 'turn'],
@@ -114,6 +118,7 @@ test('a call shows when the phone took its audio and the time-limit warning, and
       { at: 9000, kind: 'resumed' as const, text: 'Back on the call' },
     ],
   };
+
   assert.deepEqual(
     timeline(call).map((moment) => moment.kind),
     ['turn', 'mark', 'mark'],
@@ -136,6 +141,7 @@ test('a photo or clip you sent a call shows as your turn, live and after, wherev
       { at: 5000, kind: 'say' as const, text: 'Looking now.' },
     ],
   };
+
   assert.deepEqual(
     liveEntries(call).map(({ role, media }) => [role, media?.kind]),
     [

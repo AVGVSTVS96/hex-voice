@@ -25,17 +25,21 @@ export interface CallActivityProps {
 
 const CallActivity = (props: CallActivityProps) => {
   'widget';
+
   // This layout runs as a string in the widget extension, where neither the theme nor
   // DynamicColorIOS exist, so each color is the object DynamicColorIOS would make. The Lock Screen
   // follows the system; the island is always dark.
   const color = (dark: string, light: string) =>
     ({ dynamic: { dark, light } }) as unknown as ColorValue;
+
   const text = color('#F5F5F5', '#0A0A0A');
   const secondary = color('#A1A1A6', '#6E6E73');
   const muted = props.state === 'muted';
+
   const orb = (size: number) => (
     <Image assetName={props.orb} modifiers={[resizable(), frame({ width: size, height: size })]} />
   );
+
   const timer = (size: number, width: number, alignment: 'leading' | 'trailing') => (
     <Text
       timerInterval={{ lower: new Date(props.since), upper: new Date(props.since + 86_400_000) }}
@@ -49,6 +53,7 @@ const CallActivity = (props: CallActivityProps) => {
       ]}
     />
   );
+
   const subtitle = props.outcome ? (
     <Text
       modifiers={[
@@ -63,14 +68,17 @@ const CallActivity = (props: CallActivityProps) => {
   ) : (
     <Text modifiers={[font({ size: 15 }), foregroundStyle(secondary)]}>Connecting</Text>
   );
+
   const title = (
     <VStack alignment="leading" spacing={2}>
       <Text modifiers={[font({ size: 17, weight: 'semibold' }), foregroundStyle(text)]}>hex</Text>
       {subtitle}
     </VStack>
   );
+
   const control = (target: 'mute' | 'end', size: number) => {
     const end = target === 'end';
+
     return (
       <Button target={target} modifiers={[buttonStyle('plain')]}>
         <Image
@@ -92,6 +100,7 @@ const CallActivity = (props: CallActivityProps) => {
       </Button>
     );
   };
+
   const controls = (size: number) => (
     <HStack spacing={10}>
       {props.state === 'connecting' || props.state === 'ended' ? null : control('mute', size)}

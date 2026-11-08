@@ -10,6 +10,7 @@ const sent: AgentTask = {
   text: 'Your orb-bounce feedback',
   to: 'voiceapp',
 };
+
 const read: AgentTask = {
   id: 'fresh-read',
   state: 'running',
@@ -45,6 +46,7 @@ test('the agent with the latest step leads, and the rest are counted', () => {
     { ...sent, line: 'Editing motion.ts' },
     { ...sent, id: 'done', state: 'done' },
   ]);
+
   assert.equal(line?.text, 'Reading transcript.md');
   assert.equal(line?.where, '+1');
 });

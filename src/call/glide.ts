@@ -50,17 +50,22 @@ export const useGlide = ({
     'worklet';
     goal.set(target);
     landing.set(target);
+
     if (reducedMotion) {
       progress.set(withTiming(target, motion.reduced));
+
       return;
     }
+
     const distance = Math.abs(target - progress.get());
     const direction = Math.sign(target - progress.get());
     const toward = Math.max(0, direction * velocity);
+
     const omega = Math.min(
       Math.max(motion.glide.ease, toward / (distance || 1)),
       motion.glide.snap,
     );
+
     progress.set(
       withSpring(target, {
         mass: 1,
@@ -75,6 +80,7 @@ export const useGlide = ({
   // changed what shows, like turning the device or opening a call.
   useEffect(() => {
     const target = reading ? 1 : 0;
+
     if (goal.get() !== target) {
       glideTo(target);
     }
@@ -84,6 +90,7 @@ export const useGlide = ({
     () => progress.get(),
     (now) => {
       const target = landing.get();
+
       if (target >= 0 && Math.abs(now - target) * reach <= LANDED) {
         landing.set(-1);
         scheduleOnRN(onLand);
@@ -114,6 +121,7 @@ export const useGlide = ({
         const banded = limit * (1 - 1 / ((over * 0.55) / limit + 1));
         progress.set(raw < 0 ? -banded : raw > 1 ? 1 + banded : raw);
         const past = goal.get() === 0 ? raw >= line : raw <= line;
+
         if (past !== crossed) {
           grab.set({ offset, line, crossed: past });
           scheduleOnRN(onCross);
@@ -122,8 +130,10 @@ export const useGlide = ({
       .onEnd(({ velocityY }) => {
         'worklet';
         const from = goal.get();
+
         const target =
           velocityY > FLICK ? 1 : velocityY < -FLICK ? 0 : grab.get().crossed ? 1 - from : from;
+
         glideTo(target, velocityY / travel);
         scheduleOnRN(onRelease, target === 1);
       });
@@ -133,6 +143,7 @@ export const useGlide = ({
   const glide = (p: number) => {
     'worklet';
     const t = reducedMotion ? (p < 0.5 ? 0 : 1) : p;
+
     return { t, arc: t <= 0 ? 0 : t <= 1 ? t * t : 2 * t - 1 };
   };
 

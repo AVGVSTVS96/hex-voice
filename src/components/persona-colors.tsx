@@ -63,6 +63,7 @@ export const PersonaColors = ({
 
   if (!PERSONA_MODELS[persona].dynamicColor) {
     const { label } = PERSONA_VARIANTS.find(({ id }) => id === persona)!;
+
     return (
       <SwatchRow
         layout={layout}
@@ -83,6 +84,7 @@ export const PersonaColors = ({
 
   const color = preferences.personaColor;
   const custom = !PERSONA_COLORS.some((preset) => preset.id === color);
+
   return (
     <SwatchRow
       layout={layout}
@@ -165,6 +167,7 @@ const Swatch = ({
   layout: Layout;
 }) => {
   const inner = size - 10;
+
   return (
     <Pressable
       accessibilityRole="radio"
@@ -193,6 +196,7 @@ const Swatch = ({
 
 const SkeletonSwatch = ({ size }: { size: number }) => {
   const inner = size - 10;
+
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View

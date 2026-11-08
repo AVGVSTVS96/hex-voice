@@ -37,6 +37,7 @@ export const TasksButton = ({
   ]
     .filter(Boolean)
     .join(', ');
+
   return (
     <GlassButton
       bare

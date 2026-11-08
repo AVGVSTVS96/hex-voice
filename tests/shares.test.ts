@@ -20,21 +20,26 @@ const hexThat = ({
 } = {}) => {
   const asked: string[] = [];
   let kept = first - 1;
+
   const api: ShareAPI = {
     upload: async ({ uri, kind }) => {
       asked.push(`upload ${uri}`);
+
       if (refuse.includes(uri)) {
         throw new Error('Cannot reach hex');
       }
+
       return { id: MediaId.parse(`m${++kept}`), kind };
     },
     media: async (to, ids) => {
       asked.push(`call ${to} ${ids.join(',')}`);
+
       if (callFails) {
         throw callFails;
       }
     },
   };
+
   return { api, asked };
 };
 
@@ -98,10 +103,12 @@ test('trying again takes only what didn’t go, from that batch alone', () => {
   const done = settle(batchOf(call, 1000, [photo], 'a'), batchOf(call, 1000, [photo], 'a'), {
     shared: [{ id: MediaId.parse('m1'), kind: 'photo' }],
   });
+
   const lost = batchOf(call, 2000, [photo, clip], 'b').map((one) => ({
     ...one,
     entry: { ...one.entry, sending: false, failed: 'Cannot reach hex' },
   }));
+
   const all = [...done, ...lost];
   assert.deepEqual(retrying(all, done[0].entry.id), []);
   assert.deepEqual(

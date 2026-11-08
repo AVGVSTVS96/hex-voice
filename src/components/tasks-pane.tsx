@@ -60,6 +60,7 @@ export const TasksPage = ({
   const room = pagedRoom(page);
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room), onClose });
   const { back } = pages;
+
   const swipe = Gesture.Pan()
     .activeOffsetX(12)
     .failOffsetY([-14, 14])
@@ -68,6 +69,7 @@ export const TasksPage = ({
         scheduleOnRN(back);
       }
     });
+
   return (
     <Animated.View
       testID="tasks-page"

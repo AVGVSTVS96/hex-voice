@@ -47,6 +47,7 @@ export const CallFooter = ({
   const ended = footing?.kind === 'ended' ? footing : undefined;
   const wrapUp = ended && calls?.find(({ id }) => id === ended.id);
   const error = trouble ?? errorOf(call);
+
   return (
     <Animated.View pointerEvents="box-none" onLayout={onLayout} style={[styles.footer, style]}>
       {wrapUp && (wrapUp.title || wrapUp.summary || wrapUp.waiting?.length) ? (

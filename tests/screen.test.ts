@@ -10,6 +10,7 @@ import type { Action, Screen } from '../src/call/screen';
 
 const go = (shared: boolean, ...actions: Action[]) =>
   actions.reduce((now, action) => step(now, action, { shared }), start({}));
+
 const A = TaskId.parse('a');
 
 test('nothing is open at first, unless the link opens something', () => {
@@ -106,6 +107,7 @@ test('where settings has a place, only one of Calls, Tasks and settings is ever 
     { to: 'tasks', open: false },
     { to: 'settings', open: false },
   ] as const;
+
   for (const a of actions) {
     for (const b of actions) {
       for (const c of actions) {
@@ -141,12 +143,14 @@ test('what is open never touches the words, and the words never touch what is op
 
 test('the words chosen beside Tasks stay chosen as Tasks, settings and the words move, until unchosen', () => {
   const chosen = go(true, { to: 'tasks', open: true }, { to: 'beside', on: true });
+
   const moved = [
     { to: 'settings', open: true },
     { to: 'tasks', open: true },
     { to: 'words', pulled: false },
     { to: 'call', id: 'c1' },
   ] as const;
+
   const after = moved.reduce((now, action) => step(now, action, { shared: true }), chosen);
   assert.equal(after.words.beside, true);
   assert.equal(step(after, { to: 'beside', on: false }, { shared: true }).words.beside, false);
@@ -161,6 +165,7 @@ test('where you are in Tasks lasts through everything but opening it again', () 
     { to: 'pages', move: { to: 'topic', id: A } },
     { to: 'pages', move: { to: 'thread' } },
   );
+
   const others: Action[] = [
     { to: 'settings', open: true },
     { to: 'settings', open: false },
@@ -171,6 +176,7 @@ test('where you are in Tasks lasts through everything but opening it again', () 
     { to: 'beside', on: true },
     { to: 'tasks', open: false },
   ];
+
   for (const shared of [false, true]) {
     const after = others.reduce((now, action) => step(now, action, { shared }), there);
     assert.deepEqual(after.pages, there.pages);
@@ -189,10 +195,12 @@ test('only the call screen moves through Tasks; its containers only lay out wher
           ? [join(dir, entry.name)]
           : [],
     );
+
   const movers = files('src').filter((file) =>
     /import \{[^}]*\b(?:move|startAt|START)\b[^}]*\} from '@\/components\/tasks\/pages'/.test(
       readFileSync(file, 'utf-8'),
     ),
   );
+
   assert.deepEqual(movers, ['src/call/screen.ts']);
 });

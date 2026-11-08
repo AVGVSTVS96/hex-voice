@@ -129,6 +129,7 @@ export const CheckRow = ({
   onPress: () => void;
 }) => {
   const { title, did } = checkLine(check);
+
   return (
     <Strip
       mark="read"

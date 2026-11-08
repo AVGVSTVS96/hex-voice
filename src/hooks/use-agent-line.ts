@@ -28,13 +28,17 @@ export const useAgentLine = (haptics: boolean) => {
     const done = justFinished(seen.current, tasks);
     seen.current = tasks;
     setLive({ call: activity.call, tasks, cards: activity.call ? (activity.asks ?? []) : [] });
+
     if (!activity.call) {
       setFinished(undefined);
     }
+
     if (!done) {
       return;
     }
+
     setFinished(done);
+
     if (haptics && process.env.EXPO_OS === 'ios') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     }
@@ -44,9 +48,11 @@ export const useAgentLine = (haptics: boolean) => {
     if (!finished) {
       return;
     }
+
     const timer = setTimeout(() => {
       setFinished(undefined);
     }, motion.agent.hold);
+
     return () => {
       clearTimeout(timer);
     };

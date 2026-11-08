@@ -45,6 +45,7 @@ export const Transcript = ({
     if (!active) {
       return;
     }
+
     following.current = true;
     scroll.current?.scrollToEnd({ animated: false });
   }, [active]);
@@ -114,10 +115,12 @@ export const Transcript = ({
 // Each card sits where hex brought it up: before the first words said after it.
 const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
+
   for (const card of [...cards].sort((a, b) => a.at - b.at)) {
     const after = moments.findIndex((moment) => !('ask' in moment) && moment.startMs > card.at);
     moments.splice(after === -1 ? moments.length : after, 0, card);
   }
+
   return moments;
 };
 
@@ -125,6 +128,7 @@ const Line = ({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'larg
   const text = entry.text.trim();
   const [warm, settled] = useSettledLength(text.length);
   const user = entry.role === 'user';
+
   return (
     <Turn you={user}>
       <Text accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`} selectable style={styles[size]}>
@@ -147,6 +151,7 @@ const useSettledLength = (length: number) => {
       setSettled((current) => Math.max(current, length));
     }, motion.caption.settled);
   }, [length]);
+
   return [Math.min(warm, length), Math.min(settled, length)] as const;
 };
 

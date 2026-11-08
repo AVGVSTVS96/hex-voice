@@ -8,6 +8,7 @@ const KEY = 'HexDrafts';
 
 const saved = (): Record<string, string> => {
   const all: unknown = Settings.get(KEY);
+
   return all && typeof all === 'object' ? (all as Record<string, string>) : {};
 };
 
@@ -28,16 +29,20 @@ export const sentDraft = (where: string, text: string) => {
 export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
+
   if (!old) {
     return all[where] ?? '';
   }
+
   const { [old]: text, ...rest } = all;
   Settings.set({ [KEY]: { ...rest, [where]: text } });
+
   return text;
 };
 
 export const useDraft = (where: string) => {
   const [first] = useState(() => saved()[where] ?? '');
+
   return {
     first,
     keep: (text: string) => {

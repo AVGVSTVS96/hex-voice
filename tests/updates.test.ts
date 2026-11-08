@@ -9,6 +9,7 @@ import test, { after } from 'node:test';
 import { publish, serve } from '../updates/store.mjs';
 
 const made: string[] = [];
+
 after(
   async () =>
     await Promise.all(
@@ -21,6 +22,7 @@ after(
 const scratch = async (prefix: string) => {
   const dir = await mkdtemp(join(tmpdir(), prefix));
   made.push(dir);
+
   return dir;
 };
 
@@ -41,6 +43,7 @@ const exported = async () => {
       },
     }),
   );
+
   return dist;
 };
 
@@ -49,6 +52,7 @@ const store = async () => {
   const server = serve(dir).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   const origin = `http://localhost:${(server.address() as AddressInfo).port}`;
+
   return { dir, server, origin, expoConfig: { updates: { url: `${origin}/manifest` } } };
 };
 
@@ -84,11 +88,14 @@ test('serves the latest update for a runtime, with assets the app can verify', a
   for (const asset of [update.launchAsset, ...update.assets]) {
     const file = await fetch(asset.url);
     assert.equal(file.headers.get('content-type'), asset.contentType);
+
     const hash = createHash('sha256')
       .update(Buffer.from(await file.arrayBuffer()))
       .digest('base64url');
+
     assert.equal(hash, asset.hash);
   }
+
   assert.equal(update.assets[0].key, createHash('md5').update('image').digest('hex'));
 });
 

@@ -22,6 +22,7 @@ export const PastCallBar = ({ call, live, onCall, transcript, onBack, onDelete }
     'call',
     onCall ? { to: 'your call', onPress: onBack } : undefined,
   );
+
   return (
     <View pointerEvents="box-none" style={styles.bar}>
       <View style={styles.spacer} />

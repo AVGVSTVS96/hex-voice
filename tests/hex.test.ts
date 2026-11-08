@@ -9,12 +9,16 @@ import { MediaId } from '../src/live/media';
 import { TaskId } from '../src/live/tasks';
 
 const url = 'https://hex.example:8790';
+
 type Fetch = typeof globalThis.fetch;
+
 const hexAt = (fetch: Fetch, token?: string, at = url) =>
   createHex(createClient({ url: at, token, fetch }));
+
 const answering = (body: unknown, seen?: { url: string; init?: RequestInit }[]) =>
   hexAt(async (input, init) => {
     seen?.push({ url: String(input), init });
+
     return body === null ? new Response(null, { status: 204 }) : Response.json(body);
   });
 
@@ -32,9 +36,11 @@ test('a build without the hex address says how to set it and asks nothing', asyn
 
 test('sends the offer and voice to hex and reads OpenAI’s session back', async () => {
   const seen: { url: string; init?: RequestInit }[] = [];
+
   const hex = hexAt(
     async (input, init) => {
       seen.push({ url: String(input), init });
+
       return Response.json(
         { session: { id: 'live_1', model: 'gpt-live-1' }, transport: { sdp: 'answer' } },
         { status: 201 },
@@ -43,6 +49,7 @@ test('sends the offer and voice to hex and reads OpenAI’s session back', async
     undefined,
     `${url}//`,
   );
+
   assert.deepEqual(await hex.session.create('offer', 'cedar'), { sdp: 'answer', sessionId: live });
   assert.equal(seen[0].url, `${url}/session`);
   assert.equal(seen[0].init?.method, 'POST');
@@ -81,9 +88,11 @@ test('ends a call, and marks when the phone takes its audio and gives it back', 
 test('shows hex’s and OpenAI’s errors as they are', async () => {
   const plain = hexAt(async () => new Response('Set OPENAI_API_KEY', { status: 503 }));
   await assert.rejects(plain.session.create('offer'), /Set OPENAI_API_KEY/);
+
   const openai = hexAt(async () =>
     Response.json({ error: { message: 'Invalid voice' } }, { status: 400 }),
   );
+
   await assert.rejects(openai.session.create('offer'), /^Error: Invalid voice$/);
 });
 
@@ -98,6 +107,7 @@ test('an answer this app can’t read names where, instead of reaching the scree
 test('hex turning a request down is a refusal in its own words; its own failure is not', async () => {
   const answer = async (response: Response) =>
     await hexAt(async () => response).asks.answer(AskId.parse('a'), 'Yes');
+
   await assert.rejects(
     answer(new Response('that question is already answered or settled', { status: 409 })),
     (error) =>
@@ -123,16 +133,20 @@ test('an unreachable hex points at Tailscale', async () => {
   const hex = hexAt(async () => {
     throw new TypeError('Network request failed');
   });
+
   await assert.rejects(hex.session.create('offer'), /Tailscale/);
   await assert.rejects(hex.activity.watch(undefined, new AbortController().signal), /Tailscale/);
 });
 
 test('every request carries the hex token when the app has one', async () => {
   const seen: (string | null)[] = [];
+
   const fetch: Fetch = async (_input, init) => {
     seen.push(new Headers(init?.headers).get('authorization'));
+
     return Response.json({ version: 1, call: null, tasks: [] });
   };
+
   const signal = new AbortController().signal;
   await hexAt(fetch, 'secret').session.close(live);
   await hexAt(fetch, 'secret').activity.watch(undefined, signal);
@@ -171,6 +185,7 @@ test('lists are asked for, then waited on from the version they last saw', async
 
 test('closing a list stops its waiting request as it is', async () => {
   const controller = new AbortController();
+
   const hex = hexAt(
     async (_input, init) =>
       await new Promise((_resolve, reject) =>
@@ -179,6 +194,7 @@ test('closing a list stops its waiting request as it is', async () => {
         }),
       ),
   );
+
   const waiting = hex.calls.list(7, controller.signal);
   controller.abort();
   await assert.rejects(waiting, { name: 'AbortError' });
@@ -235,20 +251,24 @@ test('an answer, a note and a not needed each go to their ask and say what they 
 
 test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex gave it', async () => {
   const seen: { url: string; init?: RequestInit }[] = [];
+
   const hex = createHex(
     createClient({
       url,
       token: 'secret',
       sendFile: async (to, file, { headers }) => {
         seen.push({ url: to, init: { headers, body: `file ${file.uri}` } });
+
         return { status: 201, text: JSON.stringify({ id: `m${seen.length}`, kind: 'photo' }) };
       },
       fetch: async (input, init) => {
         seen.push({ url: String(input), init });
+
         return new Response(null, { status: 204 });
       },
     }),
   );
+
   const photo = { uri: 'file:///shot.jpg', kind: 'photo' as const, type: 'image/jpeg' };
   assert.deepEqual(await hex.media.upload(photo), { id: 'm1', kind: 'photo' });
   await hex.calls.media(live, [MediaId.parse('m2')]);

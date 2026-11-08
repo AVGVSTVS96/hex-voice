@@ -41,6 +41,7 @@ export const useDrawer = ({
       }
     },
   );
+
   // The spring is critically damped, so it comes to rest without passing its end unless it starts
   // faster than its natural frequency times the way left. A faster fling is held to that.
   const settle = (now: boolean, velocity = 0) => {
@@ -56,16 +57,19 @@ export const useDrawer = ({
           }),
     );
   };
+
   const letGo = (now: boolean, velocity = 0) => {
     'worklet';
     settle(now, velocity);
     scheduleOnRN(onChange, now);
   };
+
   useEffect(() => {
     if (target.get() !== open) {
       settle(open);
     }
   }, [open]);
+
   const pan = (offset: number | [number, number]) =>
     Gesture.Pan()
       .activeOffsetX(offset)
@@ -83,6 +87,7 @@ export const useDrawer = ({
         'worklet';
         letGo(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
       });
+
   return {
     drawer,
     out,

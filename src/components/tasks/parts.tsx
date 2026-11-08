@@ -36,6 +36,7 @@ export const questions = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
 
 export const feel = (haptics: boolean) => {
   const on = haptics;
+
   return {
     tick: () => {
       if (on) {
@@ -99,6 +100,7 @@ export const Pill = ({
 }) => {
   const ink = onPress ? 'text' : 'tertiary';
   const mark = pick ? 'sparkle' : icon;
+
   return (
     <Row
       alignment="center"
@@ -259,6 +261,7 @@ export const Faded = ({
       ]}
     />
   );
+
   return (
     <Mask
       alignment="top"
@@ -373,6 +376,7 @@ export const Waiting = ({ failed, refused, gone }: Answered & { gone: string }) 
     : failed
       ? UNREACHED
       : null;
+
   return (
     <Row
       alignment="center"

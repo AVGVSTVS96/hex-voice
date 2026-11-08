@@ -30,6 +30,7 @@ export interface Back {
 export interface Chrome {
   back?: Back;
 }
+
 export const PageChrome = createContext<Chrome>({});
 export const useChrome = () => useContext(PageChrome);
 
@@ -48,6 +49,7 @@ export const Header = ({
   door?: Door;
 }) => {
   const { back } = useChrome();
+
   return (
     <PageBar
       title={title}
@@ -75,6 +77,7 @@ export const PageBar = ({
   trailing?: ReactNode;
 }) => {
   const backButton = back ? <BackButton back={back} /> : null;
+
   return (
     <Row
       alignment="center"

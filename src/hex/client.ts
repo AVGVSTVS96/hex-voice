@@ -23,6 +23,7 @@ export interface Config {
   fetch: typeof globalThis.fetch;
   sendFile?: SendFile;
 }
+
 export type Client = ReturnType<typeof createClient>;
 
 interface Options {
@@ -38,6 +39,7 @@ interface Options {
 const READ = 90_000;
 const WRITE = 60_000;
 const WAIT = 120_000;
+
 // A minute of video over a slow link.
 const UPLOAD = 300_000;
 const UNREACHABLE = ['Network request failed', 'Failed to fetch', 'fetch failed'];
@@ -57,22 +59,29 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
     if (!origin) {
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
     }
+
     const controller = new AbortController();
+
     const abort = () => {
       controller.abort();
     };
+
     signal?.addEventListener('abort', abort);
     const deadline = setTimeout(abort, timeout);
+
     try {
       const { status, text } = await go(`${origin}${path}`, controller.signal);
+
       if (status < 200 || status >= 300) {
         throw refusal(status, text);
       }
+
       return text ? JSON.parse(text) : undefined;
     } catch (error) {
       if (signal?.aborted) {
         throw error;
       }
+
       if (
         controller.signal.aborted ||
         (error instanceof Error &&
@@ -81,6 +90,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       ) {
         throw new Error('Cannot reach hex. Check that Tailscale is on, then try again.');
       }
+
       throw error;
     } finally {
       clearTimeout(deadline);
@@ -99,6 +109,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
           body: body === undefined ? undefined : JSON.stringify(body),
           signal,
         });
+
         return {
           status: response.status,
           text: response.status === 204 ? '' : await response.text(),
@@ -108,9 +119,11 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
 
   const read = <S extends z.ZodMiniType>(path: string, schema: S, answer: unknown) => {
     const parsed = schema.safeParse(answer);
+
     if (parsed.success) {
       return parsed.data;
     }
+
     const where = parsed.error.issues[0]?.path.join('.');
     throw new Error(
       `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
@@ -140,7 +153,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       if (!sendFile) {
         throw new Error('This app can’t send files from here.');
       }
+
       const headers = { ...auth, 'Content-Type': file.type };
+
       return read(
         path,
         schema,
@@ -164,10 +179,13 @@ const Said = z.object({ error: z.object({ message: z.string() }) });
 // hex's own words, or OpenAI's error message it passed on. A 4xx is hex turning the request down.
 const refusal = (status: number, text: string) => {
   let message = text.trim();
+
   try {
     message = Said.parse(JSON.parse(text)).error.message;
   } catch {}
+
   message = message.slice(0, 300) || `hex answered HTTP ${status}.`;
   message = message[0].toUpperCase() + message.slice(1);
+
   return status < 500 ? new Refused(message, status) : new Error(message);
 };

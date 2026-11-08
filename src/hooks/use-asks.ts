@@ -13,6 +13,7 @@ import type { Ask, AskId, AskOption, Sent } from '@/live/asks';
 export const answerAsk = async (ask: Ask, option: AskOption) => {
   const sent = await hex.asks.answer(ask.id, option.label);
   keepDraft(`ask:${ask.id}`, '');
+
   return sent;
 };
 
@@ -40,18 +41,22 @@ export const useAsks = (open: boolean) => {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const tries = useFailures();
   const [missed, setMissed] = useState<Record<string, number>>({});
+
   const reached = (id: AskId, sent?: Sent) => {
     setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
   };
+
   // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
   // one before it is done, and only the latest you did may change how its card shows.
   const queue = useRef(new Map<AskId, { last: Promise<unknown>; turn: number }>());
+
   const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<unknown>) => {
     const now = queue.current.get(id) ?? { last: Promise.resolve(), turn: 0 };
     const turn = now.turn + 1;
     const latest = () => queue.current.get(id)?.turn === turn;
     queue.current.set(id, { last: now.last.then(async () => await work(latest)), turn });
   };
+
   // What went out for each ask and hasn't been taken back, sent the same way by Send again.
   const out = useRef(new Map<AskId, () => Promise<Sent>>());
   const [kept, keep] = useKept('asks', AskList);
@@ -60,16 +65,20 @@ export const useAsks = (open: boolean) => {
       dispatch({ type: 'list', list: kept });
     }
   }, [kept]);
+
   const watching = useWatch(open ? 'asks' : null, hex.asks.list, (list) => {
     keep(list);
     dispatch({ type: 'list', list });
   });
+
   // Closing tidies what was folded, and the reasons it showed, only as Tasks opens again, before it
   // shows, so nothing on it changes while it fades out; a reason that came while it was closed stays.
   const [wasOpen, setWasOpen] = useState(open);
   const [shownFailed, setShownFailed] = useState<string[]>([]);
+
   if (open !== wasOpen) {
     setWasOpen(open);
+
     if (open) {
       dispatch({ type: 'close', keep: Object.keys(missed) });
       tries.clear(shownFailed);
@@ -77,6 +86,7 @@ export const useAsks = (open: boolean) => {
       setShownFailed(Object.keys(tries.failed));
     }
   }
+
   const list = useMemo(
     () => state.list && failedOn(state.list, tries.failed, missed),
     [state.list, tries.failed, missed],
@@ -96,17 +106,21 @@ export const useAsks = (open: boolean) => {
       }
     });
   };
+
   const undo = (id: AskId) => {
     const label = state.answered[id];
+
     if (!label) {
       return;
     }
+
     dispatch({ type: 'undo', id });
     reached(id);
     inTurn(id, async (latest) => {
       if (!out.current.has(id)) {
         return;
       }
+
       if (
         await tries.attempt(id, 'Not undone', async () => {
           await hex.asks.undo(id);
@@ -118,6 +132,7 @@ export const useAsks = (open: boolean) => {
       }
     });
   };
+
   return {
     list,
     shown: list?.asks ?? [],
@@ -135,9 +150,11 @@ export const useAsks = (open: boolean) => {
     // folded whether or not they answer this time.
     again: (ask: Ask) => {
       const send = out.current.get(ask.id);
+
       if (!send) {
         return;
       }
+
       reached(ask.id);
       inTurn(
         ask.id,
@@ -166,6 +183,7 @@ export const useCheck = (at: string | undefined) => {
     undefined,
     async () => await hex.asks.check(),
   );
+
   return { check: answer, ...answered };
 };
 

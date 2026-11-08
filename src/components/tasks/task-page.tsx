@@ -81,14 +81,17 @@ export const Detail = ({
   const full = 'lately' in task ? task : undefined;
   const needs = task.state === 'needs' && !asks.length ? (full?.needs ?? task.line) : undefined;
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
+
   const working = [task, ...threads.filter((one) => one.id !== task.id)].filter(
     (one) => one.state === 'working',
   );
+
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const door = [task, ...threads].find((one) => one.link);
   const tracks = tracksOf(task.name, threads.length ? threads : [task]);
   // The lane ends at now, as of when the page opened.
   const now = useNow(false).getTime();
+
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
@@ -257,6 +260,7 @@ export const Asked = ({
 }) => {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
+
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
@@ -300,6 +304,7 @@ export const DonePage = ({
   const says = proofSays(finished.proof);
   const links = proofLinks(finished.proof);
   const at = clock(new Date(finished.at));
+
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header title={finished.topic} subtitle={`Done · ${at}`} door={door} />
@@ -351,6 +356,7 @@ export const DonePage = ({
                 {links.map((link) => {
                   const url =
                     link.kind === 'link' ? link.url : link.kind === 'app' ? link.link : '';
+
                   return (
                     <Way
                       key={url}
@@ -461,6 +467,7 @@ const Run = ({
   const working = thread.state === 'working';
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
   const agents = agentWords(thread.agents, working);
+
   return (
     <Column
       alignment="start"
@@ -523,12 +530,15 @@ const Run = ({
 const subtitleOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
   const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
+
   if (task.state === 'working') {
     return [asks, `working for ${time}`].filter(Boolean).join(' · ');
   }
+
   if (task.state === 'needs') {
     return `${asks || STATE_WORDS.needs} since ${time}`;
   }
+
   return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
 };
 

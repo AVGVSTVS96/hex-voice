@@ -22,6 +22,7 @@ import { film, metrics, radius, space, textOf } from '@/ui/tokens';
 type Phase = { at: 'live' } | { at: 'recording'; since: number } | { at: 'review'; shot: Picked };
 
 const { shutter, ring } = metrics.media;
+
 // How long a press is a tap before it's a hold, as iOS Camera's QuickTake waits.
 const HOLD_MS = 280;
 
@@ -48,17 +49,21 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
 
   const take = async () => {
     const photo = await camera.current?.takePictureAsync({ quality: 0.8 });
+
     if (photo) {
       setPhase({ at: 'review', shot: { uri: photo.uri, kind: 'photo', type: 'image/jpeg' } });
     }
   };
+
   const record = async () => {
     held.current = true;
     setPhase({ at: 'recording', since: Date.now() });
     filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
+
     const clip = await camera.current
       ?.recordAsync({ maxDuration: CLIP_SECONDS, progressUpdateInterval: 0.1 })
       .catch(() => {});
+
     held.current = false;
     cancelAnimation(filled);
     filled.set(0);
@@ -68,10 +73,12 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
         : { at: 'live' },
     );
   };
+
   const lift = () => {
     if (!held.current) {
       return;
     }
+
     held.current = false;
     camera.current?.stopRecording();
   };
@@ -202,9 +209,11 @@ const Fill = ({ filled }: { filled: ReturnType<typeof useSharedValue<number>> })
   const first = useAnimatedStyle(() => ({
     transform: [{ rotate: `${Math.min(filled.get(), 0.5) * 360}deg` }],
   }));
+
   const second = useAnimatedStyle(() => ({
     transform: [{ rotate: `${Math.max(filled.get() - 0.5, 0) * 360}deg` }],
   }));
+
   return (
     <>
       <View style={styles.track} />
@@ -232,10 +241,12 @@ const Timer = ({ since }: { since: number }) => {
     const tick = setInterval(() => {
       setNow(Date.now());
     }, 250);
+
     return () => {
       clearInterval(tick);
     };
   }, []);
+
   return (
     <View style={styles.timer}>
       <View style={styles.dot} />

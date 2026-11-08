@@ -16,10 +16,12 @@ const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns
 
 test('what you sent shows until hex has it waiting under its key, or said after you sent it', () => {
   const sent = { id: TaskId.parse('t'), key: 'app-abc12345', text: 'ship it', media: [], total: 2 };
+
   const before = [
     { from: 'me' as const, text: 'ship it' },
     { from: 'hex' as const, text: 'Shipped.' },
   ];
+
   assert.equal(arrived(chat(before), sent), false);
   assert.equal(
     arrived(chat(before, [{ key: 'telegram:app-abc12345', text: 'ship it', at: '' }]), sent),
@@ -36,6 +38,7 @@ test('a chat cut to its latest turns still finds what you said after you sent it
     media: [],
     total: 150,
   };
+
   const latest = Array.from({ length: 100 }, (_, i) => ({ from: 'hex' as const, text: `${i}` }));
   assert.equal(arrived(chat(latest, [], 150), sent), false);
   assert.equal(

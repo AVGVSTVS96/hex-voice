@@ -8,6 +8,7 @@ import type { TaskId } from '@/live/tasks';
 import type { Page } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check' | 'picks' | 'pick';
+
 type Pushed = Exclude<Level, 'list'>;
 
 // Every opening passes a new one, which starts Tasks afresh there.
@@ -76,6 +77,7 @@ export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
   if (paged) {
     return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
   }
+
   return width >= COLUMNS ? 'columns' : 'one';
 };
 
@@ -84,15 +86,19 @@ export const move = (stack: Stack, step: Move): Stack => {
     case 'topic': {
       return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
     }
+
     case 'beside': {
       return { ...stack, task: step.id };
     }
+
     case 'thread': {
       return { ...stack, path: ['topic', 'thread'], focusComposer: !!step.write };
     }
+
     case 'composerFocused': {
       return stack.focusComposer ? { ...stack, focusComposer: false } : stack;
     }
+
     case 'steps': {
       return {
         ...stack,
@@ -100,19 +106,24 @@ export const move = (stack: Stack, step: Move): Stack => {
         path: [...stack.path.filter((at) => at !== 'steps'), 'steps'],
       };
     }
+
     case 'check':
     case 'picks': {
       return { ...stack, path: [step.to] };
     }
+
     case 'pick': {
       return { ...stack, pick: step.id, path: ['picks', 'pick'] };
     }
+
     case 'back': {
       return { ...stack, path: stack.path.slice(0, -1), focusComposer: false };
     }
+
     case 'stage': {
       return { ...stack, stage: step.stage };
     }
+
     case 'search': {
       return { ...stack, query: step.query };
     }
@@ -121,20 +132,25 @@ export const move = (stack: Stack, step: Move): Stack => {
 
 export const levelsOf = (stack: Stack, shape: Shape): Level[] => {
   const levels: Level[] = ['list', ...stack.path];
+
   if (shape !== 'one' && levels.length === 1) {
     levels.push('topic');
   }
+
   return levels;
 };
 
 export const backLeavesTasks = (stack: Stack, shape: Shape): boolean => {
   const levels = levelsOf(stack, shape);
+
   if (shape === 'one') {
     return levels.length === 1;
   }
+
   if (shape === 'columns') {
     return levels.length === 2 && levels[1] === 'topic';
   }
+
   return levels.at(-2) === 'list';
 };
 
@@ -155,6 +171,7 @@ export const usePages = ({
 }) => {
   const [placed, setPlaced] = useState<Shape>();
   const shape = placed ?? guess;
+
   const back = () => {
     if (backLeavesTasks(stack, shape)) {
       onClose?.();
@@ -162,6 +179,7 @@ export const usePages = ({
       onMove({ to: 'back' });
     }
   };
+
   return {
     ...stack,
     shape,
@@ -176,6 +194,7 @@ export const usePages = ({
 };
 
 export type Pages = ReturnType<typeof usePages>;
+
 type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
 // Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
@@ -225,6 +244,7 @@ export const useField = () => {
       field.current?.blur();
     }
   }, [showing]);
+
   return field;
 };
 
@@ -235,6 +255,7 @@ export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
   if (pages.shape === 'panes') {
     return spotInPanes(level, pages, room);
   }
+
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
@@ -249,6 +270,7 @@ const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot 
   const front = i === levels.length - 1;
   const page = room.width;
   const x = front ? 0 : i === -1 ? page : -(room.paged ? page : page / 3);
+
   return {
     offset: { x, y: 0 },
     shown: x === 0,
@@ -265,6 +287,7 @@ const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
   const front = i === levels.length - 1;
   const behind = i !== -1 || level === 'topic';
   const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
+
   return {
     offset: { x, y: 0 },
     shown: x === 0,
@@ -281,6 +304,7 @@ const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spo
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const second = { at: panes, width: room.width - panes };
+
   const { at, width, shown } = front
     ? { ...second, shown: true }
     : i === levels.length - 2
@@ -288,6 +312,7 @@ const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spo
       : i === -1
         ? { ...second, at: room.width, shown: false }
         : { at: -panes, width: panes, shown: false };
+
   return {
     offset: { x: at, y: 0 },
     shown,

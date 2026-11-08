@@ -93,9 +93,11 @@ export const ListPage = ({
 }) => {
   const { back } = useChrome();
   const { query } = pages;
+
   const setQuery = (query: string | null) => {
     pages.go({ to: 'search', query });
   };
+
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   const behind = loaded && (offline || yours.offline);
@@ -105,19 +107,24 @@ export const ListPage = ({
     if (!counted) {
       return;
     }
+
     onCounts({ needs, working });
+
     return () => {
       onCounts(undefined);
     };
   }, [counted, needs, working, onCounts]);
+
   const shown = useMemo(
     () => (query === null ? tabEntries(entries, stage) : search(entries, query)),
     [entries, stage, query],
   );
+
   const topics = useMemo(
     () => (query === null ? stageTopics(entries, stage) : topicsOf(shown, entries)),
     [shown, entries, query, stage],
   );
+
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
   const searching = query !== null;
@@ -131,6 +138,7 @@ export const ListPage = ({
   }, [open, pages.task, first]);
   // hex's picks or the last check open beside the list in place of a project's page.
   const apart = beside && (pages.path[0] === 'picks' || pages.path[0] === 'check');
+
   const selected =
     beside && !apart
       ? ((
@@ -139,6 +147,7 @@ export const ListPage = ({
           shown.find((entry) => taskOf(entry) === pages.task)
         )?.id ?? null)
       : null;
+
   // The project open beside the list, by what its page shows.
   const openTopic =
     beside && !apart
@@ -146,25 +155,30 @@ export const ListPage = ({
       : undefined;
 
   const searchField = useField();
+
   const openPage = (id: PageId, row?: string) => {
     feel.tick();
     searchField.current?.blur();
     pages.go({ to: 'topic', id, row });
   };
+
   // A new tab picks its first project beside the list in the same move, so the page beside never
   // empties between them.
   const chooseStage = (next: Tab) => {
     feel.tick();
     pages.go({ to: 'stage', stage: next });
     const [lead] = stageTopics(entries, next);
+
     if (beside) {
       pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
     }
   };
+
   const startSearch = () => {
     feel.tick();
     setQuery('');
   };
+
   const actions = {
     selected,
     answered: yours.answered,
@@ -189,11 +203,13 @@ export const ListPage = ({
       void yours.read(id);
     },
   };
+
   const unreachable = (offline || yours.offline) && !loaded;
   // A page as wide as a landscape phone holds back, its title, the stages and search in one row,
   // where they fit; a narrower one gives back, its title and search a bar of their own above the
   // stages. SwiftUI picks from the width it lays the page out at.
   const tabs = { counts, stage, unknown: !loaded, onChange: chooseStage };
+
   const goThrough =
     !searching && stage === 'needs' && yours.open.length > 0 ? (
       <GoThrough
@@ -204,6 +220,7 @@ export const ListPage = ({
         }}
       />
     ) : null;
+
   // The list ends above the pill, so no row ever shows cut beneath it.
   return (
     <Column
@@ -283,7 +300,9 @@ export const ListPage = ({
                 />,
               ];
             }
+
             const lead = topic.entries.map(taskOf).find(Boolean);
+
             return [
               <TopicHead
                 key={`${topic.name}:head`}

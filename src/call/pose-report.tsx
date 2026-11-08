@@ -21,5 +21,6 @@ export const PoseReport = ({ pose, room }: { pose: Pose; room: Room }) => {
     Settings.set({ HexPose: JSON.stringify({ window, size, insets, pose, room }) });
     logPose('pose', { window, size, insets, pose, room });
   }, [window, size, insets, pose, room]);
+
   return null;
 };

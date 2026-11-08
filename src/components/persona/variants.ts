@@ -8,6 +8,7 @@ export const PERSONA_VARIANTS = [
 ] as const;
 
 export type PersonaVariant = (typeof PERSONA_VARIANTS)[number]['id'];
+
 export const DEFAULT_PERSONA: PersonaVariant = 'opal';
 
 export const isPersonaVariant = (value: unknown): value is PersonaVariant =>

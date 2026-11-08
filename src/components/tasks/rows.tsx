@@ -47,14 +47,17 @@ export const EntryRow = ({
   ...actions
 }: { entry: Entry; why?: Part[] } & RowActions) => {
   const selected = actions.selected === entry.id;
+
   const swiped = {
     trail: entry.tiles.filter(opens),
     onTile: actions.onOpenTile,
   };
+
   switch (entry.kind) {
     case 'ask': {
       const { ask } = entry;
       const said = actions.answered[ask.id];
+
       if (said) {
         return (
           <Folded
@@ -69,7 +72,9 @@ export const EntryRow = ({
           />
         );
       }
+
       const pick = ask.options.find((option) => option.pick);
+
       return (
         <Swiped
           {...swiped}
@@ -111,10 +116,12 @@ export const EntryRow = ({
         </Swiped>
       );
     }
+
     case 'task': {
       const { task } = entry;
       const agents = task.state === 'working' ? atWork(task.agents).length : 0;
       const mark: MarkState = task.state === 'done' ? 'read' : task.state;
+
       return (
         <Swiped {...swiped}>
           <Shell
@@ -133,13 +140,16 @@ export const EntryRow = ({
         </Swiped>
       );
     }
+
     case 'stuck': {
       const { stuck } = entry;
+
       const act = stuck.sent
         ? undefined
         : () => {
             actions.onAct(stuck.id);
           };
+
       return (
         <Swiped {...swiped} lead={act && { label: stuck.action, onPress: act }}>
           <Shell
@@ -158,13 +168,16 @@ export const EntryRow = ({
         </Swiped>
       );
     }
+
     case 'fresh': {
       const { fresh } = entry;
+
       const read = fresh.read
         ? undefined
         : () => {
             actions.onRead(fresh.id);
           };
+
       return (
         <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
           <Shell
@@ -182,9 +195,11 @@ export const EntryRow = ({
         </Swiped>
       );
     }
+
     case 'finished': {
       const { finished } = entry;
       const proof = proofWords(finished.proof);
+
       return (
         <Swiped {...swiped}>
           <Shell
@@ -243,6 +258,7 @@ const Swiped = ({
         {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
         {[...trail].reverse().map((tile, i) => {
           const { color, glyph } = swipeLook(tile);
+
           return (
             <Button
               key={i}
@@ -324,6 +340,7 @@ const Shell = ({
 // row's swipe still opens each.
 const Tiles = ({ tiles }: { tiles: Tile[] }) => {
   const looks = new Map(tiles.map((tile) => [lookOf(tile), tile]));
+
   return (
     <Row alignment="center" spacing={space[1]}>
       {[...looks].map(([look, tile]) => (
@@ -411,9 +428,11 @@ export const ProjectRow = ({
   onOpen: () => void;
 }) => {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+
   if (!newest) {
     return null;
   }
+
   const { stage } = newest;
   const count = topic.entries.length;
   const said = headlineOf(newest);
@@ -422,6 +441,7 @@ export const ProjectRow = ({
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
   const mark = needs ? waiting(newest) : problem ? 'failed' : STAGE_MARK[stage];
+
   return (
     <Row
       alignment="start"
@@ -475,13 +495,16 @@ const waiting = (entry: Entry): MarkState => {
     case 'ask': {
       return entry.ask.options.some((option) => option.pick) ? 'pick' : 'asks';
     }
+
     case 'stuck': {
       return entry.stuck.mark;
     }
+
     case 'task':
     case 'fresh': {
       return 'needs';
     }
+
     case 'finished': {
       return 'done';
     }

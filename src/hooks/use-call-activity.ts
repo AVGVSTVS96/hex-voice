@@ -19,6 +19,7 @@ export const useCallActivity = (
 ) => {
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
+
   const state =
     call.kind === 'here'
       ? call.phase === 'live'
@@ -27,12 +28,14 @@ export const useCallActivity = (
           : 'live'
         : call.phase
       : undefined;
+
   const last = call.kind === 'none' ? call.last : undefined;
 
   const onControl = useEffectEvent((target: string) => {
     if (target === 'mute') {
       toggleMute();
     }
+
     if (target === 'end') {
       void end();
     }
@@ -43,9 +46,11 @@ export const useCallActivity = (
     for (const stale of CallActivity.getInstances()) {
       void stale.end('immediate');
     }
+
     const controls = addUserInteractionListener(({ target }) => {
       onControl(target);
     });
+
     return () => {
       controls.remove();
       void activity.current?.end('immediate');
@@ -57,17 +62,21 @@ export const useCallActivity = (
     if (state === 'ending') {
       return;
     }
+
     if (!state) {
       const current = activity.current;
       activity.current = null;
+
       if (current) {
         const ending = last?.ending;
         const outcome = ending && ENDINGS[ending];
+
         const line = outcome
           ? since.current && ending !== 'no-connect'
             ? `${outcome.line} · ${clock((last?.seconds ?? 0) * 1000)}`
             : outcome.line
           : 'Call ended';
+
         void current
           .end(after(new Date(Date.now() + LINGER)), {
             orb,
@@ -78,17 +87,24 @@ export const useCallActivity = (
           })
           .catch(() => {});
       }
+
       since.current = 0;
+
       return;
     }
+
     if (state !== 'connecting' && !since.current) {
       since.current = Date.now();
     }
+
     const props: CallActivityProps = { orb, since: since.current, state };
+
     if (activity.current) {
       void activity.current.update(props).catch(() => {});
+
       return;
     }
+
     try {
       activity.current = CallActivity.start(props);
     } catch (error) {

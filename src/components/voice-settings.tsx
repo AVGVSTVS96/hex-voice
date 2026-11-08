@@ -112,6 +112,7 @@ const voiceOptions = VOICES.map((voice) => ({
   ...voice,
   description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
 }));
+
 // A short question as the microphone hears it, one step per syllable: how loud, how high and how
 // bright, rising at the end. Each step is the call's own spring, so the orb moves as it does when
 // you talk.
@@ -123,10 +124,13 @@ const PHRASE = [
   { level: 0.6, pitch: 0.9, tone: 0.5 },
   { level: 0, pitch: 0, tone: 0 },
 ];
+
 const PREVIEW_ORB = 160;
+
 // Side by side from `breakpoint.beside` wide, or from `besideShort` wide where the page stacked
 // can't fit the height.
 const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
+
 // The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded, and
 // grows to `BESIDE.preview` where its own place has the room.
 const SHORT_PREVIEW = 120;
@@ -135,6 +139,7 @@ const SHEET_GAP = 24;
 const SHEET_TOP = space[6];
 const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
+
 // The persona's share of settings' width where it lays the persona beside the rows itself, as the
 // sheet does.
 const PERSONA_SHARE = 0.4;
@@ -142,6 +147,7 @@ const ORB = 190;
 const VOICE_CAROUSEL = 180;
 const HEADER_TOP = space[4];
 const HEADER = 44;
+
 // The bar over the persona's pane on the open Duo.
 const BAR = 60;
 
@@ -154,6 +160,7 @@ const APPEARANCE_HEIGHT =
   metrics.groupSpacing +
   groupHeight(3) +
   SHEET_BOTTOM;
+
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
 export const VoiceSettings = ({
@@ -184,30 +191,39 @@ export const VoiceSettings = ({
   // half or all of what the toolbar leaves.
   const area = place?.area;
   const two = !!area && screen.width > screen.height;
+
   const edges = area && {
     top: area.y,
     leading: area.x,
     trailing: screen.width - area.x - area.width,
     bottom: screen.height - area.y - area.height,
   };
+
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
   const half = (taken: number) => ({ width: screen.width / 2 - taken, height: area?.height ?? 0 });
+
   const personaPane = two
     ? (reported.persona ?? half(edges?.leading ?? 0))
     : (reported.alone ?? { width: area?.width ?? 0, height: area?.height ?? 0 });
+
   const rowsPane = two ? (reported.rows ?? half(edges?.trailing ?? 0)) : personaPane;
   const personaHeight = two ? personaPane.height : screen.height / 2 - (edges?.top ?? 0);
   const width = place ? rowsPane.width : (given ?? 0);
   const room = screen.height - insets.top - SHEET_GAP;
+
   const beside =
     !place &&
     (width >= breakpoint.beside ||
       (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
+
   const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
+
   const carouselWidth = place
     ? Math.min(personaPane.width - 2 * metrics.gutter, BESIDE.carousel + 80)
     : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
+
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
+
   const preview = place
     ? Math.max(
         SHORT_PREVIEW,
@@ -216,15 +232,18 @@ export const VoiceSettings = ({
     : beside
       ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
       : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
+
   const appearanceHeight = beside
     ? Math.min(BESIDE.height, room)
     : APPEARANCE_HEIGHT - ORB + preview;
+
   // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
   // so there the voice page fills the settings page's whole height and nothing of it shows: given
   // the voice page's detent too, the sheet shrinks to it under content still the settings' height.
   const detents = phone
     ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
     : [{ height: appearanceHeight }];
+
   const orbSize = Math.min(beside || place ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
@@ -234,14 +253,17 @@ export const VoiceSettings = ({
   const pitch = useSharedValue(0);
   const tone = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!;
+
   const orbStyle = useAnimatedStyle(() => ({
     transform: heard(reaction.amount, orbSize, level.get(), pitch.get(), tone.get()),
   }));
+
   const speak = () => {
     level.set(withSequence(...PHRASE.map((step) => withSpring(step.level, motion.reaction))));
     pitch.set(withSequence(...PHRASE.map((step) => withSpring(step.pitch, motion.tone))));
     tone.set(withSequence(...PHRASE.map((step) => withSpring(step.tone, motion.tone))));
   };
+
   useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
   const haptic = (enabled = preferences.haptics) => {
@@ -249,10 +271,12 @@ export const VoiceSettings = ({
       void Haptics.selectionAsync();
     }
   };
+
   const showVoices = (show: boolean) => {
     haptic();
     setOnVoicePage(show);
   };
+
   // In the Duo's place, settings' way back, and the voice page's, are the toolbar's.
   const backInToolbar = useToolbarBack(
     'settings',
@@ -268,6 +292,7 @@ export const VoiceSettings = ({
       : undefined,
     !!place,
   );
+
   // The voice page slides in from the right edge while the first page drifts a third of the way
   // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
   // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
@@ -292,6 +317,7 @@ export const VoiceSettings = ({
     animation(motion.page, onVoicePage),
     accessibilityHidden(!shown),
   ];
+
   useEffect(() => {
     if (isPresented) {
       preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
@@ -332,11 +358,13 @@ export const VoiceSettings = ({
         if (!personaEnabled || !isPersonaVariant(next)) {
           return;
         }
+
         haptic();
         onPersonaChange(next);
       }}
     />
   );
+
   const rows = (
     <>
       <Group width={rowsWidth}>
@@ -375,6 +403,7 @@ export const VoiceSettings = ({
               onSelectionChange={(next: Reaction) => {
                 haptic();
                 preferences.setReaction(next);
+
                 if (!reducedMotion) {
                   speak();
                 }
@@ -480,6 +509,7 @@ export const VoiceSettings = ({
           if (!voiceEnabled || !isLiveVoice(next)) {
             return;
           }
+
           haptic();
           onVoiceChange(next);
         }}
@@ -490,6 +520,7 @@ export const VoiceSettings = ({
   // The sheet stays mounted where settings has its place, closed, so a fold that moves settings
   // into its place takes the sheet down instead of leaving it up, unseen, over the screen.
   const align = two ? 'center' : 'top';
+
   const placed = place && edges && (
     <SettingsPlace
       shown={place.shown}
@@ -556,13 +587,16 @@ export const VoiceSettings = ({
                   if (!phone) {
                     return;
                   }
+
                   const voiceSized =
                     typeof detent === 'object' &&
                     'height' in detent &&
                     detent.height === VOICE_HEIGHT;
+
                   if (voiceSized === onVoicePage) {
                     return;
                   }
+
                   if (onVoicePage) {
                     showVoices(false);
                   } else {
@@ -684,6 +718,7 @@ const SettingsPlace = ({
   const fade = useAnimatedStyle(() => ({
     opacity: shown ? interpolate(opened.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
+
   const pane = (name: Pane, sides: { leading: number; trailing: number }) => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
     onGeometryChange((size) => {
@@ -691,6 +726,7 @@ const SettingsPlace = ({
     }),
     padding({ top, bottom, ...sides }),
   ];
+
   const personaPane = (
     <Column
       alignment="center"
@@ -713,11 +749,13 @@ const SettingsPlace = ({
       {two ? null : rows}
     </Column>
   );
+
   const rowsPane = (
     <Column alignment="center" spacing={0} modifiers={pane('rows', { leading: 0, trailing })}>
       {rows}
     </Column>
   );
+
   return (
     <Animated.View
       testID="settings-place"

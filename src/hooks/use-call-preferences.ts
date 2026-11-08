@@ -25,6 +25,7 @@ export const useCallPreferences = () => {
   const reaction = useSavedPreference<Reaction>('live.reaction', 'subtle', isReaction);
   const sounds = useSavedPreference<'on' | 'off'>('live.sounds', 'on', isSwitch);
   const haptics = useSavedPreference<'on' | 'off'>('live.haptics', 'on', isSwitch);
+
   return {
     personaColor: color.value,
     setPersonaColor: color.setValue,

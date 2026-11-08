@@ -17,10 +17,12 @@ import { CallId } from '../src/live/calls';
 const deferred = <T>() => {
   let resolve!: (value: T) => void;
   let reject!: (error: Error) => void;
+
   const promise = new Promise<T>((accept, fail) => {
     resolve = accept;
     reject = fail;
   });
+
   return { promise, resolve, reject };
 };
 
@@ -43,8 +45,10 @@ class ManualClock {
     const schedule = (callback: () => void, delay: number, interval: boolean) => {
       const id = ++this.nextId;
       this.timers.set(id, { callback, delay, interval });
+
       return id as unknown as ReturnType<typeof setTimeout>;
     };
+
     globalThis.setTimeout = ((callback: () => void, delay = 0) =>
       schedule(callback, delay, false)) as typeof setTimeout;
     globalThis.setInterval = ((callback: () => void, delay = 0) =>
@@ -58,15 +62,19 @@ class ManualClock {
 
   async fire(delay: number) {
     const pending = [...this.timers].filter(([, timer]) => timer.delay === delay);
+
     for (const [id, timer] of pending) {
       if (!this.timers.has(id)) {
         continue;
       }
+
       if (!timer.interval) {
         this.timers.delete(id);
       }
+
       timer.callback();
     }
+
     await settle();
   }
 
@@ -83,6 +91,7 @@ interface Command {
   type: string;
   event_id?: string;
 }
+
 class FakeTransport implements LiveTransport {
   commands: Command[] = [];
   muteChanges: boolean[] = [];
@@ -110,16 +119,19 @@ class FakeTransport implements LiveTransport {
   send(event: Command) {
     this.commands.push(event);
     this.onCommand?.(event);
+
     if (event.type === 'session.close') {
       if (this.acknowledgeClose === 'sync') {
         this.emit({ type: 'session.closed' });
       }
+
       if (this.acknowledgeClose === 'microtask') {
         queueMicrotask(() => {
           this.emit({ type: 'session.closed' });
         });
       }
     }
+
     return true;
   }
   setMuted(muted: boolean) {
@@ -127,6 +139,7 @@ class FakeTransport implements LiveTransport {
   }
   async stats() {
     this.statsCalls++;
+
     return await this.statsResult();
   }
   close() {
@@ -152,6 +165,7 @@ const harness = () => {
   const created: string[] = [];
   const voices: (LiveVoice | undefined)[] = [];
   const closed: string[] = [];
+
   const control = {
     create: async (sdp: string) => ({
       sdp: `answer-${sdp}`,
@@ -161,14 +175,18 @@ const harness = () => {
     factory: async (callbacks: TransportCallbacks): Promise<LiveTransport> => {
       const transport = new FakeTransport(callbacks);
       transports.push(transport);
+
       return transport;
     },
   };
+
   const factory: TransportFactory = async (callbacks) => await control.factory(callbacks);
+
   const api: SessionAPI = {
     create: async (sdp, voice) => {
       created.push(sdp);
       voices.push(voice);
+
       return await control.create(sdp);
     },
     close: async (id) => {
@@ -176,7 +194,9 @@ const harness = () => {
       await control.close(id);
     },
   };
+
   const session = new LiveSession(factory, api);
+
   return {
     api,
     session,
@@ -203,6 +223,7 @@ test('a call hex can’t start says why and lets go of the microphone', async ()
   h.control.create = async () => {
     throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
   };
+
   try {
     await h.session.start();
     assert.equal(h.session.getSnapshot().status, 'error');
@@ -215,6 +236,7 @@ test('a call hex can’t start says why and lets go of the microphone', async ()
 
 test('uses the selected voice only when starting a new session and defaults to Marin', async () => {
   const h = harness();
+
   try {
     await h.session.start('cedar');
     await h.session.start('quartz');
@@ -232,6 +254,7 @@ test('uses the selected voice only when starting a new session and defaults to M
 
 test('keeps both audio directions active during assistant speech and overlapping captions', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -280,6 +303,7 @@ test('keeps both audio directions active during assistant speech and overlapping
 
 test('audio levels move without changing the call, so the call screen redraws only for the call', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const call = h.session.getSnapshot();
@@ -313,8 +337,10 @@ test('allows a fresh start after cancellation while microphone permission is pen
   let callbacks!: TransportCallbacks;
   h.control.factory = async (value) => {
     callbacks = value;
+
     return await ready.promise;
   };
+
   try {
     const starting = h.session.start();
     await h.session.stop();
@@ -336,6 +362,7 @@ test('a late session creation is closed without applying its answer after cancel
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
+
   try {
     const starting = h.session.start();
     await settle();
@@ -361,6 +388,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
+
   try {
     const starting = h.session.start();
     await settle();
@@ -384,6 +412,7 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
   h.control.close = async () => {
     throw new Error('Network unavailable');
   };
+
   try {
     const starting = h.session.start();
     await settle();
@@ -412,11 +441,13 @@ test('late creation cleanup failure preserves a newer connected conversation', a
   h.control.close = async () => {
     await cleanup.promise;
   };
+
   const originalWarn = console.warn;
   const warnings: unknown[][] = [];
   console.warn = (...messages: unknown[]) => {
     warnings.push(messages);
   };
+
   try {
     const starting = h.session.start();
     await settle();
@@ -451,6 +482,7 @@ test('late creation cleanup failure preserves a newer connected conversation', a
 
 test('accepts a synchronous close acknowledgment and can restart', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     h.transports[0].acknowledgeClose = 'sync';
@@ -467,6 +499,7 @@ test('accepts a synchronous close acknowledgment and can restart', async () => {
 
 test('server-initiated finalization cleans up without another close command or HTTP request', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -483,6 +516,7 @@ test('server-initiated finalization cleans up without another close command or H
 
 test('stale mute acknowledgments cannot satisfy the current unmute command', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -502,6 +536,7 @@ test('stale mute acknowledgments cannot satisfy the current unmute command', asy
 
 test('only the newest unmute acknowledgment resumes local microphone capture', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -522,6 +557,7 @@ test('only the newest unmute acknowledgment resumes local microphone capture', a
 
 test('synchronous mute acknowledgment clears the confirmation timeout', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -530,6 +566,7 @@ test('synchronous mute acknowledgment clears the confirmation timeout', async ()
         transport.acknowledge(command);
       }
     };
+
     h.session.toggleMute();
     await h.clock.fire(5000);
     assert.equal(h.session.getSnapshot().status, 'connected');
@@ -541,6 +578,7 @@ test('synchronous mute acknowledgment clears the confirmation timeout', async ()
 
 test('backgrounding preserves the live transport and captions while pausing visual stats', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -581,6 +619,7 @@ test('backgrounding preserves the live transport and captions while pausing visu
 
 test('a call hung up from the Lock Screen after a quiet stretch keeps its full length', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     h.session.setAppActive(false);
@@ -597,6 +636,7 @@ test('a call hung up from the Lock Screen after a quiet stretch keeps its full l
 
 test('a muted microphone stays muted when returning from the background', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const transport = h.transports[0];
@@ -618,6 +658,7 @@ test('a session connecting during background transition is kept without starting
   const h = harness();
   const response = deferred<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
+
   try {
     const starting = h.session.start();
     await settle();
@@ -639,6 +680,7 @@ test('a session connecting during background transition is kept without starting
 test('a stats result arriving in the background does not restore visual levels', async () => {
   const h = harness();
   const pending = deferred<AudioStats>();
+
   try {
     await h.session.start();
     h.transports[0].statsResult = async () => await pending.promise;
@@ -655,6 +697,7 @@ test('a stats result arriving in the background does not restore visual levels',
 
 test('an earlier stalled stats operation cannot block a new session', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     h.transports[0].statsResult = async () => await new Promise(() => {});
@@ -671,6 +714,7 @@ test('an earlier stalled stats operation cannot block a new session', async () =
 
 test('missing close acknowledgment uses the server fallback once', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     h.transports[0].acknowledgeClose = 'none';
@@ -688,6 +732,7 @@ test('missing close acknowledgment uses the server fallback once', async () => {
 
 test('old transport events cannot alter a later conversation', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     const old = h.transports[0];
@@ -711,6 +756,7 @@ test('old transport events cannot alter a later conversation', async () => {
 
 test('a call remembers how it ended: you, hex, or a dropped connection', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     await settle();
@@ -739,6 +785,7 @@ test('a call remembers how it ended: you, hex, or a dropped connection', async (
 
 test('when iOS never hands the audio back, a tap on the microphone ends the pause', async () => {
   const h = harness();
+
   try {
     await h.session.start();
     await settle();
@@ -767,6 +814,7 @@ test('a phone call or Siri pauses the microphone, tells hex, and gives it back u
   h.api.mark = async (id, kind) => {
     marks.push(`${id} ${kind}`);
   };
+
   try {
     await h.session.start();
     await settle();

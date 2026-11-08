@@ -12,5 +12,6 @@ export const AnimatedView = ({
   ...view
 }: ComponentProps<typeof Animated.View> & { animate: () => ViewStyle }) => {
   const animated = useAnimatedStyle(animate);
+
   return <Animated.View {...view} style={[style, animated]} />;
 };

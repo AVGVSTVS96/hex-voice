@@ -23,6 +23,7 @@ import { metrics, radius, space } from '@/ui/tokens';
 
 export const Pinned = ({ text }: { text: string }) => {
   const sections = pinSections(text);
+
   return (
     <Column alignment="start" spacing={0}>
       {sections.map((section, i) => (
@@ -34,6 +35,7 @@ export const Pinned = ({ text }: { text: string }) => {
 
 const Section = ({ section }: { section: PinSection }) => {
   const [open, setOpen] = useState(!section.folded);
+
   if (!open) {
     return (
       <Row
@@ -62,6 +64,7 @@ const Section = ({ section }: { section: PinSection }) => {
       </Row>
     );
   }
+
   return (
     <Column alignment="start" spacing={0}>
       {section.title ? <SectionHead title={section.title} count={section.lines.length} /> : null}
@@ -75,6 +78,7 @@ const Section = ({ section }: { section: PinSection }) => {
 const Line = ({ line }: { line: PinLine }) => {
   const tries = useFailures();
   const selectable = useContext(Selectable);
+
   if (line.kind === 'code') {
     return (
       <Text
@@ -98,7 +102,9 @@ const Line = ({ line }: { line: PinLine }) => {
       </Text>
     );
   }
+
   const url = line.url;
+
   const open = url
     ? () => {
         void tries.attempt(url, 'Not opened', async () => {
@@ -106,6 +112,7 @@ const Line = ({ line }: { line: PinLine }) => {
         });
       }
     : undefined;
+
   if (line.kind === 'text' && !url) {
     return (
       <Markdown
@@ -127,6 +134,7 @@ const Line = ({ line }: { line: PinLine }) => {
       </Markdown>
     );
   }
+
   if (line.kind === 'text') {
     return (
       <Row
@@ -163,6 +171,7 @@ const Line = ({ line }: { line: PinLine }) => {
       </Row>
     );
   }
+
   return (
     <Row
       alignment="start"

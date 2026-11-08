@@ -30,6 +30,7 @@ const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
 const loadFile = async (variant: PersonaVariant) => {
   let promise = fileCache.get(variant);
+
   if (!promise) {
     promise = RiveFileFactory.fromSource(PERSONA_ASSETS[variant], undefined, false).catch(
       (error) => {
@@ -39,6 +40,7 @@ const loadFile = async (variant: PersonaVariant) => {
     );
     fileCache.set(variant, promise);
   }
+
   return await promise;
 };
 
@@ -71,11 +73,13 @@ export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) =
           setShown(variant);
         }
       });
+
     return () => {
       active = false;
     };
   }, [variant]);
   const size = props.size ?? SIZE;
+
   return (
     <View style={{ width: size, height: size }}>
       <Animated.View
@@ -107,9 +111,11 @@ const PersonaRenderer = ({
   const [failed, setFailed] = useState(false);
   const { riveViewRef, setHybridRef } = useRive();
   const dynamicColor = PERSONA_MODELS[variant].dynamicColor;
+
   const { instance: colorModel } = useViewModelInstance(dynamicColor ? file : null, {
     async: true,
   });
+
   // Whether it has played through its grow-in, and whether it should hold still once it has.
   const grown = useRef(false);
   const growing = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -131,6 +137,7 @@ const PersonaRenderer = ({
           setFailed(true);
         }
       });
+
     return () => {
       active = false;
     };
@@ -150,9 +157,11 @@ const PersonaRenderer = ({
     if (!riveViewRef) {
       return;
     }
+
     if (dynamicColor && !colorModel) {
       return;
     }
+
     const pause = () => {
       void riveViewRef.pause().catch(() => {
         setFailed(true);
@@ -163,30 +172,38 @@ const PersonaRenderer = ({
       // Input setters resume playback, so a still persona that has grown keeps its frame.
       if (reducedMotion && grown.current) {
         pause();
+
         return;
       }
+
       for (const { name, value } of personaInputValues(state)) {
         riveViewRef.setBooleanInputValue(name, value);
       }
+
       if (variant === 'opal') {
         originalPalette.current ??= riveViewRef.getNumberInputValue('color');
         riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
       }
+
       // The file starts as a dot that grows into its state, and a paused file never advances, so it
       // plays through that once it's drawn, hidden or not, and only then holds still while hidden or
       // with Reduce Motion on. Until it's drawn it can't grow, so it isn't paused on the dot.
       if (!grown.current) {
         riveViewRef.playIfNeeded();
+
         if (drawn && !growing.current) {
           growing.current = setTimeout(() => {
             grown.current = true;
+
             if (still.current) {
               pause();
             }
           }, GROW_IN);
         }
+
         return;
       }
+
       if (paused) {
         pause();
       } else {
@@ -209,11 +226,14 @@ const PersonaRenderer = ({
 
   useEffect(() => {
     const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
+
     if (!property) {
       return;
     }
+
     const wanted = RiveColor.fromHexString(shown).toInt();
     property.set(wanted);
+
     // The first advance after binding writes the file's own color back into the model.
     return property.addListener((value) => {
       if (!sameColor(value, wanted)) {

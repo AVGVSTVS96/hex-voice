@@ -26,6 +26,7 @@ export const cardOf = (
   const right = (tasks.place === 'beside' ? pane * paneWidth : 0) - slid;
   const off = Math.max(top, left, right);
   const rounded = Math.min(1, off / radius.card);
+
   return {
     top,
     left,
@@ -54,5 +55,6 @@ export const barOf = (
   const card = cardOf(layout, calls.below === undefined ? drawer : 0, 1, layout.tasks.width);
   const left = toolbar.x + card.left;
   const end = Math.max(toolbar.x + toolbar.width - card.right, left + BAR);
+
   return { left, right: window - end };
 };

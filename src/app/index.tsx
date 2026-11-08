@@ -17,6 +17,7 @@ const Index = () => {
     report?: string;
     split?: string;
   }>();
+
   const screen = (
     <LiveScreen
       opening={{
@@ -33,6 +34,7 @@ const Index = () => {
       }}
     />
   );
+
   return split === 'first' || split === 'second' ? (
     <SplitView side={split}>{screen}</SplitView>
   ) : (

@@ -47,6 +47,7 @@ export const Messages = ({
   onOpen: () => void;
 }) => {
   const last = chat.turns.slice(-2);
+
   return (
     <Column alignment="start" spacing={0}>
       <Column
@@ -119,9 +120,11 @@ export const ThreadPage = ({
   const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
   const turns = chat?.turns ?? [];
   const first = (chat?.total ?? 0) - turns.length;
+
   // What it's doing now, past what it said: that's in the conversation already.
   const doing =
     'steps' in thread ? thread.steps.find((step) => step.kind !== 'say')?.text : undefined;
+
   return (
     <Column
       alignment="center"
@@ -275,7 +278,9 @@ const Composer = ({
     if (!focus) {
       return;
     }
+
     const wait = setTimeout(() => input.current?.focus(), 350);
+
     return () => {
       clearTimeout(wait);
     };
@@ -283,20 +288,25 @@ const Composer = ({
   const words = text.trim();
   const stops = working && !text && !media.length;
   const lit = stops || !!words || !!media.length;
+
   const send = () => {
     if (stops) {
       onStop();
+
       return;
     }
+
     if (!words && !media.length) {
       return;
     }
+
     onSend(words, media);
     setMedia([]);
     setText('');
     keep('');
     input.current?.clear();
   };
+
   return (
     <Row
       alignment="end"

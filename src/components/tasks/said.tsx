@@ -30,12 +30,15 @@ export const Selectable = createContext(true);
 export const Said = ({ turn }: { turn: ChatTurn }) => {
   const one = said(turn);
   const selectable = useContext(Selectable);
+
   if (one.kind === 'me') {
     return <Mine text={one.text} media={turn.media} />;
   }
+
   if (one.kind === 'event') {
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   }
+
   return (
     <Markdown
       selectable={selectable}
@@ -85,12 +88,14 @@ export const SaidLine = ({
 }) => {
   const one = said(turn);
   const who = one.kind === 'hex' ? 'hex' : 'You';
+
   const text =
     one.kind === 'event'
       ? one.text
         ? `${one.label} · ${one.text}`
         : one.label
       : one.text || mediaWords(turn.media ?? []);
+
   return (
     <Row
       alignment="start"
@@ -136,6 +141,7 @@ const Mine = ({
   dim?: boolean;
 }) => {
   const selectable = useContext(Selectable);
+
   return (
     <Row
       alignment="center"

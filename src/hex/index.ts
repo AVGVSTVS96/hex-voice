@@ -15,6 +15,7 @@ export const hex = createHex(
         sessionType: 'foreground',
         signal,
       });
+
       return { status, text: body };
     },
     url: process.env.EXPO_PUBLIC_HEX_URL,

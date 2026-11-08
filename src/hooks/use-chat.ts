@@ -26,6 +26,7 @@ export const useChat = (id: TaskId | null, live: boolean) => {
     async (after, signal, id) => await hex.tasks.chat(id, after, signal),
     (chat, id) => {
       setSeen({ id, chat });
+
       if (writable?.[id] !== chat.sends) {
         keepWritable({ ...writable, [id]: chat.sends });
       }

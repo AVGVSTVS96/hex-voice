@@ -30,11 +30,14 @@ export const Markdown = ({
   modifiers?: ModifierConfig[];
 }) => {
   const tries = useFailures();
+
   if (process.env.EXPO_OS !== 'ios') {
     return <Text>{children}</Text>;
   }
+
   const failed = Object.values(tries.failed)[0];
   const look: TextStyle = type[variant];
+
   return (
     <Column alignment="start" spacing={space[1]} modifiers={modifiers}>
       <MarkdownView

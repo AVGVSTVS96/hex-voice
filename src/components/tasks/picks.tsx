@@ -41,6 +41,7 @@ type Choice = AskOption | 'later';
 
 export const usePickChoices = () => {
   const [choices, setChoices] = useState<Record<AskId, Choice>>({});
+
   return {
     choiceOf: ({ ask, option }: Picked): Choice => choices[ask.id] ?? option,
     choose: (id: AskId, choice: Choice) => {
@@ -51,6 +52,7 @@ export const usePickChoices = () => {
     },
   };
 };
+
 export type PickChoices = ReturnType<typeof usePickChoices>;
 
 const LATER = 'Decide later';
@@ -80,9 +82,12 @@ export const PicksPage = ({
 }) => {
   const taken = picks.flatMap((picked) => {
     const choice = choices.choiceOf(picked);
+
     return choice === 'later' ? [] : [{ ask: picked.ask, option: choice }];
   });
+
   const later = picks.length - taken.length;
+
   return (
     <Page>
       <Header
@@ -173,6 +178,7 @@ const PickRow = ({
   onPress: () => void;
 }) => {
   const answer = choice === 'later' ? LATER : choice.label;
+
   return (
     <Column
       alignment="start"
@@ -212,6 +218,7 @@ const PickRow = ({
 const AnswerTag = ({ choice }: { choice: Choice }) => {
   const pick = choice !== 'later' && choice.pick;
   const later = choice === 'later';
+
   return (
     <Row
       alignment="center"
@@ -246,6 +253,7 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
 // answer here sets the one "Answer" sends; nothing is sent from this page.
 export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickChoices }) => {
   const { back } = useChrome();
+
   if (!picked) {
     return (
       <Page>
@@ -256,14 +264,17 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
       </Page>
     );
   }
+
   const { ask } = picked;
   const choice = choices.choiceOf(picked);
   const hexs = ask.options.find((option) => option.pick);
   const door = ask.places.find((place) => place.link);
+
   const links = [
     ...(door?.link ? [{ label: `Open ${door.place}`, url: door.link }] : []),
     ...(ask.links ?? []),
   ];
+
   return (
     <Page>
       <PageBar title={ask.topic} subtitle={clock(new Date(ask.at))} back={back} />
@@ -455,9 +466,11 @@ const OptionCard = ({
 // Where it was asked, in the thread's own words, all of them, and the way into the thread.
 const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
   const words = useWords(id);
+
   if (!words && !links.length) {
     return null;
   }
+
   return (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Heading

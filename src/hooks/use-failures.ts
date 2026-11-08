@@ -10,21 +10,26 @@ export const failure = (what: string, error: unknown) =>
 // Doing it again clears it until that try fails too.
 export const useFailures = () => {
   const [failed, setFailed] = useState<Record<string, string>>({});
+
   const attempt = async (key: string, what: string, work: () => Promise<unknown>) => {
     setFailed(({ [key]: _, ...rest }) => rest);
+
     return await work().then(
       () => true,
       (error: unknown) => {
         setFailed((now) => ({ ...now, [key]: failure(what, error) }));
+
         return false;
       },
     );
   };
+
   const clear = (keys: string[]) => {
     setFailed((now) =>
       Object.fromEntries(Object.entries(now).filter(([key]) => !keys.includes(key))),
     );
   };
+
   return { failed, attempt, clear };
 };
 

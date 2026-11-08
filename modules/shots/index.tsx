@@ -21,6 +21,7 @@ export type ShotsProps = CommonViewModifierProps & {
 };
 
 type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'edge'>;
+
 type NativeProps = Omit<ShotsProps, keyof Colors> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 };
@@ -32,6 +33,7 @@ export const ShotsView = ({ modifiers, secondary, surface, edge, ...rest }: Shot
   if (!Native) {
     return null;
   }
+
   return (
     <Native
       modifiers={modifiers}

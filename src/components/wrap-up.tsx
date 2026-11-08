@@ -18,11 +18,14 @@ const UNDER_ORB = 3;
 // to fit, and a tap opens the call, where it reads whole.
 export const WrapUp = ({ why, summary, waiting = [], center, onOpen, onMore }: Props) => {
   const lead = summary ?? (why && `hex called because: ${why}`);
+
   if (!lead && !waiting.length) {
     return null;
   }
+
   const shown = center ? waiting.slice(0, UNDER_ORB) : waiting;
   const more = waiting.length - shown.length;
+
   return (
     <Pressable
       disabled={!onOpen}

@@ -3,5 +3,6 @@ import { DEFAULT_VOICE, isLiveVoice } from '@/live/voices';
 
 export const useVoicePreference = () => {
   const { value, setValue, loaded } = useSavedPreference('live.voice', DEFAULT_VOICE, isLiveVoice);
+
   return { voice: value, setVoice: setValue, loaded };
 };

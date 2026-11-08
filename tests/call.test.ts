@@ -47,8 +47,10 @@ const record = (change: Partial<CallRecord> = {}): CallRecord => ({
 });
 
 const nobody = { leaving: false };
+
 const live = (change: Partial<LiveSnapshot> = {}) =>
   callOf(session({ status: 'connected', callId: sess, transcript: words, ...change }), nobody);
+
 const seen = (call: Call, viewing = false) => ({
   persona: personaOf(call, false),
   wake: wakeOf(call),
@@ -120,6 +122,7 @@ test('ending a call here thinks, keeps the microphone as it was, and lets nothin
     session({ status: 'disconnecting', muted: true, transcript: words }),
     nobody,
   );
+
   assert.deepEqual(seen(ending), {
     persona: 'thinking',
     wake: 0.5,
@@ -137,6 +140,7 @@ test('a call that ended here says how and how long, and its words stay', () => {
     session({ callId: sess, ending: 'you', elapsedSeconds: 125, transcript: words }),
     nobody,
   );
+
   assert.deepEqual(seen(ended), {
     persona: 'idle',
     wake: 0,
@@ -155,6 +159,7 @@ test('a call that never connected says so in red, with why, and offers to retry'
     session({ status: 'error', ending: 'no-connect', error: 'Cannot reach hex.' }),
     nobody,
   );
+
   assert.deepEqual(footerOf(failed, false), {
     kind: 'ended',
     id: undefined,
@@ -178,6 +183,7 @@ test('a dropped call shows its length in red', () => {
     }),
     nobody,
   );
+
   assert.deepEqual(footerOf(dropped, false), {
     kind: 'ended',
     id: 'sess_1',
@@ -226,6 +232,7 @@ test('a call elsewhere that ended stays on screen with how it ended and its word
     record: record({ ended: '2026-11-03T08:03:00.000Z', end: 'hex' }),
     leaving: false,
   });
+
   assert.equal(ended.kind, 'none');
   assert.deepEqual(footerOf(ended, false), {
     kind: 'ended',
@@ -242,6 +249,7 @@ test('with nothing said and no call, the words never open beside the orb', () =>
     record: record({ turns: [], ended: '2026-11-03T08:00:30.000Z', end: 'no-answer' }),
     leaving: false,
   });
+
   assert.equal(showsWords(unanswered, { viewing: false, cards: 0 }), false);
   assert.equal(footerOf(unanswered, false)?.text, 'No answer · 30 sec');
   const cancelled = callOf(session({ callId: sess }), nobody);
@@ -264,6 +272,7 @@ test('a call here wins over the one hex says it holds', () => {
     record: record(),
     leaving: false,
   });
+
   assert.equal(both.kind, 'here');
   assert.equal(statusOf(both), 'Conversation active');
 });
@@ -273,12 +282,14 @@ test('an error from this phone’s last call goes once a call elsewhere is the l
     record: record({ ended: '2026-11-03T08:01:00.000Z', end: 'you' }),
     leaving: false,
   });
+
   assert.equal(errorOf(after), undefined);
   assert.equal(buttonsOf(after).call, 'start');
 });
 
 test('what you sent a call shows among its words, going then sent, until the record of a call held elsewhere has it', () => {
   const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
+
   const sent = (call: CallId, at: number, id?: string) => ({
     call,
     batch: `${at}`,
@@ -286,15 +297,18 @@ test('what you sent a call shows among its words, going then sent, until the rec
     id: id === undefined ? undefined : MediaId.parse(id),
     entry: { id: `sent ${at}`, role: 'user' as const, text: '', startMs: at, media: photo },
   });
+
   const here = withSent(live(), [sent(sess, 500), sent(CallId.parse('other'), 100)]);
   assert.deepEqual(
     wordsOf(here).map(({ id }) => id),
     ['user-0', 'sent 500'],
   );
+
   const phone = callOf(session(), {
     record: record({ moments: [{ at: 900, kind: 'photo', text: '', media: MediaId.parse('m1') }] }),
     leaving: false,
   });
+
   const ids = (call: Call) => wordsOf(call).map(({ id }) => id);
   assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800)])), [
     'voice 0',

@@ -93,6 +93,7 @@ export const Tabs = ({
         const on = key === stage;
         const count = key === 'all' ? undefined : counts[key];
         const needs = !unknown && key === 'needs' && !!count;
+
         return (
           <Row
             key={key}
@@ -158,6 +159,7 @@ export const Search = ({
   onCancel: () => void;
 }) => {
   const typing = useContext(Typing);
+
   return (
     <Row
       alignment="center"

@@ -21,14 +21,17 @@ export const useWatch = <K extends string, T extends { version?: number }>(
   const active = useActive();
   const [watching, setWatching] = useState<Watching>('waiting');
   const [watched, setWatched] = useState(key);
+
   // What it took stops being current only as it watches anew, not as it stops, so a view fading
   // out keeps showing it as it was.
   if (key !== watched) {
     setWatched(key);
+
     if (key !== null) {
       setWatching('waiting');
     }
   }
+
   const version = useRef<number>(undefined);
   const asking = useEffectEvent(ask);
   const taking = useEffectEvent(take);
@@ -39,38 +42,47 @@ export const useWatch = <K extends string, T extends { version?: number }>(
     if (key === null || !active) {
       return;
     }
+
     const controller = new AbortController();
     void (async () => {
       while (!controller.signal.aborted) {
         try {
           const answer = await asking(version.current, controller.signal, key);
+
           if (controller.signal.aborted) {
             return;
           }
+
           taking(answer, key);
           setWatching('current');
+
           if (answer.version === undefined) {
             return;
           }
+
           version.current = answer.version;
         } catch {
           if (controller.signal.aborted) {
             return;
           }
+
           setWatching('offline');
           await new Promise((resolve) => setTimeout(resolve, RETRY));
         }
       }
     })();
+
     return () => {
       controller.abort();
     };
   }, [key, active]);
+
   return watching;
 };
 
 const onAppState = (change: () => void) => {
   const listener = AppState.addEventListener('change', change);
+
   return () => {
     listener.remove();
   };
@@ -88,18 +100,21 @@ export const useAnswer = <K extends string, T>(
   ask: (key: K) => Promise<T>,
 ) => {
   const [got, setGot] = useState<{ key: K; answer?: T; refused?: Refused }>();
+
   const watching = useWatch<string, { version?: undefined; got?: typeof got }>(
     key === null ? null : `${key} ${String(fresh)}`,
     async () => {
       if (key === null) {
         return {};
       }
+
       try {
         return { got: { key, answer: await ask(key) } };
       } catch (error) {
         if (error instanceof Refused) {
           return { got: { key, refused: error } };
         }
+
         throw error;
       }
     },
@@ -109,7 +124,9 @@ export const useAnswer = <K extends string, T>(
       }
     },
   );
+
   const mine = got?.key === key ? got : undefined;
+
   return {
     answer: mine?.answer,
     refused: mine?.refused,

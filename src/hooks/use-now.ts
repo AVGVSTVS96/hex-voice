@@ -7,13 +7,17 @@ export const useNow = (ticking: boolean) => {
     if (!ticking) {
       return;
     }
+
     setNow(new Date());
+
     const timer = setInterval(() => {
       setNow(new Date());
     }, 1000);
+
     return () => {
       clearInterval(timer);
     };
   }, [ticking]);
+
   return now;
 };

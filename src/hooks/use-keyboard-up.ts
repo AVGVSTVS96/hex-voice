@@ -12,16 +12,19 @@ export const useKeyboardUp = () => {
         setUp(true);
       }
     });
+
     const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
       if (ours(event)) {
         setUp(false);
       }
     });
+
     return () => {
       shown.remove();
       hidden.remove();
     };
   }, []);
+
   return up;
 };
 

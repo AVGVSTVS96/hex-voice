@@ -102,6 +102,7 @@ const fontWeights = { regular: '400', medium: '500' } as const;
 // A text style for a React Native StyleSheet.
 export const textOf = (variant: TextVariant, weight?: Weight) => {
   const style: TextStyle = type[variant];
+
   return {
     fontSize: style.fontSize,
     lineHeight: style.lineHeight,
@@ -113,6 +114,7 @@ export const textOf = (variant: TextVariant, weight?: Weight) => {
 // height, as a SwiftUI label has.
 export const labelOf = (variant: TextVariant, weight?: Weight) => {
   const { fontSize, fontWeight } = textOf(variant, weight);
+
   return { fontSize, fontWeight };
 };
 
@@ -251,12 +253,14 @@ export const radius = {
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;
+
 export type ToolbarGaps = 'regular' | 'compact';
 
 // How long the call buttons' stack runs at a size, along its row or column: mute and the call
 // button.
 export const stack = (size: ControlsSize) => {
   const { mute, call, gap } = metrics.controls[size];
+
   return metrics[mute] + gap + metrics[call];
 };
 

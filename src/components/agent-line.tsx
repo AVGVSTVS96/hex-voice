@@ -22,8 +22,10 @@ import { space, textOf } from '@/ui/tokens';
 
 const { step, turn, rise } = motion.agent;
 const timing = { duration: step, easing: Easing.out(Easing.cubic) };
+
 const enter = () => {
   'worklet';
+
   return {
     initialValues: { opacity: 0, transform: [{ translateY: rise }] },
     animations: {
@@ -32,8 +34,10 @@ const enter = () => {
     },
   };
 };
+
 const leave = () => {
   'worklet';
+
   return {
     initialValues: { opacity: 1, transform: [{ translateY: 0 }] },
     animations: {
@@ -47,7 +51,9 @@ export const AgentLine = ({ line }: { line: Line | null }) => {
   if (!line) {
     return null;
   }
+
   const label = `hex is ${line.state === 'running' ? 'working' : line.state}: ${line.text}${line.where ? `, ${line.where}` : ''}`;
+
   return (
     <Animated.View
       entering={FadeIn.duration(step)}
@@ -111,12 +117,15 @@ export const Arc = ({ size = 12 }: { size?: number }) => {
     if (still) {
       return;
     }
+
     spin.set(withRepeat(withTiming(1, { duration: turn, easing: Easing.linear }), -1));
+
     return () => {
       cancelAnimation(spin);
     };
   }, [spin, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
+
   return <Animated.View style={[styles.arc, circle(size), style]} />;
 };
 

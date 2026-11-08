@@ -24,6 +24,7 @@ export const Thumb = ({
 }) => {
   const [shape, setShape] = useState(4 / 3);
   const source = mediaSource(media);
+
   return (
     <View
       accessibilityRole="image"
@@ -61,6 +62,7 @@ export const Album = ({
 }) => {
   const one = media.length === 1;
   const side = one ? width : (width - space[1]) / 2;
+
   return (
     <View style={[styles.album, { width }, dim && styles.dim]}>
       {media.map((each, i) => (

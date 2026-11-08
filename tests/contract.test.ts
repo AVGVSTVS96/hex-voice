@@ -39,11 +39,14 @@ test('every answer hex gives today reads in this app', () => {
 
 test('every call hex lists shows where it came from and how it ended', () => {
   const { calls } = CallList.parse(real('calls'));
+
   for (const call of calls) {
     assert.ok(SOURCES[call.from].symbol, call.from);
+
     if (call.end) {
       assert.ok(ENDINGS[call.end].line, call.end);
     }
+
     assert.ok(callName(call) && callDetails(call));
   }
 });
@@ -60,6 +63,7 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
     end: 'timeout',
     moments: [{ at: 1, kind: 'joined', text: 'Someone joined' }],
   });
+
   assert.equal(SOURCES[record.from].symbol, 'phone');
   assert.equal(record.end, undefined);
   assert.equal(timeline(record).filter((moment) => moment.kind === 'mark').length, 0);
@@ -68,6 +72,7 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
     version: 1,
     tasks: [{ ...(real('tasks') as { tasks: object[] }).tasks[0], state: 'paused' }],
   }).tasks;
+
   assert.equal(STATE_WORDS[row.state], 'idle');
 
   const task = TaskOrPage.parse({
@@ -76,6 +81,7 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
       { at: '2026-11-03T08:00:00.000Z', kind: 'browse', text: 'Opened a page', state: 'odd' },
     ],
   });
+
   assert.ok(task.kind === 'task');
   assert.equal(task.steps[0].kind, 'tool');
   assert.equal(stepMark(task.steps[0]), undefined);
@@ -92,11 +98,14 @@ test('a thread off the board reads as a page to read, and a task with a broken f
 test('an ask answered on a call says what its answer reached, and the undo that took one back shows nothing', () => {
   const [ask] = AskList.parse(real('asks')).asks;
   const sent = { thread: 'telegram:-1001:2583', topic: 'voiceapp', settled: 1, missed: 0 };
+
   const { asks } = AgentActivity.parse({
     ...(real('activity') as object),
     asks: [{ at: 1, ask, answer: 'Yes', sent }],
   });
+
   assert.deepEqual(asks?.[0]?.sent, sent);
+
   const record = CallRecord.parse({
     ...(real('call') as object),
     moments: [
@@ -104,6 +113,7 @@ test('an ask answered on a call says what its answer reached, and the undo that 
       { at: 2, kind: 'undone', text: 'Yes' },
     ],
   });
+
   assert.deepEqual(
     record.moments?.map((moment) => moment.kind),
     ['answered', 'undone'],

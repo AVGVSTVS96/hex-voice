@@ -52,10 +52,13 @@ export const ScreenToolbar = ({
   const gap = axis === 'row' ? metrics.toolbar.row : column.group;
   const Group = axis === 'row' ? HStack : VStack;
   const long = 2 * metrics.tool + gap;
+
   const backFade = () => {
     'worklet';
+
     return { opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }) };
   };
+
   const backButton = holdsBack ? (
     <AnimatedView
       pointerEvents={back ? 'auto' : 'none'}
@@ -71,6 +74,7 @@ export const ScreenToolbar = ({
       />
     </AnimatedView>
   ) : null;
+
   const calls = (
     <HostedGlassButton
       icon="calls"
@@ -80,6 +84,7 @@ export const ScreenToolbar = ({
       onPress={onCalls}
     />
   );
+
   const pair = (
     <Host
       matchContents
@@ -112,6 +117,7 @@ export const ScreenToolbar = ({
       </Overlay>
     </Host>
   );
+
   return (
     <Animated.View
       pointerEvents="box-none"

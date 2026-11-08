@@ -9,6 +9,7 @@ type ImportRule = Extract<
   NonNullable<NonNullable<OxlintConfig['rules']>['no-restricted-imports']>,
   unknown[]
 >;
+
 type ImportOptions = Extract<ImportRule[1], { paths?: unknown }>;
 
 const restricted = (
@@ -18,24 +19,29 @@ const restricted = (
 
 const onlyHexFetches =
   'Only src/hex talks to hex: add the request to src/hex/api.ts and call it through `hex`.';
+
 const componentsNeverCallHex =
   'Components never call hex: read through a hook in src/hooks and write through its actions, like answerAsk or raiseTask.';
+
 const hostMessage =
   "Import Host from '@/ui/host': its SwiftUI keeps clear of the keyboard only where it holds a field, so the keyboard can't push a view it covers up and half off its top.";
 
 const fetch = { message: onlyHexFetches, name: 'expo/fetch' };
 const hex = { message: componentsNeverCallHex, name: '@/hex' };
 const hexInside = { group: ['@/hex/*'], message: componentsNeverCallHex };
+
 const windowSize = {
   importNames: ['useWindowDimensions', 'Dimensions'],
   message:
     "The screen has one size: read it with useViewport(), the size it's laid out at. The window's size can disagree with it for a moment, as while iPhone Duo unfolds.",
   name: 'react-native',
 };
+
 const host = [
   { importNames: ['Host'], message: hostMessage, name: '@expo/ui' },
   { importNames: ['Host'], message: hostMessage, name: '@expo/ui/swift-ui' },
 ];
+
 const scroll = {
   importNames: ['ScrollView'],
   message:
@@ -53,7 +59,6 @@ const pending = {
   'anti-slop/no-unknown-parameters': 'off',
   'anti-slop/no-unknown-returns': 'off',
   'anti-slop/no-unsafe-dictionary-type': 'off',
-  'anti-slop/require-readable-spacing': 'off',
   'anti-slop/require-safety-comment-for-type-assertion': 'off',
   'class-methods-use-this': 'off',
   complexity: 'off',

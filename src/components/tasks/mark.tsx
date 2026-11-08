@@ -35,6 +35,7 @@ export const Mark = ({ state }: { state: MarkState }) => {
       </RNHostView>
     );
   }
+
   return (
     <ZStack
       alignment="center"
@@ -47,12 +48,14 @@ export const Mark = ({ state }: { state: MarkState }) => {
 
 const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
   const square = metrics.list.todo;
+
   const disc = (color: ColorValue, children: ReactNode) => (
     <>
       <Circle modifiers={[frame({ width: square, height: square }), foregroundStyle(color)]} />
       {children}
     </>
   );
+
   switch (state) {
     case 'needs': {
       return disc(
@@ -65,18 +68,21 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         />,
       );
     }
+
     case 'asks': {
       return disc(
         theme.accentMuted,
         <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />,
       );
     }
+
     case 'pick': {
       return disc(
         theme.accentMuted,
         <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />,
       );
     }
+
     case 'done': {
       return (
         <>
@@ -95,6 +101,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         </>
       );
     }
+
     case 'read': {
       return (
         <Circle
@@ -105,18 +112,21 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         />
       );
     }
+
     case 'failed': {
       return disc(
         theme.dangerMuted,
         <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />,
       );
     }
+
     case 'paused': {
       return disc(
         theme.surfaceSelected,
         <Icon name="pause.fill" size={metrics.symbol.mark} color={theme.secondary} />,
       );
     }
+
     case 'stopped': {
       return (
         <Rectangle
@@ -127,6 +137,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         />
       );
     }
+
     case 'pending': {
       return (
         <Spacer
@@ -141,6 +152,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         />
       );
     }
+
     case 'idle': {
       return (
         <Spacer
@@ -170,6 +182,7 @@ const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
 
 export const Badge = ({ tint }: { tint: Tint }) => {
   const { ink, wash } = TINTS[tint];
+
   return (
     <ZStack
       alignment="center"

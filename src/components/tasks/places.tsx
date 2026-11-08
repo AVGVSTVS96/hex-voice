@@ -31,6 +31,7 @@ const GLYPH: Record<Place, SFSymbol> = {
   discord: 'bubble.left.and.bubble.right.fill',
   server: 'terminal.fill',
 };
+
 // Too dark to show as a ring and a symbol on the sheet, so a ghost of theirs is drawn quieter.
 const DARK: Place[] = ['t3', 'server'];
 const SHOWN = 5;
@@ -41,9 +42,11 @@ const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
     case 'app': {
       return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
     }
+
     case 'call': {
       return { color: brand.t3, glyph: 'waveform', ink: brand.ink };
     }
+
     case 'link': {
       return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
     }
@@ -52,6 +55,7 @@ const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
 
 export const swipeLook = (tile: Tile) => {
   const { color, glyph } = look(tile);
+
   return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
 };
 
@@ -60,6 +64,7 @@ export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
   if (tile.kind === 'app' && !tile.link) {
     return <Ghost place={tile.place} size={size} />;
   }
+
   return <Solid {...look(tile)} size={size} />;
 };
 
@@ -93,6 +98,7 @@ const Solid = ({
 
 const Ghost = ({ place, size }: { place: Place; size: number }) => {
   const ink = DARK.includes(place) ? theme.secondary : brand[place];
+
   return (
     <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
       <Spacer
@@ -132,10 +138,12 @@ export const Places = ({
   const others = threads
     .filter((thread) => thread.id !== task.id)
     .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
+
   const all = [task, ...others];
   const [every, setEvery] = useState(false);
   const shown = every ? all : all.slice(0, SHOWN);
   const rest = all.length - shown.length;
+
   return (
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <SectionHead title="Places" count={all.length} />
@@ -143,9 +151,11 @@ export const Places = ({
         const place = placeOf(thread.app);
         const gone = missing.has(place);
         const opens = !!thread.link || thread.id !== task.id;
+
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
           : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
+
         return (
           <Column
             key={thread.id}

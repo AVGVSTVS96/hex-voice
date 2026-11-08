@@ -9,14 +9,17 @@ const WORDS_BESIDE = 520;
 const MEASURE = 680;
 const LIST = 360;
 const SIDEBAR = 330;
+
 // What of the call still shows beside Calls slid in, to tap back to it.
 const PEEK = 72;
 export const TASKS = 380;
 const CALL = 368;
 const BESIDE_BUTTONS = 56;
 const GAP = 12;
+
 // How far the call's words keep from the fold.
 const OFF_FOLD = 8;
+
 // Persona's Rive art fills three quarters of its view, as measured in the simulator.
 const ART = 0.75;
 
@@ -24,12 +27,16 @@ interface Place {
   x: number;
   y: number;
 }
+
 type Spot = Place & { size?: number };
+
 interface Span {
   x: number;
   width: number;
 }
+
 export type Words = Span & { top: number };
+
 export interface ColumnControls {
   right: number;
   bottom: number;
@@ -55,8 +62,10 @@ export interface Pane<Place> {
   width: number;
   place: Place;
 }
+
 // Calls that starts `below` a band of status and bar buttons leaves that band whole.
 export type CallsPlacement = Pane<'slide' | 'beside' | 'over'> & { below?: number };
+
 export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
@@ -113,15 +122,19 @@ export interface Stage {
 
 export const stageLayout = (box: Box): Stage => {
   const { fold } = box;
+
   if (box.regular && !fold && !box.controls) {
     return pad(box);
   }
+
   if (fold && 'y' in fold) {
     return stacked(box, fold.y);
   }
+
   if (box.regular && box.width > box.height) {
     return split(box, fold?.x);
   }
+
   return single(box);
 };
 
@@ -147,6 +160,7 @@ const single = (box: Box): Stage => {
   const inset = { x: metrics.gutter, width: across - 2 * metrics.gutter };
   const agent = { ...inset, bottom: Math.max(safe.bottom - 17, 6) };
   const size = Math.min(across * 0.62, height * 0.34, 280);
+
   const shared = {
     kind: 'single' as const,
     text: 'regular' as const,
@@ -155,13 +169,16 @@ const single = (box: Box): Stage => {
     tasks: { width: TASKS, place: 'sheet' as const },
     pulls: true,
   };
+
   if (!controls) {
     const top12 = { ...words, top: top + 12 };
+
     const read = {
       x: metrics.gutter + metrics.docked / 2,
       y: height - bottomInset - metrics.call / 2,
       size: metrics.docked,
     };
+
     return {
       ...shared,
       controls: 'inline',
@@ -174,11 +191,13 @@ const single = (box: Box): Stage => {
       calls: { width: Math.min(across - PEEK, SIDEBAR), place: 'slide' },
     };
   }
+
   // With the buttons in the side column, the docked orb takes the content's bottom corner and the
   // footer sits above it.
   const dock = height - safe.bottom - 8 - metrics.docked / 2;
   const below = { ...words, top: safe.top + 72 };
   const read = { x: metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked };
+
   return {
     ...shared,
     controls,
@@ -214,17 +233,20 @@ const pad = (box: Box): Stage => {
   const foot = height - bottomInset - metrics.call / 2;
   const agentLow = bottomInset;
   const agentHigh = bottomInset + metrics.call + 14;
+
   const docked = (from: number, to: number) => {
     // The orb and the buttons are centered as one group, so the orb keeps clear of the card's
     // rounded corner in a narrow room.
     const center = from + (to - from) / 2 + (BESIDE_BUTTONS + GAP) / 2;
     const buttons = center - stack('regular') / 2;
+
     return {
       orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },
       words: { ...measure(from, to), top: below + 16 },
       controls: { x: center, y: foot },
     };
   };
+
   const withCalls = docked(LIST, width);
   const withTasks = docked(0, width - tasks);
 
@@ -233,6 +255,7 @@ const pad = (box: Box): Stage => {
     const group = size + 40 + metrics.call;
     const top = (height - group) / 2;
     const words = { ...measure(half, width), top: below + 16 };
+
     return {
       kind: 'split',
       controls: {
@@ -266,6 +289,7 @@ const pad = (box: Box): Stage => {
 
   const orbY = below + 40 + size / 2;
   const words = { ...measure(0, width), top: orbY + size / 2 + 24 };
+
   return {
     kind: 'stacked',
     controls: {
@@ -304,12 +328,14 @@ export const callsBeside = (width: number, below?: number): CallsPlacement => {
     width - LIST >= breakpoint.page
       ? { width: LIST, place: 'beside' }
       : { width: width - PEEK, place: 'slide' };
+
   return below === undefined ? placement : { ...placement, below };
 };
 
 // The words' measure, centered in the room between `from` and `to`.
 const measure = (from: number, to: number): Span => {
   const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
+
   return { x: from + (to - from - width) / 2, width };
 };
 
@@ -323,6 +349,7 @@ const split = (box: Box, fold?: number): Stage => {
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? safe.bottom : bottomInset + metrics.call + 14;
   const top = controls ? safe.top + 72 : box.bar + 16;
+
   return {
     kind: 'split',
     controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
@@ -353,6 +380,7 @@ const stacked = (box: Box, fold: number): Stage => {
   const size = Math.min(base.orb.size, (fold - top) * 0.78);
   const words = { ...base.words, top: fold + OFF_FOLD };
   const read = { x: base.orb.rest.x, y: (top + fold) / 2 };
+
   return {
     ...base,
     kind: 'stacked',
@@ -376,8 +404,11 @@ export const wordsBefore = (
   if ('x' in fold) {
     const x = metrics.gutter;
     const width = Math.min(fold.x - OFF_FOLD - x, WORDS_BESIDE);
+
     return { x, width, top: words.top, raise: 0 };
   }
+
   const raise = box.height - fold.y + OFF_FOLD - agent.bottom;
+
   return { ...words, top: topOf(box) + 12, raise };
 };

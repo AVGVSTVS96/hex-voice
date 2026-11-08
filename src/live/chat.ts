@@ -39,15 +39,20 @@ const EVENT = /^\(([^()\n]+)\)\s*([\s\S]*)$/;
 
 export const said = (turn: ChatTurn): Said => {
   const event = turn.from === 'me' ? EVENT.exec(turn.text) : null;
+
   if (!event) {
     return { kind: turn.from, text: turn.text };
   }
+
   const [, label, text] = event as unknown as [string, string, string];
+
   if (label === 'voice message') {
     return { kind: 'me', text };
   }
+
   if (label.startsWith('asked Siri')) {
     return { kind: 'event', label: 'Asked Siri', text };
   }
+
   return { kind: 'event', label: label[0].toUpperCase() + label.slice(1), text };
 };

@@ -44,6 +44,7 @@ export const AddMedia = ({
   children: ReactNode;
 }) => {
   const [camera, setCamera] = useState(false);
+
   const pick = async () => {
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
@@ -54,13 +55,17 @@ export const AddMedia = ({
       // A clip the size the camera records, so a minute of 4K doesn't go up whole.
       videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
+
     if (picked.canceled) {
       return;
     }
+
     if (picked.assets.some(({ duration }) => (duration ?? 0) > CLIP_SECONDS * 1000)) {
       Alert.alert('Videos up to a minute', 'Pick a shorter video, or trim it in Photos.');
+
       return;
     }
+
     onAdd(
       picked.assets.map(({ uri, type, mimeType }) =>
         type === 'video'
@@ -69,6 +74,7 @@ export const AddMedia = ({
       ),
     );
   };
+
   return (
     <BottomSheet
       isPresented={camera}

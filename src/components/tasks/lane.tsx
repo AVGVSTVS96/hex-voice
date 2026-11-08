@@ -8,6 +8,7 @@ import { Lane as Native } from '../../../modules/rows';
 // A quiet project is the line alone.
 export const Lane = ({ tracks, now }: { tracks: Turn[][]; now: number }) => {
   const { spans, failures } = laneOf(tracks, now);
+
   return (
     <Native
       spans={spans}

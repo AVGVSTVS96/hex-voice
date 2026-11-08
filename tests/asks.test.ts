@@ -36,6 +36,7 @@ test('the check strip says what the check did', () => {
     fixed: 4,
     flagged: 3,
   });
+
   assert.equal(did, 'fixed 4 · flagged 3');
 });
 
@@ -58,6 +59,7 @@ test('a pinned post reads as sections: what waits on you, what runs, known probl
       '• ✅ [Launch review](https://example.com/review) is live',
     ].join('\n'),
   );
+
   assert.deepEqual(
     sections.map((section) => [section.title, section.mark, section.folded]),
     [
@@ -87,6 +89,7 @@ const list = (...ids: string[]): AskList => ({
   fresh: [],
   check: null,
 });
+
 const ids = (state: Yours) => state.list?.asks.map((one) => one.id);
 
 test('an answered ask stays where it sat after hex drops it, folded, until the sheet closes', () => {
@@ -149,6 +152,7 @@ test('a pinned text line shows a markdown link’s label and opens its url, as a
   const [section] = pinSections(
     'Signed with xtool. [Paper](https://app.paper.design/file/abc)\nNo link here.',
   );
+
   assert.deepEqual(section.lines, [
     { kind: 'text', text: 'Signed with xtool. Paper', url: 'https://app.paper.design/file/abc' },
     { kind: 'text', text: 'No link here.' },
@@ -159,6 +163,7 @@ test('a pinned line keeps its bold and code for the screen to draw, and a title 
   const [section] = pinSections(
     '📌 **Running:** the **Mac** build of `main`\n- **iPad** needs `devicectl`',
   );
+
   assert.deepEqual(
     [section.title, section.lines.map((line) => line.kind === 'item' && line.text)],
     ['Running', ['the **Mac** build of `main`', '**iPad** needs `devicectl`']],
@@ -182,6 +187,7 @@ test('what didn’t go through shows on the item it was about, and nowhere else'
     action: 'Ask',
     mark: 'paused',
   } as const;
+
   const failed = failedOn(
     { ...list('a', 'b'), stuck: [{ ...stuck, at: '' }] },
     {
@@ -189,6 +195,7 @@ test('what didn’t go through shows on the item it was about, and nowhere else'
       s: 'Not sent · No General',
     },
   );
+
   assert.deepEqual(
     failed.asks.map((one) => one.failed),
     [undefined, 'Not answered · That question is already answered or settled'],

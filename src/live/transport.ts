@@ -12,13 +12,16 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
   let peer: RTCPeerConnection | undefined;
   let channel: ReturnType<RTCPeerConnection['createDataChannel']>;
+
   try {
     peer = new RTCPeerConnection({ iceServers: [] });
     // VideoChat means speaker by default with voice processing; no camera is used.
     callManager?.start({ media: 'video', auto: true });
+
     for (const track of stream.getAudioTracks()) {
       peer.addTrack(track, stream);
     }
+
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
     // Every setup failure after capture must release the microphone too.
@@ -30,39 +33,48 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     callManager?.stop();
     throw error;
   }
+
   const pc = peer;
   let closed = false;
   let disconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const energies = new Map<string, { energy: number; duration: number }>();
   channel.onmessage = (message: unknown) => {
     const event = closed ? undefined : parseEvent(message);
+
     if (event) {
       onEvent(event);
     }
   };
+
   channel.onclose = () => {
     if (!closed) {
       onFailure('The voice connection closed. Start a new conversation to reconnect.');
     }
   };
+
   pc.onconnectionstatechange = () => {
     clearTimeout(disconnectTimer);
+
     if (closed) {
       return;
     }
+
     if (pc.connectionState === 'failed') {
       onFailure('The audio connection failed. Check your connection and try again.');
     }
+
     if (pc.connectionState === 'disconnected') {
       disconnectTimer = setTimeout(() => {
         onFailure('The audio connection was lost. Try starting again.');
       }, 7000);
     }
   };
+
   return {
     async offer() {
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
       await pc.setLocalDescription(offer);
+
       if (pc.iceGatheringState !== 'complete') {
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -71,23 +83,28 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
               new Error('Could not establish an audio route. Check your network and try again.'),
             );
           }, 10_000);
+
           const check = () => {
             if (pc.iceGatheringState === 'complete') {
               cleanup();
               resolve();
             }
           };
+
           const cleanup = () => {
             clearTimeout(timeout);
             pc.onicegatheringstatechange = null;
           };
+
           pc.onicegatheringstatechange = check;
           check();
         });
       }
+
       if (!pc.localDescription?.sdp) {
         throw new Error('Could not prepare the audio connection.');
       }
+
       return pc.localDescription.sdp;
     },
     answer: async (sdp) => {
@@ -97,8 +114,10 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       if (closed || channel.readyState !== 'open') {
         return false;
       }
+
       try {
         channel.send(JSON.stringify(event));
+
         return true;
       } catch {
         return false;
@@ -116,20 +135,25 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
         sentPackets: 0,
         receivedPackets: 0,
       };
+
       if (closed) {
         return result;
       }
+
       const reports = await pc.getStats();
       reports.forEach((report: Record<string, unknown>) => {
         if (report.kind !== 'audio' && report.mediaType !== 'audio') {
           return;
         }
+
         let level = typeof report.audioLevel === 'number' ? report.audioLevel : 0;
+
         if (
           typeof report.totalAudioEnergy === 'number' &&
           typeof report.totalSamplesDuration === 'number'
         ) {
           const previous = energies.get(String(report.id));
+
           if (
             previous &&
             report.totalSamplesDuration > previous.duration &&
@@ -143,28 +167,34 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
               ),
             );
           }
+
           energies.set(String(report.id), {
             energy: report.totalAudioEnergy,
             duration: report.totalSamplesDuration,
           });
         }
+
         if (report.type === 'media-source') {
           result.inputLevel = Math.max(result.inputLevel, level);
         }
+
         if (report.type === 'inbound-rtp') {
           result.outputLevel = Math.max(result.outputLevel, level);
           result.receivedPackets += Number(report.packetsReceived || 0);
         }
+
         if (report.type === 'outbound-rtp') {
           result.sentPackets += Number(report.packetsSent || 0);
         }
       });
+
       return result;
     },
     close() {
       if (closed) {
         return;
       }
+
       closed = true;
       clearTimeout(disconnectTimer);
       stream.getTracks().forEach((track) => {

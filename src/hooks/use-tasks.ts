@@ -19,9 +19,11 @@ export interface Counts {
 export const useTaskCounts = (listed: Counts | undefined): Counts => {
   const [counts, keep] = useKept('task-counts', TaskCounts);
   useWatch('counts', hex.tasks.counts, keep);
+
   if (listed) {
     return listed;
   }
+
   return counts
     ? { needs: counts.yours ?? counts.needs, working: counts.working }
     : { needs: 0, working: 0 };
@@ -40,11 +42,13 @@ export const useTasks = (open: boolean) => {
   const [tasks, keep] = useKept('tasks', z.array(TaskRow));
   const [finished, keepFinished] = useKept('finished', z.array(Finished));
   const [version, setVersion] = useState<number>();
+
   const watching = useWatch(open ? 'tasks' : null, hex.tasks.list, (list) => {
     keep(list.tasks);
     keepFinished(list.finished);
     setVersion(list.version);
   });
+
   return {
     tasks,
     finished: finished ?? NONE,
@@ -62,5 +66,6 @@ export const useTaskOrPage = (id: TaskId | null, version: number | undefined) =>
 // A task on the board in full; a thread that's left it has no steps or agents to show.
 export const useTask = (id: TaskId | null, version: number | undefined) => {
   const { answer, ...answered } = useTaskOrPage(id, version);
+
   return { task: answer?.kind === 'task' ? answer : undefined, ...answered };
 };

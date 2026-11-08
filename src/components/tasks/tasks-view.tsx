@@ -73,6 +73,7 @@ export const TasksView = ({
 }: TasksProps & { width: number; foot?: number }) => {
   const room = { width, foot, paged: false };
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room) });
+
   return <Tasks {...view} pages={pages} room={room} />;
 };
 
@@ -95,15 +96,19 @@ export const Tasks = ({
   const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
+
   const entries = useMemo(
     () => inboxEntries(tasks ?? [], finished, yours.list, yours.shown),
     [tasks, finished, yours.list, yours.shown],
   );
+
   // Opening starts on the tab it's sent to, else Needs you while anything waits, kept once the list
   // has loaded so it stays put as the counts change.
   const loaded = !!(yours.list && tasks);
+
   const stage =
     pages.stage ?? (loaded ? openingStage(stageCounts(entries, yours.answered)) : 'needs');
+
   useEffect(() => {
     if (open && loaded && !pages.stage) {
       pages.go({ to: 'stage', stage });
@@ -118,38 +123,46 @@ export const Tasks = ({
   // An ask whose thread has left the board opens its topic's newest thread still on it, or else
   // the topic's asks alone.
   const asked = yours.shown.find((ask) => ask.task === showing);
+
   const opened =
     task ??
     tasks?.find((row) => row.id === showing) ??
     (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
+
   const alone = opened || asked ? undefined : topicIn(showing);
   const did = finished.find((one) => one.id === doneIn(showing));
   const topic = opened?.name ?? asked?.topic ?? alone;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
+
   // The ask you tapped leads its topic's.
   const topicAsks = topic
     ? yours.shown
         .filter((ask) => ask.topic === topic)
         .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
     : [];
+
   const said = useChat(opened ? opened.id : null, open);
 
   const answer = (ask: Ask, option: AskOption) => {
     tap();
     yours.answer(ask, option);
   };
+
   const undo = (ask: Ask) => {
     tick();
     yours.undo(ask.id);
   };
+
   const again = (ask: Ask) => {
     tap();
     yours.again(ask);
   };
+
   const dismiss = (ask: Ask) => {
     tap();
     yours.dismiss(ask);
   };
+
   // A link to an app that isn't installed fails without a word from iOS, so its place says so.
   const openLink = (link: string, place: Place) => {
     tap();
@@ -164,16 +177,21 @@ export const Tasks = ({
       },
     );
   };
+
   const openThread = (thread: TaskRow) => {
     openLink(thread.link!, placeOf(thread.app));
   };
+
   // Where an ask was asked, as its topic's way there when no thread of it is left to open.
   const doorOf = (ask: Ask) => {
     const where = ask.places.find((one) => one.link);
+
     if (!where?.link) {
       return;
     }
+
     const place = placeOf(where.app);
+
     return {
       place,
       onPress: () => {
@@ -181,14 +199,18 @@ export const Tasks = ({
       },
     };
   };
+
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
       if (tile.link) {
         openLink(tile.link, tile.place);
       }
+
       return;
     }
+
     tap();
+
     if (tile.kind === 'call') {
       onOpenCall(tile.call);
     }
@@ -197,20 +219,24 @@ export const Tasks = ({
       void Linking.openURL(tile.url).catch(() => {});
     }
   };
+
   const openSteps = (id: TaskId) => {
     tick();
     pages.go({ to: 'steps', id });
   };
+
   const write = (write: boolean) => {
     tick();
     pages.go({ to: 'thread', write });
   };
+
   const talk = (thread: TaskRow) => {
     tick();
     onTalk(thread);
   };
 
   const spot = (level: Level) => spotOf(level, pages, room);
+
   const names: Record<Level | 'call', string> = {
     call: 'Call',
     list: 'Tasks',
@@ -221,6 +247,7 @@ export const Tasks = ({
     picks: 'hex’s picks',
     pick: 'Question',
   };
+
   const backTo = (back: Level | 'call'): Back => ({
     to: names[back],
     onPress:
@@ -231,29 +258,37 @@ export const Tasks = ({
             pages.back();
           },
   });
+
   // On iPhone Duo the shown page's way back goes to the toolbar, and no page heads itself with one.
   const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back)?.back;
+
   const inToolbar = useToolbarBack(
     'tasks',
     open && shownBack ? backTo(shownBack) : undefined,
     room.paged,
   );
+
   const chromeOf = ({ back }: Spot): Chrome => ({
     back: back && !inToolbar ? backTo(back) : undefined,
   });
+
   const typingOn = (level: Level) => (on: boolean) => {
     setTyping((was) => (on ? level : was === level ? null : was));
+
     if (on) {
       pages.go({ to: 'composerFocused' });
     }
   };
+
   // Pages glide only when you move through Tasks. Another project or tab beside the list moves
   // nothing, so it lands at once: an animation there would fade each changed word through the last.
   // Nor does one page or two: the project beside the list comes and goes with the width, and lands
   // with the turn that changed it.
   const moved = rowsKey([...pages.path, pages.stepsOf ?? '', pages.pick ?? '']);
+
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
+
     return (
       <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
         <PageChrome.Provider value={chromeOf(at)}>
@@ -268,6 +303,7 @@ export const Tasks = ({
   };
 
   const picks = picksOf(entries, yours.answered);
+
   const list = (
     <ListPage
       open={open}
@@ -287,9 +323,11 @@ export const Tasks = ({
       onCounts={onCounts}
     />
   );
+
   // The topic and its conversation side by side are one view: the conversation's page shows only
   // the messages and their composer, and the topic's shows everything else.
   const paired = spot('topic').shown && spot('thread').shown;
+
   const levels = [
     page(
       'topic',
@@ -455,9 +493,11 @@ export const Tasks = ({
         }}
         onTake={(taken) => {
           tap();
+
           for (const { ask, option } of taken) {
             yours.answer(ask, option);
           }
+
           choices.clear();
           pages.go({ to: 'back' });
         }}
@@ -477,6 +517,7 @@ export const Tasks = ({
     clipped(),
     scrollDismissesKeyboard('immediately'),
   ];
+
   if (pages.shape === 'columns') {
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
@@ -500,10 +541,12 @@ export const Tasks = ({
       </Row>
     );
   }
+
   // On iPhone Duo SwiftUI picks one page or two from the width it has, places them, and says which
   // it picked. Each page is keyed by its level, which is how SwiftUI knows which child is which.
   if (room.paged) {
     const children = [page('list', list), ...levels];
+
     return (
       <PagesView
         pages={children.map((child) => child.key as Level)}
@@ -518,6 +561,7 @@ export const Tasks = ({
       </PagesView>
     );
   }
+
   return (
     <ZStack alignment="top" modifiers={fill}>
       {page('list', list)}
@@ -563,6 +607,7 @@ const PageAt = ({
   children: ReactNode;
 }) => {
   const fills = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()];
+
   return (
     <Column
       alignment="center"

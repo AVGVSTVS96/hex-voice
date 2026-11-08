@@ -18,13 +18,16 @@ export const useCallFeedback = (
   useEffect(() => {
     const was = previous.current;
     previous.current = live;
+
     if (process.env.EXPO_OS !== 'ios' || live === was) {
       return;
     }
+
     if (live) {
       if (haptics) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+
       if (sounds) {
         void connect.seekTo(0).then(() => {
           connect.play();
@@ -34,6 +37,7 @@ export const useCallFeedback = (
       if (haptics) {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
       }
+
       if (sounds) {
         void end.seekTo(0).then(() => {
           end.play();
