@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 
 import LiveScreen from '@/call/call-screen';
 import { STAGES } from '@/live/inbox';
@@ -33,9 +33,29 @@ export default function Index() {
       }}
     />
   );
-  return split === 'first' || split === 'second' ? (
-    <SplitView side={split}>{screen}</SplitView>
-  ) : (
-    screen
+  const page =
+    split === 'first' || split === 'second' ? <SplitView side={split}>{screen}</SplitView> : screen;
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: true, headerTransparent: true, title: '' }} />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button icon="chevron.left" onPress={() => {}} />
+        <Stack.Toolbar.Button icon="list.bullet" onPress={() => {}} />
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button icon="checklist" onPress={() => {}} />
+        <Stack.Toolbar.Button icon="gearshape" onPress={() => {}} />
+      </Stack.Toolbar>
+      <Stack.Toolbar>
+        <Stack.Toolbar.Button icon="mic.fill" onPress={() => {}} />
+        <Stack.Toolbar.Button
+          icon="phone.down.fill"
+          variant="prominent"
+          tintColor="red"
+          onPress={() => {}}
+        />
+      </Stack.Toolbar>
+      {page}
+    </>
   );
 }
