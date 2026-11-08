@@ -1,41 +1,49 @@
-// expo-widgets builds the Live Activity extension without resources, so this adds the orb
-// stills (made by `npm run activity-orbs`) to it as an asset catalog the extension compiles.
-const fs = require('fs');
-const path = require('path');
-const { withDangerousMod, withXcodeProject } = require('expo/config-plugins');
+const fs = require("node:fs");
+const path = require("node:path");
+const { withDangerousMod, withXcodeProject } = require("expo/config-plugins");
 
-const TARGET = 'ExpoWidgetsTarget';
-const CATALOG = 'Orbs.xcassets';
+const TARGET = "ExpoWidgetsTarget";
+const CATALOG = "Orbs.xcassets";
 
 module.exports = function withActivityOrbs(config) {
-  config = withDangerousMod(config, [
-    'ios',
-    (config) => {
-      const target = path.join(config.modRequest.platformProjectRoot, TARGET, CATALOG);
+  const copied = withDangerousMod(config, [
+    "ios",
+    (native) => {
+      const target = path.join(native.modRequest.platformProjectRoot, TARGET, CATALOG);
       fs.rmSync(target, { recursive: true, force: true });
-      fs.cpSync(path.join(config.modRequest.projectRoot, 'assets/live-activity', CATALOG), target, {
+      fs.cpSync(path.join(native.modRequest.projectRoot, "assets/live-activity", CATALOG), target, {
         recursive: true,
       });
-      return config;
+
+      return native;
     },
   ]);
-  return withXcodeProject(config, (config) => {
-    const project = config.modResults;
+
+  return withXcodeProject(copied, (xcode) => {
+    const project = xcode.modResults;
     const target = project.findTargetKey(TARGET);
     const group = project.findPBXGroupKey({ name: TARGET });
-    if (!target || !group)
+
+    if (!target || !group) {
       throw new Error(`with-activity-orbs: no ${TARGET} target to add orbs to`);
-    if (project.hasFile(CATALOG)) return config;
-    const phase = project
-      .pbxNativeTargetSection()
-      [target].buildPhases.find(({ comment }) => comment === 'Resources');
+    }
+
+    if (project.hasFile(CATALOG)) {
+      return xcode;
+    }
+
+    const { buildPhases } = project.pbxNativeTargetSection()[target];
+    const phase = buildPhases.find(({ comment }) => comment === "Resources");
+
     const resources = phase
       ? project.hash.project.objects.PBXResourcesBuildPhase[phase.value]
-      : project.addBuildPhase([], 'PBXResourcesBuildPhase', 'Resources', target).buildPhase;
-    const file = project.addFile(CATALOG, group, { lastKnownFileType: 'folder.assetcatalog' });
+      : project.addBuildPhase([], "PBXResourcesBuildPhase", "Resources", target).buildPhase;
+
+    const file = project.addFile(CATALOG, group, { lastKnownFileType: "folder.assetcatalog" });
     Object.assign(file, { uuid: project.generateUuid(), target });
     project.addToPbxBuildFileSection(file);
     resources.files.push({ value: file.uuid, comment: `${CATALOG} in Resources` });
-    return config;
+
+    return xcode;
   });
 };

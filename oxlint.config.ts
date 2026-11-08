@@ -51,7 +51,7 @@ const scroll = {
 
 export default defineConfig({
   extends: [core, react, reactNative, antiSlop],
-  ignorePatterns: [...(core.ignorePatterns ?? []), ".claude/**", "ios/**", "dist/**", "plugins/**"],
+  ignorePatterns: [...(core.ignorePatterns ?? []), ".claude/**", "ios/**", "dist/**"],
   jsPlugins: [{ name: "no-comments", specifier: "./tools/oxlint/no-comments.ts" }],
   options: { reportUnusedDisableDirectives: "error", typeAware: true },
   overrides: [
@@ -89,7 +89,7 @@ export default defineConfig({
     },
     { files: ["src/ui/scroll.tsx"], rules: { "no-restricted-imports": "off" } },
     {
-      files: ["fingerprint.config.js", "metro.config.js"],
+      files: ["plugins/**", "fingerprint.config.js", "metro.config.js"],
       rules: { "unicorn/prefer-module": "off" },
     },
     { files: ["src/call/call-screen.tsx"], rules: { complexity: "off" } },
