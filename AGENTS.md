@@ -67,4 +67,4 @@ Layout breaks here when JS and SwiftUI both place the same view, so where iOS al
 
 ## Checks
 
-Run `npm run check`. For build-script changes, also run `python3 -m unittest discover -s scripts/tests`.
+Run `npm run check`.

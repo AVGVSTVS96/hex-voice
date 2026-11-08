@@ -50,8 +50,8 @@
   },
   "scripts": {
     "start": "expo start --dev-client --port 8088 --lan",
-    "ios": "python3 scripts/build-ios.py --port 8088",
-    "ios:device": "python3 scripts/build-ios.py --port 8088 --device",
+    "ios": "expo run:ios --port 8088",
+    "ios:device": "expo run:ios --port 8088 --device",
     "ship:js": "scripts/ship-js",
     "ship:native": "scripts/ship-native",
     "android": "expo run:android --port 8088",
@@ -60,9 +60,8 @@
     "voice-previews": "tsx scripts/voice-previews.mts",
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
-    "check": "npm run typecheck && npm test && npm run format:check",
+    "check": "npm run typecheck && npm test && python3 -m unittest discover -s scripts/tests && npm run format:check",
     "postinstall": "patch-package",
-    "eas-build-post-install": "python3 scripts/eas-post-install.py",
     "activity-orbs": "tsx scripts/activity-orbs.mts"
   },
   "private": true,
