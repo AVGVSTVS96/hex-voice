@@ -178,6 +178,9 @@ export function Search({
         <TextInput
           ref={field}
           autoFocus
+          autoCorrect={false}
+          autoCapitalize="none"
+          enterKeyHint="search"
           testID="tasks-search-field"
           onFocus={() => typing(true)}
           onBlur={() => typing(false)}
