@@ -610,20 +610,16 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     else if (voiceLoaded) startCall('asks');
   };
 
-  const callControls = (place: Partial<Parameters<typeof CallControls>[0]>) => (
-    <CallControls
-      call={call}
-      ready={voiceLoaded}
-      axis="row"
-      mute={!inboxShown}
-      onMute={onMute}
-      onPrimary={onPrimaryPress}
-      {...place}
-    />
-  );
-  const controls = callControls(
-    controlsColumn ? { axis: controlsColumn.axis, size: controlsColumn.size } : {},
-  );
+  const buttons = {
+    call,
+    ready: voiceLoaded,
+    axis: 'row' as const,
+    mute: !inboxShown,
+    onMute,
+    onPrimary: onPrimaryPress,
+    ...(controlsColumn && { axis: controlsColumn.axis, size: controlsColumn.size }),
+  };
+  const controls = <CallControls {...buttons} />;
   // On iPhone Duo the way back is the toolbar's: the one of whatever is in front.
   const { backs, publish } = useToolbarBacks();
   const back = settingsOpen ? backs.settings : tasksOpen ? backs.tasks : backs.call;
@@ -876,21 +872,22 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         personaEnabled={personaLoaded}
         preferences={preferences}
       />
-      {duo?.call.controls && inRow
-        ? callControls({
-            size: 'tool',
-            style: {
-              position: 'absolute',
-              right: duo.call.controls.right,
-              top: duo.call.controls.top,
-            },
-          })
-        : null}
+      {duo?.call.controls && inRow ? (
+        <CallControls
+          {...buttons}
+          size="tool"
+          style={{
+            position: 'absolute',
+            right: duo.call.controls.right,
+            top: duo.call.controls.top,
+          }}
+        />
+      ) : null}
       {layout.column ? (
         <SideColumn
           column={layout.column}
           tools={screenToolbar({ position: 'relative' })}
-          controls={controls}
+          controls={buttons}
         />
       ) : (
         <Bar layout={layout} width={width} drawer={drawer} toolbar={screenToolbar} />
