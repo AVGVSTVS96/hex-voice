@@ -223,9 +223,11 @@ export function Tasks({
     setTyping((was) => (on ? level : was === level ? null : was));
     if (on) pages.go({ to: 'composerFocused' });
   };
-  // Pages glide only when the levels showing change. Another project or tab beside the list moves
+  // Pages glide only when you move through Tasks. Another project or tab beside the list moves
   // nothing, so it lands at once: an animation there would fade each changed word through the last.
-  const moved = rowsKey([...pages.levels, pages.stepsOf ?? '']);
+  // Nor does one page or two: the project beside the list comes and goes with the width, and lands
+  // with the turn that changed it.
+  const moved = rowsKey([...pages.path, pages.stepsOf ?? '']);
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (
