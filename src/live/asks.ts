@@ -12,8 +12,10 @@ const AskOption = z.object({
   label: z.string(),
   value: z.optional(z.string()),
   pick: z.optional(z.boolean()),
-  // Its screenshot's number, when the choice is between looks.
+  // Its screenshot's number, when the choice is between looks, and that screenshot's width over its
+  // height.
   shot: z.optional(z.number()),
+  shape: z.optional(z.number()),
 });
 export type AskOption = z.infer<typeof AskOption>;
 const AskLink = z.object({ label: z.string(), url: z.string() });

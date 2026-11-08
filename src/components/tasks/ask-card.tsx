@@ -290,6 +290,7 @@ function Shots({ ask }: { ask: Ask }) {
   return (
     <ShotsView
       uris={shots.map((shot) => shot.uri)}
+      shapes={shown.map((option) => option.shape ?? 1)}
       headers={shots[0]!.headers}
       labels={shown.map((option) => option.label)}
       pick={shown.findIndex((option) => option.pick)}
@@ -299,6 +300,7 @@ function Shots({ ask }: { ask: Ask }) {
       size={type.caption.fontSize}
       secondary={theme.secondary}
       surface={theme.fill}
+      edge={theme.edge}
       accent={theme.accent}
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     />

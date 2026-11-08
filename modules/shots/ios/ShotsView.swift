@@ -6,23 +6,27 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 final class ShotsProps: UIBaseViewProps {
-  // Each option's screenshot and the option's label, in the options' order, and hex's pick among them.
+  // Each option's screenshot, its shape (width over height) and the option's label, in the options'
+  // order, and hex's pick among them.
   @Field var uris: [String] = []
+  @Field var shapes: [Double] = []
   @Field var labels: [String] = []
   @Field var pick: Int = -1
   // What reading a screenshot from hex takes, its token.
   @Field var headers: [String: String] = [:]
+  // The most a screenshot stands, and the gaps, corners and label size around it.
   @Field var height: CGFloat = 200
   @Field var gap: CGFloat = 8
   @Field var radius: CGFloat = 12
   @Field var size: CGFloat = 13
   @Field var secondary: Color = .secondary
   @Field var surface: Color = .gray
+  @Field var edge: Color = .gray
   @Field var accent: Color = .accentColor
 }
 
-// An ask's screenshots side by side, each over its option's name, at one height whatever their
-// shape, so nothing moves as they arrive. A tap shows them full screen in Quick Look, titled by
+// An ask's screenshots side by side across the card, each at its own shape over its option's name,
+// so each holds its room before it arrives. A tap shows them full screen in Quick Look, titled by
 // option, where a swipe goes to the next and a pinch looks closer.
 struct ShotsView: ExpoSwiftUI.View {
   @ObservedObject var props: ShotsProps
@@ -31,50 +35,59 @@ struct ShotsView: ExpoSwiftUI.View {
   @Environment(\.displayScale) private var scale
 
   var body: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(alignment: .top, spacing: props.gap) {
-        ForEach(Array(props.uris.enumerated()), id: \.offset) { index, uri in
-          tile(uri, label: props.labels.indices.contains(index) ? props.labels[index] : "", pick: index == props.pick)
-        }
+    HStack(alignment: .top, spacing: props.gap) {
+      ForEach(Array(props.uris.enumerated()), id: \.offset) { index, uri in
+        tile(
+          uri,
+          shape: props.shapes.indices.contains(index) ? props.shapes[index] : 1,
+          label: props.labels.indices.contains(index) ? props.labels[index] : "",
+          pick: index == props.pick)
       }
     }
-    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-    .fixedSize(horizontal: false, vertical: true)
     .task(id: props.uris) {
-      await shots.load(props.uris, labels: props.labels, headers: props.headers, pixels: props.height * scale)
+      await shots.load(props.uris, labels: props.labels, headers: props.headers, pixels: props.height * scale * 2)
     }
     .quickLookPreview($shown, in: props.uris.compactMap { shots.files[$0] })
   }
 
-  private func tile(_ uri: String, label: String, pick: Bool) -> some View {
-    VStack(alignment: .leading, spacing: props.gap) {
-      ZStack {
-        RoundedRectangle(cornerRadius: props.radius, style: .continuous).fill(props.surface)
-        if let image = shots.thumbs[uri] {
-          Image(uiImage: image).resizable().scaledToFit().padding(props.gap)
-        } else if shots.failed.contains(uri) {
-          Image(systemName: "photo").foregroundStyle(props.secondary)
-        } else {
-          ProgressView()
+  private func tile(_ uri: String, shape: Double, label: String, pick: Bool) -> some View {
+    let corner = RoundedRectangle(cornerRadius: props.radius, style: .continuous)
+    return VStack(alignment: .leading, spacing: props.gap) {
+      props.surface
+        .overlay {
+          if let image = shots.thumbs[uri] {
+            Image(uiImage: image).resizable()
+          } else if shots.failed.contains(uri) {
+            Image(systemName: "photo").foregroundStyle(props.secondary)
+          } else {
+            ProgressView()
+          }
         }
-      }
-      .frame(width: width, height: props.height)
-      .contentShape(Rectangle())
-      .onTapGesture { shown = shots.files[uri] }
-      .accessibilityElement()
-      .accessibilityLabel("Screenshot of \(label)")
-      .accessibilityAddTraits(.isButton)
+        .overlay(alignment: .topTrailing) {
+          Image(systemName: "arrow.up.left.and.arrow.down.right")
+            .font(.system(size: props.size * 0.75, weight: .semibold))
+            .foregroundStyle(.primary)
+            .padding(props.gap * 0.75)
+            .background(.ultraThinMaterial, in: Circle())
+            .padding(props.gap * 0.75)
+        }
+        .clipShape(corner)
+        .overlay(corner.strokeBorder(props.edge, lineWidth: 1 / scale))
+        .aspectRatio(shape, contentMode: .fit)
+        .frame(maxWidth: .infinity, maxHeight: props.height, alignment: .leading)
+        .contentShape(corner)
+        .onTapGesture { shown = shots.files[uri] }
+        .accessibilityElement()
+        .accessibilityLabel("Screenshot of \(label), opens full screen")
+        .accessibilityAddTraits(.isButton)
       HStack(spacing: 4) {
-        if pick { Image(systemName: "sparkle").font(.system(size: props.size * 0.8)) }
         Text(label).font(.system(size: props.size, weight: pick ? .medium : .regular)).lineLimit(2)
+        if pick { Image(systemName: "sparkle").font(.system(size: props.size * 0.8)) }
       }
       .foregroundStyle(pick ? props.accent : props.secondary)
-      .frame(width: width, alignment: .leading)
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
-
-  // A portrait phone's shape at the row's height, so two or three sit side by side on a phone.
-  private var width: CGFloat { props.height * 0.75 }
 }
 
 // The screenshots one card shows, read from hex into a folder of its own, each named for its option

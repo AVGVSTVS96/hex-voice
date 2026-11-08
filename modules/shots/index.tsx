@@ -8,6 +8,7 @@ import { processColor, type ColorValue } from 'react-native';
 // from the caller: the tiles' height, gaps and corners in points, the label's size and colors.
 export type ShotsProps = CommonViewModifierProps & {
   uris: string[];
+  shapes: number[];
   labels: string[];
   pick: number;
   headers: Record<string, string>;
@@ -17,10 +18,11 @@ export type ShotsProps = CommonViewModifierProps & {
   size: number;
   secondary: ColorValue;
   surface: ColorValue;
+  edge: ColorValue;
   accent: ColorValue;
 };
 
-type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'accent'>;
+type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'edge' | 'accent'>;
 type NativeProps = Omit<ShotsProps, keyof Colors> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 };
@@ -28,7 +30,7 @@ type NativeProps = Omit<ShotsProps, keyof Colors> & {
 const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Shots', 'ShotsView') : null;
 
-export function ShotsView({ modifiers, secondary, surface, accent, ...rest }: ShotsProps) {
+export function ShotsView({ modifiers, secondary, surface, edge, accent, ...rest }: ShotsProps) {
   if (!Native) return null;
   return (
     <Native
@@ -36,6 +38,7 @@ export function ShotsView({ modifiers, secondary, surface, accent, ...rest }: Sh
       {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
       secondary={processColor(secondary)}
       surface={processColor(surface)}
+      edge={processColor(edge)}
       accent={processColor(accent)}
       {...rest}
     />
