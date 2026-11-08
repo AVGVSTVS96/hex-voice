@@ -26,7 +26,8 @@ export const newKey = () =>
 
 // How a turn reads: your words, hex's, or something you did there, which every app writes the same
 // way, its label in parentheses first: "(answered in the app) Ship it?: Yes", "(vote: Go)",
-// "(photo)". A voice message is just your words.
+// "(photo)". A voice message is just your words, and a question to Siri shows without what Siri
+// asked hex to do with it ("(asked Siri: reply once, in one short spoken sentence)").
 export type Said =
   { kind: 'me' | 'hex'; text: string } | { kind: 'event'; label: string; text: string };
 
@@ -37,5 +38,6 @@ export function said(turn: ChatTurn): Said {
   if (!event) return { kind: turn.from, text: turn.text };
   const [, label, text] = event as unknown as [string, string, string];
   if (label === 'voice message') return { kind: 'me', text };
+  if (label.startsWith('asked Siri')) return { kind: 'event', label: 'Asked Siri', text };
   return { kind: 'event', label: label[0]!.toUpperCase() + label.slice(1), text };
 }

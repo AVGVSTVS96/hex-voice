@@ -14,11 +14,12 @@ mac=${HEX_VOICE_MAC:-mac}
 folder=Developer/hex-voice-release
 app=build/Build/Products/Release-iphoneos/hex.app
 
-# Runs on the Mac: builds the app, ad-hoc signed with its and the Live Activity extension's
-# entitlements for xtool to read, and prints its runtime version.
+# Runs on the Mac: builds the app with Xcode 27.3, whose iOS SDK is the first where Siri can use Ask
+# hex (plugins/siri), ad-hoc signed with its and the Live Activity extension's entitlements for xtool
+# to read, and prints its runtime version.
 build() {
   prepare_native
-  xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
+  DEVELOPER_DIR=/Applications/Xcode-27.3-beta.app/Contents/Developer xcodebuild -workspace ios/hex.xcworkspace -scheme hex -configuration Release \
     -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
     build >build/xcodebuild.log 2>&1 || {
     grep -E 'error:' build/xcodebuild.log | sort -u >&2

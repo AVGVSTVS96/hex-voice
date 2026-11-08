@@ -41,6 +41,13 @@ test('app keys fit what hex takes', () => {
 });
 
 test('what you did in a thread reads as an event, and a voice message as your words', () => {
+  assert.deepEqual(
+    said({
+      from: 'me',
+      text: "(asked Siri: reply once, in one short spoken sentence) what's running?",
+    }),
+    { kind: 'event', label: 'Asked Siri', text: "what's running?" },
+  );
   assert.deepEqual(said({ from: 'me', text: '(answered in the app) Ship it?: Yes' }), {
     kind: 'event',
     label: 'Answered in the app',

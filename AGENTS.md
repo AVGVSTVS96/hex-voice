@@ -2,7 +2,7 @@
 
 Read https://docs.expo.dev/versions/v58.0.0/ before changing Expo code.
 
-Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`).
+Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from its SDK (`modules/pose`). `ship:native` builds with Xcode 27.3, whose SDK is the first where Siri can use Ask hex (`plugins/siri`); older ones build it as a plain intent Siri ignores.
 
 ## How it works
 

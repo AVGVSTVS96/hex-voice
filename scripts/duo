@@ -88,8 +88,7 @@ pose_of() {
 # Runs on the Mac, in $folder: app/ is the commit's tree, apps/<runtime>.app its simulator builds,
 # js/ its bundle, harness/ this script with what it needs.
 # Checks run each simulator with its own Xcode, set here per device, and build with the Duo's, since
-# every device installs the same simulator builds; .env.local's DEVELOPER_DIR is the one ship:native
-# builds with.
+# every device installs the same simulator builds; ship:native picks its own.
 on_mac() {
   export DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer
   export PATH=/opt/homebrew/bin:$PATH
@@ -123,6 +122,10 @@ mac_build() {
   mkdir -p apps
   rm -rf "apps/$runtime.app"
   cp -cR app/build/Build/Products/Release-iphonesimulator/hex.app "apps/$runtime.app"
+  # Siri's Ask hex reads hex's address from Info.plist, so checks drop it, as they never reach hex.
+  local plist=apps/$runtime.app/Info.plist
+  ! /usr/libexec/PlistBuddy -c 'Print :HexURL' "$plist" >/dev/null 2>&1 ||
+    /usr/libexec/PlistBuddy -c 'Delete :HexURL' -c 'Delete :HexToken' "$plist"
   ls -t apps | tail -n +4 | sed 's|^|apps/|' | xargs rm -rf
 }
 
