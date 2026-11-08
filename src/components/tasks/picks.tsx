@@ -37,8 +37,6 @@ export interface Picked {
   option: AskOption;
 }
 
-// What you've chosen on hex's picks before taking them: another answer than hex's, or `later` to
-// leave the question in Needs you. Held by Tasks, so the list and a question's page share it.
 type Choice = AskOption | 'later';
 
 export const usePickChoices = () => {
@@ -64,8 +62,6 @@ const wraps = [
   frame({ maxWidth: Infinity, alignment: 'leading' }),
 ];
 
-// Every question hex has an answer for, each a card that opens its own page to read and change,
-// and one button that sends the answers on them all.
 export const PicksPage = ({
   picks,
   choices,
@@ -166,8 +162,6 @@ export const PicksPage = ({
   );
 };
 
-// A question as a card that says it opens: where it's from, the question whole, and the answer it
-// gets, hex's with its sparkle, yours plain, or left for later.
 const PickRow = ({
   ask,
   choice,
@@ -265,9 +259,6 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
   );
 };
 
-// One question in full, read top to bottom: the question, why hex picks its answer, every answer
-// with what it does and gives up, then what it's about and the thread's own words. Choosing an
-// answer here sets the one "Answer" sends; nothing is sent from this page.
 export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickChoices }) => {
   const { back } = useChrome();
 
@@ -422,8 +413,6 @@ const Heading = ({ title, detail }: { title: string; detail?: string }) => (
   </Column>
 );
 
-// An answer as a choice you can see is one: a circle that fills when it's yours, its words, what it
-// does and gives up, and hex's sparkle on its own pick.
 const OptionCard = ({
   title,
   detail,
@@ -483,7 +472,6 @@ const OptionCard = ({
 const saidAt = (at: string | undefined) =>
   at === undefined || at === '' ? '' : ` · ${clock(new Date(at))}`;
 
-// Where it was asked, in the thread's own words, all of them, and the way into the thread.
 const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
   const words = useWords(id);
 

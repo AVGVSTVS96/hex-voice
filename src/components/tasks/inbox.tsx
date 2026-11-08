@@ -47,8 +47,6 @@ export const TopicHead = ({ topic, onPress }: { topic: Topic; onPress?: () => vo
   </Row>
 );
 
-// Something about the whole list, apart from its projects: a card on the ground with its one
-// action as a pill.
 const Strip = ({
   mark,
   title,
@@ -142,7 +140,6 @@ export const CheckRow = ({
   );
 };
 
-// Opens hex's picks on a page of their own, to look over before taking them.
 export const PicksRow = ({
   n,
   selected,

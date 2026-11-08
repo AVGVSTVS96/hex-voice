@@ -38,19 +38,15 @@ import { ShotsView } from '../../../modules/shots';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space } from '@/ui/tokens';
 
-// How much of the thread's own words show before a tap shows them all.
-const SAID = 6;
+const SAID_LINES = 6;
 
-// Most choices that share a row, each its own pill, as Muse sets Deny and Allow.
-const SIDE_BY_SIDE = 3;
+const PILLS_PER_ROW = 3;
 
-// A card keeps in from the page's sides, and its words from its own edges.
-const MARGIN = space[3];
-const INSIDE = space[4];
+const CARD_MARGIN = space[3];
+const CARD_PADDING = space[4];
 
 type Answer = (ask: Ask, option: AskOption) => void;
 
-// The project page's asks, each a card in a row of its list, so a swipe left on one puts it away.
 export const YourCall = ({
   asks,
   answered,
@@ -132,17 +128,16 @@ export const YourCall = ({
   );
 };
 
-// A card on the page, as Muse sets an approval: its own surface, apart from the next by air.
 const Card = ({ children }: { children: ReactNode }) => (
   <VStack
     alignment="leading"
     spacing={space[3]}
     modifiers={[
-      padding({ all: INSIDE }),
+      padding({ all: CARD_PADDING }),
       frame({ maxWidth: Infinity, alignment: 'leading' }),
       background(theme.card),
       clipShape('roundedRectangle', radius.group),
-      padding({ leading: MARGIN, trailing: MARGIN, bottom: space[3] }),
+      padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN, bottom: space[3] }),
       ...listRow(),
     ]}
   >
@@ -150,8 +145,6 @@ const Card = ({ children }: { children: ReactNode }) => (
   </VStack>
 );
 
-// The question first and large, why hex asks under it in gray, then the choices as pills; a tap
-// on the words opens where it was asked and the thread's own words. Writing on it keeps it open.
 const AskCard = ({
   ask,
   onAnswer,
@@ -161,17 +154,13 @@ const AskCard = ({
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
 }) => {
-  // Words typed on it and not sent open it on them, so they're never out of sight: after the page
-  // closes, and once hex's check lists it under a new id.
   const [held] = useState(
     () => !!carryDraft(`ask:${ask.id}`, ask.was?.map((id) => `ask:${id}`) ?? []).trim(),
   );
 
   const [open, setOpen] = useState(held);
-  // 'held' opens the field without raising the keyboard; a tap in it raises it.
   const [writing, setWriting] = useState<boolean | 'held'>(held && 'held');
   const words = useWords(open ? ask.id : null);
-  // A note leaves the ask open, so the card stays and says it went, or why it didn't.
   const notes = useFailures();
   const [noting, setNoting] = useState(false);
   const [noted, setNoted] = useState(false);
@@ -191,7 +180,6 @@ const AskCard = ({
     }
   };
 
-  // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
   const links = ask.links ?? [];
 
@@ -302,8 +290,6 @@ const AskCard = ({
   );
 };
 
-// What each option looks like, when the choice is between looks: its screenshot, over its answer
-// when every option has one, and all of them full screen on a tap.
 export const Shots = ({ ask }: { ask: Ask }) => {
   const shown = ask.options.filter(
     (option): option is AskOption & { shot: number } => option.shot !== undefined,
@@ -332,7 +318,6 @@ export const Shots = ({ ask }: { ask: Ask }) => {
   );
 };
 
-// The thread's own words, under where and when they were said: a few lines, all of them on a tap.
 export const Said = ({ words }: { words: Words }) => {
   const [whole, setWhole] = useState(false);
   const when = words.at === undefined || words.at === '' ? '' : ` · ${clock(new Date(words.at))}`;
@@ -359,7 +344,7 @@ export const Said = ({ words }: { words: Words }) => {
       </Text>
       <Markdown
         inline={!whole}
-        lines={whole ? undefined : SAID}
+        lines={whole ? undefined : SAID_LINES}
         variant="detail"
         tone="secondary"
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
@@ -397,7 +382,6 @@ export const Links = ({ links }: { links: AskLink[] }) => {
   );
 };
 
-// An ask's choices on its row in the list, as small pills, hex's pick tinted.
 export const InlineAnswers = ({
   ask,
   onAnswer,
@@ -422,10 +406,6 @@ export const InlineAnswers = ({
   </Row>
 );
 
-// The choices as Muse's pills, side by side when each fits its share of the row. Longer ones are
-// read, so each is a block of its own words, whole, one under another. hex's pick is tinted and
-// named, so the card holds no solid button that reads as already chosen. Under screenshots, each
-// answer sits under its own as a small pill, so its name says which is which in one line.
 const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const n = ask.options.length;
 
@@ -494,7 +474,7 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
     </Column>
   );
 
-  if (n > SIDE_BY_SIDE) {
+  if (n > PILLS_PER_ROW) {
     return blocks;
   }
 
@@ -508,10 +488,6 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   );
 };
 
-// What you write goes to the ask's thread as a note and leaves the ask open: ↑ is the one accent
-// action. Answering with it instead is the deliberate second step, drawn in text and not accent so
-// it never reads as already answered, and Not needed puts the ask away with no answer at all.
-// None of them goes while a note is on its way.
 const Composer = ({
   draft,
   focus,
@@ -618,9 +594,6 @@ const Composer = ({
   );
 };
 
-// Says the field is being typed in, and stops saying so when it goes: a note or an answer takes
-// the field away with the keyboard still up, and iOS never tells a field that's gone it lost focus,
-// so the page would keep its foot hidden for typing.
 const useTyping = () => {
   const typing = useContext(Typing);
   const on = useRef(false);
@@ -639,7 +612,6 @@ const useTyping = () => {
   };
 };
 
-// An answer that couldn't reach every place, and the way to finish it.
 export const Unreached = ({ missed, onAgain }: { missed: number; onAgain: () => void }) => (
   <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
     <Failure text={unreached(missed)} />

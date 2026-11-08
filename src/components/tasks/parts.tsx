@@ -31,7 +31,6 @@ import { hairline, theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { mask, metrics, radius, space } from '@/ui/tokens';
 
-// Counts say what they count, so a stage tab's number and an ask count read as different things.
 export const questions = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
 
 export const feel = (haptics: boolean) => {
@@ -53,15 +52,12 @@ export const feel = (haptics: boolean) => {
 
 export type Feel = ReturnType<typeof feel>;
 
-// No inset, fill or line of its own, so the list's ground shows behind it and rows part by the
-// air between them, as Muse's do. Lines part sections, never rows.
 export const listRow = (): ModifierConfig[] => [
   listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
   listRowBackground('transparent'),
   listRowSeparator('hidden'),
 ];
 
-// A row's padding, inside the rounded fill that shows it's the one open beside the list.
 export const rowFrame = (selected: boolean, { top = metrics.list.row.top } = {}) => [
   padding({
     leading: metrics.list.inset - space[2],
@@ -76,9 +72,6 @@ export const rowFrame = (selected: boolean, { top = metrics.list.row.top } = {})
   padding({ leading: space[2], trailing: space[2] }),
 ];
 
-// Muse's button: a gray capsule. hex's pick is tinted mint and says so, so it reads as a
-// suggestion, never as already chosen. `grow` shares a row with the others; `small` sits at the
-// end of a line of text and marks the pick with a sparkle alone.
 export const Pill = ({
   label,
   onPress,
@@ -158,8 +151,6 @@ const PillLabel = ({
   </Column>
 );
 
-// Puts an ask away without an answer: a row's swipe action at the trailing edge, where iOS puts the
-// one that clears a row, so a full swipe left takes it, as it does in Mail.
 export const NotNeededButton = ({ onPress }: { onPress: () => void }) => (
   <Button
     label={NOT_NEEDED}
@@ -169,7 +160,6 @@ export const NotNeededButton = ({ onPress }: { onPress: () => void }) => (
   />
 );
 
-// A section's quiet name, like Muse's Connected and Available: gray, at detail size.
 export const SectionHead = ({
   title,
   count,
@@ -212,7 +202,6 @@ export const SectionHead = ({
   </Row>
 );
 
-// A section that holds a state: its name in that state's color on a tinted dot, its count beside.
 export const StageHead = ({
   tint: stage,
   title,
@@ -250,10 +239,6 @@ export const StageHead = ({
   </Row>
 );
 
-// iOS's soft scroll edge: what scrolls under a bar fades out instead of being cut mid-line. The
-// scroll view inside rests `metrics.list.rest` in from each edge and draws past its frame
-// (`scrollClipDisabled`), so it scrolls on into the fade the way content scrolls under a bar. A
-// mask, so it works on any ground and never takes a touch.
 export const Faded = ({
   top = true,
   bottom = true,
@@ -311,9 +296,6 @@ const FadeEdge = ({ from }: { from: 'top' | 'bottom' }) => (
   />
 );
 
-// A page's sections, a hairline between each and the next so it's clear where one ends. Pass each
-// section only when it shows, so none is drawn above the first.
-// Sections that follow others on the page, like its asks, open on the line that parts them too.
 export const Sections = ({
   follows = false,
   children,
@@ -364,7 +346,6 @@ export const Empty = ({ text }: { text: string }) => (
   </Text>
 );
 
-// Until hex first answers: the system's spinner where the rows will be.
 export const Loading = () => (
   <Row
     alignment="center"
@@ -380,8 +361,6 @@ export const Loading = () => (
   </Row>
 );
 
-// A page's body until hex answers it: the system's spinner; while hex can't be reached, that it's
-// trying again, which it does on its own; and once hex says no, why, `gone` when there's no such thing.
 export const Waiting = ({ gone, ...answered }: Answered & { gone: string }) => {
   const why = whyNot(answered, gone);
 
@@ -420,7 +399,6 @@ const whyNot = ({ failed, refused }: Answered, gone: string) => {
   return failed ? UNREACHED : null;
 };
 
-// What you did here that didn't go through, and why, quietly where you did it.
 export const Failure = ({
   text,
   modifiers,

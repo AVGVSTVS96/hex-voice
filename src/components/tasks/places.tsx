@@ -32,8 +32,7 @@ const GLYPH: Record<Place, SFSymbol> = {
   server: 'terminal.fill',
 };
 
-// Too dark to show as a ring and a symbol on the sheet, so a ghost of theirs is drawn quieter.
-const DARK = new Set<Place>(['t3', 'server']);
+const QUIET_GHOSTS = new Set<Place>(['t3', 'server']);
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
@@ -71,7 +70,6 @@ export const swipeLook = (tile: Tile) => {
   return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
 };
 
-// A thread without a link is a ghost: we know it's from there, but there's no door.
 export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
   if (tile.kind === 'app' && !hasLink(tile)) {
     return <Ghost place={tile.place} size={size} />;
@@ -109,7 +107,7 @@ const Solid = ({
 );
 
 const Ghost = ({ place, size }: { place: Place; size: number }) => {
-  const ink = DARK.has(place) ? theme.secondary : brand[place];
+  const ink = QUIET_GHOSTS.has(place) ? theme.secondary : brand[place];
 
   return (
     <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
@@ -130,7 +128,6 @@ const Ghost = ({ place, size }: { place: Place; size: number }) => {
   );
 };
 
-// Places list a topic's threads once it has more than one; one thread's place is its header's door.
 export const hasPlaces = (task: TaskRow, threads: TaskRow[]) =>
   threads.some((thread) => thread.id !== task.id);
 

@@ -11,13 +11,8 @@ import { theme } from '@/theme';
 import { metrics, radius, space } from '@/ui/tokens';
 import type { Tone } from '@/ui/tokens';
 
-// What needs you says what kind it is: a question (`asks`), one hex has a pick for (`pick`), or a
-// reply it waits on (`needs`).
 export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 'read' | 'pending';
 
-// Drawn natively so a long list stays cheap; only the arc moves, so only it animates. What needs
-// you is a mint disc, with a question mark for a question and a sparkle for one hex has a pick
-// for; what hex has under way is its blue arc. Only what's finished sits in a square, with a tick.
 export const Mark = ({ state }: { state: MarkState }) => {
   if (state === 'working') {
     return (
@@ -174,8 +169,6 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
   }
 };
 
-// A section's name in its color on a tinted dot, as Muse heads Tracking and Goals: mint for what
-// needs you, blue for what hex is doing, red for what went wrong.
 export type Tint = 'needs' | 'working' | 'failed';
 
 const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
