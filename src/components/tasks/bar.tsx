@@ -105,7 +105,7 @@ export function BackButton({ back }: { back: Back }) {
     <BarButton
       shape="circle"
       label={`Back to ${back.to}`}
-      testID="task-back"
+      testID="back"
       onPress={back.onPress}
     >
       <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />

@@ -9,7 +9,7 @@ tap Write your own
 type ask-input Found one of them
 above-keyboard ask-input
 shoot ask-writing
-tap task-back
+tap back
 wait 1
 no-keyboard leaving the page
 open hexvoice:///?tasks=md

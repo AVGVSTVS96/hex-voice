@@ -327,7 +327,7 @@ function bar(layout: Layout, window: Size) {
   if (duo!.beside) placed.switch = around(duo!.beside.button.x, duo!.beside.button.y, 48);
   if (toolbar.axis === 'column') {
     const { tools, group } = metrics.toolbar[toolbar.gaps!];
-    placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 3 * 48 + tools + group };
+    placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 4 * 48 + tools + 2 * group };
     assert.ok(controls !== 'inline' && 'bottom' in controls);
     const end = metrics[metrics.controls[controls.size!].call];
     const height = stack(controls.size!);
@@ -365,9 +365,11 @@ test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which ke
   }
 });
 
-test('on iPhone Duo with Tasks closed, the call’s own stack has room for its + before mute, clear of the tools', () => {
+// Folded on its side the short column gives Back the room the + would take.
+test('on iPhone Duo with Tasks closed, the call’s own stack has room for its + before mute, clear of the tools, short of the short column', () => {
   for (const [name, { window, insets, pose }] of Object.entries(duo)) {
     const layout = layoutOf(window, insets, pose);
+    if (layout.toolbar.gaps === 'compact') continue;
     const { tools, calls, buttons } = bar(layout, window);
     if (layout.toolbar.axis === 'column') {
       assert.ok(layout.controls !== 'inline' && 'bottom' in layout.controls);

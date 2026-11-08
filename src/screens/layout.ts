@@ -331,11 +331,15 @@ function besideColumn(
     },
     fold,
   );
-  const tools = toolbar.y + 3 * metrics.tool + gaps.tools + gaps.group;
+  // Back, Calls, then Tasks with settings.
+  const tools = toolbar.y + 4 * metrics.tool + gaps.tools + 2 * gaps.group;
   const buttons = window.height - column.controls.bottom - stack(size);
-  const group = CALL_ORB + 4 + TIME + (after ? 12 + metrics.tool : 0);
+  const below = TIME + (after ? 12 + metrics.tool : 0);
+  // Folded on its side the column is too short for Back and the orb both: the call there is its time.
+  const orb = buttons - tools >= CALL_ORB + 4 + below + 2 * GAP ? CALL_ORB : 0;
+  const group = (orb && orb + 4) + below;
   const y = (tools + buttons - group) / 2;
-  const time = y + CALL_ORB + 4;
+  const time = y + (orb && orb + 4);
   return {
     tasks,
     beside: after &&
@@ -345,7 +349,7 @@ function besideColumn(
         button: { x, y: time + TIME + 12 + metrics.tool / 2 },
       },
     call: {
-      orb: { x, y: y + CALL_ORB / 2, size: CALL_ORB },
+      orb: { x, y: y + orb / 2, size: orb },
       time: { x: x - TIME_WIDTH / 2, y: time, width: TIME_WIDTH, align: 'center' },
     },
   };

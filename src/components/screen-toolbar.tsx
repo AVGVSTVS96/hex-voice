@@ -1,10 +1,17 @@
 import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
-import { StyleSheet, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
-import Animated, { type AnimatedStyle } from 'react-native-reanimated';
+import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  type AnimatedStyle,
+} from 'react-native-reanimated';
+
+import type { Back } from '@/components/tasks/bar';
 
 import { NeedsDot, TasksButton } from '@/components/tasks-button';
 import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
+import { motion } from '@/motion';
 import { metrics, type ToolbarGaps } from '@/ui/tokens';
 
 type Props = {
@@ -15,13 +22,17 @@ type Props = {
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
   settingsOpen?: boolean;
+  // On iPhone Duo the toolbar holds the shown page's way back, first of all, in a spot kept for it so
+  // nothing moves as it comes and goes.
+  holdsBack?: boolean;
+  back?: Back;
   onCalls: () => void;
   onTasks: () => void;
   onSettings: () => void;
 };
 
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
-// side column with the two set apart, closer where the column is short.
+// side column with the two set apart, closer where the column is short. On iPhone Duo, Back leads.
 export function ScreenToolbar({
   axis,
   onLayout,
@@ -30,6 +41,8 @@ export function ScreenToolbar({
   callsOpen,
   tasks,
   settingsOpen = false,
+  holdsBack = false,
+  back,
   onCalls,
   onTasks,
   onSettings,
@@ -38,19 +51,40 @@ export function ScreenToolbar({
   const gap = axis === 'row' ? metrics.toolbar.row : column.group;
   const Group = axis === 'row' ? HStack : VStack;
   const long = 2 * metrics.tool + gap;
+  const lead = axis === 'row' ? metrics.toolbar.row : column.group;
+  const backStyle = useAnimatedStyle(() => ({
+    opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }),
+  }));
   return (
     <Animated.View
       pointerEvents="box-none"
       onLayout={onLayout}
       style={[styles[axis], axis === 'column' && { gap: column.tools }, style]}
     >
-      <HostedGlassButton
-        icon="calls"
-        label="Calls"
-        testID="calls-button"
-        selected={callsOpen}
-        onPress={onCalls}
-      />
+      <View pointerEvents="box-none" style={[styles[`${axis}Group`], { gap: lead }]}>
+        {holdsBack ? (
+          <Animated.View
+            pointerEvents={back ? 'auto' : 'none'}
+            accessibilityElementsHidden={!back}
+            importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
+            style={backStyle}
+          >
+            <HostedGlassButton
+              icon="back"
+              label={back ? `Back to ${back.to}` : 'Back'}
+              testID="back"
+              onPress={() => back?.onPress()}
+            />
+          </Animated.View>
+        ) : null}
+        <HostedGlassButton
+          icon="calls"
+          label="Calls"
+          testID="calls-button"
+          selected={callsOpen}
+          onPress={onCalls}
+        />
+      </View>
       <Host
         matchContents
         style={
@@ -88,4 +122,6 @@ export function ScreenToolbar({
 const styles = StyleSheet.create({
   row: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between' },
   column: { position: 'absolute', alignItems: 'center' },
+  rowGroup: { flexDirection: 'row' },
+  columnGroup: { alignItems: 'center' },
 });

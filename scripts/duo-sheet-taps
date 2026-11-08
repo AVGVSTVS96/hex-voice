@@ -28,7 +28,7 @@ snap chat-tap
 wait 0.3
 snap chat-tap-later
 shoot chat
-tap task-back
+tap back
 snap chat-back-tap
 shoot chat-back
 tap voice-settings-button

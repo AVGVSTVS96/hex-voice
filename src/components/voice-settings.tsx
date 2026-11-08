@@ -66,6 +66,7 @@ import { Group, Separator, SettingRow, groupHeight } from '@/components/settings
 import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
 import { useViewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
+import { useToolbarBack } from '@/components/toolbar-back';
 import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { theme } from '@/theme';
@@ -244,6 +245,12 @@ export function VoiceSettings({
     haptic();
     setOnVoicePage(show);
   };
+  // In the open Duo's place, the voice page's way back is the toolbar's.
+  const backInToolbar = useToolbarBack(
+    'settings',
+    isPresented && onVoicePage ? { to: 'Settings', onPress: () => showVoices(false) } : undefined,
+    !!place,
+  );
   // The voice page slides in from the right edge while the first page drifts a third of the way
   // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
   // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
@@ -389,18 +396,22 @@ export function VoiceSettings({
         style={{ width: contentWidth, height: HEADER }}
         modifiers={[padding({ top: HEADER_TOP })]}
       >
-        <NativeButton
-          label="Back"
-          systemImage="chevron.left"
-          onPress={() => showVoices(false)}
-          testID="voice-back"
-          modifiers={[
-            labelStyle('iconOnly'),
-            buttonStyle('glass'),
-            buttonBorderShape('circle'),
-            controlSize('large'),
-          ]}
-        />
+        {backInToolbar ? (
+          <Spacer style={{ width: HEADER }} />
+        ) : (
+          <NativeButton
+            label="Back"
+            systemImage="chevron.left"
+            onPress={() => showVoices(false)}
+            testID="voice-back"
+            modifiers={[
+              labelStyle('iconOnly'),
+              buttonStyle('glass'),
+              buttonBorderShape('circle'),
+              controlSize('large'),
+            ]}
+          />
+        )}
         <Spacer flexible />
         <Text variant="headline">Voice</Text>
         <Spacer flexible />

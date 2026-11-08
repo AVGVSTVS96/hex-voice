@@ -19,6 +19,7 @@ import { Host } from '@/ui/host';
 import { metrics, type GlassSize } from '@/ui/tokens';
 
 const symbols = {
+  back: 'chevron.left',
   settings: 'slider.horizontal.3',
   transcript: 'text.bubble',
   'beside-row': 'rectangle.split.2x1',

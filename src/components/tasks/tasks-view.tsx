@@ -14,7 +14,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Linking } from 'react-native';
 
 import { TASKS } from '@/call/stage';
-import { PageChrome, type Chrome } from '@/components/tasks/bar';
+import { PageChrome, type Back, type Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
 import { ListPage } from '@/components/tasks/list';
 import {
@@ -30,6 +30,7 @@ import {
   Typing,
 } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
+import { useToolbarBack } from '@/components/toolbar-back';
 import { EntryRow } from '@/components/tasks/rows';
 import { Selectable } from '@/components/tasks/said';
 import { Asked, Detail, DonePage } from '@/components/tasks/task-page';
@@ -198,17 +199,25 @@ export function Tasks({
     steps: 'Steps',
     check: 'Last check',
   };
+  const backTo = (back: Level | 'call'): Back => ({
+    to: names[back],
+    onPress:
+      back === 'call'
+        ? pages.back
+        : () => {
+            tick();
+            pages.back();
+          },
+  });
+  // On iPhone Duo the shown page's way back goes to the toolbar, and no page heads itself with one.
+  const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back)?.back;
+  const inToolbar = useToolbarBack(
+    'tasks',
+    open && shownBack ? backTo(shownBack) : undefined,
+    room.paged,
+  );
   const chromeOf = ({ back }: Spot): Chrome => ({
-    back: back && {
-      to: names[back],
-      onPress:
-        back === 'call'
-          ? pages.back
-          : () => {
-              tick();
-              pages.back();
-            },
-    },
+    back: back && !inToolbar ? backTo(back) : undefined,
   });
   const typingOn = (level: Level) => (on: boolean) => {
     setTyping((was) => (on ? level : was === level ? null : was));

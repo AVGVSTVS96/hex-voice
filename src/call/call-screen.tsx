@@ -28,6 +28,7 @@ import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
 import { ScreenToolbar } from '@/components/screen-toolbar';
+import { ToolbarBackProvider, useToolbarBacks } from '@/components/toolbar-back';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
 import type { TasksAt } from '@/components/tasks/tasks-view';
@@ -610,6 +611,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const controls = callControls(
     controlsColumn ? { axis: controlsColumn.axis, size: controlsColumn.size } : {},
   );
+  // On iPhone Duo the way back is the toolbar's: the one of whatever is in front.
+  const { backs, publish } = useToolbarBacks();
+  const back = settingsOpen ? backs.settings : tasksOpen ? backs.tasks : backs.call;
   const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
     <ScreenToolbar
       onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
@@ -619,6 +623,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       callsOpen={callsOpen}
       tasks={{ ...counts, open: tasksOpen }}
       settingsOpen={settingsOpen}
+      holdsBack={!!duo}
+      back={back}
       onCalls={toggleDrawer}
       onTasks={toggleTasks}
       onSettings={() => send({ to: 'settings', open: !settingsOpen })}
@@ -665,7 +671,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   };
 
   return (
-    <>
+    <ToolbarBackProvider value={duo ? publish : null}>
       {sidebar}
       {panes && !duo && (
         <TasksPane
@@ -872,7 +878,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       ) : (
         screenToolbar([{ top: toolbar.y }, toolbarStyle])
       )}
-    </>
+    </ToolbarBackProvider>
   );
 }
 

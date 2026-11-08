@@ -17,7 +17,7 @@ shoot closed-by-tasks
 unselected tasks-button
 still tasks-button
 duo: tap tasks-button
-duo: tap task-back
+duo: tap back
 duo: shoot closed-by-back
 duo: unselected tasks-button
 duo: tap tasks-button
