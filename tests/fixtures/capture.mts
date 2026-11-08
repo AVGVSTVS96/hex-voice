@@ -1,6 +1,3 @@
-// Real answers from hex's voice server, cut to a few of each and scrubbed of everything private, for
-// tests/contract.test.ts. On the server: `EXPO_PUBLIC_HEX_TOKEN=… npx tsx tests/fixtures/capture.mts`.
-// It only reads, and asks with `after=1` because a bare GET /asks starts a check.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -38,8 +35,7 @@ const readWithoutStartingACheck = async (route: string) => {
 
 const text = (value: Json | undefined) => String(Scalar.parse(value));
 
-// The first item of each kind, then the next ones up to `most`.
-const sample = (items: Json, kind: (item: Item) => string, most: number) => {
+const firstOfEachKindThenUpTo = (items: Json, kind: (item: Item) => string, most: number) => {
   const list = Items.parse(items);
   const firsts = list.filter((item, i) => list.findIndex((one) => kind(one) === kind(item)) === i);
 
@@ -51,22 +47,32 @@ const sample = (items: Json, kind: (item: Item) => string, most: number) => {
 
 const field = (key: string) => (item: Item) => text(item[key]);
 
-// Words become the name of their field, ids and links stand-ins that still match across files, and
-// the values the app branches on stay as hex sent them.
-const KEPT = new Set(['kind', 'state', 'from', 'end', 'who', 'app', 'via', 'mark', 'tag', 'voice']);
+const BRANCHED_ON = new Set([
+  'kind',
+  'state',
+  'from',
+  'end',
+  'who',
+  'app',
+  'via',
+  'mark',
+  'tag',
+  'voice',
+]);
+
 const IDS = new Set(['id', 'task', 'call', 'live', 'agent', 'claude', 'thread', 'key', 'ask']);
 const TIME = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u;
-const fakes = new Map<string, string>();
+const standIns = new Map<string, string>();
 
 const fake = (value: string, as: (n: number) => string) => {
-  const known = fakes.get(value);
+  const known = standIns.get(value);
 
   if (known !== undefined) {
     return known;
   }
 
-  const made = as(fakes.size + 1);
-  fakes.set(value, made);
+  const made = as(standIns.size + 1);
+  standIns.set(value, made);
 
   return made;
 };
@@ -84,7 +90,7 @@ const scrub = (value: Json, key = ''): Json => {
     return 0;
   }
 
-  if (typeof value !== 'string' || KEPT.has(key) || TIME.test(value)) {
+  if (typeof value !== 'string' || BRANCHED_ON.has(key) || TIME.test(value)) {
     return value;
   }
 
@@ -107,7 +113,7 @@ const calls = await readWithoutStartingACheck('/calls');
 
 write('calls', {
   ...calls,
-  calls: sample(calls.calls, (call) => `${text(call.from)} ${text(call.end)}`, 8),
+  calls: firstOfEachKindThenUpTo(calls.calls, (call) => `${text(call.from)} ${text(call.end)}`, 8),
 });
 
 const record = (name: string) =>
@@ -128,8 +134,8 @@ if (fullest === undefined) {
 write('call', {
   ...fullest,
   turns: List.parse(fullest.turns).slice(0, 4),
-  tasks: sample(fullest.tasks, field('state'), 4),
-  moments: sample(
+  tasks: firstOfEachKindThenUpTo(fullest.tasks, field('state'), 4),
+  moments: firstOfEachKindThenUpTo(
     all.flatMap((call) => List.parse(call.moments ?? [])),
     field('kind'),
     0,
@@ -141,7 +147,7 @@ const rows = Items.parse(tasks.tasks);
 
 write('tasks', {
   ...tasks,
-  tasks: sample(tasks.tasks, field('state'), 6).map((row) => ({
+  tasks: firstOfEachKindThenUpTo(tasks.tasks, field('state'), 6).map((row) => ({
     ...row,
     agents: List.parse(row.agents).slice(0, 2),
     track: List.parse(row.track).slice(0, 3),
@@ -156,7 +162,7 @@ const task = await readWithoutStartingACheck(`/tasks/${id}`);
 
 write('task', {
   ...task,
-  steps: sample(task.steps, field('kind'), 0),
+  steps: firstOfEachKindThenUpTo(task.steps, field('kind'), 0),
   agents: Items.parse(task.agents)
     .slice(0, 2)
     .map((agent) => ({ ...agent, steps: List.parse(agent.steps).slice(0, 2) })),
@@ -165,7 +171,7 @@ write('task', {
 
 const chat = await readWithoutStartingACheck(`/tasks/${id}/chat`);
 
-write('chat', { ...chat, turns: sample(chat.turns, field('from'), 4) });
+write('chat', { ...chat, turns: firstOfEachKindThenUpTo(chat.turns, field('from'), 4) });
 
 const asks = await readWithoutStartingACheck('/asks');
 const linked = (ask: Item) => (ask.links === undefined ? '' : 'links');
@@ -175,8 +181,12 @@ const called = (ask: Item) =>
 
 write('asks', {
   ...asks,
-  asks: sample(asks.asks, (ask) => `${text(ask.kind)} ${linked(ask)} ${called(ask)}`, 6),
-  stuck: sample(asks.stuck, field('mark'), 0),
+  asks: firstOfEachKindThenUpTo(
+    asks.asks,
+    (ask) => `${text(ask.kind)} ${linked(ask)} ${called(ask)}`,
+    6,
+  ),
+  stuck: firstOfEachKindThenUpTo(asks.stuck, field('mark'), 0),
   fresh: List.parse(asks.fresh).slice(0, 2),
 });
 
@@ -192,10 +202,12 @@ write('check', {
 
 write('activity', await readWithoutStartingACheck('/activity'));
 
-// An ask whose thread has left the board opens that thread's page.
-const left = Items.parse(asks.asks).find((ask) => !rows.some((row) => row.id === ask.task));
+const askOffBoard = Items.parse(asks.asks).find((ask) => !rows.some((row) => row.id === ask.task));
 
-if (left !== undefined) {
-  const page = await readWithoutStartingACheck(`/tasks/${encodeURIComponent(text(left.task))}`);
+if (askOffBoard !== undefined) {
+  const page = await readWithoutStartingACheck(
+    `/tasks/${encodeURIComponent(text(askOffBoard.task))}`,
+  );
+
   write('page', { ...page, asks: List.parse(page.asks).slice(0, 1) });
 }

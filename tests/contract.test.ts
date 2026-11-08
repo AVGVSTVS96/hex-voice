@@ -16,7 +16,6 @@ import {
 import { Chat, STATE_WORDS, TaskCounts, TaskList, TaskOrPage, stepMark } from '../src/live/tasks';
 import * as z from 'zod';
 
-// tests/fixtures holds real answers from hex's voice server, scrubbed (tests/fixtures/capture.mts).
 const Answer = z.record(z.string(), z.json());
 
 const real = (name: string) =>

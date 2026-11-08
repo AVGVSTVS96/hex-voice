@@ -11,8 +11,6 @@ const call = CallId.parse('live_1');
 const photo: Picked = { uri: 'file:///router.jpg', kind: 'photo', type: 'image/jpeg' };
 const clip: Picked = { uri: 'file:///cable.mov', kind: 'video', type: 'video/quicktime' };
 
-// A stand-in for hex that names each file it keeps in order from `first`, turns down the files in
-// `refuse`, and says what each request was.
 interface HexThat {
   first?: number;
   refuse?: string[];

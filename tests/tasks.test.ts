@@ -90,8 +90,6 @@ test('a lane shows the last week on a log scale, now at the right edge', () => {
 const second = (minute: number, seconds = 0, hour = 9) =>
   new Date(2026, 9, 13, hour, minute, seconds).toISOString();
 
-// A thread that handed its research to agents, as hex sends it: two at work, one done, one
-// stopped and run again, and one stopped for good.
 const agent = (id: string, extra: Partial<AgentTrail>): AgentTrail => ({
   id,
   label: id,

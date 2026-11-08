@@ -20,8 +20,6 @@ const band = { top: 82, right: 0, bottom: 34, left: 0 };
 const upright = { x: 455.5, y: 0, width: 40, height: 669 };
 const flat = { x: 0, y: 455.5, width: 669, height: 40 };
 
-// Every screen the app lays out for: the phone, iPad both ways up, and iPhone Duo's poses with its
-// column on either side.
 const screens = {
   phone: {
     window: { width: 440, height: 956 },
@@ -120,9 +118,6 @@ const foldAcrossMiddle = (width: number, height: number) =>
     ? { x: width / 2 - 20, y: 0, width: 40, height }
     : { x: 0, y: height / 2 - 20, width, height: 40 };
 
-// The same rule in every window the app could be given, with or without a side column on either
-// side and with or without a fold: there is no screen or pose where Calls leaves the card square
-// or the card covers any of Calls.
 test('in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square', () => {
   const problems: string[] = [];
 
@@ -165,8 +160,6 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
   assert.deepEqual(problems, []);
 });
 
-// barOf takes no pane, so Tasks opening or closing can't move the bar; this checks the one place
-// it keeps is clear of Tasks and holds every button.
 test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
   const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
 

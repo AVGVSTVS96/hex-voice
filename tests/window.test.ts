@@ -41,8 +41,6 @@ test('only the window module reads the device’s pose; the call screen mounts i
   );
 });
 
-// A key or SwiftUI id made from the layout rebuilds its view, scroll and state with it whenever a
-// resize, a turn or Split View changes the layout, as the topic's list once did on every turn.
 test('a view’s identity never comes from the window’s size or pose', () => {
   const layoutWords =
     /\b(?:beside|paired|shape|width|height|compact|wide|duo|panes|split|layout|room|pose|regular|placed)\b/u;
@@ -57,12 +55,13 @@ test('a view’s identity never comes from the window’s size or pose', () => {
     ),
   );
 
-  assert.deepEqual(identities, []);
+  assert.deepEqual(
+    identities,
+    [],
+    'a key or SwiftUI id made from the layout rebuilds its view, scroll and state whenever a resize, a turn or Split View changes the layout',
+  );
 });
 
-// Reanimated draws a view's first frame by its style's first worklet and its values then, so a style
-// made where it outlives the view it styles draws a view that mounts later at an old layout. A view
-// that only some layouts or moments show is an AnimatedView, which makes its style as it mounts.
 test('an animated style styles only views that mount with the component making it', () => {
   const kinds = new Set([
     ts.SyntaxKind.ConditionalExpression,
@@ -146,7 +145,11 @@ test('an animated style styles only views that mount with the component making i
       });
     });
 
-  assert.deepEqual(found, []);
+  assert.deepEqual(
+    found,
+    [],
+    'Reanimated draws a view’s first frame by its style’s first worklet, so a style that outlives the view it styles draws a view mounting later at an old layout: a view only some layouts or moments show is an AnimatedView, which makes its style as it mounts',
+  );
 });
 
 // A width handed down in JS reaches a SwiftUI view only once the turn that changed it is over, and
@@ -190,10 +193,8 @@ test('Tasks’ rows and pages never take a width from JS', () => {
   assert.deepEqual(found, []);
 });
 
-// iPhone Duo held wide and open: 951×669, the side column's 84 on the right, the fold 40 wide at
-// the middle. In Split View each app gets half; the app on the right keeps the column.
-const open = { width: 951, height: 669 };
-const column = { top: 0, right: 84, bottom: 34, left: 0 };
+const openWide = { width: 951, height: 669 };
+const rightColumn = { top: 0, right: 84, bottom: 34, left: 0 };
 const openFold = { x: 455.5, y: 0, width: 40, height: 669 };
 
 const openPose: Pose = {
@@ -203,10 +204,8 @@ const openPose: Pose = {
   occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
 };
 
-// A window at `x` on the open screen, as iOS reports the pose to it: in the window's coordinates,
-// the bar's edge the device's.
 const inSplitView = (x: number, width: number, insets: Insets, pose: Pose) => ({
-  window: { width, height: open.height },
+  window: { width, height: openWide.height },
   insets,
   pose: {
     ...pose,
@@ -216,14 +215,14 @@ const inSplitView = (x: number, width: number, insets: Insets, pose: Pose) => ({
 });
 
 test('the open Duo’s whole screen keeps its column, and its fold as the line down the middle of iOS’s', () => {
-  const room = roomOf(openPose, open, column);
+  const room = roomOf(openPose, openWide, rightColumn);
   assert.deepEqual(room.fold, { x: 475.5 });
   assert.equal(room.bar, 'right');
   assert.deepEqual(room.occlusions, openPose.occlusions);
 });
 
 test('in Split View the fold at a window’s edge isn’t the window’s, and a column it has no inset for isn’t either', () => {
-  const right = inSplitView(480, 471, column, { ...openPose, regular: false });
+  const right = inSplitView(480, 471, rightColumn, { ...openPose, regular: false });
   const rightRoom = roomOf(right.pose, right.window, right.insets);
   assert.equal(rightRoom.fold, undefined, 'the fold lies at the right app’s leading edge');
   assert.equal(rightRoom.bar, 'right', 'the right app keeps the column it has an inset for');
@@ -241,15 +240,14 @@ test('in Split View the fold at a window’s edge isn’t the window’s, and a 
 });
 
 test('a window the fold crosses keeps it', () => {
-  // A picture in picture pinned at the top leaves the app the screen below it.
-  const shorter = roomOf(
+  const belowPictureInPicture = roomOf(
     { ...openPose, fold: { ...openFold, y: -200, height: 669 } },
     { width: 951, height: 469 },
-    column,
+    rightColumn,
   );
 
-  assert.deepEqual(shorter.fold, { x: 475.5 });
-  const narrow = roomOf(openPose, { width: 700, height: 669 }, column);
+  assert.deepEqual(belowPictureInPicture.fold, { x: 475.5 });
+  const narrow = roomOf(openPose, { width: 700, height: 669 }, rightColumn);
   assert.equal(narrow.fold, undefined, 'past the fold only 204 of a page is left');
 });
 
@@ -258,7 +256,7 @@ const layoutIn = (window: Size, insets: Insets, pose: Pose) =>
 
 test('in Split View each app lays out as one page in the window it has, as the Duo does folded', () => {
   for (const [side, { window, insets, pose }] of Object.entries({
-    right: inSplitView(480, 471, column, { ...openPose, regular: false }),
+    right: inSplitView(480, 471, rightColumn, { ...openPose, regular: false }),
     left: inSplitView(
       0,
       471,
@@ -404,10 +402,6 @@ const problemsIn = (
   ];
 };
 
-// Every window the app could be given, with or without a side column and with the fold anywhere
-// across it or beyond its edges: whatever the room, everything the layout places has width and
-// stays inside the window, the call's + included, clear of the transcript button and on the orb's
-// side of a crease, and partly folded it all lays out exactly as open flat.
 test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it and folding moves none of it', () => {
   const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
   const heights = [408, 466, 669, 678, 834, 951, 1194];

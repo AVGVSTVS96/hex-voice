@@ -49,7 +49,6 @@ const folded = duoOf(
   { regular: false, bar: 'right' },
 ).tasks;
 
-// A Duo page's room, and how tall its area is.
 type PagedRoom = Room & { height: number };
 
 const roomOf = (page: Page): PagedRoom => ({ ...pagedRoom(page), height: page.area.height });
@@ -160,8 +159,11 @@ test('the leading page has Back named for where it goes, the list’s for the ca
   const one = roomOf(folded);
   assert.equal(spotOf('list', pagesOf(go(), one), one).back, 'call');
   assert.equal(spotOf('list', pagesOf(go(), one, false), one).back, undefined);
-  // Waiting behind a topic, the list keeps its way back, so it slides in with it.
-  assert.equal(spotOf('list', pagesOf(stacks[1][1], one), one).back, 'call');
+  assert.equal(
+    spotOf('list', pagesOf(stacks[1][1], one), one).back,
+    'call',
+    'waiting behind a topic, the list keeps its way back, so it slides in with it',
+  );
 });
 
 test('on the Duo pages cross only while one fades, and never across the fold, so clear pages work', () => {

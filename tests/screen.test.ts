@@ -103,8 +103,11 @@ test('Calls closes settings; settings is a sheet over Calls, but where it has a 
   assert.deepEqual([shown(sheet, false).calls, shown(sheet, false).settings], [true, true]);
   const place = step(calls, { to: 'settings', open: true }, { shared: true });
   assert.deepEqual([shown(place, true).calls, shown(place, true).settings], [false, true]);
-  // The sheet over Calls, unfolded: settings takes the place, and folding brings Calls back.
-  assert.deepEqual([shown(sheet, true).calls, shown(sheet, true).settings], [false, true]);
+  assert.deepEqual(
+    [shown(sheet, true).calls, shown(sheet, true).settings],
+    [false, true],
+    'the sheet over Calls, unfolded: settings takes the place, and folding brings Calls back',
+  );
 });
 
 test('where settings has a place, only one of Calls, Tasks and settings is ever lit', () => {
@@ -193,8 +196,6 @@ test('where you are in Tasks lasts through everything but opening it again', () 
   }
 });
 
-// The window's size picks which container shows Tasks (the iPad's pane, the sheet, the Duo's pages)
-// and can swap it at any time, so none of them may keep where you are: only the screen moves it.
 test('only the call screen moves through Tasks; its containers only lay out where it is', () => {
   const files = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -213,5 +214,9 @@ test('only the call screen moves through Tasks; its containers only lay out wher
     ),
   );
 
-  assert.deepEqual(movers, ['src/call/screen.ts']);
+  assert.deepEqual(
+    movers,
+    ['src/call/screen.ts'],
+    'the window’s size picks which container shows Tasks and can swap it at any time, so none of them may keep where you are',
+  );
 });

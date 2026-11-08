@@ -16,18 +16,13 @@ const files = (dir: string): string[] =>
     return /\.tsx?$/u.test(entry.name) ? [at] : [];
   });
 
-// Files still drawing with numbers of their own, until each moves onto the tokens. This list only
-// shrinks.
 const notYetOnTokens = new Set([
   'src/components/tasks/tasks-view.tsx',
   'src/screens/duo-tasks.tsx',
 ]);
 
-// The Live Activity runs as a string in the widget extension, where the tokens don't exist.
 const widgetWithoutTokens = 'src/live/call-activity.tsx';
 
-// A token, a value React Native or SwiftUI was given by its parent, or a constant made of those,
-// halved to center one on another.
 const fromTokensOrParent =
   /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\)|hairline)/gu;
 
@@ -78,7 +73,6 @@ const rawLooks = (file: string) => {
   );
 
   const looks = [
-    // Type comes from a text style, whole.
     ...looksOf(source, /\b(?:fontSize|lineHeight|fontWeight): (?<value>[^,}\n]+)/gu, true),
     ...looksOf(source, /\bfont\(\{[^}]*\bsize: (?<value>[^,}]+)/gu, true),
     ...looksOf(source, /\blineSpacing\((?<value>[^)]+)\)/gu, true),
@@ -132,7 +126,6 @@ test('every corner comes from the tokens, in every file', () => {
   assert.deepEqual(found, []);
 });
 
-// The orb's palettes are what you pick, not the app's look.
 const orbPalettesYouPick = new Set([
   'src/components/persona/variants.ts',
   'src/components/persona-colors.tsx',
