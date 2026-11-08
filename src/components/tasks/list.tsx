@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
+import type { Back } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField } from '@/components/tasks/pages';
@@ -40,7 +41,7 @@ import {
   topicIn,
   topicsOf,
 } from '@/live/inbox';
-import type { Entry, Tab, Tile, PageId } from '@/live/inbox';
+import type { Entry, PageId, Stage, Tab, Tile, Topic } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
@@ -56,6 +57,8 @@ const EMPTY: Record<Tab, string> = {
   done: 'Nothing done in the last day',
   quiet: 'Nothing is quiet',
 };
+
+type Yours = ReturnType<typeof useAsks>;
 
 export const ListPage = ({
   open,
@@ -83,7 +86,7 @@ export const ListPage = ({
   offline: boolean;
   // hex has answered since this list showed what was kept on this device, and nothing failed since.
   current: boolean;
-  yours: ReturnType<typeof useAsks>;
+  yours: Yours;
   feel: Feel;
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
@@ -99,8 +102,7 @@ export const ListPage = ({
   };
 
   const counts = stageCounts(entries, yours.answered);
-  const loaded = !!(yours.list && tasks);
-  const behind = loaded && (offline || yours.offline);
+  const { loaded, behind, unreachable } = statusOf(yours, tasks, offline);
   const { needs, working } = counts;
   const counted = open && loaded && current && yours.current;
   useEffect(() => {
@@ -126,10 +128,9 @@ export const ListPage = ({
   );
 
   const picks = picksOf(entries, yours.answered);
-  const beside = pages.shape !== 'one';
   const searching = query !== null;
-  const top = topics.at(0);
-  const first = searching ? shown.map(taskOf).find(Boolean) : top && pageOf(top);
+  const needsTab = !searching && stage === 'needs';
+  const first = firstPage(searching, shown, topics);
   // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
   // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
@@ -137,23 +138,7 @@ export const ListPage = ({
       pages.go({ to: 'beside', id: first });
     }
   }, [open, pages.task, first]);
-  // hex's picks or the last check open beside the list in place of a project's page.
-  const apart = beside && (pages.path[0] === 'picks' || pages.path[0] === 'check');
-
-  const selected =
-    beside && !apart
-      ? ((
-          shown.find((entry) => entry.id === doneIn(pages.task)) ??
-          shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
-          shown.find((entry) => taskOf(entry) === pages.task)
-        )?.id ?? null)
-      : null;
-
-  // The project open beside the list, by what its page shows.
-  const openTopic =
-    beside && !apart
-      ? (entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task))
-      : undefined;
+  const { beside, apart, selected, openTopic } = besideOf(pages, shown, entries);
 
   const searchField = useField();
 
@@ -205,7 +190,6 @@ export const ListPage = ({
     },
   };
 
-  const unreachable = (offline || yours.offline) && !loaded;
   const loading = loaded ? null : <Loading />;
   // A page as wide as a landscape phone holds back, its title, the stages and search in one row,
   // where they fit; a narrower one gives back, its title and search a bar of their own above the
@@ -213,7 +197,7 @@ export const ListPage = ({
   const tabs = { counts, stage, unknown: !loaded, onChange: chooseStage };
 
   const goThrough =
-    !searching && stage === 'needs' && yours.open.length > 0 ? (
+    needsTab && yours.open.length > 0 ? (
       <GoThrough
         foot={spot.foot}
         onPress={() => {
@@ -277,10 +261,10 @@ export const ListPage = ({
           ]}
         >
           {behind ? <Behind /> : null}
-          {!searching && stage === 'needs' && picks.length > 1 ? (
+          {needsTab && picks.length > 1 ? (
             <PicksRow
               n={picks.length}
-              selected={apart && pages.path[0] === 'picks'}
+              selected={apart === 'picks'}
               onOpen={() => {
                 feel.tick();
                 pages.go({ to: 'picks' });
@@ -318,19 +302,17 @@ export const ListPage = ({
               )),
             ];
           })}
-          {!searching && stage === 'needs' && yours.list?.check ? (
+          {needsTab && yours.list?.check ? (
             <CheckRow
               check={yours.list.check}
-              selected={apart && pages.path[0] === 'check'}
+              selected={apart === 'check'}
               onPress={() => {
                 feel.tick();
                 pages.go({ to: 'check' });
               }}
             />
           ) : null}
-          {loaded && !topics.length ? (
-            <Empty text={query === null || query === '' ? EMPTY[stage] : 'Nothing matches'} />
-          ) : null}
+          {loaded && !topics.length ? <Empty text={emptyText(query, stage)} /> : null}
           {unreachable ? <Empty text={UNREACHED} /> : loading}
         </List>
       </Faded>
@@ -338,6 +320,48 @@ export const ListPage = ({
     </Column>
   );
 };
+
+const statusOf = (yours: Yours, tasks: TaskRow[] | undefined, offline: boolean) => {
+  const loaded = !!(yours.list && tasks);
+  const away = offline || yours.offline;
+
+  return { loaded, behind: loaded && away, unreachable: away && !loaded };
+};
+
+const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
+  const beside = pages.shape !== 'one';
+  const [lead] = pages.path;
+  // hex's picks or the last check open beside the list in place of a project's page.
+  const apart = beside && (lead === 'picks' || lead === 'check') ? lead : undefined;
+
+  if (!beside || apart !== undefined) {
+    return { beside, apart, selected: null, openTopic: undefined };
+  }
+
+  return {
+    beside,
+    apart,
+    selected: selectedIn(shown, pages),
+    // The project open beside the list, by what its page shows.
+    openTopic: entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task),
+  };
+};
+
+const firstPage = (searching: boolean, shown: Entry[], topics: Topic[]) => {
+  const top = topics.at(0);
+
+  return searching ? shown.map(taskOf).find(Boolean) : top && pageOf(top);
+};
+
+const selectedIn = (shown: Entry[], { task, row }: Pages) =>
+  (
+    shown.find((entry) => entry.id === doneIn(task)) ??
+    shown.find((entry) => entry.id === row && taskOf(entry) === task) ??
+    shown.find((entry) => taskOf(entry) === task)
+  )?.id ?? null;
+
+const emptyText = (query: string | null, stage: Tab) =>
+  query === null || query === '' ? EMPTY[stage] : 'Nothing matches';
 
 // While hex is slow or out of reach, what's shown is what it last sent, and says so quietly.
 const Behind = () => (
