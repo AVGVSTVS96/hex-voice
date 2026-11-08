@@ -77,7 +77,8 @@ done
 }
 ssh -o ConnectTimeout=15 -o BatchMode=yes "$mac" true </dev/null 2>/dev/null ||
   die "the Mac didn't answer, so it's asleep: $title wasn't built or installed"
-trap '[ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't installed" >&2' EXIT
+asleep() { [ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't installed" >&2; }
+trap asleep EXIT
 runtime=$(runtime_version)
 signed=build/signed/hex.app
 if [ "$(cat "$home/signed" 2>/dev/null)" = "$commit" ]; then
