@@ -378,7 +378,6 @@ export function DonePage({
               <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
                 <SectionHead title="Project" />
                 <Way
-                  lead={<PlaceTile place={placeOf(finished.app)} size={metrics.list.tile} />}
                   title={finished.topic}
                   note="Everything else it has going"
                   onPress={onOpenProject}
@@ -392,7 +391,8 @@ export function DonePage({
   );
 }
 
-// A row on a page that leads somewhere: out of the app, or to another page.
+// A row on a page that leads somewhere: out of the app, behind the tile of where it goes, or to
+// another page.
 function Way({
   lead,
   title,
@@ -400,7 +400,7 @@ function Way({
   out = false,
   onPress,
 }: {
-  lead: ReactNode;
+  lead?: ReactNode;
   title: string;
   note: string;
   out?: boolean;
