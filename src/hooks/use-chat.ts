@@ -12,7 +12,8 @@ import type { Chat, TaskId } from '@/live/tasks';
 // One thread's chat, with your words showing the moment you send them, watched while `live`: once
 // it isn't, the chat stays as it last was. The app names each message it sends, and hex's chat says
 // when it has one: waiting to be taken, or in the chat itself. Whether each thread takes typed words
-// is kept on this device, so its page opens with its field while its chat loads.
+// is kept on this device, so its page opens with its field while its chat loads; a thread on the
+// board nearly always does, so one never opened here starts with it too.
 export function useChat(id: TaskId | null, live: boolean) {
   const [seen, setSeen] = useState<{ id: TaskId; chat: Chat }>();
   const [writable, keepWritable] = useKept('sends', z.record(z.string(), z.boolean()));
@@ -43,7 +44,7 @@ export function useChat(id: TaskId | null, live: boolean) {
 
   return {
     chat,
-    sends: chat ? chat.sends : !!(id && writable?.[id]),
+    sends: chat ? chat.sends : !!id && (writable?.[id] ?? true),
     pending,
     send: (text: string) => id && deliver({ id, key: newKey(), text, total: chat?.total ?? 0 }),
     retry: deliver,
