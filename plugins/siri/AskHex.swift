@@ -17,7 +17,6 @@ struct AskHex: AppIntent, ProgressReportingIntent {
 
   func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
     let words = request.trimmingCharacters(in: .whitespacesAndNewlines)
-    let progress = progress
     let ask = { try await Hex().ask(words, progress: progress) }
     let answer: String
     if #available(iOS 27, *) {
@@ -65,6 +64,10 @@ private struct HexError: Error, CustomLocalizedStringResourceConvertible {
   let localizedStringResource: LocalizedStringResource
 }
 
+private struct Unreachable: Error, CustomLocalizedStringResourceConvertible {
+  let localizedStringResource: LocalizedStringResource = "Can't reach hex. Check that Tailscale is on."
+}
+
 private struct Hex {
   // Past this, hex is stuck rather than busy.
   static let patience: TimeInterval = 600
@@ -86,7 +89,7 @@ private struct Hex {
 
   func ask(_ words: String, progress: Progress) async throws -> String {
     guard !words.isEmpty else { throw HexError(localizedStringResource: "Tell me what to ask hex.") }
-    progress.totalUnitCount = Int64(Self.patience)
+    progress.totalUnitCount = Int64(Self.patience * 2)
     progress.localizedDescription = "Asking hex"
     let start = Date()
     let ticking = Task {
@@ -97,45 +100,33 @@ private struct Hex {
     }
     defer { ticking.cancel() }
 
-    let (chat, before) = try await topic()
-    // Each message carries how to answer it, so whichever session holds the topic knows.
-    let said = "(asked Siri: reply once, in one short spoken sentence) \(words)"
-    let key = "app-siri-\(UUID().uuidString.prefix(8).lowercased())"
-    _ = try await call(chat, body: ["text": said, "key": key])
+    let chat = try await topic()
+    // Others post in the topic too, so the answer is the reply that starts with this ask's tag.
+    let id = UUID().uuidString.prefix(6).lowercased()
+    let tag = "#siri-\(id)"
+    let said = "(asked Siri: reply once, starting with \(tag), then one short spoken sentence) \(words)"
+    _ = try await call(chat.path, body: ["text": said, "key": "app-siri-\(id)"])
 
-    // Sent: from here on Siri only waits, so it never sends the words twice. The chat shows the
-    // words once hex has taken them in, and hex answers the topic's questions in turn, one reply
-    // each, so this one's answer is the reply that follows it once every earlier one is answered.
     let end = Date().addingTimeInterval(Self.patience)
-    var latest = before
-    var mine: (at: Int, after: Int)?
+    var latest = chat.now
     while true {
-      let shown = latest.total - latest.turns.count
-      if mine == nil,
-        let asked = latest.turns.indices.last(where: {
-          shown + $0 >= before.total && latest.turns[$0].from == "me" && latest.turns[$0].text == said
-        })
-      {
-        let answered = latest.turns[..<asked].lastIndex(where: { $0.from == "hex" }) ?? -1
-        mine = (shown + asked, latest.turns[(answered + 1)..<asked].filter { $0.from == "me" }.count)
+      if latest.turns.contains(where: { $0.from == "me" && $0.text == said }) {
         progress.localizedDescription = "hex is working on it"
       }
-      if let mine {
-        let replies = latest.turns.indices.filter { shown + $0 > mine.at && latest.turns[$0].from == "hex" }
-        if replies.count > mine.after { return latest.turns[replies[mine.after]].text }
+      if let reply = latest.turns.first(where: { $0.from == "hex" && $0.text.contains(tag) }) {
+        return String(reply.text.replacingOccurrences(of: tag, with: "").drop { " :-–—\n".contains($0) })
       }
       guard end.timeIntervalSinceNow > 1 else { return Self.stuck }
-      // A dropped connection on the way waits and asks again; only the patience ends the wait.
-      if let next: Chat = try? await get("\(chat)?after=\(Int64(latest.version))", within: 40) {
-        latest = next
-      } else {
+      do {
+        latest = try await get("\(chat.path)?after=\(Int64(latest.version))", within: 40)
+      } catch is Unreachable {
         try await Task.sleep(for: .seconds(2))
       }
     }
   }
 
   // The Siri topic's chat path, and its chat as it stands before asking.
-  private func topic() async throws -> (String, Chat) {
+  private func topic() async throws -> (path: String, now: Chat) {
     let path = { (id: String) in "/tasks/\(id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id)/chat" }
     if let id = UserDefaults.standard.string(forKey: Self.kept), let chat: Chat = try? await get(path(id)), chat.sends {
       return (path(id), chat)
@@ -170,8 +161,10 @@ private struct Hex {
     let response: URLResponse
     do {
       (data, response) = try await URLSession.shared.data(for: request)
+    } catch let error as URLError where error.code == .cancelled {
+      throw CancellationError()
     } catch {
-      throw HexError(localizedStringResource: "Can't reach hex. Check that Tailscale is on.")
+      throw Unreachable()
     }
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200..<300).contains(status) else {
