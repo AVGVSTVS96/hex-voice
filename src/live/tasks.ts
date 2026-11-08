@@ -258,7 +258,7 @@ export const stepTimes = (steps: TaskStep[], now = new Date()) =>
 
     const at = Date.parse(step.at);
 
-    if (step.end) {
+    if (step.end !== undefined && step.end !== '') {
       return took(Date.parse(step.end) - at);
     }
 
@@ -271,8 +271,11 @@ export const stepTimes = (steps: TaskStep[], now = new Date()) =>
     return until - at < 500 ? '' : took(until - at);
   });
 
-const started = (agent: TaskAgent) => (agent.since ? Date.parse(agent.since) : 0);
-const ended = (agent: TaskAgent) => (agent.end ? Date.parse(agent.end) : started(agent));
+const started = (agent: TaskAgent) =>
+  agent.since === undefined || agent.since === '' ? 0 : Date.parse(agent.since);
+
+const ended = (agent: TaskAgent) =>
+  agent.end === undefined || agent.end === '' ? started(agent) : Date.parse(agent.end);
 
 const inOrder = <A extends TaskAgent>(agents: A[]) => [
   ...agents.filter((agent) => agent.state === 'working').sort((a, b) => started(b) - started(a)),
@@ -307,14 +310,11 @@ export const agentCounts = (agents: TaskAgent[]) =>
 // Who an agent is and how it's going: "Opus 5.5 · 4 min" while it works or how long it took once
 // done, "Opus 5.5 · stopped" or "· failed" otherwise.
 export const agentMeta = (agent: TaskAgent, now = new Date()) => {
-  const end = agent.state === 'working' ? now.getTime() : agent.end && Date.parse(agent.end);
-
-  const time =
-    agent.state === 'stopped' || agent.state === 'failed'
-      ? agent.state
-      : agent.since && end
-        ? took(end - Date.parse(agent.since))
-        : '';
+  const { since, state } = agent;
+  const end = state === 'working' ? now.getTime() : Date.parse(agent.end ?? '');
+  const timed = since !== undefined && since !== '' && end !== 0 && !Number.isNaN(end);
+  const spent = timed ? took(end - Date.parse(since)) : '';
+  const time = state === 'stopped' || state === 'failed' ? state : spent;
 
   return [agent.who, time].filter(Boolean).join(' · ');
 };
@@ -324,7 +324,7 @@ export const agentMeta = (agent: TaskAgent, now = new Date()) => {
 export const agentSteps = (agent: AgentTrail) => {
   const [last, ...rest] = agent.steps;
 
-  if (last?.kind !== 'say' || !agent.result) {
+  if (last?.kind !== 'say' || agent.result === undefined || agent.result === '') {
     return agent.steps;
   }
 

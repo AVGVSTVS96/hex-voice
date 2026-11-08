@@ -101,11 +101,13 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
         });
       }
 
-      if (!pc.localDescription?.sdp) {
+      const sdp = pc.localDescription?.sdp;
+
+      if (sdp === undefined || sdp === '') {
         throw new Error('Could not prepare the audio connection.');
       }
 
-      return pc.localDescription.sdp;
+      return sdp;
     },
     answer: async (sdp) => {
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));

@@ -20,7 +20,7 @@ export const laneOf = (tracks: Turn[][], now: number): Lane => {
 
   for (const track of tracks) {
     track.forEach((turn, i) => {
-      const next = track[i + 1];
+      const next = track.at(i + 1);
 
       if (turn.state === 'working') {
         spans.push({ from: x(turn.at), to: next ? x(next.at) : 1 });

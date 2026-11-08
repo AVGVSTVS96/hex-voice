@@ -16,7 +16,9 @@ export interface ActivityOrb {
 }
 
 const named = (variant: PersonaVariant, suffix?: string) =>
-  suffix ? `orb-${variant}-${suffix.toLowerCase()}` : `orb-${variant}`;
+  suffix === undefined || suffix === ''
+    ? `orb-${variant}`
+    : `orb-${variant}-${suffix.toLowerCase()}`;
 
 export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: variant }) => {
   if (variant === 'opal') {

@@ -63,7 +63,7 @@ export const pinSections = (text: string): PinSection[] => {
     const inline = TITLES.exec(line.replace(WHOLE_BOLD, '$<bold>$<title>$<bold>$<rest>'))?.groups;
     const heading = inline ? plain(inline.title) : headingOf(line);
 
-    if (heading) {
+    if (heading !== undefined && heading !== '') {
       if (current.title || current.lines.length) {
         sections.push(current);
       }
@@ -149,7 +149,10 @@ const linked = (text: string): { text: string; url?: string } => {
   const link = LINK.exec(text);
   const url = link?.groups?.url ?? URL.exec(text)?.[0];
 
-  return { text: (link ? text.replace(LINK, '$<label>') : text).trim(), ...(url && { url }) };
+  return {
+    text: (link ? text.replace(LINK, '$<label>') : text).trim(),
+    ...(url !== undefined && { url }),
+  };
 };
 
 const plain = (text: string) => text.replaceAll(/\*\*|__/gu, '').trim();

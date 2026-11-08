@@ -1,4 +1,4 @@
-import { unreached } from './asks';
+import { isAnswered, unreached } from './asks';
 import type { Ask, AskList, Fresh, Stuck, Sent } from './asks';
 import type { Finished, TaskId, TaskRow, Turn } from './tasks';
 
@@ -68,7 +68,7 @@ export const STUCK = 'Stuck';
 export const placeOf = (app: string): Place =>
   app === 'telegram' || app === 't3' || app === 'buzz' || app === 'discord' ? app : 'server';
 
-export const opens = (tile: Tile) => tile.kind !== 'app' || !!tile.link;
+export const opens = (tile: Tile) => tile.kind !== 'app' || (tile.link ?? '') !== '';
 const kindOf = (tile: Tile) => (tile.kind === 'app' ? tile.place : tile.kind);
 
 const TILES = 3;
@@ -84,7 +84,7 @@ export const tilesOf = (ask: Ask): Tile[] => {
       : { kind: 'app', place: placeOf(one.app), label: one.place, link: one.link },
   );
 
-  const [page] = ask.links ?? [];
+  const page = ask.links?.at(0);
 
   const shown = [...places.filter(opens), ...places.filter((tile) => !opens(tile))].slice(
     0,
@@ -324,7 +324,7 @@ export const stageCounts = (entries: Entry[], answered: Record<string, string | 
   const counts: Record<Stage, number> = { needs: 0, working: 0, done: 0, quiet: 0 };
 
   for (const entry of entries) {
-    if (!answered[entry.id]) {
+    if (!isAnswered(answered, entry.id)) {
       counts[entry.stage]++;
     }
   }
@@ -362,7 +362,7 @@ export const whyOf = (entry: Entry, query: string): Part[] | undefined => {
   const shown = `${entry.topic} ${headlineOf(entry)}`.toLowerCase();
   const hidden = words.find((word) => !shown.includes(word));
 
-  if (!hidden) {
+  if (hidden === undefined) {
     return undefined;
   }
 
@@ -462,11 +462,11 @@ const textOf = (entry: Entry) => {
 // The asks hex already has a pick for, to take in one go. Money stays a call you make one by one.
 export const picksOf = (entries: Entry[], answered: Record<string, string | null> = {}) =>
   entries.flatMap((entry) => {
-    if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') {
+    if (entry.kind !== 'ask' || isAnswered(answered, entry.id) || entry.ask.tag === 'money') {
       return [];
     }
 
-    const option = entry.ask.options.find((one) => one.pick);
+    const option = entry.ask.options.find((one) => one.pick === true);
 
     return option ? [{ ask: entry.ask, option }] : [];
   });
@@ -493,13 +493,13 @@ export const pageOf = (topic: Topic): PageId => {
 };
 
 export const topicIn = (page: PageId | null) =>
-  page && isTopic(page) ? page.slice(TOPIC.length) : undefined;
+  page !== null && isTopic(page) ? page.slice(TOPIC.length) : undefined;
 
 export const taskIn = (page: PageId | null) =>
-  page && !isTopic(page) && !isDone(page) ? page : null;
+  page !== null && page !== '' && !isTopic(page) && !isDone(page) ? page : null;
 
 export const doneIn = (page: PageId | null) =>
-  page && isDone(page) ? page.slice(DONE.length) : undefined;
+  page !== null && isDone(page) ? page.slice(DONE.length) : undefined;
 
 // Each of a project's threads' last week, for its lane.
 export const tracksOf = (name: string, tasks: TaskRow[]): Turn[][] =>

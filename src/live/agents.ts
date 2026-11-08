@@ -43,7 +43,7 @@ export interface AgentLine {
 // took a step last. A task that just finished holds the line until something runs again.
 export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine | null => {
   const running = tasks.filter((task) => task.state === 'running');
-  const [task] = running;
+  const task = running.at(0);
 
   if (task) {
     const more = running.length > 1 ? `+${running.length - 1}` : '';
@@ -52,7 +52,7 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
       id: task.id,
       state: 'running',
       text: task.line ?? task.text,
-      waiting: !task.line,
+      waiting: (task.line ?? '') === '',
       where: [task.to, more].filter(Boolean).join('  '),
     };
   }

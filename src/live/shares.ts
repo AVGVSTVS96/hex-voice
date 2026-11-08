@@ -94,6 +94,6 @@ export const retrying = (sent: Sent[], entry: string): Sent[] => {
   const batch = sent.find((one) => one.entry.id === entry)?.batch;
 
   return sent
-    .filter((one) => one.batch === batch && one.entry.failed)
+    .filter((one) => one.batch === batch && (one.entry.failed ?? '') !== '')
     .map((one) => ({ ...one, entry: { ...one.entry, sending: true, failed: undefined } }));
 };

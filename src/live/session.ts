@@ -219,10 +219,10 @@ export class LiveSession {
         // Each speaker has an independent caption stream, so overlapping speech
         // must not split a sentence every time the other speaker emits a delta.
         const index = entries.findLastIndex((entry) => entry.role === role);
-        const previous = entries[index];
+        const previous = index === -1 ? undefined : entries[index];
         const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
 
-        if (!previous || startMs - (previous.endMs ?? previous.startMs) > 2000) {
+        if (previous === undefined || startMs - (previous.endMs ?? previous.startMs) > 2000) {
           entries.push({
             id: `${role}-${startMs}-${entries.length}`,
             role,
@@ -279,8 +279,12 @@ export class LiveSession {
 
       case 'error':
       case 'session.error': {
+        const message = event.error?.message;
+
         void this.stop(
-          event.error?.message || 'The voice service reported an error. Start again to retry.',
+          message === undefined || message === ''
+            ? 'The voice service reported an error. Start again to retry.'
+            : message,
         );
         break;
       }
@@ -443,6 +447,8 @@ export class LiveSession {
   };
 
   stop = async (reason?: string): Promise<void> => {
+    const failure = reason === '' ? undefined : reason;
+
     if (this.closing) {
       await this.closing;
 
@@ -452,20 +458,17 @@ export class LiveSession {
     this.refreshElapsed();
 
     if (!this.transport && this.snapshot.status !== 'connecting') {
-      if (reason) {
-        this.update({ status: 'error', error: reason });
+      if (failure !== undefined) {
+        this.update({ status: 'error', error: failure });
       }
 
       return;
     }
 
-    const was = this.snapshot.status;
-
-    const ending: CallEnding | null = reason
-      ? was === 'connected'
-        ? 'dropped'
-        : 'no-connect'
-      : (this.serverEnding ?? (was === 'connected' ? 'you' : null));
+    const connected = this.snapshot.status === 'connected';
+    const failed: CallEnding = connected ? 'dropped' : 'no-connect';
+    const ended = this.serverEnding ?? (connected ? 'you' : null);
+    const ending = failure === undefined ? ended : failed;
 
     ++this.generation;
     clearInterval(this.statsTimer);
@@ -516,8 +519,8 @@ export class LiveSession {
 
       this.confirmClosed = undefined;
       this.update({
-        status: reason || closeError ? 'error' : 'idle',
-        error: reason || closeError,
+        status: failure !== undefined || closeError !== null ? 'error' : 'idle',
+        error: failure ?? closeError,
         muted: false,
         interrupted: false,
         ending,

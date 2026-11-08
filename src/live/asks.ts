@@ -175,6 +175,9 @@ export type YoursAction =
   | { type: 'failed'; id: string }
   | { type: 'close'; keep?: string[] };
 
+export const isAnswered = (answered: Record<string, string | null>, id: string) =>
+  (answered[id] ?? '') !== '';
+
 export const yours = (state: Yours, action: YoursAction): Yours => {
   const { list, answered } = state;
 
@@ -202,12 +205,12 @@ export const yours = (state: Yours, action: YoursAction): Yours => {
     }
 
     case 'close': {
-      const kept = new Set(action.keep?.filter((id) => answered[id]));
+      const kept = new Set(action.keep?.filter((id) => isAnswered(answered, id)));
 
       return {
         list: list && {
           ...list,
-          asks: list.asks.filter((ask) => !answered[ask.id] || kept.has(ask.id)),
+          asks: list.asks.filter((ask) => !isAnswered(answered, ask.id) || kept.has(ask.id)),
         },
         answered: Object.fromEntries(Object.entries(answered).filter(([id]) => kept.has(id))),
       };
@@ -237,7 +240,7 @@ export const failedOn = (
 
 // The asks still open, for the counts: the folded ones are already off your plate.
 export const openAsks = ({ list, answered }: Yours) =>
-  (list?.asks ?? []).filter((ask) => !answered[ask.id]);
+  (list?.asks ?? []).filter((ask) => !isAnswered(answered, ask.id));
 
 // hex's new list, with every held ask it dropped put back right after the ask it followed.
 export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => boolean) => {

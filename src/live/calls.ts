@@ -144,12 +144,15 @@ export const ENDINGS: Record<CallEnding, { line: string; short?: string; bad?: t
   busy: { line: 'Line busy', short: 'Busy' },
 };
 
-export const callName = (call: Pick<CallSummary, 'title' | 'preview'>) =>
-  call.title || call.preview || 'A quiet call';
+export const callName = ({ title, preview }: Pick<CallSummary, 'title' | 'preview'>) =>
+  [title, preview].find((name) => name !== undefined && name !== '') ?? 'A quiet call';
 
 // hex names a call within seconds of it ending; past ten minutes it isn't coming.
 export const isNaming = (call: CallSummary, now = Date.now()) =>
-  !call.title && !!call.ended && now - Date.parse(call.ended) < 10 * 60_000;
+  (call.title ?? '') === '' &&
+  call.ended !== undefined &&
+  call.ended !== '' &&
+  now - Date.parse(call.ended) < 10 * 60_000;
 
 export const callDetails = (call: CallSummary) => {
   const tasks = call.tasks === 1 ? '1 task' : call.tasks ? `${call.tasks} tasks` : '';
@@ -161,11 +164,11 @@ export const callWhen = (call: CallSummary, live: boolean) =>
   `${dayLabel(call.started)}, ${timeOfDay(call.started)} · ${live ? 'Live now' : callLength(call.seconds)}`;
 
 export const transcriptText = (call: CallRecord) => {
+  const waiting = call.waiting ?? [];
+
   const wrapUp = [
     call.summary,
-    ...(call.waiting?.length
-      ? ['Waiting on you:', ...call.waiting.map((item) => `- ${item}`)]
-      : []),
+    ...(waiting.length > 0 ? ['Waiting on you:', ...waiting.map((item) => `- ${item}`)] : []),
   ].filter(Boolean);
 
   const moments = timeline(call).map((moment) =>
@@ -206,7 +209,9 @@ const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
   media && (kind === 'photo' || kind === 'video') ? { id: media, kind } : undefined;
 
 export const endedSeconds = ({ started, ended }: Pick<CallSummary, 'started' | 'ended'>) =>
-  ended ? Math.round((Date.parse(ended) - Date.parse(started)) / 1000) : 0;
+  ended === undefined || ended === ''
+    ? 0
+    : Math.round((Date.parse(ended) - Date.parse(started)) / 1000);
 
 export const callLength = (seconds: number) => {
   if (seconds < 60) {
