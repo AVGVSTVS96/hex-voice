@@ -4,6 +4,7 @@ import {
   BottomSheet,
   Button as NativeButton,
   Group as SheetContent,
+  Menu,
   Picker,
   Rectangle,
   Text as NativeText,
@@ -27,10 +28,10 @@ import {
   frame,
   labelsHidden,
   labelStyle,
+  lineLimit,
   offset,
   onGeometryChange,
   padding,
-  pickerStyle,
   presentationBackground,
   presentationDetents,
   presentationDragIndicator,
@@ -228,9 +229,9 @@ export function VoiceSettings({
   const level = useSharedValue(0);
   const pitch = useSharedValue(0);
   const tone = useSharedValue(0);
-  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
+  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!;
   const orbStyle = useAnimatedStyle(() => ({
-    transform: heard(reaction, orbSize, level.get(), pitch.get(), tone.get()),
+    transform: heard(reaction.amount, orbSize, level.get(), pitch.get(), tone.get()),
   }));
   const speak = () => {
     level.set(withSequence(...PHRASE.map((step) => withSpring(step.level, motion.reaction))));
@@ -330,28 +331,41 @@ export function VoiceSettings({
         />
         <Separator />
         <SettingRow icon="mic" title="Reacts to you" width={rowsWidth}>
-          <Picker
-            selection={preferences.reaction}
-            onSelectionChange={(next: Reaction) => {
-              haptic();
-              preferences.setReaction(next);
-              if (!reducedMotion) speak();
-            }}
+          <Menu
+            label={
+              <Row alignment="center" spacing={space[1]}>
+                <Text tone="secondary" modifiers={[lineLimit(1)]}>
+                  {reaction.label}
+                </Text>
+                <Icon
+                  name="chevron.up.chevron.down"
+                  size={metrics.symbol.small}
+                  color={theme.secondary}
+                />
+              </Row>
+            }
             testID="reaction-picker"
             modifiers={[
-              pickerStyle('menu'),
-              labelsHidden(),
               fixedSize({ horizontal: true, vertical: false }),
-              tint(theme.secondary),
               accessibilityLabel('How much the orb reacts to your voice'),
             ]}
           >
-            {REACTIONS.map((option) => (
-              <NativeText key={option.id} modifiers={[tag(option.id)]}>
-                {option.label}
-              </NativeText>
-            ))}
-          </Picker>
+            <Picker
+              label="Reacts to you"
+              selection={preferences.reaction}
+              onSelectionChange={(next: Reaction) => {
+                haptic();
+                preferences.setReaction(next);
+                if (!reducedMotion) speak();
+              }}
+            >
+              {REACTIONS.map((option) => (
+                <NativeText key={option.id} modifiers={[tag(option.id)]}>
+                  {option.label}
+                </NativeText>
+              ))}
+            </Picker>
+          </Menu>
         </SettingRow>
       </Group>
       <Group width={rowsWidth}>
