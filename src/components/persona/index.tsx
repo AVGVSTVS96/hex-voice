@@ -1,7 +1,4 @@
-/**
- * Native adaptation of AI Elements Persona. Original assets and source details
- * are listed in assets/README.md, with the upstream license alongside them.
- */
+// Adapted from AI Elements Persona, Apache 2.0 (https://elements.ai-sdk.dev/components/persona); its files and license are in ./assets.
 import {
   Fit,
   RiveColor,
@@ -25,7 +22,6 @@ import type { PersonaVariant } from './variants';
 
 export type { PersonaState, PersonaProps } from './animation';
 
-// Cache the six decoded files. Each rendered view keeps its own animation state.
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
 const loadFile = async (variant: PersonaVariant) => {
@@ -46,24 +42,18 @@ const loadFile = async (variant: PersonaVariant) => {
   }
 };
 
-// Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
 export const preloadPersonas = (variants: readonly PersonaVariant[]) => {
   for (const variant of variants) {
     void loadFile(variant).catch(() => null);
   }
 };
 
-// The default persona's file is read as the app starts, so the call screen's orb doesn't wait on it.
-// Until a file is read the orb's place stays empty: it shows only whole.
 preloadPersonas([DEFAULT_PERSONA]);
 
 const sameColor = (a: number, b: number) =>
   [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
 
 export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) => {
-  // The persona on screen stays until the next one's file is read, then the two cross-fade, so a
-  // change never shows an empty space or pops; each gets a fresh native view, which drops any
-  // earlier error.
   const [shown, setShown] = useState(variant);
   const reducedMotion = useReducedMotion();
   useEffect(() => {
@@ -118,7 +108,6 @@ const PersonaRenderer = ({
     async: true,
   });
 
-  // Whether it has played through its grow-in, and whether it should hold still once it has.
   const grown = useRef(false);
   const growing = useRef<ReturnType<typeof setTimeout>>(undefined);
   const still = useRef(false);
@@ -173,7 +162,6 @@ const PersonaRenderer = ({
     };
 
     try {
-      // Input setters resume playback, so a still persona that has grown keeps its frame.
       if (reducedMotion && grown.current) {
         pause();
 
@@ -189,9 +177,6 @@ const PersonaRenderer = ({
         riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
       }
 
-      // The file starts as a dot that grows into its state, and a paused file never advances, so it
-      // plays through that once it's drawn, hidden or not, and only then holds still while hidden or
-      // with Reduce Motion on. Until it's drawn it can't grow, so it isn't paused on the dot.
       if (!grown.current) {
         riveViewRef.playIfNeeded();
 
@@ -238,7 +223,6 @@ const PersonaRenderer = ({
     const wanted = RiveColor.fromHexString(shown).toInt();
     property.set(wanted);
 
-    // The first advance after binding writes the file's own color back into the model.
     return property.addListener((value) => {
       if (!sameColor(value, wanted)) {
         property.set(wanted);

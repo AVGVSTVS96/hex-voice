@@ -14,9 +14,6 @@ export const DEFAULT_PERSONA: PersonaVariant = 'opal';
 export const isPersonaVariant = (value: unknown): value is PersonaVariant =>
   PERSONA_VARIANTS.some((variant) => variant.id === value);
 
-// Pastel twins of Opal's palettes, in the same order, so each color sits in the same spot on every
-// persona. With the custom color picker they fill as many spots as Opal's palettes. On a light screen
-// each deepens so its hue holds on white, and White becomes Ink.
 export const PERSONA_COLORS = [
   { id: '#FFFFFF', label: 'White', light: '#1C1C1E', lightLabel: 'Ink' },
   { id: '#FFB3C7', label: 'Rose', light: '#D9487A' },
@@ -28,7 +25,6 @@ export const PERSONA_COLORS = [
   { id: '#CDB8FF', label: 'Lilac', light: '#7B5BD6' },
 ] as const;
 
-// A preset shows its light partner on a light screen; a custom color stays as picked.
 export const personaColorOnLight = (color: string) =>
   PERSONA_COLORS.find(({ id }) => id === color)?.light ?? color;
 
@@ -37,7 +33,6 @@ export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
 export const isPersonaColor = (value: unknown): value is string =>
   typeof value === 'string' && /^#[0-9A-F]{6}$/u.test(value);
 
-// Opal's numeric `color` input picks one of these hue palettes; any other value is its original mix.
 export const OPAL_PALETTES = [
   { id: 'original', label: 'Original', swatch: null },
   { id: '2', label: 'Red', swatch: '#E5484D' },

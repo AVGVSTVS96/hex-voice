@@ -6,7 +6,6 @@ import obsidian from './assets/obsidian.riv';
 import opal from './assets/opal.riv';
 import type { PersonaVariant } from './variants';
 
-// Static requires make every visual available in an offline Release build.
 export const PERSONA_ASSETS: Record<PersonaVariant, number> = {
   obsidian,
   mana,
