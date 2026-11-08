@@ -166,6 +166,78 @@ const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
 const VoiceDetent = z.object({ height: z.literal(VOICE_HEIGHT) });
 
+interface Edges {
+  top: number;
+  leading: number;
+  trailing: number;
+  bottom: number;
+}
+
+interface Panes {
+  two: boolean;
+  edges: Edges;
+  personaPane: Size;
+  rowsPane: Size;
+  personaHeight: number;
+}
+
+const placePanes = (screen: Size, area: Rect, reported: Partial<Record<Pane, Size>>): Panes => {
+  const two = screen.width > screen.height;
+
+  const edges = {
+    top: area.y,
+    leading: area.x,
+    trailing: screen.width - area.x - area.width,
+    bottom: screen.height - area.y - area.height,
+  };
+
+  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: area.height });
+
+  const personaPane = two
+    ? (reported.persona ?? half(edges.leading))
+    : (reported.alone ?? { width: area.width, height: area.height });
+
+  const rowsPane = two ? (reported.rows ?? half(edges.trailing)) : personaPane;
+  const personaHeight = two ? personaPane.height : screen.height / 2 - edges.top;
+
+  return { two, edges, personaPane, rowsPane, personaHeight };
+};
+
+const sheetPreview = (beside: boolean, room: number) =>
+  beside
+    ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
+    : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
+
+const sizesOf = (width: number, room: number, panes: Panes | undefined) => {
+  const beside =
+    !panes &&
+    (width >= breakpoint.beside ||
+      (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
+
+  const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
+
+  const carouselWidth = panes
+    ? Math.min(panes.personaPane.width - 2 * metrics.gutter, BESIDE.carousel + 80)
+    : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
+
+  const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
+
+  const preview = panes
+    ? Math.max(
+        SHORT_PREVIEW,
+        Math.min(BESIDE.preview, panes.personaHeight - PERSONA_PAGE - BAR - SHEET_TOP),
+      )
+    : sheetPreview(beside, room);
+
+  const appearanceHeight = beside
+    ? Math.min(BESIDE.height, room)
+    : APPEARANCE_HEIGHT - ORB + preview;
+
+  const orbSize = Math.min(beside || panes ? BESIDE.orb : PREVIEW_ORB, preview - 30);
+
+  return { beside, contentWidth, carouselWidth, rowsWidth, preview, appearanceHeight, orbSize };
+};
+
 export const VoiceSettings = ({
   sheet,
   place,
@@ -192,64 +264,14 @@ export const VoiceSettings = ({
   // tall, and the persona's pane alone otherwise, which then holds the persona in its top half and
   // the rows in its bottom half. Each lays out to the pane iOS reports, and until it does, to its
   // half or all of what the toolbar leaves.
-  const area = place?.area;
-  const two = !!area && screen.width > screen.height;
-
-  const edges = area && {
-    top: area.y,
-    leading: area.x,
-    trailing: screen.width - area.x - area.width,
-    bottom: screen.height - area.y - area.height,
-  };
-
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
-  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: area?.height ?? 0 });
+  const panes = place && placePanes(screen, place.area, reported);
+  const two = panes?.two === true;
+  const width = panes ? panes.rowsPane.width : (given ?? 0);
 
-  const personaPane = two
-    ? (reported.persona ?? half(edges?.leading ?? 0))
-    : (reported.alone ?? { width: area?.width ?? 0, height: area?.height ?? 0 });
+  const { beside, contentWidth, carouselWidth, rowsWidth, preview, appearanceHeight, orbSize } =
+    sizesOf(width, screen.height - insets.top - SHEET_GAP, panes);
 
-  const rowsPane = two ? (reported.rows ?? half(edges?.trailing ?? 0)) : personaPane;
-  const personaHeight = two ? personaPane.height : screen.height / 2 - (edges?.top ?? 0);
-  const width = place ? rowsPane.width : (given ?? 0);
-  const room = screen.height - insets.top - SHEET_GAP;
-
-  const beside =
-    !place &&
-    (width >= breakpoint.beside ||
-      (width >= breakpoint.besideShort && room < APPEARANCE_HEIGHT - ORB + SHORT_PREVIEW));
-
-  const contentWidth = Math.min(width - 2 * metrics.gutter, 480);
-
-  const carouselWidth = place
-    ? Math.min(personaPane.width - 2 * metrics.gutter, BESIDE.carousel + 80)
-    : Math.min(BESIDE.carousel, (width - 3 * metrics.gutter) * 0.4);
-
-  const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
-
-  const sheetPreview = beside
-    ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
-    : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
-
-  const preview = place
-    ? Math.max(
-        SHORT_PREVIEW,
-        Math.min(BESIDE.preview, personaHeight - PERSONA_PAGE - BAR - SHEET_TOP),
-      )
-    : sheetPreview;
-
-  const appearanceHeight = beside
-    ? Math.min(BESIDE.height, room)
-    : APPEARANCE_HEIGHT - ORB + preview;
-
-  // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
-  // so there the voice page fills the settings page's whole height and nothing of it shows: given
-  // the voice page's detent too, the sheet shrinks to it under content still the settings' height.
-  const detents = phone
-    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
-    : [{ height: appearanceHeight }];
-
-  const orbSize = Math.min(beside || place ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
   const selectedVoice = VOICES.find((option) => option.id === voice) ?? VOICES[0];
@@ -293,20 +315,6 @@ export const VoiceSettings = ({
     : { to: 'Call', onPress: onDismiss };
 
   const backInToolbar = useToolbarBack('settings', isPresented ? back : undefined, !!place);
-
-  // The voice page slides in from the right edge while the first page drifts a third of the way
-  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
-  // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
-  // whole sheet so the one on top hides the other; that takes two frames, because Expo UI drops
-  // maxWidth from a frame that also sets a height.
-  const page = (shown: boolean, away: number, height: number) => [
-    frame({ height, alignment: 'top' }),
-    frame({ maxWidth: Infinity }),
-    background(theme.sheet),
-    offset({ x: shown ? 0 : away }),
-    animation(motion.page, onVoicePage),
-    accessibilityHidden(!shown),
-  ];
 
   // In the open Duo's place, the rows and the voices push over each other the same way, each as tall
   // as their room lets it be: midway down a pane of their own, or from the top of the persona's
@@ -462,75 +470,42 @@ export const VoiceSettings = ({
   );
 
   const voices = (
-    <>
-      <Row
-        alignment="center"
-        spacing={0}
-        style={{ width: contentWidth, height: HEADER }}
-        modifiers={[padding({ top: HEADER_TOP })]}
-      >
-        {backInToolbar ? (
-          <Spacer style={{ width: HEADER }} />
-        ) : (
-          <NativeButton
-            label="Back"
-            systemImage="chevron.left"
-            onPress={() => {
-              showVoices(false);
-            }}
-            testID="voice-back"
-            modifiers={[
-              labelStyle('iconOnly'),
-              buttonStyle('glass'),
-              buttonBorderShape('circle'),
-              controlSize('large'),
-            ]}
-          />
-        )}
-        <Spacer flexible />
-        <Text variant="headline">Voice</Text>
-        <Spacer flexible />
-        <Spacer style={{ width: HEADER }} />
-      </Row>
-      <SelectionCarousel
-        options={voiceOptions}
-        value={voice}
-        width={contentWidth}
-        height={VOICE_CAROUSEL}
-        enabled={voiceEnabled}
-        disabledHint={
-          voiceLocked ? 'End the conversation to change voices.' : 'Loading your voice…'
+    <VoicePage
+      width={contentWidth}
+      backInToolbar={backInToolbar}
+      voice={voice}
+      enabled={voiceEnabled}
+      locked={voiceLocked}
+      onBack={() => {
+        showVoices(false);
+      }}
+      onPress={() => {
+        setTake((count) => count + 1);
+      }}
+      onChange={(next) => {
+        if (!voiceEnabled || !isLiveVoice(next)) {
+          return;
         }
-        label="Voice"
-        testID="voice-carousel"
-        onPress={() => {
-          setTake((count) => count + 1);
-        }}
-        onChange={(next) => {
-          if (!voiceEnabled || !isLiveVoice(next)) {
-            return;
-          }
 
-          haptic();
-          onVoiceChange(next);
-        }}
-      />
-    </>
+        haptic();
+        onVoiceChange(next);
+      }}
+    />
   );
 
   // The sheet stays mounted where settings has its place, closed, so a fold that moves settings
   // into its place takes the sheet down instead of leaving it up, unseen, over the screen.
   const align = two ? 'center' : 'top';
 
-  const placed = place && edges && (
+  const placed = place && panes && (
     <SettingsPlace
       shown={place.shown}
       open={isPresented}
       pane={place.pane}
       two={two}
-      row={two && phone ? edges.leading + area.width * PERSONA_SHARE : undefined}
-      edges={edges}
-      persona={personaHeight}
+      row={two && phone ? panes.edges.leading + place.area.width * PERSONA_SHARE : undefined}
+      edges={panes.edges}
+      persona={panes.personaHeight}
       onPane={(pane, size) => {
         setReported((now) =>
           now[pane]?.width === size.width && now[pane]?.height === size.height
@@ -564,124 +539,262 @@ export const VoiceSettings = ({
   return (
     <>
       {placed}
-      <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
-        <BottomSheet
-          keepMounted
-          isPresented={!placed && isPresented}
-          onIsPresentedChange={(presented) => {
-            if (!presented && !placed) {
-              onDismiss();
-            }
-          }}
-          onDismiss={() => {
-            setOnVoicePage(false);
-          }}
+      <Sheet
+        sheet={sheet}
+        placed={!!placed}
+        open={isPresented}
+        onVoicePage={onVoicePage}
+        width={width}
+        beside={beside}
+        appearanceHeight={appearanceHeight}
+        carousel={carousel}
+        rows={rows}
+        voices={voices}
+        onDismiss={onDismiss}
+        onLeaveVoices={() => {
+          showVoices(false);
+        }}
+        onClosed={() => {
+          setOnVoicePage(false);
+        }}
+        onWidth={setGiven}
+      />
+    </>
+  );
+};
+
+const VoicePage = ({
+  width,
+  backInToolbar,
+  voice,
+  enabled,
+  locked,
+  onBack,
+  onPress,
+  onChange,
+}: {
+  width: number;
+  backInToolbar: boolean;
+  voice: LiveVoice;
+  enabled: boolean;
+  locked: boolean;
+  onBack: () => void;
+  onPress: () => void;
+  onChange: (next: string) => void;
+}) => (
+  <>
+    <Row
+      alignment="center"
+      spacing={0}
+      style={{ width, height: HEADER }}
+      modifiers={[padding({ top: HEADER_TOP })]}
+    >
+      {backInToolbar ? (
+        <Spacer style={{ width: HEADER }} />
+      ) : (
+        <NativeButton
+          label="Back"
+          systemImage="chevron.left"
+          onPress={onBack}
+          testID="voice-back"
+          modifiers={[
+            labelStyle('iconOnly'),
+            buttonStyle('glass'),
+            buttonBorderShape('circle'),
+            controlSize('large'),
+          ]}
+        />
+      )}
+      <Spacer flexible />
+      <Text variant="headline">Voice</Text>
+      <Spacer flexible />
+      <Spacer style={{ width: HEADER }} />
+    </Row>
+    <SelectionCarousel
+      options={voiceOptions}
+      value={voice}
+      width={width}
+      height={VOICE_CAROUSEL}
+      enabled={enabled}
+      disabledHint={locked ? 'End the conversation to change voices.' : 'Loading your voice…'}
+      label="Voice"
+      testID="voice-carousel"
+      onPress={onPress}
+      onChange={onChange}
+    />
+  </>
+);
+
+const Sheet = ({
+  sheet,
+  placed,
+  open,
+  onVoicePage,
+  width,
+  beside,
+  appearanceHeight,
+  carousel,
+  rows,
+  voices,
+  onDismiss,
+  onLeaveVoices,
+  onClosed,
+  onWidth,
+}: {
+  sheet: SettingsSheet;
+  placed: boolean;
+  open: boolean;
+  onVoicePage: boolean;
+  width: number;
+  beside: boolean;
+  appearanceHeight: number;
+  carousel: ReactNode;
+  rows: ReactNode;
+  voices: ReactNode;
+  onDismiss: () => void;
+  onLeaveVoices: () => void;
+  onClosed: () => void;
+  onWidth: (width: number) => void;
+}) => {
+  const phone = sheet === 'phone';
+
+  // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
+  // so there the voice page fills the settings page's whole height and nothing of it shows: given
+  // the voice page's detent too, the sheet shrinks to it under content still the settings' height.
+  const detents = phone
+    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
+    : [{ height: appearanceHeight }];
+
+  // The voice page slides in from the right edge while the first page drifts a third of the way
+  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
+  // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
+  // whole sheet so the one on top hides the other; that takes two frames, because Expo UI drops
+  // maxWidth from a frame that also sets a height.
+  const page = (shown: boolean, away: number, height: number) => [
+    frame({ height, alignment: 'top' }),
+    frame({ maxWidth: Infinity }),
+    background(theme.sheet),
+    offset({ x: shown ? 0 : away }),
+    animation(motion.page, onVoicePage),
+    accessibilityHidden(!shown),
+  ];
+
+  return (
+    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+      <BottomSheet
+        keepMounted
+        isPresented={!placed && open}
+        onIsPresentedChange={(presented) => {
+          if (!presented && !placed) {
+            onDismiss();
+          }
+        }}
+        onDismiss={onClosed}
+      >
+        <SheetContent
+          modifiers={[
+            presentationDragIndicator('visible'),
+            presentationDetents(detents, {
+              selection: detents[onVoicePage ? detents.length - 1 : 0],
+              // Dragging the sheet to the other height reads as leaving the page you're on: up from
+              // the voices goes back to settings, down from settings closes the sheet.
+              onSelectionChange: (detent) => {
+                if (!phone) {
+                  return;
+                }
+
+                const voiceSized = VoiceDetent.safeParse(detent).success;
+
+                if (voiceSized === onVoicePage) {
+                  return;
+                }
+
+                if (onVoicePage) {
+                  onLeaveVoices();
+                } else {
+                  onDismiss();
+                }
+              },
+            }),
+            ...(phone
+              ? []
+              : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
+            presentationBackground(theme.sheet),
+          ]}
         >
-          <SheetContent
+          <ZStack
+            alignment="bottom"
             modifiers={[
-              presentationDragIndicator('visible'),
-              presentationDetents(detents, {
-                selection: detents[onVoicePage ? detents.length - 1 : 0],
-                // Dragging the sheet to the other height reads as leaving the page you're on: up from
-                // the voices goes back to settings, down from settings closes the sheet.
-                onSelectionChange: (detent) => {
-                  if (!phone) {
-                    return;
-                  }
-
-                  const voiceSized = VoiceDetent.safeParse(detent).success;
-
-                  if (voiceSized === onVoicePage) {
-                    return;
-                  }
-
-                  if (onVoicePage) {
-                    showVoices(false);
-                  } else {
-                    onDismiss();
-                  }
-                },
-              }),
               ...(phone
-                ? []
-                : [presentationSizing(sheet, { fitted: { horizontal: false, vertical: true } })]),
-              presentationBackground(theme.sheet),
+                ? [
+                    frame({
+                      maxWidth: Infinity,
+                      minHeight: 0,
+                      maxHeight: Infinity,
+                      alignment: 'bottom',
+                    }),
+                    clipped(),
+                  ]
+                : [
+                    frame({ height: appearanceHeight }),
+                    frame({ maxWidth: Infinity }),
+                    clipped(),
+                    animation(motion.page, onVoicePage),
+                  ]),
+              // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
+              accessibilityElement('contain'),
+              accessibilityIdentifier('voice-settings-sheet'),
             ]}
           >
-            <ZStack
-              alignment="bottom"
-              modifiers={[
-                ...(phone
-                  ? [
-                      frame({
-                        maxWidth: Infinity,
-                        minHeight: 0,
-                        maxHeight: Infinity,
-                        alignment: 'bottom',
-                      }),
-                      clipped(),
-                    ]
-                  : [
-                      frame({ height: appearanceHeight }),
-                      frame({ maxWidth: Infinity }),
-                      clipped(),
-                      animation(motion.page, onVoicePage),
-                    ]),
-                // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
-                accessibilityElement('contain'),
-                accessibilityIdentifier('voice-settings-sheet'),
-              ]}
-            >
-              <RNHostView>
-                <View
-                  pointerEvents="none"
-                  onLayout={({ nativeEvent }) => {
-                    // The sheet keeps its contents on the open Duo, laid out there at the window's
-                    // width rather than a sheet's.
-                    if (!place) {
-                      setGiven(nativeEvent.layout.width);
-                    }
-                  }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </RNHostView>
-              {!placed &&
-                width > 0 &&
-                (beside ? (
-                  <Row
-                    alignment="center"
-                    spacing={metrics.gutter}
-                    style={{ paddingHorizontal: metrics.gutter }}
-                    modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-                  >
-                    {carousel}
-                    <Column spacing={metrics.groupSpacing}>{rows}</Column>
-                  </Row>
-                ) : (
-                  <Column
-                    alignment="center"
-                    spacing={metrics.groupSpacing}
-                    style={{ paddingTop: SHEET_TOP }}
-                    modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-                  >
-                    {carousel}
-                    {rows}
-                  </Column>
-                ))}
-              {!placed && width > 0 && (
+            <RNHostView>
+              <View
+                pointerEvents="none"
+                onLayout={({ nativeEvent }) => {
+                  // The sheet keeps its contents on the open Duo, laid out there at the window's
+                  // width rather than a sheet's.
+                  if (!placed) {
+                    onWidth(nativeEvent.layout.width);
+                  }
+                }}
+                style={StyleSheet.absoluteFill}
+              />
+            </RNHostView>
+            {!placed &&
+              width > 0 &&
+              (beside ? (
+                <Row
+                  alignment="center"
+                  spacing={metrics.gutter}
+                  style={{ paddingHorizontal: metrics.gutter }}
+                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+                >
+                  {carousel}
+                  <Column spacing={metrics.groupSpacing}>{rows}</Column>
+                </Row>
+              ) : (
                 <Column
                   alignment="center"
-                  spacing={0}
-                  modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
+                  spacing={metrics.groupSpacing}
+                  style={{ paddingTop: SHEET_TOP }}
+                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
                 >
-                  {voices}
+                  {carousel}
+                  {rows}
                 </Column>
-              )}
-            </ZStack>
-          </SheetContent>
-        </BottomSheet>
-      </Host>
-    </>
+              ))}
+            {!placed && width > 0 && (
+              <Column
+                alignment="center"
+                spacing={0}
+                modifiers={page(onVoicePage, width, phone ? VOICE_HEIGHT : appearanceHeight)}
+              >
+                {voices}
+              </Column>
+            )}
+          </ZStack>
+        </SheetContent>
+      </BottomSheet>
+    </Host>
   );
 };
 
