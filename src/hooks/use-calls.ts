@@ -69,9 +69,9 @@ export const useCalls = () => {
     })();
   };
 
-  const shown = useMemo(() => {
+  const shown = useMemo((): CallSummary[] | undefined => {
     if (!listed && !justEnded.length) {
-      return;
+      return undefined;
     }
 
     const calls = [
