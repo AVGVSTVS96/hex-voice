@@ -15,6 +15,7 @@ export const restore = async <S extends z.ZodMiniType>(
   }
 };
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- writes any kept answer out as JSON; nothing here reads it
 export const store = (key: string, value: unknown) => {
   void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => null);
 };

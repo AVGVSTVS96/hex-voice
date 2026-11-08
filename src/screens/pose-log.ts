@@ -8,6 +8,7 @@ export const startPoseLog = () => {
   recording = true;
 };
 
+// oxlint-disable-next-line anti-slop/no-object-parameters -- a debug log: it writes whichever snapshot it's handed as JSON, and reads none of it
 export const logPose = (what: string, data: object) => {
   if (!recording) {
     return;

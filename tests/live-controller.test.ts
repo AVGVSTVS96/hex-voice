@@ -15,6 +15,7 @@ import { CallId } from '../src/live/calls';
 
 const settle = async () => {
   for (let i = 0; i < 12; i += 1) {
+    // oxlint-disable-next-line no-await-in-loop -- each await is one more microtask turn, so they must run one after another
     await Promise.resolve();
   }
 };

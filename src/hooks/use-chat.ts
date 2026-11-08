@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as z from 'zod/mini';
 
 import { hex } from '@/hex';
-import { Refused } from '@/hex/client';
+import { RefusedError } from '@/hex/client';
 import { useFailures, failure } from '@/hooks/use-failures';
 import { useKept } from '@/hooks/use-kept';
 import { useWatch } from '@/hooks/use-watch';
@@ -40,7 +40,7 @@ export const useChat = (id: TaskId | null, live: boolean) => {
       try {
         await hex.tasks.send(sent.id, sent.text, sent.key, sent.media);
       } catch (error) {
-        const failed = { why: failure('Not sent', error), again: !(error instanceof Refused) };
+        const failed = { why: failure('Not sent', error), again: !(error instanceof RefusedError) };
         setSending((now) =>
           now.map((each) => (each.key === sent.key ? { ...each, failed } : each)),
         );

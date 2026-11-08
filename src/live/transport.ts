@@ -55,6 +55,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   let closed = false;
   let disconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const energies = new Map<string, { energy: number; duration: number }>();
+  // oxlint-disable-next-line unicorn/prefer-add-event-listener, anti-slop/no-unknown-parameters -- react-native-webrtc's typings leave out its event-target-shim, so addEventListener and the message's type don't exist to TypeScript; parseEvent parses it
   channel.onmessage = (message: unknown) => {
     const event = closed ? undefined : parseEvent(message);
 
@@ -63,6 +64,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     }
   };
 
+  // oxlint-disable-next-line unicorn/prefer-add-event-listener -- react-native-webrtc's typings leave out its event-target-shim, so addEventListener doesn't exist to TypeScript
   channel.onclose = () => {
     if (!closed) {
       onFailure('The voice connection closed. Start a new conversation to reconnect.');
@@ -96,6 +98,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       await pc.setLocalDescription(offer);
 
       if (pc.iceGatheringState !== 'complete') {
+        // oxlint-disable-next-line promise/avoid-new -- ICE gathering reports only by event, so its end is a promise made here
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             cleanup();

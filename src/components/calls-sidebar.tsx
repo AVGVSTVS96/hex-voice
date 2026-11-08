@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

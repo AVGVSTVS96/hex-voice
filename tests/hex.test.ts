@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createHex } from '../src/hex/api';
-import { Refused, createClient } from '../src/hex/client';
+import { RefusedError, createClient } from '../src/hex/client';
 import { AskId } from '../src/live/asks';
 import { CallId } from '../src/live/calls';
 import { MediaId } from '../src/live/media';
@@ -115,7 +115,7 @@ test('shows hex’s and OpenAI’s errors as they are', async () => {
     Response.json({ error: { message: 'Invalid voice' } }, { status: 400 }),
   );
 
-  await assert.rejects(openai.session.create('offer'), /^Error: Invalid voice$/u);
+  await assert.rejects(openai.session.create('offer'), /^RefusedError: Invalid voice$/u);
 });
 
 test('an answer this app can’t read names where, instead of reaching the screen', async () => {
@@ -130,14 +130,14 @@ test('hex turning a request down is a refusal in its own words; its own failure 
   await assert.rejects(
     answerWith(new Response('that question is already answered or settled', { status: 409 })),
     (error) =>
-      error instanceof Refused &&
+      error instanceof RefusedError &&
       error.status === 409 &&
       error.message === 'That question is already answered or settled',
   );
   await assert.rejects(
     answerWith(new Response('hub is down', { status: 502 })),
     (error) =>
-      !(error instanceof Refused) && error instanceof Error && error.message === 'Hub is down',
+      !(error instanceof RefusedError) && error instanceof Error && error.message === 'Hub is down',
   );
 });
 
@@ -145,7 +145,7 @@ test("a thread hex has no steps for is refused as not there, so it isn't asked f
   const hex = hexAt(async () => new Response('no such task', { status: 404 }));
   await assert.rejects(
     hex.tasks.get(thread),
-    (error) => error instanceof Refused && error.status === 404,
+    (error) => error instanceof RefusedError && error.status === 404,
   );
 });
 

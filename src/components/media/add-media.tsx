@@ -48,6 +48,7 @@ export const AddMedia = ({
       selectionLimit: most,
       preferredAssetRepresentationMode:
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      // oxlint-disable-next-line typescript/no-deprecated -- Apple deprecated the picker's export preset with no replacement; it keeps a picked clip the size the camera records, not a minute of 4K (https://developer.apple.com/documentation/uikit/uiimagepickercontroller/2890964-videoexportpreset)
       videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
 

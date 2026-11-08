@@ -116,6 +116,7 @@ const writeImageSet = async (orb: ActivityOrb) => {
 };
 
 for (const orb of ACTIVITY_ORBS) {
+  // oxlint-disable-next-line no-await-in-loop -- one tab at a time: PRECALL_STILL_AT_MS is wall-clock time, and tabs rendering at once in one software-GL browser would slow each other's frames
   await writeImageSet(orb);
 }
 

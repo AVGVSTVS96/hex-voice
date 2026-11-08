@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import { ZStack } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View } from 'react-native';

@@ -471,7 +471,7 @@ export const ProjectRow = ({
   const headline = problem ?? said;
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
-  const settled = problem ? 'failed' : STAGE_MARK[stage];
+  const settled = problem === undefined ? STAGE_MARK[stage] : 'failed';
   const mark = needs ? waiting(newest) : settled;
 
   return (
@@ -508,7 +508,7 @@ export const ProjectRow = ({
           <Text
             numberOfLines={2}
             variant="detail"
-            tone={problem ? 'danger' : 'secondary'}
+            tone={problem === undefined ? 'secondary' : 'danger'}
             paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
           >

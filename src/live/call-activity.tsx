@@ -26,8 +26,10 @@ export interface CallActivityProps {
 const CallActivity = (props: CallActivityProps) => {
   'widget';
 
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- a 'widget' function runs alone as a string in the widget extension, so what it calls lives inside it
   const color = (dark: string, light: string) =>
     // SAFETY: DynamicColorIOS makes this same { dynamic } object and types it ColorValue.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- the widget extension has no DynamicColorIOS to make this ColorValue
     ({ dynamic: { dark, light } }) as unknown as ColorValue;
 
   const text = color('#F5F5F5', '#0A0A0A');

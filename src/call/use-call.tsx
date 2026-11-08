@@ -15,7 +15,7 @@ import { Alert, AppState } from 'react-native';
 import { callIdOf, callOf, isHere, withSent } from '@/call/call';
 import type { Call } from '@/call/call';
 import { hex } from '@/hex';
-import { Refused } from '@/hex/client';
+import { RefusedError } from '@/hex/client';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import type { CallId } from '@/live/calls';
 import { newKey } from '@/live/chat';
@@ -77,7 +77,7 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       media: hex.calls.media,
     });
 
-    if (outcome.error instanceof Refused && outcome.error.status === 409) {
+    if (outcome.error instanceof RefusedError && outcome.error.status === 409) {
       endedBeforeSent();
     }
 

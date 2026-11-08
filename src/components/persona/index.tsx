@@ -1,4 +1,5 @@
 // Adapted from AI Elements Persona, Apache 2.0 (https://elements.ai-sdk.dev/components/persona); its files and license are in ./assets.
+/* oxlint-disable typescript/no-deprecated -- the input setters throw only on Rive's new backend; plugins/with-rive-legacy.js keeps the legacy one, where they work (https://rive.app/docs/runtimes/data-binding) */
 import {
   Fit,
   RiveColor,
@@ -51,6 +52,7 @@ export const preloadPersonas = (variants: readonly PersonaVariant[]) => {
 preloadPersonas([DEFAULT_PERSONA]);
 
 const sameColor = (a: number, b: number) =>
+  // oxlint-disable-next-line no-bitwise -- reads the red, green and blue bytes of Rive's packed color int
   [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
 
 export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) => {

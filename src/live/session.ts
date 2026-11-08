@@ -364,6 +364,7 @@ export class LiveSession {
 
     try {
       this.showLevels(transport, await transport.stats());
+      // oxlint-disable-next-line no-empty -- a failed stats read only skips this tick's levels; the call goes on
     } catch {}
 
     if (this.statsPending === transport) {
@@ -498,10 +499,12 @@ export class LiveSession {
     this.update({ status: 'disconnecting' });
     this.hear(SILENT);
     transport?.setMuted(true);
+    // oxlint-disable-next-line promise/always-return -- the close starts a microtask after stop() sets this.closing, so a call in between waits on it; it settles with nothing
     this.closing = Promise.resolve().then(async () => {
       let confirmed = this.serverClosed;
 
       if (transport && !confirmed) {
+        // oxlint-disable-next-line promise/avoid-new -- hex's closed event confirms by callback, raced against a timeout
         confirmed = await new Promise<boolean>((resolve) => {
           const timeout = setTimeout(() => {
             this.confirmClosed = undefined;

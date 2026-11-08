@@ -1,6 +1,8 @@
 import * as z from 'zod/mini';
 
-export class Refused extends Error {
+export class RefusedError extends Error {
+  override readonly name = 'RefusedError';
+
   readonly status: number;
 
   constructor(message: string, status: number) {
@@ -179,5 +181,5 @@ const refusal = (status: number, text: string) => {
   const said = wordsIn(text).slice(0, 300) || `hex answered HTTP ${status}.`;
   const message = said[0].toUpperCase() + said.slice(1);
 
-  return status < 500 ? new Refused(message, status) : new Error(message);
+  return status < 500 ? new RefusedError(message, status) : new Error(message);
 };

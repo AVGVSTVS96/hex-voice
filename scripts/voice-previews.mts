@@ -31,6 +31,7 @@ const ServerEvent = z.discriminatedUnion('type', [
 ]);
 
 // SAFETY: Node's global WebSocket is undici's, which takes headers.
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the DOM lib types Node's global WebSocket without the headers undici's constructor takes, and this script needs them
 const NodeWebSocket = WebSocket as typeof UndiciWebSocket;
 
 const previewLine = (name: string) => `Hi, I'm ${name}. Whenever you need me, I'm right here.`;
@@ -150,6 +151,7 @@ const only = process.argv.slice(2);
 
 for (const { id, label } of VOICES) {
   if (!only.length || only.includes(id)) {
+    // oxlint-disable-next-line no-await-in-loop -- one live session at a time, so the voices render and log in order without hitting OpenAI's concurrent-session limit
     await render(id, label);
   }
 }

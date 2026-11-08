@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 
-import { Refused } from '@/hex/client';
+import { RefusedError } from '@/hex/client';
 
 const RETRY = 2000;
 
@@ -39,6 +39,7 @@ export const useWatch = <K extends string, T extends { version?: number }>(
     void (async () => {
       while (!controller.signal.aborted) {
         try {
+          // oxlint-disable-next-line no-await-in-loop -- a long poll asks again only once its last question is answered
           const answer = await asking(version.current, controller.signal, key);
 
           if (controller.signal.aborted) {
@@ -59,6 +60,7 @@ export const useWatch = <K extends string, T extends { version?: number }>(
           }
 
           setWatching('offline');
+          // oxlint-disable-next-line no-await-in-loop, promise/avoid-new -- waits RETRY before asking again; React Native's setTimeout has no promise form
           await new Promise<void>((resolve) => {
             setTimeout(resolve, RETRY);
           });
@@ -90,7 +92,7 @@ export const useAnswer = <K extends string, T>(
   fresh: number | undefined,
   ask: (key: K) => Promise<T>,
 ) => {
-  const [got, setGot] = useState<{ key: K; answer?: T; refused?: Refused }>();
+  const [got, setGot] = useState<{ key: K; answer?: T; refused?: RefusedError }>();
 
   const watching = useWatch<string, { version?: undefined; got?: typeof got }>(
     key === null ? null : `${key} ${String(fresh)}`,
@@ -102,7 +104,7 @@ export const useAnswer = <K extends string, T>(
       try {
         return { got: { key, answer: await ask(key) } };
       } catch (error) {
-        if (error instanceof Refused) {
+        if (error instanceof RefusedError) {
           return { got: { key, refused: error } };
         }
 
