@@ -623,7 +623,7 @@ const useTyping = () => {
   useEffect(
     () => () => {
       if (on.current) {
-        typing(false);
+        typing?.(false);
       }
     },
     [],
@@ -631,7 +631,7 @@ const useTyping = () => {
 
   return (now: boolean) => {
     on.current = now;
-    typing(now);
+    typing?.(now);
   };
 };
 

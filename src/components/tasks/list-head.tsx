@@ -193,10 +193,10 @@ export const Search = ({
           enterKeyHint="search"
           testID="tasks-search-field"
           onFocus={() => {
-            typing(true);
+            typing?.(true);
           }}
           onBlur={() => {
-            typing(false);
+            typing?.(false);
           }}
           defaultValue={query}
           placeholder="Tasks, topics, questions"

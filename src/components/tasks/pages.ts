@@ -92,7 +92,7 @@ export const move = (stack: Stack, step: Move): Stack => {
     }
 
     case 'thread': {
-      return { ...stack, path: ['topic', 'thread'], focusComposer: !!step.write };
+      return { ...stack, path: ['topic', 'thread'], focusComposer: step.write === true };
     }
 
     case 'composerFocused': {
@@ -126,6 +126,10 @@ export const move = (stack: Stack, step: Move): Stack => {
 
     case 'search': {
       return { ...stack, query: step.query };
+    }
+
+    default: {
+      return step satisfies never;
     }
   }
 };
@@ -230,7 +234,7 @@ export interface Spot {
 const footOf = (foot: number | 'fold') => ({ foot: foot === 'fold' ? 0 : foot });
 
 // A field on a page says when it's being typed in, so that page can make room above the keyboard.
-export const Typing = createContext<(on: boolean) => void>(() => {});
+export const Typing = createContext<((on: boolean) => void) | undefined>(undefined);
 
 // Whether a field's page shows. Pages stay mounted as they leave, so a field ends its own editing
 // when its page stops showing, rather than keep the keyboard up for a page that's gone.
@@ -269,14 +273,16 @@ const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot 
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const page = room.width;
-  const x = front ? 0 : i === -1 ? page : -(room.paged ? page : page / 3);
+  const behind = -(room.paged ? page : page / 3);
+  const waiting = i === -1 ? page : behind;
+  const x = front ? 0 : waiting;
 
   return {
     offset: { x, y: 0 },
     shown: x === 0,
     width: page,
     ...footOf(room.foot),
-    back: level === 'list' ? (closes ? 'call' : undefined) : (levels[i - 1] ?? levels.at(-1)),
+    back: level === 'list' ? listBack(closes) : (levels[i - 1] ?? levels.at(-1)),
   };
 };
 
@@ -286,7 +292,8 @@ const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const behind = i !== -1 || level === 'topic';
-  const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
+  const waiting = behind ? -page / 3 : page;
+  const x = level === 'list' || front ? 0 : waiting;
 
   return {
     offset: { x, y: 0 },
@@ -305,26 +312,22 @@ const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spo
   const front = i === levels.length - 1;
   const second = { at: panes, width: room.width - panes };
 
-  const { at, width, shown } = front
-    ? { ...second, shown: true }
-    : i === levels.length - 2
-      ? { at: 0, width: panes, shown: true }
-      : i === -1
-        ? { ...second, at: room.width, shown: false }
-        : { at: -panes, width: panes, shown: false };
+  const waiting =
+    i === -1
+      ? { ...second, at: room.width, shown: false }
+      : { at: -panes, width: panes, shown: false };
+
+  const first = i === levels.length - 2 ? { at: 0, width: panes, shown: true } : waiting;
+  const { at, width, shown } = front ? { ...second, shown: true } : first;
+  const before = level === 'list' ? listBack(closes) : levels[i - 1];
 
   return {
     offset: { x: at, y: 0 },
     shown,
     width,
     ...footOf(room.foot),
-    back:
-      shown && at <= 0
-        ? level === 'list'
-          ? closes
-            ? 'call'
-            : undefined
-          : levels[i - 1]
-        : undefined,
+    back: shown && at <= 0 ? before : undefined,
   };
 };
+
+const listBack = (closes: boolean): Spot['back'] => (closes ? 'call' : undefined);

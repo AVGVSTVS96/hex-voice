@@ -382,11 +382,11 @@ const Composer = ({
           }}
           onFocus={() => {
             setTyping(true);
-            typingHere(true);
+            typingHere?.(true);
           }}
           onBlur={() => {
             setTyping(false);
-            typingHere(false);
+            typingHere?.(false);
           }}
           textStyle={labelOf('body')}
           testID="thread-input"
