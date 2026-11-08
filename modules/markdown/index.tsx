@@ -4,11 +4,6 @@ import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
 import { processColor } from 'react-native';
 import type { ColorValue, NativeSyntheticEvent } from 'react-native';
 
-// Markdown as SwiftUI, drawn by Textual, so it sits in the tree Expo UI builds and takes its modifiers.
-// The block form lays out headings, lists, quotes, code and tables. `inline` is one run of words
-// for a preview or a line, folded to `lines`. The look comes from the caller: sizes in points, and
-// the colors of its words, the quiet ones (list marks, quotes), a quote's bar, a code block's
-// ground and links.
 export type MarkdownProps = CommonViewModifierProps & {
   markdown: string;
   inline?: boolean;

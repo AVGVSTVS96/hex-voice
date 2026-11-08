@@ -8,9 +8,6 @@ export interface Rect {
   height: number;
 }
 
-// Whether the width is regular, which side the system puts its bars on (iPhone Duo's side
-// column), the fold's whole frame (the same at every angle), and what the cameras and system bars
-// cover.
 export interface Pose {
   regular: boolean;
   bar?: 'left' | 'right';

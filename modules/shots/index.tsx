@@ -4,9 +4,6 @@ import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
 import { processColor } from 'react-native';
 import type { ColorValue } from 'react-native';
 
-// An ask's screenshots as SwiftUI, one tile per option, in the tree Expo UI builds.
-// A tap opens them full screen in Quick Look. Each is read from hex with `headers`; the look comes
-// from the caller: the tiles' height, gap and corners in points, and the colors.
 export type ShotsProps = CommonViewModifierProps & {
   uris: string[];
   shapes: number[];
