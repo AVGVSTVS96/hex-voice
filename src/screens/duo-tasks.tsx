@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Keyboard, StyleSheet, type KeyboardEvent } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { TasksPage } from '@/components/tasks-pane';
+import { useKeyboardUp } from '@/hooks/use-keyboard-up';
 import type { TasksProps } from '@/components/tasks/tasks-view';
 import { clock } from '@/live/calls';
 import { motion } from '@/motion';
@@ -58,29 +59,6 @@ export function useDuoTasks(
 export function uncovered(covers: number) {
   'worklet';
   return 1 - Math.min(1, 2 * covers);
-}
-
-// Whether this app's keyboard is up. iOS tells every app in Split View about the other's keyboard
-// too, which sits over that app, not this one.
-function useKeyboardUp() {
-  const [up, setUp] = useState(false);
-  useEffect(() => {
-    const shown = Keyboard.addListener('keyboardWillShow', (event) => {
-      if (ours(event)) setUp(true);
-    });
-    const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
-      if (ours(event)) setUp(false);
-    });
-    return () => {
-      shown.remove();
-      hidden.remove();
-    };
-  }, []);
-  return up;
-}
-
-function ours(event: KeyboardEvent) {
-  return !('isEventFromThisApp' in event) || event.isEventFromThisApp;
 }
 
 function useSettle(on: boolean, reducedMotion: boolean) {
