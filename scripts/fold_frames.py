@@ -76,11 +76,17 @@ def wrong(frames, landed, last, same=None):
     return sum(1 for frame in frames[landed:last] if not same(frame, frames[-1]))
 
 
+def reading(film, start, seconds, scale):
+    """ffmpeg reading a film from `start` as its screen looked. The simulator writes a frame only
+    when the screen changes, so a seek ahead of decoding lands on the next change instead of what
+    was showing: ffmpeg decodes up to `start`, and the fps filter repeats the frame on screen."""
+    return ['ffmpeg', '-nostdin', '-loglevel', 'error', '-i', str(film), '-ss',
+            f'{max(0, start):.3f}', '-t', f'{seconds:.3f}', '-vf', f'fps={FPS},scale={scale}']
+
+
 def gray(film, start, seconds):
     raw = subprocess.run(
-        ['ffmpeg', '-nostdin', '-loglevel', 'error', '-ss', f'{max(0, start):.3f}', '-t',
-         f'{seconds:.3f}', '-i', str(film), '-vf', f'fps={FPS},scale={SIDE}:{SIDE},format=gray',
-         '-f', 'rawvideo', '-'],
+        [*reading(film, start, seconds, f'{SIDE}:{SIDE},format=gray'), '-f', 'rawvideo', '-'],
         check=True, capture_output=True).stdout
     size = SIDE * SIDE
     return [raw[i:i + size] for i in range(0, len(raw) - size + 1, size)]
@@ -89,10 +95,10 @@ def gray(film, start, seconds):
 def sheet(film, start, seconds, first, landed, last, out):
     """Cut the way `gray` cuts, so a frame's number is the same in both."""
     out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob('*.png'):
+        old.unlink()
     subprocess.run(
-        ['ffmpeg', '-nostdin', '-loglevel', 'error', '-ss', f'{max(0, start):.3f}', '-t',
-         f'{seconds:.3f}', '-i', str(film), '-vf', f'fps={FPS},scale=-2:360', '-start_number', '0',
-         str(out / '%03d.png')],
+        [*reading(film, start, seconds, '-2:360'), '-start_number', '0', str(out / '%03d.png')],
         check=True)
     for shot in sorted(out.glob('*.png')):
         n = int(shot.stem)
@@ -110,6 +116,13 @@ def ms(frames):
     return round(frames * 1000 / FPS)
 
 
+def ended(film):
+    """The ms a film runs."""
+    return round(1000 * float(subprocess.run(
+        ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(film)],
+        check=True, capture_output=True, text=True).stdout))
+
+
 def marks_of(moves):
     return [line.split() for line in moves.read_text().splitlines() if line.strip()]
 
@@ -124,13 +137,14 @@ def cut(folder, state, n, after):
         return None
     marks = marks_of(filmed)
     at = int(marks[n][0])
-    start = (at - int(began.read_text())) / 1000 - BEFORE
-    until = int(marks[n + 1][0]) if n + 1 < len(marks) else at + 4000
+    zero = int(began.read_text())
+    start = (at - zero) / 1000 - BEFORE
+    until = int(marks[n + 1][0]) if n + 1 < len(marks) else zero + ended(film)
     held = (until - at) / 1000 + BEFORE - AFTER
     seconds = min(held, WINDOW + BEFORE)
-    frames = gray(film, start, seconds)
-    later = gray(film, start + held - 0.1, 0.1) if held > seconds + 0.5 else []
-    return film, start, seconds, frames, later[-1] if later else None
+    frames = gray(film, start, held)
+    last = frames[-1] if frames and held > seconds + 0.5 else None
+    return film, start, seconds, frames[:round(seconds * FPS)], last
 
 
 def main(folder):
