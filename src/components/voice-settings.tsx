@@ -128,6 +128,9 @@ const SHEET_GAP = 24;
 const SHEET_TOP = space[6];
 const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
+// The persona's share of settings' width where it lays the persona beside the rows itself, as the
+// sheet does.
+const PERSONA_SHARE = 0.4;
 const ORB = 190;
 const VOICE_CAROUSEL = 180;
 const HEADER_TOP = space[4];
@@ -433,7 +436,7 @@ export function VoiceSettings({
       open={isPresented}
       pane={place.pane}
       two={two}
-      apart={!phone}
+      row={two && phone ? edges.leading + area.width * PERSONA_SHARE : undefined}
       edges={edges}
       persona={personaHeight}
       onBack={onDismiss}
@@ -580,7 +583,7 @@ export function VoiceSettings({
 // beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
 // it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
 // top half of the screen and the rows below it. Folded, iOS keeps a split to its first pane on the
-// compact screen, so there the two panes sit in a plain row (`apart` false). The arrangement fills
+// compact screen, so there the two panes sit in a plain row, the persona's `row` wide. The arrangement fills
 // the screen, so flat its panes meet on the crease; each pane and the sheet's color keep out of what the toolbar takes on the
 // edges it touches (`edges`). It fades in where it sits as Tasks does, never moved by a transform
 // (its Host would keep telling accessibility where it started).
@@ -589,7 +592,7 @@ function SettingsPlace({
   open,
   pane: opened,
   two,
-  apart,
+  row,
   edges: { top, leading, trailing, bottom },
   persona: personaHeight,
   onBack,
@@ -600,7 +603,7 @@ function SettingsPlace({
   open: boolean;
   pane: SharedValue<number>;
   two: boolean;
-  apart: boolean;
+  row?: number;
   edges: { top: number; leading: number; trailing: number; bottom: number };
   persona: number;
   onBack: () => void;
@@ -661,9 +664,11 @@ function SettingsPlace({
           <Rectangle
             modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
           />
-          {two && !apart ? (
+          {row !== undefined ? (
             <Row spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
-              {personaPane}
+              <Column spacing={0} modifiers={[frame({ width: row })]}>
+                {personaPane}
+              </Column>
               {rowsPane}
             </Row>
           ) : (
