@@ -15,6 +15,8 @@ import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 const GAP = 12;
 // The toolbar's Tasks and settings, one glass capsule.
 const PAIR = 2 * metrics.tool + metrics.toolbar.row;
+// Back, after the pair across iPhone Duo's band, next to the status items.
+const BACK = metrics.tool + metrics.toolbar.row;
 const RAIL = 96;
 const WORDS = 600;
 const LIST = 360;
@@ -331,7 +333,7 @@ function besideColumn(
     },
     fold,
   );
-  // Back, Calls, then Tasks with settings.
+  // Back, Calls, then Tasks with settings, down from the status items.
   const tools = toolbar.y + 4 * metrics.tool + gaps.tools + 2 * gaps.group;
   const buttons = window.height - column.controls.bottom - stack(size);
   const below = TIME + (after ? 12 + metrics.tool : 0);
@@ -373,7 +375,7 @@ function belowBand(frame: Frame, fold?: Fold, before?: Words & { raise: number }
     },
     fold,
   );
-  const end = toolbar.x + toolbar.width - PAIR - 2 * GAP;
+  const end = toolbar.x + toolbar.width - BACK - PAIR - GAP;
   const middle = toolbar.y + metrics.tool / 2;
   const mute = end - stack('tool');
   const button = { x: mute - 14 - metrics.tool / 2, y: middle };

@@ -335,7 +335,7 @@ function bar(layout: Layout, window: Size) {
     placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
   } else {
     placed.calls = { x: toolbar.x, y: toolbar.y, width: 48, height: 48 };
-    placed.pair = { x: toolbar.x + toolbar.width - 108, y: toolbar.y, width: 108, height: 48 };
+    placed.pair = { x: toolbar.x + toolbar.width - 168, y: toolbar.y, width: 168, height: 48 };
     const { right, top } = call.controls!;
     placed.buttons = {
       x: window.width - right - stack('tool'),
@@ -457,8 +457,8 @@ test('open on its side, the toolbar sits in the status band level with the statu
   );
   assert.deepEqual(
     call.controls,
-    { right: 669 - (523 - 108 - 24), top: toolbar.y },
-    'the call buttons come in before Tasks and settings, which stay put',
+    { right: 669 - (523 - 60 - 108 - 12), top: toolbar.y },
+    'the call buttons come in before Tasks, settings and Back, which stay put',
   );
 });
 

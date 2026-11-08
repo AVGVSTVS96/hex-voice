@@ -22,8 +22,8 @@ type Props = {
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
   settingsOpen?: boolean;
-  // On iPhone Duo the toolbar holds the shown page's way back, first of all, in a spot kept for it so
-  // nothing moves as it comes and goes.
+  // On iPhone Duo the toolbar holds the shown page's way back next to the status items, in a spot
+  // kept for it so nothing moves as it comes and goes.
   holdsBack?: boolean;
   back?: Back;
   onCalls: () => void;
@@ -32,7 +32,8 @@ type Props = {
 };
 
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
-// side column with the two set apart, closer where the column is short. On iPhone Duo, Back leads.
+// side column with the two set apart, closer where the column is short. On iPhone Duo, Back sits
+// next to the status items: first down the column, under them, and last across the band, before them.
 export function ScreenToolbar({
   axis,
   onLayout,
@@ -51,70 +52,87 @@ export function ScreenToolbar({
   const gap = axis === 'row' ? metrics.toolbar.row : column.group;
   const Group = axis === 'row' ? HStack : VStack;
   const long = 2 * metrics.tool + gap;
-  const lead = axis === 'row' ? metrics.toolbar.row : column.group;
   const backStyle = useAnimatedStyle(() => ({
     opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }),
   }));
+  const backButton = holdsBack ? (
+    <Animated.View
+      pointerEvents={back ? 'auto' : 'none'}
+      accessibilityElementsHidden={!back}
+      importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
+      style={backStyle}
+    >
+      <HostedGlassButton
+        icon="back"
+        label={back ? `Back to ${back.to}` : 'Back'}
+        testID="back"
+        onPress={() => back?.onPress()}
+      />
+    </Animated.View>
+  ) : null;
+  const calls = (
+    <HostedGlassButton
+      icon="calls"
+      label="Calls"
+      testID="calls-button"
+      selected={callsOpen}
+      onPress={onCalls}
+    />
+  );
+  const pair = (
+    <Host
+      matchContents
+      style={
+        axis === 'row'
+          ? { width: long, height: metrics.tool }
+          : { width: metrics.tool, height: long }
+      }
+    >
+      <Overlay alignment="topLeading">
+        <Group spacing={gap} modifiers={[glass('capsule')]}>
+          <TasksButton
+            needs={tasks.needs}
+            working={tasks.working}
+            selected={tasks.open}
+            onPress={onTasks}
+          />
+          <GlassButton
+            bare
+            icon="settings"
+            label="Voice and appearance settings"
+            testID="voice-settings-button"
+            selected={settingsOpen}
+            onPress={onSettings}
+          />
+        </Group>
+        <Overlay.Content>
+          <NeedsDot needs={tasks.open ? 0 : tasks.needs} />
+        </Overlay.Content>
+      </Overlay>
+    </Host>
+  );
   return (
     <Animated.View
       pointerEvents="box-none"
       onLayout={onLayout}
       style={[styles[axis], axis === 'column' && { gap: column.tools }, style]}
     >
-      <View pointerEvents="box-none" style={[styles[`${axis}Group`], { gap: lead }]}>
-        {holdsBack ? (
-          <Animated.View
-            pointerEvents={back ? 'auto' : 'none'}
-            accessibilityElementsHidden={!back}
-            importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
-            style={backStyle}
-          >
-            <HostedGlassButton
-              icon="back"
-              label={back ? `Back to ${back.to}` : 'Back'}
-              testID="back"
-              onPress={() => back?.onPress()}
-            />
-          </Animated.View>
-        ) : null}
-        <HostedGlassButton
-          icon="calls"
-          label="Calls"
-          testID="calls-button"
-          selected={callsOpen}
-          onPress={onCalls}
-        />
-      </View>
-      <Host
-        matchContents
-        style={
-          axis === 'row'
-            ? { width: long, height: metrics.tool }
-            : { width: metrics.tool, height: long }
-        }
-      >
-        <Overlay alignment="topLeading">
-          <Group spacing={gap} modifiers={[glass('capsule')]}>
-            <TasksButton
-              needs={tasks.needs}
-              working={tasks.working}
-              selected={tasks.open}
-              onPress={onTasks}
-            />
-            <GlassButton
-              bare
-              icon="settings"
-              label="Voice and appearance settings"
-              testID="voice-settings-button"
-              selected={settingsOpen}
-              onPress={onSettings}
-            />
-          </Group>
-          <Overlay.Content>
-            <NeedsDot needs={tasks.open ? 0 : tasks.needs} />
-          </Overlay.Content>
-        </Overlay>
-      </Host>
+      {axis === 'column' ? (
+        <View pointerEvents="box-none" style={[styles.columnGroup, { gap: column.group }]}>
+          {backButton}
+          {calls}
+        </View>
+      ) : (
+        calls
+      )}
+      {axis === 'row' ? (
+        <View pointerEvents="box-none" style={[styles.rowGroup, { gap: metrics.toolbar.row }]}>
+          {pair}
+          {backButton}
+        </View>
+      ) : (
+        pair
+      )}
     </Animated.View>
   );
 }

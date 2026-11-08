@@ -102,12 +102,7 @@ export function PageBar({
 
 export function BackButton({ back }: { back: Back }) {
   return (
-    <BarButton
-      shape="circle"
-      label={`Back to ${back.to}`}
-      testID="back"
-      onPress={back.onPress}
-    >
+    <BarButton shape="circle" label={`Back to ${back.to}`} testID="back" onPress={back.onPress}>
       <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
     </BarButton>
   );
