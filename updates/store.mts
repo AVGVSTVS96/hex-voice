@@ -9,33 +9,44 @@ import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { join } from 'node:path';
+import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
+import * as z from 'zod';
 
-const CONTENT_TYPES: Record<string, string> = {
-  hbc: 'application/javascript',
-  js: 'application/javascript',
-  json: 'application/json',
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  svg: 'image/svg+xml',
-  ttf: 'font/ttf',
-  otf: 'font/otf',
-  wav: 'audio/wav',
-  mp3: 'audio/mpeg',
-  m4a: 'audio/mp4',
-};
+const CONTENT_TYPES = new Map([
+  ['hbc', 'application/javascript'],
+  ['js', 'application/javascript'],
+  ['json', 'application/json'],
+  ['png', 'image/png'],
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['gif', 'image/gif'],
+  ['webp', 'image/webp'],
+  ['svg', 'image/svg+xml'],
+  ['ttf', 'font/ttf'],
+  ['otf', 'font/otf'],
+  ['wav', 'audio/wav'],
+  ['mp3', 'audio/mpeg'],
+  ['m4a', 'audio/mp4'],
+]);
 
-const contentType = (ext: string) => CONTENT_TYPES[ext] ?? 'application/octet-stream';
-const NAME = /^\w[\w.-]*$/;
+const contentType = (ext: string) => CONTENT_TYPES.get(ext) ?? 'application/octet-stream';
+const Name = z.string().regex(/^\w[\w.-]*$/u);
 
-interface ExportMetadata {
-  fileMetadata: Record<string, { bundle: string; assets: { path: string; ext: string }[] }>;
-}
+const ExportMetadata = z.object({
+  fileMetadata: z.partialRecord(
+    z.string(),
+    z.object({
+      bundle: z.string(),
+      assets: z.array(z.object({ path: z.string(), ext: z.string() })),
+    }),
+  ),
+});
+
+const PublishedManifest = z.object({ id: z.string().optional() });
+
+const ExpoConfig = z.looseObject({ updates: z.looseObject({ url: z.string() }) });
 
 export interface Publish {
   dir: string;
@@ -45,26 +56,30 @@ export interface Publish {
   expoConfig: { updates: { url: string } };
 }
 
-export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) => {
-  const runtime = join(dir, platform, runtimeVersion);
+const isExpoConfig = (value: unknown): value is Publish['expoConfig'] =>
+  ExpoConfig.safeParse(value).success;
 
-  if (!(await stat(runtime).catch(() => null))) {
+export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) => {
+  const nativeBuild = path.join(dir, platform, runtimeVersion);
+
+  if ((await stat(nativeBuild).catch(() => null)) === null) {
     throw new Error(`no native build has runtime ${runtimeVersion}`);
   }
 
-  const metadata = await readFile(join(dist, 'metadata.json'));
+  const metadata = await readFile(path.join(dist, 'metadata.json'));
+  const files = ExportMetadata.parse(JSON.parse(metadata.toString())).fileMetadata[platform];
 
-  const { bundle, assets } = (JSON.parse(metadata.toString()) as ExportMetadata).fileMetadata[
-    platform
-  ];
+  if (files === undefined) {
+    throw new Error(`the export has no ${platform} bundle`);
+  }
 
-  await mkdir(join(dir, 'assets'), { recursive: true });
+  await mkdir(path.join(dir, 'assets'), { recursive: true });
 
-  const add = async (path: string, ext: string) => {
-    const data = await readFile(join(dist, path));
+  const add = async (file: string, ext: string) => {
+    const data = await readFile(path.join(dist, file));
     const hash = createHash('sha256').update(data).digest('base64url');
     const name = `${hash}.${ext}`;
-    await replace(join(dir, 'assets', name), data);
+    await replace(path.join(dir, 'assets', name), data);
 
     return {
       hash,
@@ -76,9 +91,10 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
 
   const hash = createHash('sha256').update(runtimeVersion).update(metadata).digest('hex');
   const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
-  const latest = join(runtime, 'manifest.json');
+  const latest = path.join(nativeBuild, 'manifest.json');
+  const published = await readFile(latest, 'utf-8').catch(() => '{}');
 
-  if (JSON.parse(await readFile(latest, 'utf-8').catch(() => '{}')).id === id) {
+  if (PublishedManifest.parse(JSON.parse(published)).id === id) {
     return { id, published: false };
   }
 
@@ -86,11 +102,11 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
     id,
     createdAt: new Date().toISOString(),
     runtimeVersion,
-    launchAsset: await add(bundle, 'hbc'),
+    launchAsset: await add(files.bundle, 'hbc'),
     assets: await Promise.all(
-      assets.map(async ({ path, ext }) => ({
-        ...(await add(path, ext)),
-        fileExtension: `.${ext}`,
+      files.assets.map(async (asset) => ({
+        ...(await add(asset.path, asset.ext)),
+        fileExtension: `.${asset.ext}`,
       })),
     ),
     metadata: {},
@@ -102,31 +118,33 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
   return { id, published: true };
 };
 
-const replace = async (path: string, data: string | Buffer) => {
-  const temporary = `${path}.${process.pid}`;
+const replace = async (file: string, data: string | Buffer) => {
+  const temporary = `${file}.${process.pid}`;
   await writeFile(temporary, data);
-  await rename(temporary, path);
+  await rename(temporary, file);
+};
+
+const respond = async (dir: string, request: IncomingMessage, response: ServerResponse) => {
+  const { pathname } = new URL(request.url ?? '/', 'http://localhost');
+
+  try {
+    await (pathname === '/manifest'
+      ? sendManifest(dir, request, response)
+      : sendAsset(dir, pathname, request, response));
+  } catch (error) {
+    console.error(error);
+
+    if (!response.headersSent) {
+      response.writeHead(500);
+    }
+
+    response.end();
+  }
 };
 
 export const serve = (dir: string) =>
-  createServer(async (request, response) => {
-    const { pathname } = new URL(request.url ?? '/', 'http://localhost');
-
-    try {
-      if (pathname === '/manifest') {
-        await sendManifest(dir, request, response);
-      } else {
-        await sendAsset(dir, pathname, request, response);
-      }
-    } catch (error) {
-      console.error(error);
-
-      if (!response.headersSent) {
-        response.writeHead(500);
-      }
-
-      response.end();
-    }
+  createServer((request, response) => {
+    void respond(dir, request, response);
   });
 
 const sendManifest = async (dir: string, request: IncomingMessage, response: ServerResponse) => {
@@ -136,22 +154,26 @@ const sendManifest = async (dir: string, request: IncomingMessage, response: Ser
     'cache-control': 'private, max-age=0',
   };
 
-  const platform = request.headers['expo-platform'];
-  const runtime = request.headers['expo-runtime-version'];
+  const platform = Name.safeParse(request.headers['expo-platform']);
+  const runtime = Name.safeParse(request.headers['expo-runtime-version']);
 
-  if (typeof platform !== 'string' || !NAME.test(platform)) {
-    return response.writeHead(400).end();
+  if (!platform.success || !runtime.success) {
+    response.writeHead(400).end();
+
+    return;
   }
 
-  if (typeof runtime !== 'string' || !NAME.test(runtime)) {
-    return response.writeHead(400).end();
-  }
+  const runningUpdate = String(request.headers['expo-current-update-id']);
+  console.log(`${platform.data} ${runtime.data} runs ${runningUpdate}`);
 
-  console.log(`${platform} ${runtime} runs ${request.headers['expo-current-update-id']}`);
-  const manifest = await readFile(join(dir, platform, runtime, 'manifest.json')).catch(() => null);
+  const manifest = await readFile(
+    path.join(dir, platform.data, runtime.data, 'manifest.json'),
+  ).catch(() => null);
 
-  if (!manifest) {
-    return response.writeHead(204, headers).end();
+  if (manifest === null) {
+    response.writeHead(204, headers).end();
+
+    return;
   }
 
   response.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(manifest);
@@ -163,28 +185,30 @@ const sendAsset = async (
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
-  const name = /^\/assets\/([^/]+)$/.exec(pathname)?.[1];
-  const path = name && NAME.test(name) ? join(dir, 'assets', name) : undefined;
+  const name = Name.safeParse(/^\/assets\/(?<name>[^/]+)$/u.exec(pathname)?.groups?.name);
+  const file = name.success ? path.join(dir, 'assets', name.data) : undefined;
 
-  if (!path || !(await stat(path).catch(() => null))) {
-    return response.writeHead(404).end();
+  if (file === undefined || (await stat(file).catch(() => null)) === null) {
+    response.writeHead(404).end();
+
+    return;
   }
 
-  const gzip = /\bgzip\b/.test(request.headers['accept-encoding'] ?? '');
+  const gzip = /\bgzip\b/u.test(request.headers['accept-encoding'] ?? '');
   response.writeHead(200, {
-    'content-type': contentType(path.slice(path.lastIndexOf('.') + 1)),
+    'content-type': contentType(file.slice(file.lastIndexOf('.') + 1)),
     'cache-control': 'public, max-age=31536000, immutable',
     ...(gzip && { 'content-encoding': 'gzip' }),
   });
-  const file = createReadStream(path);
-  await (gzip ? pipeline(file, createGzip(), response) : pipeline(file, response));
+  const stream = createReadStream(file);
+  await (gzip ? pipeline(stream, createGzip(), response) : pipeline(stream, response));
 };
 
 const main = async () => {
   const [command, ...args] = process.argv.slice(2);
-  const dir = process.env.HEX_UPDATES_DIR;
+  const dir = z.string().optional().parse(process.env.HEX_UPDATES_DIR);
 
-  if (!dir) {
+  if (dir === undefined || dir === '') {
     throw new Error('HEX_UPDATES_DIR is not set');
   }
 
@@ -195,7 +219,12 @@ const main = async () => {
     });
   } else if (command === 'publish') {
     const [dist, platform, runtimeVersion, configPath] = args;
-    const expoConfig = JSON.parse(await readFile(configPath, 'utf-8'));
+    const expoConfig: unknown = JSON.parse(await readFile(configPath, 'utf-8'));
+
+    if (!isExpoConfig(expoConfig)) {
+      throw new Error(`${configPath} has no updates.url`);
+    }
+
     const { id, published } = await publish({ dir, dist, platform, runtimeVersion, expoConfig });
     console.log(published ? `published update ${id}` : `update ${id} was already published`);
   } else {
