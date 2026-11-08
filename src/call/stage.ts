@@ -91,6 +91,10 @@ export type Stage = {
   calls: CallsPlacement;
   tasks: TasksPlacement;
   pulls: boolean;
+  // The + that sends the call a photo or video, at the foot of the orb's room on its leading side:
+  // beside the transcript button where the words pull down over the orb, in the corner of the orb's
+  // own page where they have one.
+  add: Place;
 };
 
 export function stageLayout(box: Box): Stage {
@@ -109,6 +113,16 @@ export function topOf({ safe, bar }: Box) {
 // How far the footer keeps above the box's foot, clear of the home indicator.
 export function footOf({ safe }: Box) {
   return Math.max(safe.bottom, 20) + 14;
+}
+
+// The +'s spot at the room's leading edge, centered `y` down.
+function leading(y: number): Place {
+  return { x: metrics.gutter + metrics.docked / 2, y };
+}
+
+// The +'s spot beside the transcript button, where the orb docks while the words show.
+function besideDock({ x, y }: Place): Place {
+  return { x: x + metrics.docked + GAP, y };
 }
 
 function single(box: Box): Stage {
@@ -131,19 +145,16 @@ function single(box: Box): Stage {
   };
   if (!controls) {
     const top12 = { ...words, top: top + 12 };
+    const read = {
+      x: metrics.gutter + metrics.docked / 2,
+      y: height - bottomInset - metrics.call / 2,
+      size: metrics.docked,
+    };
     return {
       ...shared,
       controls: 'inline',
-      orb: {
-        size,
-        rest: { x: center, y: height / 2 },
-        room: { top, bottom: height },
-        read: {
-          x: metrics.gutter + metrics.docked / 2,
-          y: height - bottomInset - metrics.call / 2,
-          size: metrics.docked,
-        },
-      },
+      orb: { size, rest: { x: center, y: height / 2 }, room: { top, bottom: height }, read },
+      add: besideDock(read),
       words: top12,
       besideCalls: top12,
       besideTasks: top12,
@@ -155,6 +166,7 @@ function single(box: Box): Stage {
   // footer sits above it.
   const dock = height - safe.bottom - 8 - metrics.docked / 2;
   const below = { ...words, top: safe.top + 72 };
+  const read = { x: metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked };
   return {
     ...shared,
     controls,
@@ -162,8 +174,9 @@ function single(box: Box): Stage {
       size,
       rest: { x: center, y: (safe.top + height - safe.bottom) / 2 },
       room: { top, bottom: height },
-      read: { x: metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked },
+      read,
     },
+    add: besideDock(read),
     words: below,
     besideCalls: below,
     besideTasks: below,
@@ -176,7 +189,7 @@ function single(box: Box): Stage {
 // the whole screen when none is. With nothing open the orb is a third of the short side, beside
 // the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
 // open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
-// before their + with the gap the buttons keep, so the header holds only the toolbar and the words
+// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
 // keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
 // narrow to read, so the call keeps CALL.
 function pad(box: Box): Stage {
@@ -193,7 +206,7 @@ function pad(box: Box): Stage {
     // The orb and the buttons are centered as one group, so the orb keeps clear of the card's
     // rounded corner in a narrow room.
     const center = from + (to - from) / 2 + (BESIDE_BUTTONS + GAP) / 2;
-    const buttons = center - stack('regular', { add: true }) / 2;
+    const buttons = center - stack('regular') / 2;
     return {
       orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },
       words: { ...measure(from, to), top: below + 16 },
@@ -235,6 +248,7 @@ function pad(box: Box): Stage {
       calls: callsBeside(width),
       tasks: { width: tasks, place: 'beside' },
       pulls: false,
+      add: leading(foot),
     };
   }
 
@@ -267,6 +281,7 @@ function pad(box: Box): Stage {
     calls: callsBeside(width),
     tasks: { width: tasks, place: 'beside' },
     pulls: false,
+    add: leading(foot),
   };
 }
 
@@ -315,6 +330,7 @@ function split(box: Box, fold?: number): Stage {
     calls: fold === undefined ? callsBeside(across) : { width: pane, place: 'beside' },
     tasks: { width: TASKS, place: 'sheet' },
     pulls: false,
+    add: leading(height - (controls ? safe.bottom + 8 : bottomInset) - metrics.docked / 2),
   };
 }
 
@@ -333,6 +349,7 @@ function stacked(box: Box, fold: number): Stage {
     besideCalls: words,
     besideTasks: words,
     pulls: false,
+    add: leading(fold - GAP - metrics.docked / 2),
   };
 }
 

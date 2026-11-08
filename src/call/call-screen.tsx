@@ -16,7 +16,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { barOf, cardOf } from '@/call/card';
-import { callIdOf, showsWords, statusOf, voiceLocked, wordsOf, type Call } from '@/call/call';
+import {
+  buttonsOf,
+  callIdOf,
+  showsWords,
+  statusOf,
+  voiceLocked,
+  wordsOf,
+  type Call,
+} from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
 import { useGlide } from '@/call/glide';
@@ -25,6 +33,7 @@ import { PoseReport } from '@/call/pose-report';
 import { useCall } from '@/call/use-call';
 import { AgentLine } from '@/components/agent-line';
 import { CallControls } from '@/components/call-controls';
+import { CallAdd } from '@/components/media/call-add';
 import { CallTranscript } from '@/components/call-transcript';
 import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
@@ -69,7 +78,7 @@ import { shown as inView, start as startScreen, step, type Action, type Screen }
 import { PoseView, type Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
-const CONTROLS_BOX = stack('regular', { add: true });
+const CONTROLS_BOX = stack('regular');
 // The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
 const OVER_SHEET = 96;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -148,7 +157,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
   const layout = screenLayout(room, { call: called });
-  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift } = layout;
+  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift, add } = layout;
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
   // footer and agent line follow the words there instead of spanning the screen.
@@ -243,6 +252,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
   const { docked, dock, covers, aside } = duoTasks;
+  // The + sends the live call on screen a photo or video. It steps away with the call: docked in
+  // the Duo's bar, docked beside a pane on iPad, or behind a past call you're reading.
+  const adds =
+    buttonsOf(call).add && !docked && !(orb.dock && (callsOpen || tasksOpen)) && !viewing;
   // Where the call's words and the lines under them go when they take the page before the fold.
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
@@ -775,6 +788,16 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                     onPress={() => pullWords(true)}
                   />
                 </AnimatedView>
+              )}
+              {adds && (
+                <View
+                  style={[
+                    styles.dock,
+                    { left: add.x - metrics.docked / 2, top: add.y - metrics.docked / 2 },
+                  ]}
+                >
+                  <CallAdd call={call} />
+                </View>
               )}
               <GestureDetector gesture={orbGesture}>
                 <Animated.View

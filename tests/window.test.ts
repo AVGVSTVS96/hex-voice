@@ -8,6 +8,7 @@ import type { Pose } from '../modules/pose';
 import { pagedRoom, shapeOf } from '../src/components/tasks/pages';
 import { screenLayout } from '../src/screens/layout';
 import { roomOf, type Insets, type Size } from '../src/screens/window';
+import { metrics } from '../src/ui/tokens';
 
 const files = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -214,7 +215,8 @@ test('in Split View each app lays out as one page in the window it has, as the D
 
 // Every window the app could be given, with or without a side column and with the fold anywhere
 // across it or beyond its edges: whatever the room, everything the layout places has width and
-// stays inside the window, and partly folded it all lays out exactly as open flat.
+// stays inside the window, the call's + included, clear of the transcript button and on the orb's
+// side of a crease, and partly folded it all lays out exactly as open flat.
 test('in any window, with the fold anywhere or nowhere, everything the layout places has room inside it and folding moves none of it', () => {
   const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
   const heights = [408, 466, 669, 678, 834, 951, 1194];
@@ -241,7 +243,8 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
                 : { x: 0, y: place(height) - 20, width, height: 40 };
           const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
           const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
-          const layout = screenLayout(roomOf(pose, window, insets));
+          const room = roomOf(pose, window, insets);
+          const layout = screenLayout(room);
           const { content } = layout;
           const spans = {
             words: layout.words,
@@ -259,6 +262,28 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             problems.push(
               `${name}: beside Calls the call keeps ${content.width - layout.calls.width}`,
             );
+          const { add } = layout;
+          const half = metrics.docked / 2;
+          if (!(
+            add.x - half >= 0 &&
+            add.x + half <= content.width &&
+            add.y - half >= 0 &&
+            add.y + half <= content.height
+          ))
+            problems.push(
+              `${name}: the + at ${add.x},${add.y} in ${content.width}x${content.height}`,
+            );
+          if (layout.pulls && Math.abs(add.x - layout.orb.read.x) < metrics.docked)
+            problems.push(`${name}: the + on the transcript button`);
+          const crease = room.fold;
+          if (
+            crease &&
+            'x' in crease &&
+            add.x + half > Math.min(crease.x - content.x, layout.words.x)
+          )
+            problems.push(`${name}: the + past the crease or into the words`);
+          if (crease && 'y' in crease && add.y + half > Math.min(crease.y, layout.words.top))
+            problems.push(`${name}: the + past the crease or into the words`);
           const tasks = layout.duo?.tasks;
           if (tasks) {
             const { area } = tasks;

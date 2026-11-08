@@ -31,6 +31,7 @@ const symbols = {
   close: 'xmark',
   waveform: 'waveform',
   more: 'ellipsis',
+  add: 'plus',
 } as const;
 
 type Props = {
@@ -113,18 +114,23 @@ export function GlassMenu({
 }: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) {
   return (
     <Menu
-      label={
-        <Image
-          systemName={symbols[icon]}
-          size={metrics.symbol.regular}
-          color={theme.text}
-          modifiers={[stroke(metrics.symbol.regular), ...face('tool', false)]}
-        />
-      }
+      label={<GlassFace icon={icon} />}
       modifiers={[accessibilityLabel(label), glass('circle')]}
     >
       {children}
     </Menu>
+  );
+}
+
+// A glass button's face, its symbol on its circle, for a control that brings its own glass.
+export function GlassFace({ icon, size = 'tool' }: { icon: Props['icon']; size?: GlassSize }) {
+  return (
+    <Image
+      systemName={symbols[icon]}
+      size={metrics.symbol.regular}
+      color={theme.text}
+      modifiers={[stroke(metrics.symbol.regular), ...face(size, false)]}
+    />
   );
 }
 
