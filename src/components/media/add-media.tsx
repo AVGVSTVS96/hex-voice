@@ -90,7 +90,13 @@ export const AddMedia = ({
               setCamera(true);
             }}
           />
-          <Button label="Photos" systemImage="photo.on.rectangle" onPress={() => void pick()} />
+          <Button
+            label="Photos"
+            systemImage="photo.on.rectangle"
+            onPress={() => {
+              void pick();
+            }}
+          />
         </Menu>
       }
     >

@@ -80,7 +80,12 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     return permission && !permission.canAskAgain ? (
       <View style={[styles.fill, styles.blocked]}>
         <Text style={styles.words}>Allow hex to use the camera in Settings.</Text>
-        <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            void Linking.openSettings();
+          }}
+        >
           <Text style={[styles.words, styles.strong]}>Open Settings</Text>
         </Pressable>
       </View>
@@ -147,8 +152,12 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
                 accessibilityHint="Hold to record a video"
                 testID="camera-shutter"
                 delayLongPress={HOLD_MS}
-                onPress={() => void take()}
-                onLongPress={() => void record()}
+                onPress={() => {
+                  void take();
+                }}
+                onLongPress={() => {
+                  void record();
+                }}
                 onPressOut={lift}
               >
                 <Shutter recording={recording} filled={filled} />

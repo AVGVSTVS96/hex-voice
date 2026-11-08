@@ -51,7 +51,9 @@ export const Markdown = ({
         edge={theme.edge}
         surface={theme.surface}
         accent={theme.accent}
-        onLink={(url) => void tries.attempt(url, 'Not opened', () => openURL(url))}
+        onLink={(url) => {
+          void tries.attempt(url, 'Not opened', () => openURL(url));
+        }}
       />
       {failed ? <Failure text={failed} /> : null}
     </Column>

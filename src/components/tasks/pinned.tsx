@@ -99,7 +99,11 @@ const Line = ({ line }: { line: PinLine }) => {
     );
   }
   const url = line.url;
-  const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
+  const open = url
+    ? () => {
+        void tries.attempt(url, 'Not opened', () => openURL(url));
+      }
+    : undefined;
   if (line.kind === 'text' && !url) {
     return (
       <Markdown

@@ -153,10 +153,11 @@ const PersonaRenderer = ({
     if (dynamicColor && !colorModel) {
       return;
     }
-    const pause = () =>
+    const pause = () => {
       void riveViewRef.pause().catch(() => {
         setFailed(true);
       });
+    };
 
     try {
       // Input setters resume playback, so a still persona that has grown keeps its frame.

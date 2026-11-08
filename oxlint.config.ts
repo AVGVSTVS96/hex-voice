@@ -78,7 +78,6 @@ const pending = {
   'no-unexpected-multiline': 'off',
   'no-unused-vars': 'off',
   'no-use-before-define': 'off',
-  'no-void': 'off',
   'node/global-require': 'off',
   'prefer-destructuring': 'off',
   'prefer-named-capture-group': 'off',
@@ -110,7 +109,6 @@ const pending = {
   'typescript/no-base-to-string': 'off',
   'typescript/no-deprecated': 'off',
   'typescript/no-explicit-any': 'off',
-  'typescript/no-floating-promises': 'off',
   'typescript/no-invalid-void-type': 'off',
   'typescript/no-non-null-assertion': 'off',
   'typescript/no-redundant-type-constituents': 'off',
@@ -200,6 +198,14 @@ export default defineConfig({
   rules: {
     'import/no-cycle': 'error',
     'oxc/no-accumulating-spread': 'error',
+    'typescript/no-floating-promises': [
+      'error',
+      {
+        allowForKnownSafeCalls: [
+          { from: 'package', name: ['describe', 'it', 'suite', 'test'], package: 'node:test' },
+        ],
+      },
+    ],
     ...pending,
   },
 });

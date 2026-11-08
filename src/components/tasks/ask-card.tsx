@@ -362,7 +362,9 @@ export const Links = ({ links }: { links: AskLink[] }) => {
             label={link.label}
             icon="arrow.up.right"
             accessibility={`Open ${link.label}`}
-            onPress={() => void tries.attempt(link.url, 'Not opened', () => openURL(link.url))}
+            onPress={() => {
+              void tries.attempt(link.url, 'Not opened', () => openURL(link.url));
+            }}
             small
           />
         ))}
