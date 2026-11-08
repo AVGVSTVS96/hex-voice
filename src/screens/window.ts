@@ -2,7 +2,7 @@ import { breakpoint } from '@/ui/tokens';
 
 import type { Pose, Rect } from '../../modules/pose';
 
-export type { Rect };
+export type { Rect } from '../../modules/pose';
 
 // Where the fold divides the window: a line down it at `x`, or across it at `y`.
 export type Fold = { x: number } | { y: number };

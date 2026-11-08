@@ -119,13 +119,7 @@ export const DuoTasks = ({
 
   return (
     <>
-      <TasksPage
-        {...tasks}
-        page={
-          (state.above && duo.beside?.typing) || (state.beside && duo.beside?.tasks) || duo.tasks
-        }
-        style={pageStyle}
-      />
+      <TasksPage {...tasks} page={pageOf(duo, state)} style={pageStyle} />
       <Animated.Text
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -159,6 +153,18 @@ export const DuoTasks = ({
       )}
     </>
   );
+};
+
+const pageOf = (duo: Duo, { above, beside }: { above: boolean; beside: boolean }) => {
+  if (above && duo.beside?.typing) {
+    return duo.beside.typing;
+  }
+
+  if (beside && duo.beside) {
+    return duo.beside.tasks;
+  }
+
+  return duo.tasks;
 };
 
 const styles = StyleSheet.create({

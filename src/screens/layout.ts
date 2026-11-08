@@ -157,21 +157,21 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
   const banded = !frame.column && calls.place === 'beside';
   const whole = !call && layout.kind !== 'split';
 
+  const besideCalls = banded
+    ? {
+        ...layout.words,
+        x: LIST + metrics.gutter,
+        width: Math.min(box.width - LIST - 2 * metrics.gutter, WORDS),
+      }
+    : layout.besideCalls;
+
   return {
     ...layout,
     content,
     toolbar,
     calls: whole ? { ...calls, width: content.width, place: 'over' } : calls,
     // Beside Calls on its side, the words keep to the room the call has left.
-    ...(banded
-      ? {
-          besideCalls: {
-            ...layout.words,
-            x: LIST + metrics.gutter,
-            width: Math.min(box.width - LIST - 2 * metrics.gutter, WORDS),
-          },
-        }
-      : {}),
+    besideCalls,
     tasks: { width: content.width, place: 'page' },
     column: frame.column && { bar: frame.column.x === 0 ? 'left' : 'right' },
     // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the
@@ -235,7 +235,7 @@ const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room
   const bottomInset = Math.max(insets.bottom, 20) + 14;
 
   if (bar) {
-    return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
+    return { window, insets, bottomInset, ...columnFrame(window, insets, bar, occlusions) };
   }
 
   const toolbar = fold
@@ -273,7 +273,7 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
   let best = { x: from, width: 0 };
   let start = from;
 
-  for (const area of [...taken].sort((a, b) => a.x - b.x)) {
+  for (const area of taken.toSorted((a, b) => a.x - b.x)) {
     const end = Math.min(to, area.x - GAP);
 
     if (end - start > best.width) {
@@ -289,22 +289,21 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
 // iPhone Duo's side column. The camera and the system's status items sit at its top upright and
 // at its foot on its side; the tools start below what's at the top, and the call buttons end above
 // what's at the foot.
-const column = (window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) => {
+const columnFrame = (window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) => {
   const width = bar === 'right' ? insets.right : insets.left;
   const x = bar === 'right' ? window.width - width : 0;
   const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
   const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
 
-  const top = covers
-    .filter(high)
-    .reduce((bottom, area) => Math.max(bottom, area.y + area.height), insets.top);
+  const top = Math.max(
+    insets.top,
+    ...covers.flatMap((area) => (high(area) ? [area.y + area.height] : [])),
+  );
 
-  const foot = covers
-    .filter((area) => !high(area))
-    .reduce(
-      (bottom, area) => Math.max(bottom, window.height - area.y + COLUMN.clear),
-      insets.bottom,
-    );
+  const foot = Math.max(
+    insets.bottom,
+    ...covers.flatMap((area) => (high(area) ? [] : [window.height - area.y + COLUMN.clear])),
+  );
 
   // The system draws its time, wifi and camera a few points toward the screen from the inset's
   // middle, where the camera's occlusion is, so the column's buttons center on those.
@@ -440,20 +439,22 @@ const belowBand = (frame: Frame, fold?: Fold, before?: Words & { raise: number }
 // take the one before it. Held wide that's the page from the fold to the screen's end; on its side
 // the screen is one tall page and the keyboard takes the bottom one, so the page before the fold is
 // where it types beside the call's words.
-const paged = (
-  window: Size,
-  { area, foot }: { area: Rect; foot: number },
-  fold?: Fold,
-): { tasks: Page; after?: Page; before?: Page } => {
-  const at = (area: Rect, foot: number | 'fold'): Page => ({
-    area,
+interface Paged {
+  tasks: Page;
+  after?: Page;
+  before?: Page;
+}
+
+const paged = (window: Size, { area, foot }: { area: Rect; foot: number }, fold?: Fold): Paged => {
+  const at = (rect: Rect, end: number | 'fold'): Page => ({
+    area: rect,
     margin: {
-      top: area.y,
-      right: window.width - area.x - area.width,
-      bottom: window.height - area.y - area.height,
-      left: area.x,
+      top: rect.y,
+      right: window.width - rect.x - rect.width,
+      bottom: window.height - rect.y - rect.height,
+      left: rect.x,
     },
-    foot,
+    foot: end,
   });
 
   const tasks = at(area, foot);
