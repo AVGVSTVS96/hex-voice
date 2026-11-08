@@ -44,6 +44,7 @@ import { failure } from '@/hooks/use-failures';
 import { useEscape } from '@/hooks/use-escape';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
 import { raiseTask, useTaskCounts, type Counts } from '@/hooks/use-tasks';
+import { useNow } from '@/hooks/use-now';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
 import { Viewport, type Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
@@ -52,7 +53,7 @@ import type { TaskRow } from '@/live/tasks';
 import type { CallAbout } from '@/live/types';
 import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
-import { Bars } from '@/screens/bars';
+import { Bars, DOCKED_ORB } from '@/screens/bars';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
 import { orbRest } from '@/screens/orb-rest';
@@ -308,6 +309,19 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     showCall(null);
   };
   const leaveCall = () => pullWords(false);
+  // On iPhone Duo the call moves into the bar, small, still answering the voice, with its time:
+  // while a place covers it, and beside Calls once its words take the room the orb rested in.
+  // Tapping it comes back to the call.
+  const docked =
+    !!duo && onCall && (placeOpen || (callsOpen && list.place === 'beside' && reading));
+  const now = useNow(docked && call.kind === 'elsewhere');
+  const callSeconds =
+    call.kind === 'here'
+      ? call.seconds
+      : call.kind === 'elsewhere'
+        ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
+        : 0;
+  const closePlace = () => (tasksOpen ? closeTasks() : send({ to: 'settings', open: false }));
 
   // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
   const pane = useSharedValue(panes && placeOpen ? 1 : 0);
@@ -823,6 +837,24 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           onPress: () => send({ to: 'settings', open: !settingsOpen }),
         }}
         call={duo && buttons}
+        dock={
+          docked
+            ? {
+                seconds: callSeconds,
+                label: status,
+                onPress: placeOpen ? closePlace : backToCall,
+                persona: (
+                  <CallPersona
+                    call={call}
+                    variant={variant}
+                    size={DOCKED_ORB}
+                    color={preferences.personaColor}
+                    palette={opalPaletteInput(preferences.opalPalette)}
+                  />
+                ),
+              }
+            : undefined
+        }
         beside={
           duoTasks.offered
             ? {

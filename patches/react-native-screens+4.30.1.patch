@@ -10,3 +10,119 @@ index c435fdd..b035ac5 100644
      }
      NSDictionary *badgeConfig = dict[@"badge"];
      if (badgeConfig != nil) {
+diff --git a/node_modules/react-native-screens/ios/RNSScreenStackHeaderSubview.mm b/node_modules/react-native-screens/ios/RNSScreenStackHeaderSubview.mm
+index 882761c..d0c7ce1 100644
+--- a/node_modules/react-native-screens/ios/RNSScreenStackHeaderSubview.mm
++++ b/node_modules/react-native-screens/ios/RNSScreenStackHeaderSubview.mm
+@@ -22,6 +22,7 @@ namespace react = facebook::react;
+   UIBarButtonItem *_barButtonItem;
+   BOOL _hidesSharedBackground;
+   react::RNSScreenStackHeaderSubviewVisibilityPriority _visibilityPriority;
++  react::RNSScreenStackHeaderSubviewAxisBehavior _axisBehavior;
+ }
+ 
+ #pragma mark - Common
+@@ -114,6 +115,7 @@ namespace react = facebook::react;
+     _lastScheduledFrame = CGRectZero;
+     _synchronousShadowStateUpdatesEnabled = YES;
+     _visibilityPriority = react::RNSScreenStackHeaderSubviewVisibilityPriority::Standard;
++    _axisBehavior = react::RNSScreenStackHeaderSubviewAxisBehavior::Automatic;
+   }
+ 
+   return self;
+@@ -128,6 +130,7 @@ namespace react = facebook::react;
+   [self setType:[RNSConvert RNSScreenStackHeaderSubviewTypeFromCppEquivalent:newHeaderSubviewProps.type]];
+   [self setHidesSharedBackground:newHeaderSubviewProps.hidesSharedBackground];
+   [self setVisibilityPriority:newHeaderSubviewProps.visibilityPriority];
++  [self setAxisBehavior:newHeaderSubviewProps.axisBehavior];
+   [self setSynchronousShadowStateUpdatesEnabled:newHeaderSubviewProps.synchronousShadowStateUpdatesEnabled];
+   [super updateProps:props oldProps:oldProps];
+ }
+@@ -294,6 +297,23 @@ RNS_IGNORE_SUPER_CALL_END
+     }
+   }
+ #endif // RNS_IPHONE_OS_VERSION_AVAILABLE(27_0) && !TARGET_OS_TV && !TARGET_OS_VISION
++
++#if RNS_IPHONE_OS_VERSION_AVAILABLE(27_1) && !TARGET_OS_TV && !TARGET_OS_VISION
++  if (@available(iOS 27.1, *)) {
++    if (_barButtonItem != nil) {
++      switch (_axisBehavior) {
++        case react::RNSScreenStackHeaderSubviewAxisBehavior::HorizontalOnly:
++          _barButtonItem.axisBehavior = UIBarButtonItemAxisBehaviorHorizontalOnly;
++          break;
++        case react::RNSScreenStackHeaderSubviewAxisBehavior::VerticalPreferred:
++          _barButtonItem.axisBehavior = UIBarButtonItemAxisBehaviorVerticalPreferred;
++          break;
++        default:
++          _barButtonItem.axisBehavior = UIBarButtonItemAxisBehaviorAutomatic;
++      }
++    }
++  }
++#endif // RNS_IPHONE_OS_VERSION_AVAILABLE(27_1) && !TARGET_OS_TV && !TARGET_OS_VISION
+ }
+ 
+ - (void)setHidesSharedBackground:(BOOL)hidesSharedBackground
+@@ -321,6 +341,21 @@ RNS_IGNORE_SUPER_CALL_END
+   }
+ }
+ 
++- (void)setAxisBehavior:(react::RNSScreenStackHeaderSubviewAxisBehavior)axisBehavior
++{
++  if (axisBehavior == _axisBehavior) {
++    return;
++  }
++
++  _axisBehavior = axisBehavior;
++  [self configureBarButtonItem];
++
++  // As with the priority, the bar only re-evaluates its items when it's handed them again.
++  if (_barButtonItem != nil) {
++    [[self getHeaderConfig] setNeedsViewControllerUpdate];
++  }
++}
++
+ #pragma mark - Dynamic frameworks support
+ 
+ // Needed because of this: https://github.com/facebook/react-native/pull/37274
+diff --git a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+index 661baf0..11bbabf 100644
+--- a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+@@ -9,6 +9,11 @@ import type {
+ 
+ export type HeaderSubviewVisibilityPriority = 'low' | 'standard' | 'high';
+ 
++export type HeaderSubviewAxisBehavior =
++  | 'automatic'
++  | 'horizontalOnly'
++  | 'verticalPreferred';
++
+ export type HeaderSubviewTypes =
+   | 'back'
+   | 'right'
+@@ -24,6 +29,7 @@ export interface NativeProps extends ViewProps {
+     HeaderSubviewVisibilityPriority,
+     'standard'
+   >;
++  axisBehavior?: CT.WithDefault<HeaderSubviewAxisBehavior, 'automatic'>;
+   synchronousShadowStateUpdatesEnabled?: CT.WithDefault<boolean, true>;
+ }
+ 
+diff --git a/node_modules/react-native-screens/src/types.tsx b/node_modules/react-native-screens/src/types.tsx
+index 3ec38fa..c373d56 100644
+--- a/node_modules/react-native-screens/src/types.tsx
++++ b/node_modules/react-native-screens/src/types.tsx
+@@ -1168,6 +1168,13 @@ export interface ScreenStackHeaderSubviewProps {
+    * Read more: https://developer.apple.com/documentation/uikit/uibarbuttonitemvisibilitypriority
+    */
+   visibilityPriority?: HeaderBarButtonItemVisibilityPriority | undefined;
++  /**
++   * Which bars the item may stand in: a custom view goes in a vertical bar (iPhone Duo's side)
++   * only when it's `verticalPreferred`. Only available from iOS 27.1 and later.
++   *
++   * Read more: https://developer.apple.com/documentation/uikit/uibarbuttonitem/axisbehavior-swift.property
++   */
++  axisBehavior?: 'automatic' | 'horizontalOnly' | 'verticalPreferred' | undefined;
+ }
+ 
+ interface SharedHeaderBarButtonItem {

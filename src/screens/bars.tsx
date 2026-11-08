@@ -1,14 +1,28 @@
 import { Stack, type NativeStackHeaderItem, type NativeStackHeaderItemButton } from 'expo-router';
-import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { buttonsOf, type Call, type CallButton } from '@/call/call';
 import { PRIMARY } from '@/components/call-controls';
+import { clock } from '@/live/calls';
 import type { Back } from '@/components/tasks/bar';
 import { SYMBOLS } from '@/ui/glass-button';
+import { labelOf } from '@/ui/tokens';
 import { theme } from '@/theme';
 
 type Toggle = { open: boolean; onPress: () => void };
+
+// The docked call's orb: small enough, with its time under it, to stand in a bar either way.
+export const DOCKED_ORB = 26;
 
 // The screen's bars are iOS's own, so iOS places them in the frame a turn, fold or Split View
 // lands: across the top, or down iPhone Duo's side under the status items where the system puts its
@@ -23,8 +37,8 @@ export function Bars(props: Props) {
   useLayoutEffect(() => {
     latest.current = props;
   });
-  const press = useCallback((what: Pressable) => () => pressOf(latest.current, what)(), []);
-  const { back, calls, tasks, settings, call, beside } = props;
+  const press = useCallback((what: Press) => () => pressOf(latest.current, what)(), []);
+  const { back, calls, tasks, settings, call, beside, dock } = props;
   return (
     <Items
       back={back?.to}
@@ -40,6 +54,7 @@ export function Bars(props: Props) {
       beside={beside && (beside.stacks ? 'column' : 'row')}
       besideOn={!!beside?.open}
       press={press}
+      dock={dock && <Dock {...dock} />}
     />
   );
 }
@@ -53,10 +68,13 @@ type Props = {
   call?: { call: Call; ready: boolean; onMute: () => void; onPrimary: () => void };
   // The switch that gives the call's words the page before the fold, beside Tasks.
   beside?: Toggle & { stacks: boolean };
+  // The call, docked in the bar: its orb and time, which bring it back.
+  dock?: Docked;
 };
-type Pressable = 'back' | 'calls' | 'tasks' | 'settings' | 'mute' | 'primary' | 'beside';
+type Docked = { persona: ReactNode; seconds: number; label: string; onPress: () => void };
+type Press = 'back' | 'calls' | 'tasks' | 'settings' | 'mute' | 'primary' | 'beside';
 
-function pressOf(props: Props, what: Pressable): () => void {
+function pressOf(props: Props, what: Press): () => void {
   const none = () => {};
   switch (what) {
     case 'back':
@@ -88,6 +106,7 @@ const Items = memo(function Items({
   beside,
   besideOn,
   press,
+  dock,
 }: {
   back?: string;
   calls: boolean;
@@ -103,7 +122,8 @@ const Items = memo(function Items({
   // The words' switch, drawn as the way it lays them beside Tasks, and whether it's on.
   beside?: 'row' | 'column';
   besideOn: boolean;
-  press: (what: Pressable) => () => void;
+  press: (what: Press) => () => void;
+  dock?: ReactElement;
 }) {
   const options = useMemo(() => {
     const left: NativeStackHeaderItem[] = [
@@ -144,6 +164,7 @@ const Items = memo(function Items({
           beside={beside}
           besideOn={besideOn}
           press={press}
+          dock={dock}
         />
       ) : null}
     </>
@@ -171,6 +192,7 @@ function CallItems({
   beside,
   besideOn,
   press,
+  dock,
 }: {
   call: CallButton;
   // Mute shows on a call, `muted` or not, and works once it's live (`mutes`).
@@ -179,7 +201,8 @@ function CallItems({
   ready: boolean;
   beside?: 'row' | 'column';
   besideOn: boolean;
-  press: (what: Pressable) => () => void;
+  press: (what: Press) => () => void;
+  dock?: ReactElement;
 }) {
   const primary = PRIMARY[call];
   return (
@@ -194,6 +217,11 @@ function CallItems({
         >
           Transcript beside Tasks
         </Stack.Toolbar.Button>
+      ) : null}
+      {dock ? (
+        <Stack.Toolbar.View axisBehavior="verticalPreferred" hidesSharedBackground>
+          {dock}
+        </Stack.Toolbar.View>
       ) : null}
       <Stack.Toolbar.Button
         identifier="session-mute-button"
@@ -228,3 +256,24 @@ function tasksHint(needs: number, working: number) {
     .filter(Boolean)
     .join(', ');
 }
+
+function Dock({ persona, seconds, label, onPress }: Docked) {
+  return (
+    <Pressable
+      testID="docked-call"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Back to the call"
+      onPress={onPress}
+      style={styles.dock}
+    >
+      {persona}
+      <Text style={styles.time}>{clock(seconds * 1000)}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  dock: { alignItems: 'center' },
+  time: { ...labelOf('caption'), color: theme.secondary, fontVariant: ['tabular-nums'] },
+});

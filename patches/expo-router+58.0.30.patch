@@ -28,15 +28,151 @@ index 8087919..273c153 100644
      /**
       * There are two ways to specify the content of the button:
       *
+diff --git a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/index.js b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/index.js
+index 4887899..3d4ee96 100644
+--- a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/index.js
++++ b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/index.js
+@@ -44,7 +44,7 @@ function convertStackToolbarViewPropsToRNHeaderItem(props) {
+     if (props.hidden) {
+         return undefined;
+     }
+-    const { children, hidesSharedBackground } = props;
++    const { children, hidesSharedBackground, axisBehavior } = props;
+     if (!children) {
+         console.warn('Stack.Toolbar.View requires a child element to render custom content in the toolbar.');
+     }
+@@ -52,7 +52,8 @@ function convertStackToolbarViewPropsToRNHeaderItem(props) {
+     return {
+         type: 'custom',
+         element,
+-        hidesSharedBackground
++        hidesSharedBackground,
++        axisBehavior
+     };
+ }
+ 
+diff --git a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/native.ios.js b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/native.ios.js
+index 72c82d0..2082ca3 100644
+--- a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/native.ios.js
++++ b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/native.ios.js
+@@ -24,10 +24,11 @@ function _react() {
+     return data;
+ }
+ const _native = require("../../../../toolbar/native");
+-const NativeToolbarView = ({ children, hidden, hidesSharedBackground, separateBackground })=>{
++const NativeToolbarView = ({ children, hidden, hidesSharedBackground, separateBackground, axisBehavior })=>{
+     const id = (0, _react().useId)();
+     return /*#__PURE__*/ (0, _jsxruntime().jsx)(_native.RouterToolbarItem, {
+         hidesSharedBackground: hidesSharedBackground,
++        axisBehavior: axisBehavior,
+         hidden: hidden,
+         identifier: id,
+         sharesBackground: !separateBackground,
+diff --git a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/types.d.ts b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/types.d.ts
+index d700cee..82cab94 100644
+--- a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/types.d.ts
++++ b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarView/types.d.ts
+@@ -34,10 +34,24 @@ export interface StackToolbarViewProps {
+      * @platform ios
+      */
+     separateBackground?: boolean;
++    /**
++     * Which bars the view may stand in: it goes in a vertical bar (iPhone Duo's side) only when
++     * it's `verticalPreferred`. Only available from iOS 27.1 and later.
++     *
++     * @platform ios
++     */
++    axisBehavior?: NativeStackHeaderItemCustom['axisBehavior'];
+ }
+ export interface NativeToolbarViewProps {
+     children?: ReactNode;
+     hidden?: boolean;
+     hidesSharedBackground?: boolean;
+     separateBackground?: boolean;
++    /**
++     * Which bars the view may stand in: it goes in a vertical bar (iPhone Duo's side) only when
++     * it's `verticalPreferred`. Only available from iOS 27.1 and later.
++     *
++     * @platform ios
++     */
++    axisBehavior?: NativeStackHeaderItemCustom['axisBehavior'];
+ }
+diff --git a/node_modules/expo-router/build/react-navigation/native-stack/types.d.ts b/node_modules/expo-router/build/react-navigation/native-stack/types.d.ts
+index 5bb078b..26ec6c3 100644
+--- a/node_modules/expo-router/build/react-navigation/native-stack/types.d.ts
++++ b/node_modules/expo-router/build/react-navigation/native-stack/types.d.ts
+@@ -1146,6 +1146,13 @@ export type NativeStackHeaderItemCustom = {
+      * Read more: https://developer.apple.com/documentation/uikit/uibarbuttonitem/hidessharedbackground
+      */
+     hidesSharedBackground?: boolean;
++    /**
++     * Which bars the item may stand in: a custom view goes in a vertical bar (iPhone Duo's side)
++     * only when it's `verticalPreferred`. Only available from iOS 27.1 and later.
++     *
++     * Read more: https://developer.apple.com/documentation/uikit/uibarbuttonitem/axisbehavior-swift.property
++     */
++    axisBehavior?: 'automatic' | 'horizontalOnly' | 'verticalPreferred';
+ };
+ /**
+  * An item that can be displayed in the header.
+diff --git a/node_modules/expo-router/build/react-navigation/native-stack/views/useHeaderConfigProps.js b/node_modules/expo-router/build/react-navigation/native-stack/views/useHeaderConfigProps.js
+index 65358d6..c185260 100644
+--- a/node_modules/expo-router/build/react-navigation/native-stack/views/useHeaderConfigProps.js
++++ b/node_modules/expo-router/build/react-navigation/native-stack/views/useHeaderConfigProps.js
+@@ -262,6 +262,7 @@ function useHeaderConfigProps({ headerBackIcon, headerBackImageSource, headerBac
+                         if (item.type === 'custom') {
+                             return /*#__PURE__*/ (0, _jsxruntime().jsx)(_reactnativescreens().ScreenStackHeaderLeftView, {
+                                 hidesSharedBackground: item.hidesSharedBackground,
++                                axisBehavior: item.axisBehavior,
+                                 children: item.element
+                             }, index);
+                         }
+@@ -317,6 +318,7 @@ function useHeaderConfigProps({ headerBackIcon, headerBackImageSource, headerBac
+                 if (item.type === 'custom') {
+                     return /*#__PURE__*/ (0, _jsxruntime().jsx)(_reactnativescreens().ScreenStackHeaderRightView, {
+                         hidesSharedBackground: item.hidesSharedBackground,
++                        axisBehavior: item.axisBehavior,
+                         children: item.element
+                     }, index);
+                 }
 diff --git a/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift b/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
-index b54fc86..2e38b17 100644
+index b54fc86..0dca7fd 100644
 --- a/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
 +++ b/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
-@@ -167,6 +167,7 @@ class RouterToolbarItemView: RouterViewWithLogger {
+@@ -20,6 +20,7 @@ class RouterToolbarItemView: RouterViewWithLogger {
+   @ReactiveProp var imageRenderingMode: ImageRenderingMode?
+   @ReactiveProp var hidesSharedBackground: Bool = false
+   @ReactiveProp var sharesBackground: Bool = true
++  @ReactiveProp var axisBehavior: String = "automatic"
+   @ReactiveProp var barButtonItemStyle: UIBarButtonItem.Style?
+   @ReactiveProp var width: Double?
+ 
+@@ -167,6 +168,14 @@ class RouterToolbarItemView: RouterViewWithLogger {
      item.style = barButtonItemStyle ?? .plain
      item.width = width.map { CGFloat($0) } ?? 0
      item.isSelected = selected
 +    item.accessibilityIdentifier = identifier
++    if #available(iOS 27.1, *) {
++      switch axisBehavior {
++      case "verticalPreferred": item.axisBehavior = .verticalPreferred
++      case "horizontalOnly": item.axisBehavior = .horizontalOnly
++      default: item.axisBehavior = .automatic
++      }
++    }
      item.accessibilityLabel = routerAccessibilityLabel
      item.accessibilityHint = routerAccessibilityHint
      item.isEnabled = !disabled
+diff --git a/node_modules/expo-router/ios/Toolbar/RouterToolbarModule.swift b/node_modules/expo-router/ios/Toolbar/RouterToolbarModule.swift
+index 1bee03c..754b4a4 100644
+--- a/node_modules/expo-router/ios/Toolbar/RouterToolbarModule.swift
++++ b/node_modules/expo-router/ios/Toolbar/RouterToolbarModule.swift
+@@ -79,6 +79,9 @@ public class RouterToolbarModule: Module {
+       Prop("disabled") { (view: RouterToolbarItemView, disabled: Bool?) in
+         view.disabled = disabled ?? false
+       }
++      Prop("axisBehavior") { (view: RouterToolbarItemView, axisBehavior: String?) in
++        view.axisBehavior = axisBehavior ?? "automatic"
++      }
+ 
+       Events("onSelected")
+     }

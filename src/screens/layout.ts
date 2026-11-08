@@ -140,7 +140,8 @@ export function screenLayout(room: Room, { call = true } = {}): Layout {
 }
 
 // The orb's spots beside Calls, in the stage's box: it rests midway across the room the call has
-// left, and gives the words that room once there are words, shrinking away where it rests.
+// left, and gives the words that room once there are words, shrinking away where it rests while
+// the call docks in the bar (src/screens/bars.tsx).
 function besideCalls(
   box: Box,
   layout: Stage,
