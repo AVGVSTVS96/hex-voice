@@ -22,10 +22,6 @@ import { bevel } from '@/theme';
 import { glass as onGlass } from '@/ui/glass-button';
 import { film } from '@/ui/tokens';
 
-// The + (`children`, on glass if `glass`) and what it opens, as ChatGPT's plus does: the system
-// menu with Camera, which rises as a sheet to half the screen, and Photos, Apple's own picker, up
-// to `most` at once (none: the + is off). What you shoot or pick goes to `onAdd`; `sends` says it
-// goes out from there, so the camera's last button says Send rather than Add.
 export const AddMedia = ({
   label,
   glass = false,
@@ -52,7 +48,6 @@ export const AddMedia = ({
       selectionLimit: most,
       preferredAssetRepresentationMode:
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-      // A clip the size the camera records, so a minute of 4K doesn't go up whole.
       videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
 

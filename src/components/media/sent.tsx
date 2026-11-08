@@ -6,9 +6,6 @@ import type { Shown } from '@/live/media';
 import { theme } from '@/theme';
 import { metrics, radius, space, textOf } from '@/ui/tokens';
 
-// A photo or clip you sent a call, on your side of its words, sized from their width.
-// While hex takes it in, it shows dim with Sending under it; one that didn't get there says why,
-// and a tap sends it again. `id` is its entry's in the call's words.
 export const SentMedia = ({
   id,
   media,

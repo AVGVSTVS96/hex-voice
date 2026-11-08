@@ -23,12 +23,8 @@ type Phase = { at: 'live' } | { at: 'recording'; since: number } | { at: 'review
 
 const { shutter, ring } = metrics.media;
 
-// How long a press is a tap before it's a hold, as iOS Camera's QuickTake waits.
-const HOLD_MS = 280;
+const QUICKTAKE_HOLD_MS = 280;
 
-// The live camera, to its edges: tap the shutter for a photo, hold it for a clip with a ring
-// filling to a minute, flip to the other camera, then Retake or keep the shot. While a call here
-// holds the microphone, a clip records without sound.
 export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) => void }) => {
   const camera = useRef<CameraView>(null);
   const [permission, ask] = useCameraPermissions();
@@ -36,8 +32,6 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   const [phase, setPhase] = useState<Phase>({ at: 'live' });
   const quiet = useMicHeld();
   const filled = useSharedValue(0);
-  // Whether the shutter is still held: a clip records until it's let go, even let go before its
-  // recording has begun, which the first word of its progress then stops.
   const held = useRef(false);
   const recording = phase.at === 'recording';
 
@@ -158,7 +152,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
                 accessibilityLabel="Take photo"
                 accessibilityHint="Hold to record a video"
                 testID="camera-shutter"
-                delayLongPress={HOLD_MS}
+                delayLongPress={QUICKTAKE_HOLD_MS}
                 onPress={() => {
                   void take();
                 }}
@@ -189,7 +183,6 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   );
 };
 
-// iOS Camera's shutter: a white disc in a ring; holding it, a red square in the ring as it fills.
 const Shutter = ({
   recording,
   filled,
@@ -203,8 +196,6 @@ const Shutter = ({
   </View>
 );
 
-// The ring filling clockwise from the top: each half of it is half the red ring, turned into the
-// half of the shutter that shows it.
 const Fill = ({ filled }: { filled: ReturnType<typeof useSharedValue<number>> }) => {
   const first = useAnimatedStyle(() => ({
     transform: [{ rotate: `${Math.min(filled.get(), 0.5) * 360}deg` }],

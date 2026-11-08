@@ -8,9 +8,6 @@ import type { Shown } from '@/live/media';
 import { bevel, circle, theme } from '@/theme';
 import { film, metrics, radius, space } from '@/ui/tokens';
 
-// A photo or clip as you sent it or as it waits to go: the picture to its edges under the bevel,
-// a play mark on a clip. It takes the width it's given and its picture's own shape, kept between
-// upright and wide so a panorama or a screenshot doesn't run away with the page.
 export const Thumb = ({
   media,
   width,
@@ -49,8 +46,6 @@ export const Thumb = ({
   );
 };
 
-// Several sent together, as Messages groups them: one at the album's width, more as squares two
-// to a row.
 export const Album = ({
   media,
   width,

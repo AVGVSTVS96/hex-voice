@@ -6,8 +6,6 @@ import type { Picked } from '@/live/media';
 import { circle } from '@/theme';
 import { film, metrics, radius, space } from '@/ui/tokens';
 
-// What you picked or shot, waiting in the composer to go with your words, each with its way out,
-// as many to a row as the field's width holds.
 export const Waiting = ({
   media,
   onRemove,
