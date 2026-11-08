@@ -87,23 +87,16 @@ import type { Pose } from '../../modules/pose';
 const AGENT_ROW = 22;
 const CONTROLS_BOX = stack('regular');
 
-// The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
-const OVER_SHEET = 96;
+const ORB_OVER_SHEET = 96;
 const AnimatedPressable = createAnimatedComponent(Pressable);
 
 export interface Opening {
   tasks?: TasksAt;
   open?: 'settings' | 'calls';
   reportPose: boolean;
-  // Laid out in half the screen for a check (src/screens/split-view.tsx). A half is compact, as iOS
-  // makes a Split View window, though the screen around it is regular.
   split?: boolean;
 }
 
-// The screen lays itself out for the room its window has: the size it's drawn at and what of the
-// device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
-// screen's own, as laid out: React Native's window size can report another screen's for a moment
-// while iPhone Duo unfolds, and the call screen would lay out for the cover across the open screen.
 const LiveScreen = ({ opening }: { opening: Opening }) => {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const [size, setSize] = useState<Size>();
@@ -150,10 +143,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const counts = useTaskCounts(listed);
   const { insets, size: screen } = room;
   const { width, height } = screen;
-  // What the words show. Where the layout pulls the words down over the orb, they show once pulled;
-  // everywhere else they take their own page once there's a call or words to show, and before that
-  // the orb rests alone in the middle. Opening a past call pulls them, and letting them go goes back
-  // to the live call, so the two never disagree (`step` in screen.ts).
   const viewing = scene.words.call;
   const calls = useCalls();
 
@@ -161,12 +150,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
-  // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
-  // its words, its agents and asks, and Tasks talking to it, with End hanging it up.
   const { call, start, end, toggleMute } = useCall(held);
   const onCall = call.kind !== 'none';
-  // Whether there's a call to show beside Calls. Calls keeps the room it came in with until it's all
-  // the way out, so a call starting or picked from it never moves it while it's in view.
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
   const layout = screenLayout(room, { call: called });
@@ -201,8 +186,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   const shared = !!settingsPlace;
 
-  // Everything that opens and closes goes through `send`, and every open flag and lit button
-  // below is read from `scene`.
   const send = (action: Action) => {
     setScene((now) => step(now, action, { shared }));
   };
@@ -229,7 +212,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     ? scene.words.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
 
-  // The words beside Tasks are chosen for one call, where the layout has room for them.
   if (scene.words.beside && !(duo?.beside && onCall)) {
     send({ to: 'beside', on: false });
   }
@@ -283,13 +265,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     reducedMotion,
   });
 
-  // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
-  // the voice, with the call's time by it; tapping it closes Tasks for the call.
   const { docked, dock, covers, aside } = duoTasks;
 
-  // The + sends the live call on screen a photo or video. It steps away with the call: docked in
-  // the Duo's bar, docked beside a pane on iPad, or behind a past call you're reading. It stays
-  // mounted, so a camera it opened stays up through the call ending.
   const adds =
     buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? '') === '';
 
@@ -320,9 +297,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     .enabled(pulls && !reading)
     .failOffsetX([-20, 20]);
 
-  // On the phone the transcript button waits where the orb docks, and tapping it sends the orb down
-  // into its place. Tapping the orb comes back to it: from the words on the phone, from a past call
-  // beside it.
   const orbGesture = Gesture.Race(
     drag().enabled(pulls && reading && !docked),
     Gesture.Tap()
@@ -373,7 +347,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     setCalls(!callsOpen);
   };
 
-  // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
   const openCall = (id: string, place = list.place) => {
     if (place !== 'beside') {
       setCalls(false);
@@ -388,7 +361,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     showCall(id);
   };
 
-  // A past call opened mid-call only changes what's on screen; the live call goes on underneath.
   const backToCall = () => {
     tick();
     showCall(null);
@@ -406,7 +378,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     reducedMotion,
   });
 
-  // The card's place and corners, and what keeps the stage on it put, all come from cardOf.
   const cardStyle = useAnimatedStyle(() => {
     const card = cardOf(layout, drawer.get(), pane.get(), paneW.get());
 
@@ -423,8 +394,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
   );
 
-  // Calls comes in from under a card that slides aside, and all the way in over one that doesn't.
-  // Shut, it isn't drawn, so a card's rounded corners (iPad, beside Tasks) never show it beneath.
   const over = list.place === 'over';
 
   const sidebarStyle = useAnimatedStyle(() => ({
@@ -432,21 +401,14 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     opacity: drawer.get() > 0 ? 1 : 0,
   }));
 
-  // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneFade = () => {
     'worklet';
 
     return { opacity: Math.min(1, pane.get() * 4) };
   };
 
-  // The bar sits in the window, and never moves for Tasks. Down iPhone Duo's side it's laid out
-  // natively in the column (SideColumn); across the top Bar places it by barOf, which only Calls
-  // moves.
   const { toolbar } = layout;
 
-  // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
-  // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
-  // style only for the shared values it reads directly, not ones a helper worklet reads for it.
   const besideness = (drawn: number, paned: number) => {
     'worklet';
 
@@ -456,9 +418,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   };
 
-  // The footer and agent line each hold their own span, or where the call moves, follow the words.
-  // One style writes their place either way: a prop Reanimated has written stays on the view after
-  // it stops writing it, so a span React passes beside it would never come back.
   const column = (own: { x: number; width: number }, drawn: number, paned: number, a: number) => {
     'worklet';
 
@@ -485,10 +444,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     column(layout.agent, drawer.get(), pane.get(), aside.get()),
   );
 
-  // The call's own lines make way for the iPad inbox, for iPhone Duo's Tasks where it covers them,
-  // and for Calls where it slides over all but a peek of the call and they'd run off the screen. So
-  // do its words, orb and transcript button: the peek is a clean edge of the call, never cut words
-  // or a cut orb.
   const slides = list.place === 'slide';
 
   const linesStyle = useAnimatedStyle(() => {
@@ -535,9 +490,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   };
 
-  // The orb glides from where it rests to where it reads: docked small in the corner on the phone,
-  // at full size on its own page beside the words. On iPad it glides down beside the call buttons
-  // as Calls or Tasks comes in. Side by side, the list covers it.
   const orbStyle = useAnimatedStyle(() => {
     const p = progress.get();
     const { t, arc } = glide(p);
@@ -614,7 +566,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   };
 
-  // The + fades as the transcript button does, short of the words' glide, which it stays through.
   const addFade = () => {
     'worklet';
 
@@ -623,10 +574,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   };
 
-  // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
-  // the words' fades trade the call's color for the backdrop's as it comes in. The call's own fades
-  // wear their style off the Duo too, so its last opacity can't stay behind when a window loses the
-  // Duo's layout.
   const backdropFade = () => {
     'worklet';
 
@@ -677,7 +624,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     } else if (call.kind === 'elsewhere') {
       void tried('Not ended', end());
     } else {
-      // A call started with Calls slid over it comes into view.
       if (list.place !== 'beside') {
         setCalls(false);
       }
@@ -704,14 +650,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     }
   };
 
-  // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
     if (!panes) {
       send({ to: 'tasks', open: false });
     }
   };
 
-  // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
     stepAside();
 
@@ -722,8 +666,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     }
   };
 
-  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does, with
-  // Calls where it sits once there's a call to show.
   const openCallFromTasks = (id: string) => {
     stepAside();
     const { place } = screenLayout(room).calls;
@@ -743,7 +685,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     calls.remove(id);
   };
 
-  // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
     stepAside();
 
@@ -765,7 +706,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
 
   const controls = <CallControls {...buttons} />;
-  // On iPhone Duo the way back is the toolbar's: the one of whatever is in front.
   const { backs, publish } = useToolbarBacks();
   const back = backs[frontOf(settingsOpen, tasksOpen)];
 
@@ -1010,11 +950,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
 const arrangementOf = (layout: Layout, onCall: boolean) => {
   const split = layout.kind === 'split';
-  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
-  // footer and agent line follow the words there instead of spanning the screen.
   const moves = split || !!layout.orb.dock;
-  // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
-  // in a rail; once a call starts, Tasks narrows to its pane beside it.
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
   const { controls } = layout;
   const rowControls = layout.duo?.call.controls;
@@ -1022,22 +958,14 @@ const arrangementOf = (layout: Layout, onCall: boolean) => {
   return {
     split,
     moves,
-    // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
     follows: moves || !!layout.duo?.beside,
-    // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
-    // place of its own over the call, and the call goes on in the bar.
     panes: layout.tasks.place !== 'sheet',
-    // iPhone Duo shows settings as a place of its own where Tasks goes, beside its column, so the
-    // column's buttons still answer while it's open.
     settingsPlace: layout.duo?.tasks.area,
     inbox,
     paneWidth: inbox ? inbox.width : layout.tasks.width,
-    // Where the call's words and the lines under them go when they take the page before the fold.
     before: layout.duo?.beside?.words ?? { ...layout.words, raise: 0 },
     controlsAt: controls !== 'inline' && 'center' in controls ? controls.center : undefined,
     controlsColumn: controls !== 'inline' && 'axis' in controls ? controls : undefined,
-    // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
-    // whether Tasks is open or not.
     rowControls,
     footerControls: controls === 'inline' && !rowControls,
   };
@@ -1059,7 +987,6 @@ const usePaneMotion = ({
   inbox: boolean;
   reducedMotion: boolean;
 }) => {
-  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
   const pane = useSharedValue(panes && open ? 1 : 0);
   const paneW = useSharedValue(width);
   const wide = useSharedValue(inbox ? 1 : 0);
@@ -1068,7 +995,6 @@ const usePaneMotion = ({
       return;
     }
 
-    // A pane that opens from closed takes its width at once; one already open moves to it.
     if (open) {
       const closed = pane.get() < 0.01;
       const wideTo = inbox ? 1 : 0;
@@ -1082,10 +1008,6 @@ const usePaneMotion = ({
   return { pane, paneW, wide };
 };
 
-// The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
-// and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
-// page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
-// height over a compact screen, and the resting orb keeps clear of it too, small, still listening.
 const useOrbRest = ({
   layout,
   moves,
@@ -1115,7 +1037,7 @@ const useOrbRest = ({
     },
     orb.rest.y,
     orb.size,
-    overSheet ? OVER_SHEET : orb.size,
+    overSheet ? ORB_OVER_SHEET : orb.size,
   );
 
   const restY = useSharedValue(rest.y);
@@ -1130,7 +1052,6 @@ const useOrbRest = ({
   return { rest, restY, restScale, footerHeight, setFooter };
 };
 
-// What an action on a call couldn't do shows in the footer's error line while that call lasts.
 const useTrouble = (callNow: CallId | undefined) => {
   const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
 
@@ -1319,10 +1240,6 @@ const CallsEdges = ({
   </>
 );
 
-// The toolbar across the top, following the call's card as Calls slides. Its style is made as it
-// mounts: Reanimated starts each view at the value a style had when it was first made, so a style
-// made at launch would show iPhone Duo's band, which mounts when it turns on its side, at the
-// column's old place until something next moved it.
 const Bar = ({
   layout,
   width,
@@ -1339,7 +1256,6 @@ const Bar = ({
   return toolbar([{ top: layout.toolbar.y }, style]);
 };
 
-// The call you just hung up on is at the top of Calls before hex's copy arrives.
 const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => void) => {
   const started = useRef<string | null>(null);
   const live = call.kind === 'here' && call.phase === 'live';
