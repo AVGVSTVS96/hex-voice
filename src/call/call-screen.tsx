@@ -403,7 +403,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     column(layout.agent, drawer.get(), pane.get(), aside.get()),
   );
   // The call's own lines make way for the iPad inbox, for iPhone Duo's Tasks where it covers them,
-  // and for Calls where it slides over all but a peek of the call and they'd run off the screen.
+  // and for Calls where it slides over all but a peek of the call and they'd run off the screen. So
+  // do its words, orb and transcript button: the peek is a clean edge of the call, never cut words
+  // or a cut orb.
   const slides = list.place === 'slide';
   const linesStyle = useAnimatedStyle(() => {
     const { t } = besideness(drawer.get(), pane.get());
@@ -492,6 +494,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         Math.min(1, 0.5 + 0.5 * awake + 0.1 * breath.get()) *
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
         (split && !orb.dock ? 1 - drawer.get() : 1) *
+        (slides ? 1 - drawer.get() : 1) *
         shown,
       transform: [
         { translateX: x - size / 2 },
@@ -503,7 +506,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   });
   const dockStyle = useAnimatedStyle(() => ({
     opacity:
-      interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) * uncovered(covers.get()),
+      interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) *
+      (slides ? 1 - drawer.get() : 1) *
+      uncovered(covers.get()),
   }));
   // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
   // the words' fades trade the call's color for the backdrop's as it comes in. They wear that style
@@ -519,7 +524,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     return {
       bottom:
         footerHeight.get() + 18 + lift.calls * d + lift.tasks * t + before.raise * aside.get(),
-      opacity: shown * (1 - wide.get() * t) * uncovered(covers.get()),
+      opacity:
+        shown * (1 - wide.get() * t) * (slides ? 1 - drawer.get() : 1) * uncovered(covers.get()),
       transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
     };
   });
