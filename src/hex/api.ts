@@ -17,7 +17,7 @@ const Opened = z.object({
 const enc = encodeURIComponent;
 
 // Every request the app makes to hex's voice plugin, each one answered in the app's own types.
-export function createHex({ request, send }: Client) {
+export function createHex({ request, send, source }: Client) {
   const session: SessionAPI = {
     create: async (sdp, voice, about) => {
       const { session, transport } = await request('/session', Opened, {
@@ -58,6 +58,7 @@ export function createHex({ request, send }: Client) {
     asks: {
       list: (after?: number, signal?: AbortSignal) => request('/asks', AskList, { after, signal }),
       check: () => request('/asks/check', Check),
+      shot: (id: AskId, n: number) => source(`/asks/${enc(id)}/shots/${n}`),
       words: (id: AskId) => request(`/asks/${enc(id)}/words`, Words),
       answer: (id: AskId, label: string) =>
         request(`/asks/${enc(id)}/answer`, Sent, { method: 'POST', body: { label } }),

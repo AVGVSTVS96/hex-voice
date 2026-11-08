@@ -91,6 +91,8 @@ export function createClient({ url, token, fetch }: Config) {
         `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
       );
     },
+    // A file of hex's for a native view to read itself: its address and the token it takes.
+    source: (path: string) => ({ uri: `${origin}${path}`, headers: auth }),
     send: async (path: string, options: Omit<Options, 'after' | 'signal'> = {}) => {
       await call(path, { method: 'POST', ...options, timeout: options.timeout ?? WRITE });
     },

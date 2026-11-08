@@ -206,6 +206,8 @@ export const metrics = {
   // The widest a page's words run before it holds them in a readable column, on the Duo held open
   // and on iPad.
   readable: 640,
+  // How tall an ask's screenshots stand, each over its option's name.
+  shot: 200,
   // A section's tinted badge, and the dot inside it.
   badge: { size: 20, dot: 8 },
 } as const;

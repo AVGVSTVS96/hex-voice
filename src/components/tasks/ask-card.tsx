@@ -23,7 +23,7 @@ import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
 import { Typing, useField } from '@/components/tasks/pages';
-import { noteAsk, useWords } from '@/hooks/use-asks';
+import { noteAsk, shotOf, useWords } from '@/hooks/use-asks';
 import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components/tasks/parts';
@@ -40,6 +40,7 @@ import { fitsOneLine } from '@/live/inbox';
 import { clock } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
+import { ShotsView } from '../../../modules/shots';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space, type } from '@/ui/tokens';
 
@@ -246,6 +247,7 @@ function AskCard({
           </Text>
         ) : null}
       </VStack>
+      <Shots ask={ask} />
       {open && (words || ask.links?.length) ? (
         <VStack
           alignment="leading"
@@ -276,6 +278,30 @@ function AskCard({
         <Answers ask={ask} width={inner} onAnswer={onAnswer} />
       )}
     </Card>
+  );
+}
+
+// What each option looks like, when the choice is between looks: its screenshot over its name, and
+// all of them full screen on a tap.
+function Shots({ ask }: { ask: Ask }) {
+  const shown = ask.options.filter((option) => option.shot !== undefined);
+  if (!shown.length) return null;
+  const shots = shown.map((option) => shotOf(ask, option.shot!));
+  return (
+    <ShotsView
+      uris={shots.map((shot) => shot.uri)}
+      headers={shots[0]!.headers}
+      labels={shown.map((option) => option.label)}
+      pick={shown.findIndex((option) => option.pick)}
+      height={metrics.shot}
+      gap={space[2]}
+      radius={radius.inner}
+      size={type.caption.fontSize}
+      secondary={theme.secondary}
+      surface={theme.fill}
+      accent={theme.accent}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+    />
   );
 }
 

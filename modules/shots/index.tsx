@@ -1,0 +1,43 @@
+import { requireNativeView } from 'expo';
+import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
+import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
+import { processColor, type ColorValue } from 'react-native';
+
+// An ask's screenshots as SwiftUI, one tile per option over its label, in the tree Expo UI builds.
+// A tap opens them full screen in Quick Look. Each is read from hex with `headers`; the look comes
+// from the caller: the tiles' height, gaps and corners in points, the label's size and colors.
+export type ShotsProps = CommonViewModifierProps & {
+  uris: string[];
+  labels: string[];
+  pick: number;
+  headers: Record<string, string>;
+  height: number;
+  gap: number;
+  radius: number;
+  size: number;
+  secondary: ColorValue;
+  surface: ColorValue;
+  accent: ColorValue;
+};
+
+type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'accent'>;
+type NativeProps = Omit<ShotsProps, keyof Colors> & {
+  [Color in keyof Colors]: ReturnType<typeof processColor>;
+};
+
+const Native =
+  process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Shots', 'ShotsView') : null;
+
+export function ShotsView({ modifiers, secondary, surface, accent, ...rest }: ShotsProps) {
+  if (!Native) return null;
+  return (
+    <Native
+      modifiers={modifiers}
+      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
+      secondary={processColor(secondary)}
+      surface={processColor(surface)}
+      accent={processColor(accent)}
+      {...rest}
+    />
+  );
+}

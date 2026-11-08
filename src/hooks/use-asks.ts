@@ -35,6 +35,9 @@ export async function noteAsk(ask: Ask, text: string) {
 // On a call, the voice starts going through your asks with you.
 export const raiseAsks = () => hex.asks.talk();
 
+// Where an option's screenshot is read from.
+export const shotOf = (ask: Ask, shot: number) => hex.asks.shot(ask.id, shot);
+
 // Everything waiting on you, live while the sheet is open. An answer or a not needed folds its card
 // where it sits and goes to hex; the card stays folded there with Undo until the sheet closes.
 // Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
