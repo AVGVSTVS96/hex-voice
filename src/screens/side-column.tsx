@@ -12,14 +12,6 @@ import { COLUMN } from '@/screens/layout';
 import type { Layout } from '@/screens/layout';
 import { Host } from '@/ui/host';
 
-// iPhone Duo's side column as a sibling of the content in one row, laid out natively: it is the
-// bar's inset wide, which the safe area view takes on the native side as iOS reports it, and inside
-// it SwiftUI places the tools and call buttons around what covers the screen there (modules/column),
-// so they land with the window's new size in the frame it changes, never over the content. The call
-// buttons are SwiftUI in the column's own view graph, not React Native hosting a Host of their own.
-// It draws nothing of its own: the call and Tasks' backdrop run under it as before. While the
-// keyboard is up over its foot, the call buttons there fade, so the glass keyboard never shows them
-// through.
 export const SideColumn = ({
   column: { bar },
   tools,
