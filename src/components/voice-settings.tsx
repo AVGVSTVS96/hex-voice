@@ -583,10 +583,11 @@ export function VoiceSettings({
 // beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
 // it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
 // top half of the screen and the rows below it. Folded, iOS keeps a split to its first pane on the
-// compact screen, so there the two panes sit in a plain row, the persona's `row` wide. The arrangement fills
-// the screen, so flat its panes meet on the crease; each pane and the sheet's color keep out of what the toolbar takes on the
-// edges it touches (`edges`). It fades in where it sits as Tasks does, never moved by a transform
-// (its Host would keep telling accessibility where it started).
+// compact screen, so there the two panes sit in a plain row, the persona's `row` wide. The
+// arrangement fills the screen, so flat its panes meet on the crease; each pane and the sheet's
+// color keep out of what the toolbar takes on the edges it touches (`edges`). It fades in where it
+// sits as Tasks does, never moved by a transform (its Host would keep telling accessibility where
+// it started).
 function SettingsPlace({
   shown,
   open,
