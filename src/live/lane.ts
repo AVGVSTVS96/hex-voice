@@ -1,10 +1,6 @@
 import { laneX } from './tasks';
 import type { Turn } from './tasks';
 
-// A project's last week as one lane, its marks at shares of the lane's width, now at the right: when
-// any of its threads worked (`spans`) and where a run failed (`failures`). All its threads share
-// the one lane, so stretches close enough to read as one merge, and failures too close to tell
-// apart keep the newest.
 export interface Lane {
   spans: { from: number; to: number }[];
   failures: number[];

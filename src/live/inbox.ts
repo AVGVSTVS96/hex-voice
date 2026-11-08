@@ -436,7 +436,6 @@ export const picksOf = (entries: Entry[], answered: Record<string, string | null
     return option ? [{ ask: entry.ask, option }] : [];
   });
 
-// A page in Tasks: a thread's, a project's own when it has no thread to show, or a thing hex did.
 const TOPIC = 'topic:';
 const DONE = 'done:';
 

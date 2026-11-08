@@ -72,7 +72,6 @@ export const PicksPage = ({
 }: {
   picks: Picked[];
   choices: PickChoices;
-  // The question open beside the list, on the Duo held wide.
   open: AskId | null;
   foot: number;
   onOpen: (id: AskId) => void;
@@ -359,7 +358,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                 }}
               />
             </Column>
-            {ask.context ? (
+            {ask.context !== undefined && ask.context !== '' ? (
               <Column
                 alignment="start"
                 spacing={space[2]}

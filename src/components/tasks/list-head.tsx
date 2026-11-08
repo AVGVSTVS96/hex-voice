@@ -41,7 +41,7 @@ export const Tabs = ({
   title,
   back,
   onSearch,
-  modifiers = [],
+  modifiers,
 }: {
   counts: Record<Stage, number>;
   stage: Tab;
@@ -56,7 +56,7 @@ export const Tabs = ({
     alignment="center"
     spacing={0}
     modifiers={[
-      ...modifiers,
+      ...(modifiers ?? []),
       padding({ top: onSearch ? space[2] : 0, bottom: space[2] }),
       frame({ maxWidth: Infinity }),
     ]}

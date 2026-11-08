@@ -17,7 +17,6 @@ import {
 import { useEffect, useMemo } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
-import type { Back } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField } from '@/components/tasks/pages';
@@ -41,7 +40,7 @@ import {
   topicIn,
   topicsOf,
 } from '@/live/inbox';
-import type { Entry, PageId, Stage, Tab, Tile, Topic } from '@/live/inbox';
+import type { Entry, PageId, Tab, Tile, Topic } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
