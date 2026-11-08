@@ -14,8 +14,8 @@ const CALL_AUDIO = `    let callAudio = RTCAudioSessionConfiguration.webRTC()
 `;
 
 module.exports = function withCallAudio(config) {
-  return withAppDelegate(config, (config) => {
-    let source = config.modResults.contents;
+  return withAppDelegate(config, (appDelegate) => {
+    let source = appDelegate.modResults.contents;
 
     if (!source.includes('RTCAudioSessionConfiguration')) {
       if (!source.includes(LAUNCH)) {
@@ -25,8 +25,8 @@ module.exports = function withCallAudio(config) {
       source = `import AVFoundation\nimport WebRTC\n${source}`.replace(LAUNCH, CALL_AUDIO + LAUNCH);
     }
 
-    config.modResults.contents = source;
+    appDelegate.modResults.contents = source;
 
-    return config;
+    return appDelegate;
   });
 };

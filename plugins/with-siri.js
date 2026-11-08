@@ -11,29 +11,30 @@ const FILES = [
 ];
 
 module.exports = function withSiri(config) {
-  config = withInfoPlist(config, (config) => {
-    config.modResults.HexURL = process.env.EXPO_PUBLIC_HEX_URL ?? '';
-    config.modResults.HexToken = process.env.EXPO_PUBLIC_HEX_TOKEN ?? '';
+  const addressed = withInfoPlist(config, (infoPlist) => {
+    infoPlist.modResults.HexURL = process.env.EXPO_PUBLIC_HEX_URL ?? '';
+    infoPlist.modResults.HexToken = process.env.EXPO_PUBLIC_HEX_TOKEN ?? '';
 
-    return config;
+    return infoPlist;
   });
-  config = withDangerousMod(config, [
+
+  const copied = withDangerousMod(addressed, [
     'ios',
-    (config) => {
-      const app = path.join(config.modRequest.platformProjectRoot, config.modRequest.projectName);
+    (native) => {
+      const app = path.join(native.modRequest.platformProjectRoot, native.modRequest.projectName);
 
       for (const { name } of FILES) {
         fs.rmSync(path.join(app, name), { recursive: true, force: true });
         fs.cpSync(path.join(__dirname, 'siri', name), path.join(app, name), { recursive: true });
       }
 
-      return config;
+      return native;
     },
   ]);
 
-  return withXcodeProject(config, (config) => {
-    const project = config.modResults;
-    const name = config.modRequest.projectName;
+  return withXcodeProject(copied, (xcode) => {
+    const project = xcode.modResults;
+    const name = xcode.modRequest.projectName;
     const target = project.findTargetKey(name);
     const group = project.findPBXGroupKey({ name });
 
@@ -63,6 +64,6 @@ module.exports = function withSiri(config) {
       });
     }
 
-    return config;
+    return xcode;
   });
 };

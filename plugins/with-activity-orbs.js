@@ -8,21 +8,21 @@ const TARGET = 'ExpoWidgetsTarget';
 const CATALOG = 'Orbs.xcassets';
 
 module.exports = function withActivityOrbs(config) {
-  config = withDangerousMod(config, [
+  const copied = withDangerousMod(config, [
     'ios',
-    (config) => {
-      const target = path.join(config.modRequest.platformProjectRoot, TARGET, CATALOG);
+    (native) => {
+      const target = path.join(native.modRequest.platformProjectRoot, TARGET, CATALOG);
       fs.rmSync(target, { recursive: true, force: true });
-      fs.cpSync(path.join(config.modRequest.projectRoot, 'assets/live-activity', CATALOG), target, {
+      fs.cpSync(path.join(native.modRequest.projectRoot, 'assets/live-activity', CATALOG), target, {
         recursive: true,
       });
 
-      return config;
+      return native;
     },
   ]);
 
-  return withXcodeProject(config, (config) => {
-    const project = config.modResults;
+  return withXcodeProject(copied, (xcode) => {
+    const project = xcode.modResults;
     const target = project.findTargetKey(TARGET);
     const group = project.findPBXGroupKey({ name: TARGET });
 
@@ -31,12 +31,11 @@ module.exports = function withActivityOrbs(config) {
     }
 
     if (project.hasFile(CATALOG)) {
-      return config;
+      return xcode;
     }
 
-    const phase = project
-      .pbxNativeTargetSection()
-      [target].buildPhases.find(({ comment }) => comment === 'Resources');
+    const { buildPhases } = project.pbxNativeTargetSection()[target];
+    const phase = buildPhases.find(({ comment }) => comment === 'Resources');
 
     const resources = phase
       ? project.hash.project.objects.PBXResourcesBuildPhase[phase.value]
@@ -47,6 +46,6 @@ module.exports = function withActivityOrbs(config) {
     project.addToPbxBuildFileSection(file);
     resources.files.push({ value: file.uuid, comment: `${CATALOG} in Resources` });
 
-    return config;
+    return xcode;
   });
 };
