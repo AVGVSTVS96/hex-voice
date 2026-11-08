@@ -510,7 +510,12 @@ function Count({ count, needs }: { count: number; needs: boolean }) {
 // Why a search found this row: its matching words in the text tone, the rest secondary.
 function Found({ parts }: { parts: Part[] }) {
   return (
-    <NativeText modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}>
+    // @expo/ui joins a Text's children only when it's drawn, not when a child changes, so each
+    // set of pieces gets its own Text.
+    <NativeText
+      key={parts.map((part) => part.text).join('\u0000')}
+      modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
+    >
       {parts.map((part, at) =>
         part.hit ? (
           <NativeText key={at} modifiers={textLook({ variant: 'detail', weight: 'medium' })}>
