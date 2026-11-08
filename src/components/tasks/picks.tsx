@@ -400,7 +400,7 @@ function OptionCard({
       modifiers={[
         padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(chosen ? theme.fill : theme.surface),
+        background(chosen ? theme.fill : theme.card),
         clipShape('roundedRectangle', radius.option),
         contentShape(shapes.rectangle()),
         animation(motion.list, chosen),
