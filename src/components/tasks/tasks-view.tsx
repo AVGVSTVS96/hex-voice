@@ -46,8 +46,8 @@ import {
   taskIn,
   topicIn,
 } from '@/live/inbox';
-import type { Place, Tile } from '@/live/inbox';
-import type { TaskId, TaskRow } from '@/live/tasks';
+import type { Entry, PageId, Place, Tab, Tile } from '@/live/inbox';
+import type { Task, TaskId, TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
@@ -115,37 +115,17 @@ export const Tasks = ({
     }
   }, [open, loaded, pages.stage, stage]);
 
-  // Beside the list, before the list has picked, the page is the first project of its tab, so the
-  // pane is never blank while it picks.
-  const leading = (
-    pages.shape !== 'one' && (pages.task ?? '') === '' ? stageTopics(entries, stage) : []
-  ).at(0);
-
-  const showing = pages.task ?? (leading ? pageOf(leading) : null);
+  const showing = showingOf(pages, entries, stage);
   // A project with no thread to show has a page of its own, with nothing to fetch.
   const { task } = useTask(taskIn(showing), version);
   // An ask whose thread has left the board opens its topic's newest thread still on it, or else
   // the topic's asks alone.
   const asked = yours.shown.find((ask) => ask.task === showing);
-
-  const opened =
-    task ??
-    tasks?.find((row) => row.id === showing) ??
-    (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
-
-  const alone = opened || asked ? undefined : topicIn(showing);
+  const opened = openedOf(task, tasks, showing, asked);
   const did = finished.find((one) => one.id === doneIn(showing));
-  const run = did?.run;
-  const topic = opened?.name ?? asked?.topic ?? alone;
-  const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
-
-  // The ask you tapped leads its topic's.
-  const topicAsks =
-    topic === undefined || topic === ''
-      ? []
-      : yours.shown
-          .filter((ask) => ask.topic === topic)
-          .toSorted((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row));
+  const topic = topicOf(opened, asked, showing);
+  const threads = threadsOf(opened, tasks);
+  const topicAsks = asksIn(yours.shown, topic, pages.row);
 
   const said = useChat(opened ? opened.id : null, open);
 
@@ -243,16 +223,7 @@ export const Tasks = ({
 
   const spot = (level: Level) => spotOf(level, pages, room);
 
-  const names: Record<Level | 'call', string> = {
-    call: 'Call',
-    list: 'Tasks',
-    topic: opened?.name ?? 'Topic',
-    thread: opened === undefined ? 'Thread' : opened.place || opened.name,
-    steps: 'Steps',
-    check: 'Last check',
-    picks: 'hex’s picks',
-    pick: 'Question',
-  };
+  const names = namesOf(opened);
 
   const backTo = (back: Level | 'call'): Back => ({
     to: names[back],
@@ -340,10 +311,9 @@ export const Tasks = ({
   // the messages and their composer, and the topic's shows everything else.
   const paired = spot('topic').shown && spot('thread').shown;
 
-  const levels = [
-    page(
-      'topic',
-      opened ? (
+  const topicPage = () => {
+    if (opened) {
+      return (
         <Detail
           task={opened}
           asks={topicAsks}
@@ -386,7 +356,13 @@ export const Tasks = ({
           }
           foot={spot('topic').foot}
         />
-      ) : did ? (
+      );
+    }
+
+    if (did) {
+      const { run } = did;
+
+      return (
         <DonePage
           finished={did}
           door={
@@ -404,7 +380,11 @@ export const Tasks = ({
               : undefined
           }
         />
-      ) : topic ? (
+      );
+    }
+
+    if (topic !== undefined && topic !== '') {
+      return (
         <Asked
           topic={topic}
           asks={topicAsks}
@@ -440,55 +420,52 @@ export const Tasks = ({
           onAgain={again}
           onDismiss={dismiss}
         />
-      ) : (
-        <Nothing loaded={!!tasks} />
-      ),
+      );
+    }
+
+    return <Nothing loaded={!!tasks} />;
+  };
+
+  const content = {
+    topic: topicPage(),
+    thread: opened ? (
+      <ThreadPage
+        thread={opened}
+        beside={paired}
+        chat={said.chat}
+        pending={said.pending}
+        failed={said.failed}
+        focus={pages.focusComposer}
+        foot={spot('thread').foot}
+        onOpen={openThread}
+        onSteps={() => {
+          openSteps(opened.id);
+        }}
+        onSend={said.send}
+        onRetry={said.retry}
+        onStop={() => {
+          tap();
+          void said.stop();
+        }}
+        onTalk={() => {
+          talk(opened);
+        }}
+      />
+    ) : (
+      <Spacer />
     ),
-    page(
-      'thread',
-      opened ? (
-        <ThreadPage
-          thread={opened}
-          beside={paired}
-          chat={said.chat}
-          pending={said.pending}
-          failed={said.failed}
-          focus={pages.focusComposer}
-          foot={spot('thread').foot}
-          onOpen={openThread}
-          onSteps={() => {
-            openSteps(opened.id);
-          }}
-          onSend={said.send}
-          onRetry={said.retry}
-          onStop={() => {
-            tap();
-            void said.stop();
-          }}
-          onTalk={() => {
-            talk(opened);
-          }}
-        />
-      ) : (
-        <Spacer />
-      ),
+    steps: traced.task ? (
+      <Trace
+        task={traced.task}
+        onOpen={(link) => {
+          void openLink(link, 't3');
+        }}
+      />
+    ) : (
+      <StepsLoading {...traced} />
     ),
-    page(
-      'steps',
-      traced.task ? (
-        <Trace
-          task={traced.task}
-          onOpen={(link) => {
-            void openLink(link, 't3');
-          }}
-        />
-      ) : (
-        <StepsLoading {...traced} />
-      ),
-    ),
-    page('check', <LastCheck {...checked} />),
-    page(
-      'picks',
+    check: <LastCheck {...checked} />,
+    picks: (
       <PicksPage
         picks={picks}
         choices={choices}
@@ -508,13 +485,12 @@ export const Tasks = ({
           choices.clear();
           pages.go({ to: 'back' });
         }}
-      />,
+      />
     ),
-    page(
-      'pick',
-      <PickPage picked={picks.find(({ ask }) => ask.id === pages.pick)} choices={choices} />,
-    ),
-  ];
+    pick: <PickPage picked={picks.find(({ ask }) => ask.id === pages.pick)} choices={choices} />,
+  };
+
+  const levels = PUSHED.map((level) => page(level, content[level]));
 
   // Any drag of Tasks' scrolling content lets the keyboard go, as the call's words do: interactive
   // dismissal would wait for the finger to reach the keyboard.
@@ -556,7 +532,7 @@ export const Tasks = ({
 
     return (
       <PagesView
-        pages={children.map((child) => child.key as Level)}
+        pages={['list', ...PUSHED]}
         one={levelsOf(pages, 'one')}
         two={levelsOf(pages, 'panes')}
         page={TASKS}
@@ -576,6 +552,60 @@ export const Tasks = ({
     </ZStack>
   );
 };
+
+const PUSHED = ['topic', 'thread', 'steps', 'check', 'picks', 'pick'] as const satisfies Level[];
+
+// Beside the list, before the list has picked, the page is the first project of its tab, so the
+// pane is never blank while it picks.
+const showingOf = (pages: Pages, entries: Entry[], stage: Tab) => {
+  const leading = (
+    pages.shape !== 'one' && (pages.task ?? '') === '' ? stageTopics(entries, stage) : []
+  ).at(0);
+
+  return pages.task ?? (leading ? pageOf(leading) : null);
+};
+
+const openedOf = (
+  task: Task | undefined,
+  tasks: TaskRow[] | undefined,
+  showing: PageId | null,
+  asked: Ask | undefined,
+) =>
+  task ??
+  tasks?.find((row) => row.id === showing) ??
+  (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
+
+const topicOf = (
+  opened: TaskRow | Task | undefined,
+  asked: Ask | undefined,
+  showing: PageId | null,
+) => {
+  const alone = opened || asked ? undefined : topicIn(showing);
+
+  return opened?.name ?? asked?.topic ?? alone;
+};
+
+const threadsOf = (opened: TaskRow | Task | undefined, tasks: TaskRow[] | undefined) =>
+  opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
+
+// The ask you tapped leads its topic's.
+const asksIn = (shown: Ask[], topic: string | undefined, row: string | null) =>
+  topic === undefined || topic === ''
+    ? []
+    : shown
+        .filter((ask) => ask.topic === topic)
+        .toSorted((a, b) => Number(b.id === row) - Number(a.id === row));
+
+const namesOf = (opened: TaskRow | Task | undefined): Record<Level | 'call', string> => ({
+  call: 'Call',
+  list: 'Tasks',
+  topic: opened?.name ?? 'Topic',
+  thread: opened === undefined ? 'Thread' : opened.place || opened.name,
+  steps: 'Steps',
+  check: 'Last check',
+  picks: 'hex’s picks',
+  pick: 'Question',
+});
 
 const newestOf = (rows: TaskRow[]) => {
   let newest: TaskRow | undefined;
