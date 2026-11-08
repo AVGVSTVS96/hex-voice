@@ -1,0 +1,42 @@
+diff --git a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/native.ios.js b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/native.ios.js
+index 68d08f8..aa4f916 100644
+--- a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/native.ios.js
++++ b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/native.ios.js
+@@ -44,7 +44,7 @@ const NativeToolbarButton = (props)=>{
+         disabled: props.disabled,
+         hidden: props.hidden,
+         hidesSharedBackground: props.hidesSharedBackground,
+-        identifier: id,
++        identifier: props.identifier ?? id,
+         image: props.image,
+         imageRenderingMode: renderingMode,
+         onSelected: props.onPress,
+diff --git a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/types.d.ts b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/types.d.ts
+index 8087919..273c153 100644
+--- a/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/types.d.ts
++++ b/node_modules/expo-router/build/layouts/stack-utils/toolbar/StackToolbarButton/types.d.ts
+@@ -19,6 +19,12 @@ export interface StackToolbarButtonProps {
+      * @platform ios
+      */
+     accessibilityHint?: string;
++    /**
++     * Names the item for UI tests (its accessibility identifier).
++     *
++     * @platform ios
++     */
++    identifier?: string;
+     /**
+      * There are two ways to specify the content of the button:
+      *
+diff --git a/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift b/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
+index b54fc86..2e38b17 100644
+--- a/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
++++ b/node_modules/expo-router/ios/Toolbar/RouterToolbarItemView.swift
+@@ -167,6 +167,7 @@ class RouterToolbarItemView: RouterViewWithLogger {
+     item.style = barButtonItemStyle ?? .plain
+     item.width = width.map { CGFloat($0) } ?? 0
+     item.isSelected = selected
++    item.accessibilityIdentifier = identifier
+     item.accessibilityLabel = routerAccessibilityLabel
+     item.accessibilityHint = routerAccessibilityHint
+     item.isEnabled = !disabled

@@ -1,5 +1,6 @@
-import { Stack } from 'expo-router';
-import { memo, useCallback, useLayoutEffect, useRef } from 'react';
+import { Stack, type NativeStackHeaderItem, type NativeStackHeaderItemButton } from 'expo-router';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { buttonsOf, type Call, type CallButton } from '@/call/call';
 import { PRIMARY } from '@/components/call-controls';
@@ -104,37 +105,36 @@ const Items = memo(function Items({
   besideOn: boolean;
   press: (what: Pressable) => () => void;
 }) {
+  const options = useMemo(() => {
+    const left: NativeStackHeaderItem[] = [
+      ...(back ? [item('back', `Back to ${back}`, SYMBOLS.back, { onPress: press('back') })] : []),
+      item('calls-button', 'Calls', SYMBOLS.calls, { selected: calls, onPress: press('calls') }),
+    ];
+    const right: NativeStackHeaderItem[] = [
+      item('tasks-button', 'Tasks', SYMBOLS.tasks, {
+        selected: tasks,
+        onPress: press('tasks'),
+        accessibilityHint: tasksHint(needs, working),
+        ...(needs
+          ? { badge: { value: needs, style: { backgroundColor: theme.accentSolid } } }
+          : {}),
+      }),
+      item('voice-settings-button', 'Voice and appearance settings', SYMBOLS.settings, {
+        selected: settings,
+        onPress: press('settings'),
+      }),
+    ];
+    return {
+      headerShown: true,
+      headerTransparent: true,
+      title: '',
+      unstable_headerLeftItems: () => left,
+      unstable_headerRightItems: () => right,
+    };
+  }, [back, calls, tasks, needs, working, settings, press]);
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, headerTransparent: true, title: '' }} />
-      <Stack.Toolbar placement="left">
-        {back ? (
-          <Stack.Toolbar.Button icon={SYMBOLS.back} onPress={press('back')}>
-            {`Back to ${back}`}
-          </Stack.Toolbar.Button>
-        ) : null}
-        <Stack.Toolbar.Button icon={SYMBOLS.calls} selected={calls} onPress={press('calls')}>
-          Calls
-        </Stack.Toolbar.Button>
-      </Stack.Toolbar>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button selected={tasks} onPress={press('tasks')}>
-          <Stack.Toolbar.Icon sf={SYMBOLS.tasks} />
-          <Stack.Toolbar.Label>{tasksLabel(needs, working)}</Stack.Toolbar.Label>
-          {needs ? (
-            <Stack.Toolbar.Badge style={{ backgroundColor: theme.accentSolid }}>
-              {String(needs)}
-            </Stack.Toolbar.Badge>
-          ) : null}
-        </Stack.Toolbar.Button>
-        <Stack.Toolbar.Button
-          icon={SYMBOLS.settings}
-          selected={settings}
-          onPress={press('settings')}
-        >
-          Voice and appearance settings
-        </Stack.Toolbar.Button>
-      </Stack.Toolbar>
+      <Stack.Screen options={options} />
       {call ? (
         <CallItems
           call={call}
@@ -149,6 +149,17 @@ const Items = memo(function Items({
     </>
   );
 });
+
+// A bar button: its symbol, and its title, which is what VoiceOver says and the bar's overflow
+// shows. `identifier` names it for checks.
+function item(
+  identifier: string,
+  label: string,
+  symbol: SFSymbol,
+  rest: { onPress: () => void } & Partial<NativeStackHeaderItemButton>,
+): NativeStackHeaderItemButton {
+  return { type: 'button', identifier, label, icon: { type: 'sfSymbol', name: symbol }, ...rest };
+}
 
 // Mute and the call button at the bar's foot, after the words' switch while it's offered. With no
 // call there's nothing to mute, so mute waits hidden.
@@ -176,6 +187,7 @@ function CallItems({
       <Stack.Toolbar.Spacer />
       {beside ? (
         <Stack.Toolbar.Button
+          identifier="transcript-beside-button"
           icon={SYMBOLS[`beside-${beside}`]}
           selected={besideOn}
           onPress={press('beside')}
@@ -184,6 +196,7 @@ function CallItems({
         </Stack.Toolbar.Button>
       ) : null}
       <Stack.Toolbar.Button
+        identifier="session-mute-button"
         icon={muted ? SYMBOLS['mic-off'] : SYMBOLS.mic}
         hidden={muted === undefined}
         disabled={!mutes}
@@ -193,6 +206,7 @@ function CallItems({
         {muted ? 'Unmute microphone' : 'Mute microphone'}
       </Stack.Toolbar.Button>
       <Stack.Toolbar.Button
+        identifier="session-primary-button"
         icon={SYMBOLS[primary.icon]}
         variant="prominent"
         tintColor={theme.prominent}
@@ -205,10 +219,9 @@ function CallItems({
   );
 }
 
-// What's working is told to VoiceOver only; Tasks' Working tab shows it.
-function tasksLabel(needs: number, working: number) {
+// What needs you and what's working, told to VoiceOver; the badge shows what needs you.
+function tasksHint(needs: number, working: number) {
   return [
-    'Tasks',
     needs ? `${needs} need${needs === 1 ? 's' : ''} you` : '',
     working ? `${working} working` : '',
   ]
