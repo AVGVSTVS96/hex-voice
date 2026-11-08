@@ -18,7 +18,8 @@ final class PagesProps: UIBaseViewProps {
 // whole page behind, since clear pages would show through each other. Two side by side, the deepest
 // takes the second page and the one before it the first; deeper ones wait off the leading edge,
 // shallower ones off the trailing edge. Pages that leave fade, under whatever animation the change
-// came with.
+// came with, each as one layer: a glass button fading on its own fades where it stands instead of
+// leaving with its page.
 struct PagesView: ExpoSwiftUI.View {
   @ObservedObject var props: PagesProps
 
@@ -33,6 +34,7 @@ struct PagesView: ExpoSwiftUI.View {
           AnyView(view)
             .frame(width: spot.width, alignment: .top)
             .clipped()
+            .compositingGroup()
             .opacity(spot.shown ? 1 : 0)
             .offset(x: spot.x)
             .accessibilityHidden(!spot.shown)
