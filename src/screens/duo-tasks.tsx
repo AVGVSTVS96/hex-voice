@@ -102,19 +102,16 @@ export function DuoTasks({
     'worklet';
     return { opacity: state.offer.get() };
   };
+  // Tasks keeps one page of the fold while the call's words take the other, or while it types.
+  const half =
+    (state.above && duo.beside?.typing) || (state.beside && duo.beside?.tasks) || undefined;
   const { time } = duo.call;
   const button = duo.beside?.button;
   // The switch shows what it does: the call and Tasks side by side, or one over the other.
   const stacks = !!duo.beside && duo.beside.tasks.area.y > duo.tasks.area.y;
   return (
     <>
-      <TasksPage
-        {...tasks}
-        page={
-          (state.above && duo.beside?.typing) || (state.beside && duo.beside?.tasks) || duo.tasks
-        }
-        style={pageStyle}
-      />
+      <TasksPage {...tasks} page={half ?? duo.tasks} whole={!half} style={pageStyle} />
       <Animated.Text
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"

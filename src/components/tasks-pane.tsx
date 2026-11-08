@@ -1,6 +1,7 @@
 import { ZStack } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -38,21 +39,25 @@ export function TasksPane({
       style={[styles.pane, { width, paddingTop: top }]}
       animate={animate}
     >
-      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
+      <Host seedColor={theme.tint} avoids="keyboard" style={styles.host}>
         <TasksView {...view} width={width} foot={foot} />
       </Host>
     </AnimatedView>
   );
 }
 
-// Tasks on iPhone Duo. It sits over the call, so it takes no touches while it's closed.
+// Tasks on iPhone Duo. It sits over the call, so it takes no touches while it's closed. A whole
+// page fills the window's safe area as iOS lays it out, so a turn or fold lands with it in place;
+// a page of its own beside the fold is placed by its margins.
 export function TasksPage({
   page,
+  whole,
   onClose,
   style,
   ...view
 }: TasksProps & {
   page: Page;
+  whole: boolean;
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
@@ -74,22 +79,28 @@ export function TasksPage({
       pointerEvents={view.open ? 'auto' : 'none'}
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[styles.page, page.margin, style]}
+      style={[styles.page, whole ? styles.fill : page.margin, style]}
     >
-      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
-        <ZStack
-          alignment="top"
-          modifiers={[
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-            clipped(),
-          ]}
-        >
-          <Tasks {...view} pages={pages} room={room} />
-        </ZStack>
-      </Host>
-      <GestureDetector gesture={swipe}>
-        <View testID="tasks-edge" style={styles.edge} />
-      </GestureDetector>
+      <SafeAreaView
+        mode="padding"
+        edges={whole ? ['top', 'left', 'right'] : []}
+        style={styles.host}
+      >
+        <Host seedColor={theme.tint} avoids="keyboard" style={styles.host}>
+          <ZStack
+            alignment="top"
+            modifiers={[
+              frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+              clipped(),
+            ]}
+          >
+            <Tasks {...view} pages={pages} room={room} />
+          </ZStack>
+        </Host>
+        <GestureDetector gesture={swipe}>
+          <View testID="tasks-edge" style={styles.edge} />
+        </GestureDetector>
+      </SafeAreaView>
     </Animated.View>
   );
 }
@@ -97,6 +108,7 @@ export function TasksPage({
 const styles = StyleSheet.create({
   pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },
   page: { position: 'absolute' },
-  fill: { flex: 1 },
+  fill: { ...StyleSheet.absoluteFill },
+  host: { flex: 1 },
   edge: { position: 'absolute', top: 0, bottom: 0, left: 0, width: BACK_EDGE_WIDTH },
 });

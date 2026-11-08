@@ -77,8 +77,8 @@ export type Duo = {
   };
 };
 
-// Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
-// the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
+// Where Tasks lays out: `area` is the window's safe area, clear of the bar and the status items,
+// and its content keeps `foot` clear of the home indicator, or ends at the fold.
 // `margin` is how far the window runs past it on each side, which opening or folding the Duo
 // leaves as it was, so Tasks is laid out by it and fills the new window in the frame it changes.
 // Its rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
@@ -304,8 +304,8 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
   };
 }
 
-// iPhone Duo with its side column (see `Duo`). Tasks runs from the screen's edge to the column's
-// buttons, short of the orb docked between them; on a call the orb, its time and, open, the words'
+// iPhone Duo with its side column (see `Duo`). Tasks takes the window's safe area, up to the
+// column; on a call the orb, its time and, open, the words'
 // switch sit as one group midway between the tools and the call buttons.
 function besideColumn(
   frame: Frame,
@@ -313,20 +313,16 @@ function besideColumn(
   fold?: Fold,
   before?: Words & { raise: number },
 ): Duo {
-  const { window, insets, toolbar } = frame;
+  const { window, insets, toolbar, content } = frame;
   const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
   const size = column.controls.size ?? 'regular';
-  const sizes = metrics.controls[size];
   const x = column.center;
-  const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
-  const leading = column.x === 0;
   const { tasks, after } = paged(
     window,
     {
       area: {
-        ...(leading
-          ? { x: x + reach, width: window.width - x - reach }
-          : { x: 0, width: x - reach }),
+        x: content.x,
+        width: content.width,
         y: insets.top,
         height: window.height - insets.top,
       },

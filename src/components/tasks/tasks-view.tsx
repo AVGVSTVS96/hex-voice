@@ -437,7 +437,6 @@ export function Tasks({
         one={levelsOf(pages, 'one')}
         two={levelsOf(pages, 'panes')}
         page={TASKS}
-        meet={room.meet ?? 0}
         onPaired={pages.placed}
         modifiers={[...fill, animation(motion.page, moved)]}
       >

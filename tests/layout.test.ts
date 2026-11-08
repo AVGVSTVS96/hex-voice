@@ -382,13 +382,13 @@ test('on iPhone Duo with Tasks closed, the call’s own stack has room for its +
   }
 });
 
-test('folded upright, Tasks runs from the screen edge to the column buttons and the tools start under the status items', () => {
+test('folded upright, Tasks takes the safe area up to the column and the tools start under the status items', () => {
   const { window, insets, pose } = duo['folded upright'];
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 170);
   assert.deepEqual(layout.duo!.tasks, {
-    area: { x: 0, y: 0, width: 418.2 - 32, height: 678 },
-    margin: { top: 0, right: 466 - (418.2 - 32), bottom: 0, left: 0 },
+    area: { x: 0, y: 0, width: 466 - 84, height: 678 },
+    margin: { top: 0, right: 84, bottom: 0, left: 0 },
     foot: 34,
   });
   assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
@@ -401,17 +401,14 @@ test('opening the Duo upright leaves Tasks’ margins to the window as they were
   };
   const folded = marginOf('folded upright');
   const open = marginOf('open upright');
-  // Only the right edge moves, and only by how far the cover's camera sits from its column's middle,
-  // which the open screen, with nothing in its column to center on, doesn't have.
-  assert.deepEqual({ ...open, right: folded.right }, folded);
-  assert.ok(Math.abs(open.right - folded.right) < 6);
+  assert.deepEqual(open, folded);
 });
 
 test('folded on its side, the short column keeps the tools at its top and its smaller buttons above the status items', () => {
   const { window, insets, pose } = duo['folded on its side'];
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 16);
-  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 630.2 - 26, height: 466 });
+  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 678 - 84, height: 466 });
   assert.equal(layout.duo!.beside, undefined);
 });
 
@@ -420,11 +417,11 @@ test('open upright, Tasks takes both pages, or the trailing one while the call�
   const layout = layoutOf(window, insets, pose);
   const { tasks, beside } = layout.duo!;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
-  assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
-  assert.deepEqual(tasks.margin, { top: 0, right: 951 - 877, bottom: 0, left: 0 });
+  assert.deepEqual(tasks.area, { x: 0, y: 0, width: 951 - 84, height: 669 });
+  assert.deepEqual(tasks.margin, { top: 0, right: 84, bottom: 0, left: 0 });
   assert.deepEqual(beside!.tasks, {
-    area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
-    margin: { top: 0, right: 951 - 877, bottom: 0, left: 475.5 },
+    area: { x: 475.5, y: 0, width: 867 - 475.5, height: 669 },
+    margin: { top: 0, right: 84, bottom: 0, left: 475.5 },
     foot: 34,
   });
   assert.ok(layout.words.x >= 475.5, 'alone, the words are past the middle of the fold');

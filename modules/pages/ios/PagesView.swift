@@ -8,16 +8,15 @@ final class PagesProps: UIBaseViewProps {
   // The levels showing one page at a time, and two side by side, the deepest last.
   @Field var one: [String] = []
   @Field var two: [String] = []
-  // Two side by side where each side of the middle, moved `meet` along, has room for `page`.
+  // Two side by side where each side of the fold has room for `page`.
   @Field var page: CGFloat = .infinity
-  @Field var meet: CGFloat = 0
   // Whether it placed two side by side, sent each time that changes: JS lays the pages' content out
   // by this answer, never by its own reading of the width.
   var onPaired = EventDispatcher()
 }
 
-// Tasks' pages, laid out from the width SwiftUI gives them, so a resize lands with them in the
-// frame it happens. One at a time, the deepest level fills the width and the ones before it wait a
+// Tasks' pages, laid out from the width SwiftUI gives them and the fold iOS reserves across them,
+// so a resize lands with them in the frame it happens. One at a time, the deepest level fills the width and the ones before it wait a
 // whole page behind, since clear pages would show through each other. Two side by side, the deepest
 // takes the second page and the one before it the first; deeper ones wait off the leading edge,
 // shallower ones off the trailing edge. Pages that leave fade, under whatever animation the change
@@ -29,11 +28,12 @@ struct PagesView: ExpoSwiftUI.View {
   var body: some View {
     GeometryReader { room in
       let children = props.children ?? []
-      let paired = pairs(room.size.width)
+      let seam = seam(in: room)
+      let paired = min(seam, room.size.width - seam) >= props.page
       ZStack(alignment: .topLeading) {
         ForEach(Array(children.enumerated()), id: \.element.childIdentity) { index, child in
           let level = props.pages.indices.contains(index) ? props.pages[index] : ""
-          let spot = place(level, in: room.size.width, paired: paired)
+          let spot = place(level, in: room.size.width, at: seam, paired: paired)
           let view: any View = child.childView
           AnyView(view)
             .frame(width: spot.width, alignment: .top)
@@ -49,15 +49,22 @@ struct PagesView: ExpoSwiftUI.View {
     }
   }
 
-  private func pairs(_ width: CGFloat) -> Bool {
-    let seam = width / 2 + props.meet
-    return min(seam, width - seam) >= props.page
+  // Where two pages meet: the fold down the pages, in their own coordinates, as iOS reserves it
+  // whether or not the Duo is folded, else their middle.
+  private func seam(in room: GeometryProxy) -> CGFloat {
+    let width = room.size.width
+    if #available(iOS 27.1, *),
+      let fold = room.reservedRegions(kind: .division, options: .includeInactive).first?.frame,
+      fold.height > fold.width, fold.midX > 0, fold.midX < width
+    {
+      return fold.midX
+    }
+    return width / 2
   }
 
-  private func place(_ level: String, in width: CGFloat, paired: Bool) -> (
+  private func place(_ level: String, in width: CGFloat, at seam: CGFloat, paired: Bool) -> (
     x: CGFloat, width: CGFloat, shown: Bool
   ) {
-    let seam = width / 2 + props.meet
     let levels = paired ? props.two : props.one
     let at = levels.firstIndex(of: level)
     let front = levels.count - 1
