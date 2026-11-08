@@ -185,7 +185,7 @@ export function Search({
           onFocus={() => typing(true)}
           onBlur={() => typing(false)}
           defaultValue={query}
-          placeholder="Tasks, topics, asks"
+          placeholder="Tasks, topics, questions"
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={onChange}
