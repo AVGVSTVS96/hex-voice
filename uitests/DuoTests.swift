@@ -16,6 +16,8 @@ import XCTest
 //   snap <name>           has it screenshot right away and goes on, to catch what moves (two snaps a
 //                         wait 0.1 apart are shot about 100 ms apart)
 //   wait <seconds>        waits
+//   settle                waits until scripts/duo sees the screen hold still (3 s at most), as after a
+//                         swipe or a change of Split View
 //   pose <pose>           has scripts/duo turn or fold the Duo there, without relaunching the app
 //   pose-burst <pose>     the same, with three shots as fast as they come once the hinge lands
 //   frame <query>         notes where accessibility puts that element
@@ -96,6 +98,9 @@ final class DuoTests: XCTestCase {
             case "shoot", "pose", "pose-burst":
                 sleep(1)
                 print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
+                waitForDuo()
+            case "settle":
+                print("duo-settle")
                 waitForDuo()
             case "snap": print("duo-snap \(argument)")
             case "hex":

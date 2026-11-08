@@ -94,9 +94,22 @@ on_mac() {
   export DEVELOPER_DIR=/Applications/$xcode.app/Contents/Developer
   export PATH=/opt/homebrew/bin:$PATH
   cd ~/"$folder"
+  # Stopped, a check stops all it started (its UI tests, recorder and stand-in), so none keeps tapping.
+  trap 'exit 143' TERM HUP INT
   local command=$1
   shift
   "mac_$command" "$@"
+}
+
+stop_children() {
+  local child
+  for child in $(pgrep -P $$); do stop_tree "$child"; done
+}
+
+stop_tree() {
+  local child
+  for child in $(pgrep -P "$1"); do stop_tree "$child"; done
+  kill "$1" 2>/dev/null
 }
 
 mac_build() {
@@ -126,7 +139,7 @@ mac_install() {
   standin=$!
   # The simulator stays booted for the next check, but the app closes: its orb draws all the while.
   # While ~/.config/turn/cold exists, as when the Mac is short of memory, the simulator shuts down too.
-  trap 'kill "$standin"; xcrun simctl terminate "$id" "$bundle" 2>/dev/null
+  trap 'stop_children; xcrun simctl terminate "$id" "$bundle" 2>/dev/null
     [ ! -e ~/.config/turn/cold ] || xcrun simctl shutdown "$id"' EXIT
   # When hex reads slowly the app shows empty lists or "Can't reach hex", which would pass for its look.
   curl -sf -m 10 --retry 3 --retry-connrefused --retry-delay 1 --cacert tls/ca.pem -o /dev/null \
@@ -250,6 +263,18 @@ place_turned() {
   turned build/turn.png || echo "$pose: the screen didn't turn to $pose" >>shots/notes.txt
 }
 
+# Waits until two screenshots 100 ms apart match, 3 s at most (the call's orb never stops).
+settle() {
+  local before= now i
+  for i in $(seq 15); do
+    xcrun simctl io "$id" screenshot ${display:+--display=$display} build/settle.png >/dev/null 2>&1
+    now=$(md5 -q build/settle.png)
+    [ "$now" != "$before" ] || return 0
+    before=$now
+    sleep 0.1
+  done
+}
+
 running() {
   xcrun simctl spawn "$id" launchctl list </dev/null | grep "UIKitApplication:$bundle" | grep -qv '^-'
 }
@@ -371,11 +396,17 @@ mac_tap() {
             place_turned "${line##*duo-burst }"
             touch "build/sync/$((answered += 1))"
             ;;
+          *"duo-settle"*)
+            settle
+            touch "build/sync/$((answered += 1))"
+            ;;
           *"duo-hex down"*) touch hex-down ;;
           *"duo-hex up"*) rm -f hex-down ;;
           *error:* | *XCTAssert* | *failed* | *duo-frame*) echo "$pose $appearance: $line" >>shots/notes.txt ;;
         esac
-      done; wait; } || true
+      done; wait; } &
+      # In the background, so a stop isn't held off until the tests end.
+      wait $! || true
       [ "${VIDEO:-}" != "$appearance" ] || { kill -INT "$recording" && wait "$recording"; } || true
       xcrun xcresulttool export attachments --path "$result" --output-path "$tests/attachments" >/dev/null
       jq -r '.[].attachments[] | select(.suggestedHumanReadableName | startswith("tree")) |
@@ -524,7 +555,10 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime"
+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime" &
+  # Waited on in the background, since bash holds a trap until a foreground command ends: a stop
+  # here reaches the Mac at once instead of when its half finishes. tap and fold do the same.
+  wait $!
   collect "$out"
   echo "$title" >"$out/done"
 }
@@ -535,7 +569,8 @@ tap() {
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
   fi; } | sed -E -e "s/^$DEVICE: //" -e '/^(duo|ipad): /d' |
-    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
+    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime" &
+  wait $!
   collect "${2:-$out/tap}"
 }
 
@@ -590,8 +625,8 @@ fold() {
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null | grep -E '^tasks(-call)? '
   fi
     [ -z "${FOLD_PROBE:-}" ] || echo "probe launch:com.shahidy.foldprobe"; } |
-    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" ||
-    echo "the Mac's half ended with $?; counting what it filmed"
+    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" &
+  wait $! || echo "the Mac's half ended with $?; counting what it filmed"
   mkdir -p "$dir"
   rsync -a "$mac:$folder/shots/" "$dir/"
   [ ! -f "$dir/notes.txt" ] || cat "$dir/notes.txt"
@@ -684,6 +719,13 @@ phone() {
   echo "$file"
 }
 
+# Stops the lane's check on the Mac: its harness, which stops what it started, the lane's lock, and a
+# stand-in still on the lane's port if the harness couldn't stop it.
+clear_lane() {
+  ssh "$mac" "! pkill -f \"[${folder:0:1}]${folder:1}/harness/duo mac \" || sleep 2
+    pkill -f \"lockf [${folder:0:1}]${folder:1}.lock \"; lsof -ti tcp:$hexport -sTCP:LISTEN | xargs kill" 2>/dev/null || true
+}
+
 # Holds the lock of the first free lane of those given. Checks waiting for a lane take one in the
 # order they came, by ticket, and FIRST=1 puts a check someone is waiting on ahead of the rest (it
 # goes first for the Mac's simulator turn too). A lane whose stand-in port is taken on the Mac is
@@ -703,10 +745,12 @@ take_lane() {
         exec 7>"$home/duo${candidate:+-$candidate}.lock"
         flock -n 7 || continue
         use_lane "$candidate"
+        # Holding the lane here, whatever of it still runs on the Mac is a stopped check's.
+        clear_lane
         ssh "$mac" lsof -nP -iTCP:"$hexport" -sTCP:LISTEN >/dev/null || {
           rm -f "$ticket"
-          # A check stopped here stops on the Mac too, or its stand-in would hold the lane's port.
-          trap 'ssh "$mac" "pkill -f \"[${folder:0:1}]${folder:1}/harness/duo mac \"; lsof -ti tcp:$hexport -sTCP:LISTEN | xargs kill" 2>/dev/null; exit 143' TERM INT HUP
+          # A check stopped here stops on the Mac too.
+          trap 'clear_lane; exit 143' TERM INT HUP
           return 0
         }
         flock -u 7
