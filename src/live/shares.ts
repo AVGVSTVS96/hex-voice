@@ -59,7 +59,7 @@ export async function deliver(call: CallId, batch: Sent[], api: ShareAPI): Promi
 // place of its file, which no image view draws. Every item says why when the batch didn't go.
 export function settle(sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] {
   const failed =
-    error === undefined ? undefined : error instanceof Error ? error.message : String(error);
+    error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
   return sent.map((one) => {
     const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
     if (i < 0) return one;
