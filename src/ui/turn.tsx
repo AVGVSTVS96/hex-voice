@@ -4,7 +4,6 @@ import { StyleSheet, View } from 'react-native';
 import { theme } from '@/theme';
 import { metrics, radius } from '@/ui/tokens';
 
-// One turn of a call: yours in a bubble at the trailing edge, hex's plain at the leading edge.
 export const Turn = ({ you, children }: { you: boolean; children: ReactNode }) => (
   <View style={you ? styles.you : styles.hex}>{children}</View>
 );

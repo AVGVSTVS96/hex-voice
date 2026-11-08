@@ -13,8 +13,6 @@ interface Look {
   paragraph?: boolean;
 }
 
-// The modifiers that draw SwiftUI text in one of the app's text styles and colors. A `paragraph`
-// spaces its lines by its style's lineSpacing; anything else is a label, on the font's own leading.
 export const textLook = ({
   variant = 'body',
   weight,
@@ -35,8 +33,6 @@ export const textLook = ({
   ];
 };
 
-// SwiftUI text in a textLook. Text that needs SwiftUI's own Text, for markdown, spreads textLook
-// into its modifiers instead.
 export const Text = ({
   variant,
   weight,
