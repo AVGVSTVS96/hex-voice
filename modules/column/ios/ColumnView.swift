@@ -33,24 +33,30 @@ struct ColumnView: ExpoSwiftUI.View {
       .frame(width: room.size.width, height: room.size.height)
       .offset(x: place.shift)
     }
-    .ignoresSafeArea()
+    // The column is the bar's inset, all of it outside the safe area across, so it reads its
+    // room across in full and keeps the window's top and foot insets.
+    .ignoresSafeArea(.container, edges: .horizontal)
   }
 
+  // The tools' and call buttons' distance from the room's top and foot, which sit inside the
+  // window's top and foot insets, and how far across to shift them.
   private func placed(in room: GeometryProxy) -> (top: CGFloat, foot: CGFloat, shift: CGFloat) {
     let width = room.size.width
     let height = room.size.height
+    let insets = room.safeAreaInsets
     var covers: [CGRect] = []
     if #available(iOS 27.1, *) {
       covers = room.reservedRegions(kind: .occlusion).map(\.frame).filter {
         $0.minX < width && $0.maxX > 0
       }
     }
-    let high = covers.filter { $0.midY < height / 2 }
-    let low = covers.filter { $0.midY >= height / 2 }
-    let top = high.reduce(room.safeAreaInsets.top) { max($0, $1.maxY) }
-    let foot = low.reduce(room.safeAreaInsets.bottom) { max($0, height - $1.minY + props.clear) }
+    let middle = (height + insets.bottom - insets.top) / 2
+    let high = covers.filter { $0.midY < middle }
+    let low = covers.filter { $0.midY >= middle }
+    let top = high.reduce(insets.top) { max($0, $1.maxY + insets.top) }
+    let foot = low.reduce(insets.bottom) { max($0, height + insets.bottom - $1.minY + props.clear) }
     let items = covers.filter { $0.width < width }
     let center = items.isEmpty ? width / 2 : items.map(\.midX).reduce(0, +) / CGFloat(items.count)
-    return (max(top, props.top), foot, center - width / 2)
+    return (max(top, props.top) - insets.top, foot - insets.bottom, center - width / 2)
   }
 }
