@@ -207,7 +207,10 @@ hub() { xcrun simctl spawn "$id" "$PWD/build/devicehub" "$@" </dev/null; }
 place() {
   pose_of "$1"
   [ -z "$hinge" ] || [ "$hinge" = "${hinge_at:-}" ] || {
-    hub hinge "$hinge" ${hinge_at:+"$hinge_at"}
+    # Where a run starts the hinge is unknown, and jumping it straight to an angle reads as shutting
+    # the Duo: the screen goes dark and every shot after repeats its last frame. So it sweeps from
+    # the far end, the way a hand folds it.
+    hub hinge "$hinge" "${hinge_at:-$([ "$hinge" -gt 90 ] && echo 0 || echo 180)}"
     [ -z "${burst:-}" ] || shoot_burst
     sleep 3
     hinge_at=$hinge
