@@ -115,7 +115,7 @@ export function Detail({
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
-        <List key={`${task.id} ${beside}`} modifiers={pageList(asks, answered)}>
+        <List key={task.id} modifiers={pageList(asks, answered)}>
           {asks.length ? (
             <YourCall
               asks={asks}

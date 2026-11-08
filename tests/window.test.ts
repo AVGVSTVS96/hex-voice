@@ -34,6 +34,19 @@ test('only the window module reads the device’s pose; the call screen mounts i
   );
 });
 
+// A key or SwiftUI id made from the layout rebuilds its view, scroll and state with it whenever a
+// resize, a turn or Split View changes the layout, as the topic's list once did on every turn.
+test('a view’s identity never comes from the window’s size or pose', () => {
+  const layoutWords =
+    /\b(?:beside|paired|shape|width|height|compact|wide|duo|panes|split|layout|room|pose|regular|placed)\b/;
+  const identities = files('src').flatMap((file) =>
+    [...readFileSync(file, 'utf8').matchAll(/\bkey=\{((?:[^{}]|\{[^{}]*\})*)\}|\bid\(([^)]*)\)/g)]
+      .filter(([, key, id]) => layoutWords.test(key ?? id ?? ''))
+      .map(([found]) => `${file}: ${found}`),
+  );
+  assert.deepEqual(identities, []);
+});
+
 // iPhone Duo held wide and open: 951×669, the side column's 84 on the right, the fold 40 wide at
 // the middle. In Split View each app gets half; the app on the right keeps the column.
 const open = { width: 951, height: 669 };
