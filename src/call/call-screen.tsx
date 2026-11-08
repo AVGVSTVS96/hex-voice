@@ -311,8 +311,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     setCalls(!callsOpen);
   };
   // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
-  const openCall = (id: string) => {
-    if (list.place !== 'beside') setCalls(false);
+  const openCall = (id: string, place = list.place) => {
+    if (place !== 'beside') setCalls(false);
     if (id === calls.live && onCall) return backToCall();
     showCall(id);
   };
@@ -354,8 +354,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const stageStyle = useAnimatedStyle(
     () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
   );
+  // Calls comes in from under a card that slides aside, and all the way in over one that doesn't.
+  const over = list.place === 'over';
   const sidebarStyle = useAnimatedStyle(() => ({
-    left: layout.content.x + (drawer.get() - 1) * 48,
+    left: layout.content.x + (drawer.get() - 1) * (over ? list.width : 48),
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
@@ -369,7 +371,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const besideness = (drawn: number, paned: number) => {
     'worklet';
     return {
-      d: list.place === 'slide' ? 0 : drawn,
+      d: list.place === 'beside' ? drawn : 0,
       t: side.place === 'beside' ? paned : 0,
     };
   };
@@ -540,7 +542,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     else if (call.kind === 'elsewhere') tried('Not ended', end());
     else {
       // A call started with Calls slid over it comes into view.
-      if (list.place === 'slide') setCalls(false);
+      if (list.place !== 'beside') setCalls(false);
       startCall();
     }
   };
@@ -563,11 +565,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     if (onCall) tried('Not sent', raiseTask(task.id));
     else if (voiceLoaded) startCall({ task: task.id });
   };
-  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does.
+  // A call an ask was asked on opens from Tasks in Calls, the way picking it there does, with
+  // Calls where it sits once there's a call to show.
   const openCallFromTasks = (id: string) => {
     stepAside();
-    if (list.place === 'beside') setCalls(true);
-    openCall(id);
+    const { place } = screenLayout(room).calls;
+    if (place === 'beside') setCalls(true);
+    openCall(id, place);
   };
   const removeShown =
     shown && shown.id !== calls.live
@@ -618,7 +622,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const sidebar = (
     <GestureDetector gesture={listClose}>
       <Animated.View
-        style={[styles.sidebar, { width: list.width, top: list.below ?? 0 }, sidebarStyle]}
+        style={[
+          styles.sidebar,
+          { width: list.width, top: list.below ?? 0, zIndex: over ? 1 : 0 },
+          sidebarStyle,
+        ]}
       >
         <CallsSidebar
           top={list.below === undefined ? insets.top : 0}
@@ -802,7 +810,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
           </GestureDetector>
         )}
-        {callsOpen && list.place !== 'beside' && (
+        {callsOpen && list.place === 'slide' && (
           <GestureDetector gesture={peekClose}>
             <View accessibilityLabel="Close calls" style={styles.fill} />
           </GestureDetector>

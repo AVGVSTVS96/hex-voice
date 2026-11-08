@@ -19,9 +19,10 @@ export function cardOf(
   paneWidth: number,
 ) {
   'worklet';
-  const left = drawer * (content.x + calls.width);
+  const moved = calls.place === 'over' ? 0 : drawer;
+  const left = moved * (content.x + calls.width);
   const slid = calls.place === 'slide' ? drawer * calls.width : 0;
-  const top = (calls.below ?? 0) * drawer;
+  const top = (calls.below ?? 0) * moved;
   const right = (tasks.place === 'beside' ? pane * paneWidth : 0) - slid;
   const off = Math.max(top, left, right);
   const rounded = Math.min(1, off / radius.card);

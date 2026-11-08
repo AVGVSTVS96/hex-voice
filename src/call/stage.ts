@@ -46,7 +46,7 @@ export type Box = {
 
 export type Pane<Place> = { width: number; place: Place };
 // Calls that starts `below` a band of status and bar buttons leaves that band whole.
-export type CallsPlacement = Pane<'slide' | 'beside'> & { below?: number };
+export type CallsPlacement = Pane<'slide' | 'beside' | 'over'> & { below?: number };
 export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.

@@ -172,3 +172,15 @@ test('on every screen, the bar across the top keeps one place clear of Tasks bes
       );
   }
 });
+
+test('Calls coming in over the call leaves the card where it is', () => {
+  for (const [name, screen] of Object.entries(screens)) {
+    const layout = layoutOf(screen);
+    const over = { ...layout, calls: { width: layout.content.width, place: 'over' as const } };
+    assert.deepEqual(
+      cardOf(over, 1, 0, layout.tasks.width),
+      cardOf(over, 0, 0, layout.tasks.width),
+      name,
+    );
+  }
+});
