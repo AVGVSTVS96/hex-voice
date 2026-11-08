@@ -410,6 +410,7 @@ export function Tasks({
       <PicksPage
         picks={picks}
         choices={choices}
+        open={pages.path.at(-1) === 'pick' ? pages.pick : null}
         foot={spot('picks').foot}
         onOpen={(id) => {
           tick();

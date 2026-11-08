@@ -16,7 +16,7 @@ import {
 import { useState, type ReactNode } from 'react';
 
 import { Markdown } from '@/components/markdown';
-import { Header } from '@/components/tasks/bar';
+import { Header, PageBar, useChrome } from '@/components/tasks/bar';
 import { Links, Shots } from '@/components/tasks/ask-card';
 import { Faded, questions } from '@/components/tasks/parts';
 import { Foot } from '@/components/tasks/thread';
@@ -56,12 +56,15 @@ const wraps = [
 export function PicksPage({
   picks,
   choices,
+  open,
   foot,
   onOpen,
   onTake,
 }: {
   picks: Picked[];
   choices: PickChoices;
+  // The question open beside the list, on the Duo held wide.
+  open: AskId | null;
   foot: number;
   onOpen: (id: AskId) => void;
   onTake: (taken: Picked[]) => void;
@@ -98,6 +101,7 @@ export function PicksPage({
                   key={picked.ask.id}
                   ask={picked.ask}
                   choice={choices.choiceOf(picked)}
+                  open={picked.ask.id === open}
                   onPress={() => onOpen(picked.ask.id)}
                 />
               ))
@@ -140,7 +144,17 @@ export function PicksPage({
 
 // A question as a card that says it opens: where it's from, the question whole, and the answer it
 // gets, hex's with its sparkle, yours plain, or left for later.
-function PickRow({ ask, choice, onPress }: { ask: Ask; choice: Choice; onPress: () => void }) {
+function PickRow({
+  ask,
+  choice,
+  open,
+  onPress,
+}: {
+  ask: Ask;
+  choice: Choice;
+  open: boolean;
+  onPress: () => void;
+}) {
   const answer = choice === 'later' ? LATER : choice.label;
   return (
     <Column
@@ -151,12 +165,12 @@ function PickRow({ ask, choice, onPress }: { ask: Ask; choice: Choice; onPress: 
       modifiers={[
         padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[4] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(theme.card),
+        background(open ? theme.fill : theme.card),
         clipShape('roundedRectangle', radius.group),
         contentShape(shapes.rectangle()),
         accessibilityElement('combine'),
         accessibilityLabel(`${ask.topic}. ${ask.question}. ${answer}. Opens it`),
-        accessibilityAddTraits(['isButton']),
+        accessibilityAddTraits(open ? ['isButton', 'isSelected'] : ['isButton']),
       ]}
     >
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -168,7 +182,7 @@ function PickRow({ ask, choice, onPress }: { ask: Ask; choice: Choice; onPress: 
         >
           {ask.tag ? `${ask.topic} · ${ask.tag}` : ask.topic}
         </Text>
-        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.secondary} />
       </Row>
       <Text variant="headline" paragraph modifiers={wraps}>
         {ask.question}
@@ -214,6 +228,7 @@ function AnswerTag({ choice }: { choice: Choice }) {
 // with what it does and gives up, then what it's about and the thread's own words. Choosing an
 // answer here sets the one "Answer" sends; nothing is sent from this page.
 export function PickPage({ picked, choices }: { picked?: Picked; choices: PickChoices }) {
+  const { back } = useChrome();
   if (!picked)
     return (
       <Page>
@@ -233,7 +248,7 @@ export function PickPage({ picked, choices }: { picked?: Picked; choices: PickCh
   ];
   return (
     <Page>
-      <Header title={ask.topic} subtitle={clock(new Date(ask.at))} />
+      <PageBar title={ask.topic} subtitle={clock(new Date(ask.at))} back={back} />
       <Faded>
         <ScrollView
           showsIndicators={false}
@@ -385,7 +400,7 @@ function OptionCard({
       modifiers={[
         padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(chosen ? theme.surfaceSelected : theme.fill),
+        background(chosen ? theme.fill : theme.surface),
         clipShape('roundedRectangle', radius.option),
         contentShape(shapes.rectangle()),
         animation(motion.list, chosen),
@@ -397,7 +412,7 @@ function OptionCard({
       <Icon
         name={chosen ? 'checkmark.circle.fill' : 'circle'}
         size={metrics.symbol.row}
-        color={chosen ? theme.text : theme.tertiary}
+        color={chosen ? theme.text : theme.secondary}
       />
       <Column alignment="start" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
         <Text variant="body" weight="medium" paragraph modifiers={wraps}>
