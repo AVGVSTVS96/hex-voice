@@ -1,9 +1,8 @@
 #!/bin/sh
 # Runs on the Mac (sh scripts/resign <serial> <app, relative to $HOME>): signs the app that xtool provisioned
 # (scripts/ship-native) with the Mac's identity whose certificate has that serial number, its frameworks, Live Activity
-# extension and itself, each with the entitlements its embedded profile grants. The free team holds one development
-# certificate, and when it's the Mac's, xtool provisions for it but can't sign with it, since its key stays in the Mac's
-# login keychain. That keychain opens only in the login session, never over ssh, so the signing runs there as a
+# extension and itself, each with the entitlements its embedded profile grants. xtool provisions for the Mac's
+# development certificate but can't sign with it, since its key stays in the Mac's login keychain. That keychain opens only in the login session, never over ssh, so the signing runs there as a
 # one-off launch agent, which no one sees.
 set -eu
 serial=$1
