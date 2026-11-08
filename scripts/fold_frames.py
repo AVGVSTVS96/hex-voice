@@ -36,9 +36,10 @@ BEFORE = 0.25
 # A film's first frame comes a little after the simulator says it started, so a cut stops this far
 # short of the next move.
 AFTER = 0.6
-# A move is counted over this long after it, and the Duo is held a while longer (FOLD_HOLD in
-# scripts/duo): the frame at the end of that hold is what settled looks like, so a cut whose last
-# frame isn't it was still changing, or stuck, and isn't counted as settled.
+# A move's final layout is the one at the end of its hold (FOLD_HOLD in scripts/duo). One that
+# arrives this long after the move's first changed frame was still changing, or stuck, and isn't
+# counted as settled. The first changed frame, not the move: the simulator can take seconds to
+# light the screen a move lands on.
 WINDOW = 4.0
 
 
@@ -128,7 +129,8 @@ def marks_of(moves):
 
 
 def cut(folder, state, n, after):
-    """Move n's frames in the film of the screen it lands on, and how they were cut."""
+    """Move n's film, the screen it lands on, where its cut starts, and its frames from a little
+    before it to the end of its hold."""
     screen = screen_of(after)
     film = folder / f'{state}-{screen}.mov'
     began = folder / f'{state}-{screen}.start'
@@ -140,11 +142,7 @@ def cut(folder, state, n, after):
     zero = int(began.read_text())
     start = (at - zero) / 1000 - BEFORE
     until = int(marks[n + 1][0]) if n + 1 < len(marks) else zero + ended(film)
-    held = (until - at) / 1000 + BEFORE - AFTER
-    seconds = min(held, WINDOW + BEFORE)
-    frames = gray(film, start, held)
-    last = frames[-1] if frames and held > seconds + 0.5 else None
-    return film, start, seconds, frames[:round(seconds * FPS)], last
+    return film, start, gray(film, start, (until - at) / 1000 + BEFORE - AFTER)
 
 
 def main(folder):
@@ -155,7 +153,7 @@ def main(folder):
     if 'probe' in states:
         for n, (_, _, after) in enumerate(moves):
             taken = cut(folder, 'probe', n, after)
-            moved = taken and settle(taken[3], lambda a, b: not differs(a, b, PROBE_SHARE))
+            moved = taken and settle(taken[2], lambda a, b: not differs(a, b, PROBE_SHARE))
             ios[n] = moved[1] - moved[0] if moved else 0
     rows = ['| state | move | iOS’s own (ms) | app final after it lands (ms) | '
             'wrong frames after it lands |', '|---|---|---|---|---|']
@@ -167,19 +165,19 @@ def main(folder):
             if taken is None:
                 rows.append(f'| {state} | {move} | {own} | no film | |')
                 continue
-            film, start, seconds, frames, held = taken
-            if held is not None and frames and differs(frames[-1], held):
-                rows.append(f'| {state} | {move} | {own} | not settled in {WINDOW:g} s | |')
-                continue
+            film, start, frames = taken
             moved = settle(frames)
             if moved is None:
                 rows.append(f'| {state} | {move} | {own} | nothing moved | 0 |')
                 continue
             first, last = moved
+            if last - first > WINDOW * FPS:
+                rows.append(f'| {state} | {move} | {own} | not settled in {WINDOW:g} s | |')
+                continue
             landed = min(last, first + ios.get(n, 0))
             rows.append(f'| {state} | {move} | {own} | {ms(last - landed)} | '
                         f'{wrong(frames, landed, last)} |')
-            sheet(film, start, seconds, first, landed, last,
+            sheet(film, start, (last + 3) / FPS, first, landed, last,
                   folder / 'frames' / f'{state}-{n + 1}-{before}-{after}')
     table = '\n'.join(rows) + '\n'
     (folder / 'table.md').write_text(table)
