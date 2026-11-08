@@ -23,8 +23,9 @@ struct ColumnView: ExpoSwiftUI.View {
       let place = placed(in: room)
       VStack(spacing: 0) {
         ForEach(Array(children.enumerated()), id: \.element.childIdentity) { index, child in
+          let view: any View = child.childView
           if index > 0 { Spacer(minLength: 0) }
-          AnyView(child.childView)
+          AnyView(view)
         }
       }
       .padding(.top, place.top)
