@@ -37,16 +37,18 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.92.0",
     "@rive-app/webgl2": "^2.44.2",
     "@types/node": "^24.19.2",
     "@types/react": "~19.3.0",
-    "oxlint": "^1.91.0",
-    "oxlint-tsgolint": "^7.0.2005",
+    "oxlint": "1.92.0",
+    "oxlint-tsgolint": "7.0.2006",
     "patch-package": "^8.0.1",
     "playwright-core": "^1.64.0",
     "prettier": "^3.9.6",
     "tsx": "^4.23.13",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "ultracite": "8.1.1"
   },
   "scripts": {
     "start": "expo start --dev-client --port 8088 --lan",
@@ -60,9 +62,10 @@
     "voice-previews": "tsx scripts/voice-previews.mts",
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
-    "check": "npm run typecheck && npm test && python3 -m unittest discover -s scripts/tests && npm run format:check",
+    "check": "npm run typecheck && npm run lint && npm test && python3 -m unittest discover -s scripts/tests && npm run format:check",
     "postinstall": "patch-package",
-    "activity-orbs": "tsx scripts/activity-orbs.mts"
+    "activity-orbs": "tsx scripts/activity-orbs.mts",
+    "lint": "oxlint"
   },
   "private": true,
   "description": "hex's iPhone voice app: call your hex from a real app, on GPT-Live 1.",

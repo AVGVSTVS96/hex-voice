@@ -1,5 +1,11 @@
 {
   "singleQuote": true,
   "printWidth": 100,
-  "trailingComma": "all"
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "tools/oxlint/no-comments.ts",
+      "options": { "singleQuote": false, "printWidth": 80 }
+    }
+  ]
 }
