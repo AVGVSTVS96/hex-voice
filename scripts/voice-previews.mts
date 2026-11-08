@@ -16,8 +16,6 @@ const OUT = path.join(import.meta.dirname, '..', 'assets', 'voices');
 const RATE = 24_000;
 const CHUNK_MS = 100;
 
-// Output audio streams silence between turns and has no done event, so the transcript marks where
-// the line ends: no new words for QUIET_MS, then audio up to the last word's end plus TAIL_MS.
 const LINE_ENDS_AFTER_QUIET_MS = 1500;
 const AUDIO_PAST_LAST_WORD_MS = 600;
 
@@ -32,7 +30,7 @@ const ServerEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.output_audio.delta'), delta: z.string() }),
 ]);
 
-// Node's WebSocket (undici) takes headers, which the DOM type it shares doesn't list.
+// SAFETY: Node's global WebSocket is undici's, which takes headers.
 const NodeWebSocket = WebSocket as typeof UndiciWebSocket;
 
 const previewLine = (name: string) => `Hi, I'm ${name}. Whenever you need me, I'm right here.`;
@@ -133,7 +131,6 @@ const render = async (voice: LiveVoice, name: string) => {
   await spoken.promise;
 
   const trim = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse';
-  // Trim the silence around the line and match loudness, so swiping compares voices, not volume.
   const trimmedToOneLoudness = `${trim},${trim},loudnorm=I=-18:TP=-1.5`;
   execFileSync(
     'ffmpeg',

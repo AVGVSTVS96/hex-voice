@@ -1,19 +1,3 @@
-// Stands in for hex's voice server while scripts/duo checks the app, on the Mac beside the
-// simulator. Reads go to the real server, so the screens show his real tasks, and each answer is
-// kept in DUO_HEX_ANSWERS by path. With DUO_HEX_REPLAY set, reads are answered from that file
-// instead, so both sides of a before/after see the same lists and a check runs while hex is slow;
-// a watch (?after=) then gets no answer, as hex gives none until something changes. DUO_HEX_ALSO
-// names a file of a run's own answers by path, which replay gives ahead of the kept ones. While
-// the file DUO_HEX_DOWN exists, every read is dropped, as when hex can't be reached. Every write
-// (answering, noting, undoing, acting, starting a call) is answered here and dropped, so a check can
-// never answer or act for him. The app under check only knows this address and a dummy token.
-// It speaks HTTPS with HTTP/2, as hex does, under a root only the simulator trusts (DUO_HEX_TLS):
-// the app keeps several watches open at once, and over HTTP/1.1 iOS gives a host 4 connections, so
-// every other read would wait behind them. Photos and clips sent to /media stay here, in memory,
-// under hex's rules: only its types (415 for any other), a JPEG or PNG back as it came and any
-// other photo or a clip as a JPEG, here duo-media.jpg; an id it never saw, like one a kept
-// chat names, comes back as duo-media.jpg too. A call (one id or several) or a thread sent an
-// id it never gave out answers 400, as hex does.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createSecureServer } from 'node:http2';
 
@@ -22,7 +6,6 @@ const { DUO_HEX_PORT, DUO_HEX_ANSWERS, DUO_HEX_REPLAY, DUO_HEX_ALSO, DUO_HEX_DOW
 
 const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 
-// hex says what an answer, a note or a not needed reached; a dropped one reached nothing.
 const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(?:answer|note|dismiss)(?:\?|$)/u;
 const REACHED_NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
 
@@ -69,7 +52,6 @@ const bodyOf = async (request) => {
   return Buffer.concat(chunks);
 };
 
-// The ids a call's or a thread's write names: { media: id } or { media: [ids] }.
 const mediaIdsNamed = (body) => {
   try {
     const { media: ids } = JSON.parse(body.toString());

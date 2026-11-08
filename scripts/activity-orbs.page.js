@@ -1,4 +1,3 @@
-// Runs in the browser page that scripts/activity-orbs.mts drives.
 window.loadOrb = async ({ color, palette }) => {
   const loaded = Promise.withResolvers();
   const { Rive, RuntimeLoader, Layout, Fit } = window.rive;
@@ -18,7 +17,6 @@ window.loadOrb = async ({ color, palette }) => {
 
       if (model) {
         rive.bindViewModelInstance(model);
-        // The first advance writes the file's own color back, as in the native renderer.
         const tint = model.color('color');
         const rgb = color && [1, 3, 5].map((at) => Number.parseInt(color.slice(at, at + 2), 16));
 

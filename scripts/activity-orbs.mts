@@ -13,7 +13,6 @@ const RIVE = path.dirname(createRequire(import.meta.url).resolve('@rive-app/webg
 const CANVAS = 400;
 const SIZE = 144;
 
-// The idle orb at this moment matches the still the app shows before a call starts.
 const PRECALL_STILL_AT_MS = 1000;
 
 const files = new Map([

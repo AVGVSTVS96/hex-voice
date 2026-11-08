@@ -1,9 +1,4 @@
-// The app's over-the-air update store: `publish` adds an `expo export` to it, `serve` answers the
-// app over the Expo Updates protocol (https://docs.expo.dev/technical-specs/expo-updates-1/).
-//
-//   <dir>/assets/<sha256>.<ext>          every published file, content-addressed and immutable
-//   <dir>/<platform>/<runtime>/          a runtime his Duo has a native build of (made by ship-native)
-//   <dir>/<platform>/<runtime>/manifest.json   its latest update
+// The Expo Updates protocol `serve` answers: https://docs.expo.dev/technical-specs/expo-updates-1/
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
