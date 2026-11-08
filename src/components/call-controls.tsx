@@ -1,5 +1,5 @@
 import { GlassEffectContainer, HStack, Spacer, VStack } from '@expo/ui/swift-ui';
-import { frame } from '@expo/ui/swift-ui/modifiers';
+import { frame, type ModifierConfig } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { buttonsOf, type Call, type CallButton } from '@/call/call';
@@ -13,7 +13,6 @@ type Props = {
   axis: 'row' | 'column';
   mute?: boolean;
   size?: ControlsSize;
-  style?: ViewStyle;
   onMute: () => void;
   onPrimary: () => void;
 };
@@ -29,27 +28,64 @@ const PRIMARY: Record<
   ending: { icon: 'waveform', label: 'Ending conversation', loading: true, off: true },
 };
 
-// Mute and the call button: a row beside each other on the phone, a column in iPhone Duo's side
-// column with mute above. A call held elsewhere, like a phone call, mutes there, not here. In the
-// iPad inbox's rail, before any call, the call button waits alone.
-export function CallControls({
+// Mute and the call button, as SwiftUI: a row beside each other on the phone, a column in iPhone
+// Duo's side column with mute above. A call held elsewhere, like a phone call, mutes there, not
+// here. In the iPad inbox's rail, before any call, the call button waits alone.
+export function CallButtons({
   call,
   ready,
   axis,
   mute = true,
   size = 'regular',
-  style,
+  modifiers,
   onMute,
   onPrimary,
-}: Props) {
+}: Props & { modifiers?: ModifierConfig[] }) {
   const sizes = metrics.controls[size];
   const buttons = buttonsOf(call);
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
-  const callSide = metrics[sizes.call];
-  const along = (mute ? muteSide + sizes.gap : 0) + callSide;
   const Stack = axis === 'row' ? HStack : VStack;
-  const primaryOff = primary.off || !ready;
+  return (
+    <GlassEffectContainer modifiers={modifiers}>
+      <Stack spacing={sizes.gap}>
+        {/* With no call there's nothing to mute, so an empty space holds mute's place and the
+        call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
+        a glass button with opacity 0 still drew, glyph and all. */}
+        {mute && !buttons.mute ? (
+          <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
+        ) : mute && buttons.mute ? (
+          <GlassButton
+            icon={buttons.mute.muted ? 'mic-off' : 'mic'}
+            label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
+            testID="session-mute-button"
+            disabled={!buttons.mute.enabled}
+            selected={buttons.mute.muted}
+            size={sizes.mute}
+            onPress={onMute}
+          />
+        ) : null}
+        <GlassButton
+          icon={primary.icon}
+          label={primary.label}
+          testID="session-primary-button"
+          prominent
+          size={sizes.call}
+          loading={primary.loading}
+          disabled={primary.off || !ready}
+          onPress={onPrimary}
+        />
+      </Stack>
+    </GlassEffectContainer>
+  );
+}
+
+// CallButtons where React Native places them, in a Host of their own.
+export function CallControls({ style, ...props }: Props & { style?: ViewStyle }) {
+  const { axis, mute = true, size = 'regular' } = props;
+  const sizes = metrics.controls[size];
+  const callSide = metrics[sizes.call];
+  const along = (mute ? metrics[sizes.mute] + sizes.gap : 0) + callSide;
   return (
     <View
       pointerEvents="box-none"
@@ -61,36 +97,7 @@ export function CallControls({
           axis === 'row' ? { width: along, height: callSide } : { width: callSide, height: along }
         }
       >
-        <GlassEffectContainer>
-          <Stack spacing={sizes.gap}>
-            {/* With no call there's nothing to mute, so an empty space holds mute's place and the
-            call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
-            a glass button with opacity 0 still drew, glyph and all. */}
-            {mute && !buttons.mute ? (
-              <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
-            ) : mute && buttons.mute ? (
-              <GlassButton
-                icon={buttons.mute.muted ? 'mic-off' : 'mic'}
-                label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
-                testID="session-mute-button"
-                disabled={!buttons.mute.enabled}
-                selected={buttons.mute.muted}
-                size={sizes.mute}
-                onPress={onMute}
-              />
-            ) : null}
-            <GlassButton
-              icon={primary.icon}
-              label={primary.label}
-              testID="session-primary-button"
-              prominent
-              size={sizes.call}
-              loading={primary.loading}
-              disabled={primaryOff}
-              onPress={onPrimary}
-            />
-          </Stack>
-        </GlassEffectContainer>
+        <CallButtons {...props} />
       </Host>
     </View>
   );
