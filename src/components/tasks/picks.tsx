@@ -15,6 +15,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Markdown } from '@/components/markdown';
 import { Header, PageBar, useChrome } from '@/components/tasks/bar';
@@ -29,6 +30,7 @@ import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
+import type { Tone } from '@/ui/tokens';
 
 export interface Picked {
   ask: Ask;
@@ -203,7 +205,7 @@ const PickRow = ({
           numberOfLines={1}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          {ask.tag ? `${ask.topic} · ${ask.tag}` : ask.topic}
+          {ask.tag === undefined || ask.tag === '' ? ask.topic : `${ask.topic} · ${ask.tag}`}
         </Text>
         <Icon name="chevron.right" size={metrics.symbol.small} color={theme.secondary} />
       </Row>
@@ -215,8 +217,27 @@ const PickRow = ({
   );
 };
 
+interface TagLook {
+  pick: boolean;
+  icon: SFSymbol;
+  ink: Tone;
+  text: string;
+}
+
+const tagLook = (choice: Choice): TagLook => {
+  if (choice === 'later') {
+    return { pick: false, icon: 'clock', ink: 'tertiary', text: LATER };
+  }
+
+  if (choice.pick === true) {
+    return { pick: true, icon: 'sparkle', ink: 'accent', text: `${choice.label} · ${PICK}` };
+  }
+
+  return { pick: false, icon: 'checkmark', ink: 'text', text: choice.label };
+};
+
 const AnswerTag = ({ choice }: { choice: Choice }) => {
-  const pick = choice !== 'later' && choice.pick;
+  const { pick, icon, ink, text } = tagLook(choice);
   const later = choice === 'later';
 
   return (
@@ -230,11 +251,7 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
         clipShape('capsule'),
       ]}
     >
-      <Icon
-        name={pick ? 'sparkle' : later ? 'clock' : 'checkmark'}
-        size={metrics.symbol.small}
-        color={pick ? theme.accent : later ? theme.tertiary : theme.text}
-      />
+      <Icon name={icon} size={metrics.symbol.small} color={theme[ink]} />
       <Text
         variant="detail"
         weight="medium"
@@ -242,7 +259,7 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
         paragraph
         modifiers={[fixedSize({ horizontal: false, vertical: true })]}
       >
-        {later ? LATER : pick ? `${choice.label} · ${PICK}` : choice.label}
+        {text}
       </Text>
     </Row>
   );
@@ -267,11 +284,11 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
 
   const { ask } = picked;
   const choice = choices.choiceOf(picked);
-  const hexs = ask.options.find((option) => option.pick);
-  const door = ask.places.find((place) => place.link);
+  const hexs = ask.options.find((option) => option.pick === true);
+  const door = ask.places.find((place) => (place.link ?? '') !== '');
 
   const links = [
-    ...(door?.link ? [{ label: `Open ${door.place}`, url: door.link }] : []),
+    ...(door?.link === undefined ? [] : [{ label: `Open ${door.place}`, url: door.link }]),
     ...(ask.links ?? []),
   ];
 
@@ -300,7 +317,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                 {ask.question}
               </Text>
             </Column>
-            {ask.why && hexs ? (
+            {ask.why !== undefined && ask.why !== '' && hexs ? (
               <Column
                 alignment="start"
                 spacing={space[2]}
@@ -397,11 +414,11 @@ const Heading = ({ title, detail }: { title: string; detail?: string }) => (
     modifiers={[padding({ leading: space[2], top: space[6], bottom: space[1] })]}
   >
     <Text variant="headline">{title}</Text>
-    {detail ? (
+    {detail === undefined || detail === '' ? null : (
       <Text variant="caption" tone="secondary" paragraph modifiers={wraps}>
         {detail}
       </Text>
-    ) : null}
+    )}
   </Column>
 );
 
@@ -446,11 +463,11 @@ const OptionCard = ({
       <Text variant="body" weight="medium" paragraph modifiers={wraps}>
         {title}
       </Text>
-      {detail ? (
+      {detail === undefined || detail === '' ? null : (
         <Text variant="detail" tone="secondary" paragraph modifiers={wraps}>
           {detail}
         </Text>
-      ) : null}
+      )}
       {pick ? (
         <Row alignment="center" spacing={space[1]}>
           <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
@@ -462,6 +479,9 @@ const OptionCard = ({
     </Column>
   </Row>
 );
+
+const saidAt = (at: string | undefined) =>
+  at === undefined || at === '' ? '' : ` · ${clock(new Date(at))}`;
 
 // Where it was asked, in the thread's own words, all of them, and the way into the thread.
 const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
@@ -475,9 +495,7 @@ const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string 
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Heading
         title="From the thread"
-        detail={
-          words ? `${words.place}${words.at ? ` · ${clock(new Date(words.at))}` : ''}` : undefined
-        }
+        detail={words ? `${words.place}${saidAt(words.at)}` : undefined}
       />
       {words ? (
         <Markdown

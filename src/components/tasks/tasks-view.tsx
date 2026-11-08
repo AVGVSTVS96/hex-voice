@@ -16,7 +16,7 @@ import { Linking } from 'react-native';
 
 import { TASKS } from '@/call/stage';
 import { PageChrome } from '@/components/tasks/bar';
-import type { Back, Chrome } from '@/components/tasks/bar';
+import type { Back, Chrome, Door } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
 import { ListPage } from '@/components/tasks/list';
 import { PickPage, PicksPage, usePickChoices } from '@/components/tasks/picks';
@@ -114,9 +114,13 @@ export const Tasks = ({
       pages.go({ to: 'stage', stage });
     }
   }, [open, loaded, pages.stage, stage]);
+
   // Beside the list, before the list has picked, the page is the first project of its tab, so the
   // pane is never blank while it picks.
-  const [leading] = pages.shape !== 'one' && !pages.task ? stageTopics(entries, stage) : [];
+  const leading = (
+    pages.shape !== 'one' && (pages.task ?? '') === '' ? stageTopics(entries, stage) : []
+  ).at(0);
+
   const showing = pages.task ?? (leading ? pageOf(leading) : null);
   // A project with no thread to show has a page of its own, with nothing to fetch.
   const { task } = useTask(taskIn(showing), version);
@@ -131,15 +135,17 @@ export const Tasks = ({
 
   const alone = opened || asked ? undefined : topicIn(showing);
   const did = finished.find((one) => one.id === doneIn(showing));
+  const run = did?.run;
   const topic = opened?.name ?? asked?.topic ?? alone;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
 
   // The ask you tapped leads its topic's.
-  const topicAsks = topic
-    ? yours.shown
-        .filter((ask) => ask.topic === topic)
-        .sort((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row))
-    : [];
+  const topicAsks =
+    topic === undefined || topic === ''
+      ? []
+      : yours.shown
+          .filter((ask) => ask.topic === topic)
+          .toSorted((a, b) => Number(b.id === pages.row) - Number(a.id === pages.row));
 
   const said = useChat(opened ? opened.id : null, open);
 
@@ -164,46 +170,46 @@ export const Tasks = ({
   };
 
   // A link to an app that isn't installed fails without a word from iOS, so its place says so.
-  const openLink = (link: string, place: Place) => {
+  const openLink = async (link: string, place: Place) => {
     tap();
-    Linking.openURL(link).then(
-      () => {
-        if (missing.has(place)) {
-          setMissing(new Set([...missing].filter((one) => one !== place)));
-        }
-      },
-      () => {
-        setMissing(new Set([...missing, place]));
-      },
-    );
+
+    try {
+      await Linking.openURL(link);
+    } catch {
+      setMissing(new Set([...missing, place]));
+
+      return;
+    }
+
+    if (missing.has(place)) {
+      setMissing(new Set([...missing].filter((one) => one !== place)));
+    }
   };
 
-  const openThread = (thread: TaskRow) => {
-    openLink(thread.link!, placeOf(thread.app));
+  const doorTo = (link: string, place: Place): Door => ({
+    place,
+    onPress: () => {
+      void openLink(link, place);
+    },
+  });
+
+  const openThread = ({ link, app }: TaskRow) => {
+    if (link !== undefined) {
+      void openLink(link, placeOf(app));
+    }
   };
 
   // Where an ask was asked, as its topic's way there when no thread of it is left to open.
   const doorOf = (ask: Ask) => {
-    const where = ask.places.find((one) => one.link);
+    const where = ask.places.find((one) => (one.link ?? '') !== '');
 
-    if (!where?.link) {
-      return;
-    }
-
-    const place = placeOf(where.app);
-
-    return {
-      place,
-      onPress: () => {
-        openLink(where.link!, place);
-      },
-    };
+    return where?.link === undefined ? undefined : doorTo(where.link, placeOf(where.app));
   };
 
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
-      if (tile.link) {
-        openLink(tile.link, tile.place);
+      if (tile.link !== undefined && tile.link !== '') {
+        void openLink(tile.link, tile.place);
       }
 
       return;
@@ -216,7 +222,7 @@ export const Tasks = ({
     }
     // A page's link is the web's, which the browser always opens.
     else {
-      void Linking.openURL(tile.url).catch(() => {});
+      void Linking.openURL(tile.url).catch(() => null);
     }
   };
 
@@ -225,9 +231,9 @@ export const Tasks = ({
     pages.go({ to: 'steps', id });
   };
 
-  const write = (write: boolean) => {
+  const write = (typed: boolean) => {
     tick();
-    pages.go({ to: 'thread', write });
+    pages.go({ to: 'thread', write: typed });
   };
 
   const talk = (thread: TaskRow) => {
@@ -241,7 +247,7 @@ export const Tasks = ({
     call: 'Call',
     list: 'Tasks',
     topic: opened?.name ?? 'Topic',
-    thread: (opened?.place || opened?.name) ?? 'Thread',
+    thread: opened === undefined ? 'Thread' : opened.place || opened.name,
     steps: 'Steps',
     check: 'Last check',
     picks: 'hex’s picks',
@@ -260,7 +266,7 @@ export const Tasks = ({
   });
 
   // On iPhone Duo the shown page's way back goes to the toolbar, and no page heads itself with one.
-  const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back)?.back;
+  const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back !== undefined)?.back;
 
   const inToolbar = useToolbarBack(
     'tasks',
@@ -273,7 +279,13 @@ export const Tasks = ({
   });
 
   const typingOn = (level: Level) => (on: boolean) => {
-    setTyping((was) => (on ? level : was === level ? null : was));
+    setTyping((was) => {
+      if (on) {
+        return level;
+      }
+
+      return was === level ? null : was;
+    });
 
     if (on) {
       pages.go({ to: 'composerFocused' });
@@ -378,21 +390,16 @@ export const Tasks = ({
         <DonePage
           finished={did}
           door={
-            did.link
-              ? {
-                  place: placeOf(did.app),
-                  onPress: () => {
-                    openLink(did.link!, placeOf(did.app));
-                  },
-                }
-              : undefined
+            did.link === undefined || did.link === ''
+              ? undefined
+              : doorTo(did.link, placeOf(did.app))
           }
           onOpenLink={openTile}
           onOpenProject={
-            did.run && tasks?.some((row) => row.id === did.run)
+            run !== undefined && run !== '' && tasks?.some((row) => row.id === run) === true
               ? () => {
                   tick();
-                  pages.go({ to: 'topic', id: did.run! });
+                  pages.go({ to: 'topic', id: run });
                 }
               : undefined
           }
@@ -472,7 +479,7 @@ export const Tasks = ({
         <Trace
           task={traced.task}
           onOpen={(link) => {
-            openLink(link, 't3');
+            void openLink(link, 't3');
           }}
         />
       ) : (
@@ -570,11 +577,17 @@ export const Tasks = ({
   );
 };
 
-const newestOf = (rows: TaskRow[]) =>
-  rows.reduce<TaskRow | undefined>(
-    (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
-    undefined,
-  );
+const newestOf = (rows: TaskRow[]) => {
+  let newest: TaskRow | undefined;
+
+  for (const row of rows) {
+    if (!newest || Date.parse(row.at) > Date.parse(newest.at)) {
+      newest = row;
+    }
+  }
+
+  return newest;
+};
 
 // The page beside the list before a project is open: hex still loading, or nothing picked yet.
 const Nothing = ({ loaded }: { loaded: boolean }) => (

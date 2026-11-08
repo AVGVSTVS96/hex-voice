@@ -167,6 +167,10 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
         />
       );
     }
+
+    default: {
+      return state satisfies never;
+    }
   }
 };
 

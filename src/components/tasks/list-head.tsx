@@ -66,7 +66,7 @@ export const Tabs = ({
       frame({ maxWidth: Infinity }),
     ]}
   >
-    {title ? (
+    {title === undefined || title === '' ? null : (
       <Row
         alignment="center"
         spacing={space[3]}
@@ -77,7 +77,7 @@ export const Tabs = ({
           {title}
         </Text>
       </Row>
-    ) : null}
+    )}
     <Row
       alignment="center"
       spacing={0}
@@ -89,10 +89,10 @@ export const Tabs = ({
         frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
     >
-      {TABS.map(({ key, title }) => {
+      {TABS.map(({ key, title: name }) => {
         const on = key === stage;
         const count = key === 'all' ? undefined : counts[key];
-        const needs = !unknown && key === 'needs' && !!count;
+        const needs = !unknown && key === 'needs' && count !== undefined && count > 0;
 
         return (
           <Row
@@ -108,7 +108,7 @@ export const Tabs = ({
               ...(on ? [background(theme.card)] : []),
               clipShape('capsule'),
               contentShape(shapes.capsule()),
-              accessibilityLabel(unknown || count === undefined ? title : `${title}, ${count}`),
+              accessibilityLabel(unknown || count === undefined ? name : `${name}, ${count}`),
               ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
             ]}
           >
@@ -119,7 +119,7 @@ export const Tabs = ({
               tone={on ? 'text' : 'secondary'}
               modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
             >
-              {title}
+              {name}
             </Text>
             {count === undefined ? null : (
               <Text

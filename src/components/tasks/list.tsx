@@ -94,8 +94,8 @@ export const ListPage = ({
   const { back } = useChrome();
   const { query } = pages;
 
-  const setQuery = (query: string | null) => {
-    pages.go({ to: 'search', query });
+  const setQuery = (next: string | null) => {
+    pages.go({ to: 'search', query: next });
   };
 
   const counts = stageCounts(entries, yours.answered);
@@ -104,14 +104,14 @@ export const ListPage = ({
   const { needs, working } = counts;
   const counted = open && loaded && current && yours.current;
   useEffect(() => {
-    if (!counted) {
-      return;
+    if (counted) {
+      onCounts({ needs, working });
     }
 
-    onCounts({ needs, working });
-
     return () => {
-      onCounts(undefined);
+      if (counted) {
+        onCounts(undefined);
+      }
     };
   }, [counted, needs, working, onCounts]);
 
@@ -128,11 +128,12 @@ export const ListPage = ({
   const picks = picksOf(entries, yours.answered);
   const beside = pages.shape !== 'one';
   const searching = query !== null;
-  const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
+  const top = topics.at(0);
+  const first = searching ? shown.map(taskOf).find(Boolean) : top && pageOf(top);
   // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
   // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
-    if (open && !pages.task && first) {
+    if (open && (pages.task ?? '') === '' && first !== undefined && first !== '') {
       pages.go({ to: 'beside', id: first });
     }
   }, [open, pages.task, first]);
@@ -156,10 +157,10 @@ export const ListPage = ({
 
   const searchField = useField();
 
-  const openPage = (id: PageId, row?: string) => {
+  const openPage = (page: PageId, row?: string) => {
     feel.tick();
     searchField.current?.blur();
-    pages.go({ to: 'topic', id, row });
+    pages.go({ to: 'topic', id: page, row });
   };
 
   // A new tab picks its first project beside the list in the same move, so the page beside never
@@ -167,7 +168,7 @@ export const ListPage = ({
   const chooseStage = (next: Tab) => {
     feel.tick();
     pages.go({ to: 'stage', stage: next });
-    const [lead] = stageTopics(entries, next);
+    const lead = stageTopics(entries, next).at(0);
 
     if (beside) {
       pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
@@ -194,17 +195,18 @@ export const ListPage = ({
       feel.tap();
       yours.again(ask);
     },
-    onAct: (id: string) => {
+    onAct: (item: string) => {
       feel.tap();
-      void yours.act(id);
+      void yours.act(item);
     },
-    onRead: (id: string) => {
+    onRead: (item: string) => {
       feel.tick();
-      void yours.read(id);
+      void yours.read(item);
     },
   };
 
   const unreachable = (offline || yours.offline) && !loaded;
+  const loading = loaded ? null : <Loading />;
   // A page as wide as a landscape phone holds back, its title, the stages and search in one row,
   // where they fit; a narrower one gives back, its title and search a bar of their own above the
   // stages. SwiftUI picks from the width it lays the page out at.
@@ -327,9 +329,9 @@ export const ListPage = ({
             />
           ) : null}
           {loaded && !topics.length ? (
-            <Empty text={query ? 'Nothing matches' : EMPTY[stage]} />
+            <Empty text={query === null || query === '' ? EMPTY[stage] : 'Nothing matches'} />
           ) : null}
-          {unreachable ? <Empty text={UNREACHED} /> : loaded ? null : <Loading />}
+          {unreachable ? <Empty text={UNREACHED} /> : loading}
         </List>
       </Faded>
       {goThrough}

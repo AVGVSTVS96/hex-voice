@@ -19,6 +19,7 @@ import { YourCall } from '@/components/tasks/ask-card';
 import { Header, Talk } from '@/components/tasks/bar';
 import type { Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
+import type { MarkState } from '@/components/tasks/mark';
 import { Faded, SectionHead, Sections, StageHead, listRow } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
 import { PlaceTile, Places, TileIcon, hasPlaces } from '@/components/tasks/places';
@@ -30,7 +31,7 @@ import { Lane } from '@/components/tasks/lane';
 import { placeOf, proofLinks, proofSays, proofWords, tracksOf } from '@/live/inbox';
 import type { Place, Tile } from '@/live/inbox';
 import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from '@/live/tasks';
-import type { Finished, Task, TaskRow, TaskId } from '@/live/tasks';
+import type { Finished, Task, TaskRow, TaskId, TaskState } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
@@ -86,8 +87,8 @@ export const Detail = ({
     (one) => one.state === 'working',
   );
 
-  const open = asks.filter((ask) => !answered[ask.id]).length;
-  const door = [task, ...threads].find((one) => one.link);
+  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
+  const door = [task, ...threads].find((one) => (one.link ?? '') !== '');
   const tracks = tracksOf(task.name, threads.length ? threads : [task]);
   // The lane ends at now, as of when the page opened.
   const now = useNow(false).getTime();
@@ -120,7 +121,7 @@ export const Detail = ({
           ) : null}
           <Column alignment="start" spacing={0} modifiers={rest()}>
             <Sections follows={asks.length > 0}>
-              {needs ? (
+              {needs === undefined || needs === '' ? null : (
                 <Column key="needs" alignment="start" spacing={0}>
                   <StageHead tint="needs" title="Needs you" />
                   <Text
@@ -146,7 +147,7 @@ export const Detail = ({
                     {`Waiting on you since ${clock(new Date(task.since))}`}
                   </Text>
                 </Column>
-              ) : null}
+              )}
               {working.length ? (
                 <Column key="working" alignment="start" spacing={0}>
                   <StageHead tint="working" title="Working" count={working.length} />
@@ -174,7 +175,9 @@ export const Detail = ({
                   />
                 </Column>
               ) : null}
-              {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
+              {full?.pin === undefined || full.pin === '' ? null : (
+                <Pinned key="pin" text={full.pin} />
+              )}
               {messages}
               {hasPlaces(task, threads) ? (
                 <Places
@@ -206,13 +209,7 @@ export const Detail = ({
                   {lately.map((moment, i) => (
                     <TraceLine
                       key={`${moment.at} ${i}`}
-                      lead={
-                        <Mark
-                          state={
-                            i === 0 ? moment.state : moment.state === 'failed' ? 'failed' : 'read'
-                          }
-                        />
-                      }
+                      lead={<Mark state={i === 0 ? moment.state : pastMark(moment.state)} />}
                       text={moment.text}
                       tone={i > 0 ? 'secondary' : undefined}
                       time={clock(new Date(moment.at))}
@@ -258,7 +255,7 @@ export const Asked = ({
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
 }) => {
-  const open = asks.filter((ask) => !answered[ask.id]).length;
+  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
   const others = rows?.length ?? 0;
 
   return (
@@ -354,15 +351,14 @@ export const DonePage = ({
                   </Text>
                 ) : null}
                 {links.map((link) => {
-                  const url =
-                    link.kind === 'link' ? link.url : link.kind === 'app' ? link.link : '';
+                  const url = tileUrl(link);
 
                   return (
                     <Way
                       key={url}
                       lead={<TileIcon tile={link} size={metrics.list.tile} />}
                       title={link.label}
-                      note={url?.replace(/^https?:\/\//, '') ?? ''}
+                      note={url?.replace(/^https?:\/\//u, '') ?? ''}
                       out
                       onPress={() => {
                         onOpenLink(link);
@@ -468,6 +464,10 @@ const Run = ({
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
   const agents = agentWords(thread.agents, working);
 
+  const progress = working ? (
+    <TraceLine lead={<Mark state="working" />} text={thread.line} />
+  ) : null;
+
   return (
     <Column
       alignment="start"
@@ -510,20 +510,26 @@ const Run = ({
           <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
         </Row>
       ) : null}
-      {steps.length ? (
-        <Steps steps={steps} agents={thread.agents} opens={false} />
-      ) : working ? (
-        <TraceLine lead={<Mark state="working" />} text={thread.line} />
-      ) : null}
-      {agents ? (
+      {steps.length ? <Steps steps={steps} agents={thread.agents} opens={false} /> : progress}
+      {agents === undefined ? null : (
         <TraceLine
           lead={<Icon name={KIND.agent} size={metrics.symbol.small} color={theme.secondary} />}
           text={agents}
           tone="secondary"
         />
-      ) : null}
+      )}
     </Column>
   );
+};
+
+const pastMark = (state: TaskState): MarkState => (state === 'failed' ? 'failed' : 'read');
+
+const tileUrl = (tile: Tile) => {
+  if (tile.kind === 'link') {
+    return tile.url;
+  }
+
+  return tile.kind === 'app' ? tile.link : '';
 };
 
 // What needs you and since when, or what it's doing and for how long: a bare time never says which.

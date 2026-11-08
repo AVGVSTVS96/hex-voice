@@ -114,7 +114,7 @@ export const ThreadPage = ({
 }) => {
   const field = useField();
   const place = PLACES[placeOf(thread.app)];
-  const running = thread.running;
+  const { running } = thread;
   const title = thread.place || thread.name;
   // Its back names the topic, so the topic's own thread is headed for what it holds.
   const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
@@ -132,7 +132,10 @@ export const ThreadPage = ({
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
       {beside ? (
-        <PageBar title="Messages" subtitle={chat?.total ? String(chat.total) : undefined} />
+        <PageBar
+          title="Messages"
+          subtitle={chat === undefined || chat.total === 0 ? undefined : String(chat.total)}
+        />
       ) : (
         <Header
           title={heading}
@@ -142,14 +145,14 @@ export const ThreadPage = ({
               : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
           }
           door={
-            thread.link
-              ? {
+            thread.link === undefined || thread.link === ''
+              ? undefined
+              : {
                   place: placeOf(thread.app),
                   onPress: () => {
                     onOpen(thread);
                   },
                 }
-              : undefined
           }
         />
       )}
@@ -216,15 +219,13 @@ export const ThreadPage = ({
           label={`Working: ${doing ?? ''}. Shows its steps`}
         />
       ) : null}
-      {failed ? (
-        <Failure
-          text={failed}
-          modifiers={[
-            padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: space[2] }),
-          ]}
-        />
-      ) : null}
-      {chat?.sends ? (
+      <Failure
+        text={failed}
+        modifiers={[
+          padding({ leading: metrics.list.inset, trailing: metrics.list.inset, top: space[2] }),
+        ]}
+      />
+      {chat?.sends === true ? (
         <Composer
           key={thread.id}
           field={field}
@@ -275,11 +276,7 @@ const Composer = ({
   const [typing, setTyping] = useState(false);
   const typingHere = useContext(Typing);
   useEffect(() => {
-    if (!focus) {
-      return;
-    }
-
-    const wait = setTimeout(() => input.current?.focus(), 350);
+    const wait = focus ? setTimeout(() => input.current?.focus(), 350) : undefined;
 
     return () => {
       clearTimeout(wait);

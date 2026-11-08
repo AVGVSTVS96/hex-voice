@@ -20,7 +20,7 @@ import {
 import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import type { SFSymbol } from 'sf-symbols-typescript';
-import { Children, isValidElement } from 'react';
+import { isValidElement } from 'react';
 import type { ReactNode } from 'react';
 
 import { Badge, inkOf } from '@/components/tasks/mark';
@@ -198,7 +198,7 @@ export const SectionHead = ({
 
 // A section that holds a state: its name in that state's color on a tinted dot, its count beside.
 export const StageHead = ({
-  tint,
+  tint: stage,
   title,
   count,
 }: {
@@ -221,8 +221,8 @@ export const StageHead = ({
       accessibilityAddTraits(['isHeader']),
     ]}
   >
-    <Badge tint={tint} />
-    <Text variant="headline" tone={inkOf(tint)}>
+    <Badge tint={stage} />
+    <Text variant="headline" tone={inkOf(stage)}>
       {title}
     </Text>
     <Spacer flexible />
@@ -246,56 +246,54 @@ export const Faded = ({
   top?: boolean;
   bottom?: boolean;
   children: ReactNode;
-}) => {
-  const edge = (from: 'top' | 'bottom') => (
-    <Rectangle
+}) => (
+  <Mask
+    alignment="top"
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+  >
+    <Column
+      alignment="center"
+      spacing={0}
       modifiers={[
-        frame({ height: metrics.list.fade }),
-        frame({ maxWidth: Infinity }),
-        foregroundStyle({
-          type: 'linearGradient',
-          colors: [mask.hidden, mask.shown],
-          startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
-          endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
-        }),
+        padding({ top: top ? metrics.list.rest : 0, bottom: bottom ? metrics.list.rest : 0 }),
+        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
       ]}
-    />
-  );
-
-  return (
-    <Mask
-      alignment="top"
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
+      {children}
+    </Column>
+    <Mask.Content>
       <Column
         alignment="center"
         spacing={0}
-        modifiers={[
-          padding({ top: top ? metrics.list.rest : 0, bottom: bottom ? metrics.list.rest : 0 }),
-          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-        ]}
+        modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
       >
-        {children}
+        {top ? <FadeEdge from="top" /> : null}
+        <Rectangle
+          modifiers={[
+            frame({ maxWidth: Infinity, maxHeight: Infinity }),
+            foregroundStyle(mask.shown),
+          ]}
+        />
+        {bottom ? <FadeEdge from="bottom" /> : null}
       </Column>
-      <Mask.Content>
-        <Column
-          alignment="center"
-          spacing={0}
-          modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
-        >
-          {top ? edge('top') : null}
-          <Rectangle
-            modifiers={[
-              frame({ maxWidth: Infinity, maxHeight: Infinity }),
-              foregroundStyle(mask.shown),
-            ]}
-          />
-          {bottom ? edge('bottom') : null}
-        </Column>
-      </Mask.Content>
-    </Mask>
-  );
-};
+    </Mask.Content>
+  </Mask>
+);
+
+const FadeEdge = ({ from }: { from: 'top' | 'bottom' }) => (
+  <Rectangle
+    modifiers={[
+      frame({ height: metrics.list.fade }),
+      frame({ maxWidth: Infinity }),
+      foregroundStyle({
+        type: 'linearGradient',
+        colors: [mask.hidden, mask.shown],
+        startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
+        endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
+      }),
+    ]}
+  />
+);
 
 // A page's sections, a hairline between each and the next so it's clear where one ends. Pass each
 // section only when it shows, so none is drawn above the first.
@@ -305,17 +303,17 @@ export const Sections = ({
   children,
 }: {
   follows?: boolean;
-  children: ReactNode;
+  children: ReactNode[];
 }) => (
   <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-    {Children.toArray(children).map((section, i) => (
+    {children.filter(isValidElement).map((section, i) => (
       <Column
-        key={isValidElement(section) ? section.key : i}
+        key={section.key ?? i}
         alignment="start"
         spacing={0}
         modifiers={[frame({ maxWidth: Infinity })]}
       >
-        {i || follows ? (
+        {i > 0 || follows ? (
           <Column alignment="start" spacing={0} modifiers={[padding({ top: space[5] })]}>
             <Hairline />
           </Column>
@@ -368,14 +366,8 @@ export const Loading = () => (
 
 // A page's body until hex answers it: the system's spinner; while hex can't be reached, that it's
 // trying again, which it does on its own; and once hex says no, why, `gone` when there's no such thing.
-export const Waiting = ({ failed, refused, gone }: Answered & { gone: string }) => {
-  const why = refused
-    ? refused.status === 404
-      ? gone
-      : refused.message
-    : failed
-      ? UNREACHED
-      : null;
+export const Waiting = ({ gone, ...answered }: Answered & { gone: string }) => {
+  const why = whyNot(answered, gone);
 
   return (
     <Row
@@ -391,12 +383,12 @@ export const Waiting = ({ failed, refused, gone }: Answered & { gone: string }) 
         frame({ maxWidth: Infinity }),
       ]}
     >
-      {why ? (
+      {why === null || why === '' ? (
+        <ProgressView modifiers={[accessibilityLabel('Loading')]} />
+      ) : (
         <Text variant="detail" tone="tertiary">
           {why}
         </Text>
-      ) : (
-        <ProgressView modifiers={[accessibilityLabel('Loading')]} />
       )}
     </Row>
   );
@@ -404,20 +396,29 @@ export const Waiting = ({ failed, refused, gone }: Answered & { gone: string }) 
 
 export const UNREACHED = 'Can’t reach hex. Trying again…';
 
+const whyNot = ({ failed, refused }: Answered, gone: string) => {
+  if (refused) {
+    return refused.status === 404 ? gone : refused.message;
+  }
+
+  return failed ? UNREACHED : null;
+};
+
 // What you did here that didn't go through, and why, quietly where you did it.
 export const Failure = ({
   text,
-  modifiers = [],
+  modifiers,
 }: {
-  text: string;
+  text: string | undefined;
   modifiers?: ModifierConfig[];
-}) => (
-  <Text
-    variant="caption"
-    tone="danger"
-    paragraph
-    modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...modifiers]}
-  >
-    {text}
-  </Text>
-);
+}) =>
+  text === undefined || text === '' ? null : (
+    <Text
+      variant="caption"
+      tone="danger"
+      paragraph
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...(modifiers ?? [])]}
+    >
+      {text}
+    </Text>
+  );

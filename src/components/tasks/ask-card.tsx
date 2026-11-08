@@ -66,7 +66,7 @@ export const YourCall = ({
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
 }) => {
-  const open = asks.filter((ask) => !answered[ask.id]).length;
+  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
 
   return (
     <>
@@ -74,9 +74,9 @@ export const YourCall = ({
         <StageHead tint="needs" title="Needs you" count={open || undefined} />
       </Column>
       {asks.map((ask) => {
-        const said = answered[ask.id];
+        const said = answered[ask.id] ?? '';
 
-        if (said) {
+        if (said !== '') {
           return (
             <Card key={ask.id}>
               <HStack alignment="top" spacing={metrics.list.gap}>
@@ -92,15 +92,15 @@ export const YourCall = ({
                   <Text variant="body" paragraph>
                     {said}
                   </Text>
-                  {ask.missed ? (
+                  {ask.missed === undefined ? null : (
                     <Unreached
                       missed={ask.missed}
                       onAgain={() => {
                         onAgain(ask);
                       }}
                     />
-                  ) : null}
-                  {ask.failed ? <Failure text={ask.failed} /> : null}
+                  )}
+                  <Failure text={ask.failed} />
                 </VStack>
                 <Pill
                   label="Undo"
@@ -176,24 +176,24 @@ const AskCard = ({
   const [noting, setNoting] = useState(false);
   const [noted, setNoted] = useState(false);
 
-  const note = (text: string) => {
+  const note = async (text: string) => {
     setNoting(true);
-    void notes
-      .attempt('note', 'Note not sent', async () => {
-        await noteAsk(ask, text);
-      })
-      .then((sent) => {
-        setNoting(false);
-        setNoted(sent);
 
-        if (sent) {
-          setWriting(false);
-        }
-      });
+    const sent = await notes.attempt('note', 'Note not sent', async () => {
+      await noteAsk(ask, text);
+    });
+
+    setNoting(false);
+    setNoted(sent);
+
+    if (sent) {
+      setWriting(false);
+    }
   };
 
   // What last didn't go through on it, folded or open.
   const failed = notes.failed.note ?? ask.failed;
+  const links = ask.links ?? [];
 
   return (
     <Card>
@@ -212,15 +212,15 @@ const AskCard = ({
         <Icon
           name="square.and.pencil"
           size={metrics.symbol.bar}
-          color={writing ? theme.text : theme.secondary}
+          color={writing === false ? theme.secondary : theme.text}
           modifiers={[
             frame({ width: metrics.bar.button, height: metrics.symbol.bar, alignment: 'trailing' }),
             contentShape(shapes.rectangle()),
             onTapGesture(() => {
               setOpen(true);
-              setWriting(!writing);
+              setWriting(writing === false);
             }),
-            accessibilityLabel(writing ? 'Close your answer' : 'Write your own'),
+            accessibilityLabel(writing === false ? 'Write your own' : 'Close your answer'),
             accessibilityAddTraits(['isButton']),
           ]}
         />
@@ -248,7 +248,7 @@ const AskCard = ({
         >
           {ask.question}
         </Text>
-        {ask.context ? (
+        {ask.context === undefined || ask.context === '' ? null : (
           <Text
             variant="detail"
             tone="secondary"
@@ -260,16 +260,16 @@ const AskCard = ({
           >
             {ask.context}
           </Text>
-        ) : null}
+        )}
       </VStack>
-      {open && (words || ask.links?.length) ? (
+      {open && (words || links.length > 0) ? (
         <VStack
           alignment="leading"
           spacing={space[2]}
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
           {words ? <Said words={words} /> : null}
-          {ask.links?.length ? <Links links={ask.links} /> : null}
+          {links.length > 0 ? <Links links={links} /> : null}
         </VStack>
       ) : null}
       {noted && !notes.failed.note ? (
@@ -277,15 +277,19 @@ const AskCard = ({
           {`Sent to ${ask.topic} as a note. The question is still open.`}
         </Text>
       ) : null}
-      {failed ? <Failure text={failed} /> : null}
+      <Failure text={failed} />
       <Shots ask={ask} />
-      {writing ? (
+      {writing === false ? (
+        <Answers ask={ask} onAnswer={onAnswer} />
+      ) : (
         <Composer
           draft={`ask:${ask.id}`}
           focus={writing === true}
           topic={ask.topic}
           sending={noting}
-          onNote={note}
+          onNote={(text) => {
+            void note(text);
+          }}
           onAnswer={(label) => {
             onAnswer(ask, { label });
           }}
@@ -293,8 +297,6 @@ const AskCard = ({
             onDismiss(ask);
           }}
         />
-      ) : (
-        <Answers ask={ask} onAnswer={onAnswer} />
       )}
     </Card>
   );
@@ -303,13 +305,15 @@ const AskCard = ({
 // What each option looks like, when the choice is between looks: its screenshot, over its answer
 // when every option has one, and all of them full screen on a tap.
 export const Shots = ({ ask }: { ask: Ask }) => {
-  const shown = ask.options.filter((option) => option.shot !== undefined);
+  const shown = ask.options.filter(
+    (option): option is AskOption & { shot: number } => option.shot !== undefined,
+  );
 
   if (!shown.length) {
     return null;
   }
 
-  const shots = shown.map((option) => shotOf(ask, option.shot!));
+  const shots = shown.map((option) => shotOf(ask, option.shot));
 
   return (
     <ShotsView
@@ -331,7 +335,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
 // The thread's own words, under where and when they were said: a few lines, all of them on a tap.
 export const Said = ({ words }: { words: Words }) => {
   const [whole, setWhole] = useState(false);
-  const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
+  const when = words.at === undefined || words.at === '' ? '' : ` · ${clock(new Date(words.at))}`;
 
   return (
     <Column
@@ -388,7 +392,7 @@ export const Links = ({ links }: { links: AskLink[] }) => {
           />
         ))}
       </Row>
-      {failed ? <Failure text={failed} /> : null}
+      <Failure text={failed} />
     </Column>
   );
 };
@@ -466,18 +470,18 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
             padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
             frame({ minHeight: metrics.pill.regular }),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
-            background(option.pick ? theme.accentMuted : theme.fill),
+            background(option.pick === true ? theme.accentMuted : theme.fill),
             clipShape('roundedRectangle', radius.option),
             contentShape(shapes.rectangle()),
             accessibilityElement('combine'),
-            accessibilityLabel(option.pick ? `${option.label}, ${PICK}` : option.label),
+            accessibilityLabel(option.pick === true ? `${option.label}, ${PICK}` : option.label),
             accessibilityAddTraits(['isButton']),
           ]}
         >
-          <Text variant="body" weight={option.pick ? 'medium' : 'regular'} paragraph>
+          <Text variant="body" weight={option.pick === true ? 'medium' : 'regular'} paragraph>
             {option.label}
           </Text>
-          {option.pick ? (
+          {option.pick === true ? (
             <Row alignment="center" spacing={space[1]}>
               <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
               <Text variant="caption" tone="accent">

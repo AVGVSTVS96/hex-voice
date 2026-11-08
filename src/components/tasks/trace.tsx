@@ -11,7 +11,7 @@ import {
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header } from '@/components/tasks/bar';
@@ -135,7 +135,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
 
 export const Steps = ({
   steps,
-  agents = [],
+  agents,
   indent = 0,
   opens = true,
 }: {
@@ -155,7 +155,13 @@ export const Steps = ({
         const words = step.kind === 'think' || step.kind === 'say';
         const opened = open === key;
         const mark = stepMark(step);
-        const agent = step.agent && agents.find((one) => one.id === step.agent);
+
+        const agent =
+          (step.agent ?? '') === '' ? undefined : agents?.find((one) => one.id === step.agent);
+
+        const folded = words ? 3 : 1;
+        const detail = step.detail ?? '';
+        const result = step.result ?? '';
 
         return (
           <TraceLine
@@ -168,24 +174,22 @@ export const Steps = ({
               )
             }
             text={step.text}
-            lines={opened ? 0 : words ? 3 : 1}
+            lines={opened ? 0 : folded}
             time={agent ? undefined : times[i]}
             after={agent ? <Mark state={agent.state} /> : undefined}
             indent={indent}
             onPress={
-              opens && (words || step.detail || step.result)
+              opens && (words || detail || result)
                 ? () => {
                     setOpen(opened ? null : key);
                   }
                 : undefined
             }
           >
-            {opened && step.detail ? (
-              <Output lines={[step.detail]} wraps={4} tone="secondary" />
-            ) : null}
-            {opened && step.result ? (
+            {opened && detail ? <Output lines={[detail]} wraps={4} tone="secondary" /> : null}
+            {opened && result ? (
               <Output
-                lines={step.result.split('\n').slice(0, 6)}
+                lines={result.split('\n').slice(0, 6)}
                 wraps={1}
                 tone={step.state === 'failed' ? 'danger' : 'tertiary'}
               />
@@ -217,11 +221,11 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
   const [open, setOpen] = useState(false);
   const [whole, setWhole] = useState(false);
   const working = agent.state === 'working';
-  const newest = working && !open ? (agent.line ?? agent.steps[0]?.text) : undefined;
-  const result = open && !working ? agent.result : undefined;
+  const newest = working && !open ? (agent.line ?? agent.steps[0]?.text ?? '') : '';
+  const result = open && !working ? (agent.result ?? '') : '';
   const steps = open ? agentSteps(agent) : [];
   const meta = agentMeta(agent);
-  const link = open ? agent.link : undefined;
+  const link = open ? (agent.link ?? '') : '';
 
   return (
     <Background alignment="topLeading">
@@ -340,13 +344,13 @@ export const TraceLine = ({
   lead,
   text,
   lines = 1,
-  time,
+  time = '',
   tone = 'text',
   indent = 0,
   after,
   chevron,
   onPress,
-  label,
+  label = '',
   children,
 }: {
   lead: ReactNode;
@@ -355,7 +359,7 @@ export const TraceLine = ({
   time?: string;
   tone?: Tone;
   indent?: number;
-  after?: ReactNode;
+  after?: ReactElement;
   chevron?: 'chevron.down' | 'chevron.right';
   onPress?: () => void;
   label?: string;

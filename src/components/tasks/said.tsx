@@ -32,7 +32,7 @@ export const Said = ({ turn }: { turn: ChatTurn }) => {
   const selectable = useContext(Selectable);
 
   if (one.kind === 'me') {
-    return <Mine text={one.text} media={turn.media} />;
+    return <Mine text={one.text} media={turn.media ?? []} />;
   }
 
   if (one.kind === 'event') {
@@ -59,7 +59,7 @@ export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
       <Spacer flexible />
       <Text
         modifiers={[
-          ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
+          ...(sent.failed?.again === true ? [onTapGesture(onRetry)] : []),
           ...textLook({
             variant: 'caption',
             weight: sent.failed ? 'medium' : 'regular',
@@ -67,15 +67,19 @@ export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
           }),
         ]}
       >
-        {sent.failed
-          ? sent.failed.again
-            ? 'Not sent · Tap to try again'
-            : sent.failed.why
-          : 'Sending'}
+        {sentNote(sent)}
       </Text>
     </Row>
   </Column>
 );
+
+const sentNote = ({ failed }: Sending) => {
+  if (!failed) {
+    return 'Sending';
+  }
+
+  return failed.again ? 'Not sent · Tap to try again' : failed.why;
+};
 
 export const SaidLine = ({
   turn,
@@ -89,12 +93,7 @@ export const SaidLine = ({
   const one = said(turn);
   const who = one.kind === 'hex' ? 'hex' : 'You';
 
-  const text =
-    one.kind === 'event'
-      ? one.text
-        ? `${one.label} · ${one.text}`
-        : one.label
-      : one.text || mediaWords(turn.media ?? []);
+  const text = lineOf(one, turn.media ?? []);
 
   return (
     <Row
@@ -130,16 +129,16 @@ export const SaidLine = ({
   );
 };
 
+const lineOf = (one: ReturnType<typeof said>, media: Shown[]) => {
+  if (one.kind === 'event') {
+    return one.text ? `${one.label} · ${one.text}` : one.label;
+  }
+
+  return one.text || mediaWords(media);
+};
+
 // Your photos and clips above your words, each on your side.
-const Mine = ({
-  text,
-  media = [],
-  dim = false,
-}: {
-  text: string;
-  media?: Shown[];
-  dim?: boolean;
-}) => {
+const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?: boolean }) => {
   const selectable = useContext(Selectable);
 
   return (

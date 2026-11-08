@@ -103,17 +103,18 @@ const Line = ({ line }: { line: PinLine }) => {
     );
   }
 
-  const url = line.url;
+  const { url } = line;
 
-  const open = url
-    ? () => {
-        void tries.attempt(url, 'Not opened', async () => {
-          await openURL(url);
-        });
-      }
-    : undefined;
+  const open =
+    url === undefined
+      ? undefined
+      : () => {
+          void tries.attempt(url, 'Not opened', async () => {
+            await openURL(url);
+          });
+        };
 
-  if (line.kind === 'text' && !url) {
+  if (line.kind === 'text' && url === undefined) {
     return (
       <Markdown
         inline
@@ -165,7 +166,7 @@ const Line = ({ line }: { line: PinLine }) => {
           >
             {line.text}
           </Markdown>
-          {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
+          <Failure text={url === undefined ? undefined : tries.failed[url]} />
         </Column>
         <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
       </Row>
@@ -202,9 +203,9 @@ const Line = ({ line }: { line: PinLine }) => {
         >
           {line.text}
         </Markdown>
-        {url && tries.failed[url] ? <Failure text={tries.failed[url]} /> : null}
+        <Failure text={url === undefined ? undefined : tries.failed[url]} />
       </Column>
-      {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}
+      {url === undefined ? null : <Icon name="arrow.up.right" size={13} color={theme.tertiary} />}
     </Row>
   );
 };

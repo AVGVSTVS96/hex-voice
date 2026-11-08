@@ -56,9 +56,9 @@ export const EntryRow = ({
   switch (entry.kind) {
     case 'ask': {
       const { ask } = entry;
-      const said = actions.answered[ask.id];
+      const said = actions.answered[ask.id] ?? '';
 
-      if (said) {
+      if (said !== '') {
         return (
           <Folded
             ask={ask}
@@ -73,7 +73,7 @@ export const EntryRow = ({
         );
       }
 
-      const pick = ask.options.find((option) => option.pick);
+      const pick = ask.options.find((option) => option.pick === true);
 
       return (
         <Swiped
@@ -111,7 +111,7 @@ export const EntryRow = ({
                 />
               </Fits>
             ) : null}
-            {ask.failed ? <Failure text={ask.failed} /> : null}
+            <Failure text={ask.failed} />
           </Shell>
         </Swiped>
       );
@@ -144,7 +144,9 @@ export const EntryRow = ({
     case 'stuck': {
       const { stuck } = entry;
 
-      const act = stuck.sent
+      const sent = stuck.sent !== undefined && stuck.sent !== '';
+
+      const act = sent
         ? undefined
         : () => {
             actions.onAct(stuck.id);
@@ -162,8 +164,8 @@ export const EntryRow = ({
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
             {stuck.why ? <Why text={stuck.why} /> : null}
-            <Action label={stuck.sent ? 'Sent to hex' : stuck.action} onPress={act} />
-            {stuck.failed ? <Failure text={stuck.failed} /> : null}
+            <Action label={sent ? 'Sent to hex' : stuck.action} onPress={act} />
+            <Failure text={stuck.failed} />
           </Shell>
         </Swiped>
       );
@@ -190,7 +192,7 @@ export const EntryRow = ({
             label={`${fresh.title}, finished: ${fresh.line}`}
           >
             {read ? <Action label="Mark read" onPress={read} /> : null}
-            {fresh.failed ? <Failure text={fresh.failed} /> : null}
+            <Failure text={fresh.failed} />
           </Shell>
         </Swiped>
       );
@@ -218,6 +220,10 @@ export const EntryRow = ({
           </Shell>
         </Swiped>
       );
+    }
+
+    default: {
+      return entry satisfies never;
     }
   }
 };
@@ -256,7 +262,7 @@ const Swiped = ({
       <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
         {onAway ? <NotNeededButton onPress={onAway} /> : null}
         {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
-        {[...trail].reverse().map((tile, i) => {
+        {trail.toReversed().map((tile, i) => {
           const { color, glyph } = swipeLook(tile);
 
           return (
@@ -325,7 +331,7 @@ const Shell = ({
           {line}
         </Text>
         <Row alignment="center" spacing={metrics.list.meta}>
-          {meta ? <Meta text={meta} /> : null}
+          {meta === undefined ? null : <Meta text={meta} />}
           <Meta text={time} />
           <Tiles tiles={tiles} />
         </Row>
@@ -395,8 +401,8 @@ const Folded = ({
       <Text numberOfLines={2} variant="body">
         {`${label} → ${ask.topic}`}
       </Text>
-      {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
-      {ask.failed ? <Failure text={ask.failed} /> : null}
+      {ask.missed === undefined ? null : <Unreached missed={ask.missed} onAgain={onAgain} />}
+      <Failure text={ask.failed} />
     </Column>
     <Pill label="Undo" accessibility={`Undo ${label}`} onPress={onUndo} small />
   </Row>
@@ -427,9 +433,9 @@ export const ProjectRow = ({
   selected: boolean;
   onOpen: () => void;
 }) => {
-  const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  const newest = topic.entries.toSorted((a, b) => Date.parse(b.at) - Date.parse(a.at)).at(0);
 
-  if (!newest) {
+  if (newest === undefined) {
     return null;
   }
 
@@ -440,7 +446,8 @@ export const ProjectRow = ({
   const headline = problem ?? said;
   const needs = stage === 'needs';
   const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
-  const mark = needs ? waiting(newest) : problem ? 'failed' : STAGE_MARK[stage];
+  const settled = problem ? 'failed' : STAGE_MARK[stage];
+  const mark = needs ? waiting(newest) : settled;
 
   return (
     <Row
@@ -493,7 +500,7 @@ export const ProjectRow = ({
 const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
     case 'ask': {
-      return entry.ask.options.some((option) => option.pick) ? 'pick' : 'asks';
+      return entry.ask.options.some((option) => option.pick === true) ? 'pick' : 'asks';
     }
 
     case 'stuck': {
@@ -507,6 +514,10 @@ const waiting = (entry: Entry): MarkState => {
 
     case 'finished': {
       return 'done';
+    }
+
+    default: {
+      return entry satisfies never;
     }
   }
 };

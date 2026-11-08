@@ -33,11 +33,17 @@ const GLYPH: Record<Place, SFSymbol> = {
 };
 
 // Too dark to show as a ring and a symbol on the sheet, so a ghost of theirs is drawn quieter.
-const DARK: Place[] = ['t3', 'server'];
+const DARK = new Set<Place>(['t3', 'server']);
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
-const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
+interface TileLook {
+  color: string;
+  glyph: SFSymbol;
+  ink: string;
+}
+
+const look = (tile: Tile): TileLook => {
   switch (tile.kind) {
     case 'app': {
       return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
@@ -50,8 +56,14 @@ const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
     case 'link': {
       return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
     }
+
+    default: {
+      return tile satisfies never;
+    }
   }
 };
+
+const hasLink = ({ link }: { link?: string }) => link !== undefined && link !== '';
 
 export const swipeLook = (tile: Tile) => {
   const { color, glyph } = look(tile);
@@ -61,7 +73,7 @@ export const swipeLook = (tile: Tile) => {
 
 // A thread without a link is a ghost: we know it's from there, but there's no door.
 export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
-  if (tile.kind === 'app' && !tile.link) {
+  if (tile.kind === 'app' && !hasLink(tile)) {
     return <Ghost place={tile.place} size={size} />;
   }
 
@@ -97,7 +109,7 @@ const Solid = ({
 );
 
 const Ghost = ({ place, size }: { place: Place; size: number }) => {
-  const ink = DARK.includes(place) ? theme.secondary : brand[place];
+  const ink = DARK.has(place) ? theme.secondary : brand[place];
 
   return (
     <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
@@ -137,7 +149,9 @@ export const Places = ({
 }) => {
   const others = threads
     .filter((thread) => thread.id !== task.id)
-    .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
+    .toSorted(
+      (a, b) => Number(hasLink(b)) - Number(hasLink(a)) || Date.parse(b.at) - Date.parse(a.at),
+    );
 
   const all = [task, ...others];
   const [every, setEvery] = useState(false);
@@ -150,11 +164,12 @@ export const Places = ({
       {shown.map((thread) => {
         const place = placeOf(thread.app);
         const gone = missing.has(place);
-        const opens = !!thread.link || thread.id !== task.id;
+        const linked = hasLink(thread);
+        const opens = linked || thread.id !== task.id;
 
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
-          : `${PLACES[place]} · ${clock(new Date(thread.at))}${thread.link ? '' : ' · no link'}`;
+          : `${PLACES[place]} · ${clock(new Date(thread.at))}${linked ? '' : ' · no link'}`;
 
         return (
           <Column
@@ -169,7 +184,7 @@ export const Places = ({
               onPress={
                 opens
                   ? () => {
-                      if (thread.link) {
+                      if (linked) {
                         onOpen(thread);
                       } else {
                         onOpenTask(thread.id);
@@ -204,7 +219,7 @@ export const Places = ({
               </Column>
               {opens ? (
                 <Icon
-                  name={thread.link ? 'arrow.up.right' : 'chevron.right'}
+                  name={linked ? 'arrow.up.right' : 'chevron.right'}
                   size={12}
                   color={theme.tertiary}
                 />

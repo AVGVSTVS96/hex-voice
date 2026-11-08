@@ -65,7 +65,7 @@ export const Header = ({
 // the list's own, at title size, as Muse names its pages.
 export const PageBar = ({
   title,
-  subtitle,
+  subtitle = '',
   large = false,
   back,
   trailing,

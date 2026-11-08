@@ -76,7 +76,7 @@ const Strip = ({
     modifiers={[
       padding({
         leading: space[3],
-        trailing: action ? space[2] : space[4],
+        trailing: action === undefined || action === '' ? space[4] : space[2],
         top: space[2],
         bottom: space[2],
       }),
@@ -105,16 +105,16 @@ const Strip = ({
       <Text numberOfLines={2} variant="body">
         {title}
       </Text>
-      {detail ? (
+      {detail === undefined || detail === '' ? null : (
         <Text numberOfLines={2} variant="detail" tone="secondary">
           {detail}
         </Text>
-      ) : null}
+      )}
     </Column>
-    {action ? (
-      <Pill label={action} onPress={onPress} small />
-    ) : (
+    {action === undefined || action === '' ? (
       <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+    ) : (
+      <Pill label={action} onPress={onPress} small />
     )}
   </Row>
 );

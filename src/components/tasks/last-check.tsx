@@ -120,11 +120,11 @@ const NoteRow = ({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       <Text variant="detail" tone="secondary" paragraph>
         {note.text}
       </Text>
-      {note.did ? (
+      {note.did === undefined || note.did === '' ? null : (
         <Text variant="detail" weight="medium" paragraph>
           {note.did}
         </Text>
-      ) : null}
+      )}
     </Column>
   </Row>
 );
