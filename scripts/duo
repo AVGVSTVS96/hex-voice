@@ -572,10 +572,11 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime" &
+    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' SIM_REPRO=${SIM_REPRO:-} TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime" &
   # Waited on in the background, since bash holds a trap until a foreground command ends: a stop
   # here reaches the Mac at once instead of when its half finishes. tap and fold do the same.
   wait $!
+  ssh "$mac" ls "$folder/shots" | grep -q '\.png$' || die "nothing was shot for $title"
   collect "$out"
   echo "$title" >"$out/done"
 }
@@ -589,7 +590,7 @@ tap() {
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
   fi; } | sed -E -e "s/^$DEVICE: //" -e '/^(duo|ipad): /d' |
-    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime" &
+    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' SIM_REPRO=${SIM_REPRO:-} TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime" &
   wait $! || status=$?
   collect "$into"
   [ "$status" = 0 ] || die "the taps failed on $title, see $into/notes.txt"
@@ -646,13 +647,16 @@ fold() {
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null | grep -E '^tasks(-call)? '
   fi
     [ -z "${FOLD_PROBE:-}" ] || echo "probe launch:com.shahidy.foldprobe"; } |
-    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" &
-  wait $! || echo "the Mac's half ended with $?; counting what it filmed"
+    ssh "$mac" "LANE=$LANE DEVICE=duo HEX=$HEX FOLDS='$FOLDS' FOLD_PROBE='${FOLD_PROBE:-}' SIM_REPRO=${SIM_REPRO:-} TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac fold $runtime" &
+  local status=0
+  wait $! || status=$?
   mkdir -p "$dir"
   rsync -a "$mac:$folder/shots/" "$dir/"
   [ ! -f "$dir/notes.txt" ] || cat "$dir/notes.txt"
   python3 "$repo/scripts/fold_frames.py" "$dir"
   echo "frames: $dir"
+  [ "$(grep -c '^| ' "$dir/table.md")" -gt 1 ] || die "nothing was filmed for $title"
+  [ "$status" = 0 ] || die "the Mac's half of the fold ended with $status, so the table above is partial"
 }
 
 passed() {
