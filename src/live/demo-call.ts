@@ -1,8 +1,6 @@
 import { CallId } from './calls';
 import type { LiveEvent, SessionAPI, TransportFactory } from './types';
 
-// A call with no microphone or server behind it, for looking at the call screens
-// (hexvoice:///?demo=call): it connects at once and says a few lines.
 type Line = [
   type: 'session.input_transcript.delta' | 'session.output_transcript.delta',
   at: number,

@@ -1,7 +1,5 @@
-// BuiltInVoice in the OpenAI Live API. Voice is selected when a session starts.
-// https://developers.openai.com/api/reference/typescript/resources/live
-// Accents are the regional influences listed in
-// https://developers.openai.com/api/docs/guides/live-conversations#voice-options
+// The Live API's BuiltInVoice: https://developers.openai.com/api/reference/typescript/resources/live
+// Each accent as the guide lists it: https://developers.openai.com/api/docs/guides/live-conversations#voice-options
 export const VOICES = [
   { id: 'marin', label: 'Marin' },
   { id: 'alloy', label: 'Alloy' },

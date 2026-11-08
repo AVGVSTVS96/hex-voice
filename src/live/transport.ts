@@ -5,8 +5,7 @@ import * as z from 'zod/mini';
 import { parseEvent } from './types';
 import type { AudioStats, TransportFactory } from './types';
 
-// On iOS, WebRTC owns the audio session, set up by plugins/with-call-audio.js.
-const callManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
+const androidCallManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
 
 const loose = <T extends z.core.SomeType>(schema: T) => z.catch(z.optional(schema), undefined);
 
@@ -26,8 +25,6 @@ const Reports = z.map(z.unknown(), Report);
 
 const Description = z.object({ sdp: z.string(), type: z.nullable(z.string()) });
 
-// Native WebRTC uses iOS voice processing for acoustic echo cancellation.
-// Both RTP directions stay open throughout the call, including assistant speech.
 export const createTransport: TransportFactory = async ({ onEvent, onFailure }) => {
   const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
   let peer: RTCPeerConnection | undefined;
@@ -35,8 +32,8 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
   try {
     peer = new RTCPeerConnection({ iceServers: [] });
-    // VideoChat means speaker by default with voice processing; no camera is used.
-    callManager?.start({ media: 'video', auto: true });
+    // 'video' routes to the speaker, not the earpiece: https://github.com/react-native-webrtc/react-native-incall-manager#readme
+    androidCallManager?.start({ media: 'video', auto: true });
 
     for (const track of stream.getAudioTracks()) {
       peer.addTrack(track, stream);
@@ -44,14 +41,13 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
-    // Every setup failure after capture must release the microphone too.
     for (const track of stream.getTracks()) {
       track.stop();
     }
 
     peer?.close();
     stream.release();
-    callManager?.stop();
+    androidCallManager?.stop();
     throw error;
   }
 
@@ -219,7 +215,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       channel.close();
       pc.close();
       stream.release();
-      callManager?.stop();
+      androidCallManager?.stop();
     },
   };
 };

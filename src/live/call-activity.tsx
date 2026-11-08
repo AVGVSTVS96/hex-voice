@@ -26,9 +26,6 @@ export interface CallActivityProps {
 const CallActivity = (props: CallActivityProps) => {
   'widget';
 
-  // This layout runs as a string in the widget extension, where neither the theme nor
-  // DynamicColorIOS exist, so each color is the object DynamicColorIOS would make. The Lock Screen
-  // follows the system; the island is always dark.
   const color = (dark: string, light: string) =>
     // SAFETY: DynamicColorIOS makes this same { dynamic } object and types it ColorValue.
     ({ dynamic: { dark, light } }) as unknown as ColorValue;

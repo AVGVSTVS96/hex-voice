@@ -1,5 +1,6 @@
 import type { CallEnding, CallId } from './calls';
 import type {
+  AudioStats,
   CallAbout,
   Levels,
   LiveEvent,
@@ -42,8 +43,6 @@ export class LiveSession {
   private readonly api: SessionAPI;
   private snapshot = initialSnapshot();
   private readonly listeners = new Set<() => void>();
-  // Levels change several times a second, so they have their own listeners and the snapshot
-  // changes only when the call does.
   private levels = SILENT;
   private readonly levelListeners = new Set<() => void>();
   private transport: LiveTransport | null = null;
@@ -152,7 +151,6 @@ export class LiveSession {
 
       const session = await this.api.create(sdp, voice, about);
 
-      // A cancelled create can still finish on the server. Close its returned session.
       if (!isCurrent()) {
         try {
           await this.api.close(session.sessionId);
@@ -160,8 +158,6 @@ export class LiveSession {
           const message = SESSION_CLOSE_MESSAGE;
 
           if (this.generation === generation + 1) {
-            // The local close may still be publishing its final idle state.
-            // Surface this warning afterward without touching a newer call.
             await this.closing;
 
             if (this.generation === generation + 1) {
@@ -272,8 +268,6 @@ export class LiveSession {
 
     const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
     const entries = [...this.snapshot.transcript];
-    // Each speaker has an independent caption stream, so overlapping speech
-    // must not split a sentence every time the other speaker emits a delta.
     const index = entries.findLastIndex((entry) => entry.role === role);
     const previous = index === -1 ? undefined : entries[index];
     const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
@@ -369,44 +363,42 @@ export class LiveSession {
     this.statsPending = transport;
 
     try {
-      const stats = await transport.stats();
+      this.showLevels(transport, await transport.stats());
+    } catch {}
 
-      if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) {
-        return;
-      }
-
-      this.hear({
-        input: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
-        output: Math.min(1, stats.outputLevel * 5),
-      });
-
-      if (
-        typeof __DEV__ !== 'undefined' &&
-        __DEV__ &&
-        !this.reportedDuplex &&
-        !this.snapshot.muted &&
-        stats.outputLevel > 0.005 &&
-        stats.sentPackets > this.lastSentPackets
-      ) {
-        console.info(
-          '[hex] Duplex transport verified: microphone RTP continues during assistant audio.',
-          { sentPackets: stats.sentPackets, receivedPackets: stats.receivedPackets },
-        );
-        this.reportedDuplex = true;
-      }
-
-      this.lastSentPackets = stats.sentPackets;
-    } catch {
-      /* A stats failure does not interrupt the audio connection. */
-    } finally {
-      if (this.statsPending === transport) {
-        this.statsPending = null;
-      }
+    if (this.statsPending === transport) {
+      this.statsPending = null;
     }
   }
 
-  // A phone call or Siri takes the audio session: the microphone pauses, hex marks the moment and
-  // tells the voice to wait, and it all comes back when iOS returns the audio.
+  private showLevels(transport: LiveTransport, stats: AudioStats) {
+    if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) {
+      return;
+    }
+
+    this.hear({
+      input: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
+      output: Math.min(1, stats.outputLevel * 5),
+    });
+
+    if (
+      typeof __DEV__ !== 'undefined' &&
+      __DEV__ &&
+      !this.reportedDuplex &&
+      !this.snapshot.muted &&
+      stats.outputLevel > 0.005 &&
+      stats.sentPackets > this.lastSentPackets
+    ) {
+      console.info(
+        '[hex] Duplex transport verified: microphone RTP continues during assistant audio.',
+        { sentPackets: stats.sentPackets, receivedPackets: stats.receivedPackets },
+      );
+      this.reportedDuplex = true;
+    }
+
+    this.lastSentPackets = stats.sentPackets;
+  }
+
   interrupt = (began: boolean) => {
     if (this.snapshot.status !== 'connected' || !this.transport) {
       return;
@@ -433,8 +425,6 @@ export class LiveSession {
     }
   };
 
-  // iOS doesn't always say when it hands the audio back (Siri, some declined calls), so a tap on the
-  // microphone while paused is the way back.
   toggleMute = () => {
     if (this.snapshot.status !== 'connected' || !this.transport) {
       return;
@@ -507,7 +497,6 @@ export class LiveSession {
     const { transport, sessionId: id } = this;
     this.update({ status: 'disconnecting' });
     this.hear(SILENT);
-    // Silence capture immediately; session.close preserves final usage events.
     transport?.setMuted(true);
     this.closing = Promise.resolve().then(async () => {
       let confirmed = this.serverClosed;

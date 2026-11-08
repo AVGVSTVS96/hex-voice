@@ -23,7 +23,6 @@ import willow from '@/assets/voices/willow.m4a';
 
 import type { LiveVoice } from './voices';
 
-// Each voice introducing itself, rendered once from GPT-Live by scripts/voice-previews.mts.
 export const VOICE_PREVIEWS: Record<LiveVoice, number> = {
   marin,
   alloy,
