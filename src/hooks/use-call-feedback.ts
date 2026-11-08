@@ -2,6 +2,9 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef } from 'react';
 
+import connectSound from '@/assets/sounds/connect.wav';
+import endSound from '@/assets/sounds/end.wav';
+
 // The call's WebRTC audio shares the app's audio session, so these players keep it
 // active after they finish instead of deactivating it under the call.
 const options = { keepAudioSessionActive: true };
@@ -11,8 +14,8 @@ export const useCallFeedback = (
   live: boolean,
   { sounds, haptics }: { sounds: boolean; haptics: boolean },
 ) => {
-  const connect = useAudioPlayer(require('@/assets/sounds/connect.wav'), options);
-  const end = useAudioPlayer(require('@/assets/sounds/end.wav'), options);
+  const connect = useAudioPlayer(connectSound, options);
+  const end = useAudioPlayer(endSound, options);
   const previous = useRef(live);
 
   useEffect(() => {
