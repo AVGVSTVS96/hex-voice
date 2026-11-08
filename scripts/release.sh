@@ -16,7 +16,10 @@ install_modules() {
   local lock
   lock=$({ cat package-lock.json; cat patches/* 2>/dev/null || true; } | git hash-object --stdin)
   [ "$(cat node_modules/.lock 2>/dev/null)" = "$lock" ] && return
-  npm ci --no-audit --no-fund >/dev/null
+  # Callers run this inside && lists, where set -e doesn't stop on failure, so it stops itself. A
+  # fresh folder, since npm ci fails on files a native build left inside node_modules.
+  rm -rf node_modules
+  npm ci --no-audit --no-fund >/dev/null || die "npm ci failed in $PWD"
   echo "$lock" >node_modules/.lock
 }
 
