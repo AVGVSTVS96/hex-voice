@@ -139,7 +139,14 @@ export const ThreadPage = ({
               : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
           }
           door={
-            thread.link ? { place: placeOf(thread.app), onPress: () => onOpen(thread) } : undefined
+            thread.link
+              ? {
+                  place: placeOf(thread.app),
+                  onPress: () => {
+                    onOpen(thread);
+                  },
+                }
+              : undefined
           }
         />
       )}
@@ -180,7 +187,13 @@ export const ThreadPage = ({
               <Said key={first + i} turn={turn} />
             ))}
             {pending.map((sent) => (
-              <Sent key={sent.key} sent={sent} onRetry={() => onRetry(sent)} />
+              <Sent
+                key={sent.key}
+                sent={sent}
+                onRetry={() => {
+                  onRetry(sent);
+                }}
+              />
             ))}
           </Column>
         </ScrollView>
@@ -263,14 +276,17 @@ const Composer = ({
       return;
     }
     const wait = setTimeout(() => input.current?.focus(), 350);
-    return () => clearTimeout(wait);
+    return () => {
+      clearTimeout(wait);
+    };
   }, [focus]);
   const words = text.trim();
   const stops = working && !text && !media.length;
   const lit = stops || !!words || !!media.length;
   const send = () => {
     if (stops) {
-      return onStop();
+      onStop();
+      return;
     }
     if (!words && !media.length) {
       return;
@@ -300,7 +316,9 @@ const Composer = ({
         label="Add a photo or video"
         most={MOST - media.length}
         sends={false}
-        onAdd={(more) => setMedia((now) => [...now, ...more].slice(0, MOST))}
+        onAdd={(more) => {
+          setMedia((now) => [...now, ...more].slice(0, MOST));
+        }}
       >
         <Row
           alignment="center"
@@ -335,7 +353,9 @@ const Composer = ({
           <RNHostView matchContents={{ vertical: true }}>
             <Waiting
               media={media}
-              onRemove={(at) => setMedia((now) => now.filter((_, i) => i !== at))}
+              onRemove={(at) => {
+                setMedia((now) => now.filter((_, i) => i !== at));
+              }}
             />
           </RNHostView>
         ) : null}

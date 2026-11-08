@@ -139,7 +139,12 @@ const PersonaRenderer = ({
   useEffect(() => {
     still.current = paused || reducedMotion;
   }, [paused, reducedMotion]);
-  useEffect(() => () => clearTimeout(growing.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(growing.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!riveViewRef) {
@@ -156,7 +161,8 @@ const PersonaRenderer = ({
     try {
       // Input setters resume playback, so a still persona that has grown keeps its frame.
       if (reducedMotion && grown.current) {
-        return pause();
+        pause();
+        return;
       }
       for (const { name, value } of personaInputValues(state)) {
         riveViewRef.setBooleanInputValue(name, value);
@@ -230,7 +236,9 @@ const PersonaRenderer = ({
           dataBind={colorModel ?? undefined}
           fit={Fit.Contain}
           autoPlay={false}
-          onError={() => setFailed(true)}
+          onError={() => {
+            setFailed(true);
+          }}
           style={{ width: size, height: size, backgroundColor: 'transparent' }}
         />
       ) : failed ? (

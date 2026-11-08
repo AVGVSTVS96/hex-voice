@@ -38,5 +38,10 @@ export const carryDraft = (where: string, from: string[]) => {
 
 export const useDraft = (where: string) => {
   const [first] = useState(() => saved()[where] ?? '');
-  return { first, keep: (text: string) => keepDraft(where, text) };
+  return {
+    first,
+    keep: (text: string) => {
+      keepDraft(where, text);
+    },
+  };
 };

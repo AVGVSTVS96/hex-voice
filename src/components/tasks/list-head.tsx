@@ -98,7 +98,9 @@ export const Tabs = ({
             key={key}
             alignment="center"
             spacing={metrics.tabs.gap}
-            onPress={() => onChange(key)}
+            onPress={() => {
+              onChange(key);
+            }}
             modifiers={[
               padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
               frame({ height: metrics.tabs.height }),
@@ -188,8 +190,12 @@ export const Search = ({
           autoCapitalize="none"
           enterKeyHint="search"
           testID="tasks-search-field"
-          onFocus={() => typing(true)}
-          onBlur={() => typing(false)}
+          onFocus={() => {
+            typing(true);
+          }}
+          onBlur={() => {
+            typing(false);
+          }}
           defaultValue={query}
           placeholder="Tasks, topics, questions"
           placeholderTextColor={theme.tertiary}

@@ -18,7 +18,9 @@ export const SplitView = ({ side, children }: { side: Side; children: ReactNode 
   return (
     <View
       style={[styles.screen, { flexDirection: across ? 'row' : 'column' }]}
-      onLayout={({ nativeEvent: { layout } }) => setAcross(layout.width > layout.height)}
+      onLayout={({ nativeEvent: { layout } }) => {
+        setAcross(layout.width > layout.height);
+      }}
     >
       {side === 'second' && other}
       <View style={styles.half}>

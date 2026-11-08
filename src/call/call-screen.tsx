@@ -105,20 +105,20 @@ const LiveScreen = ({ opening }: { opening: Opening }) => {
   return (
     <View
       style={styles.root}
-      onLayout={({ nativeEvent: { layout } }) =>
+      onLayout={({ nativeEvent: { layout } }) => {
         setSize((was) =>
           was?.width === layout.width && was.height === layout.height
             ? was
             : { width: layout.width, height: layout.height },
-        )
-      }
+        );
+      }}
     >
       {PoseView && (
         <PoseView
           style={StyleSheet.absoluteFill}
-          onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) =>
-            setPose({ regular: regular && !opening.split, bar, fold, occlusions })
-          }
+          onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) => {
+            setPose({ regular: regular && !opening.split, bar, fold, occlusions });
+          }}
         />
       )}
       {pose && room && (
@@ -177,15 +177,21 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const shared = !!settingsPlace;
   // Everything that opens and closes goes through `send`, and every open flag and lit button
   // below is read from `scene`.
-  const send = (action: Action) => setScene((now) => step(now, action, { shared }));
+  const send = (action: Action) => {
+    setScene((now) => step(now, action, { shared }));
+  };
   const {
     calls: callsOpen,
     tasks: tasksOpen,
     settings: settingsOpen,
     place: placeOpen,
   } = inView(scene, shared);
-  const pullWords = (pulled: boolean) => send({ to: 'words', pulled });
-  const showCall = (id: string | null) => send({ to: 'call', id });
+  const pullWords = (pulled: boolean) => {
+    send({ to: 'words', pulled });
+  };
+  const showCall = (id: string | null) => {
+    send({ to: 'call', id });
+  };
   const reducedMotion = useReducedMotion();
   const live = call.kind === 'here' && call.phase === 'live';
   const reading = layout.pulls
@@ -200,7 +206,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     { open: placeOpen, tasks: tasksOpen, chosen: scene.words.beside },
     onCall,
     reducedMotion,
-    (on) => send({ to: 'beside', on }),
+    (on) => {
+      send({ to: 'beside', on });
+    },
   );
   // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
   // in a rail; once a call starts, Tasks narrows to its pane beside it.
@@ -220,8 +228,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       void feedback();
     }
   };
-  const tick = () => haptic(Haptics.selectionAsync);
-  const land = () => haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
+  const tick = () => {
+    haptic(Haptics.selectionAsync);
+  };
+  const land = () => {
+    haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
+  };
 
   const size = orb.size;
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
@@ -315,7 +327,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       }),
   );
 
-  const setCalls = (open: boolean) => send({ to: 'calls', open });
+  const setCalls = (open: boolean) => {
+    send({ to: 'calls', open });
+  };
   const {
     drawer,
     out: drawerOut,
@@ -341,7 +355,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       setCalls(false);
     }
     if (id === calls.live && onCall) {
-      return backToCall();
+      backToCall();
+      return;
     }
     showCall(id);
   };
@@ -350,7 +365,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     tick();
     showCall(null);
   };
-  const leaveCall = () => pullWords(false);
+  const leaveCall = () => {
+    pullWords(false);
+  };
 
   // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
   const pane = useSharedValue(panes && placeOpen ? 1 : 0);
@@ -589,7 +606,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const tried = (what: string, action: Promise<unknown>) => {
     const on = callNow;
     setTrouble(undefined);
-    action.catch((error: unknown) => setTrouble({ call: on, why: failure(what, error) }));
+    action.catch((error: unknown) => {
+      setTrouble({ call: on, why: failure(what, error) });
+    });
   };
   const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
   const startCall = (about?: CallAbout) => {
@@ -623,7 +642,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     tick();
     send({ to: 'tasks', open: true, at });
   };
-  const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
+  const toggleTasks = () => {
+    if (tasksOpen) {
+      closeTasks();
+    } else {
+      openTasks();
+    }
+  };
   // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
     if (!panes) {
@@ -682,7 +707,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const back = settingsOpen ? backs.settings : tasksOpen ? backs.tasks : backs.call;
   const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
     <ScreenToolbar
-      onLayout={({ nativeEvent: { layout } }) => logPose('toolbar', layout)}
+      onLayout={({ nativeEvent: { layout } }) => {
+        logPose('toolbar', layout);
+      }}
       axis={toolbar.axis}
       gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
       style={style}
@@ -693,7 +720,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       back={back}
       onCalls={toggleDrawer}
       onTasks={toggleTasks}
-      onSettings={() => send({ to: 'settings', open: !settingsOpen })}
+      onSettings={() => {
+        send({ to: 'settings', open: !settingsOpen });
+      }}
     />
   );
   // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
@@ -716,7 +745,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           viewing={viewing}
           offline={calls.offline}
           haptics={preferences.haptics}
-          onOpen={(call) => openCall(call.id)}
+          onOpen={(call) => {
+            openCall(call.id);
+          }}
           onDelete={(id) => {
             if (id === viewing) {
               leaveCall();
@@ -731,7 +762,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const tasks = {
     open: tasksOpen,
     stack: scene.pages,
-    onMove: (move: Move) => send({ to: 'pages', move }),
+    onMove: (move: Move) => {
+      send({ to: 'pages', move });
+    },
     haptics: preferences.haptics,
     onTalk: talkAbout,
     onGoThrough: goThrough,
@@ -794,7 +827,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
                       emptyAt={pulls ? 'end' : 'center'}
                       cards={cards}
                       onAnswer={(card, option) => answerAsk(card.ask, option)}
-                      onOpenTask={(task) => openTasks({ task })}
+                      onOpenTask={(task) => {
+                        openTasks({ task });
+                      }}
                     />
                   )}
                   <Animated.View pointerEvents="none" style={[styles.fade, callColorStyle]} />
@@ -831,7 +866,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
                     label="Show transcript"
                     testID="transcript-button"
                     size="docked"
-                    onPress={() => pullWords(true)}
+                    onPress={() => {
+                      pullWords(true);
+                    }}
                   />
                 </AnimatedView>
               )}
@@ -872,9 +909,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             trouble={troubleNow}
             leading={split}
             style={[footerStyle, linesStyle, { paddingBottom: layout.footer.bottom }]}
-            onLayout={({ nativeEvent }) => setFooter(nativeEvent.layout.height)}
+            onLayout={({ nativeEvent }) => {
+              setFooter(nativeEvent.layout.height);
+            }}
             onOpen={showCall}
-            onMore={() => openTasks({ stage: 'needs' })}
+            onMore={() => {
+              openTasks({ stage: 'needs' });
+            }}
           >
             {layout.controls === 'inline' && !inRow && controls}
           </CallFooter>
@@ -882,7 +923,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             pointerEvents={agent ? 'auto' : 'none'}
             accessibilityElementsHidden={!agent}
             importantForAccessibility={agent ? 'auto' : 'no-hide-descendants'}
-            onPress={() => openTasks({ stage: 'working' })}
+            onPress={() => {
+              openTasks({ stage: 'working' });
+            }}
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
             hitSlop={{ top: 8, bottom: 12 }}
@@ -900,7 +943,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           <TasksSheet
             {...tasks}
             onCall={onCall}
-            onDismiss={() => send({ to: 'tasks', open: false })}
+            onDismiss={() => {
+              send({ to: 'tasks', open: false });
+            }}
           />
         )}
         {!callsOpen && !(duo && tasksOpen) && (
@@ -933,7 +978,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             : undefined
         }
         isPresented={settingsOpen}
-        onDismiss={() => send({ to: 'settings', open: false })}
+        onDismiss={() => {
+          send({ to: 'settings', open: false });
+        }}
         voice={voice}
         onVoiceChange={setVoice}
         voiceEnabled={voiceLoaded && !voiceLocked(call)}

@@ -259,7 +259,12 @@ export const VoiceSettings = ({
     !isPresented
       ? undefined
       : onVoicePage
-        ? { to: 'Settings', onPress: () => showVoices(false) }
+        ? {
+            to: 'Settings',
+            onPress: () => {
+              showVoices(false);
+            },
+          }
         : { to: 'Call', onPress: onDismiss },
     !!place,
   );
@@ -339,7 +344,9 @@ export const VoiceSettings = ({
           persona={persona}
           preferences={preferences}
           width={rowsWidth}
-          onSelect={() => haptic()}
+          onSelect={() => {
+            haptic();
+          }}
         />
         <Separator />
         <SettingRow icon="mic" title="Reacts to you" width={rowsWidth}>
@@ -388,7 +395,9 @@ export const VoiceSettings = ({
           title="Voice"
           width={rowsWidth}
           label={`Voice, ${selectedVoice.label}. Hear and change voices`}
-          onPress={() => showVoices(true)}
+          onPress={() => {
+            showVoices(true);
+          }}
           testID="voice-row"
         >
           <Text tone="secondary">{selectedVoice.label}</Text>
@@ -436,7 +445,9 @@ export const VoiceSettings = ({
           <NativeButton
             label="Back"
             systemImage="chevron.left"
-            onPress={() => showVoices(false)}
+            onPress={() => {
+              showVoices(false);
+            }}
             testID="voice-back"
             modifiers={[
               labelStyle('iconOnly'),
@@ -462,7 +473,9 @@ export const VoiceSettings = ({
         }
         label="Voice"
         testID="voice-carousel"
-        onPress={() => setTake((count) => count + 1)}
+        onPress={() => {
+          setTake((count) => count + 1);
+        }}
         onChange={(next) => {
           if (!voiceEnabled || !isLiveVoice(next)) {
             return;
@@ -486,13 +499,13 @@ export const VoiceSettings = ({
       row={two && phone ? edges.leading + area.width * PERSONA_SHARE : undefined}
       edges={edges}
       persona={personaHeight}
-      onPane={(pane, size) =>
+      onPane={(pane, size) => {
         setReported((now) =>
           now[pane]?.width === size.width && now[pane]?.height === size.height
             ? now
             : { ...now, [pane]: { width: size.width, height: size.height } },
-        )
-      }
+        );
+      }}
     >
       {carousel}
       <ZStack
@@ -528,7 +541,9 @@ export const VoiceSettings = ({
               onDismiss();
             }
           }}
-          onDismiss={() => setOnVoicePage(false)}
+          onDismiss={() => {
+            setOnVoicePage(false);
+          }}
         >
           <SheetContent
             modifiers={[
@@ -671,7 +686,9 @@ const SettingsPlace = ({
   }));
   const pane = (name: Pane, sides: { leading: number; trailing: number }) => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-    onGeometryChange((size) => onPane(name, size)),
+    onGeometryChange((size) => {
+      onPane(name, size);
+    }),
     padding({ top, bottom, ...sides }),
   ];
   const personaPane = (

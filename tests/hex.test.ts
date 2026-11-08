@@ -174,7 +174,9 @@ test('closing a list stops its waiting request as it is', async () => {
   const hex = hexAt(
     (_input, init) =>
       new Promise((_resolve, reject) =>
-        init?.signal?.addEventListener('abort', () => reject(new DOMException('', 'AbortError'))),
+        init?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('', 'AbortError'));
+        }),
       ),
   );
   const waiting = hex.calls.list(7, controller.signal);

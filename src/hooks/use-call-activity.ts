@@ -43,7 +43,9 @@ export const useCallActivity = (
     for (const stale of CallActivity.getInstances()) {
       void stale.end('immediate');
     }
-    const controls = addUserInteractionListener(({ target }) => onControl(target));
+    const controls = addUserInteractionListener(({ target }) => {
+      onControl(target);
+    });
     return () => {
       controls.remove();
       void activity.current?.end('immediate');

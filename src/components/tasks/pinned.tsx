@@ -39,7 +39,9 @@ const Section = ({ section }: { section: PinSection }) => {
       <Row
         alignment="center"
         spacing={metrics.list.gap}
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          setOpen(true);
+        }}
         modifiers={[
           padding({
             leading: metrics.list.inset - space[0.5],

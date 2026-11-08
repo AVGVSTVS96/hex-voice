@@ -82,7 +82,9 @@ export const CallAsk = ({
             accessibilityRole="button"
             accessibilityLabel={option.pick ? `${option.label}, ${PICK}` : option.label}
             accessibilityState={{ selected: sending === option.label, disabled: !!sending }}
-            onPress={() => choose(option)}
+            onPress={() => {
+              choose(option);
+            }}
             style={({ pressed }) => [
               styles.option,
               option.pick && styles.pick,
@@ -102,7 +104,9 @@ export const CallAsk = ({
               accessibilityRole="link"
               hitSlop={8}
               onPress={() =>
-                openURL(link.url).catch((error: Error) => setFailed(failure('Not opened', error)))
+                openURL(link.url).catch((error: Error) => {
+                  setFailed(failure('Not opened', error));
+                })
               }
             >
               <Text style={styles.link}>{`${link.label} ↗`}</Text>

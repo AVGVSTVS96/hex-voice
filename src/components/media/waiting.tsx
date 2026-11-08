@@ -24,7 +24,9 @@ export const Waiting = ({
           accessibilityLabel={`Remove ${each.kind}`}
           testID="thread-remove-media"
           hitSlop={space[2]}
-          onPress={() => onRemove(i)}
+          onPress={() => {
+            onRemove(i);
+          }}
           style={styles.remove}
         >
           <Glyph name="xmark" size={metrics.symbol.mark} color={film.ink} />

@@ -112,7 +112,9 @@ export const Arc = ({ size = 12 }: { size?: number }) => {
       return;
     }
     spin.set(withRepeat(withTiming(1, { duration: turn, easing: Easing.linear }), -1));
-    return () => cancelAnimation(spin);
+    return () => {
+      cancelAnimation(spin);
+    };
   }, [spin, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
   return <Animated.View style={[styles.arc, circle(size), style]} />;

@@ -93,7 +93,9 @@ export const ListPage = ({
 }) => {
   const { back } = useChrome();
   const { query } = pages;
-  const setQuery = (query: string | null) => pages.go({ to: 'search', query });
+  const setQuery = (query: string | null) => {
+    pages.go({ to: 'search', query });
+  };
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   const behind = loaded && (offline || yours.offline);
@@ -104,7 +106,9 @@ export const ListPage = ({
       return;
     }
     onCounts({ needs, working });
-    return () => onCounts(undefined);
+    return () => {
+      onCounts(undefined);
+    };
   }, [counted, needs, working, onCounts]);
   const shown = useMemo(
     () => (query !== null ? search(entries, query) : tabEntries(entries, stage)),
@@ -273,7 +277,9 @@ export const ListPage = ({
                   selected={
                     stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic
                   }
-                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
+                  onOpen={() => {
+                    openPage(pageOf(topic), topic.entries[0]?.id);
+                  }}
                 />,
               ];
             }
@@ -282,7 +288,9 @@ export const ListPage = ({
               <TopicHead
                 key={`${topic.name}:head`}
                 topic={topic}
-                onPress={() => openPage(lead ?? pageOf(topic))}
+                onPress={() => {
+                  openPage(lead ?? pageOf(topic));
+                }}
               />,
               ...topic.entries.map((entry) => (
                 <EntryRow key={entry.id} entry={entry} why={whyOf(entry, query)} {...actions} />

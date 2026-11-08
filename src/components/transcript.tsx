@@ -140,8 +140,12 @@ const useSettledLength = (length: number) => {
   const [warm, setWarm] = useState(0);
   const [settled, setSettled] = useState(0);
   useEffect(() => {
-    setTimeout(() => setWarm((current) => Math.max(current, length)), motion.caption.warm);
-    setTimeout(() => setSettled((current) => Math.max(current, length)), motion.caption.settled);
+    setTimeout(() => {
+      setWarm((current) => Math.max(current, length));
+    }, motion.caption.warm);
+    setTimeout(() => {
+      setSettled((current) => Math.max(current, length));
+    }, motion.caption.settled);
   }, [length]);
   return [Math.min(warm, length), Math.min(settled, length)] as const;
 };

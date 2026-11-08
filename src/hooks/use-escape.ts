@@ -11,6 +11,8 @@ export const useEscape = (onEscape?: () => void) => {
       return;
     }
     const subscription = Escape.addListener('onEscape', () => escape());
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+    };
   }, [listening]);
 };

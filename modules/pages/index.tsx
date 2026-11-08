@@ -33,7 +33,9 @@ export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
       modifiers={modifiers}
       {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
       {...rest}
-      onPaired={({ nativeEvent }) => onPaired(nativeEvent.paired)}
+      onPaired={({ nativeEvent }) => {
+        onPaired(nativeEvent.paired);
+      }}
     />
   );
 };

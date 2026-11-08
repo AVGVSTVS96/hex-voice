@@ -94,7 +94,14 @@ export const Detail = ({
       <Header
         title={task.name}
         subtitle={subtitleOf(task, open)}
-        door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
+        door={
+          door && {
+            place: placeOf(door.app),
+            onPress: () => {
+              onOpen(door);
+            },
+          }
+        }
       />
       <Faded>
         <List key={task.id} modifiers={pageList(asks, answered)}>
@@ -145,7 +152,9 @@ export const Detail = ({
                       key={thread.id}
                       thread={thread.id === task.id && full ? full : thread}
                       named={working.length > 1 || thread.id !== task.id}
-                      onPress={() => onSteps(thread.id)}
+                      onPress={() => {
+                        onSteps(thread.id);
+                      }}
                     />
                   ))}
                 </Column>
@@ -153,7 +162,13 @@ export const Detail = ({
               {full && lastRun(full) ? (
                 <Column key="run" alignment="start" spacing={0}>
                   <SectionHead title="Last run" opens />
-                  <Run thread={full} named={false} onPress={() => onSteps(full.id)} />
+                  <Run
+                    thread={full}
+                    named={false}
+                    onPress={() => {
+                      onSteps(full.id);
+                    }}
+                  />
                 </Column>
               ) : null}
               {full?.pin ? <Pinned key="pin" text={full.pin} /> : null}
@@ -343,7 +358,9 @@ export const DonePage = ({
                       title={link.label}
                       note={url?.replace(/^https?:\/\//, '') ?? ''}
                       out
-                      onPress={() => onOpenLink(link)}
+                      onPress={() => {
+                        onOpenLink(link);
+                      }}
                     />
                   );
                 })}

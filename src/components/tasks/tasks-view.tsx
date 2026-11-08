@@ -154,11 +154,19 @@ export const Tasks = ({
   const openLink = (link: string, place: Place) => {
     tap();
     Linking.openURL(link).then(
-      () => missing.has(place) && setMissing(new Set([...missing].filter((one) => one !== place))),
-      () => setMissing(new Set([...missing, place])),
+      () => {
+        if (missing.has(place)) {
+          setMissing(new Set([...missing].filter((one) => one !== place)));
+        }
+      },
+      () => {
+        setMissing(new Set([...missing, place]));
+      },
     );
   };
-  const openThread = (thread: TaskRow) => openLink(thread.link!, placeOf(thread.app));
+  const openThread = (thread: TaskRow) => {
+    openLink(thread.link!, placeOf(thread.app));
+  };
   // Where an ask was asked, as its topic's way there when no thread of it is left to open.
   const doorOf = (ask: Ask) => {
     const where = ask.places.find((one) => one.link);
@@ -166,7 +174,12 @@ export const Tasks = ({
       return undefined;
     }
     const place = placeOf(where.app);
-    return { place, onPress: () => openLink(where.link!, place) };
+    return {
+      place,
+      onPress: () => {
+        openLink(where.link!, place);
+      },
+    };
   };
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
@@ -292,7 +305,9 @@ export const Tasks = ({
           onUndo={undo}
           onAgain={again}
           onDismiss={dismiss}
-          onTalk={() => talk(opened)}
+          onTalk={() => {
+            talk(opened);
+          }}
           onOpen={openThread}
           onOpenTask={(id) => {
             tick();
@@ -304,13 +319,21 @@ export const Tasks = ({
                 key="messages"
                 thread={opened}
                 chat={said.chat}
-                onOpen={() => write(false)}
+                onOpen={() => {
+                  write(false);
+                }}
               />
             ) : undefined
           }
           beside={paired}
           answering={typing === 'topic'}
-          onWrite={!paired && said.sends ? () => write(true) : undefined}
+          onWrite={
+            !paired && said.sends
+              ? () => {
+                  write(true);
+                }
+              : undefined
+          }
           foot={spot('topic').foot}
         />
       ) : did ? (
@@ -318,7 +341,12 @@ export const Tasks = ({
           finished={did}
           door={
             did.link
-              ? { place: placeOf(did.app), onPress: () => openLink(did.link!, placeOf(did.app)) }
+              ? {
+                  place: placeOf(did.app),
+                  onPress: () => {
+                    openLink(did.link!, placeOf(did.app));
+                  },
+                }
               : undefined
           }
           onOpenLink={openTile}
@@ -344,7 +372,9 @@ export const Tasks = ({
                 key={entry.id}
                 entry={entry}
                 answered={yours.answered}
-                onOpen={(id) => pages.go({ to: 'topic', id })}
+                onOpen={(id) => {
+                  pages.go({ to: 'topic', id });
+                }}
                 onOpenTile={openTile}
                 onAnswer={answer}
                 onUndo={undo}
@@ -381,14 +411,18 @@ export const Tasks = ({
           focus={pages.focusComposer}
           foot={spot('thread').foot}
           onOpen={openThread}
-          onSteps={() => openSteps(opened.id)}
+          onSteps={() => {
+            openSteps(opened.id);
+          }}
           onSend={said.send}
           onRetry={said.retry}
           onStop={() => {
             tap();
             void said.stop();
           }}
-          onTalk={() => talk(opened)}
+          onTalk={() => {
+            talk(opened);
+          }}
         />
       ) : (
         <Spacer />
@@ -397,7 +431,12 @@ export const Tasks = ({
     page(
       'steps',
       traced.task ? (
-        <Trace task={traced.task} onOpen={(link) => openLink(link, 't3')} />
+        <Trace
+          task={traced.task}
+          onOpen={(link) => {
+            openLink(link, 't3');
+          }}
+        />
       ) : (
         <StepsLoading {...traced} />
       ),

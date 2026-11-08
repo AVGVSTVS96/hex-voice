@@ -31,7 +31,9 @@ export const useAppUpdates = (callLive: boolean) => {
       }
       void download();
     });
-    return () => listener.remove();
+    return () => {
+      listener.remove();
+    };
   }, []);
 };
 

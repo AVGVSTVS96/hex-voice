@@ -29,7 +29,12 @@ export const SentMedia = ({
       {sending ? (
         <Text style={styles.note}>Sending</Text>
       ) : failed ? (
-        <Pressable accessibilityRole="button" onPress={() => retry(id)}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            retry(id);
+          }}
+        >
           <Text style={styles.failed}>{`Not sent · ${failed} · Tap to try again`}</Text>
         </Pressable>
       ) : null}

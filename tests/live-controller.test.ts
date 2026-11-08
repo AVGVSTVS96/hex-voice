@@ -112,7 +112,9 @@ class FakeTransport implements LiveTransport {
         this.emit({ type: 'session.closed' });
       }
       if (this.acknowledgeClose === 'microtask') {
-        queueMicrotask(() => this.emit({ type: 'session.closed' }));
+        queueMicrotask(() => {
+          this.emit({ type: 'session.closed' });
+        });
       }
     }
     return true;
@@ -184,7 +186,9 @@ const harness = () => {
     async cleanup() {
       const stop = session.stop();
       await settle();
-      transports.forEach((transport) => transport.emit({ type: 'session.closed' }));
+      transports.forEach((transport) => {
+        transport.emit({ type: 'session.closed' });
+      });
       await stop;
       clock.restore();
     },

@@ -50,8 +50,11 @@ export const useChat = (id: TaskId | null, live: boolean) => {
     chat,
     sends: chat ? chat.sends : !!id && (writable?.[id] ?? true),
     pending,
-    send: (text: string, media: Picked[] = []) =>
-      id && deliver({ id, key: newKey(), text, media, total: chat?.total ?? 0 }),
+    send: (text: string, media: Picked[] = []) => {
+      if (id) {
+        deliver({ id, key: newKey(), text, media, total: chat?.total ?? 0 });
+      }
+    },
     retry: deliver,
     stop: () => id && tries.attempt(id, 'Not stopped', () => hex.tasks.stop(id)),
     failed: id ? tries.failed[id] : undefined,

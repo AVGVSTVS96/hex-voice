@@ -22,10 +22,9 @@ export const ToolbarBackProvider = ToolbarBack.Provider;
 
 export const useToolbarBacks = () => {
   const [backs, setBacks] = useState<Partial<Record<BackFrom, Back>>>({});
-  const publish = useCallback<Publish>(
-    (from, back) => setBacks((was) => (was[from] === back ? was : { ...was, [from]: back })),
-    [],
-  );
+  const publish = useCallback<Publish>((from, back) => {
+    setBacks((was) => (was[from] === back ? was : { ...was, [from]: back }));
+  }, []);
   return { backs, publish };
 };
 
@@ -44,7 +43,9 @@ export const useToolbarBack = (from: BackFrom, back: Back | undefined, when = tr
       return;
     }
     publish(from, to === undefined ? undefined : { to, onPress: () => press.current?.() });
-    return () => publish(from, undefined);
+    return () => {
+      publish(from, undefined);
+    };
   }, [publish, takes, from, to]);
   return takes;
 };

@@ -108,7 +108,6 @@ const pending = {
   'typescript/await-thenable': 'off',
   'typescript/consistent-return': 'off',
   'typescript/no-base-to-string': 'off',
-  'typescript/no-confusing-void-expression': 'off',
   'typescript/no-deprecated': 'off',
   'typescript/no-explicit-any': 'off',
   'typescript/no-floating-promises': 'off',

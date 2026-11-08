@@ -60,8 +60,12 @@ export const EntryRow = ({
           <Folded
             ask={ask}
             label={said}
-            onUndo={() => actions.onUndo(ask)}
-            onAgain={() => actions.onAgain(ask)}
+            onUndo={() => {
+              actions.onUndo(ask);
+            }}
+            onAgain={() => {
+              actions.onAgain(ask);
+            }}
           />
         );
       }
@@ -69,8 +73,17 @@ export const EntryRow = ({
       return (
         <Swiped
           {...swiped}
-          lead={pick && { label: pick.label, onPress: () => actions.onAnswer(ask, pick) }}
-          onAway={() => actions.onDismiss(ask)}
+          lead={
+            pick && {
+              label: pick.label,
+              onPress: () => {
+                actions.onAnswer(ask, pick);
+              },
+            }
+          }
+          onAway={() => {
+            actions.onDismiss(ask);
+          }}
         >
           <Shell
             selected={selected}
@@ -80,7 +93,9 @@ export const EntryRow = ({
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
             label={`${entry.topic} asks: ${ask.question}`}
-            onPress={() => actions.onOpen(ask.task, entry.id)}
+            onPress={() => {
+              actions.onOpen(ask.task, entry.id);
+            }}
           >
             {ask.options.length > 0 ? (
               <Fits>
@@ -111,14 +126,20 @@ export const EntryRow = ({
             meta={agents ? `${agents} agent${agents === 1 ? '' : 's'}` : undefined}
             tiles={entry.tiles}
             label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
-            onPress={() => actions.onOpen(task.id, entry.id)}
+            onPress={() => {
+              actions.onOpen(task.id, entry.id);
+            }}
           />
         </Swiped>
       );
     }
     case 'stuck': {
       const { stuck } = entry;
-      const act = stuck.sent ? undefined : () => actions.onAct(stuck.id);
+      const act = stuck.sent
+        ? undefined
+        : () => {
+            actions.onAct(stuck.id);
+          };
       return (
         <Swiped {...swiped} lead={act && { label: stuck.action, onPress: act }}>
           <Shell
@@ -139,7 +160,11 @@ export const EntryRow = ({
     }
     case 'fresh': {
       const { fresh } = entry;
-      const read = fresh.read ? undefined : () => actions.onRead(fresh.id);
+      const read = fresh.read
+        ? undefined
+        : () => {
+            actions.onRead(fresh.id);
+          };
       return (
         <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
           <Shell
@@ -170,9 +195,9 @@ export const EntryRow = ({
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
             label={`${finished.title}, done${proof ? `: ${proof}` : ''}. Opens it`}
-            onPress={() =>
-              actions.onOpen(pageOf({ name: entry.topic, entries: [entry], marks: [] }), entry.id)
-            }
+            onPress={() => {
+              actions.onOpen(pageOf({ name: entry.topic, entries: [entry], marks: [] }), entry.id);
+            }}
           >
             {proof ? <Why text={proof} /> : null}
           </Shell>
@@ -223,7 +248,9 @@ const Swiped = ({
               key={i}
               label={tile.label}
               systemImage={glyph}
-              onPress={() => onTile(tile)}
+              onPress={() => {
+                onTile(tile);
+              }}
               modifiers={[tint(color)]}
             />
           );

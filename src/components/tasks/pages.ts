@@ -155,7 +155,13 @@ export const usePages = ({
 }) => {
   const [placed, setPlaced] = useState<Shape>();
   const shape = placed ?? guess;
-  const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : onMove({ to: 'back' }));
+  const back = () => {
+    if (backLeavesTasks(stack, shape)) {
+      onClose?.();
+    } else {
+      onMove({ to: 'back' });
+    }
+  };
   return {
     ...stack,
     shape,
@@ -163,7 +169,9 @@ export const usePages = ({
     closes: !!onClose,
     go: onMove,
     back,
-    placed: (paired: boolean) => setPlaced(paired ? 'panes' : 'one'),
+    placed: (paired: boolean) => {
+      setPlaced(paired ? 'panes' : 'one');
+    },
   };
 };
 

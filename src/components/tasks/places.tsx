@@ -157,7 +157,15 @@ export const Places = ({
               alignment="center"
               spacing={space[3]}
               onPress={
-                opens ? () => (thread.link ? onOpen(thread) : onOpenTask(thread.id)) : undefined
+                opens
+                  ? () => {
+                      if (thread.link) {
+                        onOpen(thread);
+                      } else {
+                        onOpenTask(thread.id);
+                      }
+                    }
+                  : undefined
               }
               modifiers={[
                 padding({
@@ -198,7 +206,9 @@ export const Places = ({
       })}
       {rest > 0 ? (
         <Text
-          onPress={() => setEvery(true)}
+          onPress={() => {
+            setEvery(true);
+          }}
           variant="detail"
           tone="secondary"
           modifiers={[

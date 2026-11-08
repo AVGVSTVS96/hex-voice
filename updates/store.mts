@@ -168,7 +168,9 @@ const main = async () => {
   }
   if (command === 'serve') {
     const port = Number(process.env.PORT ?? 8791);
-    serve(dir).listen(port, '127.0.0.1', () => console.log(`serving ${dir} on :${port}`));
+    serve(dir).listen(port, '127.0.0.1', () => {
+      console.log(`serving ${dir} on :${port}`);
+    });
   } else if (command === 'publish') {
     const [dist, platform, runtimeVersion, configPath] = args;
     const expoConfig = JSON.parse(await readFile(configPath, 'utf-8'));

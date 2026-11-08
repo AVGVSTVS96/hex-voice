@@ -58,7 +58,8 @@ export const AddMedia = ({
       return;
     }
     if (picked.assets.some(({ duration }) => (duration ?? 0) > CLIP_SECONDS * 1000)) {
-      return Alert.alert('Videos up to a minute', 'Pick a shorter video, or trim it in Photos.');
+      Alert.alert('Videos up to a minute', 'Pick a shorter video, or trim it in Photos.');
+      return;
     }
     onAdd(
       picked.assets.map(({ uri, type, mimeType }) =>
@@ -82,7 +83,13 @@ export const AddMedia = ({
             ...(glass ? [onGlass('circle')] : []),
           ]}
         >
-          <Button label="Camera" systemImage="camera" onPress={() => setCamera(true)} />
+          <Button
+            label="Camera"
+            systemImage="camera"
+            onPress={() => {
+              setCamera(true);
+            }}
+          />
           <Button label="Photos" systemImage="photo.on.rectangle" onPress={() => void pick()} />
         </Menu>
       }

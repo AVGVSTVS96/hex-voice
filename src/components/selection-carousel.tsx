@@ -106,7 +106,13 @@ export const SelectionCarousel = ({
             key={option.id}
             alignment="center"
             spacing={0}
-            onPress={current ? undefined : () => onChange(option.id)}
+            onPress={
+              current
+                ? undefined
+                : () => {
+                    onChange(option.id);
+                  }
+            }
             modifiers={[
               frame({ width: DOT * 2, height: REACH }),
               contentShape(shapes.rectangle()),

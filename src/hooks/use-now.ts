@@ -8,8 +8,12 @@ export const useNow = (ticking: boolean) => {
       return;
     }
     setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
   }, [ticking]);
   return now;
 };

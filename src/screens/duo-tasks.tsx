@@ -49,7 +49,9 @@ export const useDuoTasks = (
     beside,
     above,
     offered,
-    toggleBeside: () => choose(!beside),
+    toggleBeside: () => {
+      choose(!beside);
+    },
     dock,
     covers,
     aside,

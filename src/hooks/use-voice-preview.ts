@@ -30,7 +30,11 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
     let open = true;
     void setAudioModeAsync(PREVIEW_AUDIO)
       .catch(() => {})
-      .then(() => open && setReady(true));
+      .then(() => {
+        if (open) {
+          setReady(true);
+        }
+      });
     return () => {
       open = false;
       setReady(false);

@@ -53,9 +53,9 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
     };
     onAppStateChange(AppState.currentState);
     const listener = AppState.addEventListener('change', onAppStateChange);
-    const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) =>
-      session.interrupt(began),
-    );
+    const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) => {
+      session.interrupt(began);
+    });
     return () => {
       listener.remove();
       interruptions?.remove();
@@ -155,7 +155,8 @@ export const useShare = (call: Call) => {
     const live = now.current;
     const id = callIdOf(live);
     if (live.kind === 'none' || !id) {
-      return ended();
+      ended();
+      return;
     }
     const at =
       live.kind === 'here' ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
@@ -172,7 +173,9 @@ export const useLevels = (hear: (levels: Levels) => void) => {
   const { session } = use(Session)!;
   const take = useEffectEvent(hear);
   useLayoutEffect(() => {
-    const now = () => take(session.getLevels());
+    const now = () => {
+      take(session.getLevels());
+    };
     now();
     return session.subscribeLevels(now);
   }, [session]);

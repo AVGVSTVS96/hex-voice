@@ -38,8 +38,9 @@ export const useAsks = (open: boolean) => {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const tries = useFailures();
   const [missed, setMissed] = useState<Record<string, number>>({});
-  const reached = (id: AskId, sent?: Sent) =>
+  const reached = (id: AskId, sent?: Sent) => {
     setMissed(({ [id]: _, ...rest }) => (sent?.missed ? { ...rest, [id]: sent.missed } : rest));
+  };
   // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
   // one before it is done, and only the latest you did may change how its card shows.
   const queue = useRef(new Map<AskId, { last: Promise<unknown>; turn: number }>());
@@ -82,7 +83,11 @@ export const useAsks = (open: boolean) => {
   const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
     dispatch({ type: 'answer', id: ask.id, label });
     inTurn(ask.id, async (latest) => {
-      if (await tries.attempt(ask.id, what, async () => reached(ask.id, await send()))) {
+      if (
+        await tries.attempt(ask.id, what, async () => {
+          reached(ask.id, await send());
+        })
+      ) {
         out.current.set(ask.id, send);
       } else if (latest()) {
         dispatch({ type: 'failed', id: ask.id });
@@ -114,9 +119,12 @@ export const useAsks = (open: boolean) => {
     open: openAsks(state),
     offline: watching === 'offline',
     current: watching === 'current',
-    answer: (ask: Ask, option: AskOption) =>
-      settle(ask, option.label, 'Not answered', () => answerAsk(ask, option)),
-    dismiss: (ask: Ask) => settle(ask, NOT_NEEDED, 'Not put away', () => hex.asks.dismiss(ask.id)),
+    answer: (ask: Ask, option: AskOption) => {
+      settle(ask, option.label, 'Not answered', () => answerAsk(ask, option));
+    },
+    dismiss: (ask: Ask) => {
+      settle(ask, NOT_NEEDED, 'Not put away', () => hex.asks.dismiss(ask.id));
+    },
     // What went out stands, so sending it again only reaches the places it missed, and it stays
     // folded whether or not they answer this time.
     again: (ask: Ask) => {
@@ -126,7 +134,9 @@ export const useAsks = (open: boolean) => {
       }
       reached(ask.id);
       inTurn(ask.id, () =>
-        tries.attempt(ask.id, 'Not sent again', async () => reached(ask.id, await send())),
+        tries.attempt(ask.id, 'Not sent again', async () => {
+          reached(ask.id, await send());
+        }),
       );
     },
     undo,

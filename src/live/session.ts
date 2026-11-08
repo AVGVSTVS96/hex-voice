@@ -63,7 +63,9 @@ export class LiveSession {
   };
   private update(change: Partial<LiveSnapshot>) {
     this.snapshot = { ...this.snapshot, ...change };
-    this.listeners.forEach((listener) => listener());
+    this.listeners.forEach((listener) => {
+      listener();
+    });
   }
   getLevels = () => this.levels;
   subscribeLevels = (listener: () => void) => {
@@ -78,7 +80,9 @@ export class LiveSession {
       return;
     }
     this.levels = levels;
-    this.levelListeners.forEach((listener) => listener());
+    this.levelListeners.forEach((listener) => {
+      listener();
+    });
   }
 
   start = async (voice: LiveVoice = DEFAULT_VOICE, about?: CallAbout) => {

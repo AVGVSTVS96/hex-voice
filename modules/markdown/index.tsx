@@ -56,7 +56,9 @@ export const MarkdownView = ({
       edge={processColor(edge)}
       surface={processColor(surface)}
       accent={processColor(accent)}
-      onLink={({ nativeEvent }) => onLink(nativeEvent.url)}
+      onLink={({ nativeEvent }) => {
+        onLink(nativeEvent.url);
+      }}
       {...rest}
     />
   );

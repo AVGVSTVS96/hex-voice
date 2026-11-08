@@ -62,14 +62,18 @@ export const useWatch = <K extends string, T extends { version?: number }>(
         }
       }
     })();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [key, active]);
   return watching;
 };
 
 const onAppState = (change: () => void) => {
   const listener = AppState.addEventListener('change', change);
-  return () => listener.remove();
+  return () => {
+    listener.remove();
+  };
 };
 
 export const useActive = () =>

@@ -119,7 +119,9 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
             <Pressable
               accessibilityRole="button"
               testID="camera-retake"
-              onPress={() => setPhase({ at: 'live' })}
+              onPress={() => {
+                setPhase({ at: 'live' });
+              }}
               style={styles.retake}
             >
               <Text style={[styles.words, styles.strong]}>Retake</Text>
@@ -129,7 +131,9 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
               label={keep}
               testID="camera-keep"
               bright
-              onPress={() => onShot(phase.shot)}
+              onPress={() => {
+                onShot(phase.shot);
+              }}
             />
           </>
         ) : (
@@ -156,7 +160,9 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
                   symbol="arrow.triangle.2.circlepath"
                   label="Flip camera"
                   testID="camera-flip"
-                  onPress={() => setFacing((now) => (now === 'back' ? 'front' : 'back'))}
+                  onPress={() => {
+                    setFacing((now) => (now === 'back' ? 'front' : 'back'));
+                  }}
                 />
               )}
             </View>
@@ -214,8 +220,12 @@ const Fill = ({ filled }: { filled: ReturnType<typeof useSharedValue<number>> })
 const Timer = ({ since }: { since: number }) => {
   const [now, setNow] = useState(since);
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(tick);
+    const tick = setInterval(() => {
+      setNow(Date.now());
+    }, 250);
+    return () => {
+      clearInterval(tick);
+    };
   }, []);
   return (
     <View style={styles.timer}>

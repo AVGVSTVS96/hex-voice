@@ -22,7 +22,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
     // Every setup failure after capture must release the microphone too.
-    stream.getTracks().forEach((track) => track.stop());
+    stream.getTracks().forEach((track) => {
+      track.stop();
+    });
     peer?.close();
     stream.release();
     callManager?.stop();
@@ -52,10 +54,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       onFailure('The audio connection failed. Check your connection and try again.');
     }
     if (pc.connectionState === 'disconnected') {
-      disconnectTimer = setTimeout(
-        () => onFailure('The audio connection was lost. Try starting again.'),
-        7000,
-      );
+      disconnectTimer = setTimeout(() => {
+        onFailure('The audio connection was lost. Try starting again.');
+      }, 7000);
     }
   };
   return {
@@ -164,7 +165,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       }
       closed = true;
       clearTimeout(disconnectTimer);
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
       channel.close();
       pc.close();
       stream.release();

@@ -42,8 +42,9 @@ export const useCalls = () => {
     setLive(list.live);
   });
 
-  const add = (call: CallSummary) =>
+  const add = (call: CallSummary) => {
     setJustEnded((current) => [call, ...current.filter(({ id }) => id !== call.id)]);
+  };
 
   const remove = (id: CallId) => {
     const others = (calls: CallSummary[]) => calls.filter((call) => call.id !== id);

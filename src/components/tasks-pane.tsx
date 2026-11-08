@@ -71,9 +71,9 @@ export const TasksPage = ({
   return (
     <Animated.View
       testID="tasks-page"
-      onLayout={({ nativeEvent: { layout } }) =>
-        logPose('tasks', { ...layout, shape: pages.shape })
-      }
+      onLayout={({ nativeEvent: { layout } }) => {
+        logPose('tasks', { ...layout, shape: pages.shape });
+      }}
       pointerEvents={view.open ? 'auto' : 'none'}
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}

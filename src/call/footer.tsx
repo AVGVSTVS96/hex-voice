@@ -61,7 +61,9 @@ export const CallFooter = ({
           )}
           <WrapUp
             center={!leading}
-            onOpen={() => onOpen(wrapUp.id)}
+            onOpen={() => {
+              onOpen(wrapUp.id);
+            }}
             summary={wrapUp.summary}
             waiting={wrapUp.waiting}
             onMore={onMore}

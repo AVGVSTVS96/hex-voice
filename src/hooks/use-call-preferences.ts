@@ -33,9 +33,13 @@ export const useCallPreferences = () => {
     reaction: reaction.value,
     setReaction: reaction.setValue,
     sounds: sounds.value === 'on',
-    setSounds: (on: boolean) => sounds.setValue(on ? 'on' : 'off'),
+    setSounds: (on: boolean) => {
+      sounds.setValue(on ? 'on' : 'off');
+    },
     haptics: haptics.value === 'on',
-    setHaptics: (on: boolean) => haptics.setValue(on ? 'on' : 'off'),
+    setHaptics: (on: boolean) => {
+      haptics.setValue(on ? 'on' : 'off');
+    },
   };
 };
 

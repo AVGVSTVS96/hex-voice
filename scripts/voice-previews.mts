@@ -36,10 +36,12 @@ const render = async (voice: LiveVoice, name: string) => {
       quiet = false;
       clearInterval(silence);
       socket.send(JSON.stringify({ type: 'session.close' }));
-      setTimeout(() => socket.close(), 500);
+      setTimeout(() => {
+        socket.close();
+      }, 500);
       resolve();
     };
-    socket.onopen = () =>
+    socket.onopen = () => {
       socket.send(
         JSON.stringify({
           type: 'session.start',
@@ -52,6 +54,7 @@ const render = async (voice: LiveVoice, name: string) => {
           },
         }),
       );
+    };
     socket.onmessage = ({ data }) => {
       const event = JSON.parse(String(data));
       if (event.type === 'error') {
@@ -59,10 +62,9 @@ const render = async (voice: LiveVoice, name: string) => {
       }
       if (event.type === 'session.started') {
         const zeros = Buffer.alloc((RATE * 2 * CHUNK_MS) / 1000).toString('base64');
-        silence = setInterval(
-          () => socket.send(JSON.stringify({ type: 'session.input_audio.append', audio: zeros })),
-          CHUNK_MS,
-        );
+        silence = setInterval(() => {
+          socket.send(JSON.stringify({ type: 'session.input_audio.append', audio: zeros }));
+        }, CHUNK_MS);
         socket.send(
           JSON.stringify({
             type: 'session.instructions.append',
@@ -87,7 +89,9 @@ const render = async (voice: LiveVoice, name: string) => {
         finish();
       }
     };
-    socket.onerror = () => reject(new Error(`${voice}: socket error`));
+    socket.onerror = () => {
+      reject(new Error(`${voice}: socket error`));
+    };
   });
 
   const trim = 'silenceremove=start_periods=1:start_threshold=-50dB,areverse';

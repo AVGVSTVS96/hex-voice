@@ -44,8 +44,12 @@ export const useAgentLine = (haptics: boolean) => {
     if (!finished) {
       return;
     }
-    const timer = setTimeout(() => setFinished(undefined), motion.agent.hold);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      setFinished(undefined);
+    }, motion.agent.hold);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [finished]);
 
   return { call: live.call, line: agentLine(live.tasks, finished), cards: live.cards };

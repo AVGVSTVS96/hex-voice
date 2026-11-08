@@ -43,8 +43,12 @@ export const usePickChoices = () => {
   const [choices, setChoices] = useState<Record<AskId, Choice>>({});
   return {
     choiceOf: ({ ask, option }: Picked): Choice => choices[ask.id] ?? option,
-    choose: (id: AskId, choice: Choice) => setChoices((was) => ({ ...was, [id]: choice })),
-    clear: () => setChoices({}),
+    choose: (id: AskId, choice: Choice) => {
+      setChoices((was) => ({ ...was, [id]: choice }));
+    },
+    clear: () => {
+      setChoices({});
+    },
   };
 };
 export type PickChoices = ReturnType<typeof usePickChoices>;
@@ -107,7 +111,9 @@ export const PicksPage = ({
                   ask={picked.ask}
                   choice={choices.choiceOf(picked)}
                   open={picked.ask.id === open}
-                  onPress={() => onOpen(picked.ask.id)}
+                  onPress={() => {
+                    onOpen(picked.ask.id);
+                  }}
                 />
               ))
             ) : (
@@ -125,7 +131,13 @@ export const PicksPage = ({
         <Row
           alignment="center"
           spacing={0}
-          onPress={taken.length ? () => onTake(taken) : undefined}
+          onPress={
+            taken.length
+              ? () => {
+                  onTake(taken);
+                }
+              : undefined
+          }
           testID="picks-take"
           modifiers={[
             frame({ height: metrics.pill.height }),
@@ -314,14 +326,18 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                   detail={option.detail}
                   pick={option.pick}
                   chosen={choice !== 'later' && choice.label === option.label}
-                  onPress={() => choices.choose(ask.id, option)}
+                  onPress={() => {
+                    choices.choose(ask.id, option);
+                  }}
                 />
               ))}
               <OptionCard
                 title={LATER}
                 detail="Stays in Needs you, unanswered."
                 chosen={choice === 'later'}
-                onPress={() => choices.choose(ask.id, 'later')}
+                onPress={() => {
+                  choices.choose(ask.id, 'later');
+                }}
               />
             </Column>
             {ask.context ? (

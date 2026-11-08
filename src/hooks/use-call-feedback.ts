@@ -26,14 +26,18 @@ export const useCallFeedback = (
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       if (sounds) {
-        void connect.seekTo(0).then(() => connect.play());
+        void connect.seekTo(0).then(() => {
+          connect.play();
+        });
       }
     } else {
       if (haptics) {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
       }
       if (sounds) {
-        void end.seekTo(0).then(() => end.play());
+        void end.seekTo(0).then(() => {
+          end.play();
+        });
       }
     }
   }, [live, connect, end, sounds, haptics]);

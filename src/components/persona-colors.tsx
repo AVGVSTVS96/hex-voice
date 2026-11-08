@@ -91,7 +91,9 @@ export const PersonaColors = ({
         <ColorPicker
           selection={color}
           supportsOpacity={false}
-          onSelectionChange={(next) => preferences.setPersonaColor(next.slice(0, 7).toUpperCase())}
+          onSelectionChange={(next) => {
+            preferences.setPersonaColor(next.slice(0, 7).toUpperCase());
+          }}
           modifiers={[
             labelsHidden(),
             frame({ width: size, height: size }),

@@ -18,7 +18,9 @@ import { motion } from '@/motion';
 // The orb's face. Only it redraws as hex starts and stops speaking.
 export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaProps, 'state'>) => {
   const [speaking, setSpeaking] = useState(false);
-  useLevels(({ output }) => setSpeaking(output > 0.035));
+  useLevels(({ output }) => {
+    setSpeaking(output > 0.035);
+  });
   return <Persona {...persona} state={personaOf(call, speaking)} />;
 };
 
@@ -62,7 +64,9 @@ export const useOrbLife = (
     );
   }, [awake, reducedMotion, wake, breath]);
 
-  useLevels((levels) => input.set(levels.input));
+  useLevels((levels) => {
+    input.set(levels.input);
+  });
   useAnimatedReaction(
     () => (reacting ? Math.max(0, input.get() - 0.06) / 0.94 : 0),
     (loudness, before) => {

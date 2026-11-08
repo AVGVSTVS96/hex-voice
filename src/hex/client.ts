@@ -58,7 +58,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
     }
     const controller = new AbortController();
-    const abort = () => controller.abort();
+    const abort = () => {
+      controller.abort();
+    };
     signal?.addEventListener('abort', abort);
     const deadline = setTimeout(abort, timeout);
     try {

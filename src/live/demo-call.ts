@@ -20,7 +20,10 @@ const LINES: Line[] = [
 ];
 
 export const demoTransport: TransportFactory = async ({ onEvent }) => {
-  const emit = (event: LiveEvent) => setTimeout(() => onEvent(event), 0);
+  const emit = (event: LiveEvent) =>
+    setTimeout(() => {
+      onEvent(event);
+    }, 0);
   return {
     offer: async () => '',
     answer: async () => {

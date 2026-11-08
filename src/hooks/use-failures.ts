@@ -20,10 +20,11 @@ export const useFailures = () => {
       },
     );
   };
-  const clear = (keys: string[]) =>
+  const clear = (keys: string[]) => {
     setFailed((now) =>
       Object.fromEntries(Object.entries(now).filter(([key]) => !keys.includes(key))),
     );
+  };
   return { failed, attempt, clear };
 };
 

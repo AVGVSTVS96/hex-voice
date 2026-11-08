@@ -169,7 +169,9 @@ export const Steps = ({
             indent={indent}
             onPress={
               opens && (words || step.detail || step.result)
-                ? () => setOpen(opened ? null : key)
+                ? () => {
+                    setOpen(opened ? null : key);
+                  }
                 : undefined
             }
           >
@@ -223,7 +225,9 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
           text={agent.label}
           tone={agent.state === 'stopped' ? 'secondary' : undefined}
           time={meta}
-          onPress={() => setOpen(!open)}
+          onPress={() => {
+            setOpen(!open);
+          }}
           label={`${agent.label}, ${meta || agent.state}${newest ? `: ${newest}` : ''}. ${open ? 'Hides' : 'Shows'} what it did`}
         >
           {newest ? <Under text={newest} /> : null}
@@ -232,7 +236,9 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
           <Row
             alignment="start"
             spacing={0}
-            onPress={() => setWhole(!whole)}
+            onPress={() => {
+              setWhole(!whole);
+            }}
             modifiers={[
               padding({
                 leading: TEXT,
@@ -258,7 +264,9 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             lead={null}
             text="Open in T3 Code ↗"
             tone="secondary"
-            onPress={() => onOpen(link)}
+            onPress={() => {
+              onOpen(link);
+            }}
           />
         ) : null}
       </Column>
@@ -291,7 +299,9 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
         text={words}
         tone="tertiary"
         chevron={open ? 'chevron.down' : 'chevron.right'}
-        onPress={() => setOpen(!open)}
+        onPress={() => {
+          setOpen(!open);
+        }}
         label={`${words}. ${open ? 'Hides' : 'Shows'} them`}
       />
       {open ? tries.map((agent) => <Agent key={agent.id} agent={agent} onOpen={onOpen} />) : null}

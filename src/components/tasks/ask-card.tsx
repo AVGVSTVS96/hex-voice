@@ -89,14 +89,21 @@ export const YourCall = ({
                     {said}
                   </Text>
                   {ask.missed ? (
-                    <Unreached missed={ask.missed} onAgain={() => onAgain(ask)} />
+                    <Unreached
+                      missed={ask.missed}
+                      onAgain={() => {
+                        onAgain(ask);
+                      }}
+                    />
                   ) : null}
                   {ask.failed ? <Failure text={ask.failed} /> : null}
                 </VStack>
                 <Pill
                   label="Undo"
                   accessibility={`Undo ${said}`}
-                  onPress={() => onUndo(ask)}
+                  onPress={() => {
+                    onUndo(ask);
+                  }}
                   small
                 />
               </HStack>
@@ -107,7 +114,11 @@ export const YourCall = ({
           <SwipeActions key={ask.id} modifiers={listRow()}>
             <AskCard ask={ask} onAnswer={onAnswer} onDismiss={onDismiss} />
             <SwipeActions.Actions edge="trailing">
-              <NotNeededButton onPress={() => onDismiss(ask)} />
+              <NotNeededButton
+                onPress={() => {
+                  onDismiss(ask);
+                }}
+              />
             </SwipeActions.Actions>
           </SwipeActions>
         );
@@ -208,7 +219,9 @@ const AskCard = ({
         modifiers={[
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           contentShape(shapes.rectangle()),
-          onTapGesture(() => setOpen(!open)),
+          onTapGesture(() => {
+            setOpen(!open);
+          }),
           accessibilityIdentifier('ask-card'),
           accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
         ]}
@@ -261,8 +274,12 @@ const AskCard = ({
           topic={ask.topic}
           sending={noting}
           onNote={note}
-          onAnswer={(label) => onAnswer(ask, { label })}
-          onDismiss={() => onDismiss(ask)}
+          onAnswer={(label) => {
+            onAnswer(ask, { label });
+          }}
+          onDismiss={() => {
+            onDismiss(ask);
+          }}
         />
       ) : (
         <Answers ask={ask} onAnswer={onAnswer} />
@@ -304,7 +321,9 @@ export const Said = ({ words }: { words: Words }) => {
     <Column
       alignment="start"
       spacing={space[1]}
-      onPress={() => setWhole(!whole)}
+      onPress={() => {
+        setWhole(!whole);
+      }}
       modifiers={[
         padding({ all: space[3] }),
         frame({ maxWidth: Infinity, alignment: 'leading' }),
@@ -369,7 +388,9 @@ export const InlineAnswers = ({
         key={option.label}
         label={option.label}
         pick={option.pick}
-        onPress={() => onAnswer(ask, option)}
+        onPress={() => {
+          onAnswer(ask, option);
+        }}
         small
       />
     ))}
@@ -393,7 +414,9 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       pick={option.pick}
       grow
       small={shots}
-      onPress={() => onAnswer(ask, option)}
+      onPress={() => {
+        onAnswer(ask, option);
+      }}
     />
   ));
   if (shots) {
@@ -410,7 +433,9 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
           key={option.label}
           alignment="start"
           spacing={0}
-          onPress={() => onAnswer(ask, option)}
+          onPress={() => {
+            onAnswer(ask, option);
+          }}
           modifiers={[
             padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
             frame({ minHeight: metrics.pill.regular }),
@@ -495,8 +520,12 @@ const Composer = ({
           autoFocus={focus}
           multiline
           testID="ask-input"
-          onFocus={() => typing(true)}
-          onBlur={() => typing(false)}
+          onFocus={() => {
+            typing(true);
+          }}
+          onBlur={() => {
+            typing(false);
+          }}
           defaultValue={first}
           placeholder={`A note for ${topic}`}
           placeholderTextColor={theme.tertiary}
@@ -516,7 +545,13 @@ const Composer = ({
           name="arrow.up.circle.fill"
           size={metrics.symbol.send}
           color={words ? theme.text : theme.tertiary}
-          onPress={words ? () => onNote(words) : undefined}
+          onPress={
+            words
+              ? () => {
+                  onNote(words);
+                }
+              : undefined
+          }
           modifiers={[
             frame({ width: metrics.bar.button, height: metrics.bar.button }),
             accessibilityLabel(`Send a note to ${topic}`),
@@ -527,7 +562,13 @@ const Composer = ({
         <Pill
           label="Answer with this"
           icon="checkmark"
-          onPress={words ? () => onAnswer(words) : undefined}
+          onPress={
+            words
+              ? () => {
+                  onAnswer(words);
+                }
+              : undefined
+          }
           small
         />
         <Spacer flexible />
