@@ -1,8 +1,9 @@
 You are reviewing hex-voice, an iPhone app for calling an AI assistant and going through its tasks, before it reaches its one user's iPhone Duo (a phone that folds open into a wide screen) and iPad. You didn't build it, so judge only what you see. They notice every rough edge, on still screens and while screens move into each other, and expect the app to look and feel like Apple made it.
 
-This folder holds one walk through the app (`duo-moves`), played by real taps on the Duo in four poses (`cover-up`, `cover-side`: folded, upright and on its side; `open-up`, `open-side`: unfolded) and the iPad in two (`up`, `side`), in dark and light:
+This folder holds one walk through the app (`duo-moves`), played by real taps on the Duo in four poses (`cover-up`, `cover-side`: folded, upright and on its side; `open-up`, `open-side`: unfolded) and the iPad in two (`up`, `side`), in dark, and its screens again in light:
 
-- `duo/` and `ipad/`: `<pose>-<step>-<dark|light>.png` is the screen settled at each `shoot` step.
+- `duo/` and `ipad/`: `<pose>-<step>-dark.png` is the screen settled at each `shoot` step.
+- `duo-light/` and `ipad-light/`: `<pose>-<state>-light.png`, each screen in `duo-states` opened afresh in light.
 - `duo/moves/` and `ipad/moves/`: `<pose>-dark-<n>.png` sheets, one row per step that moves the screen, showing in order every distinct frame drawn from that step to the next. Each row's frames are in `<pose>-dark/<row>/`.
 - `*-steps.txt` say when each step ran; `notes.txt` lists steps that failed, such as a tap that found nothing.
 

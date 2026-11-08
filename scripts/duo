@@ -255,8 +255,10 @@ running() {
 }
 
 # Reads "<state> <url> [launch argument…]" lines: each state opens cold from its URL (after
-# launching with its arguments, if it has any), in each pose, then is shot in each appearance.
-# A pose the app reports (?report=pose) lands beside the shots as <pose>-<state>.json.
+# launching with its arguments, if it has any), in each pose and each appearance, set before the app
+# launches: an app whose appearance changes under it redraws late and partly, so a shot taken after
+# switching comes out half in the old one. A pose the app reports (?report=pose) lands beside the
+# shots as <pose>-<state>.json.
 mac_shoot() {
   local states pose hinge orientation display state url arguments appearance file prefs
   mac_install "$1"
@@ -264,22 +266,21 @@ mac_shoot() {
   states=$(cat)
   for pose in $POSES; do
     while read -r -u 4 state url arguments; do
-      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
-      xcrun simctl spawn "$id" defaults delete "$prefs" HexPose >/dev/null 2>&1 || true
-      place "$pose"
-      if [ -n "$arguments" ]; then
-        # shellcheck disable=SC2086
-        xcrun simctl launch "$id" "$bundle" $arguments >/dev/null
-        sleep 2
-      fi
-      xcrun simctl openurl "$id" "$url"
-      sleep "${SETTLE:-5}"
-      running || echo "$pose $state: the app wasn't running" >>shots/notes.txt
-      xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
-        jq . >"shots/$pose-$state.json" 2>/dev/null || rm -f "shots/$pose-$state.json"
       for appearance in $APPEARANCES; do
+        xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
+        xcrun simctl spawn "$id" defaults delete "$prefs" HexPose >/dev/null 2>&1 || true
         xcrun simctl ui "$id" appearance "$appearance"
-        sleep 1.5
+        place "$pose"
+        if [ -n "$arguments" ]; then
+          # shellcheck disable=SC2086
+          xcrun simctl launch "$id" "$bundle" $arguments >/dev/null
+          sleep 2
+        fi
+        xcrun simctl openurl "$id" "$url"
+        sleep "${SETTLE:-5}"
+        running || echo "$pose $state $appearance: the app wasn't running" >>shots/notes.txt
+        xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
+          jq . >"shots/$pose-$state.json" 2>/dev/null || rm -f "shots/$pose-$state.json"
         file=shots/$pose-$state-$appearance.png
         xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
         turned "$file" || {
@@ -348,13 +349,6 @@ mac_tap() {
             step=${line##*duo-step }
             xcrun simctl io "$id" screenshot ${display:+--display=$display} \
               "shots/$pose-$step-$appearance.png" >/dev/null 2>&1
-            for also in ${ALSO:-}; do
-              xcrun simctl ui "$id" appearance "$also"
-              sleep 0.6
-              xcrun simctl io "$id" screenshot ${display:+--display=$display} \
-                "shots/$pose-$step-$also.png" >/dev/null 2>&1
-            done
-            [ -z "${ALSO:-}" ] || xcrun simctl ui "$id" appearance "$appearance"
             touch "build/sync/$((answered += 1))"
             {
               xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
@@ -539,7 +533,7 @@ tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} ALSO='${ALSO:-}' POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
+  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
   collect "${2:-$out/tap}"
 }
 
@@ -630,13 +624,18 @@ verify() {
   }
   moves=$dir/duo-moves
   git -C "$verify" show HEAD:scripts/duo-moves >"$moves" 2>/dev/null || cp "$repo/scripts/duo-moves" "$moves"
-  VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=duo POSES='cover-up cover-side open-up open-side' tap "$moves" "$dir/duo"
-  VIDEO=dark APPEARANCES=dark ALSO=light DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
+  VIDEO=dark APPEARANCES=dark DEVICE=duo POSES='cover-up cover-side open-up open-side' tap "$moves" "$dir/duo"
+  VIDEO=dark APPEARANCES=dark DEVICE=ipad POSES='up side' tap "$moves" "$dir/ipad"
+  # Light comes from cold launches in light, since switching mid-walk leaves shots half redrawn.
+  git -C "$verify" show HEAD:scripts/duo-states >"$dir/duo-states" 2>/dev/null || cp "$repo/scripts/duo-states" "$dir/duo-states"
+  DEVICE=duo POSES='cover-up cover-side open-up open-side' APPEARANCES=light out=$dir/duo-light shoot "$dir/duo-states"
+  DEVICE=ipad POSES='up side' APPEARANCES=light out=$dir/ipad-light shoot "$dir/duo-states"
   filmstrips "$dir/duo"
   filmstrips "$dir/ipad"
   echo "three fresh reviewers are looking at $title: the folded Duo, the open Duo and the iPad"
   local share
-  for share in "duo/cover-up duo/cover-side" "duo/open-up duo/open-side" "ipad/up ipad/side"; do
+  for share in "duo/cover-up duo/cover-side duo-light/cover-up duo-light/cover-side" \
+    "duo/open-up duo/open-side duo-light/open-up duo-light/open-side" "ipad/up ipad/side ipad-light/up ipad-light/side"; do
     # claude -p is charged as an SDK run, at a higher rate than the terminal, unless it says
     # otherwise (anthropics/claude-code#97074).
     { cat "$repo/scripts/review.md"; echo; echo "Your share is everything for these poses: $share."; } |
