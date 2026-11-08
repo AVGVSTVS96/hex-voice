@@ -8,16 +8,15 @@ export const useSavedPreference = <T extends string>(
 ) => {
   const [saved, setSaved] = useState(defaultValue);
   const [loaded, setLoaded] = useState(false);
-  const changed = useRef(false);
-  const writes = useRef(Promise.resolve());
+  const pickedBeforeRead = useRef(false);
+  const writesInOrder = useRef(Promise.resolve());
 
   useEffect(() => {
     let active = true;
     void (async () => {
       const stored = await AsyncStorage.getItem(key).catch(() => null);
 
-      // A delayed read must not replace a selection made during startup.
-      if (active && !changed.current && isValid(stored)) {
+      if (active && !pickedBeforeRead.current && isValid(stored)) {
         setSaved(stored);
       }
 
@@ -37,11 +36,10 @@ export const useSavedPreference = <T extends string>(
         return;
       }
 
-      changed.current = true;
+      pickedBeforeRead.current = true;
       setSaved(next);
-      // Keep rapid carousel selections in order when writing to storage.
-      const before = writes.current;
-      writes.current = (async () => {
+      const before = writesInOrder.current;
+      writesInOrder.current = (async () => {
         await before;
 
         try {

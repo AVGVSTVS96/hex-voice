@@ -12,10 +12,6 @@ import type { CallId } from '@/live/calls';
 const LIST = 'calls';
 const saved = (id: CallId) => `call:${id}`;
 
-// The list shows what this device kept right away, then follows hex's copy while the app is in
-// front: each request waits on the server until a call changes, so a new call, its title and its
-// wrap-up arrive as they land. A call that just ended here leads the list until hex answers, and
-// only hex's answers are kept on this device.
 export const useCalls = () => {
   const [listed, setListed] = useState<CallSummary[]>();
   const [justEnded, setJustEnded] = useState<CallSummary[]>([]);
@@ -73,7 +69,6 @@ export const useCalls = () => {
     })();
   };
 
-  // A call that wouldn't delete comes back in its place saying why.
   const shown = useMemo(() => {
     if (!listed && !justEnded.length) {
       return;
@@ -92,8 +87,6 @@ export const useCalls = () => {
   return { calls: shown, live, offline: watching === 'offline', add, remove };
 };
 
-// One call's record: a live one follows word by word until it ends, an ended one comes once and is
-// kept on this device, so it opens at once next time.
 export const usePastCall = (id: CallId | undefined) => {
   const [call, setCall] = useState<CallRecord>();
 

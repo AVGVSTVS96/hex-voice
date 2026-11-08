@@ -5,11 +5,8 @@ import { useEffect, useRef } from 'react';
 import connectSound from '@/assets/sounds/connect.wav';
 import endSound from '@/assets/sounds/end.wav';
 
-// The call's WebRTC audio shares the app's audio session, so these players keep it
-// active after they finish instead of deactivating it under the call.
 const options = { keepAudioSessionActive: true };
 
-// `live` is a call on this phone, connected.
 export const useCallFeedback = (
   live: boolean,
   { sounds, haptics }: { sounds: boolean; haptics: boolean },

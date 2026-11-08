@@ -5,8 +5,6 @@ export interface Size {
   height: number;
 }
 
-// The screen's one size: what its root view is laid out at, provided by the call screen's root.
-// React Native's window size can disagree with it for a moment, as while iPhone Duo unfolds.
 export const Viewport = createContext<Size | null>(null);
 
 export const useViewport = (): Size => {

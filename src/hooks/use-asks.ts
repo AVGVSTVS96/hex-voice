@@ -8,8 +8,6 @@ import { useAnswer, useWatch } from '@/hooks/use-watch';
 import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from '@/live/asks';
 import type { Ask, AskId, AskOption, Sent } from '@/live/asks';
 
-// The one way to answer an ask, from Tasks or its card on a call: once hex has it, what you'd
-// started typing on it goes, and you get back what the answer reached.
 export const answerAsk = async (ask: Ask, option: AskOption) => {
   const sent = await hex.asks.answer(ask.id, option.label);
   keepDraft(`ask:${ask.id}`, '');
@@ -17,26 +15,17 @@ export const answerAsk = async (ask: Ask, option: AskOption) => {
   return sent;
 };
 
-// Your own words to the ask's thread. The ask stays open everywhere, so here only what you wrote
-// goes.
 export const noteAsk = async (ask: Ask, text: string) => {
   await hex.asks.note(ask.id, text);
   sentDraft(`ask:${ask.id}`, text);
 };
 
-// On a call, the voice starts going through your asks with you.
 export const raiseAsks = async () => {
   await hex.asks.talk();
 };
 
-// Where an option's screenshot is read from.
 export const shotOf = (ask: Ask, shot: number) => hex.asks.shot(ask.id, shot);
 
-// Everything waiting on you, live while the sheet is open. An answer or a not needed folds its card
-// where it sits and goes to hex; the card stays folded there with Undo until the sheet closes.
-// Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
-// again, and one that missed a place stays folded, through the sheet closing, and says so until
-// it's sent again or undone.
 export const useAsks = (open: boolean) => {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const tries = useFailures();
@@ -48,8 +37,6 @@ export const useAsks = (open: boolean) => {
     );
   };
 
-  // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
-  // one before it is done, and only the latest you did may change how its card shows.
   const queue = useRef(new Map<AskId, { last: Promise<void>; turn: number }>());
 
   const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<void>) => {
@@ -65,8 +52,7 @@ export const useAsks = (open: boolean) => {
     queue.current.set(id, { last, turn });
   };
 
-  // What went out for each ask and hasn't been taken back, sent the same way by Send again.
-  const out = useRef(new Map<AskId, () => Promise<Sent>>());
+  const resends = useRef(new Map<AskId, () => Promise<Sent>>());
   const [kept, keep] = useKept('asks', AskList);
   useEffect(() => {
     if (kept && !state.list) {
@@ -79,8 +65,6 @@ export const useAsks = (open: boolean) => {
     dispatch({ type: 'list', list });
   });
 
-  // Closing tidies what was folded, and the reasons it showed, only as Tasks opens again, before it
-  // shows, so nothing on it changes while it fades out; a reason that came while it was closed stays.
   const [wasOpen, setWasOpen] = useState(open);
   const [shownFailed, setShownFailed] = useState<string[]>([]);
 
@@ -108,7 +92,7 @@ export const useAsks = (open: boolean) => {
           reached(ask.id, await send());
         })
       ) {
-        out.current.set(ask.id, send);
+        resends.current.set(ask.id, send);
       } else if (latest()) {
         dispatch({ type: 'failed', id: ask.id });
       }
@@ -125,7 +109,7 @@ export const useAsks = (open: boolean) => {
     dispatch({ type: 'undo', id });
     reached(id);
     inTurn(id, async (latest) => {
-      if (!out.current.has(id)) {
+      if (!resends.current.has(id)) {
         return;
       }
 
@@ -134,7 +118,7 @@ export const useAsks = (open: boolean) => {
           await hex.asks.undo(id);
         })
       ) {
-        out.current.delete(id);
+        resends.current.delete(id);
       } else if (latest()) {
         dispatch({ type: 'answer', id, label });
       }
@@ -154,10 +138,8 @@ export const useAsks = (open: boolean) => {
     dismiss: (ask: Ask) => {
       settle(ask, NOT_NEEDED, 'Not put away', async () => await hex.asks.dismiss(ask.id));
     },
-    // What went out stands, so sending it again only reaches the places it missed, and it stays
-    // folded whether or not they answer this time.
     again: (ask: Ask) => {
-      const send = out.current.get(ask.id);
+      const send = resends.current.get(ask.id);
 
       if (!send) {
         return;
@@ -182,7 +164,6 @@ export const useAsks = (open: boolean) => {
   };
 };
 
-// The last check in full, fetched when its page opens and again whenever a new one lands.
 export const useCheck = (at: string | undefined) => {
   const { answer, ...answered } = useAnswer(
     at ?? null,
@@ -193,6 +174,5 @@ export const useCheck = (at: string | undefined) => {
   return { check: answer, ...answered };
 };
 
-// An ask's thread's own words, asked for while its card is open. Where hex has none, there are none.
 export const useWords = (id: AskId | null) =>
   useAnswer(id, undefined, async (open) => await hex.asks.words(open)).answer;

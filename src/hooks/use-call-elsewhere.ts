@@ -4,10 +4,6 @@ import { hex } from '@/hex';
 import { usePastCall } from '@/hooks/use-calls';
 import type { CallId } from '@/live/calls';
 
-// hex holds one call at a time. When it's one this app isn't on, a phone call or the web page, the
-// screen shows it as its own: the call's record follows it word by word until it ends, and the
-// ended call stays on screen, with how it ended, until a call starts here. A call that ended while
-// the app was away is read once more for its ending.
 export const useCallElsewhere = (live: CallId | undefined, here: boolean) => {
   const [shown, setShown] = useState<CallId>();
   const [leaving, setLeaving] = useState<CallId>();

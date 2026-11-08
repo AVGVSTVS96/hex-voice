@@ -5,9 +5,6 @@ import { VoiceTone } from '../../modules/voice-tone';
 import { useActive } from '@/hooks/use-watch';
 import { motion } from '@/motion';
 
-// How high your voice is and how bright it sounds, each from -1 to 1 around your own usual
-// voice, while `listening` is on and the app is in front to show it. Both glide back to 0 when you
-// stop talking.
 export const useVoiceTone = (listening: boolean) => {
   const pitch = useSharedValue(0);
   const tone = useSharedValue(0);

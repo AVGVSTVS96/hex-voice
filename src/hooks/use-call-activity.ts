@@ -7,7 +7,6 @@ import CallActivity from '@/live/call-activity';
 import type { CallActivityProps } from '@/live/call-activity';
 import { ENDINGS, clock } from '@/live/calls';
 
-// An ended call stays on the lock screen with how it ended, long enough to glance at.
 const LINGER = 2 * 60_000;
 
 const shownState = (call: Call) => {
@@ -22,8 +21,6 @@ const shownState = (call: Call) => {
   return call.mic.muted ? 'muted' : 'live';
 };
 
-// A call on this phone shows on the Lock Screen and in the Dynamic Island while it connects and
-// lasts, with mute and End.
 export const useCallActivity = (
   call: Call,
   orb: string,
@@ -47,9 +44,8 @@ export const useCallActivity = (
   });
 
   useEffect(() => {
-    // An activity can outlive the app process that started it, and its call ended with it.
-    for (const stale of CallActivity.getInstances()) {
-      void stale.end('immediate');
+    for (const fromEarlierLaunch of CallActivity.getInstances()) {
+      void fromEarlierLaunch.end('immediate');
     }
 
     const controls = addUserInteractionListener(({ target }) => {

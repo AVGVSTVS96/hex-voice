@@ -5,14 +5,8 @@ import { Refused } from '@/hex/client';
 
 const RETRY = 2000;
 
-// Whether what the watch took last is current: hex has answered, or the last try failed.
 export type Watching = 'waiting' | 'current' | 'offline';
 
-// Asks hex and waits: each answer comes the moment something changes, and the next question
-// carries the version it answered with. An answer without a version won't change, so it's the
-// last. It runs while `key` isn't null, and only while the app is in front; a new key starts over.
-// Coming back to the front picks up from the version it had, since a question without one is how
-// hex hears that something was opened.
 export const useWatch = <K extends string, T extends { version?: number }>(
   key: K | null,
   ask: (after: number | undefined, signal: AbortSignal, key: K) => Promise<T>,
@@ -22,8 +16,6 @@ export const useWatch = <K extends string, T extends { version?: number }>(
   const [watching, setWatching] = useState<Watching>('waiting');
   const [watched, setWatched] = useState(key);
 
-  // What it took stops being current only as it watches anew, not as it stops, so a view fading
-  // out keeps showing it as it was.
   if (key !== watched) {
     setWatched(key);
 
@@ -93,9 +85,6 @@ const onAppState = (change: () => void) => {
 export const useActive = () =>
   useSyncExternalStore(onAppState, () => AppState.currentState === 'active');
 
-// One answer from hex for `key`, asked again when `key` or `fresh` changes and every RETRY while hex
-// can't be reached. The last answer for the same key stays until a newer one comes. hex refusing it
-// ends the asking, since asking again gets the same answer.
 export const useAnswer = <K extends string, T>(
   key: K | null,
   fresh: number | undefined,

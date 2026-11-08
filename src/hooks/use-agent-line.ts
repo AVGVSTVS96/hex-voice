@@ -14,10 +14,6 @@ interface Live {
   cards: CallCard[];
 }
 
-// The call hex holds right now, wherever it is (this app, a phone call, the web page), and what
-// its agents are doing, from the voice plugin's /activity long poll: it answers the moment a call
-// starts or ends, or a task or an agent's step changes, so the line moves with the agent. The same
-// answer carries the asks hex put on screen, for the transcript.
 export const useAgentLine = (haptics: boolean) => {
   const [live, setLive] = useState<Live>({ call: null, tasks: [], cards: [] });
   const [finished, setFinished] = useState<AgentTask>();
