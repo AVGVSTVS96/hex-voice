@@ -4,6 +4,7 @@ import type { ComponentProps, ReactElement } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  createAnimatedComponent,
   Extrapolation,
   interpolate,
   useAnimatedStyle,
@@ -20,6 +21,7 @@ import { barOf, cardOf } from '@/call/card';
 import { buttonsOf, callIdOf, showsWords, statusOf, voiceLocked, wordsOf } from '@/call/call';
 import type { Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
+import type { CallsPlacement } from '@/call/stage';
 import { CallFooter } from '@/call/footer';
 import { useGlide } from '@/call/glide';
 import { CallPersona, useOrbLife } from '@/call/orb';
@@ -33,14 +35,17 @@ import { CallsSidebar } from '@/components/calls-sidebar';
 import { PastCallBar } from '@/components/past-call-bar';
 import { ScreenToolbar } from '@/components/screen-toolbar';
 import { ToolbarBackProvider, useToolbarBacks } from '@/components/toolbar-back';
+import type { BackFrom } from '@/components/toolbar-back';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
 import type { Move, TasksAt } from '@/components/tasks/pages';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceSettings } from '@/components/voice-settings';
+import type { SettingsSheet } from '@/components/voice-settings';
 import { useCallActivity } from '@/hooks/use-call-activity';
 import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
+import type { Reaction } from '@/hooks/use-call-preferences';
 import { useCallFeedback } from '@/hooks/use-call-feedback';
 import { useAgentLine } from '@/hooks/use-agent-line';
 import { useAppUpdates } from '@/hooks/use-app-updates';
@@ -83,7 +88,7 @@ const CONTROLS_BOX = stack('regular');
 
 // The orb over the phone's half-height Tasks sheet: enough to say the call goes on.
 const OVER_SHEET = 96;
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedPressable = createAnimatedComponent(Pressable);
 
 export interface Opening {
   tasks?: TasksAt;
@@ -119,7 +124,7 @@ const LiveScreen = ({ opening }: { opening: Opening }) => {
         <PoseView
           style={StyleSheet.absoluteFill}
           onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) => {
-            setPose({ regular: regular && !opening.split, bar, fold, occlusions });
+            setPose({ regular: regular && opening.split !== true, bar, fold, occlusions });
           }}
         />
       )}
@@ -150,7 +155,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // to the live call, so the two never disagree (`step` in screen.ts).
   const viewing = scene.words.call;
   const calls = useCalls();
-  const shown = viewing ? calls.calls?.find((call) => call.id === viewing) : undefined;
+
+  const shown = (viewing ?? '') === '' ? undefined : calls.calls?.find((one) => one.id === viewing);
+
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   // A call hex holds that this app isn't on (a phone call, the web page) shows here as a call too:
@@ -162,7 +169,20 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
   const layout = screenLayout(room, { call: called });
-  const { orb, words, besideCalls, besideTasks, calls: list, tasks: side, lift, add } = layout;
+
+  const {
+    orb,
+    words,
+    besideCalls,
+    besideTasks,
+    calls: list,
+    tasks: side,
+    lift,
+    add,
+    duo,
+    pulls,
+  } = layout;
+
   const split = layout.kind === 'split';
   // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
   // footer and agent line follow the words there instead of spanning the screen.
@@ -172,7 +192,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
   // place of its own over the call, and the call goes on in the bar.
   const panes = side.place !== 'sheet';
-  const duo = layout.duo;
   // iPhone Duo shows settings as a place of its own where Tasks goes, beside its column, so the
   // column's buttons still answer while it's open.
   const settingsPlace = duo?.tasks.area;
@@ -251,8 +270,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     });
   };
 
-  const size = orb.size;
-  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!.amount;
+  const { size } = orb;
+  const reaction = amountOf(preferences.reaction);
   const { wake, breath, level, pitch, tone } = useOrbLife(call, { reducedMotion, reaction });
 
   // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
@@ -292,10 +311,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
   const { docked, dock, covers, aside } = duoTasks;
+
   // The + sends the live call on screen a photo or video. It steps away with the call: docked in
   // the Duo's bar, docked beside a pane on iPad, or behind a past call you're reading. It stays
   // mounted, so a camera it opened stays up through the call ending.
-  const adds = buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && !viewing;
+  const adds =
+    buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? '') === '';
+
   // Where the call's words and the lines under them go when they take the page before the fold.
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
 
@@ -307,12 +329,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   useEscape(tasksOpen ? closeTasks : undefined);
   const now = useNow(docked && call.kind === 'elsewhere');
 
-  const callSeconds =
-    call.kind === 'here'
-      ? call.seconds
-      : call.kind === 'elsewhere'
-        ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
-        : 0;
+  const callSeconds = secondsOf(call, now);
 
   const travel = orb.read.y - rest.y;
   const reach = Math.hypot(orb.read.x - orb.rest.x, travel);
@@ -326,8 +343,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     onLand: land,
     onRelease: pullWords,
   });
-
-  const pulls = layout.pulls;
 
   const screenDrag = drag()
     .enabled(pulls && !reading)
@@ -427,8 +442,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     // A pane that opens from closed takes its width at once; one already open moves to it.
     if (placeOpen) {
       const closed = pane.get() < 0.01;
+      const wideTo = inbox ? 1 : 0;
       paneW.set(closed ? paneWidth : settle(paneWidth));
-      wide.set(closed ? (inbox ? 1 : 0) : settle(inbox ? 1 : 0));
+      wide.set(closed ? wideTo : settle(wideTo));
     }
 
     pane.set(settle(placeOpen ? 1 : 0));
@@ -482,12 +498,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       d: list.place === 'beside' ? drawn : 0,
       t: side.place === 'beside' ? paned : 0,
     };
-  };
-
-  const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
-    'worklet';
-
-    return open + (calls - open) * d + (tasks - open) * t;
   };
 
   // The footer and agent line each hold their own span, or where the call moves, follow the words.
@@ -566,10 +576,10 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     const w = rail ? wide.get() : 0;
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
     const tasksY = controlsAt.tasks.y + ((rail?.controls.y ?? 0) - controlsAt.tasks.y) * w;
-    const { rest, open } = controlsAt;
+    const { rest: resting, open } = controlsAt;
     const along = glide(progress.get());
-    const x = rest.x + (open.x - rest.x) * Math.min(1, along.arc);
-    const y = rest.y + (open.y - rest.y) * Math.min(1, Math.max(0, along.t));
+    const x = resting.x + (open.x - resting.x) * Math.min(1, along.arc);
+    const y = resting.y + (open.y - resting.y) * Math.min(1, Math.max(0, along.t));
 
     return {
       left: toward(x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
@@ -601,21 +611,21 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         size: orb.dock.tasks.size + ((rail?.orb.size ?? 0) - orb.dock.tasks.size) * w,
       };
 
-      const room = orb.dock.calls;
-      const read = orb.dock.read ?? room;
+      const nearCalls = orb.dock.calls;
+      const read = orb.dock.read ?? nearCalls;
 
-      const calls = {
-        x: room.x + (read.x - room.x) * t,
-        y: room.y + (read.y - room.y) * t,
-        size: room.size + (read.size - room.size) * t,
+      const withCalls = {
+        x: nearCalls.x + (read.x - nearCalls.x) * t,
+        y: nearCalls.y + (read.y - nearCalls.y) * t,
+        size: nearCalls.size + (read.size - nearCalls.size) * t,
       };
 
-      x = toward(x, calls.x, tasks.x, beside.d, beside.t);
-      at = toward(at, calls.y, tasks.y, beside.d, beside.t);
-      visual = toward(visual, calls.size, tasks.size, beside.d, beside.t);
+      x = toward(x, withCalls.x, tasks.x, beside.d, beside.t);
+      at = toward(at, withCalls.y, tasks.y, beside.d, beside.t);
+      visual = toward(visual, withCalls.size, tasks.size, beside.d, beside.t);
     }
 
-    let shown = 1;
+    let seen = 1;
 
     if (duo) {
       const k = dock.get();
@@ -624,7 +634,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       at += (spot.y - at) * k;
       visual += (spot.size - visual) * k;
       const under = uncovered(covers.get());
-      shown = under + (1 - under) * k;
+      seen = under + (1 - under) * k;
     }
 
     visual *= 1 + 0.025 * breath.get();
@@ -635,7 +645,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         (reducedMotion ? Math.abs(2 * p - 1) : 1) *
         (split && !orb.dock ? 1 - drawer.get() : 1) *
         (slides ? 1 - drawer.get() : 1) *
-        shown,
+        seen,
       transform: [
         { translateX: x - size / 2 },
         { translateY: at - size / 2 },
@@ -680,7 +690,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
 
-    const shown = reducedMotion
+    const revealed = reducedMotion
       ? Math.min(1, Math.max(0, p))
       : interpolate(p, [0.12, 0.72], [0, 1], Extrapolation.CLAMP);
 
@@ -690,8 +700,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       bottom:
         footerHeight.get() + 18 + lift.calls * d + lift.tasks * t + before.raise * aside.get(),
       opacity:
-        shown * (1 - wide.get() * t) * (slides ? 1 - drawer.get() : 1) * uncovered(covers.get()),
-      transform: [{ translateY: reducedMotion ? 0 : (shown - 1) * 28 }],
+        revealed * (1 - wide.get() * t) * (slides ? 1 - drawer.get() : 1) * uncovered(covers.get()),
+      transform: [{ translateY: reducedMotion ? 0 : (revealed - 1) * 28 }],
     };
   });
 
@@ -699,18 +709,21 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const callNow = callIdOf(call);
   const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
 
-  const tried = (what: string, action: Promise<unknown>) => {
+  const tried = async (what: string, action: Promise<unknown>) => {
     const on = callNow;
     setTrouble(undefined);
-    action.catch((error: unknown) => {
+
+    try {
+      await action;
+    } catch (error) {
       setTrouble({ call: on, why: failure(what, error) });
-    });
+    }
   };
 
   const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
 
   const startCall = (about?: CallAbout) => {
-    if (viewing) {
+    if ((viewing ?? '') !== '') {
       leaveCall();
     }
 
@@ -729,7 +742,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     if (call.kind === 'here') {
       void end();
     } else if (call.kind === 'elsewhere') {
-      tried('Not ended', end());
+      void tried('Not ended', end());
     } else {
       // A call started with Calls slid over it comes into view.
       if (list.place !== 'beside') {
@@ -770,7 +783,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     stepAside();
 
     if (onCall) {
-      tried('Not sent', raiseTask(task.id));
+      void tried('Not sent', raiseTask(task.id));
     } else if (voiceLoaded) {
       startCall({ task: task.id });
     }
@@ -802,7 +815,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     stepAside();
 
     if (onCall) {
-      tried('Not sent', raiseAsks());
+      void tried('Not sent', raiseAsks());
     } else if (voiceLoaded) {
       startCall('asks');
     }
@@ -821,12 +834,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const controls = <CallControls {...buttons} />;
   // On iPhone Duo the way back is the toolbar's: the one of whatever is in front.
   const { backs, publish } = useToolbarBacks();
-  const back = settingsOpen ? backs.settings : tasksOpen ? backs.tasks : backs.call;
+  const back = backs[frontOf(settingsOpen, tasksOpen)];
 
   const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
     <ScreenToolbar
-      onLayout={({ nativeEvent: { layout } }) => {
-        logPose('toolbar', layout);
+      onLayout={({ nativeEvent }) => {
+        logPose('toolbar', nativeEvent.layout);
       }}
       axis={toolbar.axis}
       gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
@@ -865,8 +878,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           viewing={viewing}
           offline={calls.offline}
           haptics={preferences.haptics}
-          onOpen={(call) => {
-            openCall(call.id);
+          onOpen={(picked) => {
+            openCall(picked.id);
           }}
           onDelete={(id) => {
             if (id === viewing) {
@@ -1092,7 +1105,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         />
       )}
       <VoiceSettings
-        sheet={split ? 'page' : room.regular ? 'form' : 'phone'}
+        sheet={sheetOf(split, room.regular)}
         place={
           settingsPlace
             ? { area: settingsPlace, shown: scene.front === 'settings', pane }
@@ -1165,7 +1178,7 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
       started.current ??= new Date().toISOString();
     }
 
-    if (!ended?.id || ended.from !== 'app' || !started.current) {
+    if (!ended?.id || ended.from !== 'app' || started.current === null) {
       return;
     }
 
@@ -1186,6 +1199,40 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
     });
     started.current = null;
   }, [call.kind, live]);
+};
+
+const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
+  'worklet';
+
+  return open + (calls - open) * d + (tasks - open) * t;
+};
+
+const amountOf = (reaction: Reaction) => REACTIONS.find(({ id }) => id === reaction)?.amount ?? 0;
+
+const secondsOf = (call: Call, now: Date) => {
+  if (call.kind === 'here') {
+    return call.seconds;
+  }
+
+  return call.kind === 'elsewhere'
+    ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
+    : 0;
+};
+
+const frontOf = (settings: boolean, tasks: boolean): BackFrom => {
+  if (settings) {
+    return 'settings';
+  }
+
+  return tasks ? 'tasks' : 'call';
+};
+
+const sheetOf = (split: boolean, regular: boolean): SettingsSheet => {
+  if (split) {
+    return 'page';
+  }
+
+  return regular ? 'form' : 'phone';
 };
 
 const FADE = [{ color: theme.background }, { color: 'transparent' }];
