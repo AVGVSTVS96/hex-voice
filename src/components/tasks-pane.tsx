@@ -10,6 +10,7 @@ import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view
 import type { Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
+import { AnimatedView } from '@/ui/animated-view';
 import { Host } from '@/ui/host';
 
 // Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
@@ -21,25 +22,26 @@ export function TasksPane({
   top,
   foot,
   width,
-  style,
+  animate,
   ...view
 }: TasksProps & {
   top: number;
   foot: number;
   width: number;
-  style?: StyleProp<AnimatedStyle<ViewStyle>>;
+  animate: () => ViewStyle;
 }) {
   return (
-    <Animated.View
+    <AnimatedView
       testID="tasks-pane"
       accessibilityElementsHidden={!view.open}
       importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[styles.pane, { width, paddingTop: top }, style]}
+      style={[styles.pane, { width, paddingTop: top }]}
+      animate={animate}
     >
       <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <TasksView {...view} width={width} foot={foot} />
       </Host>
-    </Animated.View>
+    </AnimatedView>
   );
 }
 

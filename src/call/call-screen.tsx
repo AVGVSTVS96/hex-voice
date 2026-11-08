@@ -61,6 +61,7 @@ import { SideColumn } from '@/screens/side-column';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
 import { hairline, theme } from '@/theme';
+import { AnimatedView } from '@/ui/animated-view';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics, stack } from '@/ui/tokens';
 import { roomOf, type Room } from '@/screens/window';
@@ -364,7 +365,10 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     opacity: drawer.get() > 0 ? 1 : 0,
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
-  const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
+  const paneFade = () => {
+    'worklet';
+    return { opacity: Math.min(1, pane.get() * 4) };
+  };
   // The bar sits in the window, and never moves for Tasks. Down iPhone Duo's side it's laid out
   // natively in the column (SideColumn); across the top Bar places it by barOf, which only Calls
   // moves.
@@ -432,7 +436,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   const controlsColumn =
     layout.controls !== 'inline' && 'axis' in layout.controls ? layout.controls : undefined;
   const rail = layout.inbox;
-  const controlsStyle = useAnimatedStyle(() => {
+  const controlsPlace = () => {
+    'worklet';
     if (!controlsAt) return {};
     const { d, t } = besideness(drawer.get(), pane.get());
     const w = rail ? wide.get() : 0;
@@ -446,7 +451,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       left: toward(x, controlsAt.calls.x, tasksX, d, t) - CONTROLS_BOX / 2,
       top: toward(y, controlsAt.calls.y, tasksY, d, t) - metrics.call / 2,
     };
-  });
+  };
 
   // The orb glides from where it rests to where it reads: docked small in the corner on the phone,
   // at full size on its own page beside the words. On iPad it glides down beside the call buttons
@@ -506,16 +511,23 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       ],
     };
   });
-  const dockStyle = useAnimatedStyle(() => ({
-    opacity:
-      interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) *
-      (slides ? 1 - drawer.get() : 1) *
-      uncovered(covers.get()),
-  }));
+  const dockFade = () => {
+    'worklet';
+    return {
+      opacity:
+        interpolate(progress.get(), [0.6, 1], [1, 0], Extrapolation.CLAMP) *
+        (slides ? 1 - drawer.get() : 1) *
+        uncovered(covers.get()),
+    };
+  };
   // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
-  // the words' fades trade the call's color for the backdrop's as it comes in. They wear that style
-  // off the Duo too, so its last opacity can't stay behind when a window loses the Duo's layout.
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: pane.get() }));
+  // the words' fades trade the call's color for the backdrop's as it comes in. The call's own fades
+  // wear their style off the Duo too, so its last opacity can't stay behind when a window loses the
+  // Duo's layout.
+  const backdropFade = () => {
+    'worklet';
+    return { opacity: pane.get() };
+  };
   const callColorStyle = useAnimatedStyle(() => ({ opacity: duo ? 1 - pane.get() : 1 }));
   const transcriptStyle = useAnimatedStyle(() => {
     const p = progress.get();
@@ -681,14 +693,15 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           top={inbox ? inbox.top : insets.top}
           foot={insets.bottom}
           width={paneWidth}
-          style={paneStyle}
+          animate={paneFade}
         />
       )}
       <Animated.View style={[styles.card, cardStyle]}>
         {duo && (
-          <Animated.View
+          <AnimatedView
             pointerEvents="none"
-            style={[styles.fill, styles.backdrop, backdropStyle]}
+            style={[styles.fill, styles.backdrop]}
+            animate={backdropFade}
           />
         )}
         <Animated.View style={[styles.stage, { width: layout.content.width }, stageStyle]}>
@@ -733,28 +746,30 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                   <Animated.View pointerEvents="none" style={[styles.fadeBottom, callColorStyle]} />
                   {duo && (
                     <>
-                      <Animated.View
+                      <AnimatedView
                         pointerEvents="none"
-                        style={[styles.fade, styles.onBackdrop, backdropStyle]}
+                        style={[styles.fade, styles.onBackdrop]}
+                        animate={backdropFade}
                       />
-                      <Animated.View
+                      <AnimatedView
                         pointerEvents="none"
-                        style={[styles.fadeBottom, styles.onBackdropBottom, backdropStyle]}
+                        style={[styles.fadeBottom, styles.onBackdropBottom]}
+                        animate={backdropFade}
                       />
                     </>
                   )}
                 </View>
               </Animated.View>
               {pulls && (
-                <Animated.View
+                <AnimatedView
                   pointerEvents={reading ? 'none' : 'auto'}
                   accessibilityElementsHidden={reading}
                   importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
                   style={[
                     styles.dock,
                     { left: orb.read.x - metrics.docked / 2, top: orb.read.y - metrics.docked / 2 },
-                    dockStyle,
                   ]}
+                  animate={dockFade}
                 >
                   <HostedGlassButton
                     icon="transcript"
@@ -763,7 +778,7 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                     size="docked"
                     onPress={() => pullWords(true)}
                   />
-                </Animated.View>
+                </AnimatedView>
               )}
               <GestureDetector gesture={orbGesture}>
                 <Animated.View
@@ -809,9 +824,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
             <AgentLine line={agent} />
           </AnimatedPressable>
           {controlsAt && (
-            <Animated.View pointerEvents="box-none" style={[styles.controls, controlsStyle]}>
+            <AnimatedView pointerEvents="box-none" style={styles.controls} animate={controlsPlace}>
               {controls}
-            </Animated.View>
+            </AnimatedView>
           )}
         </Animated.View>
         {!panes && (

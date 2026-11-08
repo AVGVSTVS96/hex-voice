@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import ts from 'typescript';
 
 import type { Pose } from '../modules/pose';
 import { pagedRoom, shapeOf } from '../src/components/tasks/pages';
@@ -45,6 +46,74 @@ test('a view’s identity never comes from the window’s size or pose', () => {
       .map(([found]) => `${file}: ${found}`),
   );
   assert.deepEqual(identities, []);
+});
+
+// Reanimated draws a view's first frame by its style's first worklet and its values then, so a style
+// made where it outlives the view it styles draws a view that mounts later at an old layout. A view
+// that only some layouts or moments show is an AnimatedView, which makes its style as it mounts.
+test('an animated style styles only views that mount with the component making it', () => {
+  const kinds = new Set([
+    ts.SyntaxKind.ConditionalExpression,
+    ts.SyntaxKind.IfStatement,
+    ts.SyntaxKind.ArrowFunction,
+    ts.SyntaxKind.FunctionExpression,
+  ]);
+  const gates = new Set([
+    ts.SyntaxKind.AmpersandAmpersandToken,
+    ts.SyntaxKind.BarBarToken,
+    ts.SyntaxKind.QuestionQuestionToken,
+  ]);
+  const gated = (node: ts.Node, scope: ts.Node) => {
+    for (let up = node.parent; up !== scope; up = up.parent)
+      if (kinds.has(up.kind) || (ts.isBinaryExpression(up) && gates.has(up.operatorToken.kind)))
+        return true;
+    return false;
+  };
+  const found = files('src')
+    .filter((file) => file.endsWith('.tsx'))
+    .flatMap((file) => {
+      const source = ts.createSourceFile(
+        file,
+        readFileSync(file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      const styles: { name: ts.Identifier; scope: ts.Node }[] = [];
+      const declared = (node: ts.Node): void => {
+        if (
+          ts.isVariableDeclaration(node) &&
+          ts.isIdentifier(node.name) &&
+          node.initializer &&
+          ts.isCallExpression(node.initializer) &&
+          ts.isIdentifier(node.initializer.expression) &&
+          node.initializer.expression.text === 'useAnimatedStyle'
+        ) {
+          let scope: ts.Node = node;
+          while (!ts.isFunctionLike(scope)) scope = scope.parent;
+          styles.push({ name: node.name, scope });
+        }
+        ts.forEachChild(node, declared);
+      };
+      declared(source);
+      return styles.flatMap(({ name, scope }) => {
+        const uses: string[] = [];
+        const visit = (node: ts.Node): void => {
+          if (
+            ts.isIdentifier(node) &&
+            node !== name &&
+            node.text === name.text &&
+            gated(node, scope)
+          )
+            uses.push(
+              `${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1} ${name.text}`,
+            );
+          ts.forEachChild(node, visit);
+        };
+        visit(scope);
+        return uses;
+      });
+    });
+  assert.deepEqual(found, []);
 });
 
 // iPhone Duo held wide and open: 951×669, the side column's 84 on the right, the fold 40 wide at

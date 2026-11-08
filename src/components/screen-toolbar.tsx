@@ -1,14 +1,11 @@
 import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  type AnimatedStyle,
-} from 'react-native-reanimated';
+import Animated, { withTiming, type AnimatedStyle } from 'react-native-reanimated';
 
 import type { Back } from '@/components/tasks/bar';
 
 import { NeedsDot, TasksButton } from '@/components/tasks-button';
+import { AnimatedView } from '@/ui/animated-view';
 import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
 import { motion } from '@/motion';
@@ -52,15 +49,16 @@ export function ScreenToolbar({
   const gap = axis === 'row' ? metrics.toolbar.row : column.group;
   const Group = axis === 'row' ? HStack : VStack;
   const long = 2 * metrics.tool + gap;
-  const backStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }),
-  }));
+  const backFade = () => {
+    'worklet';
+    return { opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }) };
+  };
   const backButton = holdsBack ? (
-    <Animated.View
+    <AnimatedView
       pointerEvents={back ? 'auto' : 'none'}
       accessibilityElementsHidden={!back}
       importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
-      style={backStyle}
+      animate={backFade}
     >
       <HostedGlassButton
         icon="back"
@@ -68,7 +66,7 @@ export function ScreenToolbar({
         testID="back"
         onPress={() => back?.onPress()}
       />
-    </Animated.View>
+    </AnimatedView>
   ) : null;
   const calls = (
     <HostedGlassButton
