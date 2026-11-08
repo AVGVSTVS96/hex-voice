@@ -247,6 +247,10 @@ export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
   });
 }
 
+// The tab Tasks opens on: the one it's sent to, else Needs you while anything waits.
+export const openingStage = (stage: Stage | undefined, counts: Record<Stage, number>): Stage =>
+  stage ?? (counts.needs ? 'needs' : 'working');
+
 // A tab's rows: its projects, except Done, which lists each thing done on its own, newest first,
 // whatever else its project has going.
 export function stageTopics(entries: Entry[], stage: Stage): Topic[] {

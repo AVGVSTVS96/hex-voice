@@ -41,8 +41,12 @@ import { useTask, useTasks, type Counts } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
+  openingStage,
+  pageOf,
   placeOf,
   doneIn,
+  stageCounts,
+  stageTopics,
   taskIn,
   topicIn,
   type Place,
@@ -94,8 +98,6 @@ export function Tasks({
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
-  // A project with no thread to show has a page of its own, with nothing to fetch.
-  const { task } = useTask(taskIn(pages.task), version);
   const traced = useTask(pages.stepsOf, version);
   const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
@@ -104,15 +106,24 @@ export function Tasks({
     () => inboxEntries(tasks ?? [], finished, yours.list, yours.shown),
     [tasks, finished, yours.list, yours.shown],
   );
+  // Beside the list, before the list has picked, the page is the first project of the tab Tasks
+  // opens on, so the pane is never blank while it picks.
+  const [leading] =
+    pages.shape !== 'one' && !pages.task
+      ? stageTopics(entries, openingStage(at.stage, stageCounts(entries, yours.answered)))
+      : [];
+  const showing = pages.task ?? (leading ? pageOf(leading) : null);
+  // A project with no thread to show has a page of its own, with nothing to fetch.
+  const { task } = useTask(taskIn(showing), version);
   // An ask whose thread has left the board opens its topic's newest thread still on it, or else
   // the topic's asks alone.
-  const asked = yours.shown.find((ask) => ask.task === pages.task);
+  const asked = yours.shown.find((ask) => ask.task === showing);
   const opened =
     task ??
-    tasks?.find((row) => row.id === pages.task) ??
+    tasks?.find((row) => row.id === showing) ??
     (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
-  const alone = opened || asked ? undefined : topicIn(pages.task);
-  const did = finished.find((one) => one.id === doneIn(pages.task));
+  const alone = opened || asked ? undefined : topicIn(showing);
+  const did = finished.find((one) => one.id === doneIn(showing));
   const topic = opened?.name ?? asked?.topic ?? alone;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
   // The ask you tapped leads its topic's.
@@ -206,7 +217,7 @@ export function Tasks({
   // The list glides only as you move through the pages; what the page beside it shows changing
   // doesn't move it, so a stage tab's new list isn't faded in with that page.
   const moved = (level: Level) =>
-    rowsKey([...pages.path, level === 'list' ? '' : (pages.task ?? ''), pages.stepsOf ?? '']);
+    rowsKey([...pages.path, level === 'list' ? '' : (showing ?? ''), pages.stepsOf ?? '']);
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
     return (

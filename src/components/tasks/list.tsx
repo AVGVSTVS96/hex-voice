@@ -28,6 +28,7 @@ import type { Ask, AskOption } from '@/live/asks';
 import type { Counts } from '@/hooks/use-tasks';
 import {
   doneIn,
+  openingStage,
   picksOf,
   search,
   stageCounts,
@@ -110,7 +111,7 @@ export function ListPage({
   if (opening !== openedAt) {
     setOpenedAt(opening);
     if (opening) {
-      setStage(opening.stage ?? (counts.needs ? 'needs' : 'working'));
+      setStage(openingStage(opening.stage, counts));
       setQuery(null);
     }
   }
