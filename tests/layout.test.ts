@@ -46,15 +46,11 @@ test('iPhone Duo closed moves the toolbar and buttons into the side column, belo
 
   assert.equal(layout.kind, 'single');
   assert.deepEqual(layout.content, { x: 0, y: 0, width: 382, height: 678 });
-  // Centered on the camera at 418.2, a few points in from the inset's middle at 424, as the
-  // system draws its own items.
-  assert.deepEqual(layout.toolbar, {
-    x: 418.2 - 24,
-    y: 170,
-    width: 48,
-    axis: 'column',
-    gaps: 'regular',
-  });
+  assert.deepEqual(
+    layout.toolbar,
+    { x: 418.2 - 24, y: 170, width: 48, axis: 'column', gaps: 'regular' },
+    'centered on the camera at 418.2, a few points in from the inset’s middle at 424, as the system draws its own items',
+  );
   assert.deepEqual(layout.controls, {
     right: 466 - 418.2 - 32,
     bottom: 34,
@@ -133,27 +129,28 @@ test('iPad portrait stacks the orb over the words, always shown, with no pull-do
 
 test('before a call, iPad either way up opens Tasks across the screen with the call waiting in a rail', () => {
   for (const size of Object.values(iPads)) {
-    const inbox = layoutOf(size, pad, { regular: true }).inbox!;
+    const { inbox } = layoutOf(size, pad, { regular: true });
+    assert.ok(inbox);
     assert.equal(inbox.width, size.width - 96);
     assert.equal(inbox.orb.x, 48, 'the orb waits whole in the rail');
     assert.ok(inbox.orb.x - inbox.orb.size / 2 >= 24, 'clear of the screen’s corner');
   }
 });
 
-test('Tasks takes two thirds of a landscape iPad, and standing up leaves the call 368', () => {
-  const width = (size: { width: number; height: number }) =>
-    layoutOf(size, pad, { regular: true }).tasks.width;
+const tasksWidth = (size: Size) => layoutOf(size, pad, { regular: true }).tasks.width;
 
-  assert.equal(width(iPads['11-inch landscape']), 796);
-  assert.equal(width(iPads['13-inch landscape']), 917);
-  assert.equal(width(iPads['11-inch portrait']), 834 - 368);
-  assert.equal(width(iPads['13-inch portrait']), 1032 - 368);
+test('Tasks takes two thirds of a landscape iPad, and standing up leaves the call 368', () => {
+  assert.equal(tasksWidth(iPads['11-inch landscape']), 796);
+  assert.equal(tasksWidth(iPads['13-inch landscape']), 917);
+  assert.equal(tasksWidth(iPads['11-inch portrait']), 834 - 368);
+  assert.equal(tasksWidth(iPads['13-inch portrait']), 1032 - 368);
 });
 
 test('with a pane open the orb leaves the header and the words start under the toolbar', () => {
   const layout = layoutOf(iPads['11-inch landscape'], pad, { regular: true });
   const room = 1194 - 796;
-  assert.ok(layout.orb.dock!.tasks.y > layout.besideTasks.top);
+  assert.ok(layout.orb.dock);
+  assert.ok(layout.orb.dock.tasks.y > layout.besideTasks.top);
   assert.deepEqual(layout.besideTasks, { x: 24, width: room - 48, top: 24 + 16 + 48 + 16 });
 });
 
@@ -169,7 +166,8 @@ test('with a pane open the orb sits drawn 56 just before mute, 12 from it, at ev
     const layout = layoutOf(size, pad, { regular: true });
     assert.ok(layout.controls !== 'inline' && 'center' in layout.controls);
     const buttons = layout.controls.center[pane];
-    const spot = layout.orb.dock![pane];
+    assert.ok(layout.orb.dock);
+    const spot = layout.orb.dock[pane];
     const where = `${size.width} wide, ${pane}: ${card} card`;
     assert.equal(buttons.x - (56 + 12) / 2, from + card / 2, `${where}: orb and buttons centered`);
     assert.ok(spot.x - 28 - from >= 40, `${where}: the orb clear of the card's corner`);
@@ -186,14 +184,14 @@ test('standing up, the words keep a readable 320 beside Tasks', () => {
   }
 });
 
-const state = (size: { width: number; height: number }) =>
-  size.width > size.height ? 'landscape' : 'portrait';
+const orientationOf = (size: Size) => (size.width > size.height ? 'landscape' : 'portrait');
 
 test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in the room left', () => {
   for (const [name, size] of Object.entries(iPads)) {
     const layout = layoutOf(size, pad, { regular: true });
     const { orb, controls } = layout;
     assert.ok(controls !== 'inline' && 'center' in controls, name);
+    assert.ok(orb.dock, name);
 
     const rooms = {
       open: [0, size.width],
@@ -203,8 +201,8 @@ test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in 
 
     const places = {
       open: { orb: { ...orb.read, size: orb.size }, words: layout.words },
-      calls: { orb: orb.dock!.calls, words: layout.besideCalls },
-      tasks: { orb: orb.dock!.tasks, words: layout.besideTasks },
+      calls: { orb: orb.dock.calls, words: layout.besideCalls },
+      tasks: { orb: orb.dock.tasks, words: layout.besideTasks },
     };
 
     for (const state of ['open', 'calls', 'tasks'] as const) {
@@ -225,7 +223,7 @@ test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in 
       assert.ok(buttons.y + 32 <= size.height, `${where}: buttons on screen`);
     }
 
-    if (state(size) === 'landscape') {
+    if (orientationOf(size) === 'landscape') {
       assert.ok(layout.inbox && layout.inbox.width === size.width - 96, `${name}: inbox`);
     }
   }
@@ -260,9 +258,7 @@ test('iPhone Duo on a table puts the orb above the fold and the words below it',
   assert.equal(layout.tasks.place, 'page');
 });
 
-// iPhone Duo's four poses as its simulator reports them (rig/shoot poses): the window, the safe area
-// and the pose.
-const duo = {
+const duoPoses = {
   'folded upright': {
     window: { width: 466, height: 678 },
     insets: { top: 0, right: 84, bottom: 34, left: 0 },
@@ -308,9 +304,7 @@ const duo = {
   },
 } satisfies Record<string, { window: Size; insets: Insets; pose: Pose }>;
 
-// The panes iOS arranges the open screen into held wide flat, as the simulator reports them
-// (arrange-proto 90789e4): they meet on the crease.
-const arranged = { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } };
+const iosPanesOpenFlat = { first: { x: 0, width: 475.5 }, second: { x: 475.5, width: 475.5 } };
 
 interface Box {
   x: number;
@@ -329,51 +323,69 @@ const around = (x: number, y: number, width: number, height = width) => ({
   height,
 });
 
-// What sits in the bar with Tasks open on a call: the tools, the call buttons, the docked orb with
-// its time and, open, the words' switch.
-const bar = (layout: Layout, window: Size) => {
+const inBarWithTasksOpen = (layout: Layout, window: Size) => {
   const { toolbar, controls, duo } = layout;
-  const call = duo!.call;
+  assert.ok(duo);
+  const { call, beside } = duo;
 
-  const placed: Record<string, Box> = {
-    orb: around(call.orb.x, call.orb.y, call.orb.size),
-    time: { x: call.time.x, y: call.time.y, width: call.time.width, height: 16 },
-  };
+  const placed = new Map<string, Box>([
+    ['orb', around(call.orb.x, call.orb.y, call.orb.size)],
+    ['time', { x: call.time.x, y: call.time.y, width: call.time.width, height: 16 }],
+  ]);
 
-  if (duo!.beside) {
-    placed.switch = around(duo!.beside.button.x, duo!.beside.button.y, 48);
+  if (beside) {
+    placed.set('switch', around(beside.button.x, beside.button.y, 48));
   }
 
   if (toolbar.axis === 'column') {
-    const { tools, group } = metrics.toolbar[toolbar.gaps!];
-    placed.tools = { x: toolbar.x, y: toolbar.y, width: 48, height: 4 * 48 + tools + 2 * group };
+    assert.ok(toolbar.gaps);
+    const { tools, group } = metrics.toolbar[toolbar.gaps];
+    placed.set('tools', {
+      x: toolbar.x,
+      y: toolbar.y,
+      width: 48,
+      height: 4 * 48 + tools + 2 * group,
+    });
     assert.ok(controls !== 'inline' && 'bottom' in controls);
-    const end = metrics[metrics.controls[controls.size!].call];
-    const height = stack(controls.size!);
+    assert.ok(controls.size);
+    const end = metrics[metrics.controls[controls.size].call];
+    const height = stack(controls.size);
     const x = window.width - controls.right - 32;
-    placed.buttons = { ...around(x, 0, end), y: window.height - controls.bottom - height, height };
+    placed.set('buttons', {
+      ...around(x, 0, end),
+      y: window.height - controls.bottom - height,
+      height,
+    });
   } else {
-    placed.calls = { x: toolbar.x, y: toolbar.y, width: 48, height: 48 };
-    placed.pair = { x: toolbar.x + toolbar.width - 168, y: toolbar.y, width: 168, height: 48 };
-    const { right, top } = call.controls!;
-    placed.buttons = {
+    placed.set('calls', { x: toolbar.x, y: toolbar.y, width: 48, height: 48 });
+    placed.set('pair', {
+      x: toolbar.x + toolbar.width - 168,
+      y: toolbar.y,
+      width: 168,
+      height: 48,
+    });
+    assert.ok(call.controls);
+    const { right, top } = call.controls;
+    placed.set('buttons', {
       x: window.width - right - stack('tool'),
       y: top,
       width: stack('tool'),
       height: 48,
-    };
+    });
   }
 
   return placed;
 };
 
 test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which keep clear of each other and the status items', () => {
-  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+  for (const [name, { window, insets, pose }] of Object.entries(duoPoses)) {
     const layout = layoutOf(window, insets, pose);
-    const placed = bar(layout, window);
-    const pages = [layout.duo!.tasks, ...(layout.duo!.beside ? [layout.duo!.beside.tasks] : [])];
+    const placed = inBarWithTasksOpen(layout, window);
+    assert.ok(layout.duo, name);
+    const { tasks, beside } = layout.duo;
+    const pages = [tasks, ...(beside ? [beside.tasks] : [])];
 
-    for (const [what, box] of Object.entries(placed)) {
+    for (const [what, box] of placed) {
       const where = `${name}: ${what}`;
       assert.ok(box.x >= 0 && box.x + box.width <= window.width, `${where} on screen`);
       assert.ok(box.y >= 0 && box.y + box.height <= window.height, `${where} on screen`);
@@ -386,7 +398,7 @@ test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which ke
         assert.ok(!overlaps(status, box), `${where} clear of the status items`);
       }
 
-      for (const [other, them] of Object.entries(placed)) {
+      for (const [other, them] of placed) {
         if (other !== what) {
           assert.ok(!overlaps(box, them), `${where} clear of ${other}`);
         }
@@ -396,54 +408,61 @@ test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which ke
 });
 
 test('folded upright, Tasks runs from the screen edge to the column buttons and the tools start under the status items', () => {
-  const { window, insets, pose } = duo['folded upright'];
+  const { window, insets, pose } = duoPoses['folded upright'];
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 170);
-  assert.deepEqual(layout.duo!.tasks, {
+  assert.ok(layout.duo);
+  assert.deepEqual(layout.duo.tasks, {
     area: { x: 0, y: 0, width: 418.2 - 32, height: 678 },
     margin: { top: 0, right: 466 - (418.2 - 32), bottom: 0, left: 0 },
     foot: 34,
   });
-  assert.equal(layout.duo!.beside, undefined, 'folded, Tasks keeps the one screen');
+  assert.equal(layout.duo.beside, undefined, 'folded, Tasks keeps the one screen');
 });
 
+const tasksMarginOf = (name: keyof typeof duoPoses) => {
+  const { window, insets, pose } = duoPoses[name];
+  const { duo } = layoutOf(window, insets, pose);
+  assert.ok(duo, name);
+
+  return duo.tasks.margin;
+};
+
 test('opening the Duo upright leaves Tasks’ margins to the window as they were, so it fills the opened window in the frame it opens', () => {
-  const marginOf = (pose: keyof typeof duo) => {
-    const { window, insets, pose: at } = duo[pose];
+  const folded = tasksMarginOf('folded upright');
+  const open = tasksMarginOf('open upright');
+  assert.deepEqual({ ...open, right: folded.right }, folded, 'only the right edge moves');
 
-    return layoutOf(window, insets, at).duo!.tasks.margin;
-  };
-
-  const folded = marginOf('folded upright');
-  const open = marginOf('open upright');
-  // Only the right edge moves, and only by how far the cover's camera sits from its column's middle,
-  // which the open screen, with nothing in its column to center on, doesn't have.
-  assert.deepEqual({ ...open, right: folded.right }, folded);
-  assert.ok(Math.abs(open.right - folded.right) < 6);
+  assert.ok(
+    Math.abs(open.right - folded.right) < 6,
+    'and only by how far the cover’s camera sits from its column’s middle, which the open screen, with nothing in its column to center on, doesn’t have',
+  );
 });
 
 test('folded on its side, the short column keeps the tools at its top and its smaller buttons above the status items', () => {
-  const { window, insets, pose } = duo['folded on its side'];
+  const { window, insets, pose } = duoPoses['folded on its side'];
   const layout = layoutOf(window, insets, pose);
   assert.equal(layout.toolbar.y, 16);
-  assert.deepEqual(layout.duo!.tasks.area, { x: 0, y: 0, width: 630.2 - 26, height: 466 });
-  assert.equal(layout.duo!.beside, undefined);
+  assert.ok(layout.duo);
+  assert.deepEqual(layout.duo.tasks.area, { x: 0, y: 0, width: 630.2 - 26, height: 466 });
+  assert.equal(layout.duo.beside, undefined);
 });
 
 test('open upright, Tasks takes both pages, or the trailing one while the call’s words take the leading page', () => {
-  const { window, insets, pose } = duo['open upright'];
+  const { window, insets, pose } = duoPoses['open upright'];
   const layout = layoutOf(window, insets, pose);
-  const { tasks, beside } = layout.duo!;
+  assert.ok(layout.duo?.beside);
+  const { tasks, beside } = layout.duo;
   assert.equal(layout.toolbar.y, 120, 'the tools start under the status items');
   assert.deepEqual(tasks.area, { x: 0, y: 0, width: 909 - 32, height: 669 });
   assert.deepEqual(tasks.margin, { top: 0, right: 951 - 877, bottom: 0, left: 0 });
-  assert.deepEqual(beside!.tasks, {
+  assert.deepEqual(beside.tasks, {
     area: { x: 475.5, y: 0, width: 877 - 475.5, height: 669 },
     margin: { top: 0, right: 951 - 877, bottom: 0, left: 475.5 },
     foot: 34,
   });
   assert.ok(layout.words.x >= 475.5, 'alone, the words are past the middle of the fold');
-  assert.deepEqual(beside!.words, {
+  assert.deepEqual(beside.words, {
     x: 24,
     width: 475.5 - 8 - 24,
     top: layout.words.top,
@@ -452,7 +471,7 @@ test('open upright, Tasks takes both pages, or the trailing one while the call�
 });
 
 test('open on its side, the toolbar sits in the status band level with the status items, and Tasks starts under it as one page', () => {
-  const { window, insets, pose } = duo['open on its side'];
+  const { window, insets, pose } = duoPoses['open on its side'];
   const layout = layoutOf(window, insets, pose);
   const { toolbar } = layout;
   assert.equal(layout.kind, 'stacked');
@@ -460,13 +479,14 @@ test('open on its side, the toolbar sits in the status band level with the statu
   assert.equal(toolbar.y + 24, 48, 'level with the time and battery, drawn centered 48 down');
   assert.ok(toolbar.y + 48 <= 82, 'inside the band');
   assert.equal(toolbar.x + toolbar.width, 535 - 12, 'ending before them');
-  const { tasks, beside, call } = layout.duo!;
+  assert.ok(layout.duo?.beside);
+  const { tasks, beside, call } = layout.duo;
   assert.deepEqual(tasks.area, { x: 0, y: 82, width: 669, height: 951 - 82 });
-  assert.deepEqual(beside!.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
-  assert.equal(beside!.tasks.foot, 34, 'the bottom page');
-  assert.equal(beside!.words.top, 82 + 12, 'the words start under the band');
+  assert.deepEqual(beside.tasks.area, { x: 0, y: 475.5, width: 669, height: 951 - 475.5 });
+  assert.equal(beside.tasks.foot, 34, 'the bottom page');
+  assert.equal(beside.words.top, 82 + 12, 'the words start under the band');
   assert.equal(
-    951 - layout.agent.bottom - beside!.words.raise,
+    951 - layout.agent.bottom - beside.words.raise,
     475.5 - 8,
     'the agent line under them ends short of the fold',
   );
@@ -479,27 +499,29 @@ test('open on its side, the toolbar sits in the status band level with the statu
 
 test('on its side, Tasks types on the page above the fold, out of the keyboard’s half', () => {
   const side = layoutOf(
-    duo['open on its side'].window,
-    duo['open on its side'].insets,
-    duo['open on its side'].pose,
-  ).duo!;
+    duoPoses['open on its side'].window,
+    duoPoses['open on its side'].insets,
+    duoPoses['open on its side'].pose,
+  ).duo;
 
-  const typing = side.beside!.typing!;
+  assert.ok(side?.beside?.typing);
+  const { typing } = side.beside;
   assert.deepEqual(typing.area, { x: 0, y: 82, width: 669, height: 475.5 - 82 });
   assert.equal(typing.foot, 'fold');
 
   const upright = layoutOf(
-    duo['open upright'].window,
-    duo['open upright'].insets,
-    duo['open upright'].pose,
-  ).duo!;
+    duoPoses['open upright'].window,
+    duoPoses['open upright'].insets,
+    duoPoses['open upright'].pose,
+  ).duo;
 
-  assert.equal(upright.beside!.typing, undefined);
+  assert.ok(upright?.beside);
+  assert.equal(upright.beside.typing, undefined);
 });
 
-// The fold as the window's room has it: a line, held as a box with no width or no height.
-const lineOf = (window: Size, insets: Insets, pose: Pose): Box => {
-  const fold = roomOf(pose, window, insets).fold!;
+const foldLineOf = (window: Size, insets: Insets, pose: Pose): Box => {
+  const { fold } = roomOf(pose, window, insets);
+  assert.ok(fold);
 
   return 'x' in fold
     ? { x: fold.x, y: 0, width: 0, height: window.height }
@@ -508,9 +530,9 @@ const lineOf = (window: Size, insets: Insets, pose: Pose): Box => {
 
 test('open, the orb and the words each keep a page of their own across the fold, and beside Tasks the words take the orb’s', () => {
   for (const name of ['open upright', 'open on its side'] as const) {
-    const { window, insets, pose } = duo[name];
+    const { window, insets, pose } = duoPoses[name];
     const layout = layoutOf(window, insets, pose);
-    const fold = lineOf(window, insets, pose);
+    const fold = foldLineOf(window, insets, pose);
     const row = fold.height > fold.width;
 
     const words = {
@@ -526,7 +548,8 @@ test('open, the orb and the words each keep a page of their own across the fold,
       row ? orb.x + orb.width <= fold.x : orb.y + orb.height <= fold.y,
       `${name}: orb first`,
     );
-    const beside = layout.duo!.beside!;
+    assert.ok(layout.duo?.beside, name);
+    const { beside } = layout.duo;
 
     const before = {
       ...beside.words,
@@ -541,7 +564,7 @@ test('open, the orb and the words each keep a page of their own across the fold,
 
 test('before a call, the open Duo rests the orb in the middle of the call, not on a page', () => {
   for (const name of ['open upright', 'open on its side'] as const) {
-    const { window, insets, pose } = duo[name];
+    const { window, insets, pose } = duoPoses[name];
     const { orb, content } = layoutOf(window, insets, pose);
     assert.deepEqual(orb.rest, { x: content.width / 2, y: content.height / 2 }, name);
     assert.notDeepEqual(orb.rest, orb.read, `${name}: it moves to its page once there are words`);
@@ -549,28 +572,29 @@ test('before a call, the open Duo rests the orb in the middle of the call, not o
 });
 
 test('on iPhone Duo Calls never lies over the call: the call yields it an edge and rounds off against it', () => {
-  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+  for (const [name, { window, insets, pose }] of Object.entries(duoPoses)) {
     const { calls } = layoutOf(window, insets, pose);
     assert.notEqual(calls.place, 'over', name);
   }
 
-  const { window, insets, pose } = duo['open upright'];
+  const { window, insets, pose } = duoPoses['open upright'];
   const { calls } = layoutOf(window, insets, pose);
   assert.deepEqual(calls, { width: 475.5, place: 'beside' }, 'open upright, the leading page');
 });
 
 test('on iPhone Duo, beside Calls the orb rests whole in the room the call has left, and reads clear of the words', () => {
-  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+  for (const [name, { window, insets, pose }] of Object.entries(duoPoses)) {
     const { calls, orb, besideCalls } = layoutOf(window, insets, pose);
 
     if (calls.place !== 'beside') {
       continue;
     }
 
-    const { x, y, size } = orb.dock!.calls;
+    assert.ok(orb.dock, name);
+    const { x, y, size } = orb.dock.calls;
     const resting = around(x, y, size);
     assert.ok(resting.x >= calls.width && resting.x + resting.width <= window.width, name);
-    const reading = orb.dock!.read ?? orb.dock!.calls;
+    const reading = orb.dock.read ?? orb.dock.calls;
     const docked = around(reading.x, reading.y, reading.size);
     const words = { x: besideCalls.x, y: besideCalls.top, width: besideCalls.width, height: 400 };
     assert.ok(!overlaps(docked, words), `${name}: reads clear of the words`);
@@ -578,22 +602,25 @@ test('on iPhone Duo, beside Calls the orb rests whole in the room the call has l
 });
 
 test('open on its side, Calls comes in under the band, which stays whole above it', () => {
-  const { window, insets, pose } = duo['open on its side'];
+  const { window, insets, pose } = duoPoses['open on its side'];
   const { calls, toolbar } = layoutOf(window, insets, pose);
   assert.equal(calls.below, insets.top);
   assert.ok(toolbar.y + 48 <= calls.below, 'the band’s buttons sit above it');
 });
 
 test('open on its side, Calls would leave the call less than a page, so it slides over all but a peek of it, under the band', () => {
-  const { window, insets, pose } = duo['open on its side'];
+  const { window, insets, pose } = duoPoses['open on its side'];
   const { calls, toolbar } = layoutOf(window, insets, pose);
   assert.equal(calls.place, 'slide');
   assert.equal(calls.width, window.width - 72, 'a peek of the call stays to tap back to');
-  assert.ok(toolbar.y + 48 <= calls.below!, 'the band stays whole above it');
+  assert.ok(
+    calls.below !== undefined && toolbar.y + 48 <= calls.below,
+    'the band stays whole above it',
+  );
 });
 
 test('where Calls leaves the call a page under the band, it sits beside it and the words keep to the room left', () => {
-  const { insets, pose } = duo['open on its side'];
+  const { insets, pose } = duoPoses['open on its side'];
   const window = { width: 900, height: 951 };
   const { calls, besideCalls } = layoutOf(window, insets, pose);
   assert.equal(calls.place, 'beside');
@@ -602,7 +629,7 @@ test('where Calls leaves the call a page under the band, it sits beside it and t
 });
 
 test('the call stage lays out from its own box, wherever the screen puts it', () => {
-  const { window, insets, pose } = duo['folded upright'];
+  const { window, insets, pose } = duoPoses['folded upright'];
   const right = layoutOf(window, insets, pose);
 
   const left = layoutOf(
@@ -616,25 +643,28 @@ test('the call stage lays out from its own box, wherever the screen puts it', ()
 });
 
 test('held wide, Tasks’ two pages meet where iOS’s panes meet open flat: the window’s middle', () => {
-  const { window, insets, pose } = duo['open upright'];
-  const { tasks, beside } = layoutOf(window, insets, pose).duo!;
+  const { window, insets, pose } = duoPoses['open upright'];
+  const { duo } = layoutOf(window, insets, pose);
+  assert.ok(duo?.beside);
+  const { tasks, beside } = duo;
   const room = pagedRoom(tasks);
   const pages = { levels: levelsOf(START, 'panes'), shape: 'panes' as const, closes: true };
-  assert.equal(spotOf('list', pages, room).width, arranged.first.width);
-  assert.equal(beside!.tasks.area.x, arranged.second.x);
+  assert.equal(spotOf('list', pages, room).width, iosPanesOpenFlat.first.width);
+  assert.equal(beside.tasks.area.x, iosPanesOpenFlat.second.x);
 });
 
 test('held wide, the call takes the panes: the orb on the first, the words from the second', () => {
-  const { window, insets, pose } = duo['open upright'];
+  const { window, insets, pose } = duoPoses['open upright'];
   const layout = layoutOf(window, insets, pose);
-  assert.deepEqual(layout.orb.read, { x: arranged.first.width / 2, y: 669 / 2 });
-  assert.ok(layout.words.x >= arranged.second.x);
-  const before = layout.duo!.beside!.words;
-  assert.ok(before.x + before.width <= arranged.first.width);
+  assert.deepEqual(layout.orb.read, { x: iosPanesOpenFlat.first.width / 2, y: 669 / 2 });
+  assert.ok(layout.words.x >= iosPanesOpenFlat.second.x);
+  assert.ok(layout.duo?.beside);
+  const before = layout.duo.beside.words;
+  assert.ok(before.x + before.width <= iosPanesOpenFlat.first.width);
 });
 
 test('on iPhone Duo with no call to show, Calls comes in over the whole content, short of its own page open upright', () => {
-  for (const [name, { window, insets, pose }] of Object.entries(duo)) {
+  for (const [name, { window, insets, pose }] of Object.entries(duoPoses)) {
     const room = roomOf(pose, window, insets);
     const called = screenLayout(room);
     const { calls, content } = screenLayout(room, { call: false });

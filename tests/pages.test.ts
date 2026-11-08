@@ -19,40 +19,60 @@ import type { Page } from '../src/screens/layout';
 import { roomOf as windowRoom } from '../src/screens/window';
 import type { Insets, Size } from '../src/screens/window';
 
-const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
-  screenLayout(windowRoom(pose, window, insets));
+const duoOf = (window: Size, insets: Insets, pose: Pose) => {
+  const { duo } = screenLayout(windowRoom(pose, window, insets));
+  assert.ok(duo);
+
+  return duo;
+};
 
 const A = TaskId.parse('a');
 const LEVELS: Level[] = ['list', 'topic', 'thread', 'steps', 'check', 'picks'];
 
-const openUpright = layoutOf(
+const openUpright = duoOf(
   { width: 951, height: 669 },
   { top: 0, right: 84, bottom: 21, left: 0 },
   { regular: true, bar: 'right', fold: { x: 455, y: 0, width: 40, height: 669 } },
-).duo!.tasks;
+).tasks;
 
-const openOnSideDuo = layoutOf(
+const openOnSideDuo = duoOf(
   { width: 669, height: 951 },
   { top: 54, right: 0, bottom: 34, left: 0 },
   { regular: true, fold: { x: 0, y: 455, width: 669, height: 40 } },
-).duo!;
+);
 
 const openOnSide = openOnSideDuo.tasks;
 
-const folded = layoutOf(
+const folded = duoOf(
   { width: 466, height: 678 },
   { top: 0, right: 84, bottom: 34, left: 0 },
   { regular: false, bar: 'right' },
-).duo!.tasks;
+).tasks;
 
 // A Duo page's room, and how tall its area is.
 type PagedRoom = Room & { height: number };
 
 const roomOf = (page: Page): PagedRoom => ({ ...pagedRoom(page), height: page.area.height });
-const meetOf = (room: Room) => room.width / 2 + room.meet!;
+
+const meetOf = (room: Room) => {
+  assert.ok(room.meet !== undefined, 'panes meet somewhere');
+
+  return room.width / 2 + room.meet;
+};
+
 const sheet: Room = { width: 440, foot: 34, paged: false };
 
-const go = (...moves: Move[]) => moves.reduce(move, START);
+const go = (...moves: Move[]) => {
+  let stack = START;
+
+  for (const step of moves) {
+    stack = move(stack, step);
+  }
+
+  return stack;
+};
+
+const mix = (p: number, q: number, t: number) => p + (q - p) * t;
 
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
   const shape = shapeOf(room);
@@ -159,20 +179,18 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
     const screen = { x: 0, y: 0, width: room.width, height: room.height };
 
     const seen = (from: Stack, to: Stack, t: number) =>
-      LEVELS.map((level) => {
+      LEVELS.flatMap((level) => {
         const [a, b] = [box(level, from, room), box(level, to, room)];
-        const mix = (p: number, q: number) => p + (q - p) * t;
 
-        return [
-          level,
-          {
-            x: mix(a.x, b.x),
-            y: mix(a.y, b.y),
-            width: mix(a.width, b.width),
-            height: mix(a.height, b.height),
-          },
-        ] as const;
-      }).filter(([, frame]) => overlap(frame, screen));
+        const frame = {
+          x: mix(a.x, b.x, t),
+          y: mix(a.y, b.y, t),
+          width: mix(a.width, b.width, t),
+          height: mix(a.height, b.height, t),
+        };
+
+        return overlap(frame, screen) ? [[level, frame] as const] : [];
+      });
 
     for (const walk of walks) {
       for (const [i, from] of walk.slice(0, -1).entries()) {
@@ -255,18 +273,19 @@ test('writing focuses the composer once, and going back lets it go', () => {
 });
 
 test('a page ending at the fold keeps nothing clear below it, and Back always says where it goes', () => {
-  const typing = roomOf(openOnSideDuo.beside!.typing!);
+  assert.ok(openOnSideDuo.beside?.typing);
+  const typing = roomOf(openOnSideDuo.beside.typing);
   assert.equal(spotOf('list', pagesOf(go(), typing), typing).foot, 0);
-  const beside = roomOf(openOnSideDuo.beside!.tasks);
+  const beside = roomOf(openOnSideDuo.beside.tasks);
   assert.equal(spotOf('list', pagesOf(go(), beside), beside).back, 'call');
 });
 
 test('on its side, Tasks is one page: the list fills it and a topic pushes over it, its Back with it', () => {
-  const page = layoutOf(
+  const page = duoOf(
     { width: 669, height: 951 },
     { top: 82, right: 0, bottom: 34, left: 0 },
     { regular: true, fold: { x: 0, y: 455.5, width: 669, height: 40 } },
-  ).duo!.tasks;
+  ).tasks;
 
   const room = roomOf(page);
   assert.equal(shapeOf(room), 'one');

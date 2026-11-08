@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 import test from 'node:test';
 
 import { TaskId } from '../src/live/tasks';
@@ -8,8 +8,17 @@ import { startAt } from '../src/components/tasks/pages';
 import { shown, start, step } from '../src/call/screen';
 import type { Action, Screen } from '../src/call/screen';
 
-const go = (shared: boolean, ...actions: Action[]) =>
-  actions.reduce((now, action) => step(now, action, { shared }), start({}));
+const stepThrough = (from: Screen, actions: readonly Action[], shared: boolean) => {
+  let now = from;
+
+  for (const action of actions) {
+    now = step(now, action, { shared });
+  }
+
+  return now;
+};
+
+const go = (shared: boolean, ...actions: Action[]) => stepThrough(start({}), actions, shared);
 
 const A = TaskId.parse('a');
 
@@ -151,7 +160,7 @@ test('the words chosen beside Tasks stay chosen as Tasks, settings and the words
     { to: 'call', id: 'c1' },
   ] as const;
 
-  const after = moved.reduce((now, action) => step(now, action, { shared: true }), chosen);
+  const after = stepThrough(chosen, moved, true);
   assert.equal(after.words.beside, true);
   assert.equal(step(after, { to: 'beside', on: false }, { shared: true }).words.beside, false);
 });
@@ -178,7 +187,7 @@ test('where you are in Tasks lasts through everything but opening it again', () 
   ];
 
   for (const shared of [false, true]) {
-    const after = others.reduce((now, action) => step(now, action, { shared }), there);
+    const after = stepThrough(there, others, shared);
     assert.deepEqual(after.pages, there.pages);
     assert.deepEqual(step(after, { to: 'tasks', open: true }, { shared }).pages, startAt({}));
   }
@@ -188,16 +197,18 @@ test('where you are in Tasks lasts through everything but opening it again', () 
 // and can swap it at any time, so none of them may keep where you are: only the screen moves it.
 test('only the call screen moves through Tasks; its containers only lay out where it is', () => {
   const files = (dir: string): string[] =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-      entry.isDirectory()
-        ? files(join(dir, entry.name))
-        : /\.tsx?$/.test(entry.name)
-          ? [join(dir, entry.name)]
-          : [],
-    );
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const at = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        return files(at);
+      }
+
+      return /\.tsx?$/u.test(entry.name) ? [at] : [];
+    });
 
   const movers = files('src').filter((file) =>
-    /import \{[^}]*\b(?:move|startAt|START)\b[^}]*\} from '@\/components\/tasks\/pages'/.test(
+    /import \{[^}]*\b(?:move|startAt|START)\b[^}]*\} from '@\/components\/tasks\/pages'/u.test(
       readFileSync(file, 'utf-8'),
     ),
   );

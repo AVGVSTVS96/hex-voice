@@ -1,38 +1,41 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 
 import type { Pose } from '../modules/pose';
 import { pagedRoom, shapeOf } from '../src/components/tasks/pages';
 import { screenLayout } from '../src/screens/layout';
+import type { Layout } from '../src/screens/layout';
 import { roomOf } from '../src/screens/window';
-import type { Insets, Size } from '../src/screens/window';
+import type { Insets, Room, Size } from '../src/screens/window';
 import { metrics } from '../src/ui/tokens';
 
 const files = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-    entry.isDirectory()
-      ? files(join(dir, entry.name))
-      : /\.tsx?$/.test(entry.name)
-        ? [join(dir, entry.name)]
-        : [],
-  );
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const at = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      return files(at);
+    }
+
+    return /\.tsx?$/u.test(entry.name) ? [at] : [];
+  });
 
 test('only the window module reads the device’s pose; the call screen mounts it and the check reports it', () => {
   const readers = files('src').filter((file) =>
-    /from '(?:\.\.\/)+modules\/pose'/.test(readFileSync(file, 'utf-8')),
+    /from '(?:\.\.\/)+modules\/pose'/u.test(readFileSync(file, 'utf-8')),
   );
 
-  assert.deepEqual(readers.sort(), [
+  assert.deepEqual(readers.toSorted(), [
     'src/call/call-screen.tsx',
     'src/call/pose-report.tsx',
     'src/screens/window.ts',
   ]);
   const screen = readFileSync('src/call/call-screen.tsx', 'utf-8');
   assert.deepEqual(
-    [...screen.matchAll(/\bpose\.\w+/g)].map(([read]) => read),
+    [...screen.matchAll(/\bpose\.\w+/gu)].map(([read]) => read),
     [],
     'the call screen hands the pose to roomOf and reads none of it itself',
   );
@@ -42,12 +45,16 @@ test('only the window module reads the device’s pose; the call screen mounts i
 // resize, a turn or Split View changes the layout, as the topic's list once did on every turn.
 test('a view’s identity never comes from the window’s size or pose', () => {
   const layoutWords =
-    /\b(?:beside|paired|shape|width|height|compact|wide|duo|panes|split|layout|room|pose|regular|placed)\b/;
+    /\b(?:beside|paired|shape|width|height|compact|wide|duo|panes|split|layout|room|pose|regular|placed)\b/u;
 
   const identities = files('src').flatMap((file) =>
-    [...readFileSync(file, 'utf-8').matchAll(/\bkey=\{((?:[^{}]|\{[^{}]*\})*)\}|\bid\(([^)]*)\)/g)]
-      .filter(([, key, id]) => layoutWords.test(key ?? id ?? ''))
-      .map(([found]) => `${file}: ${found}`),
+    [
+      ...readFileSync(file, 'utf-8').matchAll(
+        /\bkey=\{(?<key>(?:[^{}]|\{[^{}]*\})*)\}|\bid\((?<id>[^)]*)\)/gu,
+      ),
+    ].flatMap((match) =>
+      layoutWords.test(match.groups?.key ?? match.groups?.id ?? '') ? [`${file}: ${match[0]}`] : [],
+    ),
   );
 
   assert.deepEqual(identities, []);
@@ -187,12 +194,12 @@ test('Tasks’ rows and pages never take a width from JS', () => {
 // the middle. In Split View each app gets half; the app on the right keeps the column.
 const open = { width: 951, height: 669 };
 const column = { top: 0, right: 84, bottom: 34, left: 0 };
-const fold = { x: 455.5, y: 0, width: 40, height: 669 };
+const openFold = { x: 455.5, y: 0, width: 40, height: 669 };
 
 const openPose: Pose = {
   regular: true,
   bar: 'right',
-  fold,
+  fold: openFold,
   occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
 };
 
@@ -236,7 +243,7 @@ test('in Split View the fold at a window’s edge isn’t the window’s, and a 
 test('a window the fold crosses keeps it', () => {
   // A picture in picture pinned at the top leaves the app the screen below it.
   const shorter = roomOf(
-    { ...openPose, fold: { ...fold, y: -200, height: 669 } },
+    { ...openPose, fold: { ...openFold, y: -200, height: 669 } },
     { width: 951, height: 469 },
     column,
   );
@@ -281,6 +288,122 @@ test('in Split View each app lays out as one page in the window it has, as the D
   }
 });
 
+const foldAt = (at: number, extent: number) => (at > -1 && at <= 1.1 ? at * extent : at);
+
+const foldAcross = (window: Size, at: number) => {
+  const { width, height } = window;
+
+  return width > height
+    ? { x: foldAt(at, width) - 20, y: 0, width: 40, height }
+    : { x: 0, y: foldAt(at, height) - 20, width, height: 40 };
+};
+
+const spanProblems = (name: string, layout: Layout) => {
+  const { content } = layout;
+
+  const spans = {
+    words: layout.words,
+    footer: layout.footer,
+    agent: layout.agent,
+    besideCalls: layout.besideCalls,
+    besideTasks: layout.besideTasks,
+  };
+
+  return Object.entries(spans).flatMap(([what, span]) =>
+    span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5
+      ? []
+      : [`${name}: ${what} ${span.x}+${span.width} in ${content.width}`],
+  );
+};
+
+const callsProblems = (name: string, layout: Layout, window: Size) => {
+  const { calls, content } = layout;
+  const problems: string[] = [];
+
+  if (!(calls.width > 0 && calls.width < window.width)) {
+    problems.push(`${name}: Calls ${calls.width} wide`);
+  }
+
+  if (calls.place === 'beside' && content.width - calls.width < 320) {
+    problems.push(`${name}: beside Calls the call keeps ${content.width - calls.width}`);
+  }
+
+  return problems;
+};
+
+const addProblems = (name: string, layout: Layout, crease: Room['fold']) => {
+  const { add, content } = layout;
+  const half = metrics.docked / 2;
+  const problems: string[] = [];
+
+  if (!(
+    add.x - half >= 0 &&
+    add.x + half <= content.width &&
+    add.y - half >= 0 &&
+    add.y + half <= content.height
+  )) {
+    problems.push(`${name}: the + at ${add.x},${add.y} in ${content.width}x${content.height}`);
+  }
+
+  if (layout.pulls && Math.abs(add.x - layout.orb.read.x) < metrics.docked) {
+    problems.push(`${name}: the + on the transcript button`);
+  }
+
+  if (crease && 'x' in crease && add.x + half > Math.min(crease.x - content.x, layout.words.x)) {
+    problems.push(`${name}: the + past the crease or into the words`);
+  }
+
+  if (crease && 'y' in crease && add.y + half > Math.min(crease.y, layout.words.top)) {
+    problems.push(`${name}: the + past the crease or into the words`);
+  }
+
+  return problems;
+};
+
+const tasksProblems = (name: string, layout: Layout, window: Size) => {
+  const tasks = layout.duo?.tasks;
+
+  if (!tasks) {
+    return [];
+  }
+
+  const { area } = tasks;
+
+  return area.width > 0 && area.x >= 0 && area.x + area.width <= window.width + 0.5
+    ? []
+    : [`${name}: Tasks ${area.x}+${area.width}`];
+};
+
+const problemsIn = (
+  window: Size,
+  columnSide: 'left' | 'right' | undefined,
+  at: number | undefined,
+) => {
+  const insets = {
+    top: columnSide ? 0 : 24,
+    bottom: 20,
+    left: columnSide === 'left' ? 84 : 0,
+    right: columnSide === 'right' ? 84 : 0,
+  };
+
+  const pose: Pose = {
+    regular: window.width >= 669,
+    bar: columnSide,
+    fold: at === undefined ? undefined : foldAcross(window, at),
+  };
+
+  const name = `${window.width}x${window.height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
+  const room = roomOf(pose, window, insets);
+  const layout = screenLayout(room);
+
+  return [
+    ...spanProblems(name, layout),
+    ...callsProblems(name, layout, window),
+    ...addProblems(name, layout, room.fold),
+    ...tasksProblems(name, layout, window),
+  ];
+};
+
 // Every window the app could be given, with or without a side column and with the fold anywhere
 // across it or beyond its edges: whatever the room, everything the layout places has width and
 // stays inside the window, the call's + included, clear of the transcript button and on the orb's
@@ -294,98 +417,7 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
     for (const height of heights) {
       for (const columnSide of [undefined, 'left', 'right'] as const) {
         for (const at of [undefined, -60, -20, 0, 0.25, 0.5, 0.75, 1, 1.02]) {
-          const window = { width, height };
-
-          const insets = {
-            top: columnSide ? 0 : 24,
-            bottom: 20,
-            left: columnSide === 'left' ? 84 : 0,
-            right: columnSide === 'right' ? 84 : 0,
-          };
-
-          const across = width > height;
-
-          const place = (extent: number) =>
-            at !== undefined && at > -1 && at <= 1.1 ? at * extent : (at ?? 0);
-
-          const fold =
-            at === undefined
-              ? undefined
-              : across
-                ? { x: place(width) - 20, y: 0, width: 40, height }
-                : { x: 0, y: place(height) - 20, width, height: 40 };
-
-          const pose: Pose = { regular: width >= 669, bar: columnSide, fold };
-          const name = `${width}x${height} ${columnSide ?? 'no'} column, fold ${at ?? 'none'}`;
-          const room = roomOf(pose, window, insets);
-          const layout = screenLayout(room);
-          const { content } = layout;
-
-          const spans = {
-            words: layout.words,
-            footer: layout.footer,
-            agent: layout.agent,
-            besideCalls: layout.besideCalls,
-            besideTasks: layout.besideTasks,
-          };
-
-          for (const [what, span] of Object.entries(spans)) {
-            if (!(span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5)) {
-              problems.push(`${name}: ${what} ${span.x}+${span.width} in ${content.width}`);
-            }
-          }
-
-          if (!(layout.calls.width > 0 && layout.calls.width < width)) {
-            problems.push(`${name}: Calls ${layout.calls.width} wide`);
-          }
-
-          if (layout.calls.place === 'beside' && content.width - layout.calls.width < 320) {
-            problems.push(
-              `${name}: beside Calls the call keeps ${content.width - layout.calls.width}`,
-            );
-          }
-
-          const { add } = layout;
-          const half = metrics.docked / 2;
-
-          if (!(
-            add.x - half >= 0 &&
-            add.x + half <= content.width &&
-            add.y - half >= 0 &&
-            add.y + half <= content.height
-          )) {
-            problems.push(
-              `${name}: the + at ${add.x},${add.y} in ${content.width}x${content.height}`,
-            );
-          }
-
-          if (layout.pulls && Math.abs(add.x - layout.orb.read.x) < metrics.docked) {
-            problems.push(`${name}: the + on the transcript button`);
-          }
-
-          const crease = room.fold;
-
-          if (
-            crease &&
-            'x' in crease &&
-            add.x + half > Math.min(crease.x - content.x, layout.words.x)
-          ) {
-            problems.push(`${name}: the + past the crease or into the words`);
-          }
-
-          if (crease && 'y' in crease && add.y + half > Math.min(crease.y, layout.words.top)) {
-            problems.push(`${name}: the + past the crease or into the words`);
-          }
-
-          const tasks = layout.duo?.tasks;
-
-          if (tasks) {
-            const { area } = tasks;
-
-            if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5)) {
-              problems.push(`${name}: Tasks ${area.x}+${area.width}`);
-            }
-          }
+          problems.push(...problemsIn({ width, height }, columnSide, at));
         }
       }
     }

@@ -22,7 +22,7 @@ const flat = { x: 0, y: 455.5, width: 669, height: 40 };
 
 // Every screen the app lays out for: the phone, iPad both ways up, and iPhone Duo's poses with its
 // column on either side.
-const screens: Record<string, Fixture> = {
+const screens = {
   phone: {
     window: { width: 440, height: 956 },
     insets: { top: 62, right: 0, bottom: 34, left: 0 },
@@ -64,7 +64,7 @@ const screens: Record<string, Fixture> = {
       occlusions: [{ x: 535, y: 0, width: 134, height: 82 }],
     },
   },
-};
+} satisfies Record<string, Fixture>;
 
 const layoutOf = ({ window, insets, pose }: Fixture) => screenLayout(roomOf(pose, window, insets));
 
@@ -115,6 +115,11 @@ test('what is on the call card stays put in the window unless the card slides as
   }
 });
 
+const foldAcrossMiddle = (width: number, height: number) =>
+  width > height
+    ? { x: width / 2 - 20, y: 0, width: 40, height }
+    : { x: 0, y: height / 2 - 20, width, height: 40 };
+
 // The same rule in every window the app could be given, with or without a side column on either
 // side and with or without a fold: there is no screen or pose where Calls leaves the card square
 // or the card covers any of Calls.
@@ -125,13 +130,7 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
     for (const height of [466, 669, 678, 834, 951, 1194]) {
       for (const side of [undefined, 'left', 'right'] as const) {
         for (const folded of [false, true]) {
-          const across = width > height;
-
-          const fold = folded
-            ? across
-              ? { x: width / 2 - 20, y: 0, width: 40, height }
-              : { x: 0, y: height / 2 - 20, width, height: 40 }
-            : undefined;
+          const fold = folded ? foldAcrossMiddle(width, height) : undefined;
 
           const layout = layoutOf({
             window: { width, height },
