@@ -302,25 +302,26 @@ export const Sections = ({
 }: {
   follows?: boolean;
   children: ReactNode[];
-}) => (
-  <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-    {children.filter(isValidElement).map((section, i) => (
-      <Column
-        key={section.key ?? i}
-        alignment="start"
-        spacing={0}
-        modifiers={[frame({ maxWidth: Infinity })]}
-      >
-        {i > 0 || follows ? (
-          <Column alignment="start" spacing={0} modifiers={[padding({ top: space[5] })]}>
-            <Hairline />
-          </Column>
-        ) : null}
-        {section}
-      </Column>
-    ))}
-  </Column>
-);
+}) => {
+  const sections = children.flatMap((section, at) =>
+    isValidElement(section) ? [{ key: section.key ?? at, section }] : [],
+  );
+
+  return (
+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+      {sections.map(({ key, section }, i) => (
+        <Column key={key} alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+          {i > 0 || follows ? (
+            <Column alignment="start" spacing={0} modifiers={[padding({ top: space[5] })]}>
+              <Hairline />
+            </Column>
+          ) : null}
+          {section}
+        </Column>
+      ))}
+    </Column>
+  );
+};
 
 export const Hairline = () => (
   <Rectangle
