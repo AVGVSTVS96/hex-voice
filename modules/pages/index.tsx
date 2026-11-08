@@ -24,7 +24,7 @@ type NativeProps = Omit<PagesProps, 'onPaired'> & {
 const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Pages', 'PagesView') : null;
 
-export function PagesView({ modifiers, onPaired, ...rest }: PagesProps) {
+export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
   if (!Native) return null;
   return (
     <Native
@@ -34,4 +34,4 @@ export function PagesView({ modifiers, onPaired, ...rest }: PagesProps) {
       onPaired={({ nativeEvent }) => onPaired(nativeEvent.paired)}
     />
   );
-}
+};

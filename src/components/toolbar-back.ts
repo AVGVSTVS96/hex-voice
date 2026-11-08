@@ -20,18 +20,18 @@ type Publish = (from: BackFrom, back: Back | undefined) => void;
 const ToolbarBack = createContext<Publish | null>(null);
 export const ToolbarBackProvider = ToolbarBack.Provider;
 
-export function useToolbarBacks() {
+export const useToolbarBacks = () => {
   const [backs, setBacks] = useState<Partial<Record<BackFrom, Back>>>({});
   const publish = useCallback<Publish>(
     (from, back) => setBacks((was) => (was[from] === back ? was : { ...was, [from]: back })),
     [],
   );
   return { backs, publish };
-}
+};
 
 // Hands `back` to the toolbar where there is one to take it, and says whether it did, so the page
 // draws its own Back only where the toolbar doesn't.
-export function useToolbarBack(from: BackFrom, back: Back | undefined, when = true): boolean {
+export const useToolbarBack = (from: BackFrom, back: Back | undefined, when = true): boolean => {
   const publish = useContext(ToolbarBack);
   const takes = !!publish && when;
   const press = useRef(back?.onPress);
@@ -45,4 +45,4 @@ export function useToolbarBack(from: BackFrom, back: Back | undefined, when = tr
     return () => publish(from, undefined);
   }, [publish, takes, from, to]);
   return takes;
-}
+};

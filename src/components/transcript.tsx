@@ -23,7 +23,7 @@ type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
 // The call's words, newest at the foot. Where they have a page of their own (iPad), they read a
 // size up, and before any are said the hint sits in the page's middle, level with the orb.
-export function Transcript({
+export const Transcript = ({
   entries,
   active,
   size = 'regular',
@@ -39,7 +39,7 @@ export function Transcript({
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => Promise<unknown>;
   onOpenTask?: (task: TaskId) => void;
-}) {
+}) => {
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
@@ -108,19 +108,19 @@ export function Transcript({
       )}
     </ScrollView>
   );
-}
+};
 
 // Each card sits where hex brought it up: before the first words said after it.
-function interleave(entries: TranscriptEntry[], cards: CallCard[]) {
+const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
   for (const card of [...cards].sort((a, b) => a.at - b.at)) {
     const after = moments.findIndex((moment) => !('ask' in moment) && moment.startMs > card.at);
     moments.splice(after < 0 ? moments.length : after, 0, card);
   }
   return moments;
-}
+};
 
-function Line({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'large' }) {
+const Line = ({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'large' }) => {
   const text = entry.text.trim();
   const [warm, settled] = useSettledLength(text.length);
   const user = entry.role === 'user';
@@ -133,9 +133,9 @@ function Line({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'larg
       </Text>
     </Turn>
   );
-}
+};
 
-function useSettledLength(length: number) {
+const useSettledLength = (length: number) => {
   const [warm, setWarm] = useState(0);
   const [settled, setSettled] = useState(0);
   useEffect(() => {
@@ -143,7 +143,7 @@ function useSettledLength(length: number) {
     setTimeout(() => setSettled((current) => Math.max(current, length)), motion.caption.settled);
   }, [length]);
   return [Math.min(warm, length), Math.min(settled, length)] as const;
-}
+};
 
 const styles = StyleSheet.create({
   content: {

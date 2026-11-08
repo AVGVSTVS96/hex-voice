@@ -34,7 +34,7 @@ const DARK: Place[] = ['t3', 'server'];
 const SHOWN = 5;
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
-function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
+const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
   switch (tile.kind) {
     case 'app':
       return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
@@ -43,24 +43,24 @@ function look(tile: Tile): { color: string; glyph: SFSymbol; ink: string } {
     case 'link':
       return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
   }
-}
+};
 
-export function swipeLook(tile: Tile) {
+export const swipeLook = (tile: Tile) => {
   const { color, glyph } = look(tile);
   return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
-}
+};
 
 // A thread without a link is a ghost: we know it's from there, but there's no door.
-export function TileIcon({ tile, size }: { tile: Tile; size: number }) {
+export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
   if (tile.kind === 'app' && !tile.link) return <Ghost place={tile.place} size={size} />;
   return <Solid {...look(tile)} size={size} />;
-}
+};
 
-export function PlaceTile({ place, size = metrics.list.tile }: { place: Place; size?: number }) {
-  return <Solid color={brand[place]} glyph={GLYPH[place]} ink={brand.ink} size={size} />;
-}
+export const PlaceTile = ({ place, size = metrics.list.tile }: { place: Place; size?: number }) => (
+  <Solid color={brand[place]} glyph={GLYPH[place]} ink={brand.ink} size={size} />
+);
 
-function Solid({
+const Solid = ({
   color,
   glyph,
   ink,
@@ -70,23 +70,21 @@ function Solid({
   glyph: SFSymbol;
   ink: string;
   size: number;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={0}
-      modifiers={[
-        frame({ width: size, height: size }),
-        background(color),
-        clipShape('roundedRectangle', size * metrics.tileCorner),
-      ]}
-    >
-      <Icon name={glyph} size={size * 0.5} color={ink} />
-    </Row>
-  );
-}
+}) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    modifiers={[
+      frame({ width: size, height: size }),
+      background(color),
+      clipShape('roundedRectangle', size * metrics.tileCorner),
+    ]}
+  >
+    <Icon name={glyph} size={size * 0.5} color={ink} />
+  </Row>
+);
 
-function Ghost({ place, size }: { place: Place; size: number }) {
+const Ghost = ({ place, size }: { place: Place; size: number }) => {
   const ink = DARK.includes(place) ? theme.secondary : brand[place];
   return (
     <ZStack alignment="center" modifiers={[frame({ width: size, height: size })]}>
@@ -105,13 +103,13 @@ function Ghost({ place, size }: { place: Place; size: number }) {
       <Icon name={GLYPH[place]} size={size * 0.5} color={ink} />
     </ZStack>
   );
-}
+};
 
 // Places list a topic's threads once it has more than one; one thread's place is its header's door.
 export const hasPlaces = (task: TaskRow, threads: TaskRow[]) =>
   threads.some((thread) => thread.id !== task.id);
 
-export function Places({
+export const Places = ({
   task,
   threads,
   missing,
@@ -123,7 +121,7 @@ export function Places({
   missing: Set<Place>;
   onOpen: (thread: TaskRow) => void;
   onOpenTask: (id: TaskId) => void;
-}) {
+}) => {
   const others = threads
     .filter((thread) => thread.id !== task.id)
     .sort((a, b) => Number(!!b.link) - Number(!!a.link) || Date.parse(b.at) - Date.parse(a.at));
@@ -206,4 +204,4 @@ export function Places({
       ) : null}
     </Column>
   );
-}
+};

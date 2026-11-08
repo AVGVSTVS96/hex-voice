@@ -20,7 +20,7 @@ import { Host } from '@/ui/host';
 // It draws nothing of its own: the call and Tasks' backdrop run under it as before. While the
 // keyboard is up over its foot, the call buttons there fade, so the glass keyboard never shows them
 // through.
-export function SideColumn({
+export const SideColumn = ({
   column: { bar },
   tools,
   controls,
@@ -28,7 +28,7 @@ export function SideColumn({
   column: NonNullable<Layout['column']>;
   tools: ReactNode;
   controls: Omit<ComponentProps<typeof CallButtons>, 'modifiers'>;
-}) {
+}) => {
   const keyboard = useKeyboardUp();
   if (!ColumnView) return null;
   return (
@@ -53,7 +53,7 @@ export function SideColumn({
       </SafeAreaView>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   row: { ...StyleSheet.absoluteFill, flexDirection: 'row' },

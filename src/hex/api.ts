@@ -18,7 +18,7 @@ const Opened = z.object({
 const enc = encodeURIComponent;
 
 // Every request the app makes to hex's voice plugin, each one answered in the app's own types.
-export function createHex({ request, send, source, upload }: Client) {
+export const createHex = ({ request, send, source, upload }: Client) => {
   const media = {
     // hex keeps the file and answers with the id it goes by.
     upload: (picked: Picked) => upload('/media', Shared, picked),
@@ -87,4 +87,4 @@ export function createHex({ request, send, source, upload }: Client) {
       talk: () => send('/asks/talk'),
     },
   };
-}
+};

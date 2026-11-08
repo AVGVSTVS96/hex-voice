@@ -9,8 +9,10 @@ import type { ColorValue } from 'react-native';
 
 // The first child whose own width fits, else the last; a lone child only where it fits.
 export type FitsProps = CommonViewModifierProps & { children: ReactNode };
+
 // Children side by side, as wide as each other, fitting only where each fits its share.
 export type EvenRowProps = CommonViewModifierProps & { spacing: number; children: ReactNode };
+
 // A lane across the width it's given, its marks at shares of that width.
 export type LaneProps = CommonViewModifierProps & {
   spans: { from: number; to: number }[];
@@ -20,18 +22,24 @@ export type LaneProps = CommonViewModifierProps & {
   failure: ColorValue;
 };
 
-function view<Props extends CommonViewModifierProps>(name: string) {
+const view = <Props extends CommonViewModifierProps>(name: string): ComponentType<Props> => {
   const Native = process.env.EXPO_OS === 'ios' ? requireNativeView<Props>('Rows', name) : null;
-  return function Rows(props: Props) {
-    if (!Native) return null;
+
+  const Rows = (props: Props) => {
+    if (!Native) {
+      return null;
+    }
+
     return (
       <Native
         {...props}
         {...(props.modifiers ? createViewModifierEventListener(props.modifiers) : undefined)}
       />
     );
-  } as ComponentType<Props>;
-}
+  };
+
+  return Rows;
+};
 
 export const Fits = view<FitsProps>('FitsView');
 export const EvenRow = view<EvenRowProps>('EvenRowView');

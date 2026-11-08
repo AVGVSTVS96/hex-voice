@@ -11,13 +11,13 @@ import { publish, serve } from '../updates/store.mjs';
 const made: string[] = [];
 after(() => Promise.all(made.map((dir) => rm(dir, { recursive: true, force: true }))));
 
-async function scratch(prefix: string) {
+const scratch = async (prefix: string) => {
   const dir = await mkdtemp(join(tmpdir(), prefix));
   made.push(dir);
   return dir;
-}
+};
 
-async function exported() {
+const exported = async () => {
   const dist = await scratch('dist-');
   await mkdir(join(dist, '_expo/static/js/ios'), { recursive: true });
   await mkdir(join(dist, 'assets'));
@@ -35,15 +35,15 @@ async function exported() {
     }),
   );
   return dist;
-}
+};
 
-async function store() {
+const store = async () => {
   const dir = await scratch('updates-');
   const server = serve(dir).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   const origin = `http://localhost:${(server.address() as AddressInfo).port}`;
   return { dir, server, origin, expoConfig: { updates: { url: `${origin}/manifest` } } };
-}
+};
 
 const manifest = (origin: string, runtime: string) =>
   fetch(`${origin}/manifest`, {

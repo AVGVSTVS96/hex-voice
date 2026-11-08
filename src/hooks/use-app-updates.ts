@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 // front and downloads it in the background. It restarts into it only as you come back to the app
 // from elsewhere with no call live, never while you're in it, so a restart can't take the page
 // you're on from under you. Coming back from Control Center or a banner isn't coming back.
-export function useAppUpdates(callLive: boolean) {
+export const useAppUpdates = (callLive: boolean) => {
   const { isUpdatePending } = Updates.useUpdates();
 
   const apply = useEffectEvent(() => {
@@ -25,10 +25,10 @@ export function useAppUpdates(callLive: boolean) {
     });
     return () => listener.remove();
   }, []);
-}
+};
 
-async function download() {
+const download = async () => {
   try {
     if ((await Updates.checkForUpdateAsync()).isAvailable) await Updates.fetchUpdateAsync();
   } catch {}
-}
+};

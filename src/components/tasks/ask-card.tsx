@@ -55,7 +55,7 @@ const INSIDE = space[4];
 type Answer = (ask: Ask, option: AskOption) => void;
 
 // The project page's asks, each a card in a row of its list, so a swipe left on one puts it away.
-export function YourCall({
+export const YourCall = ({
   asks,
   answered,
   onAnswer,
@@ -69,7 +69,7 @@ export function YourCall({
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
-}) {
+}) => {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   return (
     <>
@@ -119,31 +119,29 @@ export function YourCall({
       })}
     </>
   );
-}
+};
 
 // A card on the page, as Muse sets an approval: its own surface, apart from the next by air.
-function Card({ children }: { children: ReactNode }) {
-  return (
-    <VStack
-      alignment="leading"
-      spacing={space[3]}
-      modifiers={[
-        padding({ all: INSIDE }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(theme.card),
-        clipShape('roundedRectangle', radius.group),
-        padding({ leading: MARGIN, trailing: MARGIN, bottom: space[3] }),
-        ...listRow(),
-      ]}
-    >
-      {children}
-    </VStack>
-  );
-}
+const Card = ({ children }: { children: ReactNode }) => (
+  <VStack
+    alignment="leading"
+    spacing={space[3]}
+    modifiers={[
+      padding({ all: INSIDE }),
+      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      background(theme.card),
+      clipShape('roundedRectangle', radius.group),
+      padding({ leading: MARGIN, trailing: MARGIN, bottom: space[3] }),
+      ...listRow(),
+    ]}
+  >
+    {children}
+  </VStack>
+);
 
 // The question first and large, why hex asks under it in gray, then the choices as pills; a tap
 // on the words opens where it was asked and the thread's own words. Writing on it keeps it open.
-function AskCard({
+const AskCard = ({
   ask,
   onAnswer,
   onDismiss,
@@ -151,7 +149,7 @@ function AskCard({
   ask: Ask;
   onAnswer: Answer;
   onDismiss: (ask: Ask) => void;
-}) {
+}) => {
   // Words typed on it and not sent open it on them, so they're never out of sight: after the page
   // closes, and once hex's check lists it under a new id.
   const [held] = useState(
@@ -274,11 +272,11 @@ function AskCard({
       )}
     </Card>
   );
-}
+};
 
 // What each option looks like, when the choice is between looks: its screenshot, over its answer
 // when every option has one, and all of them full screen on a tap.
-export function Shots({ ask }: { ask: Ask }) {
+export const Shots = ({ ask }: { ask: Ask }) => {
   const shown = ask.options.filter((option) => option.shot !== undefined);
   if (!shown.length) return null;
   const shots = shown.map((option) => shotOf(ask, option.shot!));
@@ -297,10 +295,10 @@ export function Shots({ ask }: { ask: Ask }) {
       modifiers={[frame({ maxWidth: Infinity })]}
     />
   );
-}
+};
 
 // The thread's own words, under where and when they were said: a few lines, all of them on a tap.
-export function Said({ words }: { words: Words }) {
+export const Said = ({ words }: { words: Words }) => {
   const [whole, setWhole] = useState(false);
   const when = words.at ? ` · ${clock(new Date(words.at))}` : '';
   return (
@@ -332,9 +330,9 @@ export function Said({ words }: { words: Words }) {
       </Markdown>
     </Column>
   );
-}
+};
 
-export function Links({ links }: { links: AskLink[] }) {
+export const Links = ({ links }: { links: AskLink[] }) => {
   const tries = useFailures();
   const failed = links.map((link) => tries.failed[link.url]).find(Boolean);
   return (
@@ -354,10 +352,10 @@ export function Links({ links }: { links: AskLink[] }) {
       {failed ? <Failure text={failed} /> : null}
     </Column>
   );
-}
+};
 
 // An ask's choices on its row in the list, as small pills, hex's pick tinted.
-export function InlineAnswers({
+export const InlineAnswers = ({
   ask,
   onAnswer,
   modifiers,
@@ -365,27 +363,25 @@ export function InlineAnswers({
   ask: Ask;
   onAnswer: Answer;
   modifiers: ModifierConfig[];
-}) {
-  return (
-    <Row alignment="center" spacing={space[2]} modifiers={modifiers}>
-      {ask.options.map((option) => (
-        <Pill
-          key={option.label}
-          label={option.label}
-          pick={option.pick}
-          onPress={() => onAnswer(ask, option)}
-          small
-        />
-      ))}
-    </Row>
-  );
-}
+}) => (
+  <Row alignment="center" spacing={space[2]} modifiers={modifiers}>
+    {ask.options.map((option) => (
+      <Pill
+        key={option.label}
+        label={option.label}
+        pick={option.pick}
+        onPress={() => onAnswer(ask, option)}
+        small
+      />
+    ))}
+  </Row>
+);
 
 // The choices as Muse's pills, side by side when each fits its share of the row. Longer ones are
 // read, so each is a block of its own words, whole, one under another. hex's pick is tinted and
 // named, so the card holds no solid button that reads as already chosen. Under screenshots, each
 // answer sits under its own as a small pill, so its name says which is which in one line.
-function Answers({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) {
+const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const n = ask.options.length;
   if (!n) return null;
   const shots = ask.options.every((option) => option.shot !== undefined);
@@ -449,13 +445,13 @@ function Answers({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) {
       {blocks}
     </Fits>
   );
-}
+};
 
 // What you write goes to the ask's thread as a note and leaves the ask open: ↑ is the one accent
 // action. Answering with it instead is the deliberate second step, drawn in text and not accent so
 // it never reads as already answered, and Not needed puts the ask away with no answer at all.
 // None of them goes while a note is on its way.
-function Composer({
+const Composer = ({
   draft,
   focus,
   topic,
@@ -471,7 +467,7 @@ function Composer({
   onNote: (text: string) => void;
   onAnswer: (text: string) => void;
   onDismiss: () => void;
-}) {
+}) => {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const typing = useTyping();
@@ -542,12 +538,12 @@ function Composer({
       </Row>
     </Column>
   );
-}
+};
 
 // Says the field is being typed in, and stops saying so when it goes: a note or an answer takes
 // the field away with the keyboard still up, and iOS never tells a field that's gone it lost focus,
 // so the page would keep its foot hidden for typing.
-function useTyping() {
+const useTyping = () => {
   const typing = useContext(Typing);
   const on = useRef(false);
   useEffect(
@@ -560,22 +556,20 @@ function useTyping() {
     on.current = now;
     typing(now);
   };
-}
+};
 
 // An answer that couldn't reach every place, and the way to finish it.
-export function Unreached({ missed, onAgain }: { missed: number; onAgain: () => void }) {
-  return (
-    <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Failure text={unreached(missed)} />
-      <Text
-        variant="caption"
-        weight="medium"
-        tone="accent"
-        onPress={onAgain}
-        modifiers={[padding({ top: space[2], bottom: space[2] })]}
-      >
-        Send again
-      </Text>
-    </Row>
-  );
-}
+export const Unreached = ({ missed, onAgain }: { missed: number; onAgain: () => void }) => (
+  <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Failure text={unreached(missed)} />
+    <Text
+      variant="caption"
+      weight="medium"
+      tone="accent"
+      onPress={onAgain}
+      modifiers={[padding({ top: space[2], bottom: space[2] })]}
+    >
+      Send again
+    </Text>
+  </Row>
+);

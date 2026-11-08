@@ -16,7 +16,7 @@ type Props = {
 };
 
 // A past call's title, small, with its menu, heading its words.
-export function PastCallBar({ call, live, onCall, transcript, onBack, onDelete }: Props) {
+export const PastCallBar = ({ call, live, onCall, transcript, onBack, onDelete }: Props) => {
   const inToolbar = useToolbarBack(
     'call',
     onCall ? { to: 'your call', onPress: onBack } : undefined,
@@ -42,7 +42,7 @@ export function PastCallBar({ call, live, onCall, transcript, onBack, onDelete }
       <CallMenu transcript={transcript} title={callName(call)} onDelete={onDelete} />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: space[3] },

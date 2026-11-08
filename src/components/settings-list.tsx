@@ -10,23 +10,19 @@ import { metrics, radius } from '@/ui/tokens';
 
 export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 
-export function Group({ width, children }: { width: number; children: ReactNode }) {
-  return (
-    <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.card }}>
-      {children}
-    </Column>
-  );
-}
+export const Group = ({ width, children }: { width: number; children: ReactNode }) => (
+  <Column spacing={0} style={{ width, borderRadius: radius.group, backgroundColor: theme.card }}>
+    {children}
+  </Column>
+);
 
-export function Separator() {
-  return (
-    <Divider
-      modifiers={[padding({ leading: metrics.rowInset + metrics.rowIcon + metrics.rowSpacing })]}
-    />
-  );
-}
+export const Separator = () => (
+  <Divider
+    modifiers={[padding({ leading: metrics.rowInset + metrics.rowIcon + metrics.rowSpacing })]}
+  />
+);
 
-export function SettingRow({
+export const SettingRow = ({
   icon,
   title,
   width,
@@ -42,25 +38,23 @@ export function SettingRow({
   onPress?: () => void;
   testID?: string;
   children: ReactNode;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={metrics.rowSpacing}
-      style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
-      onPress={onPress}
-      testID={testID}
-      modifiers={label ? [accessibilityLabel(label)] : []}
-    >
-      <Icon
-        name={icon}
-        size={metrics.symbol.row}
-        color={theme.text}
-        style={{ width: metrics.rowIcon }}
-      />
-      <Text>{title}</Text>
-      <Spacer flexible />
-      {children}
-    </Row>
-  );
-}
+}) => (
+  <Row
+    alignment="center"
+    spacing={metrics.rowSpacing}
+    style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
+    onPress={onPress}
+    testID={testID}
+    modifiers={label ? [accessibilityLabel(label)] : []}
+  >
+    <Icon
+      name={icon}
+      size={metrics.symbol.row}
+      color={theme.text}
+      style={{ width: metrics.rowIcon }}
+    />
+    <Text>{title}</Text>
+    <Spacer flexible />
+    {children}
+  </Row>
+);

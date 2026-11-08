@@ -34,14 +34,14 @@ export type Picked = { ask: Ask; option: AskOption };
 // leave the question in Needs you. Held by Tasks, so the list and a question's page share it.
 type Choice = AskOption | 'later';
 
-export function usePickChoices() {
+export const usePickChoices = () => {
   const [choices, setChoices] = useState<Record<AskId, Choice>>({});
   return {
     choiceOf: ({ ask, option }: Picked): Choice => choices[ask.id] ?? option,
     choose: (id: AskId, choice: Choice) => setChoices((was) => ({ ...was, [id]: choice })),
     clear: () => setChoices({}),
   };
-}
+};
 export type PickChoices = ReturnType<typeof usePickChoices>;
 
 const LATER = 'Decide later';
@@ -53,7 +53,7 @@ const wraps = [
 
 // Every question hex has an answer for, each a card that opens its own page to read and change,
 // and one button that sends the answers on them all.
-export function PicksPage({
+export const PicksPage = ({
   picks,
   choices,
   open,
@@ -68,7 +68,7 @@ export function PicksPage({
   foot: number;
   onOpen: (id: AskId) => void;
   onTake: (taken: Picked[]) => void;
-}) {
+}) => {
   const taken = picks.flatMap((picked) => {
     const choice = choices.choiceOf(picked);
     return choice === 'later' ? [] : [{ ask: picked.ask, option: choice }];
@@ -140,11 +140,11 @@ export function PicksPage({
       </Foot>
     </Page>
   );
-}
+};
 
 // A question as a card that says it opens: where it's from, the question whole, and the answer it
 // gets, hex's with its sparkle, yours plain, or left for later.
-function PickRow({
+const PickRow = ({
   ask,
   choice,
   open,
@@ -154,7 +154,7 @@ function PickRow({
   choice: Choice;
   open: boolean;
   onPress: () => void;
-}) {
+}) => {
   const answer = choice === 'later' ? LATER : choice.label;
   return (
     <Column
@@ -190,9 +190,9 @@ function PickRow({
       <AnswerTag choice={choice} />
     </Column>
   );
-}
+};
 
-function AnswerTag({ choice }: { choice: Choice }) {
+const AnswerTag = ({ choice }: { choice: Choice }) => {
   const pick = choice !== 'later' && choice.pick;
   const later = choice === 'later';
   return (
@@ -222,12 +222,12 @@ function AnswerTag({ choice }: { choice: Choice }) {
       </Text>
     </Row>
   );
-}
+};
 
 // One question in full, read top to bottom: the question, why hex picks its answer, every answer
 // with what it does and gives up, then what it's about and the thread's own words. Choosing an
 // answer here sets the one "Answer" sends; nothing is sent from this page.
-export function PickPage({ picked, choices }: { picked?: Picked; choices: PickChoices }) {
+export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickChoices }) => {
   const { back } = useChrome();
   if (!picked)
     return (
@@ -345,40 +345,36 @@ export function PickPage({ picked, choices }: { picked?: Picked; choices: PickCh
       </Faded>
     </Page>
   );
-}
+};
 
-function Page({ children }: { children: ReactNode }) {
-  return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
-      {children}
-    </Column>
-  );
-}
+const Page = ({ children }: { children: ReactNode }) => (
+  <Column
+    alignment="center"
+    spacing={0}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+  >
+    {children}
+  </Column>
+);
 
-function Heading({ title, detail }: { title: string; detail?: string }) {
-  return (
-    <Column
-      alignment="start"
-      spacing={0}
-      modifiers={[padding({ leading: space[2], top: space[6], bottom: space[1] })]}
-    >
-      <Text variant="headline">{title}</Text>
-      {detail ? (
-        <Text variant="caption" tone="secondary" paragraph modifiers={wraps}>
-          {detail}
-        </Text>
-      ) : null}
-    </Column>
-  );
-}
+const Heading = ({ title, detail }: { title: string; detail?: string }) => (
+  <Column
+    alignment="start"
+    spacing={0}
+    modifiers={[padding({ leading: space[2], top: space[6], bottom: space[1] })]}
+  >
+    <Text variant="headline">{title}</Text>
+    {detail ? (
+      <Text variant="caption" tone="secondary" paragraph modifiers={wraps}>
+        {detail}
+      </Text>
+    ) : null}
+  </Column>
+);
 
 // An answer as a choice you can see is one: a circle that fills when it's yours, its words, what it
 // does and gives up, and hex's sparkle on its own pick.
-function OptionCard({
+const OptionCard = ({
   title,
   detail,
   pick = false,
@@ -390,54 +386,52 @@ function OptionCard({
   pick?: boolean;
   chosen: boolean;
   onPress: () => void;
-}) {
-  return (
-    <Row
-      alignment="start"
-      spacing={space[3]}
-      onPress={onPress}
-      testID="pick-option"
-      modifiers={[
-        padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        background(chosen ? theme.fill : theme.card),
-        clipShape('roundedRectangle', radius.option),
-        contentShape(shapes.rectangle()),
-        animation(motion.list, chosen),
-        accessibilityElement('combine'),
-        accessibilityLabel([title, pick ? PICK : '', detail ?? ''].filter(Boolean).join('. ')),
-        accessibilityAddTraits(chosen ? ['isButton', 'isSelected'] : ['isButton']),
-      ]}
-    >
-      <Icon
-        name={chosen ? 'checkmark.circle.fill' : 'circle'}
-        size={metrics.symbol.row}
-        color={chosen ? theme.text : theme.secondary}
-      />
-      <Column alignment="start" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text variant="body" weight="medium" paragraph modifiers={wraps}>
-          {title}
+}) => (
+  <Row
+    alignment="start"
+    spacing={space[3]}
+    onPress={onPress}
+    testID="pick-option"
+    modifiers={[
+      padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
+      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      background(chosen ? theme.fill : theme.card),
+      clipShape('roundedRectangle', radius.option),
+      contentShape(shapes.rectangle()),
+      animation(motion.list, chosen),
+      accessibilityElement('combine'),
+      accessibilityLabel([title, pick ? PICK : '', detail ?? ''].filter(Boolean).join('. ')),
+      accessibilityAddTraits(chosen ? ['isButton', 'isSelected'] : ['isButton']),
+    ]}
+  >
+    <Icon
+      name={chosen ? 'checkmark.circle.fill' : 'circle'}
+      size={metrics.symbol.row}
+      color={chosen ? theme.text : theme.secondary}
+    />
+    <Column alignment="start" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Text variant="body" weight="medium" paragraph modifiers={wraps}>
+        {title}
+      </Text>
+      {detail ? (
+        <Text variant="detail" tone="secondary" paragraph modifiers={wraps}>
+          {detail}
         </Text>
-        {detail ? (
-          <Text variant="detail" tone="secondary" paragraph modifiers={wraps}>
-            {detail}
+      ) : null}
+      {pick ? (
+        <Row alignment="center" spacing={space[1]}>
+          <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
+          <Text variant="caption" tone="accent">
+            {PICK}
           </Text>
-        ) : null}
-        {pick ? (
-          <Row alignment="center" spacing={space[1]}>
-            <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
-            <Text variant="caption" tone="accent">
-              {PICK}
-            </Text>
-          </Row>
-        ) : null}
-      </Column>
-    </Row>
-  );
-}
+        </Row>
+      ) : null}
+    </Column>
+  </Row>
+);
 
 // Where it was asked, in the thread's own words, all of them, and the way into the thread.
-function Thread({ id, links }: { id: AskId; links: { label: string; url: string }[] }) {
+const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
   const words = useWords(id);
   if (!words && !links.length) return null;
   return (
@@ -469,4 +463,4 @@ function Thread({ id, links }: { id: AskId; links: { label: string; url: string 
       ) : null}
     </Column>
   );
-}
+};

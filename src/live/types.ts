@@ -56,14 +56,14 @@ export type LiveEvent = z.infer<typeof LiveEvent>;
 const Message = z.object({ data: z.string() });
 
 // A data channel message as one of the events above, or nothing when it's none of them.
-export function parseEvent(message: unknown) {
+export const parseEvent = (message: unknown) => {
   const text = Message.safeParse(message).data?.data;
   try {
     return text === undefined ? undefined : LiveEvent.safeParse(JSON.parse(text)).data;
   } catch {
     return undefined;
   }
-}
+};
 
 export type LiveCommand = {
   type: 'session.input_audio.mute' | 'session.input_audio.unmute' | 'session.close';

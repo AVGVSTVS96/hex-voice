@@ -15,7 +15,7 @@ const saved = (id: CallId) => `call:${id}`;
 // front: each request waits on the server until a call changes, so a new call, its title and its
 // wrap-up arrive as they land. A call that just ended here leads the list until hex answers, and
 // only hex's answers are kept on this device.
-export function useCalls() {
+export const useCalls = () => {
   const [listed, setListed] = useState<CallSummary[]>();
   const [justEnded, setJustEnded] = useState<CallSummary[]>([]);
   const [live, setLive] = useState<CallId>();
@@ -67,11 +67,11 @@ export function useCalls() {
     );
   }, [listed, justEnded, tries.failed]);
   return { calls: shown, live, offline: watching === 'offline', add, remove };
-}
+};
 
 // One call's record: a live one follows word by word until it ends, an ended one comes once and is
 // kept on this device, so it opens at once next time.
-export function usePastCall(id: CallId | undefined) {
+export const usePastCall = (id: CallId | undefined) => {
   const [call, setCall] = useState<CallRecord>();
 
   useEffect(() => {
@@ -95,4 +95,4 @@ export function usePastCall(id: CallId | undefined) {
   );
 
   return { call: call?.id === id ? call : undefined, failed: watching === 'offline' };
-}
+};

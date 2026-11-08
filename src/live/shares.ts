@@ -23,7 +23,7 @@ export type ShareAPI = {
 export type Outcome = { shared: (Shared | undefined)[]; error?: unknown };
 
 // What you picked, sent together `at` that far into the call, each going.
-export function batchOf(call: CallId, at: number, picked: Picked[], key: string): Sent[] {
+export const batchOf = (call: CallId, at: number, picked: Picked[], key: string): Sent[] => {
   const batch = `${call} ${at} ${key}`;
   return picked.map((media, i) => ({
     call,
@@ -31,11 +31,11 @@ export function batchOf(call: CallId, at: number, picked: Picked[], key: string)
     picked: media,
     entry: { id: `sent ${batch} ${i}`, role: 'user', text: '', startMs: at, media, sending: true },
   }));
-}
+};
 
 // Each item goes up on its own, then the batch goes to the call in one request, so hex hears of
 // them once. What already went up isn't sent again.
-export async function deliver(call: CallId, batch: Sent[], api: ShareAPI): Promise<Outcome> {
+export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promise<Outcome> => {
   const uploads = await Promise.allSettled(
     batch.map(({ id, picked }) =>
       id ? Promise.resolve({ id, kind: picked.kind }) : api.upload(picked),
@@ -53,11 +53,11 @@ export async function deliver(call: CallId, batch: Sent[], api: ShareAPI): Promi
   } catch (error) {
     return { shared, error };
   }
-}
+};
 
 // The batch as it went: each item keeps hex's id once it went up, and a clip shows hex's still in
 // place of its file, which no image view draws. Every item says why when the batch didn't go.
-export function settle(sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] {
+export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] => {
   const failed =
     error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
   return sent.map((one) => {
@@ -71,12 +71,12 @@ export function settle(sent: Sent[], batch: Sent[], { shared, error }: Outcome):
       entry: { ...one.entry, ...still, sending: false, failed },
     };
   });
-}
+};
 
 // What a tap on `entry` sends again: whatever of its batch didn't go, going.
-export function retrying(sent: Sent[], entry: string): Sent[] {
+export const retrying = (sent: Sent[], entry: string): Sent[] => {
   const batch = sent.find((one) => one.entry.id === entry)?.batch;
   return sent
     .filter((one) => one.batch === batch && one.entry.failed)
     .map((one) => ({ ...one, entry: { ...one.entry, sending: true, failed: undefined } }));
-}
+};

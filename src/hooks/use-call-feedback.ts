@@ -7,10 +7,10 @@ import { useEffect, useRef } from 'react';
 const options = { keepAudioSessionActive: true };
 
 // `live` is a call on this phone, connected.
-export function useCallFeedback(
+export const useCallFeedback = (
   live: boolean,
   { sounds, haptics }: { sounds: boolean; haptics: boolean },
-) {
+) => {
   const connect = useAudioPlayer(require('@/assets/sounds/connect.wav'), options);
   const end = useAudioPlayer(require('@/assets/sounds/end.wav'), options);
   const previous = useRef(live);
@@ -27,4 +27,4 @@ export function useCallFeedback(
       if (sounds) void end.seekTo(0).then(() => end.play());
     }
   }, [live, connect, end, sounds, haptics]);
-}
+};

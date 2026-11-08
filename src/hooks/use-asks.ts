@@ -19,18 +19,18 @@ import {
 
 // The one way to answer an ask, from Tasks or its card on a call: once hex has it, what you'd
 // started typing on it goes, and you get back what the answer reached.
-export async function answerAsk(ask: Ask, option: AskOption) {
+export const answerAsk = async (ask: Ask, option: AskOption) => {
   const sent = await hex.asks.answer(ask.id, option.label);
   keepDraft(`ask:${ask.id}`, '');
   return sent;
-}
+};
 
 // Your own words to the ask's thread. The ask stays open everywhere, so here only what you wrote
 // goes.
-export async function noteAsk(ask: Ask, text: string) {
+export const noteAsk = async (ask: Ask, text: string) => {
   await hex.asks.note(ask.id, text);
   sentDraft(`ask:${ask.id}`, text);
-}
+};
 
 // On a call, the voice starts going through your asks with you.
 export const raiseAsks = () => hex.asks.talk();
@@ -43,7 +43,7 @@ export const shotOf = (ask: Ask, shot: number) => hex.asks.shot(ask.id, shot);
 // Whatever hex couldn't take says why on the item it was about, an answer that didn't land opens
 // again, and one that missed a place stays folded, through the sheet closing, and says so until
 // it's sent again or undone.
-export function useAsks(open: boolean) {
+export const useAsks = (open: boolean) => {
   const [state, dispatch] = useReducer(yours, { answered: {} });
   const tries = useFailures();
   const [missed, setMissed] = useState<Record<string, number>>({});
@@ -128,15 +128,14 @@ export function useAsks(open: boolean) {
     act: (id: string) => tries.attempt(id, 'Not sent', () => hex.asks.act(id)),
     read: (id: string) => tries.attempt(id, 'Not marked read', () => hex.asks.read(id)),
   };
-}
+};
 
 // The last check in full, fetched when its page opens and again whenever a new one lands.
-export function useCheck(at: string | undefined) {
+export const useCheck = (at: string | undefined) => {
   const { answer, ...answered } = useAnswer(at ?? null, undefined, () => hex.asks.check());
   return { check: answer, ...answered };
-}
+};
 
 // An ask's thread's own words, asked for while its card is open. Where hex has none, there are none.
-export function useWords(id: AskId | null) {
-  return useAnswer(id, undefined, (open) => hex.asks.words(open)).answer;
-}
+export const useWords = (id: AskId | null) =>
+  useAnswer(id, undefined, (open) => hex.asks.words(open)).answer;

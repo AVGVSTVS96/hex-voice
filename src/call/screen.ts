@@ -28,17 +28,15 @@ export type Action =
   | { to: 'call'; id: string | null }
   | { to: 'pages'; move: Move };
 
-export function start(opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen {
-  return {
-    over: opening.open === 'calls' ? 'calls' : opening.tasks ? 'tasks' : 'none',
-    settings: opening.open === 'settings',
-    front: opening.open === 'settings' ? 'settings' : 'tasks',
-    pages: startAt(opening.tasks ?? {}),
-    words: { pulled: false, call: null, beside: false },
-  };
-}
+export const start = (opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen => ({
+  over: opening.open === 'calls' ? 'calls' : opening.tasks ? 'tasks' : 'none',
+  settings: opening.open === 'settings',
+  front: opening.open === 'settings' ? 'settings' : 'tasks',
+  pages: startAt(opening.tasks ?? {}),
+  words: { pulled: false, call: null, beside: false },
+});
 
-export function step(now: Screen, action: Action, { shared }: { shared: boolean }): Screen {
+export const step = (now: Screen, action: Action, { shared }: { shared: boolean }): Screen => {
   switch (action.to) {
     case 'calls':
       return action.open
@@ -83,14 +81,14 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
     case 'pages':
       return { ...now, pages: move(now.pages, action.move) };
   }
-}
+};
 
 // What shows: where settings has a place and a fold left something else open with it, settings
 // over Calls shows settings, and settings with Tasks shows the one in front.
-export function shown(now: Screen, shared: boolean) {
+export const shown = (now: Screen, shared: boolean) => {
   const both = shared && now.over === 'tasks' && now.settings;
   const tasks = now.over === 'tasks' && !(both && now.front === 'settings');
   const settings = now.settings && !(both && now.front === 'tasks');
   const calls = now.over === 'calls' && !(shared && now.settings);
   return { calls, tasks, settings, place: tasks || (shared && settings) };
-}
+};

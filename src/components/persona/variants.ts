@@ -10,9 +10,8 @@ export const PERSONA_VARIANTS = [
 export type PersonaVariant = (typeof PERSONA_VARIANTS)[number]['id'];
 export const DEFAULT_PERSONA: PersonaVariant = 'opal';
 
-export function isPersonaVariant(value: unknown): value is PersonaVariant {
-  return PERSONA_VARIANTS.some((variant) => variant.id === value);
-}
+export const isPersonaVariant = (value: unknown): value is PersonaVariant =>
+  PERSONA_VARIANTS.some((variant) => variant.id === value);
 
 // Pastel twins of Opal's palettes, in the same order, so each color sits in the same spot on every
 // persona. With the custom color picker they fill as many spots as Opal's palettes. On a light screen
@@ -29,15 +28,13 @@ export const PERSONA_COLORS = [
 ] as const;
 
 // A preset shows its light partner on a light screen; a custom color stays as picked.
-export function personaColorOnLight(color: string) {
-  return PERSONA_COLORS.find(({ id }) => id === color)?.light ?? color;
-}
+export const personaColorOnLight = (color: string) =>
+  PERSONA_COLORS.find(({ id }) => id === color)?.light ?? color;
 
 export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
 
-export function isPersonaColor(value: unknown): value is string {
-  return typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value);
-}
+export const isPersonaColor = (value: unknown): value is string =>
+  typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value);
 
 // Opal's numeric `color` input picks one of these hue palettes; any other value is its original mix.
 export const OPAL_PALETTES = [
@@ -54,10 +51,8 @@ export const OPAL_PALETTES = [
 
 export type OpalPalette = (typeof OPAL_PALETTES)[number]['id'];
 
-export function isOpalPalette(value: unknown): value is OpalPalette {
-  return OPAL_PALETTES.some((palette) => palette.id === value);
-}
+export const isOpalPalette = (value: unknown): value is OpalPalette =>
+  OPAL_PALETTES.some((palette) => palette.id === value);
 
-export function opalPaletteInput(palette: OpalPalette) {
-  return palette === 'original' ? undefined : Number(palette);
-}
+export const opalPaletteInput = (palette: OpalPalette) =>
+  palette === 'original' ? undefined : Number(palette);

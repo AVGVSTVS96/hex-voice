@@ -24,7 +24,7 @@ const EMOJI_MARKS: [RegExp, PinMark][] = [
   [/^(❓|👉|🟢)\s*/u, 'needs'],
 ];
 
-export function pinSections(text: string): PinSection[] {
+export const pinSections = (text: string): PinSection[] => {
   const sections: PinSection[] = [];
   let current: PinSection = { title: '', mark: 'idle', folded: false, lines: [] };
   const lines = text.split('\n');
@@ -56,28 +56,28 @@ export function pinSections(text: string): PinSection[] {
   }
   if (current.title || current.lines.length) sections.push(current);
   return sections;
-}
+};
 
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
-function headingOf(line: string) {
+const headingOf = (line: string) => {
   const bold = line.match(/^\*\*([^*]+)\*\*:?$/);
   if (bold) return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
   const bare = plain(line);
   if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line))
     return bare.slice(0, -1).replace(EMOJI, '').trim();
   return undefined;
-}
+};
 
-function sectionMark(title: string): PinMark {
+const sectionMark = (title: string): PinMark => {
   if (/\b(done|shipped|finished|live)\b/i.test(title)) return 'done';
   if (/\b(running|working|in progress|underway)\b/i.test(title)) return 'working';
   if (/\b(waiting on you|your call|needs you|blocked on you|for you|to decide)\b/i.test(title))
     return 'needs';
   if (/\b(known|problem|broken|fail|blocked|stuck)\b/i.test(title)) return 'failed';
   return 'idle';
-}
+};
 
-function item(text: string, mark: PinMark): PinLine {
+const item = (text: string, mark: PinMark): PinLine => {
   let own = mark;
   let rest = text;
   for (const [emoji, emojiMark] of EMOJI_MARKS) {
@@ -87,15 +87,13 @@ function item(text: string, mark: PinMark): PinLine {
     break;
   }
   return { kind: 'item', ...linked(rest), mark: own };
-}
+};
 
 // A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
-function linked(text: string): { text: string; url?: string } {
+const linked = (text: string): { text: string; url?: string } => {
   const link = text.match(LINK);
   const url = link?.[2] ?? text.match(URL)?.[0];
   return { text: (link ? text.replace(LINK, '$1') : text).trim(), ...(url && { url }) };
-}
+};
 
-function plain(text: string) {
-  return text.replace(/\*\*|__/g, '').trim();
-}
+const plain = (text: string) => text.replace(/\*\*|__/g, '').trim();

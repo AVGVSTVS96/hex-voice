@@ -33,7 +33,7 @@ export const motion = {
 
 // How the orb answers your voice at the reaction setting's `amount`: louder swells it, a higher
 // pitch lifts it, and a brighter tone draws it a little taller and narrower.
-export function heard(amount: number, size: number, level: number, pitch: number, tone: number) {
+export const heard = (amount: number, size: number, level: number, pitch: number, tone: number) => {
   'worklet';
   return [
     { translateY: -0.4 * amount * size * pitch },
@@ -41,12 +41,12 @@ export function heard(amount: number, size: number, level: number, pitch: number
     { scaleX: 1 - 0.3 * amount * tone },
     { scaleY: 1 + 0.3 * amount * tone },
   ];
-}
+};
 
 // SwiftUI's `animation` modifier animates when the number it watches changes: a list's rows as one
 // number, so a row arriving, leaving or changing settles with the list's animation.
-export function rowsKey(rows: string[]) {
+export const rowsKey = (rows: string[]) => {
   let key = 0;
   for (const char of rows.join('\n')) key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
   return key;
-}
+};

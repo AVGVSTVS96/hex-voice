@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export function useSavedPreference<T extends string>(
+export const useSavedPreference = <T extends string>(
   key: string,
   defaultValue: T,
   isValid: (value: unknown) => value is T,
-) {
+) => {
   const [value, updateValue] = useState(defaultValue);
   const [loaded, setLoaded] = useState(false);
   const changed = useRef(false);
@@ -43,4 +43,4 @@ export function useSavedPreference<T extends string>(
   );
 
   return { value, setValue, loaded };
-}
+};

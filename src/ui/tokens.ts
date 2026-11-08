@@ -100,21 +100,21 @@ export type TextVariant = keyof typeof type;
 const fontWeights = { regular: '400', medium: '500' } as const;
 
 // A text style for a React Native StyleSheet.
-export function textOf(variant: TextVariant, weight?: Weight) {
+export const textOf = (variant: TextVariant, weight?: Weight) => {
   const style: TextStyle = type[variant];
   return {
     fontSize: style.fontSize,
     lineHeight: style.lineHeight,
     fontWeight: fontWeights[weight ?? style.weight ?? 'regular'],
   };
-}
+};
 
 // A text style for a React Native label: the variant's size and weight on the font's own line
 // height, as a SwiftUI label has.
-export function labelOf(variant: TextVariant, weight?: Weight) {
+export const labelOf = (variant: TextVariant, weight?: Weight) => {
   const { fontSize, fontWeight } = textOf(variant, weight);
   return { fontSize, fontWeight };
-}
+};
 
 // Every gap and padding is a step of this scale, in points, on a 4pt grid: space[3] is 12.
 export const space = {
@@ -255,10 +255,10 @@ export type ToolbarGaps = 'regular' | 'compact';
 
 // How long the call buttons' stack runs at a size, along its row or column: mute and the call
 // button.
-export function stack(size: ControlsSize) {
+export const stack = (size: ControlsSize) => {
   const { mute, call, gap } = metrics.controls[size];
   return metrics[mute] + gap + metrics[call];
-}
+};
 
 // Widths from which a sheet lays its content out side by side, and the narrowest a page reads at:
 // the fold parts a window only where it leaves a page on each side of it.

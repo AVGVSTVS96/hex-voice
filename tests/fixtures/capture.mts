@@ -12,24 +12,24 @@ const hex = process.env.HEX_URL ?? 'http://127.0.0.1:8790';
 const records = join(homedir(), '.claude/channels/voice/calls');
 const out = import.meta.dirname;
 
-async function read(path: string) {
+const read = async (path: string) => {
   const response = await fetch(`${hex}${path}${path.includes('?') ? '&' : '?'}after=1`, {
     headers: { Authorization: `Bearer ${process.env.EXPO_PUBLIC_HEX_TOKEN}` },
     signal: AbortSignal.timeout(900_000),
   });
   if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
   return (await response.json()) as Item;
-}
+};
 
 // The first item of each kind, then the next ones up to `most`.
-function sample(items: Json, kind: (item: Item) => string, most: number) {
+const sample = (items: Json, kind: (item: Item) => string, most: number) => {
   const list = items as Item[];
   const firsts = list.filter((item, i) => list.findIndex((one) => kind(one) === kind(item)) === i);
   return [...firsts, ...list.filter((item) => !firsts.includes(item))].slice(
     0,
     Math.max(most, firsts.length),
   );
-}
+};
 const field = (key: string) => (item: Item) => String(item[key]);
 
 // Words become the name of their field, ids and links stand-ins that still match across files, and
@@ -41,7 +41,7 @@ const fakes = new Map<string, string>();
 const fake = (value: string, as: (n: number) => string) =>
   fakes.get(value) ?? fakes.set(value, as(fakes.size + 1)).get(value)!;
 
-function scrub(value: Json, key = ''): Json {
+const scrub = (value: Json, key = ''): Json => {
   if (Array.isArray(value)) return value.map((one) => scrub(one, key));
   if (value && typeof value === 'object')
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrub(v, k)]));
@@ -50,7 +50,7 @@ function scrub(value: Json, key = ''): Json {
   if (IDS.has(key)) return fake(value, (n) => `${key}-${n}`);
   if (key === 'link' || key === 'url') return fake(value, (n) => `https://example.com/${n}`);
   return key || 'text';
-}
+};
 
 const write = (name: string, value: Json) =>
   writeFileSync(join(out, `${name}.json`), `${JSON.stringify(scrub(value), null, 2)}\n`);

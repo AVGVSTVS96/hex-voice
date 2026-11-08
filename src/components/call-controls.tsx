@@ -31,7 +31,7 @@ const PRIMARY: Record<
 // Mute and the call button, as SwiftUI: a row beside each other on the phone, a column in iPhone
 // Duo's side column with mute above. A call held elsewhere, like a phone call, mutes there, not
 // here. In the iPad inbox's rail, before any call, the call button waits alone.
-export function CallButtons({
+export const CallButtons = ({
   call,
   ready,
   axis,
@@ -40,7 +40,7 @@ export function CallButtons({
   modifiers,
   onMute,
   onPrimary,
-}: Props & { modifiers?: ModifierConfig[] }) {
+}: Props & { modifiers?: ModifierConfig[] }) => {
   const sizes = metrics.controls[size];
   const buttons = buttonsOf(call);
   const primary = PRIMARY[buttons.call];
@@ -78,10 +78,10 @@ export function CallButtons({
       </Stack>
     </GlassEffectContainer>
   );
-}
+};
 
 // CallButtons where React Native places them, in a Host of their own.
-export function CallControls({ style, ...props }: Props & { style?: ViewStyle }) {
+export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle }) => {
   const { axis, mute = true, size = 'regular' } = props;
   const sizes = metrics.controls[size];
   const callSide = metrics[sizes.call];
@@ -101,7 +101,7 @@ export function CallControls({ style, ...props }: Props & { style?: ViewStyle })
       </Host>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   row: {

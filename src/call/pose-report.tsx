@@ -12,7 +12,7 @@ import type { Pose } from '../../modules/pose';
 // starts the timed log of them and of where the screen's parts were laid out (HexPoseLog), so a
 // check can see what changed between shots.
 // The one reader of the window, to show where it and the screen's size disagree.
-export function PoseReport({ pose, room }: { pose: Pose; room: Room }) {
+export const PoseReport = ({ pose, room }: { pose: Pose; room: Room }) => {
   const window = useWindowDimensions();
   const size = useViewport();
   const insets = useSafeAreaInsets();
@@ -22,4 +22,4 @@ export function PoseReport({ pose, room }: { pose: Pose; room: Room }) {
     logPose('pose', { window, size, insets, pose, room });
   }, [window, size, insets, pose, room]);
   return null;
-}
+};

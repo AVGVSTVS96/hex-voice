@@ -16,7 +16,7 @@ export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 're
 // Drawn natively so a long list stays cheap; only the arc moves, so only it animates. What needs
 // you is a mint disc, with a question mark for a question and a sparkle for one hex has a pick
 // for; what hex has under way is its blue arc. Only what's finished sits in a square, with a tick.
-export function Mark({ state }: { state: MarkState }) {
+export const Mark = ({ state }: { state: MarkState }) => {
   if (state === 'working')
     return (
       <RNHostView matchContents>
@@ -40,9 +40,9 @@ export function Mark({ state }: { state: MarkState }) {
       <Face state={state} />
     </ZStack>
   );
-}
+};
 
-function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
+const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
   const square = metrics.list.todo;
   const disc = (color: ColorValue, children: ReactNode) => (
     <>
@@ -143,7 +143,7 @@ function Face({ state }: { state: Exclude<MarkState, 'working'> }) {
         />
       );
   }
-}
+};
 
 // A section's name in its color on a tinted dot, as Muse heads Tracking and Goals: mint for what
 // needs you, blue for what hex is doing, red for what went wrong.
@@ -155,7 +155,7 @@ const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
   failed: { ink: 'danger', wash: 'dangerMuted' },
 };
 
-export function Badge({ tint }: { tint: Tint }) {
+export const Badge = ({ tint }: { tint: Tint }) => {
   const { ink, wash } = TINTS[tint];
   return (
     <ZStack
@@ -176,6 +176,6 @@ export function Badge({ tint }: { tint: Tint }) {
       />
     </ZStack>
   );
-}
+};
 
 export const inkOf = (tint: Tint) => TINTS[tint].ink;

@@ -51,21 +51,21 @@ const TYPES = [
 ];
 const SENDS_MEDIA = /^\/(calls|tasks)\/[^/?]+\/(media|chat)(\?|$)/;
 
-async function bodyOf(request) {
+const bodyOf = async (request) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
   return Buffer.concat(chunks);
-}
+};
 
 // The ids a call's or a thread's write names: { media: id } or { media: [ids] }.
-function named(body) {
+const named = (body) => {
   try {
     const { media: ids } = JSON.parse(body.toString());
     return ids === undefined ? [] : [ids].flat();
   } catch {
     return [];
   }
-}
+};
 
 const tls = {
   key: readFileSync(`${DUO_HEX_TLS}/key.pem`),

@@ -36,7 +36,7 @@ export type AgentLine = {
 
 // The tasks come most recently changed first, so the first running one is the agent that
 // took a step last. A task that just finished holds the line until something runs again.
-export function agentLine(tasks: AgentTask[], finished?: AgentTask): AgentLine | null {
+export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine | null => {
   const running = tasks.filter((task) => task.state === 'running');
   const [task] = running;
   if (task) {
@@ -57,12 +57,12 @@ export function agentLine(tasks: AgentTask[], finished?: AgentTask): AgentLine |
     waiting: false,
     where: finished.state,
   };
-}
+};
 
 // The task a new snapshot shows finishing: running in the last one, done or failed now.
-export function justFinished(before: AgentTask[], after: AgentTask[]) {
+export const justFinished = (before: AgentTask[], after: AgentTask[]) => {
   const wasRunning = new Set(
     before.filter((task) => task.state === 'running').map((task) => task.id),
   );
   return after.find((task) => task.state !== 'running' && wasRunning.has(task.id));
-}
+};

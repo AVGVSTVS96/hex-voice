@@ -18,7 +18,7 @@ const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
 const BACK_FLICK_SPEED = 400;
 
-export function TasksPane({
+export const TasksPane = ({
   top,
   foot,
   width,
@@ -29,24 +29,22 @@ export function TasksPane({
   foot: number;
   width: number;
   animate: () => ViewStyle;
-}) {
-  return (
-    <AnimatedView
-      testID="tasks-pane"
-      accessibilityElementsHidden={!view.open}
-      importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
-      style={[styles.pane, { width, paddingTop: top }]}
-      animate={animate}
-    >
-      <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
-        <TasksView {...view} width={width} foot={foot} />
-      </Host>
-    </AnimatedView>
-  );
-}
+}) => (
+  <AnimatedView
+    testID="tasks-pane"
+    accessibilityElementsHidden={!view.open}
+    importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
+    style={[styles.pane, { width, paddingTop: top }]}
+    animate={animate}
+  >
+    <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
+      <TasksView {...view} width={width} foot={foot} />
+    </Host>
+  </AnimatedView>
+);
 
 // Tasks on iPhone Duo. It sits over the call, so it takes no touches while it's closed.
-export function TasksPage({
+export const TasksPage = ({
   page,
   onClose,
   style,
@@ -55,7 +53,7 @@ export function TasksPage({
   page: Page;
   onClose: () => void;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
-}) {
+}) => {
   const room = pagedRoom(page);
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room), onClose });
   const { back } = pages;
@@ -92,7 +90,7 @@ export function TasksPage({
       </GestureDetector>
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },

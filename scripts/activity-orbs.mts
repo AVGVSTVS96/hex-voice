@@ -22,11 +22,11 @@ const files: Record<string, [string, string]> = {
 const page = `<body style="margin:0;background:transparent">
 <canvas id="orb" width="${CANVAS}" height="${CANVAS}"></canvas><script src="/rive.js"></script><script src="/page.js"></script>`;
 
-async function render(
+const render = async (
   browser: import('playwright-core').Browser,
   orb: ActivityOrb,
   color = orb.color,
-) {
+) => {
   const tab = await browser.newPage({ viewport: { width: CANVAS, height: CANVAS } });
   await tab.route('http://orbs.local/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -48,7 +48,7 @@ async function render(
   });
   await tab.close();
   return Buffer.from(png, 'base64');
-}
+};
 
 const info = { author: 'xcode', version: 1 };
 rmSync(OUT, { recursive: true, force: true });

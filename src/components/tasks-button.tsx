@@ -19,7 +19,7 @@ const LINE = 2;
 
 // The Tasks button says one thing on its glass: a mint dot (`NeedsDot`) while something needs
 // you. What's working is told to VoiceOver only; Tasks' Working tab shows it.
-export function TasksButton({
+export const TasksButton = ({
   needs,
   working,
   selected,
@@ -29,7 +29,7 @@ export function TasksButton({
   working: number;
   selected: boolean;
   onPress: () => void;
-}) {
+}) => {
   const label = [
     'Tasks',
     needs ? `${needs} need${needs === 1 ? 's' : ''} you` : '',
@@ -47,22 +47,20 @@ export function TasksButton({
       onPress={onPress}
     />
   );
-}
+};
 
 // The mint dot on the Tasks button's top trailing corner, over the glass the button sits on: on
 // it, the glass clipped the dot to its capsule each time a press lit it.
-export function NeedsDot({ needs }: { needs: number }) {
-  return (
-    <Circle
-      modifiers={[
-        foregroundStyle(theme.accent),
-        frame({ width: DOT, height: DOT }),
-        strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
-        offset({ x: metrics.tool - DOT }),
-        scaleEffect(needs > 0 ? 1 : 0.01),
-        opacity(needs > 0 ? 1 : 0),
-        animation(Animation.bouncy(), needs > 0),
-      ]}
-    />
-  );
-}
+export const NeedsDot = ({ needs }: { needs: number }) => (
+  <Circle
+    modifiers={[
+      foregroundStyle(theme.accent),
+      frame({ width: DOT, height: DOT }),
+      strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
+      offset({ x: metrics.tool - DOT }),
+      scaleEffect(needs > 0 ? 1 : 0.01),
+      opacity(needs > 0 ? 1 : 0),
+      animation(Animation.bouncy(), needs > 0),
+    ]}
+  />
+);

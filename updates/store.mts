@@ -43,7 +43,7 @@ export type Publish = {
   expoConfig: { updates: { url: string } };
 };
 
-export async function publish({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) {
+export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) => {
   const runtime = join(dir, platform, runtimeVersion);
   if (!(await stat(runtime).catch(() => null))) {
     throw new Error(`no native build has runtime ${runtimeVersion}`);
@@ -90,16 +90,16 @@ export async function publish({ dir, dist, platform, runtimeVersion, expoConfig 
   };
   await replace(latest, JSON.stringify(manifest));
   return { id, published: true };
-}
+};
 
-async function replace(path: string, data: string | Buffer) {
+const replace = async (path: string, data: string | Buffer) => {
   const temporary = `${path}.${process.pid}`;
   await writeFile(temporary, data);
   await rename(temporary, path);
-}
+};
 
-export function serve(dir: string) {
-  return createServer(async (request, response) => {
+export const serve = (dir: string) =>
+  createServer(async (request, response) => {
     const { pathname } = new URL(request.url ?? '/', 'http://localhost');
     try {
       if (pathname === '/manifest') await sendManifest(dir, request, response);
@@ -110,9 +110,8 @@ export function serve(dir: string) {
       response.end();
     }
   });
-}
 
-async function sendManifest(dir: string, request: IncomingMessage, response: ServerResponse) {
+const sendManifest = async (dir: string, request: IncomingMessage, response: ServerResponse) => {
   const headers = {
     'expo-protocol-version': '1',
     'expo-sfv-version': '0',
@@ -126,14 +125,14 @@ async function sendManifest(dir: string, request: IncomingMessage, response: Ser
   const manifest = await readFile(join(dir, platform, runtime, 'manifest.json')).catch(() => null);
   if (!manifest) return response.writeHead(204, headers).end();
   response.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(manifest);
-}
+};
 
-async function sendAsset(
+const sendAsset = async (
   dir: string,
   pathname: string,
   request: IncomingMessage,
   response: ServerResponse,
-) {
+) => {
   const name = pathname.match(/^\/assets\/([^/]+)$/)?.[1];
   const path = name && NAME.test(name) ? join(dir, 'assets', name) : undefined;
   if (!path || !(await stat(path).catch(() => null))) return response.writeHead(404).end();
@@ -145,9 +144,9 @@ async function sendAsset(
   });
   const file = createReadStream(path);
   await (gzip ? pipeline(file, createGzip(), response) : pipeline(file, response));
-}
+};
 
-async function main() {
+const main = async () => {
   const [command, ...args] = process.argv.slice(2);
   const dir = process.env.HEX_UPDATES_DIR;
   if (!dir) throw new Error('HEX_UPDATES_DIR is not set');
@@ -162,6 +161,6 @@ async function main() {
   } else {
     throw new Error('usage: store.mts serve | publish <dist> <platform> <runtime> <config.json>');
   }
-}
+};
 
 if (import.meta.main) void main();

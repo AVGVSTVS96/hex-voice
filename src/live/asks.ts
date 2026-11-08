@@ -146,7 +146,7 @@ export type YoursAction =
   | { type: 'failed'; id: string }
   | { type: 'close'; keep?: string[] };
 
-export function yours(state: Yours, action: YoursAction): Yours {
+export const yours = (state: Yours, action: YoursAction): Yours => {
   const { list, answered } = state;
   switch (action.type) {
     case 'list': {
@@ -174,15 +174,15 @@ export function yours(state: Yours, action: YoursAction): Yours {
       };
     }
   }
-}
+};
 
 // hex's list with what didn't go through on each item it's about, and on each ask an answer from
 // here left open somewhere, how many places still ask it.
-export function failedOn(
+export const failedOn = (
   list: AskList,
   failed: Record<string, string>,
   missed: Record<string, number> = {},
-): AskList {
+): AskList => {
   const on = <T extends { id: string }>(item: T) =>
     failed[item.id] ? { ...item, failed: failed[item.id] } : item;
   return {
@@ -193,15 +193,14 @@ export function failedOn(
     stuck: list.stuck.map(on),
     fresh: list.fresh.map(on),
   };
-}
+};
 
 // The asks still open, for the counts: the folded ones are already off your plate.
-export function openAsks({ list, answered }: Yours) {
-  return (list?.asks ?? []).filter((ask) => !answered[ask.id]);
-}
+export const openAsks = ({ list, answered }: Yours) =>
+  (list?.asks ?? []).filter((ask) => !answered[ask.id]);
 
 // hex's new list, with every held ask it dropped put back right after the ask it followed.
-export function keepInPlace(before: Ask[], after: Ask[], held: (id: string) => boolean) {
+export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => boolean) => {
   const shown = [...after];
   const at = (id: string) => shown.findIndex((ask) => ask.id === id);
   before.forEach((ask, i) => {
@@ -210,16 +209,15 @@ export function keepInPlace(before: Ask[], after: Ask[], held: (id: string) => b
     shown.splice(prior ? at(prior.id) + 1 : 0, 0, ask);
   });
   return shown;
-}
+};
 
-function without<T>(record: Record<string, T>, ids: string[]) {
-  return Object.fromEntries(Object.entries(record).filter(([id]) => !ids.includes(id)));
-}
+const without = <T>(record: Record<string, T>, ids: string[]) =>
+  Object.fromEntries(Object.entries(record).filter(([id]) => !ids.includes(id)));
 
 // "Checked 6:31pm" with what it did: "fixed 4 · flagged 3".
-export function checkLine(check: CheckSummary) {
+export const checkLine = (check: CheckSummary) => {
   const did = [check.fixed && `fixed ${check.fixed}`, check.flagged && `flagged ${check.flagged}`]
     .filter(Boolean)
     .join(' · ');
   return { title: `Checked ${timeOfDay(check.at)}`, did };
-}
+};

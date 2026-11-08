@@ -152,7 +152,7 @@ const APPEARANCE_HEIGHT =
   SHEET_BOTTOM;
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
-export function VoiceSettings({
+export const VoiceSettings = ({
   sheet,
   place,
   isPresented,
@@ -165,7 +165,7 @@ export function VoiceSettings({
   onPersonaChange,
   personaEnabled,
   preferences,
-}: Props) {
+}: Props) => {
   const screen = useViewport();
   const phone = sheet === 'phone';
   const insets = useSafeAreaInsets();
@@ -607,7 +607,7 @@ export function VoiceSettings({
       </Host>
     </>
   );
-}
+};
 
 // Settings on the open Duo, over the call where Tasks would be. iOS arranges it: the persona's pane
 // beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
@@ -618,7 +618,7 @@ export function VoiceSettings({
 // color keep out of what the toolbar takes on the edges it touches (`edges`). It fades in where it
 // sits as Tasks does, never moved by a transform (its Host would keep telling accessibility where
 // it started).
-function SettingsPlace({
+const SettingsPlace = ({
   shown,
   open,
   pane: opened,
@@ -638,7 +638,7 @@ function SettingsPlace({
   persona: number;
   onPane: (pane: Pane, size: Size) => void;
   children: [ReactNode, ReactNode];
-}) {
+}) => {
   const fade = useAnimatedStyle(() => ({
     opacity: shown ? interpolate(opened.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
@@ -723,4 +723,4 @@ function SettingsPlace({
       </Host>
     </Animated.View>
   );
-}
+};

@@ -27,7 +27,7 @@ type NativeProps = Omit<ShotsProps, keyof Colors> & {
 const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Shots', 'ShotsView') : null;
 
-export function ShotsView({ modifiers, secondary, surface, edge, ...rest }: ShotsProps) {
+export const ShotsView = ({ modifiers, secondary, surface, edge, ...rest }: ShotsProps) => {
   if (!Native) return null;
   return (
     <Native
@@ -39,4 +39,4 @@ export function ShotsView({ modifiers, secondary, surface, edge, ...rest }: Shot
       {...rest}
     />
   );
-}
+};

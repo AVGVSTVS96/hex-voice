@@ -16,7 +16,7 @@ const UNDER_ORB = 3;
 // hex's own account of a call once its work settles: what happened, where things went, and what's
 // left for you. Until then a phone call hex placed still says why it called. Under the orb it's cut
 // to fit, and a tap opens the call, where it reads whole.
-export function WrapUp({ why, summary, waiting = [], center, onOpen, onMore }: Props) {
+export const WrapUp = ({ why, summary, waiting = [], center, onOpen, onMore }: Props) => {
   const lead = summary ?? (why && `hex called because: ${why}`);
   if (!lead && !waiting.length) return null;
   const shown = center ? waiting.slice(0, UNDER_ORB) : waiting;
@@ -65,7 +65,7 @@ export function WrapUp({ why, summary, waiting = [], center, onOpen, onMore }: P
       )}
     </Pressable>
   );
-}
+};
 
 const styles = StyleSheet.create({
   wrap: { gap: space[4] },

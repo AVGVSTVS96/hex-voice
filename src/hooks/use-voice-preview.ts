@@ -23,7 +23,7 @@ const SHARED_AUDIO: Partial<AudioMode> = {
   interruptionMode: 'mixWithOthers',
 };
 
-export function useVoicePreview(voice: LiveVoice, playing: boolean, take = 0) {
+export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) => {
   const player = useAudioPlayer(null);
   const [ready, setReady] = useState(false);
 
@@ -57,4 +57,4 @@ export function useVoicePreview(voice: LiveVoice, playing: boolean, take = 0) {
       current = false;
     };
   }, [player, voice, ready, take]);
-}
+};

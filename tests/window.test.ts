@@ -163,17 +163,15 @@ const openPose: Pose = {
 
 // A window at `x` on the open screen, as iOS reports the pose to it: in the window's coordinates,
 // the bar's edge the device's.
-function inSplitView(x: number, width: number, insets: Insets, pose: Pose) {
-  return {
-    window: { width, height: open.height },
-    insets,
-    pose: {
-      ...pose,
-      fold: pose.fold && { ...pose.fold, x: pose.fold.x - x },
-      occlusions: pose.occlusions?.map((area) => ({ ...area, x: area.x - x })),
-    },
-  };
-}
+const inSplitView = (x: number, width: number, insets: Insets, pose: Pose) => ({
+  window: { width, height: open.height },
+  insets,
+  pose: {
+    ...pose,
+    fold: pose.fold && { ...pose.fold, x: pose.fold.x - x },
+    occlusions: pose.occlusions?.map((area) => ({ ...area, x: area.x - x })),
+  },
+});
 
 test('the open Duo’s whole screen keeps its column, and its fold as the line down the middle of iOS’s', () => {
   const room = roomOf(openPose, open, column);
@@ -212,9 +210,8 @@ test('a window the fold crosses keeps it', () => {
   assert.equal(narrow.fold, undefined, 'past the fold only 204 of a page is left');
 });
 
-function layoutIn(window: Size, insets: Insets, pose: Pose) {
-  return screenLayout(roomOf(pose, window, insets));
-}
+const layoutIn = (window: Size, insets: Insets, pose: Pose) =>
+  screenLayout(roomOf(pose, window, insets));
 
 test('in Split View each app lays out as one page in the window it has, as the Duo does folded', () => {
   for (const [side, { window, insets, pose }] of Object.entries({

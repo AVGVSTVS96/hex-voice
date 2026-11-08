@@ -14,7 +14,7 @@ import type { LiveVoice } from '../src/live/voices';
 import { CallId } from '../src/live/calls';
 
 // All transport and API operations are local fakes. These tests make no API calls.
-function deferred<T>() {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   let reject!: (error: Error) => void;
   const promise = new Promise<T>((accept, fail) => {
@@ -22,11 +22,11 @@ function deferred<T>() {
     reject = fail;
   });
   return { promise, resolve, reject };
-}
+};
 
-async function settle() {
+const settle = async () => {
   for (let i = 0; i < 12; i++) await Promise.resolve();
-}
+};
 
 class ManualClock {
   private saved = { setTimeout, clearTimeout, setInterval, clearInterval, now: Date.now };
@@ -129,7 +129,7 @@ class FakeTransport implements LiveTransport {
   }
 }
 
-function harness() {
+const harness = () => {
   const clock = new ManualClock();
   const transports: FakeTransport[] = [];
   const created: string[] = [];
@@ -177,7 +177,7 @@ function harness() {
       clock.restore();
     },
   };
-}
+};
 
 test('a call hex can’t start says why and lets go of the microphone', async () => {
   const h = harness();

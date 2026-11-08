@@ -27,7 +27,7 @@ export type Room = {
   occlusions: Rect[];
 };
 
-export function roomOf(pose: Pose, size: Size, insets: Insets): Room {
+export const roomOf = (pose: Pose, size: Size, insets: Insets): Room => {
   const bar =
     pose.bar && (pose.bar === 'right' ? insets.right : insets.left) > 0 ? pose.bar : undefined;
   return {
@@ -41,25 +41,25 @@ export function roomOf(pose: Pose, size: Size, insets: Insets): Room {
       return inside ? [inside] : [];
     }),
   };
-}
+};
 
 // The fold within the window: it parts the window only where it lies across it with a page of the
 // window's safe room on either side, and then it's the line down the middle of iOS's division
 // region. How far the Duo is folded never reaches layout: Apple asks folding to move only what it
 // must.
-function parting(fold: Rect, size: Size, insets: Insets): Fold | undefined {
+const parting = (fold: Rect, size: Size, insets: Insets): Fold | undefined => {
   const across = fold.height > fold.width;
   const [before, after] = across
     ? [fold.x - insets.left, size.width - insets.right - (fold.x + fold.width)]
     : [fold.y - insets.top, size.height - insets.bottom - (fold.y + fold.height)];
   if (before < breakpoint.page || after < breakpoint.page) return undefined;
   return across ? { x: fold.x + fold.width / 2 } : { y: fold.y + fold.height / 2 };
-}
+};
 
-function clip(area: Rect, { width, height }: Size): Rect | undefined {
+const clip = (area: Rect, { width, height }: Size): Rect | undefined => {
   const x = Math.max(0, area.x);
   const y = Math.max(0, area.y);
   const right = Math.min(width, area.x + area.width);
   const bottom = Math.min(height, area.y + area.height);
   return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : undefined;
-}
+};

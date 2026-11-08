@@ -14,19 +14,16 @@ export type Sending = {
 };
 
 // Whether hex's chat has what you sent: waiting to be taken under its key, or said in the chat.
-export function arrived(chat: Chat, sent: Sending) {
-  return (
-    chat.waiting.some(({ key }) => key.endsWith(`:${sent.key}`)) ||
-    chat.turns
-      .slice(Math.max(0, sent.total - (chat.total - chat.turns.length)))
-      .some(
-        (turn) =>
-          turn.from === 'me' &&
-          turn.text === sent.text &&
-          (turn.media?.length ?? 0) === sent.media.length,
-      )
-  );
-}
+export const arrived = (chat: Chat, sent: Sending) =>
+  chat.waiting.some(({ key }) => key.endsWith(`:${sent.key}`)) ||
+  chat.turns
+    .slice(Math.max(0, sent.total - (chat.total - chat.turns.length)))
+    .some(
+      (turn) =>
+        turn.from === 'me' &&
+        turn.text === sent.text &&
+        (turn.media?.length ?? 0) === sent.media.length,
+    );
 
 export const newKey = () =>
   `app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -40,11 +37,11 @@ export type Said =
 
 const EVENT = /^\(([^()\n]+)\)\s*([\s\S]*)$/;
 
-export function said(turn: ChatTurn): Said {
+export const said = (turn: ChatTurn): Said => {
   const event = turn.from === 'me' ? turn.text.match(EVENT) : null;
   if (!event) return { kind: turn.from, text: turn.text };
   const [, label, text] = event as unknown as [string, string, string];
   if (label === 'voice message') return { kind: 'me', text };
   if (label.startsWith('asked Siri')) return { kind: 'event', label: 'Asked Siri', text };
   return { kind: 'event', label: label[0]!.toUpperCase() + label.slice(1), text };
-}
+};

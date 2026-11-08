@@ -11,11 +11,11 @@ const clip: Picked = { uri: 'file:///cable.mov', kind: 'video', type: 'video/qui
 
 // A stand-in for hex that names each file it keeps in order from `first`, turns down the files in
 // `refuse`, and says what each request was.
-function hexThat({
+const hexThat = ({
   first = 1,
   refuse = [] as string[],
   callFails = undefined as Error | undefined,
-} = {}) {
+} = {}) => {
   const asked: string[] = [];
   let kept = first - 1;
   const api: ShareAPI = {
@@ -30,7 +30,7 @@ function hexThat({
     },
   };
   return { api, asked };
-}
+};
 
 test('a batch goes up item by item, then to the call in one request, and a clip shows hex’s still', async () => {
   const batch = batchOf(call, 4000, [photo, clip], 'k');

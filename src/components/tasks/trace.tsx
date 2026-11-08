@@ -58,20 +58,18 @@ const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
 const RAIL_FOOT = space[2] + metrics.list.line / 2;
 
 // Steps before hex has answered with the task: its bar and back, over the spinner.
-export function StepsLoading(answered: Answered) {
-  return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
-    >
-      <Header title="Steps" subtitle=" " />
-      <Waiting {...answered} gone="These steps aren’t there any more." />
-    </Column>
-  );
-}
+export const StepsLoading = (answered: Answered) => (
+  <Column
+    alignment="center"
+    spacing={0}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+  >
+    <Header title="Steps" subtitle=" " />
+    <Waiting {...answered} gone="These steps aren’t there any more." />
+  </Column>
+);
 
-export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) {
+export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) => {
   const working = task.state === 'working';
   const done = task.plan.filter((item) => item.state === 'done').length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -132,9 +130,9 @@ export function Trace({ task, onOpen }: { task: Task; onOpen: (link: string) => 
       </Faded>
     </Column>
   );
-}
+};
 
-export function Steps({
+export const Steps = ({
   steps,
   agents = [],
   indent = 0,
@@ -144,7 +142,7 @@ export function Steps({
   agents?: TaskAgent[];
   indent?: number;
   opens?: boolean;
-}) {
+}) => {
   const [open, setOpen] = useState<string | null>(null);
   const now = useNow(steps.some((step) => step.state === 'running'));
   const times = stepTimes(steps, now);
@@ -192,27 +190,25 @@ export function Steps({
       })}
     </Column>
   );
-}
+};
 
-function Output({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: Tone }) {
-  return (
-    <Column alignment="start" spacing={0} modifiers={[padding({ top: space[1] })]}>
-      {lines.map((line, i) => (
-        <Text
-          key={i}
-          numberOfLines={wraps}
-          variant="code"
-          tone={tone}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-        >
-          {line}
-        </Text>
-      ))}
-    </Column>
-  );
-}
+const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: Tone }) => (
+  <Column alignment="start" spacing={0} modifiers={[padding({ top: space[1] })]}>
+    {lines.map((line, i) => (
+      <Text
+        key={i}
+        numberOfLines={wraps}
+        variant="code"
+        tone={tone}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        {line}
+      </Text>
+    ))}
+  </Column>
+);
 
-function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) {
+const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
   const [whole, setWhole] = useState(false);
   const working = agent.state === 'working';
@@ -285,9 +281,9 @@ function Agent({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
       </Background.Content>
     </Background>
   );
-}
+};
 
-function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) => void }) {
+const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
   const words = `${tries.length} earlier ${tries.length === 1 ? 'try' : 'tries'}, stopped`;
   return (
@@ -303,9 +299,9 @@ function Tries({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
       {open ? tries.map((agent) => <Agent key={agent.id} agent={agent} onOpen={onOpen} />) : null}
     </Column>
   );
-}
+};
 
-function Under({
+const Under = ({
   text,
   lines = 1,
   tone = 'secondary',
@@ -313,21 +309,19 @@ function Under({
   text: string;
   lines?: number;
   tone?: Tone;
-}) {
-  return (
-    <Text
-      numberOfLines={lines || undefined}
-      variant="detail"
-      tone={tone}
-      paragraph
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-    >
-      {text}
-    </Text>
-  );
-}
+}) => (
+  <Text
+    numberOfLines={lines || undefined}
+    variant="detail"
+    tone={tone}
+    paragraph
+    modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+  >
+    {text}
+  </Text>
+);
 
-export function TraceLine({
+export const TraceLine = ({
   lead,
   text,
   lines = 1,
@@ -351,73 +345,69 @@ export function TraceLine({
   onPress?: () => void;
   label?: string;
   children?: ReactNode;
-}) {
-  return (
-    <Row
-      alignment="start"
-      spacing={metrics.list.gap}
-      onPress={onPress}
-      modifiers={[
-        padding({
-          leading: metrics.list.inset - space[0.5] + indent,
-          trailing: metrics.list.inset - space[0.5],
-          top: space[2],
-          bottom: space[2],
-        }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        ...(label ? [accessibilityLabel(label)] : []),
-      ]}
-    >
-      <Row
-        alignment="center"
-        spacing={0}
-        modifiers={[frame({ width: metrics.list.mark, height: metrics.list.line })]}
-      >
-        {lead}
-      </Row>
-      <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Text
-          numberOfLines={lines || undefined}
-          variant="detail"
-          tone={tone}
-          paragraph
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-        >
-          {text}
-        </Text>
-        {children}
-      </Column>
-      {time ? (
-        <Text numberOfLines={1} variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
-          {time}
-        </Text>
-      ) : null}
-      {after ? (
-        <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
-          {after}
-        </Row>
-      ) : null}
-      {chevron ? (
-        <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
-          <Icon name={chevron} size={11} color={theme.tertiary} />
-        </Row>
-      ) : null}
-    </Row>
-  );
-}
-
-function Quiet({ text }: { text: string }) {
-  return (
+}) => (
+  <Row
+    alignment="start"
+    spacing={metrics.list.gap}
+    onPress={onPress}
+    modifiers={[
+      padding({
+        leading: metrics.list.inset - space[0.5] + indent,
+        trailing: metrics.list.inset - space[0.5],
+        top: space[2],
+        bottom: space[2],
+      }),
+      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      contentShape(shapes.rectangle()),
+      ...(label ? [accessibilityLabel(label)] : []),
+    ]}
+  >
     <Row
       alignment="center"
       spacing={0}
-      modifiers={[padding({ leading: metrics.list.inset, top: space[2] })]}
+      modifiers={[frame({ width: metrics.list.mark, height: metrics.list.line })]}
     >
-      <Text variant="detail" tone="tertiary">
+      {lead}
+    </Row>
+    <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Text
+        numberOfLines={lines || undefined}
+        variant="detail"
+        tone={tone}
+        paragraph
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
         {text}
       </Text>
-      <Spacer flexible />
-    </Row>
-  );
-}
+      {children}
+    </Column>
+    {time ? (
+      <Text numberOfLines={1} variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
+        {time}
+      </Text>
+    ) : null}
+    {after ? (
+      <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
+        {after}
+      </Row>
+    ) : null}
+    {chevron ? (
+      <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.list.line })]}>
+        <Icon name={chevron} size={11} color={theme.tertiary} />
+      </Row>
+    ) : null}
+  </Row>
+);
+
+const Quiet = ({ text }: { text: string }) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    modifiers={[padding({ leading: metrics.list.inset, top: space[2] })]}
+  >
+    <Text variant="detail" tone="tertiary">
+      {text}
+    </Text>
+    <Spacer flexible />
+  </Row>
+);

@@ -76,17 +76,17 @@ export type TasksProps = {
   onCounts: (counts: Counts | undefined) => void;
 };
 
-export function TasksView({
+export const TasksView = ({
   width,
   foot = 0,
   ...view
-}: TasksProps & { width: number; foot?: number }) {
+}: TasksProps & { width: number; foot?: number }) => {
   const room = { width, foot, paged: false };
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room) });
   return <Tasks {...view} pages={pages} room={room} />;
-}
+};
 
-export function Tasks({
+export const Tasks = ({
   open,
   haptics,
   onTalk,
@@ -95,7 +95,7 @@ export function Tasks({
   onCounts,
   pages,
   room,
-}: TasksProps & { pages: Pages; room: Room }) {
+}: TasksProps & { pages: Pages; room: Room }) => {
   const { tasks, finished, version, offline, current } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
@@ -480,37 +480,34 @@ export function Tasks({
       {levels}
     </ZStack>
   );
-}
+};
 
-function newestOf(rows: TaskRow[]) {
-  return rows.reduce<TaskRow | undefined>(
+const newestOf = (rows: TaskRow[]) =>
+  rows.reduce<TaskRow | undefined>(
     (newest, row) => (!newest || Date.parse(row.at) > Date.parse(newest.at) ? row : newest),
     undefined,
   );
-}
 
 // The page beside the list before a project is open: hex still loading, or nothing picked yet.
-function Nothing({ loaded }: { loaded: boolean }) {
-  return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
-    >
-      {loaded ? (
-        <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
-          Pick a project
-        </Text>
-      ) : (
-        <ProgressView />
-      )}
-    </Column>
-  );
-}
+const Nothing = ({ loaded }: { loaded: boolean }) => (
+  <Column
+    alignment="center"
+    spacing={0}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
+  >
+    {loaded ? (
+      <Text textStyle={{ fontSize: 15 }} modifiers={[foregroundStyle(theme.tertiary)]}>
+        Pick a project
+      </Text>
+    ) : (
+      <ProgressView />
+    )}
+  </Column>
+);
 
 // A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
 // changes. On iPhone Duo `PagesView` places it, and here it only fills the spot it's given.
-function PageAt({
+const PageAt = ({
   spot,
   paged,
   moved,
@@ -520,7 +517,7 @@ function PageAt({
   paged: boolean;
   moved: number;
   children: ReactNode;
-}) {
+}) => {
   const fills = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()];
   return (
     <Column
@@ -541,11 +538,9 @@ function PageAt({
       {children}
     </Column>
   );
-}
+};
 
 // A height is the most a page may take, never a fixed size. The keyboard shortens the Host it
 // covers, and a page taller than its Host is centered in it: pushed half the keyboard up off the
 // top, with its foot, where you type and send, still under the keyboard.
-function upTo() {
-  return frame({ minHeight: 0, maxHeight: Infinity, alignment: 'top' });
-}
+const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: 'top' });

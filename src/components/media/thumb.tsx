@@ -10,7 +10,7 @@ import { film, metrics, radius, space } from '@/ui/tokens';
 // A photo or clip as you sent it or as it waits to go: the picture to its edges under the bevel,
 // a play mark on a clip. It takes the width it's given and its picture's own shape, kept between
 // upright and wide so a panorama or a screenshot doesn't run away with the page.
-export function Thumb({
+export const Thumb = ({
   media,
   width,
   corner,
@@ -20,7 +20,7 @@ export function Thumb({
   width: DimensionValue;
   corner: number;
   square?: boolean;
-}) {
+}) => {
   const [shape, setShape] = useState(4 / 3);
   const source = mediaSource(media);
   return (
@@ -45,11 +45,11 @@ export function Thumb({
       <View pointerEvents="none" style={[styles.edge, { borderRadius: corner }]} />
     </View>
   );
-}
+};
 
 // Several sent together, as Messages groups them: one at the album's width, more as squares two
 // to a row.
-export function Album({
+export const Album = ({
   media,
   width,
   dim = false,
@@ -57,7 +57,7 @@ export function Album({
   media: Shown[];
   width: number;
   dim?: boolean;
-}) {
+}) => {
   const one = media.length === 1;
   const side = one ? width : (width - space[1]) / 2;
   return (
@@ -67,7 +67,7 @@ export function Album({
       ))}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   album: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[1] },

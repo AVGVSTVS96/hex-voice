@@ -11,7 +11,7 @@ import { MarkdownView } from '../../modules/markdown';
 // surface with the inner corner, quotes with the edge's bar, links in the accent. `inline` is one
 // run of words, folded to `lines` when given; otherwise it lays out blocks. A link iOS can't open
 // says so beneath.
-export function Markdown({
+export const Markdown = ({
   children,
   tone = 'text',
   variant = 'body',
@@ -27,7 +27,7 @@ export function Markdown({
   lines?: number;
   selectable?: boolean;
   modifiers?: ModifierConfig[];
-}) {
+}) => {
   const tries = useFailures();
   if (process.env.EXPO_OS !== 'ios') return <Text>{children}</Text>;
   const failed = Object.values(tries.failed)[0];
@@ -53,4 +53,4 @@ export function Markdown({
       {failed ? <Failure text={failed} /> : null}
     </Column>
   );
-}
+};

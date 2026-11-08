@@ -18,7 +18,7 @@ import { metrics, space } from '@/ui/tokens';
 
 type SelectionOption = { id: string; label: string; description: string };
 
-export function SelectionCarousel({
+export const SelectionCarousel = ({
   options,
   value,
   onChange,
@@ -44,7 +44,7 @@ export function SelectionCarousel({
   disabledHint?: string;
   label: string;
   testID: string;
-}) {
+}) => {
   const totalHeight = height + previewHeight;
   // A static page prevents both swipe and page-dot changes during a call.
   if (!enabled) {
@@ -147,12 +147,12 @@ export function SelectionCarousel({
       {dots}
     </ZStack>
   );
-}
+};
 
 const DOT = 7;
 const REACH = 30;
 
-function SelectionPage({
+const SelectionPage = ({
   option,
   width,
   height,
@@ -166,29 +166,27 @@ function SelectionPage({
   previewHeight?: number;
   onPress?: () => void;
   testID: string;
-}) {
-  return (
-    <Column
-      alignment="center"
-      spacing={space[2]}
-      style={{
-        width,
-        height,
-        paddingHorizontal: space[4],
-        paddingTop: previewHeight,
-        paddingBottom: metrics.pageDots,
-      }}
-      onPress={onPress}
-      testID={testID}
-    >
-      <Spacer flexible />
-      <Text variant="title" align="center">
-        {option.label}
-      </Text>
-      <Text variant="body" tone="secondary" align="center">
-        {option.description}
-      </Text>
-      <Spacer flexible />
-    </Column>
-  );
-}
+}) => (
+  <Column
+    alignment="center"
+    spacing={space[2]}
+    style={{
+      width,
+      height,
+      paddingHorizontal: space[4],
+      paddingTop: previewHeight,
+      paddingBottom: metrics.pageDots,
+    }}
+    onPress={onPress}
+    testID={testID}
+  >
+    <Spacer flexible />
+    <Text variant="title" align="center">
+      {option.label}
+    </Text>
+    <Text variant="body" tone="secondary" align="center">
+      {option.description}
+    </Text>
+    <Spacer flexible />
+  </Column>
+);

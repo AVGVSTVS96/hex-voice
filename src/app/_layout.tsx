@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CallProvider } from '@/call/use-call';
 import { theme } from '@/theme';
 
-export default function RootLayout() {
+const RootLayout = () => {
   const system = useColorScheme() === 'light' ? DefaultTheme : DarkTheme;
   const { demo } = useGlobalSearchParams<{ demo?: string }>();
   return (
@@ -38,4 +38,6 @@ export default function RootLayout() {
       </ThemeProvider>
     </GestureHandlerRootView>
   );
-}
+};
+
+export default RootLayout;

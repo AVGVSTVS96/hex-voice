@@ -43,7 +43,7 @@ type Props = {
   onDelete: (id: CallId) => void;
 };
 
-export function CallsSidebar({
+export const CallsSidebar = ({
   top,
   width,
   calls,
@@ -53,7 +53,7 @@ export function CallsSidebar({
   haptics,
   onOpen,
   onDelete,
-}: Props) {
+}: Props) => {
   // A head only parts one group from another, so a lone one is left off.
   const days = byDay(calls ?? []);
   return (
@@ -89,9 +89,9 @@ export function CallsSidebar({
       )}
     </View>
   );
-}
+};
 
-function Row({
+const Row = ({
   call,
   width,
   live,
@@ -107,7 +107,7 @@ function Row({
   haptics: boolean;
   onOpen: (call: CallSummary) => void;
   onDelete: (id: CallId) => void;
-}) {
+}) => {
   const x = useSharedValue(0);
   const from = useSharedValue(0);
   // Swiped open, its delete button is there for VoiceOver too; closed, the row's own action is.
@@ -209,27 +209,25 @@ function Row({
       </GestureDetector>
     </Animated.View>
   );
-}
+};
 
-function Empty({ offline }: { offline: boolean }) {
-  return (
-    <View style={styles.empty}>
-      <View style={styles.ring}>
-        <Glyph
-          name={offline ? 'wifi.slash' : 'clock.arrow.circlepath'}
-          size={metrics.symbol.regular}
-          color={theme.secondary}
-        />
-      </View>
-      <Text style={styles.emptyTitle}>{offline ? 'Can’t reach hex' : 'No calls yet'}</Text>
-      <Text style={styles.emptyText}>
-        {offline
-          ? 'Check that Tailscale is on. Calls catches up on its own once hex answers.'
-          : 'When a call ends, it lands here, whether you called from this app, the web page or your phone.'}
-      </Text>
+const Empty = ({ offline }: { offline: boolean }) => (
+  <View style={styles.empty}>
+    <View style={styles.ring}>
+      <Glyph
+        name={offline ? 'wifi.slash' : 'clock.arrow.circlepath'}
+        size={metrics.symbol.regular}
+        color={theme.secondary}
+      />
     </View>
-  );
-}
+    <Text style={styles.emptyTitle}>{offline ? 'Can’t reach hex' : 'No calls yet'}</Text>
+    <Text style={styles.emptyText}>
+      {offline
+        ? 'Check that Tailscale is on. Calls catches up on its own once hex answers.'
+        : 'When a call ends, it lands here, whether you called from this app, the web page or your phone.'}
+    </Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   sidebar: {

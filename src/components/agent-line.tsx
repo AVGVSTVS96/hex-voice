@@ -43,7 +43,7 @@ const leave = () => {
   };
 };
 
-export function AgentLine({ line }: { line: Line | null }) {
+export const AgentLine = ({ line }: { line: Line | null }) => {
   if (!line) return null;
   const label = `hex is ${line.state === 'running' ? 'working' : line.state}: ${line.text}${line.where ? `, ${line.where}` : ''}`;
   return (
@@ -80,31 +80,29 @@ export function AgentLine({ line }: { line: Line | null }) {
       ) : null}
     </Animated.View>
   );
-}
+};
 
 // One mark, one meaning: the arc turns while something works, a check is done, ! failed.
-function Mark({ state }: { state: Line['state'] }) {
-  return (
-    <View style={[styles.mark, state === 'failed' && styles.markFailed]}>
-      {state === 'running' ? (
-        <Arc />
-      ) : (
-        <Animated.View key={state} entering={ZoomIn.springify().damping(14)}>
-          <Host matchContents>
-            <Icon
-              name={state === 'done' ? 'checkmark' : 'exclamationmark'}
-              size={11}
-              color={state === 'done' ? theme.secondary : theme.danger}
-            />
-          </Host>
-        </Animated.View>
-      )}
-    </View>
-  );
-}
+const Mark = ({ state }: { state: Line['state'] }) => (
+  <View style={[styles.mark, state === 'failed' && styles.markFailed]}>
+    {state === 'running' ? (
+      <Arc />
+    ) : (
+      <Animated.View key={state} entering={ZoomIn.springify().damping(14)}>
+        <Host matchContents>
+          <Icon
+            name={state === 'done' ? 'checkmark' : 'exclamationmark'}
+            size={11}
+            color={state === 'done' ? theme.secondary : theme.danger}
+          />
+        </Host>
+      </Animated.View>
+    )}
+  </View>
+);
 
 // The turning arc of something at work, `size` across.
-export function Arc({ size = 12 }: { size?: number }) {
+export const Arc = ({ size = 12 }: { size?: number }) => {
   const spin = useSharedValue(0);
   const still = useReducedMotion();
   useEffect(() => {
@@ -114,7 +112,7 @@ export function Arc({ size = 12 }: { size?: number }) {
   }, [spin, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
   return <Animated.View style={[styles.arc, circle(size), style]} />;
-}
+};
 
 const styles = StyleSheet.create({
   row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[3] },

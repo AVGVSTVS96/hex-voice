@@ -37,7 +37,7 @@ const MARKERS: Record<
 
 type Props = { summary: CallSummary; call?: CallRecord; failed: boolean; live: boolean };
 
-export function CallTranscript({ summary, call, failed, live }: Props) {
+export const CallTranscript = ({ summary, call, failed, live }: Props) => {
   const ending = summary.end && !live ? ENDINGS[summary.end] : undefined;
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -79,9 +79,9 @@ export function CallTranscript({ summary, call, failed, live }: Props) {
       )}
     </ScrollView>
   );
-}
+};
 
-function Line({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; children: string }) {
+const Line = ({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; children: string }) => {
   const color = bad ? theme.danger : theme.secondary;
   return (
     <View style={styles.line}>
@@ -89,9 +89,9 @@ function Line({ symbol, bad, children }: { symbol: SFSymbol; bad?: boolean; chil
       <Text style={[styles.lineText, { color }]}>{children}</Text>
     </View>
   );
-}
+};
 
-function Marker({ task }: { task: CallTask }) {
+const Marker = ({ task }: { task: CallTask }) => {
   const look = MARKERS[task.state];
   return (
     <View style={styles.marker}>
@@ -102,7 +102,7 @@ function Marker({ task }: { task: CallTask }) {
       <Text style={styles.at}>{clock(task.at)}</Text>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   content: { gap: space[6], paddingTop: metrics.fade, paddingBottom: metrics.fade },

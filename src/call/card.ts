@@ -12,12 +12,12 @@ import { metrics, radius } from '@/ui/tokens';
 // unless the card slides aside, and moves by layout, never a transform, since it holds SwiftUI
 // views. A hairline edges a card that slides aside or starts below a band (`lined`); beside a pane a
 // card still reaches the screen's top and foot, where a hairline would only line the screen's edges.
-export function cardOf(
+export const cardOf = (
   { calls, tasks, content }: Pick<Layout, 'calls' | 'tasks' | 'content'>,
   drawer: number,
   pane: number,
   paneWidth: number,
-) {
+) => {
   'worklet';
   const moved = calls.place === 'over' ? 0 : drawer;
   const left = moved * (content.x + calls.width);
@@ -34,7 +34,7 @@ export function cardOf(
     lined: top > 0 || slid > 0,
     stage: { top: -top, left: content.x + slid - left },
   };
-}
+};
 
 // The least a bar across the top holds: Calls, then Tasks and settings.
 const BAR = 3 * metrics.tool + 2 * metrics.toolbar.row;
@@ -44,15 +44,15 @@ const BAR = 3 * metrics.tool + 2 * metrics.toolbar.row;
 // pane, Tasks and settings keep to the room the call has left either way. Calls still carries it,
 // unless Calls starts below it and leaves the band whole, and where Calls takes so much that Tasks'
 // room can't hold it, it runs on past that room. It takes no `pane`, so it can't follow Tasks.
-export function barOf(
+export const barOf = (
   layout: Pick<Layout, 'calls' | 'tasks' | 'content' | 'toolbar'>,
   window: number,
   drawer: number,
-) {
+) => {
   'worklet';
   const { toolbar, calls } = layout;
   const card = cardOf(layout, calls.below === undefined ? drawer : 0, 1, layout.tasks.width);
   const left = toolbar.x + card.left;
   const end = Math.max(toolbar.x + toolbar.width - card.right, left + BAR);
   return { left, right: window - end };
-}
+};

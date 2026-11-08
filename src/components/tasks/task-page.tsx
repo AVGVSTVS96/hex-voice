@@ -53,7 +53,7 @@ import { metrics, space } from '@/ui/tokens';
 
 const PREVIEW = 3;
 
-export function Detail({
+export const Detail = ({
   task,
   asks,
   answered,
@@ -92,7 +92,7 @@ export function Detail({
   answering?: boolean;
   onWrite?: () => void;
   foot?: number;
-}) {
+}) => {
   const full = 'lately' in task ? task : undefined;
   const needs = task.state === 'needs' && !asks.length ? (full?.needs ?? task.line) : undefined;
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
@@ -229,12 +229,12 @@ export function Detail({
       )}
     </Column>
   );
-}
+};
 
 // A project with no thread to show (its threads left the board, or it's what's stuck or what
 // finished) still opens on what it has: its asks, then its other rows, with its way back and a
 // door to where they were asked.
-export function Asked({
+export const Asked = ({
   topic,
   asks,
   answered,
@@ -254,7 +254,7 @@ export function Asked({
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
-}) {
+}) => {
   const open = asks.filter((ask) => !answered[ask.id]).length;
   const others = rows?.length ?? 0;
   return (
@@ -282,11 +282,11 @@ export function Asked({
       </Faded>
     </Column>
   );
-}
+};
 
 // One thing hex did, as Done's row opens it: what it was, when, the proof it was closed with and
 // the pages that proof links to, and the way to the rest of its project.
-export function DonePage({
+export const DonePage = ({
   finished,
   door,
   onOpenLink,
@@ -296,7 +296,7 @@ export function DonePage({
   door?: Door;
   onOpenLink: (tile: Tile) => void;
   onOpenProject?: () => void;
-}) {
+}) => {
   const says = proofSays(finished.proof);
   const links = proofLinks(finished.proof);
   const at = clock(new Date(finished.at));
@@ -379,11 +379,11 @@ export function DonePage({
       </Faded>
     </Column>
   );
-}
+};
 
 // A row on a page that leads somewhere: out of the app, behind the tile of where it goes, or to
 // another page.
-function Way({
+const Way = ({
   lead,
   title,
   note,
@@ -395,72 +395,59 @@ function Way({
   note: string;
   out?: boolean;
   onPress: () => void;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={space[3]}
-      onPress={onPress}
-      modifiers={[
-        padding({
-          leading: metrics.list.inset,
-          trailing: metrics.list.inset - space[1],
-          top: metrics.list.place,
-          bottom: metrics.list.place,
-        }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        contentShape(shapes.rectangle()),
-        accessibilityLabel(`${title}, ${note}`),
-      ]}
+}) => (
+  <Row
+    alignment="center"
+    spacing={space[3]}
+    onPress={onPress}
+    modifiers={[
+      padding({
+        leading: metrics.list.inset,
+        trailing: metrics.list.inset - space[1],
+        top: metrics.list.place,
+        bottom: metrics.list.place,
+      }),
+      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      contentShape(shapes.rectangle()),
+      accessibilityLabel(`${title}, ${note}`),
+    ]}
+  >
+    {lead}
+    <Column
+      alignment="start"
+      spacing={space[0.5]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     >
-      {lead}
-      <Column
-        alignment="start"
-        spacing={space[0.5]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        <Text numberOfLines={1} variant="detail" weight="medium">
-          {title}
-        </Text>
-        <Text numberOfLines={1} variant="caption" tone="secondary">
-          {note}
-        </Text>
-      </Column>
-      <Icon
-        name={out ? 'arrow.up.right' : 'chevron.right'}
-        size={metrics.symbol.small}
-        color={theme.tertiary}
-      />
-    </Row>
-  );
-}
+      <Text numberOfLines={1} variant="detail" weight="medium">
+        {title}
+      </Text>
+      <Text numberOfLines={1} variant="caption" tone="secondary">
+        {note}
+      </Text>
+    </Column>
+    <Icon
+      name={out ? 'arrow.up.right' : 'chevron.right'}
+      size={metrics.symbol.small}
+      color={theme.tertiary}
+    />
+  </Row>
+);
 
 // A project's page is a list, so each ask on it is a row a swipe left puts away; an answer folds
 // its row where it sits. Each page has a list of its own, so another project's page replaces it
 // whole instead of fading its cards through the last one's.
-function pageList(asks: Ask[], answered: Record<string, string | null>) {
-  return [
-    listStyle('plain'),
-    scrollContentBackground('hidden'),
-    scrollIndicators('hidden'),
-    scrollClipDisabled(),
-    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-    animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
-  ];
-}
-
-// A page's words keep a readable measure, centered, however wide its room.
-const readable = [
-  frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
+const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
+  listStyle('plain'),
+  scrollContentBackground('hidden'),
+  scrollIndicators('hidden'),
+  scrollClipDisabled(),
   frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+  animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
 ];
-
-// The page's last row, which holds the rest of it and ends clear of the fade.
-const rest = () => [padding({ bottom: space[10] }), frame({ maxWidth: Infinity }), ...listRow()];
 
 // A run's steps. It's `named` by its thread, its app and when, only where that tells it apart from
 // the page it's on; on its own it's the page's, whose name and door the bar already shows.
-function Run({
+const Run = ({
   thread,
   named,
   onPress,
@@ -468,7 +455,7 @@ function Run({
   thread: TaskRow | Task;
   named: boolean;
   onPress: () => void;
-}) {
+}) => {
   const working = thread.state === 'working';
   const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
   const agents = agentWords(thread.agents, working);
@@ -528,13 +515,22 @@ function Run({
       ) : null}
     </Column>
   );
-}
+};
 
 // What needs you and since when, or what it's doing and for how long: a bare time never says which.
-function subtitleOf(task: TaskRow | Task, open: number) {
+const subtitleOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
   const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
   if (task.state === 'working') return [asks, `working for ${time}`].filter(Boolean).join(' · ');
   if (task.state === 'needs') return `${asks || STATE_WORDS.needs} since ${time}`;
   return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
-}
+};
+
+// A page's words keep a readable measure, centered, however wide its room.
+const readable = [
+  frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
+  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+];
+
+// The page's last row, which holds the rest of it and ends clear of the fade.
+const rest = () => [padding({ bottom: space[10] }), frame({ maxWidth: Infinity }), ...listRow()];

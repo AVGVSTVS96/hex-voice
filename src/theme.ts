@@ -26,6 +26,4 @@ export const bevel = {
 };
 
 // A circle is as round as half its size, whatever size it's drawn at.
-export function circle(size: number) {
-  return { width: size, height: size, borderRadius: size / 2 };
-}
+export const circle = (size: number) => ({ width: size, height: size, borderRadius: size / 2 });

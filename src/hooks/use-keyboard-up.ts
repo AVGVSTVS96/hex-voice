@@ -3,7 +3,7 @@ import { Keyboard, type KeyboardEvent } from 'react-native';
 
 // Whether this app's keyboard is up. iOS tells every app in Split View about the other's keyboard
 // too, which sits over that app, not this one.
-export function useKeyboardUp() {
+export const useKeyboardUp = () => {
   const [up, setUp] = useState(false);
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardWillShow', (event) => {
@@ -18,8 +18,6 @@ export function useKeyboardUp() {
     };
   }, []);
   return up;
-}
+};
 
-function ours(event: KeyboardEvent) {
-  return !('isEventFromThisApp' in event) || event.isEventFromThisApp;
-}
+const ours = (event: KeyboardEvent) => !('isEventFromThisApp' in event) || event.isEventFromThisApp;

@@ -96,7 +96,7 @@ export type Opening = {
 // device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
 // screen's own, as laid out: React Native's window size can report another screen's for a moment
 // while iPhone Duo unfolds, and the call screen would lay out for the cover across the open screen.
-export default function LiveScreen({ opening }: { opening: Opening }) {
+const LiveScreen = ({ opening }: { opening: Opening }) => {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const [size, setSize] = useState<Size>();
   const insets = useSafeAreaInsets();
@@ -128,9 +128,11 @@ export default function LiveScreen({ opening }: { opening: Opening }) {
       )}
     </View>
   );
-}
+};
 
-function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
+export default LiveScreen;
+
+const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -926,13 +928,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
       )}
     </ToolbarBackProvider>
   );
-}
+};
 
 // The toolbar across the top, following the call's card as Calls slides. Its style is made as it
 // mounts: Reanimated starts each view at the value a style had when it was first made, so a style
 // made at launch would show iPhone Duo's band, which mounts when it turns on its side, at the
 // column's old place until something next moved it.
-function Bar({
+const Bar = ({
   layout,
   width,
   drawer,
@@ -942,13 +944,13 @@ function Bar({
   width: number;
   drawer: SharedValue<number>;
   toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactNode;
-}) {
+}) => {
   const style = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
   return toolbar([{ top: layout.toolbar.y }, style]);
-}
+};
 
 // The call you just hung up on is at the top of Calls before hex's copy arrives.
-function useEndedCall(call: Call, voice: string, add: (call: CallSummary) => void) {
+const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => void) => {
   const started = useRef<string | null>(null);
   const live = call.kind === 'here' && call.phase === 'live';
   const ended = call.kind === 'none' ? call.last : undefined;
@@ -972,7 +974,7 @@ function useEndedCall(call: Call, voice: string, add: (call: CallSummary) => voi
     });
     started.current = null;
   }, [call.kind, live]);
-}
+};
 
 const FADE = [{ color: theme.background }, { color: 'transparent' }];
 const FADE_BACKDROP = [{ color: theme.sheet }, { color: 'transparent' }];

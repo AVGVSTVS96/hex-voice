@@ -18,7 +18,7 @@ const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 // the screen: the drawer settles wherever `open` says, and its pans only tell the screen where they
 // let go (`onChange`). They open it from the screen's edge, close it from the list, and close it
 // from the call it peeks over, where a tap closes it too. `out` is whether any of it is in view.
-export function useDrawer({
+export const useDrawer = ({
   open,
   width,
   reducedMotion,
@@ -28,7 +28,7 @@ export function useDrawer({
   width: number;
   reducedMotion: boolean;
   onChange: (open: boolean) => void;
-}) {
+}) => {
   const drawer = useSharedValue(open ? 1 : 0);
   const target = useSharedValue(open);
   const from = useSharedValue(0);
@@ -92,4 +92,4 @@ export function useDrawer({
       }),
     ),
   };
-}
+};

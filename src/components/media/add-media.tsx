@@ -24,7 +24,7 @@ import { film } from '@/ui/tokens';
 // menu with Camera, which rises as a sheet to half the screen, and Photos, Apple's own picker, up
 // to `most` at once (none: the + is off). What you shoot or pick goes to `onAdd`; `sends` says it
 // goes out from there, so the camera's last button says Send rather than Add.
-export function AddMedia({
+export const AddMedia = ({
   label,
   glass = false,
   most,
@@ -40,7 +40,7 @@ export function AddMedia({
   testID: string;
   onAdd: (media: Picked[]) => void;
   children: ReactNode;
-}) {
+}) => {
   const [camera, setCamera] = useState(false);
   const pick = async () => {
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -109,4 +109,4 @@ export function AddMedia({
       </Group>
     </BottomSheet>
   );
-}
+};

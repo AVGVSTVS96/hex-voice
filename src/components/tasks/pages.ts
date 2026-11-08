@@ -56,14 +56,12 @@ export const START: Stack = {
 };
 
 // Every opening starts Tasks afresh where it's sent.
-export function startAt(at: TasksAt): Stack {
-  return {
-    ...START,
-    task: at.task ?? null,
-    path: at.task ? ['topic'] : [],
-    stage: at.stage ?? null,
-  };
-}
+export const startAt = (at: TasksAt): Stack => ({
+  ...START,
+  task: at.task ?? null,
+  path: at.task ? ['topic'] : [],
+  stage: at.stage ?? null,
+});
 
 // Wide enough for the list and a topic's page side by side: Tasks on a 13-inch iPad beside a call,
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
@@ -71,12 +69,12 @@ const COLUMNS = 900;
 
 // On iPhone Duo, two pages side by side where each side of the window's middle has a page as wide
 // as the phone's Tasks: open and held wide, not on its side, folded or beside the call's words.
-export function shapeOf({ width, paged, meet = 0 }: Room): Shape {
+export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
   if (paged) return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
   return width >= COLUMNS ? 'columns' : 'one';
-}
+};
 
-export function move(stack: Stack, step: Move): Stack {
+export const move = (stack: Stack, step: Move): Stack => {
   switch (step.to) {
     case 'topic':
       return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
@@ -104,26 +102,26 @@ export function move(stack: Stack, step: Move): Stack {
     case 'search':
       return { ...stack, query: step.query };
   }
-}
+};
 
-export function levelsOf(stack: Stack, shape: Shape): Level[] {
+export const levelsOf = (stack: Stack, shape: Shape): Level[] => {
   const levels: Level[] = ['list', ...stack.path];
   if (shape !== 'one' && levels.length === 1) levels.push('topic');
   return levels;
-}
+};
 
-export function backLeavesTasks(stack: Stack, shape: Shape): boolean {
+export const backLeavesTasks = (stack: Stack, shape: Shape): boolean => {
   const levels = levelsOf(stack, shape);
   if (shape === 'one') return levels.length === 1;
   if (shape === 'columns') return levels.length === 2 && levels[1] === 'topic';
   return levels.at(-2) === 'list';
-}
+};
 
 // On iPhone Duo SwiftUI places the pages, so whether they're two side by side is its call: it
 // reports it (`placed`) as the width changes, in the frame it does, and `shape` is only the guess
 // until it has. Where you are is the call screen's (`stack`), so only how this container lays it out
 // is its own.
-export function usePages({
+export const usePages = ({
   stack,
   onMove,
   shape: guess,
@@ -133,7 +131,7 @@ export function usePages({
   onMove: (move: Move) => void;
   shape: Shape;
   onClose?: () => void;
-}) {
+}) => {
   const [placed, setPlaced] = useState<Shape>();
   const shape = placed ?? guess;
   const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : onMove({ to: 'back' }));
@@ -146,7 +144,7 @@ export function usePages({
     back,
     placed: (paired: boolean) => setPlaced(paired ? 'panes' : 'one'),
   };
-}
+};
 
 export type Pages = ReturnType<typeof usePages>;
 type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
@@ -157,9 +155,12 @@ type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 export type Room = { width: number; foot: number | 'fold'; paged: boolean; meet?: number };
 
 // A Duo page's room. Its two pages meet in the window's middle, which is where the Duo folds.
-export function pagedRoom({ area, margin, foot }: Page): Room {
-  return { width: area.width, foot, paged: true, meet: (margin.right - margin.left) / 2 };
-}
+export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
+  width: area.width,
+  foot,
+  paged: true,
+  meet: (margin.right - margin.left) / 2,
+});
 
 // A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 
@@ -173,9 +174,7 @@ export type Spot = {
 };
 
 // A page that ends at the fold keeps nothing clear below it.
-function footOf(foot: number | 'fold') {
-  return { foot: foot === 'fold' ? 0 : foot };
-}
+const footOf = (foot: number | 'fold') => ({ foot: foot === 'fold' ? 0 : foot });
 
 // A field on a page says when it's being typed in, so that page can make room above the keyboard.
 export const Typing = createContext<(on: boolean) => void>(() => {});
@@ -184,30 +183,30 @@ export const Typing = createContext<(on: boolean) => void>(() => {});
 // when its page stops showing, rather than keep the keyboard up for a page that's gone.
 export const Showing = createContext(true);
 
-export function useField() {
+export const useField = () => {
   const field = useRef<TextInputRef>(null);
   const showing = useContext(Showing);
   useEffect(() => {
     if (!showing) field.current?.blur();
   }, [showing]);
   return field;
-}
+};
 
 // On iPhone Duo, SwiftUI places the pages by the same rule from the width it has
 // (`modules/pages`), so a resize lands in the frame it happens; these spots tell each page's content
 // how wide it is, whether it shows and where its Back goes.
-export function spotOf(level: Level, pages: Placing, room: Room): Spot {
+export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
   if (pages.shape === 'panes') return spotInPanes(level, pages, room);
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);
-}
+};
 
 // A page steps down over the one before, which waits a third of a page behind; on the Duo a whole
 // page, since its clear pages would show through each other. A page waiting off either edge
 // already has the way back it comes in with, so its back button slides in with it: the list's
 // "‹ Call" too, as it comes back from a project.
-function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot {
+const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const page = room.width;
@@ -219,9 +218,9 @@ function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot 
     ...footOf(room.foot),
     back: level === 'list' ? (closes ? 'call' : undefined) : (levels[i - 1] ?? levels.at(-1)),
   };
-}
+};
 
-function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
+const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
   const list = Math.round(Math.min(440, Math.max(360, room.width * 0.42)));
   const page = room.width - list - 1;
   const i = levels.indexOf(level);
@@ -235,11 +234,11 @@ function spotInColumns(level: Level, { levels }: Placing, room: Room): Spot {
     ...footOf(room.foot),
     back: level === 'list' || level === 'topic' ? undefined : levels[i - 1],
   };
-}
+};
 
 // Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
 // wait off the leading edge, shallower ones off the trailing edge.
-function spotInPanes(level: Level, { levels, closes }: Placing, room: Room): Spot {
+const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
   const panes = room.width / 2 + (room.meet ?? 0);
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
@@ -264,4 +263,4 @@ function spotInPanes(level: Level, { levels, closes }: Placing, room: Room): Spo
           : undefined
         : levels[i - 1],
   };
-}
+};

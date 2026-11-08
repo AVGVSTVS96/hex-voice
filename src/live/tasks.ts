@@ -158,43 +158,43 @@ export const TaskCounts = z.object({
 export type TaskCounts = z.infer<typeof TaskCounts>;
 
 // How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
-export function taskTime(task: TaskRow, now = new Date()) {
+export const taskTime = (task: TaskRow, now = new Date()) => {
   if (task.state === 'working') return duration(now.getTime() - Date.parse(task.since));
   return clock(new Date(task.state === 'needs' ? task.since : task.at), now);
-}
+};
 
-export function clock(at: Date, now = new Date()) {
+export const clock = (at: Date, now = new Date()) => {
   if (at.getTime() >= startOfDay(now)) return timeOfDay(at.toISOString());
   return at.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
+};
 
-function duration(ms: number) {
+const duration = (ms: number) => {
   const minutes = Math.max(0, Math.round(ms / 60_000));
   if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.round(minutes / 60);
   return hours < 24 ? `${hours} hr` : `${Math.round(hours / 24)} d`;
-}
+};
 
-function took(ms: number) {
+const took = (ms: number) => {
   const seconds = Math.max(1, Math.round(ms / 1000));
   return seconds < 60 ? `${seconds}s` : duration(ms);
-}
+};
 
 // A step's mark when its state says more than its kind: turning while it runs, red when it failed.
 // Only a running step turns, so a thread waiting on its agents shows them at work instead.
-export function stepMark(step: TaskStep) {
+export const stepMark = (step: TaskStep) => {
   if (step.state === 'failed') return 'failed';
   if (step.state === 'running') return 'working';
   return undefined;
-}
+};
 
 // How long each step took, newest first: from when it began until its result came back, and while
 // it runs, so far: "8s", "2 min". A reply ends its turn, and what follows it is the wait for the
 // next one, so a reply says when it was said instead. A step that never said when it ended lasts
 // until the next one began, and says nothing when that was at once.
-export function stepTimes(steps: TaskStep[], now = new Date()) {
-  return steps.map((step, i) => {
+export const stepTimes = (steps: TaskStep[], now = new Date()) =>
+  steps.map((step, i) => {
     if (step.kind === 'say') return timeOfDay(step.at);
     const at = Date.parse(step.at);
     if (step.end) return took(Date.parse(step.end) - at);
@@ -202,7 +202,6 @@ export function stepTimes(steps: TaskStep[], now = new Date()) {
     const until = i === 0 ? at : Date.parse(steps[i - 1]!.at);
     return until - at < 500 ? '' : took(until - at);
   });
-}
 
 const started = (agent: TaskAgent) => (agent.since ? Date.parse(agent.since) : 0);
 const ended = (agent: TaskAgent) => (agent.end ? Date.parse(agent.end) : started(agent));
@@ -214,7 +213,7 @@ const inOrder = <A extends TaskAgent>(agents: A[]) => [
 // A thread's agents as the Trace lists them: those at work first, newest started first, then the
 // finished, newest finished first. Earlier tries, agents that stopped and were run again under the
 // same name, are kept apart.
-export function agentsInOrder<A extends TaskAgent>(agents: A[]) {
+export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {
   const retried = (agent: A) =>
     agent.state === 'stopped' &&
     agents.some((other) => other.label === agent.label && started(other) > started(agent));
@@ -222,23 +221,22 @@ export function agentsInOrder<A extends TaskAgent>(agents: A[]) {
     shown: inOrder(agents.filter((agent) => !retried(agent))),
     tries: inOrder(agents.filter(retried)),
   };
-}
+};
 
 export const atWork = <A extends TaskAgent>(agents: A[]) =>
   inOrder(agents.filter((agent) => agent.state === 'working'));
 
 // How many agents are in each state, those at work first: "2 working · 9 done".
-export function agentCounts(agents: TaskAgent[]) {
-  return (['working', 'done', 'failed', 'stopped'] as const)
+export const agentCounts = (agents: TaskAgent[]) =>
+  (['working', 'done', 'failed', 'stopped'] as const)
     .map((state) => [state, agents.filter((agent) => agent.state === state).length] as const)
     .filter(([, count]) => count)
     .map(([state, count]) => `${count} ${state}`)
     .join(' · ');
-}
 
 // Who an agent is and how it's going: "Opus 5.5 · 4 min" while it works or how long it took once
 // done, "Opus 5.5 · stopped" or "· failed" otherwise.
-export function agentMeta(agent: TaskAgent, now = new Date()) {
+export const agentMeta = (agent: TaskAgent, now = new Date()) => {
   const end = agent.state === 'working' ? now.getTime() : agent.end && Date.parse(agent.end);
   const time =
     agent.state === 'stopped' || agent.state === 'failed'
@@ -247,26 +245,26 @@ export function agentMeta(agent: TaskAgent, now = new Date()) {
         ? took(end - Date.parse(agent.since))
         : '';
   return [agent.who, time].filter(Boolean).join(' · ');
-}
+};
 
 // An agent's steps once it's open, without its last reply when that only repeats what it handed
 // back, which shows above them.
-export function agentSteps(agent: AgentTrail) {
+export const agentSteps = (agent: AgentTrail) => {
   const [last, ...rest] = agent.steps;
   if (last?.kind !== 'say' || !agent.result) return agent.steps;
   const same = Math.min(60, last.text.length, agent.result.length);
   return last.text.slice(0, same) === agent.result.slice(0, same) ? rest : agent.steps;
-}
+};
 
 // A thread's agents in a few words, each by its name up to a colon: those at work while it works,
 // "2 agents working · today, sol", and once it's done all it ran, "2 agents · voice, sol".
-export function agentWords(agents: TaskAgent[], working: boolean) {
+export const agentWords = (agents: TaskAgent[], working: boolean) => {
   const named = working ? atWork(agents) : agentsInOrder(agents).shown;
   if (!named.length) return undefined;
   const names = named.map((agent) => agent.label.split(':')[0]!.trim());
   const count = `${named.length} agent${named.length === 1 ? '' : 's'}`;
   return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;
-}
+};
 
 // A thread that isn't working shows its last run on its topic's page while it kept what it did.
 export const lastRun = (task: Task) =>
@@ -281,15 +279,14 @@ const WEEK = 7 * 24 * 3_600_000;
 const FULL = Math.log1p(WEEK / TAU);
 export const LANE_TICKS = [3_600_000, 24 * 3_600_000];
 
-export function laneX(at: number, now: number, width: number) {
-  return width * (1 - Math.min(1, Math.log1p(Math.max(0, now - at) / TAU) / FULL));
-}
+export const laneX = (at: number, now: number, width: number) =>
+  width * (1 - Math.min(1, Math.log1p(Math.max(0, now - at) / TAU) / FULL));
 
-export function startOfDay(now: Date) {
+export const startOfDay = (now: Date) => {
   const day = new Date(now);
   day.setHours(0, 0, 0, 0);
   return day.getTime();
-}
+};
 
 export const STATE_WORDS: Record<TaskState, string> = {
   needs: 'waiting on you',

@@ -25,7 +25,7 @@ import { metrics, radius, space } from '@/ui/tokens';
 export const Selectable = createContext(true);
 
 // Drawn as the call transcript draws a turn.
-export function Said({ turn }: { turn: ChatTurn }) {
+export const Said = ({ turn }: { turn: ChatTurn }) => {
   const one = said(turn);
   const selectable = useContext(Selectable);
   if (one.kind === 'me') return <Mine text={one.text} media={turn.media} />;
@@ -42,36 +42,34 @@ export function Said({ turn }: { turn: ChatTurn }) {
       {one.text}
     </Markdown>
   );
-}
+};
 
-export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) {
-  return (
-    <Column alignment="end" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Mine text={sent.text} media={sent.media} dim={!sent.failed} />
-      <Row alignment="center" spacing={0} modifiers={[padding({ trailing: metrics.list.inset })]}>
-        <Spacer flexible />
-        <Text
-          modifiers={[
-            ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
-            ...textLook({
-              variant: 'caption',
-              weight: sent.failed ? 'medium' : 'regular',
-              tone: sent.failed ? 'danger' : 'tertiary',
-            }),
-          ]}
-        >
-          {!sent.failed
-            ? 'Sending'
-            : sent.failed.again
-              ? 'Not sent · Tap to try again'
-              : sent.failed.why}
-        </Text>
-      </Row>
-    </Column>
-  );
-}
+export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) => (
+  <Column alignment="end" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Mine text={sent.text} media={sent.media} dim={!sent.failed} />
+    <Row alignment="center" spacing={0} modifiers={[padding({ trailing: metrics.list.inset })]}>
+      <Spacer flexible />
+      <Text
+        modifiers={[
+          ...(sent.failed?.again ? [onTapGesture(onRetry)] : []),
+          ...textLook({
+            variant: 'caption',
+            weight: sent.failed ? 'medium' : 'regular',
+            tone: sent.failed ? 'danger' : 'tertiary',
+          }),
+        ]}
+      >
+        {!sent.failed
+          ? 'Sending'
+          : sent.failed.again
+            ? 'Not sent · Tap to try again'
+            : sent.failed.why}
+      </Text>
+    </Row>
+  </Column>
+);
 
-export function SaidLine({
+export const SaidLine = ({
   turn,
   named,
   lines,
@@ -79,7 +77,7 @@ export function SaidLine({
   turn: ChatTurn;
   named: boolean;
   lines: number;
-}) {
+}) => {
   const one = said(turn);
   const who = one.kind === 'hex' ? 'hex' : 'You';
   const text =
@@ -120,10 +118,18 @@ export function SaidLine({
       </Markdown>
     </Row>
   );
-}
+};
 
 // Your photos and clips above your words, each on your side.
-function Mine({ text, media = [], dim = false }: { text: string; media?: Shown[]; dim?: boolean }) {
+const Mine = ({
+  text,
+  media = [],
+  dim = false,
+}: {
+  text: string;
+  media?: Shown[];
+  dim?: boolean;
+}) => {
   const selectable = useContext(Selectable);
   return (
     <Row
@@ -161,19 +167,17 @@ function Mine({ text, media = [], dim = false }: { text: string; media?: Shown[]
       </Column>
     </Row>
   );
-}
+};
 
-function Event({ text }: { text: string }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={0}
-      modifiers={[padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset })]}
-    >
-      <Spacer flexible />
-      <Text modifiers={[...textLook({ variant: 'caption', tone: 'secondary' }), lineLimit(3)]}>
-        {text}
-      </Text>
-    </Row>
-  );
-}
+const Event = ({ text }: { text: string }) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    modifiers={[padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset })]}
+  >
+    <Spacer flexible />
+    <Text modifiers={[...textLook({ variant: 'caption', tone: 'secondary' }), lineLimit(3)]}>
+      {text}
+    </Text>
+  </Row>
+);

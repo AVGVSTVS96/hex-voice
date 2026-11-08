@@ -8,12 +8,12 @@ type Look = { variant?: TextVariant; weight?: Weight; tone?: Tone; paragraph?: b
 
 // The modifiers that draw SwiftUI text in one of the app's text styles and colors. A `paragraph`
 // spaces its lines by its style's lineSpacing; anything else is a label, on the font's own leading.
-export function textLook({
+export const textLook = ({
   variant = 'body',
   weight,
   tone = 'text',
   paragraph = false,
-}: Look = {}) {
+}: Look = {}) => {
   const style: TextStyle = type[variant];
   return [
     font({
@@ -25,11 +25,11 @@ export function textLook({
     foregroundStyle(theme[tone]),
     ...(paragraph && style.lineSpacing !== undefined ? [lineSpacing(style.lineSpacing)] : []),
   ];
-}
+};
 
 // SwiftUI text in a textLook. Text that needs SwiftUI's own Text, for markdown, spreads textLook
 // into its modifiers instead.
-export function Text({
+export const Text = ({
   variant,
   weight,
   tone,
@@ -37,12 +37,10 @@ export function Text({
   align,
   modifiers = [],
   ...props
-}: Omit<TextProps, 'textStyle'> & Look & { align?: 'center' }) {
-  return (
-    <UniversalText
-      {...props}
-      textStyle={align && { textAlign: align }}
-      modifiers={[...textLook({ variant, weight, tone, paragraph }), ...modifiers]}
-    />
-  );
-}
+}: Omit<TextProps, 'textStyle'> & Look & { align?: 'center' }) => (
+  <UniversalText
+    {...props}
+    textStyle={align && { textAlign: align }}
+    modifiers={[...textLook({ variant, weight, tone, paragraph }), ...modifiers]}
+  />
+);

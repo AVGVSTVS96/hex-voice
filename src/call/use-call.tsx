@@ -36,7 +36,7 @@ const Sending = createContext<{
 
 // The call's audio lives above every screen, so moving between them never ends it. A demo session
 // plays a pretend call (src/live/demo-call.ts), starting as the call screen opens.
-export function CallProvider({ demo, children }: { demo: boolean; children: ReactNode }) {
+export const CallProvider = ({ demo, children }: { demo: boolean; children: ReactNode }) => {
   const [session] = useState(() =>
     demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
   );
@@ -85,11 +85,11 @@ export function CallProvider({ demo, children }: { demo: boolean; children: Reac
       <Sending value={{ sent, send, retry }}>{children}</Sending>
     </Session>
   );
-}
+};
 
 // The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
 // /activity), followed word by word until it ends.
-export function useCall(held: CallId | null) {
+export const useCall = (held: CallId | null) => {
   const { session, demo } = use(Session)!;
   const snapshot = useSyncExternalStore(
     session.subscribe,
@@ -115,15 +115,15 @@ export function useCall(held: CallId | null) {
     end: () => (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop()),
     toggleMute: session.toggleMute,
   };
-}
+};
 
 // The call ended before what you picked could go to it.
-function ended() {
+const ended = () => {
   Alert.alert('The call has ended', 'What you picked wasn’t sent.');
-}
+};
 
 // Whether a call on this phone holds the microphone, so nothing else here records sound.
-export function useMicHeld() {
+export const useMicHeld = () => {
   const { session } = use(Session)!;
   const { status } = useSyncExternalStore(
     session.subscribe,
@@ -131,11 +131,11 @@ export function useMicHeld() {
     session.getSnapshot,
   );
   return isHere(status);
-}
+};
 
 // What you send a call shows in its words at once, going, then sent or why it didn't. It goes to
 // the call on screen when you send it, which may have ended while you picked.
-export function useShare(call: Call) {
+export const useShare = (call: Call) => {
   const { send } = use(Sending)!;
   const now = useRef(call);
   useEffect(() => {
@@ -149,16 +149,14 @@ export function useShare(call: Call) {
       live.kind === 'here' ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
     send(id, at, picked);
   };
-}
+};
 
 // Sends again what you sent a call that didn't get there.
-export function useRetry() {
-  return use(Sending)!.retry;
-}
+export const useRetry = () => use(Sending)!.retry;
 
 // The call's audio levels, from where they are as the screen first draws, then as they change,
 // outside React's renders.
-export function useLevels(hear: (levels: Levels) => void) {
+export const useLevels = (hear: (levels: Levels) => void) => {
   const { session } = use(Session)!;
   const take = useEffectEvent(hear);
   useLayoutEffect(() => {
@@ -166,4 +164,4 @@ export function useLevels(hear: (levels: Levels) => void) {
     now();
     return session.subscribeLevels(now);
   }, [session]);
-}
+};

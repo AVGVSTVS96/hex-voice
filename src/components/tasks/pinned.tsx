@@ -20,7 +20,7 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
-export function Pinned({ text }: { text: string }) {
+export const Pinned = ({ text }: { text: string }) => {
   const sections = pinSections(text);
   return (
     <Column alignment="start" spacing={0}>
@@ -29,9 +29,9 @@ export function Pinned({ text }: { text: string }) {
       ))}
     </Column>
   );
-}
+};
 
-function Section({ section }: { section: PinSection }) {
+const Section = ({ section }: { section: PinSection }) => {
   const [open, setOpen] = useState(!section.folded);
   if (!open)
     return (
@@ -66,9 +66,9 @@ function Section({ section }: { section: PinSection }) {
       ))}
     </Column>
   );
-}
+};
 
-function Line({ line }: { line: PinLine }) {
+const Line = ({ line }: { line: PinLine }) => {
   const tries = useFailures();
   const selectable = useContext(Selectable);
   if (line.kind === 'code')
@@ -185,4 +185,4 @@ function Line({ line }: { line: PinLine }) {
       {url ? <Icon name="arrow.up.right" size={13} color={theme.tertiary} /> : null}
     </Row>
   );
-}
+};

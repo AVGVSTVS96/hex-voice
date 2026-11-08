@@ -58,7 +58,7 @@ const EMPTY: Record<Tab, string> = {
   quiet: 'Nothing is quiet',
 };
 
-export function ListPage({
+export const ListPage = ({
   open,
   stage,
   pages,
@@ -91,7 +91,7 @@ export function ListPage({
   onOpenTile: (tile: Tile) => void;
   onGoThrough: () => void;
   onCounts: (counts: Counts | undefined) => void;
-}) {
+}) => {
   const { back } = useChrome();
   const { query } = pages;
   const setQuery = (query: string | null) => pages.go({ to: 'search', query });
@@ -302,51 +302,47 @@ export function ListPage({
       {goThrough}
     </Column>
   );
-}
+};
 
 // While hex is slow or out of reach, what's shown is what it last sent, and says so quietly.
-function Behind() {
-  return (
-    <Text
-      variant="caption"
-      tone="tertiary"
-      modifiers={[
-        padding({ leading: metrics.list.inset, top: space[2], bottom: space[2] }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ...listRow(),
-      ]}
-    >
-      Last from hex · waiting for an update
-    </Text>
-  );
-}
+const Behind = () => (
+  <Text
+    variant="caption"
+    tone="tertiary"
+    modifiers={[
+      padding({ leading: metrics.list.inset, top: space[2], bottom: space[2] }),
+      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      ...listRow(),
+    ]}
+  >
+    Last from hex · waiting for an update
+  </Text>
+);
 
-function GoThrough({ foot, onPress }: { foot: number; onPress: () => void }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={metrics.pill.gap}
-      onPress={onPress}
-      modifiers={[
-        frame({ height: metrics.pill.height }),
-        frame({ maxWidth: metrics.readable }),
-        background(theme.fill),
-        clipShape('capsule'),
-        contentShape(shapes.capsule()),
-        padding({
-          leading: space[4],
-          trailing: space[4],
-          top: space[3],
-          bottom: Math.max(space[4], foot),
-        }),
-        frame({ maxWidth: Infinity }),
-        accessibilityLabel('Go through them with hex'),
-      ]}
-    >
-      <Spacer flexible />
-      <Icon name="bubble.left.and.bubble.right" size={metrics.symbol.bar} color={theme.text} />
-      <Text variant="headline">Go through them with hex</Text>
-      <Spacer flexible />
-    </Row>
-  );
-}
+const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => (
+  <Row
+    alignment="center"
+    spacing={metrics.pill.gap}
+    onPress={onPress}
+    modifiers={[
+      frame({ height: metrics.pill.height }),
+      frame({ maxWidth: metrics.readable }),
+      background(theme.fill),
+      clipShape('capsule'),
+      contentShape(shapes.capsule()),
+      padding({
+        leading: space[4],
+        trailing: space[4],
+        top: space[3],
+        bottom: Math.max(space[4], foot),
+      }),
+      frame({ maxWidth: Infinity }),
+      accessibilityLabel('Go through them with hex'),
+    ]}
+  >
+    <Spacer flexible />
+    <Icon name="bubble.left.and.bubble.right" size={metrics.symbol.bar} color={theme.text} />
+    <Text variant="headline">Go through them with hex</Text>
+    <Spacer flexible />
+  </Row>
+);

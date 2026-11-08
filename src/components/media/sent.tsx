@@ -9,7 +9,7 @@ import { metrics, radius, space, textOf } from '@/ui/tokens';
 // A photo or clip you sent a call, on your side of its words, sized from their width.
 // While hex takes it in, it shows dim with Sending under it; one that didn't get there says why,
 // and a tap sends it again. `id` is its entry's in the call's words.
-export function SentMedia({
+export const SentMedia = ({
   id,
   media,
   sending = false,
@@ -19,7 +19,7 @@ export function SentMedia({
   media: Shown;
   sending?: boolean;
   failed?: string;
-}) {
+}) => {
   const retry = useRetry();
   return (
     <View style={styles.you}>
@@ -35,7 +35,7 @@ export function SentMedia({
       ) : null}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   you: { alignSelf: 'stretch', alignItems: 'flex-end', gap: space[1] },

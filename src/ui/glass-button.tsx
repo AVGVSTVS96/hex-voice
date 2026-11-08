@@ -47,11 +47,11 @@ type Props = {
 };
 
 // Not buttonStyle('glass'): SwiftUI pads its label past the frame sizes the layout counts on.
-export function glass(
+export const glass = (
   shape: 'circle' | 'capsule',
   { prominent = false, disabled = false }: { prominent?: boolean; disabled?: boolean } = {},
-) {
-  return glassEffect({
+) =>
+  glassEffect({
     glass: {
       variant: 'regular',
       interactive: !disabled,
@@ -59,13 +59,12 @@ export function glass(
     },
     shape,
   });
-}
 
 // A button's symbol in Muse's thin line, the same weight on every button.
 const stroke = (size: number) => font({ size, weight: metrics.stroke });
 
 // A round button on glass. A `bare` one leaves the glass to the group it sits in.
-export function GlassButton({
+export const GlassButton = ({
   icon,
   label,
   onPress,
@@ -76,7 +75,7 @@ export function GlassButton({
   prominent = false,
   loading = false,
   bare = false,
-}: Props & { bare?: boolean }) {
+}: Props & { bare?: boolean }) => {
   // Chosen, the glass fills a little, as Muse marks the tab you're on; mint stays for what needs you.
   const color = prominent ? theme.onProminent : disabled ? theme.tertiary : theme.text;
   const look = face(size, selected);
@@ -104,37 +103,30 @@ export function GlassButton({
       )}
     </Button>
   );
-}
+};
 
 // A GlassButton that opens a menu of `children`.
-export function GlassMenu({
+export const GlassMenu = ({
   icon,
   label,
   children,
-}: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) {
-  return (
-    <Menu
-      label={<GlassFace icon={icon} />}
-      modifiers={[accessibilityLabel(label), glass('circle')]}
-    >
-      {children}
-    </Menu>
-  );
-}
+}: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) => (
+  <Menu label={<GlassFace icon={icon} />} modifiers={[accessibilityLabel(label), glass('circle')]}>
+    {children}
+  </Menu>
+);
 
 // A glass button's face, its symbol on its circle, for a control that brings its own glass.
-export function GlassFace({ icon, size = 'tool' }: { icon: Props['icon']; size?: GlassSize }) {
-  return (
-    <Image
-      systemName={symbols[icon]}
-      size={metrics.symbol.regular}
-      color={theme.text}
-      modifiers={[stroke(metrics.symbol.regular), ...face(size, false)]}
-    />
-  );
-}
+export const GlassFace = ({ icon, size = 'tool' }: { icon: Props['icon']; size?: GlassSize }) => (
+  <Image
+    systemName={symbols[icon]}
+    size={metrics.symbol.regular}
+    color={theme.text}
+    modifiers={[stroke(metrics.symbol.regular), ...face(size, false)]}
+  />
+);
 
-function face(size: GlassSize, selected: boolean) {
+const face = (size: GlassSize, selected: boolean) => {
   const diameter = metrics[size];
   return [
     frame({ width: diameter, height: diameter }),
@@ -143,14 +135,14 @@ function face(size: GlassSize, selected: boolean) {
       : []),
     contentShape(shapes.circle()),
   ];
-}
+};
 
 // A GlassButton that React Native lays out, in a Host of its own.
-export function HostedGlassButton(props: Props) {
+export const HostedGlassButton = (props: Props) => {
   const diameter = metrics[props.size ?? 'tool'];
   return (
     <Host matchContents style={{ width: diameter, height: diameter }}>
       <GlassButton {...props} />
     </Host>
   );
-}
+};

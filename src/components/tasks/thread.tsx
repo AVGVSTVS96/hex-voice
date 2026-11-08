@@ -33,7 +33,7 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space } from '@/ui/tokens';
 
-export function Messages({
+export const Messages = ({
   thread,
   chat,
   onOpen,
@@ -41,7 +41,7 @@ export function Messages({
   thread: TaskRow;
   chat: Chat;
   onOpen: () => void;
-}) {
+}) => {
   const last = chat.turns.slice(-2);
   return (
     <Column alignment="start" spacing={0}>
@@ -71,13 +71,13 @@ export function Messages({
       </Column>
     </Column>
   );
-}
+};
 
 // Its current step shows only while its session is in a turn: a thread can stay at work between
 // them, waiting on work it handed off, with nothing running to show or stop. `beside` its topic's
 // page, that page carries the topic's name and the way out to its app, so this one is headed only
 // "Messages" and holds the conversation and its composer.
-export function ThreadPage({
+export const ThreadPage = ({
   thread,
   beside = false,
   chat,
@@ -106,7 +106,7 @@ export function ThreadPage({
   onTalk: () => void;
   // Why the last Stop didn't go through.
   failed?: string;
-}) {
+}) => {
   const field = useField();
   const place = PLACES[placeOf(thread.app)];
   const running = thread.running;
@@ -224,11 +224,11 @@ export function ThreadPage({
       )}
     </Column>
   );
-}
+};
 
 // Send turns into Stop while the thread works and you've nothing typed, though not before what you
 // just sent reaches it, so a second tap on Send can't stop the turn you steered.
-function Composer({
+const Composer = ({
   field: input,
   draft,
   title,
@@ -248,7 +248,7 @@ function Composer({
   onSend: (text: string, media: Picked[]) => void;
   onStop: () => void;
   onTalk: () => void;
-}) {
+}) => {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
   const [media, setMedia] = useState<Picked[]>([]);
@@ -379,49 +379,45 @@ function Composer({
       {typing ? null : <Talk about={title} alone={false} onPress={onTalk} />}
     </Row>
   );
-}
+};
 
 // A page's foot: its composer, or the field that opens one, and Talk it through.
-export function Foot({ foot, children }: { foot: number; children: ReactNode }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={space[2]}
-      modifiers={[
-        padding({
-          leading: space[4],
-          trailing: space[4],
-          top: space[2],
-          bottom: Math.max(space[4], foot),
-        }),
-        frame({ maxWidth: Infinity }),
-      ]}
-    >
-      {children}
-    </Row>
-  );
-}
+export const Foot = ({ foot, children }: { foot: number; children: ReactNode }) => (
+  <Row
+    alignment="center"
+    spacing={space[2]}
+    modifiers={[
+      padding({
+        leading: space[4],
+        trailing: space[4],
+        top: space[2],
+        bottom: Math.max(space[4], foot),
+      }),
+      frame({ maxWidth: Infinity }),
+    ]}
+  >
+    {children}
+  </Row>
+);
 
 // The composer's field as a way into the conversation, where its messages aren't on screen.
-export function WriteField({ title, onPress }: { title: string; onPress: () => void }) {
-  return (
-    <Row
-      alignment="center"
-      spacing={0}
-      onPress={onPress}
-      testID="thread-write"
-      modifiers={[
-        padding({ leading: space[5], trailing: space[5] }),
-        frame({ height: metrics.field }),
-        frame({ maxWidth: Infinity }),
-        background(theme.surface),
-        clipShape('roundedRectangle', radius.field),
-        contentShape(shapes.rectangle()),
-        accessibilityLabel(`Message ${title}`),
-      ]}
-    >
-      <Text tone="tertiary">{`Message ${title}`}</Text>
-      <Spacer flexible />
-    </Row>
-  );
-}
+export const WriteField = ({ title, onPress }: { title: string; onPress: () => void }) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    onPress={onPress}
+    testID="thread-write"
+    modifiers={[
+      padding({ leading: space[5], trailing: space[5] }),
+      frame({ height: metrics.field }),
+      frame({ maxWidth: Infinity }),
+      background(theme.surface),
+      clipShape('roundedRectangle', radius.field),
+      contentShape(shapes.rectangle()),
+      accessibilityLabel(`Message ${title}`),
+    ]}
+  >
+    <Text tone="tertiary">{`Message ${title}`}</Text>
+    <Spacer flexible />
+  </Row>
+);

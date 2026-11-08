@@ -33,7 +33,7 @@ type Colors = Pick<MarkdownProps, 'color' | 'secondary' | 'edge' | 'surface' | '
 const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Markdown', 'MarkdownView') : null;
 
-export function MarkdownView({
+export const MarkdownView = ({
   modifiers,
   color,
   secondary,
@@ -42,7 +42,7 @@ export function MarkdownView({
   accent,
   onLink,
   ...rest
-}: MarkdownProps) {
+}: MarkdownProps) => {
   if (!Native) return null;
   return (
     <Native
@@ -57,4 +57,4 @@ export function MarkdownView({
       {...rest}
     />
   );
-}
+};

@@ -22,32 +22,28 @@ import type { LiveSnapshot, TranscriptEntry } from '../src/live/types';
 
 const words: TranscriptEntry[] = [{ id: 'user-0', role: 'user', text: 'Hi hex', startMs: 0 }];
 
-function session(change: Partial<LiveSnapshot> = {}): LiveSnapshot {
-  return {
-    status: 'idle',
-    error: null,
-    muted: false,
-    elapsedSeconds: 0,
-    transcript: [],
-    callId: null,
-    ending: null,
-    interrupted: false,
-    ...change,
-  };
-}
+const session = (change: Partial<LiveSnapshot> = {}): LiveSnapshot => ({
+  status: 'idle',
+  error: null,
+  muted: false,
+  elapsedSeconds: 0,
+  transcript: [],
+  callId: null,
+  ending: null,
+  interrupted: false,
+  ...change,
+});
 
 const sess = CallId.parse('sess_1');
 
-function record(change: Partial<CallRecord> = {}): CallRecord {
-  return {
-    id: CallId.parse('phone_1'),
-    from: 'phone-out',
-    started: '2026-11-03T08:00:00.000Z',
-    turns: [{ who: 'voice', at: 0, text: 'Hey, it is hex' }],
-    tasks: [],
-    ...change,
-  };
-}
+const record = (change: Partial<CallRecord> = {}): CallRecord => ({
+  id: CallId.parse('phone_1'),
+  from: 'phone-out',
+  started: '2026-11-03T08:00:00.000Z',
+  turns: [{ who: 'voice', at: 0, text: 'Hey, it is hex' }],
+  tasks: [],
+  ...change,
+});
 
 const nobody = { leaving: false };
 const live = (change: Partial<LiveSnapshot> = {}) =>

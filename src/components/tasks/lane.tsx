@@ -6,7 +6,7 @@ import { Lane as Native } from '../../../modules/rows';
 
 // A project's last week at a glance, across the row: blue where hex worked, red where a run failed.
 // A quiet project is the line alone.
-export function Lane({ tracks, now }: { tracks: Turn[][]; now: number }) {
+export const Lane = ({ tracks, now }: { tracks: Turn[][]; now: number }) => {
   const { spans, failures } = laneOf(tracks, now);
   return (
     <Native
@@ -17,4 +17,4 @@ export function Lane({ tracks, now }: { tracks: Turn[][]; now: number }) {
       failure={theme.danger}
     />
   );
-}
+};

@@ -97,35 +97,27 @@ export type Stage = {
   add: Place;
 };
 
-export function stageLayout(box: Box): Stage {
+export const stageLayout = (box: Box): Stage => {
   const { fold } = box;
   if (box.regular && !fold && !box.controls) return pad(box);
   if (fold && 'y' in fold) return stacked(box, fold.y);
   if (box.regular && box.width > box.height) return split(box, fold?.x);
   return single(box);
-}
+};
 
 // Where the content starts: under the status items, and under a bar across the top.
-export function topOf({ safe, bar }: Box) {
-  return Math.max(safe.top, bar);
-}
+export const topOf = ({ safe, bar }: Box) => Math.max(safe.top, bar);
 
 // How far the footer keeps above the box's foot, clear of the home indicator.
-export function footOf({ safe }: Box) {
-  return Math.max(safe.bottom, 20) + 14;
-}
+export const footOf = ({ safe }: Box) => Math.max(safe.bottom, 20) + 14;
 
 // The +'s spot at the room's leading edge, centered `y` down.
-function leading(y: number): Place {
-  return { x: metrics.gutter + metrics.docked / 2, y };
-}
+const leading = (y: number): Place => ({ x: metrics.gutter + metrics.docked / 2, y });
 
 // The +'s spot beside the transcript button, where the orb docks while the words show.
-function besideDock({ x, y }: Place): Place {
-  return { x: x + metrics.docked + GAP, y };
-}
+const besideDock = ({ x, y }: Place): Place => ({ x: x + metrics.docked + GAP, y });
 
-function single(box: Box): Stage {
+const single = (box: Box): Stage => {
   const { width: across, height, safe, controls } = box;
   const top = topOf(box);
   const bottomInset = footOf(box);
@@ -183,7 +175,7 @@ function single(box: Box): Stage {
     footer: { ...inset, bottom: height - dock + metrics.docked / 2 + 18 },
     calls: { width: Math.min(across - PEEK, LIST), place: 'slide' },
   };
-}
+};
 
 // iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
 // the whole screen when none is. With nothing open the orb is a third of the short side, beside
@@ -192,7 +184,7 @@ function single(box: Box): Stage {
 // before mute with the gap the buttons keep, so the header holds only the toolbar and the words
 // keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
 // narrow to read, so the call keeps CALL.
-function pad(box: Box): Stage {
+const pad = (box: Box): Stage => {
   const { width, height } = box;
   const bottomInset = footOf(box);
   const landscape = width > height;
@@ -283,26 +275,26 @@ function pad(box: Box): Stage {
     pulls: false,
     add: leading(foot),
   };
-}
+};
 
 // Calls sits beside the call only where that leaves the call a page; otherwise it slides over all
 // but a peek of it. Starting `below` a band, it leaves the band whole either way.
-export function callsBeside(width: number, below?: number): CallsPlacement {
+export const callsBeside = (width: number, below?: number): CallsPlacement => {
   const placement: CallsPlacement =
     width - LIST >= breakpoint.page
       ? { width: LIST, place: 'beside' }
       : { width: width - PEEK, place: 'slide' };
   return below === undefined ? placement : { ...placement, below };
-}
+};
 
 // The words' measure, centered in the room between `from` and `to`.
-function measure(from: number, to: number): Span {
+const measure = (from: number, to: number): Span => {
   const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
   return { x: from + (to - from - width) / 2, width };
-}
+};
 
 // iPhone Duo open: the orb on the page before the fold at `fold`, the words on the page after it.
-function split(box: Box, fold?: number): Stage {
+const split = (box: Box, fold?: number): Stage => {
   const { width: across, height, safe, controls } = box;
   const bottomInset = footOf(box);
   const pane = fold ?? across / 2;
@@ -332,10 +324,10 @@ function split(box: Box, fold?: number): Stage {
     pulls: false,
     add: leading(height - (controls ? safe.bottom + 8 : bottomInset) - metrics.docked / 2),
   };
-}
+};
 
 // iPhone Duo open on its side: the orb above the fold at `fold`, the words below it.
-function stacked(box: Box, fold: number): Stage {
+const stacked = (box: Box, fold: number): Stage => {
   const base = single(box);
   const top = topOf(box);
   const size = Math.min(base.orb.size, (fold - top) * 0.78);
@@ -351,16 +343,16 @@ function stacked(box: Box, fold: number): Stage {
     pulls: false,
     add: leading(fold - GAP - metrics.docked / 2),
   };
-}
+};
 
 // Where the call's words go on the page before the fold, beside Tasks: upright, at the words' own
 // height; on its side, from under the band down to the fold, so they and the agent line beneath
 // them rise until that line ends a gap short of it.
-export function wordsBefore(
+export const wordsBefore = (
   box: Box,
   { words, agent }: Stage,
   fold: Fold,
-): Words & { raise: number } {
+): Words & { raise: number } => {
   if ('x' in fold) {
     const x = metrics.gutter;
     const width = Math.min(fold.x - OFF_FOLD - x, WORDS_BESIDE);
@@ -368,4 +360,4 @@ export function wordsBefore(
   }
   const raise = box.height - fold.y + OFF_FOLD - agent.bottom;
   return { ...words, top: topOf(box) + 12, raise };
-}
+};

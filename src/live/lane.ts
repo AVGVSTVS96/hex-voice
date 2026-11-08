@@ -9,7 +9,7 @@ export type Lane = { spans: { from: number; to: number }[]; failures: number[] }
 const JOIN = 0.008;
 export const APART = 0.012;
 
-export function laneOf(tracks: Turn[][], now: number): Lane {
+export const laneOf = (tracks: Turn[][], now: number): Lane => {
   const x = (at: string) => laneX(Date.parse(at), now, 1);
   const spans: Lane['spans'] = [];
   const failures: number[] = [];
@@ -20,9 +20,9 @@ export function laneOf(tracks: Turn[][], now: number): Lane {
       else if (turn.state === 'failed') failures.push(x(turn.at));
     });
   return { spans: merged(spans), failures: apart(failures) };
-}
+};
 
-function merged(spans: Lane['spans']) {
+const merged = (spans: Lane['spans']) => {
   const out: Lane['spans'] = [];
   for (const span of [...spans].sort((a, b) => a.from - b.from)) {
     const last = out.at(-1);
@@ -30,13 +30,13 @@ function merged(spans: Lane['spans']) {
     else out.push({ ...span });
   }
   return out;
-}
+};
 
-function apart(xs: number[]) {
+const apart = (xs: number[]) => {
   const out: number[] = [];
   for (const x of [...xs].sort((a, b) => b - a)) {
     const last = out.at(-1);
     if (last === undefined || last - x >= APART) out.push(x);
   }
   return out;
-}
+};

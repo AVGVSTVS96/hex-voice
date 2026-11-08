@@ -6,33 +6,33 @@ import { Settings } from 'react-native';
 // its draft already in it.
 const KEY = 'HexDrafts';
 
-function saved(): Record<string, string> {
+const saved = (): Record<string, string> => {
   const all: unknown = Settings.get(KEY);
   return all && typeof all === 'object' ? (all as Record<string, string>) : {};
-}
+};
 
-export function keepDraft(where: string, text: string) {
+export const keepDraft = (where: string, text: string) => {
   const { [where]: _, ...rest } = saved();
   Settings.set({ [KEY]: text.trim() ? { ...rest, [where]: text } : rest });
-}
+};
 
 // Once what you typed has gone, its draft goes too, unless you've typed more since.
-export function sentDraft(where: string, text: string) {
+export const sentDraft = (where: string, text: string) => {
   if (saved()[where]?.trim() === text.trim()) keepDraft(where, '');
-}
+};
 
 // What's typed somewhere that's since been listed under another name, like an ask hex's check took
 // up, moves to where it is now.
-export function carryDraft(where: string, from: string[]) {
+export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
   if (!old) return all[where] ?? '';
   const { [old]: text, ...rest } = all;
   Settings.set({ [KEY]: { ...rest, [where]: text } });
   return text!;
-}
+};
 
-export function useDraft(where: string) {
+export const useDraft = (where: string) => {
   const [first] = useState(() => saved()[where] ?? '');
   return { first, keep: (text: string) => keepDraft(where, text) };
-}
+};

@@ -25,7 +25,7 @@ const widget = 'src/live/call-activity.tsx';
 // halved to center one on another.
 const token = /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\)|hairline)/g;
 
-function raw(value: string, constants: Map<string, string>, strict: boolean): boolean {
+const raw = (value: string, constants: Map<string, string>, strict: boolean): boolean => {
   const rest = value.replace(token, '').replace(/\/\s*2\b/g, '');
   if (strict && rest.trim()) return true;
   if ([...rest.matchAll(/(?<![\w$.])\d*\.?\d+/g)].some(([number]) => Number(number) !== 0))
@@ -34,9 +34,9 @@ function raw(value: string, constants: Map<string, string>, strict: boolean): bo
     const defined = constants.get(name);
     return defined === undefined || raw(defined, constants, false);
   });
-}
+};
 
-function rawLooks(file: string) {
+const rawLooks = (file: string) => {
   if (!existsSync(file)) return [];
   const source = readFileSync(file, 'utf8');
   const constants = new Map(
@@ -86,7 +86,7 @@ function rawLooks(file: string) {
     .filter(({ value }) => !/^(?:number|string)\b/.test(value.trim()))
     .filter(({ value, strict }) => raw(value, constants, strict))
     .map(({ found }) => `${file}: ${found.trim()}`);
-}
+};
 
 test('every look comes from the tokens, so a component looks the same wherever it sits', () => {
   const found = files('src')

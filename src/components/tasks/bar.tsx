@@ -28,7 +28,7 @@ export const useChrome = () => useContext(PageChrome);
 
 export type Door = { place: Place; onPress: () => void };
 
-export function Header({
+export const Header = ({
   title,
   subtitle,
   door,
@@ -36,7 +36,7 @@ export function Header({
   title: string;
   subtitle: string;
   door?: Door;
-}) {
+}) => {
   const { back } = useChrome();
   return (
     <PageBar
@@ -47,11 +47,11 @@ export function Header({
       trailing={door ? <DoorPill door={door} /> : undefined}
     />
   );
-}
+};
 
 // A page's bar: its way back, its name and a line under it, and what it leads to. A `large` name is
 // the list's own, at title size, as Muse names its pages.
-export function PageBar({
+export const PageBar = ({
   title,
   subtitle,
   large = false,
@@ -63,7 +63,7 @@ export function PageBar({
   large?: boolean;
   back?: Back;
   trailing?: ReactNode;
-}) {
+}) => {
   const backButton = back ? <BackButton back={back} /> : null;
   return (
     <Row
@@ -98,29 +98,25 @@ export function PageBar({
       {trailing}
     </Row>
   );
-}
+};
 
-export function BackButton({ back }: { back: Back }) {
-  return (
-    <BarButton shape="circle" label={`Back to ${back.to}`} testID="back" onPress={back.onPress}>
-      <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
-    </BarButton>
-  );
-}
+export const BackButton = ({ back }: { back: Back }) => (
+  <BarButton shape="circle" label={`Back to ${back.to}`} testID="back" onPress={back.onPress}>
+    <Icon name="chevron.left" size={metrics.symbol.bar} color={theme.text} />
+  </BarButton>
+);
 
 // The way out to the app a page lives in: its place's tile in a glass circle, so the title keeps
 // the bar's width.
-function DoorPill({ door }: { door: Door }) {
-  return (
-    <BarButton shape="circle" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
-      <PlaceTile place={door.place} size={24} />
-    </BarButton>
-  );
-}
+const DoorPill = ({ door }: { door: Door }) => (
+  <BarButton shape="circle" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
+    <PlaceTile place={door.place} size={24} />
+  </BarButton>
+);
 
 // Talk a topic through with hex: a secondary glass button at a page's foot, a circle beside the
 // composer or named on its own. Its own glyph, so it never reads as the call's button beside it.
-export function Talk({
+export const Talk = ({
   about,
   alone,
   onPress,
@@ -128,26 +124,24 @@ export function Talk({
   about: string;
   alone: boolean;
   onPress: () => void;
-}) {
-  return (
-    <BarButton
-      shape={alone ? 'capsule' : 'circle'}
-      label={`Talk ${about} through with hex`}
-      testID="talk-it-through"
-      onPress={onPress}
-    >
-      <Icon name="phone.and.waveform" size={metrics.symbol.bar} color={theme.text} />
-      {alone ? (
-        <Text numberOfLines={1} variant="body" weight="medium">
-          Talk it through
-        </Text>
-      ) : null}
-    </BarButton>
-  );
-}
+}) => (
+  <BarButton
+    shape={alone ? 'capsule' : 'circle'}
+    label={`Talk ${about} through with hex`}
+    testID="talk-it-through"
+    onPress={onPress}
+  >
+    <Icon name="phone.and.waveform" size={metrics.symbol.bar} color={theme.text} />
+    {alone ? (
+      <Text numberOfLines={1} variant="body" weight="medium">
+        Talk it through
+      </Text>
+    ) : null}
+  </BarButton>
+);
 
 // Not buttonStyle('glass'): its padding grows each control past 44pt by a different amount.
-export function BarButton({
+export const BarButton = ({
   shape,
   label,
   testID,
@@ -161,36 +155,34 @@ export function BarButton({
   disabled?: boolean;
   onPress: () => void;
   children: ReactNode;
-}) {
-  return (
-    <Button
-      onPress={onPress}
-      testID={testID}
+}) => (
+  <Button
+    onPress={onPress}
+    testID={testID}
+    modifiers={[
+      buttonStyle('plain'),
+      ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),
+      accessibilityLabel(label),
+    ]}
+  >
+    <Row
+      alignment="center"
+      spacing={shape === 'circle' ? 0 : metrics.bar.capsule.gap}
       modifiers={[
-        buttonStyle('plain'),
-        ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),
-        accessibilityLabel(label),
+        ...(shape === 'circle'
+          ? [frame({ width: metrics.bar.button, height: metrics.bar.button })]
+          : [
+              padding({
+                leading: metrics.bar.capsule.leading,
+                trailing: metrics.bar.capsule.trailing,
+              }),
+              frame({ height: metrics.bar.button }),
+            ]),
+        glass(shape),
+        contentShape(shape === 'circle' ? shapes.circle() : shapes.capsule()),
       ]}
     >
-      <Row
-        alignment="center"
-        spacing={shape === 'circle' ? 0 : metrics.bar.capsule.gap}
-        modifiers={[
-          ...(shape === 'circle'
-            ? [frame({ width: metrics.bar.button, height: metrics.bar.button })]
-            : [
-                padding({
-                  leading: metrics.bar.capsule.leading,
-                  trailing: metrics.bar.capsule.trailing,
-                }),
-                frame({ height: metrics.bar.button }),
-              ]),
-          glass(shape),
-          contentShape(shape === 'circle' ? shapes.circle() : shapes.capsule()),
-        ]}
-      >
-        {children}
-      </Row>
-    </Button>
-  );
-}
+      {children}
+    </Row>
+  </Button>
+);

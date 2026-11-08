@@ -11,7 +11,7 @@ export type Side = 'first' | 'second';
 // tall, one over the other where it's taller. The half has its own safe area, and the pose reports
 // the fold and the cameras in its coordinates, as iOS does for a Split View window. iOS's own Split
 // View can't be started on the Duo simulator, so this is how scripts/duo sees it.
-export function SplitView({ side, children }: { side: Side; children: ReactNode }) {
+export const SplitView = ({ side, children }: { side: Side; children: ReactNode }) => {
   const [across, setAcross] = useState(true);
   const other = <View style={styles.other} />;
   return (
@@ -26,7 +26,7 @@ export function SplitView({ side, children }: { side: Side; children: ReactNode 
       {side === 'first' && other}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },

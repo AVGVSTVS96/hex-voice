@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // The time now, moving each second while `ticking`, so a running step counts up as it runs.
-export function useNow(ticking: boolean) {
+export const useNow = (ticking: boolean) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (!ticking) return;
@@ -10,4 +10,4 @@ export function useNow(ticking: boolean) {
     return () => clearInterval(timer);
   }, [ticking]);
   return now;
-}
+};

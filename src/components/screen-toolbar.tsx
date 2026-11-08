@@ -31,7 +31,7 @@ type Props = {
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
 // side column with the two set apart, closer where the column is short. On iPhone Duo, Back sits
 // next to the status items: first down the column, under them, and last across the band, before them.
-export function ScreenToolbar({
+export const ScreenToolbar = ({
   axis,
   onLayout,
   gaps = 'regular',
@@ -44,7 +44,7 @@ export function ScreenToolbar({
   onCalls,
   onTasks,
   onSettings,
-}: Props) {
+}: Props) => {
   const column = metrics.toolbar[gaps];
   const gap = axis === 'row' ? metrics.toolbar.row : column.group;
   const Group = axis === 'row' ? HStack : VStack;
@@ -133,7 +133,7 @@ export function ScreenToolbar({
       )}
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   row: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between' },

@@ -23,18 +23,16 @@ import { glass } from '@/ui/glass-button';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, space } from '@/ui/tokens';
 
-export function SearchButton({ onPress }: { onPress: () => void }) {
-  return (
-    <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
-      <Icon name="magnifyingglass" size={metrics.symbol.bar} color={theme.text} />
-    </BarButton>
-  );
-}
+export const SearchButton = ({ onPress }: { onPress: () => void }) => (
+  <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
+    <Icon name="magnifyingglass" size={metrics.symbol.bar} color={theme.text} />
+  </BarButton>
+);
 
 // All and the stages as capsules, the chosen one filled, as Muse marks the tab you're on, all five
 // always in sight: on the narrowest page their words tighten a little rather than run off. Each
 // stage counts what it holds, and only a count of what needs you is mint.
-export function Tabs({
+export const Tabs = ({
   counts,
   stage,
   unknown,
@@ -54,97 +52,95 @@ export function Tabs({
   back?: Back;
   onSearch?: () => void;
   modifiers?: ModifierConfig[];
-}) {
-  return (
+}) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    modifiers={[
+      ...modifiers,
+      padding({ top: onSearch ? space[2] : 0, bottom: space[2] }),
+      frame({ maxWidth: Infinity }),
+    ]}
+  >
+    {title ? (
+      <Row
+        alignment="center"
+        spacing={space[3]}
+        modifiers={[padding({ leading: metrics.list.inset - space[1], trailing: space[2] })]}
+      >
+        {back ? <BackButton back={back} /> : null}
+        <Text numberOfLines={1} variant="title">
+          {title}
+        </Text>
+      </Row>
+    ) : null}
     <Row
       alignment="center"
       spacing={0}
       modifiers={[
-        ...modifiers,
-        padding({ top: onSearch ? space[2] : 0, bottom: space[2] }),
-        frame({ maxWidth: Infinity }),
+        padding({
+          leading: metrics.list.inset - metrics.tabs.pad,
+          trailing: metrics.list.inset - metrics.tabs.pad,
+        }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
       ]}
     >
-      {title ? (
-        <Row
-          alignment="center"
-          spacing={space[3]}
-          modifiers={[padding({ leading: metrics.list.inset - space[1], trailing: space[2] })]}
-        >
-          {back ? <BackButton back={back} /> : null}
-          <Text numberOfLines={1} variant="title">
-            {title}
-          </Text>
-        </Row>
-      ) : null}
+      {TABS.map(({ key, title }) => {
+        const on = key === stage;
+        const count = key === 'all' ? undefined : counts[key];
+        const needs = !unknown && key === 'needs' && !!count;
+        return (
+          <Row
+            key={key}
+            alignment="center"
+            spacing={metrics.tabs.gap}
+            onPress={() => onChange(key)}
+            modifiers={[
+              padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
+              frame({ height: metrics.tabs.height }),
+              ...(on ? [background(theme.card)] : []),
+              clipShape('capsule'),
+              contentShape(shapes.capsule()),
+              accessibilityLabel(unknown || count === undefined ? title : `${title}, ${count}`),
+              ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
+            ]}
+          >
+            <Text
+              numberOfLines={1}
+              variant="caption"
+              weight={on ? 'medium' : 'regular'}
+              tone={on ? 'text' : 'secondary'}
+              modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
+            >
+              {title}
+            </Text>
+            {count === undefined ? null : (
+              <Text
+                variant="caption"
+                weight={needs ? 'medium' : 'regular'}
+                tone={needs ? 'accent' : 'tertiary'}
+                modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
+              >
+                {unknown ? '–' : String(count)}
+              </Text>
+            )}
+          </Row>
+        );
+      })}
+    </Row>
+    {onSearch ? (
       <Row
         alignment="center"
         spacing={0}
-        modifiers={[
-          padding({
-            leading: metrics.list.inset - metrics.tabs.pad,
-            trailing: metrics.list.inset - metrics.tabs.pad,
-          }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-        ]}
+        modifiers={[padding({ trailing: metrics.list.inset - space[1] })]}
       >
-        {TABS.map(({ key, title }) => {
-          const on = key === stage;
-          const count = key === 'all' ? undefined : counts[key];
-          const needs = !unknown && key === 'needs' && !!count;
-          return (
-            <Row
-              key={key}
-              alignment="center"
-              spacing={metrics.tabs.gap}
-              onPress={() => onChange(key)}
-              modifiers={[
-                padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
-                frame({ height: metrics.tabs.height }),
-                ...(on ? [background(theme.card)] : []),
-                clipShape('capsule'),
-                contentShape(shapes.capsule()),
-                accessibilityLabel(unknown || count === undefined ? title : `${title}, ${count}`),
-                ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                variant="caption"
-                weight={on ? 'medium' : 'regular'}
-                tone={on ? 'text' : 'secondary'}
-                modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
-              >
-                {title}
-              </Text>
-              {count === undefined ? null : (
-                <Text
-                  variant="caption"
-                  weight={needs ? 'medium' : 'regular'}
-                  tone={needs ? 'accent' : 'tertiary'}
-                  modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
-                >
-                  {unknown ? '–' : String(count)}
-                </Text>
-              )}
-            </Row>
-          );
-        })}
+        <SearchButton onPress={onSearch} />
       </Row>
-      {onSearch ? (
-        <Row
-          alignment="center"
-          spacing={0}
-          modifiers={[padding({ trailing: metrics.list.inset - space[1] })]}
-        >
-          <SearchButton onPress={onSearch} />
-        </Row>
-      ) : null}
-    </Row>
-  );
-}
+    ) : null}
+  </Row>
+);
 
-export function Search({
+export const Search = ({
   field,
   query,
   onChange,
@@ -154,7 +150,7 @@ export function Search({
   query: string;
   onChange: (query: string) => void;
   onCancel: () => void;
-}) {
+}) => {
   const typing = useContext(Typing);
   return (
     <Row
@@ -207,4 +203,4 @@ export function Search({
       </BarButton>
     </Row>
   );
-}
+};

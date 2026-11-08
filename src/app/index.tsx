@@ -9,7 +9,7 @@ import { SplitView } from '@/screens/split-view';
 // one of its tabs, ?tasks=<topic> for a topic, ?open=settings or ?open=calls for those sheets, ?report=pose to write the pose where
 // checks read it, ?split=first or second to stand in for Split View. ?demo=call, a pretend call, is
 // read where the call lives (src/app/_layout.tsx).
-export default function Index() {
+const Index = () => {
   const { tasks, stage, open, report, split } = useLocalSearchParams<{
     tasks?: string;
     stage?: string;
@@ -38,4 +38,6 @@ export default function Index() {
   ) : (
     screen
   );
-}
+};
+
+export default Index;

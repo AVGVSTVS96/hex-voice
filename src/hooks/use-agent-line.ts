@@ -13,7 +13,7 @@ type Live = { call: CallId | null; tasks: AgentTask[]; cards: CallCard[] };
 // its agents are doing, from the voice plugin's /activity long poll: it answers the moment a call
 // starts or ends, or a task or an agent's step changes, so the line moves with the agent. The same
 // answer carries the asks hex put on screen, for the transcript.
-export function useAgentLine(haptics: boolean) {
+export const useAgentLine = (haptics: boolean) => {
   const [live, setLive] = useState<Live>({ call: null, tasks: [], cards: [] });
   const [finished, setFinished] = useState<AgentTask>();
   const seen = useRef<AgentTask[]>([]);
@@ -37,4 +37,4 @@ export function useAgentLine(haptics: boolean) {
   }, [finished]);
 
   return { call: live.call, line: agentLine(live.tasks, finished), cards: live.cards };
-}
+};

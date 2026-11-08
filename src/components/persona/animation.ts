@@ -26,6 +26,5 @@ export const PERSONA_MODELS: Record<PersonaVariant, { dynamicColor: boolean }> =
   command: { dynamicColor: true },
 };
 
-export function personaInputValues(state: PersonaState) {
-  return PERSONA_INPUTS.map((name) => ({ name, value: name === state }));
-}
+export const personaInputValues = (state: PersonaState) =>
+  PERSONA_INPUTS.map((name) => ({ name, value: name === state }));

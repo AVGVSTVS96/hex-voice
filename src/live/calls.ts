@@ -129,25 +129,22 @@ export const ENDINGS: Record<CallEnding, { line: string; short?: string; bad?: t
   busy: { line: 'Line busy', short: 'Busy' },
 };
 
-export function callName(call: Pick<CallSummary, 'title' | 'preview'>) {
-  return call.title || call.preview || 'A quiet call';
-}
+export const callName = (call: Pick<CallSummary, 'title' | 'preview'>) =>
+  call.title || call.preview || 'A quiet call';
 
 // hex names a call within seconds of it ending; past ten minutes it isn't coming.
-export function isNaming(call: CallSummary, now = Date.now()) {
-  return !call.title && !!call.ended && now - Date.parse(call.ended) < 10 * 60_000;
-}
+export const isNaming = (call: CallSummary, now = Date.now()) =>
+  !call.title && !!call.ended && now - Date.parse(call.ended) < 10 * 60_000;
 
-export function callDetails(call: CallSummary) {
+export const callDetails = (call: CallSummary) => {
   const tasks = call.tasks === 1 ? '1 task' : call.tasks ? `${call.tasks} tasks` : '';
   return [callLength(call.seconds), isNaming(call) ? 'naming…' : tasks].filter(Boolean).join(' · ');
-}
+};
 
-export function callWhen(call: CallSummary, live: boolean) {
-  return `${dayLabel(call.started)}, ${timeOfDay(call.started)} · ${live ? 'Live now' : callLength(call.seconds)}`;
-}
+export const callWhen = (call: CallSummary, live: boolean) =>
+  `${dayLabel(call.started)}, ${timeOfDay(call.started)} · ${live ? 'Live now' : callLength(call.seconds)}`;
 
-export function transcriptText(call: CallRecord) {
+export const transcriptText = (call: CallRecord) => {
   const wrapUp = [
     call.summary,
     ...(call.waiting?.length
@@ -162,15 +159,15 @@ export function transcriptText(call: CallRecord) {
         : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
   );
   return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
-}
+};
 
 // A call's turns and what you sent it as the live transcript shows them, each keyed by where it
 // starts so it keeps its place as its words grow.
-export function liveEntries({
+export const liveEntries = ({
   turns,
   moments = [],
-}: Pick<CallRecord, 'turns' | 'moments'>): TranscriptEntry[] {
-  return [
+}: Pick<CallRecord, 'turns' | 'moments'>): TranscriptEntry[] =>
+  [
     ...turns.map(({ who, at, text }) => ({
       id: `${who} ${at}`,
       role: who === 'you' ? ('user' as const) : ('assistant' as const),
@@ -184,41 +181,36 @@ export function liveEntries({
         : [];
     }),
   ].sort((a, b) => a.startMs - b.startMs);
-}
 
 // The photo or clip a moment says you sent.
-function sharedOf({ kind, media }: CallMark): Shared | undefined {
-  return media && (kind === 'photo' || kind === 'video') ? { id: media, kind } : undefined;
-}
+const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
+  media && (kind === 'photo' || kind === 'video') ? { id: media, kind } : undefined;
 
-export function endedSeconds({ started, ended }: Pick<CallSummary, 'started' | 'ended'>) {
-  return ended ? Math.round((Date.parse(ended) - Date.parse(started)) / 1000) : 0;
-}
+export const endedSeconds = ({ started, ended }: Pick<CallSummary, 'started' | 'ended'>) =>
+  ended ? Math.round((Date.parse(ended) - Date.parse(started)) / 1000) : 0;
 
-export function callLength(seconds: number) {
+export const callLength = (seconds: number) => {
   if (seconds < 60) return `${Math.max(seconds, 1)} sec`;
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes} min`;
   return `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
-}
+};
 
-export function clock(ms: number) {
+export const clock = (ms: number) => {
   const seconds = Math.floor(ms / 1000);
   const rest = String(seconds % 60).padStart(2, '0');
   return seconds < 3600
     ? `${Math.floor(seconds / 60)}:${rest}`
     : `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${rest}`;
-}
+};
 
-export function timeOfDay(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
+export const timeOfDay = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-function dayStart(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-}
+const dayStart = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
-export function dayLabel(iso: string, now = new Date()) {
+export const dayLabel = (iso: string, now = new Date()) => {
   const date = new Date(iso);
   const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000);
   if (days === 0) return 'Today';
@@ -229,17 +221,17 @@ export function dayLabel(iso: string, now = new Date()) {
     day: 'numeric',
     year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
   });
-}
+};
 
 // A call back among the others, newest first, where it sat before.
-export function putBack(calls: CallSummary[], call: CallSummary) {
+export const putBack = (calls: CallSummary[], call: CallSummary) => {
   const at = calls.findIndex((one) => one.started < call.started);
   return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
-}
+};
 
 // Calls under three heads at most, so a day's name doesn't head nearly every call: today,
 // yesterday, and everything before, each newest first, as hex sends them.
-export function byDay(calls: CallSummary[], now = new Date()) {
+export const byDay = (calls: CallSummary[], now = new Date()) => {
   const days: { label: string; calls: CallSummary[] }[] = [];
   for (const call of calls) {
     const label = periodOf(call.started, now);
@@ -247,19 +239,19 @@ export function byDay(calls: CallSummary[], now = new Date()) {
     else days.push({ label, calls: [call] });
   }
   return days;
-}
+};
 
-function periodOf(iso: string, now: Date) {
+const periodOf = (iso: string, now: Date) => {
   const days = daysAgo(iso, now);
   return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : 'Earlier';
-}
+};
 
 const daysAgo = (iso: string, now: Date) =>
   Math.round((dayStart(now) - dayStart(new Date(iso))) / 86_400_000);
 
 // When a call was, beside its name: the time today and yesterday, as their heads say the day;
 // before that, the day of the week, or the date once it's more than a week back.
-export function callTime(iso: string, now = new Date()) {
+export const callTime = (iso: string, now = new Date()) => {
   const days = daysAgo(iso, now);
   if (days < 2) return timeOfDay(iso);
   const date = new Date(iso);
@@ -269,7 +261,7 @@ export function callTime(iso: string, now = new Date()) {
     day: 'numeric',
     year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
   });
-}
+};
 
 // What happened to the call shows in it; hex's say and note text is the voice's own words already,
 // and its asks show as cards.
@@ -284,11 +276,11 @@ export type Moment =
   | { kind: 'media'; key: string; at: number; media: Shared };
 
 // One marker per task, where hex started it, showing how it ended up.
-export function timeline({
+export const timeline = ({
   turns,
   tasks,
   moments = [],
-}: Pick<CallRecord, 'turns' | 'tasks' | 'moments'>): Moment[] {
+}: Pick<CallRecord, 'turns' | 'tasks' | 'moments'>): Moment[] => {
   const markers = new Map<string, CallTask>();
   for (const task of tasks)
     markers.set(task.id, { ...task, at: markers.get(task.id)?.at ?? task.at });
@@ -310,4 +302,4 @@ export function timeline({
         : [];
     }),
   ].sort((a, b) => a.at - b.at);
-}
+};

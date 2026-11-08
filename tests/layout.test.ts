@@ -178,6 +178,9 @@ test('standing up, the words keep a readable 320 beside Tasks', () => {
     assert.equal(layoutOf(size, pad, { regular: true }).besideTasks.width, 320);
 });
 
+const state = (size: { width: number; height: number }) =>
+  size.width > size.height ? 'landscape' : 'portrait';
+
 test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in the room left', () => {
   for (const [name, size] of Object.entries(iPads)) {
     const layout = layoutOf(size, pad, { regular: true });
@@ -214,10 +217,6 @@ test('on every iPad, with nothing, Calls or Tasks open, the call stays whole in 
       assert.ok(layout.inbox && layout.inbox.width === size.width - 96, `${name}: inbox`);
   }
 });
-
-function state(size: { width: number; height: number }) {
-  return size.width > size.height ? 'landscape' : 'portrait';
-}
 
 test('iPhone Duo open flat splits at the middle of the fold, with its bars down the side', () => {
   const layout = layoutOf(
@@ -311,7 +310,7 @@ const around = (x: number, y: number, width: number, height = width) => ({
 
 // What sits in the bar with Tasks open on a call: the tools, the call buttons, the docked orb with
 // its time and, open, the words' switch.
-function bar(layout: Layout, window: Size) {
+const bar = (layout: Layout, window: Size) => {
   const { toolbar, controls, duo } = layout;
   const call = duo!.call;
   const placed: Record<string, Box> = {
@@ -339,7 +338,7 @@ function bar(layout: Layout, window: Size) {
     };
   }
   return placed;
-}
+};
 
 test('on iPhone Duo, Tasks reaches the bar but never under its buttons, which keep clear of each other and the status items', () => {
   for (const [name, { window, insets, pose }] of Object.entries(duo)) {

@@ -10,11 +10,11 @@ const LINGER = 2 * 60_000;
 
 // A call on this phone shows on the Lock Screen and in the Dynamic Island while it connects and
 // lasts, with mute and End.
-export function useCallActivity(
+export const useCallActivity = (
   call: Call,
   orb: string,
   { toggleMute, end }: { toggleMute: () => void; end: () => Promise<void> },
-) {
+) => {
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
   const state =
@@ -81,4 +81,4 @@ export function useCallActivity(
       console.warn('[hex] The call could not show a Live Activity.', error);
     }
   }, [state, orb, last?.ending]);
-}
+};

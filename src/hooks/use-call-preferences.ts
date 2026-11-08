@@ -14,15 +14,12 @@ export const REACTIONS = [
 
 export type Reaction = (typeof REACTIONS)[number]['id'];
 
-function isReaction(value: unknown): value is Reaction {
-  return REACTIONS.some((reaction) => reaction.id === value);
-}
+const isReaction = (value: unknown): value is Reaction =>
+  REACTIONS.some((reaction) => reaction.id === value);
 
-function isSwitch(value: unknown): value is 'on' | 'off' {
-  return value === 'on' || value === 'off';
-}
+const isSwitch = (value: unknown): value is 'on' | 'off' => value === 'on' || value === 'off';
 
-export function useCallPreferences() {
+export const useCallPreferences = () => {
   const color = useSavedPreference('live.personaColor', DEFAULT_PERSONA_COLOR, isPersonaColor);
   const opal = useSavedPreference<OpalPalette>('live.opalPalette', 'original', isOpalPalette);
   const reaction = useSavedPreference<Reaction>('live.reaction', 'subtle', isReaction);
@@ -40,6 +37,6 @@ export function useCallPreferences() {
     haptics: haptics.value === 'on',
     setHaptics: (on: boolean) => haptics.setValue(on ? 'on' : 'off'),
   };
-}
+};
 
 export type CallPreferences = ReturnType<typeof useCallPreferences>;

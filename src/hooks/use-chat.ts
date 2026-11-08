@@ -15,7 +15,7 @@ import type { Chat, TaskId } from '@/live/tasks';
 // when it has one: waiting to be taken, or in the chat itself. Whether each thread takes typed words
 // is kept on this device, so its page opens with its field while its chat loads; a thread on the
 // board nearly always does, so one never opened here starts with it too.
-export function useChat(id: TaskId | null, live: boolean) {
+export const useChat = (id: TaskId | null, live: boolean) => {
   const [seen, setSeen] = useState<{ id: TaskId; chat: Chat }>();
   const [writable, keepWritable] = useKept('sends', z.record(z.string(), z.boolean()));
   const [sending, setSending] = useState<Sending[]>([]);
@@ -53,4 +53,4 @@ export function useChat(id: TaskId | null, live: boolean) {
     stop: () => id && tries.attempt(id, 'Not stopped', () => hex.tasks.stop(id)),
     failed: id ? tries.failed[id] : undefined,
   };
-}
+};

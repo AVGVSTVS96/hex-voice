@@ -34,7 +34,7 @@ type Props = {
 
 // Under the call: hex's wrap-up and how the last call ended, where a call held elsewhere is, that
 // iOS paused the microphone, what didn't go through, and on the phone the call buttons.
-export function CallFooter({
+export const CallFooter = ({
   call,
   viewing,
   calls,
@@ -45,7 +45,7 @@ export function CallFooter({
   onOpen,
   onMore,
   children,
-}: Props) {
+}: Props) => {
   const footing = footerOf(call, viewing);
   const ended = footing?.kind === 'ended' ? footing : undefined;
   const wrapUp = ended && calls?.find(({ id }) => id === ended.id);
@@ -87,7 +87,7 @@ export function CallFooter({
       {children}
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, gap: metrics.footerGap },

@@ -53,7 +53,11 @@ export type RowActions = {
   onRead: (id: string) => void;
 };
 
-export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[] } & RowActions) {
+export const EntryRow = ({
+  entry,
+  why,
+  ...actions
+}: { entry: Entry; why?: Part[] } & RowActions) => {
   const selected = actions.selected === entry.id;
   const swiped = {
     trail: entry.tiles.filter(opens),
@@ -187,11 +191,11 @@ export function EntryRow({ entry, why, ...actions }: { entry: Entry; why?: Part[
       );
     }
   }
-}
+};
 
 type Swipe = { label: string; onPress: () => void };
 
-function Swiped({
+const Swiped = ({
   lead,
   onAway,
   trail,
@@ -203,43 +207,41 @@ function Swiped({
   trail: Tile[];
   onTile: (tile: Tile) => void;
   children: ReactNode;
-}) {
-  return (
-    <SwipeActions modifiers={listRow()}>
-      {children}
-      {lead ? (
-        <SwipeActions.Actions edge="leading">
-          <Button
-            label={lead.label}
-            systemImage="checkmark"
-            onPress={lead.onPress}
-            modifiers={[tint(theme.accentSolid)]}
-          />
-        </SwipeActions.Actions>
-      ) : null}
-      {onAway || trail.length ? (
-        <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
-          {onAway ? <NotNeededButton onPress={onAway} /> : null}
-          {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
-          {[...trail].reverse().map((tile, i) => {
-            const { color, glyph } = swipeLook(tile);
-            return (
-              <Button
-                key={i}
-                label={tile.label}
-                systemImage={glyph}
-                onPress={() => onTile(tile)}
-                modifiers={[tint(color)]}
-              />
-            );
-          })}
-        </SwipeActions.Actions>
-      ) : null}
-    </SwipeActions>
-  );
-}
+}) => (
+  <SwipeActions modifiers={listRow()}>
+    {children}
+    {lead ? (
+      <SwipeActions.Actions edge="leading">
+        <Button
+          label={lead.label}
+          systemImage="checkmark"
+          onPress={lead.onPress}
+          modifiers={[tint(theme.accentSolid)]}
+        />
+      </SwipeActions.Actions>
+    ) : null}
+    {onAway || trail.length ? (
+      <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
+        {onAway ? <NotNeededButton onPress={onAway} /> : null}
+        {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
+        {[...trail].reverse().map((tile, i) => {
+          const { color, glyph } = swipeLook(tile);
+          return (
+            <Button
+              key={i}
+              label={tile.label}
+              systemImage={glyph}
+              onPress={() => onTile(tile)}
+              modifiers={[tint(color)]}
+            />
+          );
+        })}
+      </SwipeActions.Actions>
+    ) : null}
+  </SwipeActions>
+);
 
-function Shell({
+const Shell = ({
   selected,
   mark,
   line,
@@ -261,49 +263,47 @@ function Shell({
   why?: Part[];
   onPress?: () => void;
   children?: ReactNode;
-}) {
-  return (
-    <Row
+}) => (
+  <Row
+    alignment="start"
+    spacing={metrics.list.gap}
+    onPress={onPress}
+    modifiers={[...rowFrame(selected), accessibilityLabel(label)]}
+  >
+    <Mark state={mark} />
+    <Column
       alignment="start"
-      spacing={metrics.list.gap}
-      onPress={onPress}
-      modifiers={[...rowFrame(selected), accessibilityLabel(label)]}
+      spacing={space[1]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     >
-      <Mark state={mark} />
-      <Column
-        alignment="start"
-        spacing={space[1]}
+      <HStack
+        alignment="firstTextBaseline"
+        spacing={space[3]}
         modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
       >
-        <HStack
-          alignment="firstTextBaseline"
-          spacing={space[3]}
+        <Text
+          numberOfLines={2}
+          variant="body"
+          paragraph
           modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
         >
-          <Text
-            numberOfLines={2}
-            variant="body"
-            paragraph
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-          >
-            {line}
-          </Text>
-          <Row alignment="center" spacing={metrics.list.meta}>
-            {meta ? <Meta text={meta} /> : null}
-            <Meta text={time} />
-            <Tiles tiles={tiles} />
-          </Row>
-        </HStack>
-        {why ? <Found parts={why} /> : null}
-        {children}
-      </Column>
-    </Row>
-  );
-}
+          {line}
+        </Text>
+        <Row alignment="center" spacing={metrics.list.meta}>
+          {meta ? <Meta text={meta} /> : null}
+          <Meta text={time} />
+          <Tiles tiles={tiles} />
+        </Row>
+      </HStack>
+      {why ? <Found parts={why} /> : null}
+      {children}
+    </Column>
+  </Row>
+);
 
 // Where a row lives, one tile per look: two Telegram threads show as one Telegram tile, and the
 // row's swipe still opens each.
-function Tiles({ tiles }: { tiles: Tile[] }) {
+const Tiles = ({ tiles }: { tiles: Tile[] }) => {
   const looks = new Map(tiles.map((tile) => [lookOf(tile), tile]));
   return (
     <Row alignment="center" spacing={space[1]}>
@@ -312,36 +312,30 @@ function Tiles({ tiles }: { tiles: Tile[] }) {
       ))}
     </Row>
   );
-}
+};
 
 const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(tile)}` : tile.kind);
 
-function Meta({ text }: { text: string }) {
-  return (
-    <Text numberOfLines={1} variant="caption" tone="tertiary">
-      {text}
-    </Text>
-  );
-}
+const Meta = ({ text }: { text: string }) => (
+  <Text numberOfLines={1} variant="caption" tone="tertiary">
+    {text}
+  </Text>
+);
 
 // Why something is stuck, under what it is.
-function Why({ text }: { text: string }) {
-  return (
-    <Text numberOfLines={2} variant="detail" tone="secondary" paragraph>
-      {text}
-    </Text>
-  );
-}
+const Why = ({ text }: { text: string }) => (
+  <Text numberOfLines={2} variant="detail" tone="secondary" paragraph>
+    {text}
+  </Text>
+);
 
-function Action({ label, onPress }: { label: string; onPress?: () => void }) {
-  return (
-    <Row alignment="center" spacing={0} modifiers={[padding({ top: space[2] })]}>
-      <Pill label={label} onPress={onPress} small />
-    </Row>
-  );
-}
+const Action = ({ label, onPress }: { label: string; onPress?: () => void }) => (
+  <Row alignment="center" spacing={0} modifiers={[padding({ top: space[2] })]}>
+    <Pill label={label} onPress={onPress} small />
+  </Row>
+);
 
-function Folded({
+const Folded = ({
   ask,
   label,
   onUndo,
@@ -351,32 +345,26 @@ function Folded({
   label: string;
   onUndo: () => void;
   onAgain: () => void;
-}) {
-  return (
-    <Row
+}) => (
+  <Row alignment="start" spacing={metrics.list.gap} modifiers={[...rowFrame(false), ...listRow()]}>
+    <Mark state="done" />
+    <Column
       alignment="start"
-      spacing={metrics.list.gap}
-      modifiers={[...rowFrame(false), ...listRow()]}
+      spacing={space[1]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
     >
-      <Mark state="done" />
-      <Column
-        alignment="start"
-        spacing={space[1]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
-      >
-        <Text numberOfLines={2} variant="detail" tone="secondary">
-          {ask.question}
-        </Text>
-        <Text numberOfLines={2} variant="body">
-          {`${label} → ${ask.topic}`}
-        </Text>
-        {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
-        {ask.failed ? <Failure text={ask.failed} /> : null}
-      </Column>
-      <Pill label="Undo" accessibility={`Undo ${label}`} onPress={onUndo} small />
-    </Row>
-  );
-}
+      <Text numberOfLines={2} variant="detail" tone="secondary">
+        {ask.question}
+      </Text>
+      <Text numberOfLines={2} variant="body">
+        {`${label} → ${ask.topic}`}
+      </Text>
+      {ask.missed ? <Unreached missed={ask.missed} onAgain={onAgain} /> : null}
+      {ask.failed ? <Failure text={ask.failed} /> : null}
+    </Column>
+    <Pill label="Undo" accessibility={`Undo ${label}`} onPress={onUndo} small />
+  </Row>
+);
 
 const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
   working: 'working',
@@ -394,7 +382,7 @@ const STAGE_MARK: Record<Stage, MarkState> = {
 // A project as one row in the list, as Muse lists goals: its mark, its name, and the newest thing
 // in it in gray, as many lines as it needs to be read; how many it has here and when, quietly to
 // the side. A row holds one stage's entries, whichever tab it's on. Opens its page.
-export function ProjectRow({
+export const ProjectRow = ({
   topic,
   selected,
   onOpen,
@@ -402,7 +390,7 @@ export function ProjectRow({
   topic: Topic;
   selected: boolean;
   onOpen: () => void;
-}) {
+}) => {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
   const { stage } = newest;
@@ -457,11 +445,11 @@ export function ProjectRow({
       </Column>
     </Row>
   );
-}
+};
 
 // What kind of thing waits on you, by the row's newest: a question, one hex has a pick for, a
 // problem, or a reply.
-function waiting(entry: Entry): MarkState {
+const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
     case 'ask':
       return entry.ask.options.some((option) => option.pick) ? 'pick' : 'asks';
@@ -473,45 +461,41 @@ function waiting(entry: Entry): MarkState {
     case 'finished':
       return 'done';
   }
-}
+};
 
 // How many a project has here: in mint while they wait on you, in gray otherwise.
-function Count({ count, needs }: { count: number; needs: boolean }) {
-  return (
-    <Text
-      variant="caption"
-      weight="medium"
-      tone={needs ? 'accent' : 'tertiary'}
-      modifiers={[
-        monospacedDigit(),
-        padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
-        ...(needs ? [background(theme.accentMuted)] : []),
-        clipShape('capsule'),
-      ]}
-    >
-      {String(count)}
-    </Text>
-  );
-}
+const Count = ({ count, needs }: { count: number; needs: boolean }) => (
+  <Text
+    variant="caption"
+    weight="medium"
+    tone={needs ? 'accent' : 'tertiary'}
+    modifiers={[
+      monospacedDigit(),
+      padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
+      ...(needs ? [background(theme.accentMuted)] : []),
+      clipShape('capsule'),
+    ]}
+  >
+    {String(count)}
+  </Text>
+);
 
 // Why a search found this row: its matching words in the text tone, the rest secondary.
-function Found({ parts }: { parts: Part[] }) {
-  return (
-    // @expo/ui joins a Text's children only when it's drawn, not when a child changes, so each
-    // set of pieces gets its own Text.
-    <NativeText
-      key={parts.map((part) => part.text).join('\u0000')}
-      modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
-    >
-      {parts.map((part, at) =>
-        part.hit ? (
-          <NativeText key={at} modifiers={textLook({ variant: 'detail', weight: 'medium' })}>
-            {part.text}
-          </NativeText>
-        ) : (
-          part.text
-        ),
-      )}
-    </NativeText>
-  );
-}
+const Found = ({ parts }: { parts: Part[] }) => (
+  // @expo/ui joins a Text's children only when it's drawn, not when a child changes, so each
+  // set of pieces gets its own Text.
+  <NativeText
+    key={parts.map((part) => part.text).join('\u0000')}
+    modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
+  >
+    {parts.map((part, at) =>
+      part.hit ? (
+        <NativeText key={at} modifiers={textLook({ variant: 'detail', weight: 'medium' })}>
+          {part.text}
+        </NativeText>
+      ) : (
+        part.text
+      ),
+    )}
+  </NativeText>
+);

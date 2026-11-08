@@ -26,7 +26,7 @@ const HOLD_MS = 280;
 // The live camera, to its edges: tap the shutter for a photo, hold it for a clip with a ring
 // filling to a minute, flip to the other camera, then Retake or keep the shot. While a call here
 // holds the microphone, a clip records without sound.
-export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) => void }) {
+export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) => void }) => {
   const camera = useRef<CameraView>(null);
   const [permission, ask] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
@@ -155,27 +155,25 @@ export function Camera({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
       </View>
     </View>
   );
-}
+};
 
 // iOS Camera's shutter: a white disc in a ring; holding it, a red square in the ring as it fills.
-function Shutter({
+const Shutter = ({
   recording,
   filled,
 }: {
   recording: boolean;
   filled: ReturnType<typeof useSharedValue<number>>;
-}) {
-  return (
-    <View style={styles.shutter}>
-      {recording ? <Fill filled={filled} /> : <View style={[styles.track, styles.bright]} />}
-      <View style={recording ? styles.stop : styles.disc} />
-    </View>
-  );
-}
+}) => (
+  <View style={styles.shutter}>
+    {recording ? <Fill filled={filled} /> : <View style={[styles.track, styles.bright]} />}
+    <View style={recording ? styles.stop : styles.disc} />
+  </View>
+);
 
 // The ring filling clockwise from the top: each half of it is half the red ring, turned into the
 // half of the shutter that shows it.
-function Fill({ filled }: { filled: ReturnType<typeof useSharedValue<number>> }) {
+const Fill = ({ filled }: { filled: ReturnType<typeof useSharedValue<number>> }) => {
   const first = useAnimatedStyle(() => ({
     transform: [{ rotate: `${Math.min(filled.get(), 0.5) * 360}deg` }],
   }));
@@ -201,9 +199,9 @@ function Fill({ filled }: { filled: ReturnType<typeof useSharedValue<number>> })
       </View>
     </>
   );
-}
+};
 
-function Timer({ since }: { since: number }) {
+const Timer = ({ since }: { since: number }) => {
   const [now, setNow] = useState(since);
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 250);
@@ -215,9 +213,9 @@ function Timer({ since }: { since: number }) {
       <Text style={[styles.words, styles.strong, styles.digits]}>{clock(now - since)}</Text>
     </View>
   );
-}
+};
 
-function Round({
+const Round = ({
   symbol,
   label,
   testID,
@@ -229,19 +227,17 @@ function Round({
   testID: string;
   bright?: boolean;
   onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      testID={testID}
-      onPress={onPress}
-      style={[styles.round, bright && styles.bright]}
-    >
-      <Glyph name={symbol} size={metrics.symbol.bar} color={bright ? film.black : film.ink} />
-    </Pressable>
-  );
-}
+}) => (
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    testID={testID}
+    onPress={onPress}
+    style={[styles.round, bright && styles.bright]}
+  >
+    <Glyph name={symbol} size={metrics.symbol.bar} color={bright ? film.black : film.ink} />
+  </Pressable>
+);
 
 const half = shutter / 2;
 

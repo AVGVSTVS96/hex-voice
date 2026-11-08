@@ -36,7 +36,7 @@ export type { PersonaState, PersonaProps } from './animation';
 // Cache the six decoded files. Each rendered view keeps its own animation state.
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
-function loadFile(variant: PersonaVariant) {
+const loadFile = (variant: PersonaVariant) => {
   let promise = fileCache.get(variant);
   if (!promise) {
     promise = RiveFileFactory.fromSource(PERSONA_ASSETS[variant], undefined, false).catch(
@@ -48,22 +48,21 @@ function loadFile(variant: PersonaVariant) {
     fileCache.set(variant, promise);
   }
   return promise;
-}
+};
 
 // Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
-export function preloadPersonas(variants: readonly PersonaVariant[]) {
+export const preloadPersonas = (variants: readonly PersonaVariant[]) => {
   for (const variant of variants) void loadFile(variant).catch(() => {});
-}
+};
 
 // The default persona's file is read as the app starts, so the call screen's orb doesn't wait on it.
 // Until a file is read the orb's place stays empty: it shows only whole.
 preloadPersonas([DEFAULT_PERSONA]);
 
-function sameColor(a: number, b: number) {
-  return [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
-}
+const sameColor = (a: number, b: number) =>
+  [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
 
-export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
+export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) => {
   // The persona on screen stays until the next one's file is read, then the two cross-fade, so a
   // change never shows an empty space or pops; each gets a fresh native view, which drops any
   // earlier error.
@@ -93,13 +92,13 @@ export function Persona({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) {
       </Animated.View>
     </View>
   );
-}
+};
 
 const SIZE = 320;
 const SWAP = 150;
 const GROW_IN = 1000;
 
-function PersonaRenderer({
+const PersonaRenderer = ({
   variant,
   state = 'idle',
   size = SIZE,
@@ -107,7 +106,7 @@ function PersonaRenderer({
   palette,
   paused = false,
   drawn = true,
-}: PersonaProps & { variant: PersonaVariant }) {
+}: PersonaProps & { variant: PersonaVariant }) => {
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
   const { riveViewRef, setHybridRef } = useRive();
@@ -223,4 +222,4 @@ function PersonaRenderer({
       ) : null}
     </View>
   );
-}
+};

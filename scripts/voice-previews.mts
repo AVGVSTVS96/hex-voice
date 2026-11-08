@@ -14,7 +14,7 @@ const TAIL_MS = 600;
 
 const previewLine = (name: string) => `Hi, I'm ${name}. Whenever you need me, I'm right here.`;
 
-async function render(voice: LiveVoice, name: string) {
+const render = async (voice: LiveVoice, name: string) => {
   // Node's WebSocket (undici) takes headers, which the DOM type it shares doesn't list.
   const socket = new WebSocket('wss://api.openai.com/v1/live/sessions', {
     headers: { Authorization: `Bearer ${KEY}` },
@@ -98,7 +98,7 @@ async function render(voice: LiveVoice, name: string) {
     { input: Buffer.concat(audio) },
   );
   console.log(`${voice}: ${transcript.trim()}`);
-}
+};
 
 if (!KEY) throw new Error('Set OPENAI_API_KEY.');
 const only = process.argv.slice(2);

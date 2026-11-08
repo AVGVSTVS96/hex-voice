@@ -32,7 +32,7 @@ type Glide = {
 // The orb's glide between resting and reading the words: `progress` runs 0 to 1, a drag past
 // either end stretches on a rubber band, and letting go lands it on the side the drag committed
 // to, or where a flick sends it, at the drag's own speed.
-export function useGlide({
+export const useGlide = ({
   reading,
   travel,
   reach,
@@ -40,7 +40,7 @@ export function useGlide({
   onCross,
   onLand,
   onRelease,
-}: Glide) {
+}: Glide) => {
   const progress = useSharedValue(reading ? 1 : 0);
   const goal = useSharedValue(reading ? 1 : 0);
   const grab = useSharedValue({ offset: 0, line: COMMIT, crossed: false });
@@ -135,4 +135,4 @@ export function useGlide({
   };
 
   return { progress, glideTo, drag, glide };
-}
+};

@@ -16,11 +16,11 @@ import { Host } from '@/ui/host';
 // Tasks on the phone and iPhone Duo. Before a call it opens full height; on a call it opens half
 // height so the call goes on behind it. However it goes away, swiped down or tapped past, it tells
 // the screen once it has.
-export function TasksSheet({
+export const TasksSheet = ({
   onDismiss,
   onCall,
   ...view
-}: TasksProps & { onDismiss: () => void; onCall: boolean }) {
+}: TasksProps & { onDismiss: () => void; onCall: boolean }) => {
   const { width } = useViewport();
   const [detent, setDetent] = useState<PresentationDetent>(onCall ? 'medium' : 'large');
   useEffect(() => {
@@ -55,4 +55,4 @@ export function TasksSheet({
       </BottomSheet>
     </Host>
   );
-}
+};

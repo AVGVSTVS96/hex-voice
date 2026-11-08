@@ -24,7 +24,7 @@ type Layout = { width: number; size: number; gap: number };
 
 // Every persona's colors fill the same slots across the row, so swiping between personas keeps
 // each swatch, and the rows below, exactly where they were.
-export function PersonaColors({
+export const PersonaColors = ({
   persona,
   preferences,
   width,
@@ -34,7 +34,7 @@ export function PersonaColors({
   preferences: CallPreferences;
   width: number;
   onSelect: () => void;
-}) {
+}) => {
   const light = useColorScheme() === 'light';
   const inner = width - 2 * metrics.rowInset;
   const size = Math.min(MAX_SWATCH, Math.floor((inner - MIN_GAP * (SLOTS - 1)) / SLOTS));
@@ -114,9 +114,9 @@ export function PersonaColors({
       ))}
     </SwatchRow>
   );
-}
+};
 
-function SwatchRow({
+const SwatchRow = ({
   layout: { width, gap },
   label,
   inert = false,
@@ -128,29 +128,27 @@ function SwatchRow({
   inert?: boolean;
   trailing?: ReactNode;
   children: ReactNode;
-}) {
-  return (
-    <Row
-      alignment="center"
-      spacing={gap}
-      style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
-    >
-      <RNHostView matchContents>
-        <View
-          accessible={inert}
-          accessibilityRole={inert ? undefined : 'radiogroup'}
-          accessibilityLabel={label}
-          style={{ flexDirection: 'row', gap }}
-        >
-          {children}
-        </View>
-      </RNHostView>
-      {trailing}
-    </Row>
-  );
-}
+}) => (
+  <Row
+    alignment="center"
+    spacing={gap}
+    style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
+  >
+    <RNHostView matchContents>
+      <View
+        accessible={inert}
+        accessibilityRole={inert ? undefined : 'radiogroup'}
+        accessibilityLabel={label}
+        style={{ flexDirection: 'row', gap }}
+      >
+        {children}
+      </View>
+    </RNHostView>
+    {trailing}
+  </Row>
+);
 
-function Swatch({
+const Swatch = ({
   color,
   label,
   selected,
@@ -162,7 +160,7 @@ function Swatch({
   selected: boolean;
   onPress: () => void;
   layout: Layout;
-}) {
+}) => {
   const inner = size - 10;
   return (
     <Pressable
@@ -188,9 +186,9 @@ function Swatch({
       />
     </Pressable>
   );
-}
+};
 
-function SkeletonSwatch({ size }: { size: number }) {
+const SkeletonSwatch = ({ size }: { size: number }) => {
   const inner = size - 10;
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -202,4 +200,4 @@ function SkeletonSwatch({ size }: { size: number }) {
       />
     </View>
   );
-}
+};

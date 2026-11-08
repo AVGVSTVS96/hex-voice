@@ -6,8 +6,8 @@ export type Size = { width: number; height: number };
 // React Native's window size can disagree with it for a moment, as while iPhone Duo unfolds.
 export const Viewport = createContext<Size | null>(null);
 
-export function useViewport(): Size {
+export const useViewport = (): Size => {
   const size = use(Viewport);
   if (!size) throw new Error("useViewport() needs the Viewport the call screen's root provides");
   return size;
-}
+};

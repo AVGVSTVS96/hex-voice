@@ -27,13 +27,13 @@ import { metrics } from '@/ui/tokens';
 // of it. `dock` settles from 0 to 1 as the call moves into the bar, `covers` as the place covers the
 // call's pages, and `aside` as the words move to the page before the fold. While the keyboard is up
 // there Tasks types on that page instead (`above`), and the call's own page steps aside for it.
-export function useDuoTasks(
+export const useDuoTasks = (
   duo: Duo | undefined,
   { open, tasks, chosen }: { open: boolean; tasks: boolean; chosen: boolean },
   onCall: boolean,
   reducedMotion: boolean,
   choose: (on: boolean) => void,
-) {
+) => {
   const offered = !!duo?.beside && onCall && tasks;
   const docked = !!duo && open && onCall;
   const beside = offered && chosen;
@@ -54,28 +54,28 @@ export function useDuoTasks(
     aside,
     offer,
   };
-}
+};
 
 // How much of the call's own page shows while Tasks covers it: gone by the time Tasks is halfway in.
-export function uncovered(covers: number) {
+export const uncovered = (covers: number) => {
   'worklet';
   return 1 - Math.min(1, 2 * covers);
-}
+};
 
-function useSettle(on: boolean, reducedMotion: boolean) {
+const useSettle = (on: boolean, reducedMotion: boolean) => {
   const value = useSharedValue(on ? 1 : 0);
   useEffect(() => {
     const to = on ? 1 : 0;
     value.set(reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer));
   }, [on, reducedMotion, value]);
   return value;
-}
+};
 
 // Tasks' pages, on a call the call's time by its docked orb, and the switch that gives the call's
 // words their page beside Tasks, lit while they have it. Tasks fades in where it sits as `pane` opens
 // the place, while the place shows it (`shown`): moved by a transform, its Host would keep telling iOS
 // accessibility where it started.
-export function DuoTasks({
+export const DuoTasks = ({
   duo,
   tasks,
   state,
@@ -91,7 +91,7 @@ export function DuoTasks({
   onCall: boolean;
   seconds: number;
   pane: SharedValue<number>;
-}) {
+}) => {
   // A fade only: a layer transform over the SwiftUI host leaves its controls' accessibility frames
   // where the slide began, so VoiceOver and taps by element miss ‹ Call.
   const pageStyle = useAnimatedStyle(() => ({
@@ -148,7 +148,7 @@ export function DuoTasks({
       )}
     </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   time: {

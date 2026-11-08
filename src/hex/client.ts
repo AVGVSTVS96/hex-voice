@@ -44,16 +44,16 @@ const UNREACHABLE = ['Network request failed', 'Failed to fetch', 'fetch failed'
 
 // The one way this app talks to hex: the address and token are read once, every request has a
 // deadline, and every answer is parsed before anything sees it.
-export function createClient({ url, token, fetch, sendFile }: Config) {
+export const createClient = ({ url, token, fetch, sendFile }: Config) => {
   const origin = url?.trim().replace(/\/+$/, '');
   const auth: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   // Reaches hex at `path` within `timeout`, through `go`, and reads its answer.
-  async function reach(
+  const reach = async (
     path: string,
     { signal, timeout }: Pick<Options, 'signal' | 'timeout'>,
     go: (url: string, signal: AbortSignal) => Promise<{ status: number; text: string }>,
-  ): Promise<unknown> {
+  ): Promise<unknown> => {
     if (!origin)
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
     const controller = new AbortController();
@@ -78,7 +78,7 @@ export function createClient({ url, token, fetch, sendFile }: Config) {
       clearTimeout(deadline);
       signal?.removeEventListener('abort', abort);
     }
-  }
+  };
 
   const call = (path: string, { method = 'GET', body, after, ...options }: Options) =>
     reach(after === undefined ? path : `${path}?after=${after}`, options, async (url, signal) => {
@@ -139,12 +139,12 @@ export function createClient({ url, token, fetch, sendFile }: Config) {
       await call(path, { method: 'POST', ...options, timeout: options.timeout ?? WRITE });
     },
   };
-}
+};
 
 const Said = z.object({ error: z.object({ message: z.string() }) });
 
 // hex's own words, or OpenAI's error message it passed on. A 4xx is hex turning the request down.
-function refusal(status: number, text: string) {
+const refusal = (status: number, text: string) => {
   let message = text.trim();
   try {
     message = Said.parse(JSON.parse(text)).error.message;
@@ -152,4 +152,4 @@ function refusal(status: number, text: string) {
   message = message.slice(0, 300) || `hex answered HTTP ${status}.`;
   message = message[0]!.toUpperCase() + message.slice(1);
   return status < 500 ? new Refused(message, status) : new Error(message);
-}
+};

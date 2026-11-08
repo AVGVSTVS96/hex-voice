@@ -8,7 +8,7 @@ import type { CallId } from '@/live/calls';
 // screen shows it as its own: the call's record follows it word by word until it ends, and the
 // ended call stays on screen, with how it ended, until a call starts here. A call that ended while
 // the app was away is read once more for its ending.
-export function useCallElsewhere(live: CallId | undefined, here: boolean) {
+export const useCallElsewhere = (live: CallId | undefined, here: boolean) => {
   const [shown, setShown] = useState<CallId>();
   const [leaving, setLeaving] = useState<CallId>();
   if (live && live !== shown) setShown(live);
@@ -28,4 +28,4 @@ export function useCallElsewhere(live: CallId | undefined, here: boolean) {
   };
 
   return { call, live: on, leaving: on && leaving === call.id, hangUp };
-}
+};

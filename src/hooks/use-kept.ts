@@ -4,20 +4,20 @@ import type * as z from 'zod/mini';
 
 // What this device kept, read back through the schema of hex's answer, since an older app may have
 // written it.
-export async function restore<S extends z.ZodMiniType>(key: string, schema: S) {
+export const restore = async <S extends z.ZodMiniType>(key: string, schema: S) => {
   try {
     const saved = await AsyncStorage.getItem(key);
     return saved ? schema.safeParse(JSON.parse(saved)).data : undefined;
   } catch {}
-}
+};
 
-export function store(key: string, value: unknown) {
+export const store = (key: string, value: unknown) => {
   void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => {});
-}
+};
 
 // What hex last sent, kept on this device, so while hex is slow or out of reach the screen shows
 // that, not an empty or zeroed list. hex's answer replaces it the moment it lands.
-export function useKept<S extends z.ZodMiniType>(key: string, schema: S) {
+export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
   const [value, setValue] = useState<z.output<S>>();
   useEffect(() => {
     void restore(`kept:${key}`, schema).then((saved) => {
@@ -32,4 +32,4 @@ export function useKept<S extends z.ZodMiniType>(key: string, schema: S) {
     [key],
   );
   return [value, keep] as const;
-}
+};
