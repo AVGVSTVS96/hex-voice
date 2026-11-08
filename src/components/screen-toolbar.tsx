@@ -22,8 +22,6 @@ interface Props {
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
   settingsOpen?: boolean;
-  // On iPhone Duo the toolbar holds the shown page's way back next to the status items, in a spot
-  // kept for it so nothing moves as it comes and goes.
   holdsBack?: boolean;
   back?: Back;
   onCalls: () => void;
@@ -31,9 +29,6 @@ interface Props {
   onSettings: () => void;
 }
 
-// Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
-// side column with the two set apart, closer where the column is short. On iPhone Duo, Back sits
-// next to the status items: first down the column, under them, and last across the band, before them.
 export const ScreenToolbar = ({
   axis,
   onLayout,

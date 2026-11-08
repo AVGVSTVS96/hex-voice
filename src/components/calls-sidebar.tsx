@@ -46,7 +46,6 @@ export const CallsSidebar = ({
   onOpen,
   onDelete,
 }: Props) => {
-  // A head only parts one group from another, so a lone one is left off.
   const days = byDay(calls ?? []);
 
   return (
@@ -103,7 +102,6 @@ const Row = ({
 }) => {
   const x = useSharedValue(0);
   const from = useSharedValue(0);
-  // Swiped open, its delete button is there for VoiceOver too; closed, the row's own action is.
   const [open, setOpen] = useState(false);
 
   const remove = () => {
@@ -278,7 +276,6 @@ const styles = StyleSheet.create({
     paddingTop: space[6],
     paddingBottom: space[2],
   },
-  // The row sizes to its words; its delete button waits behind it, uncovered by the swipe.
   row: {
     marginHorizontal: space[2],
     borderRadius: radius.control,

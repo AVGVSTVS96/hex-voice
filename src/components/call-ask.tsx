@@ -9,9 +9,6 @@ import { reachedBy } from '@/live/inbox';
 import { circle, theme } from '@/theme';
 import { labelOf, metrics, radius, space, textOf } from '@/ui/tokens';
 
-// An ask hex brought up on the call, as a card in the transcript: tap a choice or just say it, or
-// open a page it points to. Its topic opens the task it belongs to. Once answered, it folds to what
-// was sent where and what that reached, as hex recorded it, and an undo opens it again.
 export const CallAsk = ({
   card,
   onAnswer,
@@ -22,8 +19,6 @@ export const CallAsk = ({
   onOpenTask: () => void;
 }) => {
   const { ask } = card;
-  // What you tapped, marked at once while hex takes it, sent once it has until hex's record of the
-  // call says so, and why if it didn't.
   const [sending, setSending] = useState<string>();
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
@@ -176,7 +171,6 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: theme.surfaceSelected,
   },
-  // hex's pick is tinted and named, as on a question in Tasks, so it never reads as chosen.
   pick: { backgroundColor: theme.accentMuted, paddingVertical: space[2] },
   pickText: { ...labelOf('body', 'medium'), color: theme.text },
   pickNote: { ...labelOf('caption'), color: theme.accent },

@@ -32,9 +32,6 @@ const PRIMARY: Record<
   ending: { icon: 'waveform', label: 'Ending conversation', loading: true, off: true },
 };
 
-// Mute and the call button, as SwiftUI: a row beside each other on the phone, a column in iPhone
-// Duo's side column with mute above. A call held elsewhere, like a phone call, mutes there, not
-// here. In the iPad inbox's rail, before any call, the call button waits alone.
 export const CallButtons = ({
   call,
   ready,
@@ -54,9 +51,6 @@ export const CallButtons = ({
   return (
     <GlassEffectContainer modifiers={modifiers}>
       <Stack spacing={sizes.gap}>
-        {/* With no call there's nothing to mute, so an empty space holds mute's place and the
-        call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
-        a glass button with opacity 0 still drew, glyph and all. */}
         {mute &&
           (buttons.mute ? (
             <GlassButton
@@ -86,7 +80,6 @@ export const CallButtons = ({
   );
 };
 
-// CallButtons where React Native places them, in a Host of their own.
 export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle }) => {
   const { axis, mute = true, size = 'regular' } = props;
   const sizes = metrics.controls[size];

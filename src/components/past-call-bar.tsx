@@ -16,7 +16,6 @@ interface Props {
   onDelete?: () => void;
 }
 
-// A past call's title, small, with its menu, heading its words.
 export const PastCallBar = ({ call, live, onCall, transcript, onBack, onDelete }: Props) => {
   const inToolbar = useToolbarBack(
     'call',

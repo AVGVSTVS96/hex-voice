@@ -82,20 +82,12 @@ import type { Rect } from '@/screens/window';
 import { Host } from '@/ui/host';
 import { breakpoint, metrics, space } from '@/ui/tokens';
 
-// On the phone (and iPhone Duo folded) the sheet hangs from the bottom edge at two heights. Where
-// the width is regular it's a centered form sheet, and a page sheet where the call is split across
-// the screen (iPad landscape, iPhone Duo open upright). Either way its content lays out to the width
-// the sheet gets, the carousel beside the rows where that's wide enough.
 export type SettingsSheet = 'phone' | 'form' | 'page';
 
-// The open Duo's settings panes: the persona's beside the rows', or the persona's alone.
 type Pane = 'persona' | 'rows' | 'alone';
 
 interface Props {
   sheet: SettingsSheet;
-  // On the open Duo, settings is a place of its own over the call instead of a sheet, since iOS
-  // moves a sheet off an active fold. It's the place Tasks takes, covering what the toolbar leaves
-  // (`area`), and shows as `pane` opens it while it's settings the place shows (`shown`).
   place?: { area: Rect; shown: boolean; pane: SharedValue<number> };
   isPresented: boolean;
   onDismiss: () => void;
@@ -114,9 +106,6 @@ const voiceOptions = VOICES.map((voice) => ({
   description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
 }));
 
-// A short question as the microphone hears it, one step per syllable: how loud, how high and how
-// bright, rising at the end. Each step is the call's own spring, so the orb moves as it does when
-// you talk.
 const PHRASE = [
   { level: 0.9, pitch: -0.2, tone: 0.2 },
   { level: 0.35, pitch: -0.35, tone: -0.1 },
@@ -128,12 +117,8 @@ const PHRASE = [
 
 const PREVIEW_ORB = 160;
 
-// Side by side from `breakpoint.beside` wide, or from `besideShort` wide where the page stacked
-// can't fit the height.
 const BESIDE = { height: 520, carousel: 300, preview: 260, orb: 180 };
 
-// The persona's orb shrinks to this on a screen too short for the whole page, the Duo folded, and
-// grows to `BESIDE.preview` where its own place has the room.
 const SHORT_PREVIEW = 120;
 const SHEET_GAP = 24;
 
@@ -141,16 +126,13 @@ const SHEET_TOP = space[6];
 const SHEET_BOTTOM = 26;
 const PERSONA_PAGE = 138;
 
-// The persona's share of settings' width where it lays the persona beside the rows itself, as the
-// sheet does.
-const PERSONA_SHARE = 0.4;
+const FOLDED_PERSONA_SHARE = 0.4;
 const ORB = 190;
 const VOICE_CAROUSEL = 180;
 const HEADER_TOP = space[4];
 const HEADER = 44;
 
-// The bar over the persona's pane on the open Duo.
-const BAR = 60;
+const PERSONA_PANE_BAR = 60;
 
 const APPEARANCE_HEIGHT =
   SHEET_TOP +
@@ -225,7 +207,7 @@ const sizesOf = (width: number, room: number, panes: Panes | undefined) => {
   const preview = panes
     ? Math.max(
         SHORT_PREVIEW,
-        Math.min(BESIDE.preview, panes.personaHeight - PERSONA_PAGE - BAR - SHEET_TOP),
+        Math.min(BESIDE.preview, panes.personaHeight - PERSONA_PAGE - PERSONA_PANE_BAR - SHEET_TOP),
       )
     : sheetPreview(beside, room);
 
@@ -255,15 +237,7 @@ export const VoiceSettings = ({
   const screen = useViewport();
   const phone = sheet === 'phone';
   const insets = useSafeAreaInsets();
-  // The system sizes the sheet, and its content lays out to the width the sheet gets. The width
-  // flows one way, from the sheet to the content: a sheet fitted to its content's width chases its
-  // own measurement, and one held to a width we pick gets capped by the system narrower than its
-  // content, or the window's width runs under iPhone Duo's side column.
   const [given, setGiven] = useState<number>();
-  // On the open Duo iOS gives the persona and the rows a pane each where the screen is wider than
-  // tall, and the persona's pane alone otherwise, which then holds the persona in its top half and
-  // the rows in its bottom half. Each lays out to the pane iOS reports, and until it does, to its
-  // half or all of what the toolbar leaves.
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
   const panes = place && placePanes(screen, place.area, reported);
   const two = panes?.two === true;
@@ -304,7 +278,6 @@ export const VoiceSettings = ({
     setOnVoicePage(show);
   };
 
-  // In the Duo's place, settings' way back, and the voice page's, are the toolbar's.
   const back = onVoicePage
     ? {
         to: 'Settings',
@@ -316,9 +289,6 @@ export const VoiceSettings = ({
 
   const backInToolbar = useToolbarBack('settings', isPresented ? back : undefined, !!place);
 
-  // In the open Duo's place, the rows and the voices push over each other the same way, each as tall
-  // as their room lets it be: midway down a pane of their own, or from the top of the persona's
-  // pane's bottom half.
   const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
     background(theme.sheet),
@@ -332,7 +302,6 @@ export const VoiceSettings = ({
       preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
     }
   }, [isPresented]);
-  // Leaving settings there leaves the voices too, as dismissing the sheet does.
   useEffect(() => {
     if (!isPresented) {
       setOnVoicePage(false);
@@ -345,7 +314,6 @@ export const VoiceSettings = ({
       value={persona}
       width={beside || place ? carouselWidth : contentWidth}
       height={PERSONA_PAGE}
-      // One persona for as long as settings lives, so opening settings never makes a new one.
       preview={
         <Animated.View style={orbStyle}>
           <Persona
@@ -493,8 +461,6 @@ export const VoiceSettings = ({
     />
   );
 
-  // The sheet stays mounted where settings has its place, closed, so a fold that moves settings
-  // into its place takes the sheet down instead of leaving it up, unseen, over the screen.
   const align = two ? 'center' : 'top';
 
   const placed = place && panes && (
@@ -503,7 +469,7 @@ export const VoiceSettings = ({
       open={isPresented}
       pane={place.pane}
       two={two}
-      row={two && phone ? panes.edges.leading + place.area.width * PERSONA_SHARE : undefined}
+      row={two && phone ? panes.edges.leading + place.area.width * FOLDED_PERSONA_SHARE : undefined}
       edges={panes.edges}
       persona={panes.personaHeight}
       onPane={(pane, size) => {
@@ -658,18 +624,10 @@ const Sheet = ({
 }) => {
   const phone = sheet === 'phone';
 
-  // The phone's sheet takes each page's height as a detent. A form or page sheet keeps one height,
-  // so there the voice page fills the settings page's whole height and nothing of it shows: given
-  // the voice page's detent too, the sheet shrinks to it under content still the settings' height.
   const detents = phone
     ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
     : [{ height: appearanceHeight }];
 
-  // The voice page slides in from the right edge while the first page drifts a third of the way
-  // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
-  // put while the sheet changes height, so nothing on them jumps as it resizes. Each page spans the
-  // whole sheet so the one on top hides the other; that takes two frames, because Expo UI drops
-  // maxWidth from a frame that also sets a height.
   const page = (shown: boolean, away: number, height: number) => [
     frame({ height, alignment: 'top' }),
     frame({ maxWidth: Infinity }),
@@ -696,8 +654,6 @@ const Sheet = ({
             presentationDragIndicator('visible'),
             presentationDetents(detents, {
               selection: detents[onVoicePage ? detents.length - 1 : 0],
-              // Dragging the sheet to the other height reads as leaving the page you're on: up from
-              // the voices goes back to settings, down from settings closes the sheet.
               onSelectionChange: (detent) => {
                 if (!phone) {
                   return;
@@ -741,7 +697,6 @@ const Sheet = ({
                     clipped(),
                     animation(motion.page, onVoicePage),
                   ]),
-              // The sheet's own frame for checks: the BottomSheet's view is a zero-size anchor.
               accessibilityElement('contain'),
               accessibilityIdentifier('voice-settings-sheet'),
             ]}
@@ -750,8 +705,6 @@ const Sheet = ({
               <View
                 pointerEvents="none"
                 onLayout={({ nativeEvent }) => {
-                  // The sheet keeps its contents on the open Duo, laid out there at the window's
-                  // width rather than a sheet's.
                   if (!placed) {
                     onWidth(nativeEvent.layout.width);
                   }
@@ -798,15 +751,6 @@ const Sheet = ({
   );
 };
 
-// Settings on the open Duo, over the call where Tasks would be. iOS arranges it: the persona's pane
-// beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
-// it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
-// top half of the screen and the rows below it. Folded, iOS keeps a split to its first pane on the
-// compact screen, so there the two panes sit in a plain row, the persona's `row` wide. The
-// arrangement fills the screen, so flat its panes meet on the crease; each pane and the sheet's
-// color keep out of what the toolbar takes on the edges it touches (`edges`). It fades in where it
-// sits as Tasks does, never moved by a transform (its Host would keep telling accessibility where
-// it started).
 const SettingsPlace = ({
   shown,
   open,
@@ -897,13 +841,7 @@ const SettingsPlace = ({
             >
               <ArrangementView.Primary>{personaPane}</ArrangementView.Primary>
               <ArrangementView.Secondary>
-                {two ? (
-                  rowsPane
-                ) : (
-                  // Left empty, iOS draws a bar along the bottom of the lone pane, like the home
-                  // indicator.
-                  <Spacer flexible />
-                )}
+                {two ? rowsPane : <Spacer flexible />}
               </ArrangementView.Secondary>
             </ArrangementView>
           ) : (

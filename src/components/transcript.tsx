@@ -18,8 +18,6 @@ type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
 const NO_CARDS: CallCard[] = [];
 
-// The call's words, newest at the foot. Where they have a page of their own (iPad), they read a
-// size up, and before any are said the hint sits in the page's middle, level with the orb.
 export const Transcript = ({
   entries,
   active,
@@ -122,7 +120,6 @@ export const Transcript = ({
   );
 };
 
-// Each card sits where hex brought it up: before the first words said after it.
 const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
 

@@ -17,8 +17,6 @@ import { metrics } from '@/ui/tokens';
 const DOT = 14;
 const LINE = 2;
 
-// The Tasks button says one thing on its glass: a mint dot (`NeedsDot`) while something needs
-// you. What's working is told to VoiceOver only; Tasks' Working tab shows it.
 export const TasksButton = ({
   needs,
   working,
@@ -50,8 +48,6 @@ export const TasksButton = ({
   );
 };
 
-// The mint dot on the Tasks button's top trailing corner, over the glass the button sits on: on
-// it, the glass clipped the dot to its capsule each time a press lit it.
 export const NeedsDot = ({ needs }: { needs: number }) => (
   <Circle
     modifiers={[

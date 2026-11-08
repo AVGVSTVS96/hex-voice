@@ -16,7 +16,6 @@ import { theme } from '@/theme';
 import { AnimatedView } from '@/ui/animated-view';
 import { Host } from '@/ui/host';
 
-// Narrower than the list's "‹ Call", which starts 16-20pt in, so the swipe strip never covers it.
 const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
 const BACK_FLICK_SPEED = 400;
@@ -46,7 +45,6 @@ export const TasksPane = ({
   </AnimatedView>
 );
 
-// Tasks on iPhone Duo. It sits over the call, so it takes no touches while it's closed.
 export const TasksPage = ({
   page,
   onClose,

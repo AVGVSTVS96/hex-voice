@@ -22,8 +22,6 @@ interface Layout {
   gap: number;
 }
 
-// Every persona's colors fill the same slots across the row, so swiping between personas keeps
-// each swatch, and the rows below, exactly where they were.
 export const PersonaColors = ({
   persona,
   preferences,

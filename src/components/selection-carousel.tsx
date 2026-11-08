@@ -51,7 +51,6 @@ export const SelectionCarousel = ({
 }) => {
   const totalHeight = height + previewHeight;
 
-  // A static page prevents both swipe and page-dot changes during a call.
   if (!enabled) {
     const selected = options.find((option) => option.id === value) ?? options[0];
 
@@ -65,8 +64,6 @@ export const SelectionCarousel = ({
     );
   }
 
-  // The pager reports each change, which lands halfway through a swipe, and is handed back the page
-  // it's on, so a swipe never waits on JavaScript; a tapped dot hands it another.
   const pager = (
     <TabView
       selection={value}
@@ -97,8 +94,6 @@ export const SelectionCarousel = ({
     </TabView>
   );
 
-  // The page dots are drawn here rather than by iOS, whose dots stay white on a light ground. As
-  // iOS's do, each says which page it is and a tap on one goes there.
   const dots = (
     <Row alignment="center" spacing={0} modifiers={[frame({ height: metrics.pageDots })]}>
       {options.map((option, i) => {
@@ -158,7 +153,6 @@ export const SelectionCarousel = ({
           </RNHostView>
         </Column>
       ) : null}
-      {/* The transparent pager covers the preview, so the entire control swipes. */}
       {pager}
       {dots}
     </ZStack>

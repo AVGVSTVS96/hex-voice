@@ -90,7 +90,6 @@ export const AgentLine = ({ line }: { line: Line | null }) => {
   );
 };
 
-// One mark, one meaning: the arc turns while something works, a check is done, ! failed.
 const Mark = ({ state }: { state: Line['state'] }) => (
   <View style={[styles.mark, state === 'failed' && styles.markFailed]}>
     {state === 'running' ? (
@@ -109,7 +108,6 @@ const Mark = ({ state }: { state: Line['state'] }) => (
   </View>
 );
 
-// The turning arc of something at work, `size` across.
 export const Arc = ({ size = 12 }: { size?: number }) => {
   const spin = useSharedValue(0);
   const still = useReducedMotion();

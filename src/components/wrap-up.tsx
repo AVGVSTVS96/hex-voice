@@ -10,12 +10,8 @@ type Props = Pick<CallSummary, 'why' | 'summary' | 'waiting'> & {
   onMore?: () => void;
 };
 
-// Under the orb (`center`) only the first few of what's left for you fit; the rest are in Tasks.
 const UNDER_ORB = 3;
 
-// hex's own account of a call once its work settles: what happened, where things went, and what's
-// left for you. Until then a phone call hex placed still says why it called. Under the orb it's cut
-// to fit, and a tap opens the call, where it reads whole.
 const NOTHING_WAITING: string[] = [];
 
 export const WrapUp = ({

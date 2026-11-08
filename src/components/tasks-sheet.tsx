@@ -14,9 +14,6 @@ import { useViewport } from '@/hooks/use-viewport';
 import { theme } from '@/theme';
 import { Host } from '@/ui/host';
 
-// Tasks on the phone and iPhone Duo. Before a call it opens full height; on a call it opens half
-// height so the call goes on behind it. However it goes away, swiped down or tapped past, it tells
-// the screen once it has.
 export const TasksSheet = ({
   onDismiss,
   onCall,

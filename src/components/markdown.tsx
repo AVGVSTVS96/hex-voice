@@ -8,10 +8,6 @@ import { radius, space, type } from '@/ui/tokens';
 import type { TextStyle, TextVariant } from '@/ui/tokens';
 import { MarkdownView } from '../../modules/markdown';
 
-// Markdown in the app's own look, in one of its text styles: words in the text tone or the secondary one, code on the
-// surface with the inner corner, quotes with the edge's bar, links in the accent. `inline` is one
-// run of words, folded to `lines` when given; otherwise it lays out blocks. A link iOS can't open
-// says so beneath.
 export const Markdown = ({
   children,
   tone = 'text',
