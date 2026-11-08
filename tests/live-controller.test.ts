@@ -13,86 +13,81 @@ import type {
 import type { LiveVoice } from '../src/live/voices';
 import { CallId } from '../src/live/calls';
 
-// All transport and API operations are local fakes. These tests make no API calls.
-const deferred = <T>() => {
-  let resolve!: (value: T) => void;
-  let reject!: (error: Error) => void;
-
-  const promise = new Promise<T>((accept, fail) => {
-    resolve = accept;
-    reject = fail;
-  });
-
-  return { promise, resolve, reject };
-};
-
 const settle = async () => {
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 12; i += 1) {
     await Promise.resolve();
   }
 };
 
-class ManualClock {
-  private readonly saved = { setTimeout, clearTimeout, setInterval, clearInterval, now: Date.now };
-  private nextId = 0;
-  private readonly timers = new Map<
-    number,
-    { callback: () => void; delay: number; interval: boolean }
-  >();
-  now = 1_000_000;
+const manualClock = () => {
+  const savedTimers = { setTimeout, clearTimeout, setInterval, clearInterval };
+  const savedNow = Date.now;
+  const timers = new Map<number, { callback: () => void; delay: number; interval: boolean }>();
+  let lastId = 0;
 
-  constructor() {
-    const schedule = (callback: () => void, delay: number, interval: boolean) => {
-      const id = ++this.nextId;
-      this.timers.set(id, { callback, delay, interval });
+  const schedule = (callback: () => void, delay: number, interval: boolean) => {
+    lastId += 1;
+    timers.set(lastId, { callback, delay, interval });
 
-      return id as unknown as ReturnType<typeof setTimeout>;
-    };
+    return lastId;
+  };
 
-    globalThis.setTimeout = ((callback: () => void, delay = 0) =>
-      schedule(callback, delay, false)) as typeof setTimeout;
-    globalThis.setInterval = ((callback: () => void, delay = 0) =>
-      schedule(callback, delay, true)) as typeof setInterval;
-    globalThis.clearTimeout = ((id: ReturnType<typeof setTimeout>) => {
-      this.timers.delete(id as unknown as number);
-    }) as typeof clearTimeout;
-    globalThis.clearInterval = globalThis.clearTimeout;
-    Date.now = () => this.now;
-  }
+  const clear = (id: number) => {
+    timers.delete(id);
+  };
 
-  async fire(delay: number) {
-    const pending = [...this.timers].filter(([, timer]) => timer.delay === delay);
+  const clock = {
+    now: 1_000_000,
+    fire: async (delay: number) => {
+      const pending = [...timers].filter(([, timer]) => timer.delay === delay);
 
-    for (const [id, timer] of pending) {
-      if (!this.timers.has(id)) {
-        continue;
+      for (const [id, timer] of pending) {
+        if (!timers.has(id)) {
+          continue;
+        }
+
+        if (!timer.interval) {
+          timers.delete(id);
+        }
+
+        timer.callback();
       }
 
-      if (!timer.interval) {
-        this.timers.delete(id);
-      }
+      await settle();
+    },
+    restore: () => {
+      Object.assign(globalThis, savedTimers);
+      Date.now = savedNow;
+    },
+  };
 
-      timer.callback();
-    }
+  Object.assign(globalThis, {
+    setTimeout: (callback: () => void, delay = 0) => schedule(callback, delay, false),
+    setInterval: (callback: () => void, delay = 0) => schedule(callback, delay, true),
+    clearTimeout: clear,
+    clearInterval: clear,
+  });
+  Date.now = () => clock.now;
 
-    await settle();
-  }
-
-  restore() {
-    globalThis.setTimeout = this.saved.setTimeout;
-    globalThis.clearTimeout = this.saved.clearTimeout;
-    globalThis.setInterval = this.saved.setInterval;
-    globalThis.clearInterval = this.saved.clearInterval;
-    Date.now = this.saved.now;
-  }
-}
+  return clock;
+};
 
 interface Command {
   type: string;
   event_id?: string;
 }
 
+const offerAnswer = async () => 'offer';
+
+const quietStats = async (): Promise<AudioStats> => ({
+  inputLevel: 0.1,
+  outputLevel: 0.2,
+  sentPackets: 10,
+  receivedPackets: 20,
+});
+
 class FakeTransport implements LiveTransport {
+  readonly callbacks: TransportCallbacks;
   commands: Command[] = [];
   muteChanges: boolean[] = [];
   answers: string[] = [];
@@ -100,15 +95,13 @@ class FakeTransport implements LiveTransport {
   statsCalls = 0;
   acknowledgeClose: 'sync' | 'microtask' | 'none' = 'microtask';
   onCommand?: (event: Command) => void;
-  offerResult = async () => 'offer';
-  statsResult = async (): Promise<AudioStats> => ({
-    inputLevel: 0.1,
-    outputLevel: 0.2,
-    sentPackets: 10,
-    receivedPackets: 20,
-  });
+  offerResult = offerAnswer;
+  statsResult = quietStats;
 
-  constructor(readonly callbacks: TransportCallbacks) {}
+  constructor(callbacks: TransportCallbacks) {
+    this.callbacks = callbacks;
+  }
+
   async offer() {
     return await this.offerResult();
   }
@@ -138,7 +131,7 @@ class FakeTransport implements LiveTransport {
     this.muteChanges.push(muted);
   }
   async stats() {
-    this.statsCalls++;
+    this.statsCalls += 1;
 
     return await this.statsResult();
   }
@@ -160,7 +153,7 @@ class FakeTransport implements LiveTransport {
 }
 
 const harness = () => {
-  const clock = new ManualClock();
+  const clock = manualClock();
   const transports: FakeTransport[] = [];
   const created: string[] = [];
   const voices: (LiveVoice | undefined)[] = [];
@@ -209,9 +202,11 @@ const harness = () => {
     async cleanup() {
       const stop = session.stop();
       await settle();
-      transports.forEach((transport) => {
+
+      for (const transport of transports) {
         transport.emit({ type: 'session.closed' });
-      });
+      }
+
       await stop;
       clock.restore();
     },
@@ -227,7 +222,7 @@ test('a call hex can’t start says why and lets go of the microphone', async ()
   try {
     await h.session.start();
     assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /EXPO_PUBLIC_HEX_URL/);
+    assert.match(h.session.getSnapshot().error ?? '', /EXPO_PUBLIC_HEX_URL/u);
     assert.equal(h.transports[0].closed, true);
   } finally {
     await h.cleanup();
@@ -257,7 +252,7 @@ test('keeps both audio directions active during assistant speech and overlapping
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     transport.emit({
       type: 'session.input_transcript.delta',
       delta: 'Could you',
@@ -309,8 +304,15 @@ test('audio levels move without changing the call, so the call screen redraws on
     const call = h.session.getSnapshot();
     let calls = 0;
     let levels = 0;
-    const stopCalls = h.session.subscribe(() => calls++);
-    const stopLevels = h.session.subscribeLevels(() => levels++);
+
+    const stopCalls = h.session.subscribe(() => {
+      calls += 1;
+    });
+
+    const stopLevels = h.session.subscribeLevels(() => {
+      levels += 1;
+    });
+
     await h.clock.fire(120);
     h.transports[0].statsResult = async () => ({
       inputLevel: 0.02,
@@ -332,7 +334,7 @@ test('audio levels move without changing the call, so the call screen redraws on
 
 test('allows a fresh start after cancellation while microphone permission is pending', async () => {
   const h = harness();
-  const ready = deferred<LiveTransport>();
+  const ready = Promise.withResolvers<LiveTransport>();
   const originalFactory = h.control.factory;
   let callbacks!: TransportCallbacks;
   h.control.factory = async (value) => {
@@ -360,13 +362,13 @@ test('allows a fresh start after cancellation while microphone permission is pen
 
 test('a late session creation is closed without applying its answer after cancellation', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: CallId }>();
+  const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
 
   try {
     const starting = h.session.start();
     await settle();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     transport.acknowledgeClose = 'none';
     const stopping = h.session.stop();
     response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late') });
@@ -383,7 +385,7 @@ test('a late session creation is closed without applying its answer after cancel
 
 test('late creation cleanup failure is visible after cancellation has finished', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: CallId }>();
+  const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
@@ -396,7 +398,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
     response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
     await starting;
     assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/);
+    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/u);
     assert.deepEqual(h.closed, ['live_late_failure']);
     assert.equal(h.transports[0].closed, true);
     assert.deepEqual(h.transports[0].answers, []);
@@ -407,7 +409,7 @@ test('late creation cleanup failure is visible after cancellation has finished',
 
 test('stop finalization cannot erase a late creation cleanup failure', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: CallId }>();
+  const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
   h.control.close = async () => {
     throw new Error('Network unavailable');
@@ -416,7 +418,7 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
   try {
     const starting = h.session.start();
     await settle();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     transport.acknowledgeClose = 'none';
     const stopping = h.session.stop();
     response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
@@ -425,7 +427,7 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
     transport.emit({ type: 'session.closed' });
     await Promise.all([starting, stopping]);
     assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/);
+    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/u);
     assert.equal(transport.closed, true);
   } finally {
     await h.cleanup();
@@ -434,8 +436,8 @@ test('stop finalization cannot erase a late creation cleanup failure', async () 
 
 test('late creation cleanup failure preserves a newer connected conversation', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: CallId }>();
-  const cleanup = deferred<void>();
+  const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
+  const cleanup = Promise.withResolvers<undefined>();
   const originalCreate = h.control.create;
   h.control.create = async () => await response.promise;
   h.control.close = async () => {
@@ -473,7 +475,7 @@ test('late creation cleanup failure preserves a newer connected conversation', a
     assert.equal(current.error, null);
     assert.equal(h.transports[1].closed, false);
     assert.equal(warnings.length, 1);
-    assert.match(String(warnings[0][0]), /cancelled session could not be confirmed closed/);
+    assert.match(String(warnings[0][0]), /cancelled session could not be confirmed closed/u);
   } finally {
     await h.cleanup();
     console.warn = originalWarn;
@@ -502,7 +504,7 @@ test('server-initiated finalization cleans up without another close command or H
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     transport.emit({ type: 'session.closed' });
     await settle();
     assert.equal(h.session.getSnapshot().status, 'idle');
@@ -519,16 +521,18 @@ test('stale mute acknowledgments cannot satisfy the current unmute command', asy
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     h.session.toggleMute();
     h.session.toggleMute();
     const [mute, unmute] = transport.commands;
-    assert.ok(mute.event_id && unmute.event_id && mute.event_id !== unmute.event_id);
+    assert.ok(mute.event_id !== undefined && mute.event_id !== '');
+    assert.ok(unmute.event_id !== undefined && unmute.event_id !== '');
+    assert.notEqual(mute.event_id, unmute.event_id);
     transport.acknowledge(mute);
     assert.deepEqual(transport.muteChanges, [true]);
     await h.clock.fire(5000);
     assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /microphone change was not confirmed/);
+    assert.match(h.session.getSnapshot().error ?? '', /microphone change was not confirmed/u);
   } finally {
     await h.cleanup();
   }
@@ -539,7 +543,7 @@ test('only the newest unmute acknowledgment resumes local microphone capture', a
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     h.session.toggleMute();
     h.session.toggleMute();
     h.session.toggleMute();
@@ -560,7 +564,7 @@ test('synchronous mute acknowledgment clears the confirmation timeout', async ()
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     transport.onCommand = (command) => {
       if (command.type.startsWith('session.input_audio.')) {
         transport.acknowledge(command);
@@ -581,7 +585,7 @@ test('backgrounding preserves the live transport and captions while pausing visu
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     await h.clock.fire(120);
     assert.equal(transport.statsCalls, 1);
     h.session.setAppActive(false);
@@ -639,7 +643,7 @@ test('a muted microphone stays muted when returning from the background', async 
 
   try {
     await h.session.start();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     h.session.toggleMute();
     transport.acknowledge(transport.commands[0]);
     h.session.setAppActive(false);
@@ -656,7 +660,7 @@ test('a muted microphone stays muted when returning from the background', async 
 
 test('a session connecting during background transition is kept without starting visual stats', async () => {
   const h = harness();
-  const response = deferred<{ sdp: string; sessionId: CallId }>();
+  const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
 
   try {
@@ -679,7 +683,7 @@ test('a session connecting during background transition is kept without starting
 
 test('a stats result arriving in the background does not restore visual levels', async () => {
   const h = harness();
-  const pending = deferred<AudioStats>();
+  const pending = Promise.withResolvers<AudioStats>();
 
   try {
     await h.session.start();
@@ -700,7 +704,8 @@ test('an earlier stalled stats operation cannot block a new session', async () =
 
   try {
     await h.session.start();
-    h.transports[0].statsResult = async () => await new Promise(() => {});
+    const stalled = Promise.withResolvers<AudioStats>();
+    h.transports[0].statsResult = async () => await stalled.promise;
     await h.clock.fire(120);
     await h.session.stop();
     await h.session.start();
@@ -735,7 +740,7 @@ test('old transport events cannot alter a later conversation', async () => {
 
   try {
     await h.session.start();
-    const old = h.transports[0];
+    const [old] = h.transports;
     await h.session.stop();
     await h.session.start();
     old.emit({ type: 'session.closed' });
@@ -789,7 +794,7 @@ test('when iOS never hands the audio back, a tap on the microphone ends the paus
   try {
     await h.session.start();
     await settle();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     h.session.interrupt(true);
     h.session.toggleMute();
     assert.equal(h.session.getSnapshot().interrupted, false);
@@ -798,7 +803,9 @@ test('when iOS never hands the audio back, a tap on the microphone ends the paus
     assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
 
     h.session.toggleMute();
-    transport.acknowledge(transport.commands.at(-1)!);
+    const muting = transport.commands.at(-1);
+    assert.ok(muting);
+    transport.acknowledge(muting);
     h.session.interrupt(true);
     h.session.toggleMute();
     assert.equal(h.session.getSnapshot().interrupted, false);
@@ -818,7 +825,7 @@ test('a phone call or Siri pauses the microphone, tells hex, and gives it back u
   try {
     await h.session.start();
     await settle();
-    const transport = h.transports[0];
+    const [transport] = h.transports;
     h.session.interrupt(true);
     h.session.interrupt(true);
     assert.equal(h.session.getSnapshot().interrupted, true);
@@ -831,7 +838,9 @@ test('a phone call or Siri pauses the microphone, tells hex, and gives it back u
     assert.deepEqual(marks, ['live_1 paused', 'live_1 resumed']);
 
     h.session.toggleMute();
-    transport.acknowledge(transport.commands.at(-1)!);
+    const muting = transport.commands.at(-1);
+    assert.ok(muting);
+    transport.acknowledge(muting);
     const changes = transport.muteChanges.length;
     h.session.interrupt(true);
     h.session.interrupt(false);

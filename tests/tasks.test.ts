@@ -48,18 +48,18 @@ const row = (
 test('a row says how long it has worked, or since when it waited or finished', () => {
   assert.equal(taskTime(row('voiceapp', 'working', at(9, 46)), now), '14 min');
   assert.equal(taskTime(row('Films', 'working', at(8, 0)), now), '2 hr');
-  assert.match(taskTime(row('autofork', 'needs', at(8, 30)), now), /^8:30\sAM$/);
-  assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/);
+  assert.match(taskTime(row('autofork', 'needs', at(8, 30)), now), /^8:30\sAM$/u);
+  assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/u);
+});
+
+const stepAt = (minute: number, secs: number, kind: TaskStep['kind'] = 'run'): TaskStep => ({
+  at: new Date(2026, 9, 13, 9, minute, secs).toISOString(),
+  kind,
+  text: 'step',
 });
 
 test('a step without an end lasts until the next began, and a reply says when it was said', () => {
-  const step = (minute: number, second: number, kind: TaskStep['kind'] = 'run'): TaskStep => ({
-    at: new Date(2026, 9, 13, 9, minute, second).toISOString(),
-    kind,
-    text: 'step',
-  });
-
-  const steps = [step(59, 20), step(59, 12, 'think'), step(56, 12), step(55, 50)];
+  const steps = [stepAt(59, 20), stepAt(59, 12, 'think'), stepAt(56, 12), stepAt(55, 50)];
   assert.deepEqual(stepTimes(steps, now), ['', '8s', '3 min', '22s']);
   assert.deepEqual(stepTimes([], now), []);
   const instant = { at: second(59), end: second(59), kind: 'read', text: 'Read it' } as const;
@@ -68,15 +68,15 @@ test('a step without an end lasts until the next began, and a reply says when it
     '',
     '1s',
   ]);
-  const said = stepTimes([step(59, 30, 'run'), step(20, 0, 'say')], now);
+  const said = stepTimes([stepAt(59, 30, 'run'), stepAt(20, 0, 'say')], now);
   assert.equal(said[0], '');
-  assert.match(said[1], /^9:20\sAM$/);
+  assert.match(said[1], /^9:20\sAM$/u);
 });
 
 test('a lane shows the last week on a log scale, now at the right edge', () => {
-  const now = Date.parse(at(10));
+  const tenOClock = Date.parse(at(10));
   const hour = 3_600_000;
-  const x = (age: number, width = 84) => laneX(now - age, now, width);
+  const x = (age: number, width = 84) => laneX(tenOClock - age, tenOClock, width);
   assert.equal(x(0), 84);
   assert.equal(x(-hour), 84);
   assert.equal(x(7 * 24 * hour), 0);
@@ -188,7 +188,8 @@ test('an agent says who it is and how long it has worked or took, or that it sto
 });
 
 test("an opened agent's steps leave out a last reply that only repeats its result", () => {
-  const stores = agents[2];
+  const stores = agents.at(2);
+  assert.ok(stores);
   assert.deepEqual(
     agentSteps(stores).map((step) => step.text),
     ['Searched the web'],
@@ -210,18 +211,18 @@ test('a thread names the agents still at work, and once done all it ran', () => 
   assert.equal(agentWords([], false), undefined);
 });
 
-test("a thread that's done shows its last run while it has steps or agents", () => {
-  const task = (extra: Partial<Task>): Task => ({
-    ...row('Films', 'done'),
-    lately: [],
-    plan: [],
-    steps: [],
-    agents: [],
-    ...extra,
-  });
+const doneTask = (extra: Partial<Task>): Task => ({
+  ...row('Films', 'done'),
+  lately: [],
+  plan: [],
+  steps: [],
+  agents: [],
+  ...extra,
+});
 
-  assert.equal(lastRun(task({ steps: [{ at: at(9), kind: 'run', text: 'Build it' }] })), true);
-  assert.equal(lastRun(task({ agents })), true);
-  assert.equal(lastRun(task({})), false);
-  assert.equal(lastRun(task({ state: 'working', agents })), false);
+test("a thread that's done shows its last run while it has steps or agents", () => {
+  assert.equal(lastRun(doneTask({ steps: [{ at: at(9), kind: 'run', text: 'Build it' }] })), true);
+  assert.equal(lastRun(doneTask({ agents })), true);
+  assert.equal(lastRun(doneTask({})), false);
+  assert.equal(lastRun(doneTask({ state: 'working', agents })), false);
 });

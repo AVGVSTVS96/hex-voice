@@ -19,7 +19,7 @@ test('a lane has two kinds of mark: where its threads worked, and where a run fa
 
   assert.equal(lane.spans.length, 1, 'work from two threads that touches is one stretch');
   assert.equal(lane.failures.length, 1, 'the failure is its one other mark');
-  assert.deepEqual(Object.keys(lane).sort(), ['failures', 'spans']);
+  assert.deepEqual(Object.keys(lane).toSorted(), ['failures', 'spans']);
 });
 
 test('failures too close to tell apart keep the newest, and a quiet project is the line alone', () => {

@@ -14,10 +14,15 @@ import {
   timeline,
 } from '../src/live/calls';
 import { Chat, STATE_WORDS, TaskCounts, TaskList, TaskOrPage, stepMark } from '../src/live/tasks';
+import * as z from 'zod';
 
 // tests/fixtures holds real answers from hex's voice server, scrubbed (tests/fixtures/capture.mts).
-const real = (name: string): unknown =>
-  JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), 'utf-8'));
+const Answer = z.record(z.string(), z.json());
+
+const real = (name: string) =>
+  Answer.parse(
+    JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), 'utf-8')),
+  );
 
 test('every answer hex gives today reads in this app', () => {
   for (const [name, schema] of [
@@ -52,13 +57,13 @@ test('every call hex lists shows where it came from and how it ended', () => {
 });
 
 test('a Discord call, as hex records one from its Discord voice channel, says so', () => {
-  const call = CallRecord.parse({ ...(real('call') as object), from: 'discord' });
+  const call = CallRecord.parse({ ...real('call'), from: 'discord' });
   assert.equal(SOURCES[call.from].started, 'You called from Discord');
 });
 
 test('a value hex adds later reads as the nearest one this app knows, and no list fails over it', () => {
   const record = CallRecord.parse({
-    ...(real('call') as object),
+    ...real('call'),
     from: 'zoom',
     end: 'timeout',
     moments: [{ at: 1, kind: 'joined', text: 'Someone joined' }],
@@ -68,15 +73,17 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
   assert.equal(record.end, undefined);
   assert.equal(timeline(record).filter((moment) => moment.kind === 'mark').length, 0);
 
+  const [firstTask] = z.array(Answer).parse(real('tasks').tasks);
+
   const [row] = TaskList.parse({
     version: 1,
-    tasks: [{ ...(real('tasks') as { tasks: object[] }).tasks[0], state: 'paused' }],
+    tasks: [{ ...firstTask, state: 'paused' }],
   }).tasks;
 
   assert.equal(STATE_WORDS[row.state], 'idle');
 
   const task = TaskOrPage.parse({
-    ...(real('task') as object),
+    ...real('task'),
     steps: [
       { at: '2026-11-03T08:00:00.000Z', kind: 'browse', text: 'Opened a page', state: 'odd' },
     ],
@@ -92,7 +99,7 @@ test('a thread off the board reads as a page to read, and a task with a broken f
   assert.equal(page.kind, 'page');
   assert.ok(!('steps' in page) && !('running' in page));
   assert.equal(TaskOrPage.parse(real('task')).kind, 'task');
-  assert.equal(TaskOrPage.safeParse({ ...(real('task') as object), steps: 'none' }).success, false);
+  assert.equal(TaskOrPage.safeParse({ ...real('task'), steps: 'none' }).success, false);
 });
 
 test('an ask answered on a call says what its answer reached, and the undo that took one back shows nothing', () => {
@@ -100,14 +107,14 @@ test('an ask answered on a call says what its answer reached, and the undo that 
   const sent = { thread: 'telegram:-1001:2583', topic: 'voiceapp', settled: 1, missed: 0 };
 
   const { asks } = AgentActivity.parse({
-    ...(real('activity') as object),
+    ...real('activity'),
     asks: [{ at: 1, ask, answer: 'Yes', sent }],
   });
 
   assert.deepEqual(asks?.[0]?.sent, sent);
 
   const record = CallRecord.parse({
-    ...(real('call') as object),
+    ...real('call'),
     moments: [
       { at: 1, kind: 'answered', text: 'Yes', sent },
       { at: 2, kind: 'undone', text: 'Yes' },

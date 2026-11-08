@@ -7,31 +7,53 @@ import { AskId } from '../src/live/asks';
 import { CallId } from '../src/live/calls';
 import { MediaId } from '../src/live/media';
 import { TaskId } from '../src/live/tasks';
+import * as z from 'zod';
 
-const url = 'https://hex.example:8790';
+const hexUrl = 'https://hex.example:8790';
+
+const Json = z.json();
+
+type Json = z.infer<typeof Json>;
 
 type Fetch = typeof globalThis.fetch;
 
-const hexAt = (fetch: Fetch, token?: string, at = url) =>
+const hexAt = (fetch: Fetch, token?: string, at = hexUrl) =>
   createHex(createClient({ url: at, token, fetch }));
 
-const answering = (body: unknown, seen?: { url: string; init?: RequestInit }[]) =>
+const urlOf = (input: RequestInfo | URL) => (input instanceof Request ? input.url : String(input));
+
+const answering = (body: Json, seen?: { url: string; init?: RequestInit }[]) =>
   hexAt(async (input, init) => {
-    seen?.push({ url: String(input), init });
+    seen?.push({ url: urlOf(input), init });
 
     return body === null ? new Response(null, { status: 204 }) : Response.json(body);
   });
+
+const sentText = (init?: RequestInit) => z.string().parse(init?.body);
+const sentJson = (init?: RequestInit) => Json.parse(JSON.parse(sentText(init)));
+const sentTextIfAny = (init?: RequestInit) => z.string().nullish().parse(init?.body) ?? '';
+
+const answerWith = async (response: Response) =>
+  await hexAt(async () => response).asks.answer(AskId.parse('a'), 'Yes');
 
 const live = CallId.parse('live_1');
 const thread = TaskId.parse('telegram:-100:908');
 const summary = { id: 'live_1', started: '2026-10-14T06:00:00.000Z', from: 'app' };
 
 test('a build without the hex address says how to set it and asks nothing', async () => {
-  for (const missing of [undefined, '', '   ']) {
-    const hex = createHex(createClient({ url: missing, fetch: assert.fail }));
-    await assert.rejects(hex.calls.list(), /EXPO_PUBLIC_HEX_URL/);
-    await assert.rejects(hex.session.create('offer'), /EXPO_PUBLIC_HEX_URL/);
-  }
+  await Promise.all(
+    [undefined, '', '   '].map(async (missing) => {
+      const hex = createHex(
+        createClient({
+          url: missing,
+          fetch: async () => assert.fail('a build without the hex address asks nothing'),
+        }),
+      );
+
+      await assert.rejects(hex.calls.list(), /EXPO_PUBLIC_HEX_URL/u);
+      await assert.rejects(hex.session.create('offer'), /EXPO_PUBLIC_HEX_URL/u);
+    }),
+  );
 });
 
 test('sends the offer and voice to hex and reads OpenAI’s session back', async () => {
@@ -39,7 +61,7 @@ test('sends the offer and voice to hex and reads OpenAI’s session back', async
 
   const hex = hexAt(
     async (input, init) => {
-      seen.push({ url: String(input), init });
+      seen.push({ url: urlOf(input), init });
 
       return Response.json(
         { session: { id: 'live_1', model: 'gpt-live-1' }, transport: { sdp: 'answer' } },
@@ -47,13 +69,13 @@ test('sends the offer and voice to hex and reads OpenAI’s session back', async
       );
     },
     undefined,
-    `${url}//`,
+    `${hexUrl}//`,
   );
 
   assert.deepEqual(await hex.session.create('offer', 'cedar'), { sdp: 'answer', sessionId: live });
-  assert.equal(seen[0].url, `${url}/session`);
+  assert.equal(seen[0].url, `${hexUrl}/session`);
   assert.equal(seen[0].init?.method, 'POST');
-  assert.deepEqual(JSON.parse(String(seen[0].init?.body)), {
+  assert.deepEqual(sentJson(seen[0].init), {
     sdp: 'offer',
     voice: 'cedar',
     from: 'app',
@@ -66,7 +88,7 @@ test('a call started from a task or for your asks tells hex which', async () => 
   await hex.session.create('offer', 'cedar', { task: thread });
   await hex.session.create('offer', 'cedar', 'asks');
   assert.deepEqual(
-    seen.map(({ init }) => (JSON.parse(String(init?.body)) as { about: string }).about),
+    seen.map(({ init }) => z.object({ about: z.string() }).parse(sentJson(init)).about),
     [thread, 'asks'],
   );
 });
@@ -77,47 +99,45 @@ test('ends a call, and marks when the phone takes its audio and gives it back', 
   await hex.session.close(live);
   await hex.session.mark?.(live, 'paused');
   assert.deepEqual(
-    seen.map(({ url, init }) => [init?.method, url, JSON.parse(String(init?.body))]),
+    seen.map(({ url, init }) => [init?.method, url, sentJson(init)]),
     [
-      ['DELETE', `${url}/session`, { sessionId: 'live_1' }],
-      ['POST', `${url}/calls/live_1/moments`, { kind: 'paused' }],
+      ['DELETE', `${hexUrl}/session`, { sessionId: 'live_1' }],
+      ['POST', `${hexUrl}/calls/live_1/moments`, { kind: 'paused' }],
     ],
   );
 });
 
 test('shows hex’s and OpenAI’s errors as they are', async () => {
   const plain = hexAt(async () => new Response('Set OPENAI_API_KEY', { status: 503 }));
-  await assert.rejects(plain.session.create('offer'), /Set OPENAI_API_KEY/);
+  await assert.rejects(plain.session.create('offer'), /Set OPENAI_API_KEY/u);
 
   const openai = hexAt(async () =>
     Response.json({ error: { message: 'Invalid voice' } }, { status: 400 }),
   );
 
-  await assert.rejects(openai.session.create('offer'), /^Error: Invalid voice$/);
+  await assert.rejects(openai.session.create('offer'), /^Error: Invalid voice$/u);
 });
 
 test('an answer this app can’t read names where, instead of reaching the screen', async () => {
   await assert.rejects(
     answering({ session: {} }).session.create('offer'),
-    /hex sent \/session in a shape this app can’t read \(session\.id\)/,
+    /hex sent \/session in a shape this app can’t read \(session\.id\)/u,
   );
-  await assert.rejects(answering({ version: 1, calls: [{ id: 3 }] }).calls.list(), /calls\.0/);
+  await assert.rejects(answering({ version: 1, calls: [{ id: 3 }] }).calls.list(), /calls\.0/u);
 });
 
 test('hex turning a request down is a refusal in its own words; its own failure is not', async () => {
-  const answer = async (response: Response) =>
-    await hexAt(async () => response).asks.answer(AskId.parse('a'), 'Yes');
-
   await assert.rejects(
-    answer(new Response('that question is already answered or settled', { status: 409 })),
+    answerWith(new Response('that question is already answered or settled', { status: 409 })),
     (error) =>
       error instanceof Refused &&
       error.status === 409 &&
       error.message === 'That question is already answered or settled',
   );
   await assert.rejects(
-    answer(new Response('hub is down', { status: 502 })),
-    (error) => !(error instanceof Refused) && (error as Error).message === 'Hub is down',
+    answerWith(new Response('hub is down', { status: 502 })),
+    (error) =>
+      !(error instanceof Refused) && error instanceof Error && error.message === 'Hub is down',
   );
 });
 
@@ -134,8 +154,8 @@ test('an unreachable hex points at Tailscale', async () => {
     throw new TypeError('Network request failed');
   });
 
-  await assert.rejects(hex.session.create('offer'), /Tailscale/);
-  await assert.rejects(hex.activity.watch(undefined, new AbortController().signal), /Tailscale/);
+  await assert.rejects(hex.session.create('offer'), /Tailscale/u);
+  await assert.rejects(hex.activity.watch(undefined, new AbortController().signal), /Tailscale/u);
 });
 
 test('every request carries the hex token when the app has one', async () => {
@@ -147,7 +167,7 @@ test('every request carries the hex token when the app has one', async () => {
     return Response.json({ version: 1, call: null, tasks: [] });
   };
 
-  const signal = new AbortController().signal;
+  const { signal } = new AbortController();
   await hexAt(fetch, 'secret').session.close(live);
   await hexAt(fetch, 'secret').activity.watch(undefined, signal);
   await hexAt(fetch).session.close(live);
@@ -156,7 +176,7 @@ test('every request carries the hex token when the app has one', async () => {
 
 test('lists are asked for, then waited on from the version they last saw', async () => {
   const seen: { url: string; init?: RequestInit }[] = [];
-  const signal = new AbortController().signal;
+  const { signal } = new AbortController();
   await answering({ version: 7, live: 'live_2', calls: [] }, seen).calls.list();
   await answering({ version: 7, calls: [] }, seen).calls.list(7);
   await answering({ version: 8, turns: [], tasks: [], ...summary }, seen).calls.get(live, 8);
@@ -186,14 +206,14 @@ test('lists are asked for, then waited on from the version they last saw', async
 test('closing a list stops its waiting request as it is', async () => {
   const controller = new AbortController();
 
-  const hex = hexAt(
-    async (_input, init) =>
-      await new Promise((_resolve, reject) =>
-        init?.signal?.addEventListener('abort', () => {
-          reject(new DOMException('', 'AbortError'));
-        }),
-      ),
-  );
+  const hex = hexAt(async (_input, init) => {
+    const aborted = Promise.withResolvers<Response>();
+    init?.signal?.addEventListener('abort', () => {
+      aborted.reject(new DOMException('', 'AbortError'));
+    });
+
+    return await aborted.promise;
+  });
 
   const waiting = hex.calls.list(7, controller.signal);
   controller.abort();
@@ -213,7 +233,7 @@ test('each tap goes to hex where it belongs, by id', async () => {
   await hex.asks.talk();
   assert.deepEqual(
     seen.map(({ url, init }) =>
-      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${init?.body ?? ''}`.trim(),
+      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${sentTextIfAny(init)}`.trim(),
     ),
     [
       'DELETE /calls/live_1',
@@ -238,7 +258,7 @@ test('an answer, a note and a not needed each go to their ask and say what they 
   assert.deepEqual(await hex.asks.dismiss(ask), reached);
   assert.deepEqual(
     seen.map(({ url, init }) =>
-      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${init?.body ?? ''}`.trim(),
+      `${init?.method} ${url.slice(url.indexOf('/', 8))} ${sentTextIfAny(init)}`.trim(),
     ),
     [
       'POST /asks/telegram%3A-100%3A1%3A7/answer {"label":"Deep"}',
@@ -246,7 +266,7 @@ test('an answer, a note and a not needed each go to their ask and say what they 
       'POST /asks/telegram%3A-100%3A1%3A7/dismiss',
     ],
   );
-  await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/);
+  await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/u);
 });
 
 test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex gave it', async () => {
@@ -254,7 +274,7 @@ test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex
 
   const hex = createHex(
     createClient({
-      url,
+      url: hexUrl,
       token: 'secret',
       sendFile: async (to, file, { headers }) => {
         seen.push({ url: to, init: { headers, body: `file ${file.uri}` } });
@@ -262,7 +282,7 @@ test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex
         return { status: 201, text: JSON.stringify({ id: `m${seen.length}`, kind: 'photo' }) };
       },
       fetch: async (input, init) => {
-        seen.push({ url: String(input), init });
+        seen.push({ url: urlOf(input), init });
 
         return new Response(null, { status: 204 });
       },
@@ -294,7 +314,7 @@ test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex
     ],
   );
   assert.deepEqual(hex.media.image(MediaId.parse('m1')), {
-    uri: `${url}/media/m1`,
+    uri: `${hexUrl}/media/m1`,
     headers: { Authorization: 'Bearer secret' },
   });
 });

@@ -84,7 +84,7 @@ test('a turn that is only media reads as what it holds', () => {
 });
 
 test('app keys fit what hex takes', () => {
-  assert.match(newKey(), /^app-[\w-]{8,60}$/);
+  assert.match(newKey(), /^app-[\w-]{8,60}$/u);
 });
 
 test('what you did in a thread reads as an event, and a voice message as your words', () => {

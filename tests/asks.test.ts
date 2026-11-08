@@ -133,12 +133,13 @@ test('an answer hex could not take opens its card again', () => {
   );
 });
 
+const heldXY = (id: string) => id === 'x' || id === 'y';
+
 test('held asks go back after the ask they followed, or first when none of those is left', () => {
   const before = ['x', 'a', 'y', 'b'].map((id) => ask(id, 'do'));
   const after = ['b', 'c'].map((id) => ask(id, 'do'));
-  const held = (id: string) => id === 'x' || id === 'y';
   assert.deepEqual(
-    keepInPlace(before, after, held).map((one) => one.id),
+    keepInPlace(before, after, heldXY).map((one) => one.id),
     ['x', 'y', 'b', 'c'],
   );
 });

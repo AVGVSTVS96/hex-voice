@@ -13,11 +13,13 @@ const clip: Picked = { uri: 'file:///cable.mov', kind: 'video', type: 'video/qui
 
 // A stand-in for hex that names each file it keeps in order from `first`, turns down the files in
 // `refuse`, and says what each request was.
-const hexThat = ({
-  first = 1,
-  refuse = [] as string[],
-  callFails = undefined as Error | undefined,
-} = {}) => {
+interface HexThat {
+  first?: number;
+  refuse?: string[];
+  callFails?: Error;
+}
+
+const hexThat = ({ first = 1, refuse = [], callFails }: HexThat = {}) => {
   const asked: string[] = [];
   let kept = first - 1;
 
@@ -29,7 +31,9 @@ const hexThat = ({
         throw new Error('Cannot reach hex');
       }
 
-      return { id: MediaId.parse(`m${++kept}`), kind };
+      kept += 1;
+
+      return { id: MediaId.parse(`m${kept}`), kind };
     },
     media: async (to, ids) => {
       asked.push(`call ${to} ${ids.join(',')}`);

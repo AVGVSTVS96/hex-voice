@@ -287,6 +287,8 @@ test('an error from this phone’s last call goes once a call elsewhere is the l
   assert.equal(buttonsOf(after).call, 'start');
 });
 
+const wordIds = (call: Call) => wordsOf(call).map(({ id }) => id);
+
 test('what you sent a call shows among its words, going then sent, until the record of a call held elsewhere has it', () => {
   const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
 
@@ -309,13 +311,12 @@ test('what you sent a call shows among its words, going then sent, until the rec
     leaving: false,
   });
 
-  const ids = (call: Call) => wordsOf(call).map(({ id }) => id);
-  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800)])), [
+  assert.deepEqual(wordIds(withSent(phone, [sent(CallId.parse('phone_1'), 800)])), [
     'voice 0',
     'sent 800',
     'media m1',
   ]);
-  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800, 'm1')])), [
+  assert.deepEqual(wordIds(withSent(phone, [sent(CallId.parse('phone_1'), 800, 'm1')])), [
     'voice 0',
     'media m1',
   ]);

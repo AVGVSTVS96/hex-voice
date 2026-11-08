@@ -104,7 +104,7 @@ test('each of hex’s tasks is one marker where it started, showing how it ended
 });
 
 test('a call shows when the phone took its audio and the time-limit warning, and its copy leads with hex’s wrap-up', () => {
-  const call = {
+  const record = {
     id: CallId.parse('live_1'),
     started: '2026-10-13T10:00:00.000Z',
     from: 'app' as const,
@@ -120,17 +120,17 @@ test('a call shows when the phone took its audio and the time-limit warning, and
   };
 
   assert.deepEqual(
-    timeline(call).map((moment) => moment.kind),
+    timeline(record).map((moment) => moment.kind),
     ['turn', 'mark', 'mark'],
   );
   assert.equal(
-    transcriptText(call),
+    transcriptText(record),
     'Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]',
   );
 });
 
 test('a photo or clip you sent a call shows as your turn, live and after, wherever it was sent', () => {
-  const call = {
+  const sent = {
     turns: [
       { who: 'you' as const, at: 1000, text: 'Can you see why the internet is out?' },
       { who: 'voice' as const, at: 9000, text: 'The fourth light is off.' },
@@ -143,7 +143,7 @@ test('a photo or clip you sent a call shows as your turn, live and after, wherev
   };
 
   assert.deepEqual(
-    liveEntries(call).map(({ role, media }) => [role, media?.kind]),
+    liveEntries(sent).map(({ role, media }) => [role, media?.kind]),
     [
       ['user', undefined],
       ['user', 'photo'],
@@ -151,16 +151,17 @@ test('a photo or clip you sent a call shows as your turn, live and after, wherev
     ],
   );
   assert.deepEqual(
-    timeline(call).map((moment) => moment.kind),
+    timeline(sent).map((moment) => moment.kind),
     ['turn', 'media', 'turn'],
   );
 });
 
+const callOn = (id: string, day: number) => call(id, new Date(2026, 9, day, 9).toISOString());
+const idsOf = (calls: CallSummary[]) => calls.map(({ id }) => id);
+
 test('a call that wouldn’t delete goes back where it sat, newest first', () => {
-  const at = (id: string, day: number) => call(id, new Date(2026, 9, day, 9).toISOString());
-  const [c, b, a] = [at('c', 14), at('b', 13), at('a', 12)];
-  const ids = (calls: CallSummary[]) => calls.map(({ id }) => id);
-  assert.deepEqual(ids(putBack([c, a], b)), ['c', 'b', 'a']);
-  assert.deepEqual(ids(putBack([b, a], c)), ['c', 'b', 'a']);
-  assert.deepEqual(ids(putBack([c, b], a)), ['c', 'b', 'a']);
+  const [c, b, a] = [callOn('c', 14), callOn('b', 13), callOn('a', 12)];
+  assert.deepEqual(idsOf(putBack([c, a], b)), ['c', 'b', 'a']);
+  assert.deepEqual(idsOf(putBack([b, a], c)), ['c', 'b', 'a']);
+  assert.deepEqual(idsOf(putBack([c, b], a)), ['c', 'b', 'a']);
 });

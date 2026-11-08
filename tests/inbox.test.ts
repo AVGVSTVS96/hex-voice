@@ -118,8 +118,13 @@ interface Parts {
   fresh?: Fresh[];
 }
 
-const stream = ({ tasks = [], finished = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
-  inboxEntries(tasks, finished, { stuck, fresh }, asks, now);
+const stream = ({
+  tasks = [],
+  finished = [],
+  asks = [],
+  stuck: stuckRows = [],
+  fresh: freshRows = [],
+}: Parts = {}) => inboxEntries(tasks, finished, { stuck: stuckRows, fresh: freshRows }, asks, now);
 
 const ids = (entries: Entry[]) => entries.map((entry) => entry.id);
 
@@ -214,7 +219,7 @@ test('after what needs you comes what works, then what was done in the last day,
   ]);
   assert.deepEqual(
     entries.map((entry) => entry.stage),
-    ['working', 'done', 'done', 'done', ...Array(7).fill('quiet')],
+    ['working', 'done', 'done', 'done', ...Array.from({ length: 7 }, () => 'quiet')],
   );
 });
 
@@ -427,7 +432,7 @@ test('hex’s picks are the open asks with a pick, never money', () => {
   });
 
   const taken = (answered?: Record<string, string | null>) =>
-    picksOf(entries, answered).map(({ ask, option }) => [ask.id, option.label]);
+    picksOf(entries, answered).map(({ ask: picked, option }) => [picked.id, option.label]);
 
   assert.deepEqual(taken({ answered: 'Yes' }), [
     ['ok', 'Deep'],
@@ -557,8 +562,8 @@ test('a project opens on its leading thread, or on a page of its own when it has
   assert.ok(entry?.kind === 'task');
   const topic = { name: 'voiceapp', entries: [entry], marks: [] };
   assert.equal(pageOf(topic), entry.task.id);
-  const stuck = { name: 'Stuck', entries: [], marks: [] };
-  assert.equal(topicIn(pageOf(stuck)), 'Stuck');
+  const stuckTopic = { name: 'Stuck', entries: [], marks: [] };
+  assert.equal(topicIn(pageOf(stuckTopic)), 'Stuck');
   assert.equal(topicIn(entry.task.id), undefined);
 });
 
@@ -608,7 +613,7 @@ test('each task hex finished in the last day is in Done, while its project works
   const tab = entries.filter((entry) => entry.stage === 'done');
   assert.deepEqual(ids(tab), ['t-3', 't-2', 't-1', 't-4']);
   assert.deepEqual(
-    topicsOf(tab, entries).map(({ name, entries }) => [name, entries.length]),
+    topicsOf(tab, entries).map(({ name, entries: inTopic }) => [name, inTopic.length]),
     [
       ['iikb', 1],
       ['voiceapp', 2],
@@ -619,7 +624,7 @@ test('each task hex finished in the last day is in Done, while its project works
   assert.equal(pageOf(topicsOf(tab, entries)[1]), 'telegram:voiceapp');
   assert.equal(headlineOf(tab[0]), 't-3 title');
   assert.deepEqual(
-    stageTopics(entries, 'done').map(({ name, entries }) => [name, entries.length]),
+    stageTopics(entries, 'done').map(({ name, entries: inTopic }) => [name, inTopic.length]),
     [
       ['iikb', 1],
       ['voiceapp', 1],
@@ -639,9 +644,9 @@ test('All lists every project once, in the first stage it has, as that stage rea
   });
 
   assert.deepEqual(
-    stageTopics(entries, 'all').map(({ name, entries }) => [
+    stageTopics(entries, 'all').map(({ name, entries: inTopic }) => [
       name,
-      entries.map((entry) => entry.stage),
+      inTopic.map((entry) => entry.stage),
     ]),
     [
       ['iikb', ['needs']],
