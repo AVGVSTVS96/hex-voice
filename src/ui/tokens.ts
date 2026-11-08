@@ -46,6 +46,17 @@ export const brand = {
   ink: '#FFFFFF',
 } as const;
 
+// On a photo or the camera's picture, the same in either appearance: words and symbols, the black
+// under and on them, the dark glass behind them, recording's red, and the photo's own edge (`bevel`
+// in theme.ts), light along its top, a hairline down its sides and shade along its foot.
+export const film = {
+  ink: '#FFFFFF',
+  black: '#000000',
+  glass: '#00000073',
+  recording: '#FF3B30',
+  edge: { light: '#FFFFFF59', side: '#FFFFFF1F', shade: '#0000004D' },
+} as const;
+
 // A mask shows what it covers where it's opaque, and hides it where it's clear.
 export const mask = { shown: '#000000', hidden: '#00000000' } as const;
 
@@ -172,6 +183,9 @@ export const metrics = {
   pill: { height: 52, gap: space[2], regular: 44, small: 32 },
   // A thread's composer: its field's least height, and its send button's.
   field: 50,
+  // A photo or clip: what you sent, at its widest in a thread (in a call it's a share of the
+  // words' width), and waiting in the composer. Then the camera's shutter and its ring.
+  media: { turn: 240, share: '64%', waiting: 64, shutter: 72, ring: 4 },
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: space[3], trailing: space[4], gap: space[2] } },
@@ -231,6 +245,9 @@ export const radius = {
   option: 22,
   // A done row's square mark in Tasks, as Muse draws its checkboxes.
   mark: 6,
+  // A photo or clip you sent, and one waiting to go.
+  media: 18,
+  waiting: 12,
 } as const;
 
 export type ControlsSize = keyof typeof metrics.controls;

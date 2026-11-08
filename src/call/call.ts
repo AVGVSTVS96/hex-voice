@@ -10,6 +10,7 @@ import {
   type CallRecord,
   type CallSource,
 } from '@/live/calls';
+import type { MediaId, Picked, Shown } from '@/live/media';
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from '@/live/types';
 
 export type Mic = { muted: boolean; interrupted: boolean };
@@ -66,7 +67,7 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
       kind: 'elsewhere',
       phase: leaving ? 'ending' : 'live',
       record,
-      words: liveEntries(record.turns),
+      words: liveEntries(record),
     };
   if (record)
     return {
@@ -76,7 +77,7 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
         from: record.from,
         ending: record.end,
         seconds: endedSeconds(record),
-        words: liveEntries(record.turns),
+        words: liveEntries(record),
       },
     };
   if (!session.callId && !session.error) return { kind: 'none' };
@@ -91,6 +92,30 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
       words: session.transcript,
     },
   };
+}
+
+// A photo or clip you sent a call from here (`picked`), as its words show it until hex's record has
+// it: going, or why it didn't.
+export type Sent = {
+  call: CallId;
+  picked: Picked;
+  id?: MediaId;
+  entry: TranscriptEntry & { media: Shown };
+};
+
+// The call with what you sent it among its words. One hex holds elsewhere shows each from its own
+// record once that has it, so a sent one shows only until then.
+export function withSent(call: Call, sent: Sent[]): Call {
+  if (call.kind === 'none') return call;
+  const id = callIdOf(call);
+  const kept = new Set(
+    call.kind === 'elsewhere' ? (call.record.moments ?? []).map((m) => m.media) : [],
+  );
+  const ours = sent
+    .filter((one) => one.call === id && !(one.id && kept.has(one.id)))
+    .map((one) => one.entry);
+  if (!ours.length) return call;
+  return { ...call, words: [...call.words, ...ours].sort((a, b) => a.startMs - b.startMs) };
 }
 
 // The call going on now, here or elsewhere; hex names this phone's once it answers.
@@ -138,10 +163,16 @@ export type CallButton = 'start' | 'retry' | 'cancel' | 'end' | 'ending';
 // With no call there's nothing to mute. A call held elsewhere mutes there, not here.
 export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
 
-export function buttonsOf(call: Call): { call: CallButton; mute: MuteButton } {
-  if (call.kind === 'none') return { call: call.last?.error ? 'retry' : 'start', mute: undefined };
-  if (call.phase === 'ending') return { call: 'ending', mute: muteOf(call) };
-  return { call: call.phase === 'connecting' ? 'cancel' : 'end', mute: muteOf(call) };
+// A photo or clip goes to a call once it's live.
+export function buttonsOf(call: Call): { call: CallButton; mute: MuteButton; add: boolean } {
+  if (call.kind === 'none')
+    return { call: call.last?.error ? 'retry' : 'start', mute: undefined, add: false };
+  if (call.phase === 'ending') return { call: 'ending', mute: muteOf(call), add: false };
+  return {
+    call: call.phase === 'connecting' ? 'cancel' : 'end',
+    mute: muteOf(call),
+    add: call.phase === 'live',
+  };
 }
 
 function muteOf(call: Exclude<Call, { kind: 'none' }>): MuteButton {

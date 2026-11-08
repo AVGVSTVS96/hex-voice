@@ -10,7 +10,19 @@ export class Refused extends Error {
   }
 }
 
-export type Config = { url?: string; token?: string; fetch: typeof globalThis.fetch };
+// A file on this phone sent as a request's body, streamed from where it lies.
+export type SendFile = (
+  url: string,
+  file: { uri: string; type: string },
+  init: { headers: Record<string, string>; signal: AbortSignal },
+) => Promise<{ status: number; text: string }>;
+
+export type Config = {
+  url?: string;
+  token?: string;
+  fetch: typeof globalThis.fetch;
+  sendFile?: SendFile;
+};
 export type Client = ReturnType<typeof createClient>;
 
 type Options = {
@@ -26,17 +38,21 @@ type Options = {
 const READ = 90_000;
 const WRITE = 60_000;
 const WAIT = 120_000;
+// A minute of video over a slow link.
+const UPLOAD = 300_000;
 const UNREACHABLE = ['Network request failed', 'Failed to fetch', 'fetch failed'];
 
 // The one way this app talks to hex: the address and token are read once, every request has a
 // deadline, and every answer is parsed before anything sees it.
-export function createClient({ url, token, fetch }: Config) {
+export function createClient({ url, token, fetch, sendFile }: Config) {
   const origin = url?.trim().replace(/\/+$/, '');
   const auth: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-  async function call(
+  // Reaches hex at `path` within `timeout`, through `go`, and reads its answer.
+  async function reach(
     path: string,
-    { method = 'GET', body, after, signal, timeout }: Options,
+    { signal, timeout }: Pick<Options, 'signal' | 'timeout'>,
+    go: (url: string, signal: AbortSignal) => Promise<{ status: number; text: string }>,
   ): Promise<unknown> {
     if (!origin)
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
@@ -45,17 +61,8 @@ export function createClient({ url, token, fetch }: Config) {
     signal?.addEventListener('abort', abort);
     const deadline = setTimeout(abort, timeout);
     try {
-      const response = await fetch(
-        `${origin}${after === undefined ? path : `${path}?after=${after}`}`,
-        {
-          method,
-          headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
-          body: body === undefined ? undefined : JSON.stringify(body),
-          signal: controller.signal,
-        },
-      );
-      const text = response.status === 204 ? '' : await response.text();
-      if (!response.ok) throw refusal(response.status, text);
+      const { status, text } = await go(`${origin}${path}`, controller.signal);
+      if (status < 200 || status >= 300) throw refusal(status, text);
       return text ? JSON.parse(text) : undefined;
     } catch (error) {
       if (signal?.aborted) throw error;
@@ -73,22 +80,57 @@ export function createClient({ url, token, fetch }: Config) {
     }
   }
 
+  const call = (path: string, { method = 'GET', body, after, ...options }: Options) =>
+    reach(after === undefined ? path : `${path}?after=${after}`, options, async (url, signal) => {
+      const response = await fetch(url, {
+        method,
+        headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal,
+      });
+      return {
+        status: response.status,
+        text: response.status === 204 ? '' : await response.text(),
+      };
+    });
+
+  const read = <S extends z.ZodMiniType>(path: string, schema: S, answer: unknown) => {
+    const parsed = schema.safeParse(answer);
+    if (parsed.success) return parsed.data;
+    const where = parsed.error.issues[0]?.path.join('.');
+    throw new Error(
+      `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
+    );
+  };
+
   return {
     request: async <S extends z.ZodMiniType>(
       path: string,
       schema: S,
       options: Options = {},
-    ): Promise<z.output<S>> => {
-      const answer = schema.safeParse(
+    ): Promise<z.output<S>> =>
+      read(
+        path,
+        schema,
         await call(path, {
           ...options,
           timeout: options.timeout ?? (options.after === undefined ? READ : WAIT),
         }),
-      );
-      if (answer.success) return answer.data;
-      const where = answer.error.issues[0]?.path.join('.');
-      throw new Error(
-        `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
+      ),
+    // A file on this phone as the request's body, under its own Content-Type.
+    upload: async <S extends z.ZodMiniType>(
+      path: string,
+      schema: S,
+      file: { uri: string; type: string },
+    ): Promise<z.output<S>> => {
+      if (!sendFile) throw new Error('This app can’t send files from here.');
+      const headers = { ...auth, 'Content-Type': file.type };
+      return read(
+        path,
+        schema,
+        await reach(path, { timeout: UPLOAD }, (url, signal) =>
+          sendFile(url, file, { headers, signal }),
+        ),
       );
     },
     // A file of hex's for a native view to read itself: its address and the token it takes.

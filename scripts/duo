@@ -531,7 +531,7 @@ prepare() {
     die "$title's bundle can reach hex itself, so it isn't checked"
   [ -z "$lane" ] || ssh "$mac" "mkdir -p $folder && ln -sfn ../hex-voice-sim/apps $folder/apps"
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
-    "$repo/scripts/duo-hex.mjs" "$repo/uitests" "$mac:$folder/harness/"
+    "$repo/scripts/duo-hex.mjs" "$repo/scripts/duo-media.jpg" "$repo/uitests" "$mac:$folder/harness/"
   rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
   [ -z "${ANSWERS:-}" ] || rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
   rsync -a --delete "$js/" "$mac:$folder/js/"

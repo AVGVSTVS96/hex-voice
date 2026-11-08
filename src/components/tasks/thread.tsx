@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer, TextInput, type TextInputRef } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer, TextInput, type TextInputRef } from '@expo/ui';
 import { ScrollView } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
@@ -16,6 +16,8 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
 
+import { AddMedia } from '@/components/media/add-media';
+import { Waiting } from '@/components/media/waiting';
 import { Header, PageBar, Talk } from '@/components/tasks/bar';
 import { useDraft } from '@/hooks/use-draft';
 import { Mark } from '@/components/tasks/mark';
@@ -24,6 +26,7 @@ import { Failure, Faded, SectionHead } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
+import { MOST, type Picked } from '@/live/media';
 import { PLACES, placeOf } from '@/live/inbox';
 import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
@@ -97,7 +100,7 @@ export function ThreadPage({
   foot?: number;
   onOpen: (thread: TaskRow) => void;
   onSteps: () => void;
-  onSend: (text: string) => void;
+  onSend: (text: string, media: Picked[]) => void;
   onRetry: (sent: Sending) => void;
   onStop: () => void;
   onTalk: () => void;
@@ -242,12 +245,13 @@ function Composer({
   working: boolean;
   focus: boolean;
   foot: number;
-  onSend: (text: string) => void;
+  onSend: (text: string, media: Picked[]) => void;
   onStop: () => void;
   onTalk: () => void;
 }) {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
+  const [media, setMedia] = useState<Picked[]>([]);
   const [typing, setTyping] = useState(false);
   const typingHere = useContext(Typing);
   useEffect(() => {
@@ -256,12 +260,13 @@ function Composer({
     return () => clearTimeout(wait);
   }, [focus]);
   const words = text.trim();
-  const stops = working && !text;
-  const lit = stops || !!words;
+  const stops = working && !text && !media.length;
+  const lit = stops || !!words || !!media.length;
   const send = () => {
     if (stops) return onStop();
-    if (!words) return;
-    onSend(words);
+    if (!words && !media.length) return;
+    onSend(words, media);
+    setMedia([]);
     setText('');
     keep('');
     input.current?.clear();
@@ -280,14 +285,34 @@ function Composer({
         frame({ maxWidth: Infinity }),
       ]}
     >
-      <Row
-        alignment="center"
-        spacing={0}
+      <AddMedia
+        testID="thread-add"
+        label="Add a photo or video"
+        most={MOST - media.length}
+        sends={false}
+        onAdd={(more) => setMedia((now) => [...now, ...more].slice(0, MOST))}
+      >
+        <Row
+          alignment="center"
+          spacing={0}
+          modifiers={[
+            frame({ width: metrics.field, height: metrics.field }),
+            background(theme.surface),
+            clipShape('circle'),
+            contentShape(shapes.circle()),
+          ]}
+        >
+          <Icon name="plus" size={metrics.symbol.row} color={theme.text} />
+        </Row>
+      </AddMedia>
+      <Column
+        alignment="start"
+        spacing={space[3]}
         modifiers={[
           padding({
-            leading: space[5],
+            leading: media.length ? space[2] : space[5],
             trailing: space[5],
-            top: space[4],
+            top: media.length ? space[2] : space[4],
             bottom: space[4],
           }),
           frame({ minHeight: metrics.field }),
@@ -296,6 +321,14 @@ function Composer({
           clipShape('roundedRectangle', radius.field),
         ]}
       >
+        {media.length ? (
+          <RNHostView matchContents={{ vertical: true }}>
+            <Waiting
+              media={media}
+              onRemove={(at) => setMedia((now) => now.filter((_, i) => i !== at))}
+            />
+          </RNHostView>
+        ) : null}
         <TextInput
           ref={input}
           multiline
@@ -320,9 +353,10 @@ function Composer({
           modifiers={[
             foregroundStyle(theme.text),
             frame({ maxWidth: Infinity, alignment: 'leading' }),
+            ...(media.length ? [padding({ leading: space[3] })] : []),
           ]}
         />
-      </Row>
+      </Column>
       <Row
         alignment="center"
         spacing={0}

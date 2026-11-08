@@ -1,0 +1,4 @@
+# Photos and video, over invented answers: ANSWERS=scripts/duo-media.json HEX=kept scripts/duo shoot <ref> scripts/duo-media-states
+# A topic whose messages hold photos and a clip, previewed in its Messages; and the demo call (a pretend call) with its +.
+media-topic  hexvoice:///?tasks=media
+call-add     hexvoice:///?demo=call

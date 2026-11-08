@@ -1,4 +1,4 @@
-import { Column, Row, Spacer } from '@expo/ui';
+import { Column, RNHostView, Row, Spacer } from '@expo/ui';
 import { Text } from '@expo/ui/swift-ui';
 import {
   background,
@@ -12,7 +12,9 @@ import {
 import { createContext, useContext } from 'react';
 
 import { Markdown } from '@/components/markdown';
+import { Album } from '@/components/media/thumb';
 import { said, type Sending } from '@/live/chat';
+import { mediaWords, type Shown } from '@/live/media';
 import type { ChatTurn } from '@/live/tasks';
 import { theme } from '@/theme';
 import { textLook } from '@/ui/text';
@@ -26,7 +28,7 @@ export const Selectable = createContext(true);
 export function Said({ turn }: { turn: ChatTurn }) {
   const one = said(turn);
   const selectable = useContext(Selectable);
-  if (one.kind === 'me') return <Mine text={one.text} />;
+  if (one.kind === 'me') return <Mine text={one.text} media={turn.media} />;
   if (one.kind === 'event')
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   return (
@@ -45,7 +47,7 @@ export function Said({ turn }: { turn: ChatTurn }) {
 export function Sent({ sent, onRetry }: { sent: Sending; onRetry: () => void }) {
   return (
     <Column alignment="end" spacing={space[1]} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Mine text={sent.text} dim={!sent.failed} />
+      <Mine text={sent.text} media={sent.media} dim={!sent.failed} />
       <Row alignment="center" spacing={0} modifiers={[padding({ trailing: metrics.list.inset })]}>
         <Spacer flexible />
         <Text
@@ -81,7 +83,11 @@ export function SaidLine({
   const one = said(turn);
   const who = one.kind === 'hex' ? 'hex' : 'You';
   const text =
-    one.kind === 'event' ? (one.text ? `${one.label} · ${one.text}` : one.label) : one.text;
+    one.kind === 'event'
+      ? one.text
+        ? `${one.label} · ${one.text}`
+        : one.label
+      : one.text || mediaWords(turn.media ?? []);
   return (
     <Row
       alignment="start"
@@ -116,7 +122,8 @@ export function SaidLine({
   );
 }
 
-function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
+// Your photos and clips above your words, each on your side.
+function Mine({ text, media = [], dim = false }: { text: string; media?: Shown[]; dim?: boolean }) {
   const selectable = useContext(Selectable);
   return (
     <Row
@@ -127,22 +134,31 @@ function Mine({ text, dim = false }: { text: string; dim?: boolean }) {
       ]}
     >
       <Spacer flexible />
-      <Text
-        modifiers={[
-          ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
-          textSelection(selectable),
-          padding({
-            leading: metrics.bubbleX,
-            trailing: metrics.bubbleX,
-            top: metrics.bubbleY,
-            bottom: metrics.bubbleY,
-          }),
-          background(theme.bubble),
-          clipShape('roundedRectangle', radius.bubble),
-        ]}
-      >
-        {text}
-      </Text>
+      <Column alignment="end" spacing={space[1]}>
+        {media.length ? (
+          <RNHostView matchContents>
+            <Album media={media} width={metrics.media.turn} dim={dim} />
+          </RNHostView>
+        ) : null}
+        {text ? (
+          <Text
+            modifiers={[
+              ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
+              textSelection(selectable),
+              padding({
+                leading: metrics.bubbleX,
+                trailing: metrics.bubbleX,
+                top: metrics.bubbleY,
+                bottom: metrics.bubbleY,
+              }),
+              background(theme.bubble),
+              clipShape('roundedRectangle', radius.bubble),
+            ]}
+          >
+            {text}
+          </Text>
+        ) : null}
+      </Column>
     </Row>
   );
 }

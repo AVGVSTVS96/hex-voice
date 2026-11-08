@@ -15,14 +15,15 @@ import {
   CallId,
   CallSummary,
 } from '../src/live/calls';
+import { MediaId } from '../src/live/media';
 
 test('a phone call’s turns read as the live transcript, each keeping its place as it grows', () => {
   const turns = [
     { who: 'you' as const, at: 1000, text: 'is the build' },
     { who: 'voice' as const, at: 2500, text: 'One sec.' },
   ];
-  const before = liveEntries(turns);
-  const after = liveEntries([{ ...turns[0], text: 'is the build green?' }, turns[1]]);
+  const before = liveEntries({ turns });
+  const after = liveEntries({ turns: [{ ...turns[0], text: 'is the build green?' }, turns[1]] });
   assert.deepEqual(before, [
     { id: 'you 1000', role: 'user', text: 'is the build', startMs: 1000 },
     { id: 'voice 2500', role: 'assistant', text: 'One sec.', startMs: 2500 },
@@ -120,6 +121,32 @@ test('a call shows when the phone took its audio and the time-limit warning, and
   assert.equal(
     transcriptText(call),
     'Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]',
+  );
+});
+
+test('a photo or clip you sent a call shows as your turn, live and after, wherever it was sent', () => {
+  const call = {
+    turns: [
+      { who: 'you' as const, at: 1000, text: 'Can you see why the internet is out?' },
+      { who: 'voice' as const, at: 9000, text: 'The fourth light is off.' },
+    ],
+    tasks: [],
+    moments: [
+      { at: 4000, kind: 'photo' as const, text: '', media: MediaId.parse('m1') },
+      { at: 5000, kind: 'say' as const, text: 'Looking now.' },
+    ],
+  };
+  assert.deepEqual(
+    liveEntries(call).map(({ role, media }) => [role, media?.kind]),
+    [
+      ['user', undefined],
+      ['user', 'photo'],
+      ['assistant', undefined],
+    ],
+  );
+  assert.deepEqual(
+    timeline(call).map((moment) => moment.kind),
+    ['turn', 'media', 'turn'],
   );
 });
 

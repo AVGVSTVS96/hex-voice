@@ -1,6 +1,7 @@
 import * as z from 'zod/mini';
 
 import { timeOfDay } from './calls';
+import { Shared } from './media';
 
 export const TaskId = z.string().brand<'TaskId'>();
 export type TaskId = z.infer<typeof TaskId>;
@@ -131,10 +132,14 @@ export const TaskList = z.object({
   finished: z.catch(z.array(Finished), []),
 });
 export type TaskList = z.infer<typeof TaskList>;
-// A thread's chat: the latest of what you said and hex replied across its sessions (`turns`, out
-// of `total`), what you sent that its session hasn't taken in yet, and whether words typed here
-// reach it (T3 Code threads take only what's typed in T3 Code).
-const ChatTurn = z.object({ from: z.catch(z.enum(['me', 'hex']), 'hex'), text: z.string() });
+// A thread's chat: the latest of what you said (with any photos and clips) and hex replied across
+// its sessions (`turns`, out of `total`), what you sent that its session hasn't taken in yet, and
+// whether words typed here reach it (T3 Code threads take only what's typed in T3 Code).
+const ChatTurn = z.object({
+  from: z.catch(z.enum(['me', 'hex']), 'hex'),
+  text: z.string(),
+  media: z.optional(z.array(Shared)),
+});
 export type ChatTurn = z.infer<typeof ChatTurn>;
 export const Chat = z.object({
   version: z.number(),

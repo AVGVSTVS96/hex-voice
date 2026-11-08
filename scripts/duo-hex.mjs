@@ -9,7 +9,11 @@
 // never answer or act for him. The app under check only knows this address and a dummy token.
 // It speaks HTTPS with HTTP/2, as hex does, under a root only the simulator trusts (DUO_HEX_TLS):
 // the app keeps several watches open at once, and over HTTP/1.1 iOS gives a host 4 connections, so
-// every other read would wait behind them.
+// every other read would wait behind them. Photos and clips sent to /media stay here, in memory,
+// under hex's rules: only its types (415 for any other), a JPEG or PNG back as it came and any
+// other photo or a clip as a JPEG, here duo-media.jpg; an id it never saw, like one a kept
+// chat names, comes back as duo-media.jpg too. A call (one id or several) or a thread sent an
+// id it never gave out answers 400, as hex does.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createSecureServer } from 'node:http2';
 
@@ -28,6 +32,41 @@ const also = Object.fromEntries(
   ),
 );
 
+const sample = {
+  type: 'image/jpeg',
+  body: readFileSync(new URL('duo-media.jpg', import.meta.url)),
+};
+const media = new Map();
+const MEDIA = /^\/media(?:\/([^/?]+))?(?:\?|$)/;
+const TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'image/gif',
+  'image/webp',
+  'image/tiff',
+  'image/avif',
+  'video/mp4',
+  'video/quicktime',
+];
+const SENDS_MEDIA = /^\/(calls|tasks)\/[^/?]+\/(media|chat)(\?|$)/;
+
+async function bodyOf(request) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
+// The ids a call's or a thread's write names: { media: id } or { media: [ids] }.
+function named(body) {
+  try {
+    const { media: ids } = JSON.parse(body.toString());
+    return ids === undefined ? [] : [ids].flat();
+  } catch {
+    return [];
+  }
+}
+
 const tls = {
   key: readFileSync(`${DUO_HEX_TLS}/key.pem`),
   cert: readFileSync(`${DUO_HEX_TLS}/cert.pem`),
@@ -35,6 +74,33 @@ const tls = {
 };
 
 createSecureServer(tls, async (request, response) => {
+  const shared = (request.url ?? '').match(MEDIA);
+  if (shared && request.method === 'POST' && !shared[1]) {
+    const body = await bodyOf(request);
+    const type = request.headers['content-type'] ?? '';
+    if (!TYPES.includes(type)) {
+      response.writeHead(415).end(`hex takes ${TYPES.join(', ')}, not ${type || 'no type'}`);
+      return;
+    }
+    const kind = type.startsWith('video/') ? 'video' : 'photo';
+    const id = `duo-${media.size + 1}`;
+    media.set(id, type === 'image/jpeg' || type === 'image/png' ? { type, body } : sample);
+    response
+      .writeHead(201, { 'content-type': 'application/json' })
+      .end(JSON.stringify({ id, kind }));
+    return;
+  }
+  if (shared?.[1] && request.method === 'GET') {
+    const { type, body } = media.get(decodeURIComponent(shared[1])) ?? sample;
+    response.writeHead(200, { 'content-type': type }).end(body);
+    return;
+  }
+  if (request.method === 'POST' && SENDS_MEDIA.test(request.url ?? '')) {
+    const unknown = named(await bodyOf(request)).filter((id) => !media.has(id));
+    if (unknown.length) response.writeHead(400).end(`no media ${unknown.join(', ')}`);
+    else response.writeHead(204).end();
+    return;
+  }
   if (request.method !== 'GET') {
     request.resume();
     if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))

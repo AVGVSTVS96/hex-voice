@@ -12,10 +12,12 @@ import {
   statusOf,
   voiceLocked,
   wakeOf,
+  withSent,
   wordsOf,
   type Call,
 } from '../src/call/call';
 import { CallId, type CallRecord } from '../src/live/calls';
+import { MediaId } from '../src/live/media';
 import type { LiveSnapshot, TranscriptEntry } from '../src/live/types';
 
 const words: TranscriptEntry[] = [{ id: 'user-0', role: 'user', text: 'Hi hex', startMs: 0 }];
@@ -66,7 +68,7 @@ test('before any call the orb rests asleep and alone, ready to start', () => {
     persona: 'idle',
     wake: 0,
     status: 'Ready to start a conversation',
-    buttons: { call: 'start', mute: undefined },
+    buttons: { call: 'start', mute: undefined, add: false },
     words: false,
     footer: undefined,
     error: undefined,
@@ -79,7 +81,7 @@ test('connecting here locks the voice, thinks, and offers to cancel', () => {
     persona: 'thinking',
     wake: 0.5,
     status: 'Connecting',
-    buttons: { call: 'cancel', mute: { muted: false, enabled: false } },
+    buttons: { call: 'cancel', mute: { muted: false, enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -94,7 +96,11 @@ test('a live call here listens, speaks while hex talks, and goes quiet when mute
   assert.equal(personaOf(live({ muted: true }), true), 'speaking');
   assert.equal(statusOf(live()), 'Conversation active');
   assert.equal(statusOf(live({ muted: true })), 'Microphone muted');
-  assert.deepEqual(buttonsOf(live()), { call: 'end', mute: { muted: false, enabled: true } });
+  assert.deepEqual(buttonsOf(live()), {
+    call: 'end',
+    mute: { muted: false, enabled: true },
+    add: true,
+  });
   assert.deepEqual(buttonsOf(live({ muted: true })).mute, { muted: true, enabled: true });
   assert.equal(wakeOf(live()), 1);
   assert.deepEqual(wordsOf(live()), words);
@@ -121,7 +127,7 @@ test('ending a call here thinks, keeps the microphone as it was, and lets nothin
     persona: 'thinking',
     wake: 0.5,
     status: 'Ending conversation',
-    buttons: { call: 'ending', mute: { muted: true, enabled: false } },
+    buttons: { call: 'ending', mute: { muted: true, enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -138,7 +144,7 @@ test('a call that ended here says how and how long, and its words stay', () => {
     persona: 'idle',
     wake: 0,
     status: 'Ready to start a conversation',
-    buttons: { call: 'start', mute: undefined },
+    buttons: { call: 'start', mute: undefined, add: false },
     words: true,
     footer: { kind: 'ended', id: 'sess_1', text: 'You hung up · 2 min', bad: false },
     error: undefined,
@@ -195,7 +201,7 @@ test('a call hex holds elsewhere shows as the call, with its words and where it 
     persona: 'listening',
     wake: 1,
     status: 'hex called you, on your phone',
-    buttons: { call: 'end', mute: { muted: false, enabled: false } },
+    buttons: { call: 'end', mute: { muted: false, enabled: false }, add: true },
     words: true,
     footer: { kind: 'elsewhere', text: 'On your phone · hex called you' },
     error: undefined,
@@ -272,4 +278,34 @@ test('an error from this phone’s last call goes once a call elsewhere is the l
   });
   assert.equal(errorOf(after), undefined);
   assert.equal(buttonsOf(after).call, 'start');
+});
+
+test('what you sent a call shows among its words, going then sent, until the record of a call held elsewhere has it', () => {
+  const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
+  const sent = (call: CallId, at: number, id?: string) => ({
+    call,
+    picked: photo,
+    id: id === undefined ? undefined : MediaId.parse(id),
+    entry: { id: `sent ${at}`, role: 'user' as const, text: '', startMs: at, media: photo },
+  });
+  const here = withSent(live(), [sent(sess, 500), sent(CallId.parse('other'), 100)]);
+  assert.deepEqual(
+    wordsOf(here).map(({ id }) => id),
+    ['user-0', 'sent 500'],
+  );
+  const phone = callOf(session(), {
+    record: record({ moments: [{ at: 900, kind: 'photo', text: '', media: MediaId.parse('m1') }] }),
+    leaving: false,
+  });
+  const ids = (call: Call) => wordsOf(call).map(({ id }) => id);
+  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800)])), [
+    'voice 0',
+    'sent 800',
+    'media m1',
+  ]);
+  assert.deepEqual(ids(withSent(phone, [sent(CallId.parse('phone_1'), 800, 'm1')])), [
+    'voice 0',
+    'media m1',
+  ]);
+  assert.equal(withSent(callOf(session(), nobody), [sent(sess, 1)]).kind, 'none');
 });

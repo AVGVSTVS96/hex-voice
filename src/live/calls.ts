@@ -1,6 +1,7 @@
 import type { SFSymbol } from 'sf-symbols-typescript';
 import * as z from 'zod/mini';
 
+import { MediaId, type Shared } from './media';
 import type { TranscriptEntry } from './types';
 
 export const CallId = z.string().brand<'CallId'>();
@@ -58,15 +59,28 @@ const CallTask = z.object({
   text: z.string(),
 });
 export type CallTask = z.infer<typeof CallTask>;
-// hex's exact words to the voice (say, note), things that happened to the call itself, and the asks
-// it put on screen with their answers and the undos that took one back.
+// hex's exact words to the voice (say, note), things that happened to the call itself, the asks
+// it put on screen with their answers and the undos that took one back, and the photos and clips
+// you sent it.
 const CallMark = z.object({
   at: z.number(),
   kind: z.catch(
-    z.enum(['say', 'note', 'paused', 'resumed', 'warned', 'ask', 'answered', 'undone']),
+    z.enum([
+      'say',
+      'note',
+      'paused',
+      'resumed',
+      'warned',
+      'ask',
+      'answered',
+      'undone',
+      'photo',
+      'video',
+    ]),
     'note',
   ),
   text: z.string(),
+  media: z.optional(MediaId),
 });
 export type CallMark = z.infer<typeof CallMark>;
 // A live call's record carries a version, and asking with it waits for the next word.
@@ -143,20 +157,38 @@ export function transcriptText(call: CallRecord) {
   const moments = timeline(call).map((moment) =>
     moment.kind === 'turn'
       ? `${moment.turn.who === 'you' ? 'You' : 'hex'}: ${moment.turn.text}`
-      : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
+      : moment.kind === 'media'
+        ? `You: (${moment.media.kind})`
+        : `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`,
   );
   return [...(wrapUp.length ? [wrapUp.join('\n')] : []), ...moments].join('\n\n');
 }
 
-// A call's turns as the live transcript shows them, each keyed by where it starts so it keeps its
-// place as its words grow.
-export function liveEntries(turns: CallTurn[]): TranscriptEntry[] {
-  return turns.map(({ who, at, text }) => ({
-    id: `${who} ${at}`,
-    role: who === 'you' ? 'user' : 'assistant',
-    text,
-    startMs: at,
-  }));
+// A call's turns and what you sent it as the live transcript shows them, each keyed by where it
+// starts so it keeps its place as its words grow.
+export function liveEntries({
+  turns,
+  moments = [],
+}: Pick<CallRecord, 'turns' | 'moments'>): TranscriptEntry[] {
+  return [
+    ...turns.map(({ who, at, text }) => ({
+      id: `${who} ${at}`,
+      role: who === 'you' ? ('user' as const) : ('assistant' as const),
+      text,
+      startMs: at,
+    })),
+    ...moments.flatMap((mark) => {
+      const media = sharedOf(mark);
+      return media
+        ? [{ id: `media ${media.id}`, role: 'user' as const, text: '', startMs: mark.at, media }]
+        : [];
+    }),
+  ].sort((a, b) => a.startMs - b.startMs);
+}
+
+// The photo or clip a moment says you sent.
+function sharedOf({ kind, media }: CallMark): Shared | undefined {
+  return media && (kind === 'photo' || kind === 'video') ? { id: media, kind } : undefined;
 }
 
 export function endedSeconds({ started, ended }: Pick<CallSummary, 'started' | 'ended'>) {
@@ -248,7 +280,8 @@ const shown = (mark: CallMark): mark is ShownMark => mark.kind in SHOWN;
 export type Moment =
   | { kind: 'turn'; key: string; at: number; turn: CallTurn }
   | { kind: 'task'; key: string; at: number; task: CallTask }
-  | { kind: 'mark'; key: string; at: number; mark: ShownMark };
+  | { kind: 'mark'; key: string; at: number; mark: ShownMark }
+  | { kind: 'media'; key: string; at: number; media: Shared };
 
 // One marker per task, where hex started it, showing how it ended up.
 export function timeline({
@@ -270,5 +303,11 @@ export function timeline({
     ...moments
       .filter(shown)
       .map((mark, i) => ({ kind: 'mark' as const, key: `mark-${i}`, at: mark.at, mark })),
+    ...moments.flatMap((mark) => {
+      const media = sharedOf(mark);
+      return media
+        ? [{ kind: 'media' as const, key: `media-${media.id}`, at: mark.at, media }]
+        : [];
+    }),
   ].sort((a, b) => a.at - b.at);
 }

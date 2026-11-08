@@ -1,16 +1,22 @@
 import * as z from 'zod/mini';
 
 import type { CallEnding, CallId } from './calls';
+import type { Shown } from './media';
 import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
+// A photo or clip you sent shows as your turn: going while hex takes it in, which for a clip
+// takes a few seconds, then sent, or why it didn't go.
 export type TranscriptEntry = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   startMs: number;
   endMs?: number;
+  media?: Shown;
+  sending?: boolean;
+  failed?: string;
 };
 export type LiveSnapshot = {
   status: LiveStatus;

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { CallAsk } from '@/components/call-ask';
+import { SentMedia } from '@/components/media/sent';
 import type { CallCard } from '@/live/agents';
 import type { AskOption } from '@/live/asks';
 import type { TaskId } from '@/live/tasks';
@@ -42,7 +43,7 @@ export function Transcript({
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
-  const visible = entries.filter((entry) => entry.text.trim());
+  const visible = entries.filter((entry) => entry.media || entry.text.trim());
   const moments = interleave(visible, cards);
 
   useEffect(() => {
@@ -89,6 +90,14 @@ export function Transcript({
               card={moment}
               onAnswer={(option) => onAnswer?.(moment, option) ?? Promise.resolve()}
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
+            />
+          ) : moment.media ? (
+            <SentMedia
+              key={moment.id}
+              id={moment.id}
+              media={moment.media}
+              sending={moment.sending}
+              failed={moment.failed}
             />
           ) : (
             <Line key={moment.id} entry={moment} size={size} />
