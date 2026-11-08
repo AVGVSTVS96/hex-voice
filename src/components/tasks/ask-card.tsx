@@ -247,7 +247,6 @@ function AskCard({
           </Text>
         ) : null}
       </VStack>
-      <Shots ask={ask} />
       {open && (words || ask.links?.length) ? (
         <VStack
           alignment="leading"
@@ -264,6 +263,7 @@ function AskCard({
         </Text>
       ) : null}
       {failed ? <Failure text={failed} /> : null}
+      <Shots ask={ask} />
       {writing ? (
         <Composer
           draft={`ask:${ask.id}`}
@@ -281,8 +281,8 @@ function AskCard({
   );
 }
 
-// What each option looks like, when the choice is between looks: its screenshot over its name, and
-// all of them full screen on a tap.
+// What each option looks like, when the choice is between looks: its screenshot, over its answer
+// when every option has one, and all of them full screen on a tap.
 function Shots({ ask }: { ask: Ask }) {
   const shown = ask.options.filter((option) => option.shot !== undefined);
   if (!shown.length) return null;
@@ -293,7 +293,6 @@ function Shots({ ask }: { ask: Ask }) {
       shapes={shown.map((option) => option.shape ?? 1)}
       headers={shots[0]!.headers}
       labels={shown.map((option) => option.label)}
-      pick={shown.findIndex((option) => option.pick)}
       height={metrics.shot}
       gap={space[2]}
       radius={radius.inner}
@@ -301,8 +300,7 @@ function Shots({ ask }: { ask: Ask }) {
       secondary={theme.secondary}
       surface={theme.fill}
       edge={theme.edge}
-      accent={theme.accent}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity })]}
     />
   );
 }
@@ -397,9 +395,13 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
   if (!n) return null;
   // Each pill's share of the row, short of its sides and the sparkle hex's pick wears.
   const share = (width - space[2] * (n - 1)) / n - 2 * space[4] - metrics.symbol.small - space[2];
+  // Under screenshots, each answer sits under its own as a small pill, so its name says which is
+  // which in one line.
+  const shots = ask.options.every((option) => option.shot !== undefined);
   const beside =
-    n <= SIDE_BY_SIDE &&
-    ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize));
+    shots ||
+    (n <= SIDE_BY_SIDE &&
+      ask.options.every((option) => fitsOneLine([option], share, type.body.fontSize)));
   if (beside)
     return (
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -409,6 +411,7 @@ function Answers({ ask, width, onAnswer }: { ask: Ask; width: number; onAnswer: 
             label={option.label}
             pick={option.pick}
             grow
+            small={shots}
             onPress={() => onAnswer(ask, option)}
           />
         ))}

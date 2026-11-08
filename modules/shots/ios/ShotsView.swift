@@ -6,15 +6,14 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 final class ShotsProps: UIBaseViewProps {
-  // Each option's screenshot, its shape (width over height) and the option's label, in the options'
-  // order, and hex's pick among them.
+  // Each option's screenshot, its shape (width over height) and the option's label, which names it
+  // full screen, in the options' order.
   @Field var uris: [String] = []
   @Field var shapes: [Double] = []
   @Field var labels: [String] = []
-  @Field var pick: Int = -1
   // What reading a screenshot from hex takes, its token.
   @Field var headers: [String: String] = [:]
-  // The most a screenshot stands, and the gaps, corners and label size around it.
+  // The most a screenshot stands, the gap between two, their corners and the expand mark's size.
   @Field var height: CGFloat = 200
   @Field var gap: CGFloat = 8
   @Field var radius: CGFloat = 12
@@ -22,11 +21,10 @@ final class ShotsProps: UIBaseViewProps {
   @Field var secondary: Color = .secondary
   @Field var surface: Color = .gray
   @Field var edge: Color = .gray
-  @Field var accent: Color = .accentColor
 }
 
-// An ask's screenshots side by side across the card, each at its own shape over its option's name,
-// so each holds its room before it arrives. A tap shows them full screen in Quick Look, titled by
+// An ask's screenshots side by side across the card, each at its own shape, so each holds its room
+// before it arrives, and its option's answer can sit under it. A tap shows them full screen in Quick Look, titled by
 // option, where a swipe goes to the next and a pinch looks closer.
 struct ShotsView: ExpoSwiftUI.View {
   @ObservedObject var props: ShotsProps
@@ -40,8 +38,7 @@ struct ShotsView: ExpoSwiftUI.View {
         tile(
           uri,
           shape: props.shapes.indices.contains(index) ? props.shapes[index] : 1,
-          label: props.labels.indices.contains(index) ? props.labels[index] : "",
-          pick: index == props.pick)
+          label: props.labels.indices.contains(index) ? props.labels[index] : "")
       }
     }
     .task(id: props.uris) {
@@ -50,43 +47,35 @@ struct ShotsView: ExpoSwiftUI.View {
     .quickLookPreview($shown, in: props.uris.compactMap { shots.files[$0] })
   }
 
-  private func tile(_ uri: String, shape: Double, label: String, pick: Bool) -> some View {
+  private func tile(_ uri: String, shape: Double, label: String) -> some View {
     let corner = RoundedRectangle(cornerRadius: props.radius, style: .continuous)
-    return VStack(alignment: .leading, spacing: props.gap) {
-      props.surface
-        .overlay {
-          if let image = shots.thumbs[uri] {
-            Image(uiImage: image).resizable()
-          } else if shots.failed.contains(uri) {
-            Image(systemName: "photo").foregroundStyle(props.secondary)
-          } else {
-            ProgressView()
-          }
+    return props.surface
+      .overlay {
+        if let image = shots.thumbs[uri] {
+          Image(uiImage: image).resizable()
+        } else if shots.failed.contains(uri) {
+          Image(systemName: "photo").foregroundStyle(props.secondary)
+        } else {
+          ProgressView()
         }
-        .overlay(alignment: .topTrailing) {
-          Image(systemName: "arrow.up.left.and.arrow.down.right")
-            .font(.system(size: props.size * 0.75, weight: .semibold))
-            .foregroundStyle(.primary)
-            .padding(props.gap * 0.75)
-            .background(.ultraThinMaterial, in: Circle())
-            .padding(props.gap * 0.75)
-        }
-        .clipShape(corner)
-        .overlay(corner.strokeBorder(props.edge, lineWidth: 1 / scale))
-        .aspectRatio(shape, contentMode: .fit)
-        .frame(maxWidth: .infinity, maxHeight: props.height, alignment: .leading)
-        .contentShape(corner)
-        .onTapGesture { shown = shots.files[uri] }
-        .accessibilityElement()
-        .accessibilityLabel("Screenshot of \(label), opens full screen")
-        .accessibilityAddTraits(.isButton)
-      HStack(spacing: 4) {
-        Text(label).font(.system(size: props.size, weight: pick ? .medium : .regular)).lineLimit(2)
-        if pick { Image(systemName: "sparkle").font(.system(size: props.size * 0.8)) }
       }
-      .foregroundStyle(pick ? props.accent : props.secondary)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
+      .overlay(alignment: .topTrailing) {
+        Image(systemName: "arrow.up.left.and.arrow.down.right")
+          .font(.system(size: props.size * 0.75, weight: .semibold))
+          .foregroundStyle(.primary)
+          .padding(props.gap * 0.75)
+          .background(.ultraThinMaterial, in: Circle())
+          .padding(props.gap * 0.75)
+      }
+      .clipShape(corner)
+      .overlay(corner.strokeBorder(props.edge, lineWidth: 1 / scale))
+      .aspectRatio(shape, contentMode: .fit)
+      .frame(maxWidth: .infinity, maxHeight: props.height)
+      .contentShape(corner)
+      .onTapGesture { shown = shots.files[uri] }
+      .accessibilityElement()
+      .accessibilityLabel("Screenshot of \(label), opens full screen")
+      .accessibilityAddTraits(.isButton)
   }
 }
 

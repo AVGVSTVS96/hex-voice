@@ -3,14 +3,13 @@ import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
 import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
 import { processColor, type ColorValue } from 'react-native';
 
-// An ask's screenshots as SwiftUI, one tile per option over its label, in the tree Expo UI builds.
+// An ask's screenshots as SwiftUI, one tile per option, in the tree Expo UI builds.
 // A tap opens them full screen in Quick Look. Each is read from hex with `headers`; the look comes
-// from the caller: the tiles' height, gaps and corners in points, the label's size and colors.
+// from the caller: the tiles' height, gap and corners in points, the expand mark's size and the colors.
 export type ShotsProps = CommonViewModifierProps & {
   uris: string[];
   shapes: number[];
   labels: string[];
-  pick: number;
   headers: Record<string, string>;
   height: number;
   gap: number;
@@ -19,10 +18,9 @@ export type ShotsProps = CommonViewModifierProps & {
   secondary: ColorValue;
   surface: ColorValue;
   edge: ColorValue;
-  accent: ColorValue;
 };
 
-type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'edge' | 'accent'>;
+type Colors = Pick<ShotsProps, 'secondary' | 'surface' | 'edge'>;
 type NativeProps = Omit<ShotsProps, keyof Colors> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 };
@@ -30,7 +28,7 @@ type NativeProps = Omit<ShotsProps, keyof Colors> & {
 const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Shots', 'ShotsView') : null;
 
-export function ShotsView({ modifiers, secondary, surface, edge, accent, ...rest }: ShotsProps) {
+export function ShotsView({ modifiers, secondary, surface, edge, ...rest }: ShotsProps) {
   if (!Native) return null;
   return (
     <Native
@@ -39,7 +37,6 @@ export function ShotsView({ modifiers, secondary, surface, edge, accent, ...rest
       secondary={processColor(secondary)}
       surface={processColor(surface)}
       edge={processColor(edge)}
-      accent={processColor(accent)}
       {...rest}
     />
   );
