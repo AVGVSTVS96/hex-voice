@@ -116,34 +116,37 @@ const DAY = 24 * 60 * 60_000;
 
 // A link ends before the punctuation of the sentence it sits in. A proof can also name a Telegram
 // message by hex's key for it, which in a group opens as that message.
-const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/g;
+const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/gu;
 
 // What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
 // by its name, a Telegram message by its number, else its site.
 export const linkName = (url: string) => {
-  const github = /^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/.exec(url);
+  const github =
+    /^https?:\/\/github\.com\/[^/]+\/(?<repo>[^/#?]+)(?:\/(?<kind>pull|commit)\/(?<ref>\w+))?/u.exec(
+      url,
+    )?.groups;
 
-  if (github?.[2]) {
-    return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3].slice(0, 7)}`;
+  if (github?.kind !== undefined) {
+    return `${github.repo} ${github.kind === 'pull' ? '#' : ''}${github.ref.slice(0, 7)}`;
   }
 
   if (github) {
-    return github[1];
+    return github.repo;
   }
 
-  const message = /^https:\/\/t\.me\/c\/\d+\/(\d+)$/.exec(url);
+  const message = /^https:\/\/t\.me\/c\/\d+\/(?<number>\d+)$/u.exec(url)?.groups;
 
   if (message) {
-    return `message ${message[1]}`;
+    return `message ${message.number}`;
   }
 
-  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/[:/].*$/, '');
+  return url.replace(/^https?:\/\/(?:www\.)?/u, '').replace(/[:/].*$/u, '');
 };
 
 const urlOf = (found: string) => {
-  const key = /^telegram:-100(\d+):(\d+)$/.exec(found);
+  const key = /^telegram:-100(?<chat>\d+):(?<message>\d+)$/u.exec(found)?.groups;
 
-  return key ? `https://t.me/c/${key[1]}/${key[2]}` : found;
+  return key ? `https://t.me/c/${key.chat}/${key.message}` : found;
 };
 
 // A task's proof as its page reads it, each link by its name.
@@ -151,7 +154,7 @@ export const proofWords = (proof: string) =>
   proof.replaceAll(LINKS, (found) => linkName(urlOf(found))).trim();
 
 // Whether a proof says anything besides its links.
-export const proofSays = (proof: string) => /\w/.test(proof.replaceAll(LINKS, ''));
+export const proofSays = (proof: string) => /\w/u.test(proof.replaceAll(LINKS, ''));
 
 // Each page a proof links to, once: a Telegram message as Telegram's, any other as the web's.
 export const proofLinks = (proof: string): Tile[] => {
@@ -330,7 +333,7 @@ export const stageCounts = (entries: Entry[], answered: Record<string, string | 
 };
 
 // Search runs over every word a row shows, its topic and where it lives.
-const wordsOf = (query: string) => query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+const wordsOf = (query: string) => query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
 
 export const search = (entries: Entry[], query: string) => {
   const words = wordsOf(query);
@@ -384,8 +387,8 @@ const WHY_AFTER = 80;
 
 const marked = (text: string, words: string[]): Part[] => {
   const pattern = new RegExp(
-    `(${words.map((word) => word.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
-    'gi',
+    `(${words.map((word) => word.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('|')})`,
+    'giu',
   );
 
   return text
@@ -421,13 +424,13 @@ export const headlineOf = (entry: Entry) => {
 
 // A run that ended on the API's own error says what went wrong in words, not the raw message.
 export const problemOf = (line: string) => {
-  const error = /^API Error:\s*(.*)$/s.exec(line.trim());
+  const error = /^API Error:\s*(?<message>.*)$/su.exec(line.trim())?.groups;
 
   if (!error) {
     return;
   }
 
-  return /limit/i.test(error[1] ?? '')
+  return /limit/iu.test(error.message)
     ? 'Stopped: the server was limiting requests'
     : 'Stopped on an API error';
 };

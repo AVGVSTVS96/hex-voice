@@ -14,25 +14,25 @@ export interface PinSection {
   lines: PinLine[];
 }
 
-const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
-const LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/;
+const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/u;
+const LINK = /\[(?<label>[^\]]+)\]\((?<url>https?:\/\/[^)\s]+)\)/u;
 
 // A line bold from its title to its end, colon inside: bold the title alone.
-const WHOLE_BOLD = /^(\*\*|__)([^:*_]{1,40}:)(.*?)\1$/;
+const WHOLE_BOLD = /^(?<bold>\*\*|__)(?<title>[^:*_]{1,40}:)(?<rest>.*?)\k<bold>$/u;
 const PIN = /^📌\s*/u;
-const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/;
+const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/u;
 
 // A heading's own emoji: the section's mark already says what it is.
-const EMOJI = /^(\p{Extended_Pictographic}\uFE0F?\s*)+/u;
+const EMOJI = /^(?:\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 
 const TITLES =
-  /^((?:\*\*|__)?(done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(.+)$/i;
+  /^(?<title>(?:\*\*|__)?(?:done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(?<rest>.+)$/iu;
 
 const EMOJI_MARKS: [RegExp, PinMark][] = [
-  [/^(✅|☑️|✔️|✔|✓)\s*/u, 'done'],
-  [/^(❌|⚠️|🔴|🛑)\s*/u, 'failed'],
-  [/^(🔄|⏳|🏃|🟡)\s*/u, 'working'],
-  [/^(❓|👉|🟢)\s*/u, 'needs'],
+  [/^(?:✅|☑️|✔️|✔|✓)\s*/u, 'done'],
+  [/^(?:❌|⚠️|🔴|🛑)\s*/u, 'failed'],
+  [/^(?:🔄|⏳|🏃|🟡)\s*/u, 'working'],
+  [/^(?:❓|👉|🟢)\s*/u, 'needs'],
 ];
 
 export const pinSections = (text: string): PinSection[] => {
@@ -43,10 +43,10 @@ export const pinSections = (text: string): PinSection[] => {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
 
-    if (/^\s*```/.test(raw)) {
+    if (/^\s*```/u.test(raw)) {
       const code: string[] = [];
 
-      for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) {
+      for (i++; i < lines.length && !/^\s*```/u.test(lines[i]); i++) {
         code.push(lines[i]);
       }
 
@@ -60,8 +60,8 @@ export const pinSections = (text: string): PinSection[] => {
       continue;
     }
 
-    const inline = TITLES.exec(line.replace(WHOLE_BOLD, '$1$2$1$3'));
-    const heading = inline ? plain(inline[1]) : headingOf(line);
+    const inline = TITLES.exec(line.replace(WHOLE_BOLD, '$<bold>$<title>$<bold>$<rest>'))?.groups;
+    const heading = inline ? plain(inline.title) : headingOf(line);
 
     if (heading) {
       if (current.title || current.lines.length) {
@@ -73,7 +73,7 @@ export const pinSections = (text: string): PinSection[] => {
         title: heading,
         mark,
         folded: mark === 'done',
-        lines: inline ? [item(inline[3], mark)] : [],
+        lines: inline ? [item(inline.rest, mark)] : [],
       };
       continue;
     }
@@ -94,10 +94,10 @@ export const pinSections = (text: string): PinSection[] => {
 
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
 const headingOf = (line: string) => {
-  const bold = /^\*\*([^*]+)\*\*:?$/.exec(line);
+  const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups;
 
   if (bold) {
-    return bold[1].replace(EMOJI, '').replace(/:$/, '').trim();
+    return bold.title.replace(EMOJI, '').replace(/:$/u, '').trim();
   }
 
   const bare = plain(line);
@@ -108,19 +108,19 @@ const headingOf = (line: string) => {
 };
 
 const sectionMark = (title: string): PinMark => {
-  if (/\b(done|shipped|finished|live)\b/i.test(title)) {
+  if (/\b(?:done|shipped|finished|live)\b/iu.test(title)) {
     return 'done';
   }
 
-  if (/\b(running|working|in progress|underway)\b/i.test(title)) {
+  if (/\b(?:running|working|in progress|underway)\b/iu.test(title)) {
     return 'working';
   }
 
-  if (/\b(waiting on you|your call|needs you|blocked on you|for you|to decide)\b/i.test(title)) {
+  if (/\b(?:waiting on you|your call|needs you|blocked on you|for you|to decide)\b/iu.test(title)) {
     return 'needs';
   }
 
-  if (/\b(known|problem|broken|fail|blocked|stuck)\b/i.test(title)) {
+  if (/\b(?:known|problem|broken|fail|blocked|stuck)\b/iu.test(title)) {
     return 'failed';
   }
 
@@ -147,9 +147,9 @@ const item = (text: string, mark: PinMark): PinLine => {
 // A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
 const linked = (text: string): { text: string; url?: string } => {
   const link = LINK.exec(text);
-  const url = link?.[2] ?? URL.exec(text)?.[0];
+  const url = link?.groups?.url ?? URL.exec(text)?.[0];
 
-  return { text: (link ? text.replace(LINK, '$1') : text).trim(), ...(url && { url }) };
+  return { text: (link ? text.replace(LINK, '$<label>') : text).trim(), ...(url && { url }) };
 };
 
-const plain = (text: string) => text.replaceAll(/\*\*|__/g, '').trim();
+const plain = (text: string) => text.replaceAll(/\*\*|__/gu, '').trim();

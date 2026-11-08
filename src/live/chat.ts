@@ -35,16 +35,16 @@ export const newKey = () =>
 export type Said =
   { kind: 'me' | 'hex'; text: string } | { kind: 'event'; label: string; text: string };
 
-const EVENT = /^\(([^()\n]+)\)\s*([\s\S]*)$/;
+const EVENT = /^\((?<label>[^()\n]+)\)\s*(?<text>[\s\S]*)$/u;
 
 export const said = (turn: ChatTurn): Said => {
-  const event = turn.from === 'me' ? EVENT.exec(turn.text) : null;
+  const event = turn.from === 'me' ? EVENT.exec(turn.text)?.groups : undefined;
 
   if (!event) {
     return { kind: turn.from, text: turn.text };
   }
 
-  const [, label, text] = event as unknown as [string, string, string];
+  const { label, text } = event;
 
   if (label === 'voice message') {
     return { kind: 'me', text };
