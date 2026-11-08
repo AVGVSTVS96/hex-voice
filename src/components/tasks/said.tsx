@@ -22,11 +22,8 @@ import { theme } from '@/theme';
 import { textLook } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
-// Selectable text takes a tap for itself, so while you type on a page what was said there isn't
-// selectable, and a tap on it ends the typing instead.
 export const Selectable = createContext(true);
 
-// Drawn as the call transcript draws a turn.
 export const Said = ({ turn }: { turn: ChatTurn }) => {
   const one = said(turn);
   const selectable = useContext(Selectable);
@@ -137,7 +134,6 @@ const lineOf = (one: ReturnType<typeof said>, media: Shown[]) => {
   return one.text || mediaWords(media);
 };
 
-// Your photos and clips above your words, each on your side.
 const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?: boolean }) => {
   const selectable = useContext(Selectable);
 

@@ -78,10 +78,6 @@ export const Messages = ({
   );
 };
 
-// Its current step shows only while its session is in a turn: a thread can stay at work between
-// them, waiting on work it handed off, with nothing running to show or stop. `beside` its topic's
-// page, that page carries the topic's name and the way out to its app, so this one is headed only
-// "Messages" and holds the conversation and its composer.
 export const ThreadPage = ({
   thread,
   beside = false,
@@ -109,7 +105,6 @@ export const ThreadPage = ({
   onRetry: (sent: Sending) => void;
   onStop: () => void;
   onTalk: () => void;
-  // Why the last Stop didn't go through.
   failed?: string;
 }) => {
   const field = useField();
@@ -119,7 +114,6 @@ export const ThreadPage = ({
   const turns = chat?.turns ?? [];
   const first = (chat?.total ?? 0) - turns.length;
 
-  // What it's doing now, past what it said: that's in the conversation already.
   const doing =
     'steps' in thread ? thread.steps.find((step) => step.kind !== 'say')?.text : undefined;
 
@@ -241,7 +235,6 @@ const ThreadHead = ({
     );
   }
 
-  // Its back names the topic, so the topic's own thread is headed for what it holds.
   const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
 
   return (
@@ -266,8 +259,6 @@ const ThreadHead = ({
   );
 };
 
-// Send turns into Stop while the thread works and you've nothing typed, though not before what you
-// just sent reaches it, so a second tap on Send can't stop the turn you steered.
 const Composer = ({
   field: input,
   draft,
@@ -437,7 +428,6 @@ const Composer = ({
   );
 };
 
-// A page's foot: its composer, or the field that opens one, and Talk it through.
 export const Foot = ({ foot, children }: { foot: number; children: ReactNode }) => (
   <Row
     alignment="center"
@@ -456,7 +446,6 @@ export const Foot = ({ foot, children }: { foot: number; children: ReactNode }) 
   </Row>
 );
 
-// The composer's field as a way into the conversation, where its messages aren't on screen.
 export const WriteField = ({ title, onPress }: { title: string; onPress: () => void }) => (
   <Row
     alignment="center"

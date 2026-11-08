@@ -74,7 +74,6 @@ export const Detail = ({
   onOpenTask: (id: TaskId) => void;
   messages?: ReactNode;
   beside?: boolean;
-  // Writing your own answer to an ask, so its field is the one on the page.
   answering?: boolean;
   onWrite?: () => void;
   foot?: number;
@@ -89,7 +88,6 @@ export const Detail = ({
 
   const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
   const tracks = laneOf(task, threads);
-  // The lane ends at now, as of when the page opened.
   const now = useNow(false).getTime();
 
   return (
@@ -244,9 +242,6 @@ const DetailFoot = ({
     </Foot>
   );
 
-// A project with no thread to show (its threads left the board, or it's what's stuck or what
-// finished) still opens on what it has: its asks, then its other rows, with its way back and a
-// door to where they were asked.
 export const Asked = ({
   topic,
   asks,
@@ -298,8 +293,6 @@ export const Asked = ({
   );
 };
 
-// One thing hex did, as Done's row opens it: what it was, when, the proof it was closed with and
-// the pages that proof links to, and the way to the rest of its project.
 export const DonePage = ({
   finished,
   door,
@@ -398,8 +391,6 @@ export const DonePage = ({
   );
 };
 
-// A row on a page that leads somewhere: out of the app, behind the tile of where it goes, or to
-// another page.
 const Way = ({
   lead,
   title,
@@ -450,9 +441,6 @@ const Way = ({
   </Row>
 );
 
-// A project's page is a list, so each ask on it is a row a swipe left puts away; an answer folds
-// its row where it sits. Each page has a list of its own, so another project's page replaces it
-// whole instead of fading its cards through the last one's.
 const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
   listStyle('plain'),
   scrollContentBackground('hidden'),
@@ -462,8 +450,6 @@ const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
   animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
 ];
 
-// A run's steps. It's `named` by its thread, its app and when, only where that tells it apart from
-// the page it's on; on its own it's the page's, whose name and door the bar already shows.
 const Run = ({
   thread,
   named,
@@ -567,7 +553,6 @@ const tileUrl = (tile: Tile) => {
   return tile.kind === 'app' ? tile.link : '';
 };
 
-// What needs you and since when, or what it's doing and for how long: a bare time never says which.
 const subtitleOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
   const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
@@ -583,11 +568,9 @@ const subtitleOf = (task: TaskRow | Task, open: number) => {
   return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
 };
 
-// A page's words keep a readable measure, centered, however wide its room.
 const readable = [
   frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
   frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
 ];
 
-// The page's last row, which holds the rest of it and ends clear of the fade.
 const rest = () => [padding({ bottom: space[10] }), frame({ maxWidth: Infinity }), ...listRow()];

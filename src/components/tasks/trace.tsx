@@ -36,7 +36,6 @@ import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 import type { Tone } from '@/ui/tokens';
 
-// Each kind of step's icon, as shadcn's Trace marks what a line did.
 export const KIND: Record<StepKind, SFSymbol> = {
   think: 'lightbulb',
   say: 'text.bubble',
@@ -53,11 +52,9 @@ export const KIND: Record<StepKind, SFSymbol> = {
 const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
 const TEXT = metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap;
 
-// An open agent's rail runs from just under its mark to the middle of its last line.
 const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
 const RAIL_FOOT = space[2] + metrics.list.line / 2;
 
-// Steps before hex has answered with the task: its bar and back, over the spinner.
 export const StepsLoading = (answered: Answered) => (
   <Column
     alignment="center"

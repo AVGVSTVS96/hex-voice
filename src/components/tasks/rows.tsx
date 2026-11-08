@@ -293,7 +293,6 @@ const Swiped = ({
     {onAway || trail.length ? (
       <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
         {onAway ? <NotNeededButton onPress={onAway} /> : null}
-        {/* SwiftUI lays trailing actions out from the edge in, so the first place goes last. */}
         {trail.toReversed().map((tile, i) => {
           const { color, glyph } = swipeLook(tile);
 
@@ -374,8 +373,6 @@ const Shell = ({
   </Row>
 );
 
-// Where a row lives, one tile per look: two Telegram threads show as one Telegram tile, and the
-// row's swipe still opens each.
 const Tiles = ({ tiles }: { tiles: Tile[] }) => {
   const looks = new Map(tiles.map((tile) => [lookOf(tile), tile]));
 
@@ -396,7 +393,6 @@ const Meta = ({ text }: { text: string }) => (
   </Text>
 );
 
-// Why something is stuck, under what it is.
 const Why = ({ text }: { text: string }) => (
   <Text numberOfLines={2} variant="detail" tone="secondary" paragraph>
     {text}
@@ -453,9 +449,6 @@ const STAGE_MARK: Record<Stage, MarkState> = {
   quiet: 'idle',
 };
 
-// A project as one row in the list, as Muse lists goals: its mark, its name, and the newest thing
-// in it in gray, as many lines as it needs to be read; how many it has here and when, quietly to
-// the side. A row holds one stage's entries, whichever tab it's on. Opens its page.
 export const ProjectRow = ({
   topic,
   selected,
@@ -527,8 +520,6 @@ export const ProjectRow = ({
   );
 };
 
-// What kind of thing waits on you, by the row's newest: a question, one hex has a pick for, a
-// problem, or a reply.
 const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
     case 'ask': {
@@ -554,7 +545,6 @@ const waiting = (entry: Entry): MarkState => {
   }
 };
 
-// How many a project has here: in mint while they wait on you, in gray otherwise.
 const Count = ({ count, needs }: { count: number; needs: boolean }) => (
   <Text
     variant="caption"
@@ -571,10 +561,7 @@ const Count = ({ count, needs }: { count: number; needs: boolean }) => (
   </Text>
 );
 
-// Why a search found this row: its matching words in the text tone, the rest secondary.
 const Found = ({ parts }: { parts: Part[] }) => (
-  // @expo/ui joins a Text's children only when it's drawn, not when a child changes, so each
-  // set of pieces gets its own Text.
   <NativeText
     key={parts.map((part) => part.text).join('\u0000')}
     modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
