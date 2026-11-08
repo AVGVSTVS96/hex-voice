@@ -1,27 +1,50 @@
+import marin from '@/assets/voices/marin.m4a';
+import alloy from '@/assets/voices/alloy.m4a';
+import ash from '@/assets/voices/ash.m4a';
+import ballad from '@/assets/voices/ballad.m4a';
+import beacon from '@/assets/voices/beacon.m4a';
+import bossa from '@/assets/voices/bossa.m4a';
+import cedar from '@/assets/voices/cedar.m4a';
+import cinder from '@/assets/voices/cinder.m4a';
+import coral from '@/assets/voices/coral.m4a';
+import delta from '@/assets/voices/delta.m4a';
+import echo from '@/assets/voices/echo.m4a';
+import gleam from '@/assets/voices/gleam.m4a';
+import meridian from '@/assets/voices/meridian.m4a';
+import quartz from '@/assets/voices/quartz.m4a';
+import ripple from '@/assets/voices/ripple.m4a';
+import sage from '@/assets/voices/sage.m4a';
+import shimmer from '@/assets/voices/shimmer.m4a';
+import stone from '@/assets/voices/stone.m4a';
+import tempo from '@/assets/voices/tempo.m4a';
+import verse from '@/assets/voices/verse.m4a';
+import vesper from '@/assets/voices/vesper.m4a';
+import willow from '@/assets/voices/willow.m4a';
+
 import type { LiveVoice } from './voices';
 
 // Each voice introducing itself, rendered once from GPT-Live by scripts/voice-previews.mts.
 export const VOICE_PREVIEWS: Record<LiveVoice, number> = {
-  marin: require('@/assets/voices/marin.m4a'),
-  alloy: require('@/assets/voices/alloy.m4a'),
-  ash: require('@/assets/voices/ash.m4a'),
-  ballad: require('@/assets/voices/ballad.m4a'),
-  beacon: require('@/assets/voices/beacon.m4a'),
-  bossa: require('@/assets/voices/bossa.m4a'),
-  cedar: require('@/assets/voices/cedar.m4a'),
-  cinder: require('@/assets/voices/cinder.m4a'),
-  coral: require('@/assets/voices/coral.m4a'),
-  delta: require('@/assets/voices/delta.m4a'),
-  echo: require('@/assets/voices/echo.m4a'),
-  gleam: require('@/assets/voices/gleam.m4a'),
-  meridian: require('@/assets/voices/meridian.m4a'),
-  quartz: require('@/assets/voices/quartz.m4a'),
-  ripple: require('@/assets/voices/ripple.m4a'),
-  sage: require('@/assets/voices/sage.m4a'),
-  shimmer: require('@/assets/voices/shimmer.m4a'),
-  stone: require('@/assets/voices/stone.m4a'),
-  tempo: require('@/assets/voices/tempo.m4a'),
-  verse: require('@/assets/voices/verse.m4a'),
-  vesper: require('@/assets/voices/vesper.m4a'),
-  willow: require('@/assets/voices/willow.m4a'),
+  marin,
+  alloy,
+  ash,
+  ballad,
+  beacon,
+  bossa,
+  cedar,
+  cinder,
+  coral,
+  delta,
+  echo,
+  gleam,
+  meridian,
+  quartz,
+  ripple,
+  sage,
+  shimmer,
+  stone,
+  tempo,
+  verse,
+  vesper,
+  willow,
 };
