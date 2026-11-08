@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -55,7 +56,7 @@ import type { CallAbout } from '@/live/types';
 import { transcriptText, type CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout } from '@/screens/layout';
+import { screenLayout, type Layout } from '@/screens/layout';
 import { SideColumn } from '@/screens/side-column';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
@@ -365,9 +366,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
   // The bar sits in the window, and never moves for Tasks. Down iPhone Duo's side it's laid out
-  // natively in the column (SideColumn); across the top it's placed by barOf, which only Calls moves.
+  // natively in the column (SideColumn); across the top Bar places it by barOf, which only Calls
+  // moves.
   const { toolbar } = layout;
-  const toolbarStyle = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
   // How far Calls and Tasks have each come in beside the call; in the inbox the call's words make
   // way for the rail. Each style reads drawer and pane itself and hands them in: Reanimated reruns a
   // style only for the shared values it reads directly, not ones a helper worklet reads for it.
@@ -876,10 +877,29 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
           controls={controls}
         />
       ) : (
-        screenToolbar([{ top: toolbar.y }, toolbarStyle])
+        <Bar layout={layout} width={width} drawer={drawer} toolbar={screenToolbar} />
       )}
     </ToolbarBackProvider>
   );
+}
+
+// The toolbar across the top, following the call's card as Calls slides. Its style is made as it
+// mounts: Reanimated starts each view at the value a style had when it was first made, so a style
+// made at launch would show iPhone Duo's band, which mounts when it turns on its side, at the
+// column's old place until something next moved it.
+function Bar({
+  layout,
+  width,
+  drawer,
+  toolbar,
+}: {
+  layout: Layout;
+  width: number;
+  drawer: SharedValue<number>;
+  toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactNode;
+}) {
+  const style = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
+  return toolbar([{ top: layout.toolbar.y }, style]);
 }
 
 // The call you just hung up on is at the top of Calls before hex's copy arrives.
