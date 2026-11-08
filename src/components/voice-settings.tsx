@@ -433,6 +433,7 @@ export function VoiceSettings({
       open={isPresented}
       pane={place.pane}
       two={two}
+      apart={!phone}
       edges={edges}
       persona={personaHeight}
       onBack={onDismiss}
@@ -578,7 +579,8 @@ export function VoiceSettings({
 // Settings on the open Duo, over the call where Tasks would be. iOS arranges it: the persona's pane
 // beside the rows' where the screen is wider than tall, meeting at the fold flat and parting around
 // it partly open, and the persona's pane alone where it's taller than wide, with the persona in the
-// top half of the screen and the rows below it. The arrangement fills the screen, so flat its panes
+// top half of the screen and the rows below it. Folded, iOS keeps a split to its first pane on the
+// compact screen, so there the two panes sit in a plain row (`apart` false). The arrangement fills the screen, so flat its panes
 // meet on the crease; each pane and the sheet's color keep out of what the toolbar takes on the
 // edges it touches (`edges`). It fades in where it sits as Tasks does, never moved by a transform
 // (its Host would keep telling accessibility where it started).
@@ -587,6 +589,7 @@ function SettingsPlace({
   open,
   pane: opened,
   two,
+  apart,
   edges: { top, leading, trailing, bottom },
   persona: personaHeight,
   onBack,
@@ -597,6 +600,7 @@ function SettingsPlace({
   open: boolean;
   pane: SharedValue<number>;
   two: boolean;
+  apart: boolean;
   edges: { top: number; leading: number; trailing: number; bottom: number };
   persona: number;
   onBack: () => void;
@@ -611,6 +615,33 @@ function SettingsPlace({
     onGeometryChange((size) => onPane(name, size)),
     padding({ top, bottom, ...sides }),
   ];
+  const personaPane = (
+    <Column
+      alignment="center"
+      spacing={0}
+      modifiers={pane(two ? 'persona' : 'alone', { leading, trailing: two ? 0 : trailing })}
+    >
+      <Column
+        alignment="center"
+        spacing={0}
+        modifiers={[
+          two ? frame({ maxHeight: Infinity }) : frame({ height: personaHeight }),
+          frame({ maxWidth: Infinity }),
+        ]}
+      >
+        <PageBar title="Settings" large back={{ to: 'Call', onPress: onBack }} />
+        <Spacer flexible />
+        {persona}
+        <Spacer flexible />
+      </Column>
+      {two ? null : rows}
+    </Column>
+  );
+  const rowsPane = (
+    <Column alignment="center" spacing={0} modifiers={pane('rows', { leading: 0, trailing })}>
+      {rows}
+    </Column>
+  );
   return (
     <Animated.View
       testID="settings-place"
@@ -630,53 +661,30 @@ function SettingsPlace({
           <Rectangle
             modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
           />
-          <ArrangementView
-            modifiers={[
-              arrangementViewStyle('split', { axes: 'horizontal' }),
-              frame({ maxWidth: Infinity, maxHeight: Infinity }),
-            ]}
-          >
-            <ArrangementView.Primary>
-              <Column
-                alignment="center"
-                spacing={0}
-                modifiers={pane(two ? 'persona' : 'alone', {
-                  leading,
-                  trailing: two ? 0 : trailing,
-                })}
-              >
-                <Column
-                  alignment="center"
-                  spacing={0}
-                  modifiers={[
-                    two ? frame({ maxHeight: Infinity }) : frame({ height: personaHeight }),
-                    frame({ maxWidth: Infinity }),
-                  ]}
-                >
-                  <PageBar title="Settings" large back={{ to: 'Call', onPress: onBack }} />
+          {two && !apart ? (
+            <Row spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+              {personaPane}
+              {rowsPane}
+            </Row>
+          ) : (
+            <ArrangementView
+              modifiers={[
+                arrangementViewStyle('split', { axes: 'horizontal' }),
+                frame({ maxWidth: Infinity, maxHeight: Infinity }),
+              ]}
+            >
+              <ArrangementView.Primary>{personaPane}</ArrangementView.Primary>
+              <ArrangementView.Secondary>
+                {two ? (
+                  rowsPane
+                ) : (
+                  // Left empty, iOS draws a bar along the bottom of the lone pane, like the home
+                  // indicator.
                   <Spacer flexible />
-                  {persona}
-                  <Spacer flexible />
-                </Column>
-                {two ? null : rows}
-              </Column>
-            </ArrangementView.Primary>
-            <ArrangementView.Secondary>
-              {two ? (
-                <Column
-                  alignment="center"
-                  spacing={0}
-                  modifiers={pane('rows', { leading: 0, trailing })}
-                >
-                  {rows}
-                </Column>
-              ) : (
-                // Left empty, iOS draws a bar along the bottom of the lone pane, like the home
-                // indicator.
-                <Spacer flexible />
-              )}
-            </ArrangementView.Secondary>
-          </ArrangementView>
+                )}
+              </ArrangementView.Secondary>
+            </ArrangementView>
+          )}
         </ZStack>
       </Host>
     </Animated.View>

@@ -26,8 +26,8 @@ unselected tasks-button
 tap voice-settings-button
 shoot settings
 mark voice-row
-# On the cover the sheet goes with a swipe; on the open Duo settings holds its place and Tasks
-# swaps in for it. Either way settings then opens again from Tasks.
+# Settings holds its place beside the column, so a swipe down leaves it, and Tasks swaps in for it.
+# Settings then opens again from Tasks.
 swipe-down voice-settings-sheet
 # A swiped sheet takes a moment to go, and a tap before then lands on it.
 wait 3
