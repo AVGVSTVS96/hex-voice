@@ -80,7 +80,6 @@ flock -u 9
 echo "building $title on the Mac"
 built=$(ssh "$mac" "$folder/scripts/ship-native build" </dev/null)
 [ "$built" = "$runtime" ] || die "the Mac built runtime $built, but main's runtime is $runtime"
-mkdir -p "$updates/ios/$runtime"
 
 echo "making its profiles with xtool and signing it with the Mac's certificate"
 signed=build/signed/hex.app
@@ -101,6 +100,7 @@ for device in "${devices[@]}"; do
   if timeout 5m ssh "$mac" xcrun devicectl device install app --device "$device" \
     "$folder/$signed" >"$home/install-$device.log" 2>&1 </dev/null; then
     echo "$commit" >"$home/installed/$device"
+    [ "$device" != "$DUO_UDID" ] || mkdir -p "$updates/ios/$runtime"
     echo "installed $title on $device"
     ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
       "$bundle" >/dev/null 2>&1 || echo "couldn't open it on $device"

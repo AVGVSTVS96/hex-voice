@@ -15,7 +15,7 @@ git -C "$release" merge-base --is-ancestor "$want" origin/main 2>/dev/null ||
   die "main doesn't hold $want: push it first; nothing was shipped"
 runtime=$(runtime_version)
 [ -d "$updates/ios/$runtime" ] ||
-  die "main changed native code (runtime $runtime has no native build): run npm run ship:native"
+  die "his Duo has no native build of runtime $runtime: run npm run ship:native"
 
 cd "$release"
 rm -rf dist

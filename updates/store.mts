@@ -2,7 +2,7 @@
 // app over the Expo Updates protocol (https://docs.expo.dev/technical-specs/expo-updates-1/).
 //
 //   <dir>/assets/<sha256>.<ext>          every published file, content-addressed and immutable
-//   <dir>/<platform>/<runtime>/          a runtime with a native build (made by ship-native)
+//   <dir>/<platform>/<runtime>/          a runtime his Duo has a native build of (made by ship-native)
 //   <dir>/<platform>/<runtime>/manifest.json   its latest update
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
