@@ -11,6 +11,9 @@ final class PagesProps: UIBaseViewProps {
   // Two side by side where each side of the middle, moved `meet` along, has room for `page`.
   @Field var page: CGFloat = .infinity
   @Field var meet: CGFloat = 0
+  // Whether it placed two side by side, sent each time that changes: JS lays the pages' content out
+  // by this answer, never by its own reading of the width.
+  var onPaired = EventDispatcher()
 }
 
 // Tasks' pages, laid out from the width SwiftUI gives them, so a resize lands with them in the
@@ -26,10 +29,11 @@ struct PagesView: ExpoSwiftUI.View {
   var body: some View {
     GeometryReader { room in
       let children = props.children ?? []
+      let paired = pairs(room.size.width)
       ZStack(alignment: .topLeading) {
         ForEach(Array(children.enumerated()), id: \.element.childIdentity) { index, child in
           let level = props.pages.indices.contains(index) ? props.pages[index] : ""
-          let spot = place(level, in: room.size.width)
+          let spot = place(level, in: room.size.width, paired: paired)
           let view: any View = child.childView
           AnyView(view)
             .frame(width: spot.width, alignment: .top)
@@ -41,12 +45,19 @@ struct PagesView: ExpoSwiftUI.View {
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .onChange(of: paired, initial: true) { _, paired in props.onPaired(["paired": paired]) }
     }
   }
 
-  private func place(_ level: String, in width: CGFloat) -> (x: CGFloat, width: CGFloat, shown: Bool) {
+  private func pairs(_ width: CGFloat) -> Bool {
     let seam = width / 2 + props.meet
-    let paired = min(seam, width - seam) >= props.page
+    return min(seam, width - seam) >= props.page
+  }
+
+  private func place(_ level: String, in width: CGFloat, paired: Bool) -> (
+    x: CGFloat, width: CGFloat, shown: Bool
+  ) {
+    let seam = width / 2 + props.meet
     let levels = paired ? props.two : props.one
     let at = levels.firstIndex(of: level)
     let front = levels.count - 1

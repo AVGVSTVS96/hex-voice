@@ -1,5 +1,5 @@
 import type { TextInputRef } from '@expo/ui';
-import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
+import { createContext, useContext, useEffect, useReducer, useRef, useState } from 'react';
 
 import { TASKS } from '@/call/stage';
 import type { TasksAt } from '@/components/tasks/tasks-view';
@@ -87,10 +87,13 @@ export function backLeavesTasks(stack: Stack, shape: Shape): boolean {
   return levels.at(-2) === 'list';
 }
 
+// On iPhone Duo SwiftUI places the pages, so whether they're two side by side is its call: it
+// reports it (`placed`) as the width changes, in the frame it does, and `shape` is only the guess
+// until it has.
 export function usePages({
   open,
   at,
-  shape,
+  shape: guess,
   onClose,
 }: {
   open: boolean;
@@ -98,12 +101,22 @@ export function usePages({
   shape: Shape;
   onClose?: () => void;
 }) {
+  const [placed, setPlaced] = useState<Shape>();
+  const shape = placed ?? guess;
   const [stack, go] = useReducer(move, START);
   useEffect(() => {
     if (open) go({ to: 'start', at });
   }, [open, at]);
   const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : go({ to: 'back' }));
-  return { ...stack, shape, levels: levelsOf(stack, shape), closes: !!onClose, go, back };
+  return {
+    ...stack,
+    shape,
+    levels: levelsOf(stack, shape),
+    closes: !!onClose,
+    go,
+    back,
+    placed: (paired: boolean) => setPlaced(paired ? 'panes' : 'one'),
+  };
 }
 
 export type Pages = ReturnType<typeof usePages>;

@@ -425,21 +425,24 @@ export function Tasks({
         </ZStack>
       </Row>
     );
-  // On iPhone Duo SwiftUI picks one page or two from the width it has, and places them.
-  if (room.paged)
+  // On iPhone Duo SwiftUI picks one page or two from the width it has, places them, and says which
+  // it picked. Each page is keyed by its level, which is how SwiftUI knows which child is which.
+  if (room.paged) {
+    const children = [page('list', list), ...levels];
     return (
       <PagesView
-        pages={['list', 'topic', 'thread', 'steps', 'check']}
+        pages={children.map((child) => child.key as Level)}
         one={levelsOf(pages, 'one')}
         two={levelsOf(pages, 'panes')}
         page={TASKS}
         meet={room.meet ?? 0}
+        onPaired={pages.placed}
         modifiers={[...fill, animation(motion.page, moved)]}
       >
-        {page('list', list)}
-        {levels}
+        {children}
       </PagesView>
     );
+  }
   return (
     <ZStack alignment="top" modifiers={fill}>
       {page('list', list)}

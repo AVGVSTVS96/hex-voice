@@ -12,19 +12,26 @@ export type PagesProps = CommonViewModifierProps & {
   two: string[];
   page: number;
   meet: number;
+  // Whether it placed two side by side, each time that changes.
+  onPaired: (paired: boolean) => void;
   children: ReactNode;
 };
 
-const Native =
-  process.env.EXPO_OS === 'ios' ? requireNativeView<PagesProps>('Pages', 'PagesView') : null;
+type NativeProps = Omit<PagesProps, 'onPaired'> & {
+  onPaired: (event: { nativeEvent: { paired: boolean } }) => void;
+};
 
-export function PagesView({ modifiers, ...rest }: PagesProps) {
+const Native =
+  process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Pages', 'PagesView') : null;
+
+export function PagesView({ modifiers, onPaired, ...rest }: PagesProps) {
   if (!Native) return null;
   return (
     <Native
       modifiers={modifiers}
       {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
       {...rest}
+      onPaired={({ nativeEvent }) => onPaired(nativeEvent.paired)}
     />
   );
 }
