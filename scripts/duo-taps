@@ -1,4 +1,5 @@
-# The tap script scripts/duo tap plays by default; uitests/DuoTests.swift lists its commands.
+# The tap script scripts/duo tap plays by default; uitests/DuoTests.swift lists its commands, and a
+# line starting "duo: " plays only on the Duo.
 shoot call
 mark tasks-button
 tap tasks-button
@@ -15,14 +16,14 @@ tap tasks-button
 shoot closed-by-tasks
 unselected tasks-button
 still tasks-button
-tap tasks-button
-tap task-back
-shoot closed-by-back
-unselected tasks-button
-tap tasks-button
-swipe-back tasks-edge
-shoot closed-by-edge-swipe
-unselected tasks-button
+duo: tap tasks-button
+duo: tap task-back
+duo: shoot closed-by-back
+duo: unselected tasks-button
+duo: tap tasks-button
+duo: swipe-back tasks-edge
+duo: shoot closed-by-edge-swipe
+duo: unselected tasks-button
 tap voice-settings-button
 shoot settings
 mark voice-row

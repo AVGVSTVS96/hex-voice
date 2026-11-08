@@ -529,11 +529,13 @@ shoot() {
   echo "$title" >"$out/done"
 }
 
+# A tap script's line that starts "duo: " or "ipad: " plays only on that device.
 tap() {
   echo "tapping through $title"
   { if [ -n "${1:-}" ]; then cat "$1"; else
     git -C "$verify" show HEAD:scripts/duo-taps 2>/dev/null || cat "$repo/scripts/duo-taps"
-  fi; } | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
+  fi; } | sed -E -e "s/^$DEVICE: //" -e '/^(duo|ipad): /d' |
+    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX VIDEO=${VIDEO:-} POSES='$POSES' APPEARANCES='$APPEARANCES' TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime"
   collect "${2:-$out/tap}"
 }
 
