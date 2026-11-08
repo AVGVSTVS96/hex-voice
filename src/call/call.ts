@@ -116,7 +116,7 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
 // The call going on now, here or elsewhere; hex names this phone's once it answers.
 export const callIdOf = (call: Call) => {
   if (call.kind === 'none') {
-    return undefined;
+    return;
   }
   return call.kind === 'here' ? call.id : call.record.id;
 };

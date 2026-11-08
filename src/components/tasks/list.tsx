@@ -111,7 +111,7 @@ export const ListPage = ({
     };
   }, [counted, needs, working, onCounts]);
   const shown = useMemo(
-    () => (query !== null ? search(entries, query) : tabEntries(entries, stage)),
+    () => (query === null ? tabEntries(entries, stage) : search(entries, query)),
     [entries, stage, query],
   );
   const topics = useMemo(
@@ -272,7 +272,7 @@ export const ListPage = ({
             if (!searching) {
               return [
                 <ProjectRow
-                  key={stage === 'done' ? topic.entries[0]!.id : topic.name}
+                  key={stage === 'done' ? topic.entries[0].id : topic.name}
                   topic={topic}
                   selected={
                     stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic
@@ -310,7 +310,7 @@ export const ListPage = ({
           {loaded && !topics.length ? (
             <Empty text={query ? 'Nothing matches' : EMPTY[stage]} />
           ) : null}
-          {unreachable ? <Empty text={UNREACHED} /> : !loaded ? <Loading /> : null}
+          {unreachable ? <Empty text={UNREACHED} /> : loaded ? null : <Loading />}
         </List>
       </Faded>
       {goThrough}

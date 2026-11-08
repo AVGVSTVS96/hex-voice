@@ -34,11 +34,11 @@ export const pinSections = (text: string): PinSection[] => {
   let current: PinSection = { title: '', mark: 'idle', folded: false, lines: [] };
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i]!;
+    const raw = lines[i];
     if (/^\s*```/.test(raw)) {
       const code: string[] = [];
-      for (i++; i < lines.length && !/^\s*```/.test(lines[i]!); i++) {
-        code.push(lines[i]!);
+      for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) {
+        code.push(lines[i]);
       }
       current.lines.push({ kind: 'code', text: code.join('\n') });
       continue;
@@ -47,8 +47,8 @@ export const pinSections = (text: string): PinSection[] => {
     if (!line) {
       continue;
     }
-    const inline = line.replace(WHOLE_BOLD, '$1$2$1$3').match(TITLES);
-    const heading = inline ? plain(inline[1]!) : headingOf(line);
+    const inline = TITLES.exec(line.replace(WHOLE_BOLD, '$1$2$1$3'));
+    const heading = inline ? plain(inline[1]) : headingOf(line);
     if (heading) {
       if (current.title || current.lines.length) {
         sections.push(current);
@@ -58,7 +58,7 @@ export const pinSections = (text: string): PinSection[] => {
         title: heading,
         mark,
         folded: mark === 'done',
-        lines: inline ? [item(inline[3]!, mark)] : [],
+        lines: inline ? [item(inline[3], mark)] : [],
       };
       continue;
     }
@@ -76,15 +76,14 @@ export const pinSections = (text: string): PinSection[] => {
 
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
 const headingOf = (line: string) => {
-  const bold = line.match(/^\*\*([^*]+)\*\*:?$/);
+  const bold = /^\*\*([^*]+)\*\*:?$/.exec(line);
   if (bold) {
-    return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
+    return bold[1].replace(EMOJI, '').replace(/:$/, '').trim();
   }
   const bare = plain(line);
   if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line)) {
     return bare.slice(0, -1).replace(EMOJI, '').trim();
   }
-  return undefined;
 };
 
 const sectionMark = (title: string): PinMark => {
@@ -119,9 +118,9 @@ const item = (text: string, mark: PinMark): PinLine => {
 
 // A line's link: a markdown link shows its label, and the line opens its url, or a bare url's.
 const linked = (text: string): { text: string; url?: string } => {
-  const link = text.match(LINK);
-  const url = link?.[2] ?? text.match(URL)?.[0];
+  const link = LINK.exec(text);
+  const url = link?.[2] ?? URL.exec(text)?.[0];
   return { text: (link ? text.replace(LINK, '$1') : text).trim(), ...(url && { url }) };
 };
 
-const plain = (text: string) => text.replace(/\*\*|__/g, '').trim();
+const plain = (text: string) => text.replaceAll(/\*\*|__/g, '').trim();

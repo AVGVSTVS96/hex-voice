@@ -171,7 +171,7 @@ export const Tasks = ({
   const doorOf = (ask: Ask) => {
     const where = ask.places.find((one) => one.link);
     if (!where?.link) {
-      return undefined;
+      return;
     }
     const place = placeOf(where.app);
     return {
@@ -194,7 +194,7 @@ export const Tasks = ({
     }
     // A page's link is the web's, which the browser always opens.
     else {
-      void Linking.openURL(tile.url).catch(() => undefined);
+      void Linking.openURL(tile.url).catch(() => {});
     }
   };
   const openSteps = (id: TaskId) => {

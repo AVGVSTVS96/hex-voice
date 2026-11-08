@@ -67,7 +67,7 @@ export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome):
     error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
   return sent.map((one) => {
     const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
-    if (i < 0) {
+    if (i === -1) {
       return one;
     }
     const kept = shared[i];

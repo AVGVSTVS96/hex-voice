@@ -548,7 +548,7 @@ test('open on its side, Calls comes in under the band, which stays whole above i
   const { window, insets, pose } = duo['open on its side'];
   const { calls, toolbar } = layoutOf(window, insets, pose);
   assert.equal(calls.below, insets.top);
-  assert.ok(toolbar.y + 48 <= calls.below!, 'the band’s buttons sit above it');
+  assert.ok(toolbar.y + 48 <= calls.below, 'the band’s buttons sit above it');
 });
 
 test('open on its side, Calls would leave the call less than a page, so it slides over all but a peek of it, under the band', () => {

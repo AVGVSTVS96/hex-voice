@@ -31,9 +31,12 @@ const settle = async () => {
 };
 
 class ManualClock {
-  private saved = { setTimeout, clearTimeout, setInterval, clearInterval, now: Date.now };
+  private readonly saved = { setTimeout, clearTimeout, setInterval, clearInterval, now: Date.now };
   private nextId = 0;
-  private timers = new Map<number, { callback: () => void; delay: number; interval: boolean }>();
+  private readonly timers = new Map<
+    number,
+    { callback: () => void; delay: number; interval: boolean }
+  >();
   now = 1_000_000;
 
   constructor() {
@@ -49,7 +52,7 @@ class ManualClock {
     globalThis.clearTimeout = ((id: ReturnType<typeof setTimeout>) => {
       this.timers.delete(id as unknown as number);
     }) as typeof clearTimeout;
-    globalThis.clearInterval = globalThis.clearTimeout as typeof clearInterval;
+    globalThis.clearInterval = globalThis.clearTimeout;
     Date.now = () => this.now;
   }
 
@@ -204,7 +207,7 @@ test('a call hex can’t start says why and lets go of the microphone', async ()
     await h.session.start();
     assert.equal(h.session.getSnapshot().status, 'error');
     assert.match(h.session.getSnapshot().error ?? '', /EXPO_PUBLIC_HEX_URL/);
-    assert.equal(h.transports[0]!.closed, true);
+    assert.equal(h.transports[0].closed, true);
   } finally {
     await h.cleanup();
   }

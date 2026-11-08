@@ -300,7 +300,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
     <ShotsView
       uris={shots.map((shot) => shot.uri)}
       shapes={shown.map((option) => option.shape ?? 1)}
-      headers={shots[0]!.headers}
+      headers={shots[0].headers}
       labels={shown.map((option) => option.label)}
       height={metrics.shot}
       gap={space[2]}

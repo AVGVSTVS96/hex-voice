@@ -33,7 +33,7 @@ export const carryDraft = (where: string, from: string[]) => {
   }
   const { [old]: text, ...rest } = all;
   Settings.set({ [KEY]: { ...rest, [where]: text } });
-  return text!;
+  return text;
 };
 
 export const useDraft = (where: string) => {

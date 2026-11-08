@@ -68,11 +68,11 @@ test('a pinned post reads as sections: what waits on you, what runs, known probl
       ['Done', 'done', true],
     ],
   );
-  assert.deepEqual(sections[3]!.lines, [
+  assert.deepEqual(sections[3].lines, [
     { kind: 'item', text: 'herdr fork’s sync has failed since Sep 16', mark: 'failed' },
     { kind: 'code', text: 'claude setup-token' },
   ]);
-  assert.deepEqual(sections[4]!.lines[0], {
+  assert.deepEqual(sections[4].lines[0], {
     kind: 'item',
     text: 'Launch review is live',
     mark: 'done',
@@ -142,14 +142,14 @@ test('held asks go back after the ask they followed, or first when none of those
 
 test('a pinned section’s heading drops its own emoji, which its mark already says', () => {
   const [done] = pinSections('**🟢 Done:**\n- shipped the band');
-  assert.deepEqual([done!.title, done!.mark], ['Done', 'done']);
+  assert.deepEqual([done.title, done.mark], ['Done', 'done']);
 });
 
 test('a pinned text line shows a markdown link’s label and opens its url, as an item does', () => {
   const [section] = pinSections(
     'Signed with xtool. [Paper](https://app.paper.design/file/abc)\nNo link here.',
   );
-  assert.deepEqual(section!.lines, [
+  assert.deepEqual(section.lines, [
     { kind: 'text', text: 'Signed with xtool. Paper', url: 'https://app.paper.design/file/abc' },
     { kind: 'text', text: 'No link here.' },
   ]);
@@ -160,7 +160,7 @@ test('a pinned line keeps its bold and code for the screen to draw, and a title 
     '📌 **Running:** the **Mac** build of `main`\n- **iPad** needs `devicectl`',
   );
   assert.deepEqual(
-    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
+    [section.title, section.lines.map((line) => line.kind === 'item' && line.text)],
     ['Running', ['the **Mac** build of `main`', '**iPad** needs `devicectl`']],
   );
 });
@@ -168,7 +168,7 @@ test('a pinned line keeps its bold and code for the screen to draw, and a title 
 test('a pinned title bold to the end of its line, colon inside, leaves no stray mark', () => {
   const [section] = pinSections('**Running: the Mac build**');
   assert.deepEqual(
-    [section!.title, section!.lines.map((line) => line.kind === 'item' && line.text)],
+    [section.title, section.lines.map((line) => line.kind === 'item' && line.text)],
     ['Running', ['the Mac build']],
   );
 });
@@ -193,7 +193,7 @@ test('what didn’t go through shows on the item it was about, and nowhere else'
     failed.asks.map((one) => one.failed),
     [undefined, 'Not answered · That question is already answered or settled'],
   );
-  assert.equal(failed.stuck[0]!.failed, 'Not sent · No General');
+  assert.equal(failed.stuck[0].failed, 'Not sent · No General');
 });
 
 test('an answer that missed a place says how many still ask it, on that ask alone', () => {

@@ -147,15 +147,15 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
     toolbar,
     calls: whole ? { ...calls, width: content.width, place: 'over' } : calls,
     // Beside Calls on its side, the words keep to the room the call has left.
-    ...(!banded
-      ? {}
-      : {
+    ...(banded
+      ? {
           besideCalls: {
             ...layout.words,
             x: LIST + metrics.gutter,
             width: Math.min(box.width - LIST - 2 * metrics.gutter, WORDS),
           },
-        }),
+        }
+      : {}),
     tasks: { width: content.width, place: 'page' },
     column: frame.column && { bar: frame.column.x === 0 ? 'left' : 'right' },
     // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the

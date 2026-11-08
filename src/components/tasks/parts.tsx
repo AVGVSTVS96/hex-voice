@@ -178,11 +178,11 @@ export const SectionHead = ({
       {title}
     </Text>
     <Spacer flexible />
-    {count !== undefined ? (
+    {count === undefined ? null : (
       <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
         {String(count)}
       </Text>
-    ) : null}
+    )}
     {opens ? (
       <Icon
         name="chevron.right"
@@ -224,11 +224,11 @@ export const StageHead = ({
       {title}
     </Text>
     <Spacer flexible />
-    {count !== undefined ? (
+    {count === undefined ? null : (
       <Text variant="detail" tone="tertiary" modifiers={[monospacedDigit()]}>
         {String(count)}
       </Text>
-    ) : null}
+    )}
   </Row>
 );
 

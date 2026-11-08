@@ -248,7 +248,7 @@ const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot 
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
   const page = room.width;
-  const x = front ? 0 : i >= 0 ? -(room.paged ? page : page / 3) : page;
+  const x = front ? 0 : i === -1 ? page : -(room.paged ? page : page / 3);
   return {
     offset: { x, y: 0 },
     shown: x === 0,
@@ -263,7 +263,7 @@ const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
   const page = room.width - list - 1;
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
-  const behind = i >= 0 || level === 'topic';
+  const behind = i !== -1 || level === 'topic';
   const x = level === 'list' || front ? 0 : behind ? -page / 3 : page;
   return {
     offset: { x, y: 0 },
@@ -285,20 +285,21 @@ const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spo
     ? { ...second, shown: true }
     : i === levels.length - 2
       ? { at: 0, width: panes, shown: true }
-      : i >= 0
-        ? { at: -panes, width: panes, shown: false }
-        : { ...second, at: room.width, shown: false };
+      : i === -1
+        ? { ...second, at: room.width, shown: false }
+        : { at: -panes, width: panes, shown: false };
   return {
     offset: { x: at, y: 0 },
     shown,
     width,
     ...footOf(room.foot),
-    back: !(shown && at <= 0)
-      ? undefined
-      : level === 'list'
-        ? closes
-          ? 'call'
-          : undefined
-        : levels[i - 1],
+    back:
+      shown && at <= 0
+        ? level === 'list'
+          ? closes
+            ? 'call'
+            : undefined
+          : levels[i - 1]
+        : undefined,
   };
 };

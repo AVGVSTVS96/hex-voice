@@ -256,16 +256,16 @@ export const VoiceSettings = ({
   // In the Duo's place, settings' way back, and the voice page's, are the toolbar's.
   const backInToolbar = useToolbarBack(
     'settings',
-    !isPresented
-      ? undefined
-      : onVoicePage
+    isPresented
+      ? onVoicePage
         ? {
             to: 'Settings',
             onPress: () => {
               showVoices(false);
             },
           }
-        : { to: 'Call', onPress: onDismiss },
+        : { to: 'Call', onPress: onDismiss }
+      : undefined,
     !!place,
   );
   // The voice page slides in from the right edge while the first page drifts a third of the way
@@ -737,14 +737,7 @@ const SettingsPlace = ({
           <Rectangle
             modifiers={[foregroundStyle(theme.sheet), padding({ top, leading, trailing, bottom })]}
           />
-          {row !== undefined ? (
-            <Row spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
-              <Column spacing={0} modifiers={[frame({ width: row })]}>
-                {personaPane}
-              </Column>
-              {rowsPane}
-            </Row>
-          ) : (
+          {row === undefined ? (
             <ArrangementView
               modifiers={[
                 arrangementViewStyle('split', { axes: 'horizontal' }),
@@ -762,6 +755,13 @@ const SettingsPlace = ({
                 )}
               </ArrangementView.Secondary>
             </ArrangementView>
+          ) : (
+            <Row spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+              <Column spacing={0} modifiers={[frame({ width: row })]}>
+                {personaPane}
+              </Column>
+              {rowsPane}
+            </Row>
           )}
         </ZStack>
       </Host>

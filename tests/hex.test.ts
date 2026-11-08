@@ -44,9 +44,9 @@ test('sends the offer and voice to hex and reads OpenAI’s session back', async
     `${url}//`,
   );
   assert.deepEqual(await hex.session.create('offer', 'cedar'), { sdp: 'answer', sessionId: live });
-  assert.equal(seen[0]!.url, `${url}/session`);
-  assert.equal(seen[0]!.init?.method, 'POST');
-  assert.deepEqual(JSON.parse(String(seen[0]!.init?.body)), {
+  assert.equal(seen[0].url, `${url}/session`);
+  assert.equal(seen[0].init?.method, 'POST');
+  assert.deepEqual(JSON.parse(String(seen[0].init?.body)), {
     sdp: 'offer',
     voice: 'cedar',
     from: 'app',

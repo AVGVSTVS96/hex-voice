@@ -27,11 +27,11 @@ const SESSION_CLOSE_MESSAGE =
 
 export class LiveSession {
   private snapshot = initialSnapshot();
-  private listeners = new Set<() => void>();
+  private readonly listeners = new Set<() => void>();
   // Levels change several times a second, so they have their own listeners and the snapshot
   // changes only when the call does.
   private levels = SILENT;
-  private levelListeners = new Set<() => void>();
+  private readonly levelListeners = new Set<() => void>();
   private transport: LiveTransport | null = null;
   private sessionId: CallId | null = null;
   private generation = 0;
@@ -51,8 +51,8 @@ export class LiveSession {
   private appActive = true;
 
   constructor(
-    private factory: TransportFactory,
-    private api: SessionAPI,
+    private readonly factory: TransportFactory,
+    private readonly api: SessionAPI,
   ) {}
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => {

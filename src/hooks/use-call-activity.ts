@@ -20,13 +20,13 @@ export const useCallActivity = (
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
   const state =
-    call.kind !== 'here'
-      ? undefined
-      : call.phase !== 'live'
-        ? call.phase
-        : call.mic.muted
+    call.kind === 'here'
+      ? call.phase === 'live'
+        ? call.mic.muted
           ? 'muted'
-          : 'live';
+          : 'live'
+        : call.phase
+      : undefined;
   const last = call.kind === 'none' ? call.last : undefined;
 
   const onControl = useEffectEvent((target: string) => {
@@ -63,11 +63,11 @@ export const useCallActivity = (
       if (current) {
         const ending = last?.ending;
         const outcome = ending && ENDINGS[ending];
-        const line = !outcome
-          ? 'Call ended'
-          : since.current && ending !== 'no-connect'
+        const line = outcome
+          ? since.current && ending !== 'no-connect'
             ? `${outcome.line} · ${clock((last?.seconds ?? 0) * 1000)}`
-            : outcome.line;
+            : outcome.line
+          : 'Call ended';
         void current
           .end(after(new Date(Date.now() + LINGER)), {
             orb,

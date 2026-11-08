@@ -70,7 +70,7 @@ test('when one item doesn’t go up, the batch never reaches the call, and tryin
     ],
   );
 
-  const again = retrying(sent, sent[0]!.entry.id);
+  const again = retrying(sent, sent[0].entry.id);
   assert.deepEqual(
     again.map(({ entry }) => [entry.sending, entry.failed]),
     [
@@ -103,9 +103,9 @@ test('trying again takes only what didn’t go, from that batch alone', () => {
     entry: { ...one.entry, sending: false, failed: 'Cannot reach hex' },
   }));
   const all = [...done, ...lost];
-  assert.deepEqual(retrying(all, done[0]!.entry.id), []);
+  assert.deepEqual(retrying(all, done[0].entry.id), []);
   assert.deepEqual(
-    retrying(all, lost[1]!.entry.id).map(({ entry }) => entry.id),
+    retrying(all, lost[1].entry.id).map(({ entry }) => entry.id),
     lost.map(({ entry }) => entry.id),
   );
 });

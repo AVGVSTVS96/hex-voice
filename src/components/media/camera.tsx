@@ -58,7 +58,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
     const clip = await camera.current
       ?.recordAsync({ maxDuration: CLIP_SECONDS, progressUpdateInterval: 0.1 })
-      .catch(() => undefined);
+      .catch(() => {});
     held.current = false;
     cancelAnimation(filled);
     filled.set(0);

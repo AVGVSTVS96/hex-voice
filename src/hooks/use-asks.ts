@@ -68,11 +68,11 @@ export const useAsks = (open: boolean) => {
   const [shownFailed, setShownFailed] = useState<string[]>([]);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (!open) {
-      setShownFailed(Object.keys(tries.failed));
-    } else {
+    if (open) {
       dispatch({ type: 'close', keep: Object.keys(missed) });
       tries.clear(shownFailed);
+    } else {
+      setShownFailed(Object.keys(tries.failed));
     }
   }
   const list = useMemo(

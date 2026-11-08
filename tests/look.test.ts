@@ -26,7 +26,7 @@ const widget = 'src/live/call-activity.tsx';
 const token = /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\)|hairline)/g;
 
 const raw = (value: string, constants: Map<string, string>, strict: boolean): boolean => {
-  const rest = value.replace(token, '').replace(/\/\s*2\b/g, '');
+  const rest = value.replaceAll(token, '').replaceAll(/\/\s*2\b/g, '');
   if (strict && rest.trim()) {
     return true;
   }

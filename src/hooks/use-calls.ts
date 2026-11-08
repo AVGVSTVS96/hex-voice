@@ -70,7 +70,7 @@ export const useCalls = () => {
   // A call that wouldn't delete comes back in its place saying why.
   const shown = useMemo(() => {
     if (!listed && !justEnded.length) {
-      return undefined;
+      return;
     }
     const calls = [
       ...justEnded,

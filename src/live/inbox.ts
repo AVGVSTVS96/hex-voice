@@ -114,14 +114,14 @@ const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/g;
 // What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
 // by its name, a Telegram message by its number, else its site.
 export const linkName = (url: string) => {
-  const github = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/);
+  const github = /^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/.exec(url);
   if (github?.[2]) {
-    return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3]!.slice(0, 7)}`;
+    return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3].slice(0, 7)}`;
   }
   if (github) {
-    return github[1]!;
+    return github[1];
   }
-  const message = url.match(/^https:\/\/t\.me\/c\/\d+\/(\d+)$/);
+  const message = /^https:\/\/t\.me\/c\/\d+\/(\d+)$/.exec(url);
   if (message) {
     return `message ${message[1]}`;
   }
@@ -129,16 +129,16 @@ export const linkName = (url: string) => {
 };
 
 const urlOf = (found: string) => {
-  const key = found.match(/^telegram:-100(\d+):(\d+)$/);
+  const key = /^telegram:-100(\d+):(\d+)$/.exec(found);
   return key ? `https://t.me/c/${key[1]}/${key[2]}` : found;
 };
 
 // A task's proof as its page reads it, each link by its name.
 export const proofWords = (proof: string) =>
-  proof.replace(LINKS, (found) => linkName(urlOf(found))).trim();
+  proof.replaceAll(LINKS, (found) => linkName(urlOf(found))).trim();
 
 // Whether a proof says anything besides its links.
-export const proofSays = (proof: string) => /\w/.test(proof.replace(LINKS, ''));
+export const proofSays = (proof: string) => /\w/.test(proof.replaceAll(LINKS, ''));
 
 // Each page a proof links to, once: a Telegram message as Telegram's, any other as the web's.
 export const proofLinks = (proof: string): Tile[] => {
@@ -332,7 +332,7 @@ export const whyOf = (entry: Entry, query: string): Part[] | undefined => {
   const text =
     textOf(entry).find((one) => one.toLowerCase().includes(hidden)) ?? PLACES[entry.place];
   const at = text.toLowerCase().indexOf(hidden);
-  if (at < 0) {
+  if (at === -1) {
     return undefined;
   }
   const start = Math.max(0, text.lastIndexOf(' ', Math.max(0, at - WHY_BEFORE)) + 1);
@@ -346,7 +346,7 @@ const WHY_AFTER = 80;
 
 const marked = (text: string, words: string[]): Part[] => {
   const pattern = new RegExp(
-    `(${words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    `(${words.map((word) => word.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
     'gi',
   );
   return text
@@ -380,7 +380,7 @@ export const headlineOf = (entry: Entry) => {
 export const problemOf = (line: string) => {
   const error = /^API Error:\s*(.*)$/s.exec(line.trim());
   if (!error) {
-    return undefined;
+    return;
   }
   return /limit/i.test(error[1] ?? '')
     ? 'Stopped: the server was limiting requests'
@@ -458,7 +458,6 @@ export const taskOf = (entry: Entry) => {
   if (entry.kind === 'finished') {
     return entry.finished.run;
   }
-  return undefined;
 };
 
 // What an answer reached, as hex recorded it, after "Sent Yes to hex": the buttons it cleared, only

@@ -64,11 +64,11 @@ export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
           }),
         ]}
       >
-        {!sent.failed
-          ? 'Sending'
-          : sent.failed.again
+        {sent.failed
+          ? sent.failed.again
             ? 'Not sent · Tap to try again'
-            : sent.failed.why}
+            : sent.failed.why
+          : 'Sending'}
       </Text>
     </Row>
   </Column>

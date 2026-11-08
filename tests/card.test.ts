@@ -123,11 +123,11 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
       for (const side of [undefined, 'left', 'right'] as const) {
         for (const folded of [false, true]) {
           const across = width > height;
-          const fold = !folded
-            ? undefined
-            : across
+          const fold = folded
+            ? across
               ? { x: width / 2 - 20, y: 0, width: 40, height }
-              : { x: 0, y: height / 2 - 20, width, height: 40 };
+              : { x: 0, y: height / 2 - 20, width, height: 40 }
+            : undefined;
           const layout = layoutOf({
             window: { width, height },
             insets: {

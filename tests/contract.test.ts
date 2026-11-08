@@ -68,7 +68,7 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
     version: 1,
     tasks: [{ ...(real('tasks') as { tasks: object[] }).tasks[0], state: 'paused' }],
   }).tasks;
-  assert.equal(STATE_WORDS[row!.state], 'idle');
+  assert.equal(STATE_WORDS[row.state], 'idle');
 
   const task = TaskOrPage.parse({
     ...(real('task') as object),
@@ -77,8 +77,8 @@ test('a value hex adds later reads as the nearest one this app knows, and no lis
     ],
   });
   assert.ok(task.kind === 'task');
-  assert.equal(task.steps[0]!.kind, 'tool');
-  assert.equal(stepMark(task.steps[0]!), undefined);
+  assert.equal(task.steps[0].kind, 'tool');
+  assert.equal(stepMark(task.steps[0]), undefined);
 });
 
 test('a thread off the board reads as a page to read, and a task with a broken field never passes for one', () => {

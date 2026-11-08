@@ -162,6 +162,6 @@ const refusal = (status: number, text: string) => {
     message = Said.parse(JSON.parse(text)).error.message;
   } catch {}
   message = message.slice(0, 300) || `hex answered HTTP ${status}.`;
-  message = message[0]!.toUpperCase() + message.slice(1);
+  message = message[0].toUpperCase() + message.slice(1);
   return status < 500 ? new Refused(message, status) : new Error(message);
 };

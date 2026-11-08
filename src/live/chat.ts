@@ -38,7 +38,7 @@ export type Said =
 const EVENT = /^\(([^()\n]+)\)\s*([\s\S]*)$/;
 
 export const said = (turn: ChatTurn): Said => {
-  const event = turn.from === 'me' ? turn.text.match(EVENT) : null;
+  const event = turn.from === 'me' ? EVENT.exec(turn.text) : null;
   if (!event) {
     return { kind: turn.from, text: turn.text };
   }
@@ -49,5 +49,5 @@ export const said = (turn: ChatTurn): Said => {
   if (label.startsWith('asked Siri')) {
     return { kind: 'event', label: 'Asked Siri', text };
   }
-  return { kind: 'event', label: label[0]!.toUpperCase() + label.slice(1), text };
+  return { kind: 'event', label: label[0].toUpperCase() + label.slice(1), text };
 };

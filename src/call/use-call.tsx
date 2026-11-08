@@ -86,7 +86,7 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       return;
     }
     setSent((now) => now.map((one) => again.find(({ entry }) => entry.id === one.entry.id) ?? one));
-    void go(again[0]!.call, again);
+    void go(again[0].call, again);
   };
   return (
     <Session value={value}>

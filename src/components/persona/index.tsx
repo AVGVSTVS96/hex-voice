@@ -65,7 +65,7 @@ export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) =
   useEffect(() => {
     let active = true;
     void loadFile(variant)
-      .catch(() => undefined)
+      .catch(() => {})
       .then(() => {
         if (active) {
           setShown(variant);

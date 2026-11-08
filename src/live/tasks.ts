@@ -198,7 +198,6 @@ export const stepMark = (step: TaskStep) => {
   if (step.state === 'running') {
     return 'working';
   }
-  return undefined;
 };
 
 // How long each step took, newest first: from when it began until its result came back, and while
@@ -217,7 +216,7 @@ export const stepTimes = (steps: TaskStep[], now = new Date()) =>
     if (step.state === 'running') {
       return took(now.getTime() - at);
     }
-    const until = i === 0 ? at : Date.parse(steps[i - 1]!.at);
+    const until = i === 0 ? at : Date.parse(steps[i - 1].at);
     return until - at < 500 ? '' : took(until - at);
   });
 
@@ -281,9 +280,9 @@ export const agentSteps = (agent: AgentTrail) => {
 export const agentWords = (agents: TaskAgent[], working: boolean) => {
   const named = working ? atWork(agents) : agentsInOrder(agents).shown;
   if (!named.length) {
-    return undefined;
+    return;
   }
-  const names = named.map((agent) => agent.label.split(':')[0]!.trim());
+  const names = named.map((agent) => agent.label.split(':')[0].trim());
   const count = `${named.length} agent${named.length === 1 ? '' : 's'}`;
   return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;
 };

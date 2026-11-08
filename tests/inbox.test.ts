@@ -142,7 +142,7 @@ test('your asks lead in hex’s order, then threads that need you without an ask
     entries.map((entry) => entry.kind),
     ['ask', 'ask', 'task', 'stuck', 'stuck', 'task'],
   );
-  assert.equal(entries[2]!.at, at(6, 15));
+  assert.equal(entries[2].at, at(6, 15));
 });
 
 test('a thread that waits on your ask is in Needs you by its ask alone, never left quiet; one still working stays in Working', () => {
@@ -380,9 +380,9 @@ test('a search result says why it was found when its row doesn’t show it', () 
       }),
     ],
   });
-  assert.equal(whyOf(entry!, 'twilio'), undefined);
-  assert.equal(whyOf(entry!, 'calls'), undefined);
-  assert.deepEqual(whyOf(entry!, 'twilio Voice'), [
+  assert.equal(whyOf(entry, 'twilio'), undefined);
+  assert.equal(whyOf(entry, 'calls'), undefined);
+  assert.deepEqual(whyOf(entry, 'twilio Voice'), [
     { text: 'Card ends 4242, renewed for the ', hit: false },
     { text: 'voice', hit: true },
     { text: ' line', hit: false },
@@ -587,8 +587,8 @@ test('each task hex finished in the last day is in Done, while its project works
     ],
   );
   assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
-  assert.equal(pageOf(topicsOf(tab, entries)[1]!), 'telegram:voiceapp');
-  assert.equal(headlineOf(tab[0]!), 't-3 title');
+  assert.equal(pageOf(topicsOf(tab, entries)[1]), 'telegram:voiceapp');
+  assert.equal(headlineOf(tab[0]), 't-3 title');
   assert.deepEqual(
     stageTopics(entries, 'done').map(({ name, entries }) => [name, entries.length]),
     [
@@ -599,8 +599,8 @@ test('each task hex finished in the last day is in Done, while its project works
     ],
   );
   const [row3] = stageTopics(entries, 'done');
-  assert.equal(doneIn(pageOf(row3!)), 't-3');
-  assert.equal(taskIn(pageOf(row3!)), null);
+  assert.equal(doneIn(pageOf(row3)), 't-3');
+  assert.equal(taskIn(pageOf(row3)), null);
 });
 
 test('All lists every project once, in the first stage it has, as that stage reads it', () => {
@@ -649,13 +649,13 @@ test('a finished task with no thread on the board still opens its own page, and 
       }),
     ],
   });
-  assert.equal(taskOf(entry!), undefined);
-  assert.equal(pageOf(topicsOf([entry!], [entry!])[0]!), 'done:t-5');
-  assert.deepEqual(entry!.tiles, [
+  assert.equal(taskOf(entry), undefined);
+  assert.equal(pageOf(topicsOf([entry], [entry])[0]), 'done:t-5');
+  assert.deepEqual(entry.tiles, [
     { kind: 'app', place: 'telegram', label: 'Telegram', link: 'https://t.me/c/1/1' },
     { kind: 'link', label: 'hex #180', url: 'https://github.com/AVGVSTVS96/hex/pull/180' },
   ]);
-  assert.deepEqual(ids(search([entry!], 'hex #180')), ['t-5']);
+  assert.deepEqual(ids(search([entry], 'hex #180')), ['t-5']);
 });
 
 test('a proof reads with each link by its name', () => {
@@ -694,7 +694,7 @@ test('a proof reads with each link by its name', () => {
   const [entry] = stream({
     finished: [done('t-6', 'autofork', at(9), { proof: 'https://autofork.com; npm' })],
   });
-  assert.deepEqual(entry!.tiles.at(-1), {
+  assert.deepEqual(entry.tiles.at(-1), {
     kind: 'link',
     label: 'autofork.com',
     url: 'https://autofork.com',

@@ -85,8 +85,8 @@ test('open, the Duo shows the deepest two levels, each step down sliding both al
   const room = roomOf(openUpright);
   assert.deepEqual(onScreen(go(), room), ['list', 'topic']);
   assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['list', 'topic']);
-  assert.deepEqual(onScreen(stacks[2]![1], room), ['topic', 'thread']);
-  assert.deepEqual(onScreen(stacks[3]![1], room), ['thread', 'steps']);
+  assert.deepEqual(onScreen(stacks[2][1], room), ['topic', 'thread']);
+  assert.deepEqual(onScreen(stacks[3][1], room), ['thread', 'steps']);
 });
 
 test('back goes a level up, and from the list backLeavesTasks for the call', () => {
@@ -99,7 +99,7 @@ test('back goes a level up, and from the list backLeavesTasks for the call', () 
     ['panes', go({ to: 'topic', id: A }), 'call'],
     ['panes', go({ to: 'check' }), 'call'],
     ['panes', go({ to: 'topic', id: A }, { to: 'thread' }), ['list', 'topic']],
-    ['panes', stacks[3]![1], ['list', 'topic', 'thread']],
+    ['panes', stacks[3][1], ['list', 'topic', 'thread']],
     ['columns', go({ to: 'topic', id: A }), 'call'],
     ['columns', go({ to: 'check' }), ['list', 'topic']],
   ];
@@ -123,19 +123,19 @@ test('the leading page has Back named for where it goes, the list’s for the ca
   const backOf = (level: Level, stack: Stack) => spotOf(level, pagesOf(stack, room), room).back;
   assert.equal(backOf('list', go()), 'call');
   assert.equal(backOf('topic', go()), undefined);
-  assert.equal(backOf('topic', stacks[2]![1]), 'list');
-  assert.equal(backOf('thread', stacks[2]![1]), undefined);
+  assert.equal(backOf('topic', stacks[2][1]), 'list');
+  assert.equal(backOf('thread', stacks[2][1]), undefined);
   const one = roomOf(folded);
   assert.equal(spotOf('list', pagesOf(go(), one), one).back, 'call');
   assert.equal(spotOf('list', pagesOf(go(), one, false), one).back, undefined);
   // Waiting behind a topic, the list keeps its way back, so it slides in with it.
-  assert.equal(spotOf('list', pagesOf(stacks[1]![1], one), one).back, 'call');
+  assert.equal(spotOf('list', pagesOf(stacks[1][1], one), one).back, 'call');
 });
 
 test('on the Duo pages cross only while one fades, and never across the fold, so clear pages work', () => {
   const walks: Stack[][] = [
-    [stacks[0]![1], stacks[1]![1], stacks[2]![1], stacks[3]![1]],
-    [stacks[0]![1], stacks[4]![1]],
+    [stacks[0][1], stacks[1][1], stacks[2][1], stacks[3][1]],
+    [stacks[0][1], stacks[4][1]],
   ];
   for (const [name, page] of [
     ['open upright', openUpright],
@@ -161,14 +161,14 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
     for (const walk of walks) {
       for (const [i, from] of walk.slice(0, -1).entries()) {
         for (const [a, b] of [
-          [from, walk[i + 1]!],
-          [walk[i + 1]!, from],
+          [from, walk[i + 1]],
+          [walk[i + 1], from],
         ]) {
           for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-            const frames = seen(a!, b!, t);
+            const frames = seen(a, b, t);
             const fades = (level: Level) =>
-              spotOf(level, pagesOf(a!, room), room).shown !==
-              spotOf(level, pagesOf(b!, room), room).shown;
+              spotOf(level, pagesOf(a, room), room).shown !==
+              spotOf(level, pagesOf(b, room), room).shown;
             for (const [j, [one, first]] of frames.entries()) {
               for (const [other, second] of frames.slice(j + 1)) {
                 assert.ok(

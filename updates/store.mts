@@ -145,14 +145,14 @@ const sendAsset = async (
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
-  const name = pathname.match(/^\/assets\/([^/]+)$/)?.[1];
+  const name = /^\/assets\/([^/]+)$/.exec(pathname)?.[1];
   const path = name && NAME.test(name) ? join(dir, 'assets', name) : undefined;
   if (!path || !(await stat(path).catch(() => null))) {
     return response.writeHead(404).end();
   }
   const gzip = /\bgzip\b/.test(request.headers['accept-encoding'] ?? '');
   response.writeHead(200, {
-    'content-type': contentType(path.split('.').pop()!),
+    'content-type': contentType(path.slice(path.lastIndexOf('.') + 1)),
     'cache-control': 'public, max-age=31536000, immutable',
     ...(gzip && { 'content-encoding': 'gzip' }),
   });
