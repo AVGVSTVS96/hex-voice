@@ -92,3 +92,51 @@ index 3f111f5..b8c2dd4 100644
          onDismiss?.();
        }}>
        {anchor != null ? <Slot name="anchor">{anchor}</Slot> : null}
+diff --git a/node_modules/@expo/ui/build/universal/Column/index.ios.js b/node_modules/@expo/ui/build/universal/Column/index.ios.js
+index 9ed80c4..6190d2f 100644
+--- a/node_modules/@expo/ui/build/universal/Column/index.ios.js
++++ b/node_modules/@expo/ui/build/universal/Column/index.ios.js
+@@ -27,7 +27,6 @@ export function Column({ children, alignment = 'start', spacing, style, onPress,
+         alignment: alignmentMap[alignment],
+         spacing: spacing,
+         modifiers: modifiers,
+-        resolvesChildPercentages: true,
+         testID: testID,
+         children: children
+     });
+diff --git a/node_modules/@expo/ui/build/universal/Row/index.ios.js b/node_modules/@expo/ui/build/universal/Row/index.ios.js
+index b46d4cc..e293d76 100644
+--- a/node_modules/@expo/ui/build/universal/Row/index.ios.js
++++ b/node_modules/@expo/ui/build/universal/Row/index.ios.js
+@@ -27,7 +27,6 @@ export function Row({ children, alignment = 'start', spacing, style, onPress, on
+         alignment: alignmentMap[alignment],
+         spacing: spacing,
+         modifiers: modifiers,
+-        resolvesChildPercentages: true,
+         testID: testID,
+         children: children
+     });
+diff --git a/node_modules/@expo/ui/src/universal/Column/index.ios.tsx b/node_modules/@expo/ui/src/universal/Column/index.ios.tsx
+index 5dea00e..18e8ec1 100644
+--- a/node_modules/@expo/ui/src/universal/Column/index.ios.tsx
++++ b/node_modules/@expo/ui/src/universal/Column/index.ios.tsx
+@@ -41,7 +41,6 @@ export function Column({
+       alignment={alignmentMap[alignment]}
+       spacing={spacing}
+       modifiers={modifiers}
+-      resolvesChildPercentages
+       testID={testID}>
+       {children}
+     </VStack>
+diff --git a/node_modules/@expo/ui/src/universal/Row/index.ios.tsx b/node_modules/@expo/ui/src/universal/Row/index.ios.tsx
+index 49efff8..23cdf86 100644
+--- a/node_modules/@expo/ui/src/universal/Row/index.ios.tsx
++++ b/node_modules/@expo/ui/src/universal/Row/index.ios.tsx
+@@ -41,7 +41,6 @@ export function Row({
+       alignment={alignmentMap[alignment]}
+       spacing={spacing}
+       modifiers={modifiers}
+-      resolvesChildPercentages
+       testID={testID}>
+       {children}
+     </HStack>
