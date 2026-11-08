@@ -31,6 +31,7 @@ import {
   picksOf,
   search,
   stageCounts,
+  stageTopics,
   pageOf,
   taskOf,
   topicIn,
@@ -119,12 +120,8 @@ export function ListPage({
       query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
     [entries, stage, query],
   );
-  // Done lists each thing done on its own, newest first, whatever else its project has going.
   const topics = useMemo(
-    () =>
-      query === null && stage === 'done'
-        ? shown.flatMap((entry) => topicsOf([entry], entries))
-        : topicsOf(shown, entries),
+    () => (query === null ? stageTopics(entries, stage) : topicsOf(shown, entries)),
     [shown, entries, query, stage],
   );
   const picks = picksOf(entries, yours.answered);
@@ -156,10 +153,13 @@ export function ListPage({
     searchField.current?.blur();
     pages.go({ to: 'topic', id, row });
   };
+  // A new tab picks its first project beside the list in the same move, so the page beside never
+  // empties between them.
   const chooseStage = (next: Stage) => {
     feel.tick();
     setStage(next);
-    if (beside) pages.go({ to: 'beside', id: null });
+    const [lead] = stageTopics(entries, next);
+    if (beside) pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
   };
   const startSearch = () => {
     feel.tick();

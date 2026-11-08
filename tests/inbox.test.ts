@@ -21,6 +21,7 @@ import {
   reachedBy,
   search,
   stageCounts,
+  stageTopics,
   taskOf,
   tilesOf,
   topicsOf,
@@ -588,7 +589,16 @@ test('each task hex finished in the last day is in Done, while its project works
   assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
   assert.equal(pageOf(topicsOf(tab, entries)[1]!), 'telegram:voiceapp');
   assert.equal(headlineOf(tab[0]!), 't-3 title');
-  const [row3] = tab.flatMap((entry) => topicsOf([entry], entries));
+  assert.deepEqual(
+    stageTopics(entries, 'done').map(({ name, entries }) => [name, entries.length]),
+    [
+      ['iikb', 1],
+      ['voiceapp', 1],
+      ['voiceapp', 1],
+      ['seqno', 1],
+    ],
+  );
+  const [row3] = stageTopics(entries, 'done');
   assert.equal(doneIn(pageOf(row3!)), 't-3');
   assert.equal(taskIn(pageOf(row3!)), null);
 });

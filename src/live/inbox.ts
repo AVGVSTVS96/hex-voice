@@ -247,6 +247,15 @@ export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
   });
 }
 
+// A tab's rows: its projects, except Done, which lists each thing done on its own, newest first,
+// whatever else its project has going.
+export function stageTopics(entries: Entry[], stage: Stage): Topic[] {
+  const shown = entries.filter((entry) => entry.stage === stage);
+  return stage === 'done'
+    ? shown.flatMap((entry) => topicsOf([entry], entries))
+    : topicsOf(shown, entries);
+}
+
 // What each tab counts: asks you've answered here are already off your plate.
 export function stageCounts(entries: Entry[], answered: Record<string, string | null> = {}) {
   const counts: Record<Stage, number> = { needs: 0, working: 0, done: 0, quiet: 0 };
