@@ -499,7 +499,7 @@ export class LiveSession {
     this.update({ status: 'disconnecting' });
     this.hear(SILENT);
     transport?.setMuted(true);
-    // oxlint-disable-next-line promise/always-return -- the close starts a microtask after stop() sets this.closing, so a call in between waits on it; it settles with nothing
+    // oxlint-disable-next-line promise/always-return -- this.closing only marks when the close is over, so it settles with nothing
     this.closing = Promise.resolve().then(async () => {
       let confirmed = this.serverClosed;
 
