@@ -1,6 +1,3 @@
-// Ask hex through Siri: the App Intent and its Siri skill go into the app target itself, where
-// Xcode reads App Intents metadata and compiles the skills bundle (both need the iOS 27.3 SDK
-// for Siri to see them), and the app's hex address and token go in Info.plist for the intent.
 const fs = require('node:fs');
 const path = require('node:path');
 const { withDangerousMod, withInfoPlist, withXcodeProject } = require('expo/config-plugins');

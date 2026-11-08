@@ -1,5 +1,3 @@
-// expo-widgets builds the Live Activity extension without resources, so this adds the orb
-// stills (made by `npm run activity-orbs`) to it as an asset catalog the extension compiles.
 const fs = require('node:fs');
 const path = require('node:path');
 const { withDangerousMod, withXcodeProject } = require('expo/config-plugins');
