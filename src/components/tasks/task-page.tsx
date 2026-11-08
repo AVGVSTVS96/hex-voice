@@ -115,7 +115,7 @@ export function Detail({
         door={door && { place: placeOf(door.app), onPress: () => onOpen(door) }}
       />
       <Faded>
-        <List key={beside ? 'beside' : 'alone'} modifiers={pageList(asks, answered)}>
+        <List key={`${task.id} ${beside}`} modifiers={pageList(asks, answered)}>
           {asks.length ? (
             <YourCall
               asks={asks}
@@ -272,7 +272,7 @@ export function Asked({
         door={door}
       />
       <Faded>
-        <List modifiers={pageList(asks, answered)}>
+        <List key={topic} modifiers={pageList(asks, answered)}>
           {asks.length ? (
             <YourCall
               asks={asks}
@@ -446,7 +446,8 @@ function Way({
 }
 
 // A project's page is a list, so each ask on it is a row a swipe left puts away; an answer folds
-// its row where it sits.
+// its row where it sits. Each page has a list of its own, so another project's page replaces it
+// whole instead of fading its cards through the last one's.
 function pageList(asks: Ask[], answered: Record<string, string | null>) {
   return [
     listStyle('plain'),
