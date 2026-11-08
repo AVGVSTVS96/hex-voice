@@ -22,6 +22,7 @@ import type { Ask, AskOption } from '@/live/asks';
 import { PLACES, STUCK, headlineOf, problemOf, opens, pageOf, proofWords } from '@/live/inbox';
 import type { Entry, Part, Stage, Tile, Topic, PageId } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
+import type { TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text, textLook } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
@@ -55,71 +56,20 @@ export const EntryRow = ({
 
   switch (entry.kind) {
     case 'ask': {
-      const { ask } = entry;
-      const said = actions.answered[ask.id] ?? '';
-
-      if (said !== '') {
-        return (
-          <Folded
-            ask={ask}
-            label={said}
-            onUndo={() => {
-              actions.onUndo(ask);
-            }}
-            onAgain={() => {
-              actions.onAgain(ask);
-            }}
-          />
-        );
-      }
-
-      const pick = ask.options.find((option) => option.pick === true);
-
       return (
-        <Swiped
-          {...swiped}
-          lead={
-            pick && {
-              label: pick.label,
-              onPress: () => {
-                actions.onAnswer(ask, pick);
-              },
-            }
-          }
-          onAway={() => {
-            actions.onDismiss(ask);
-          }}
-        >
-          <Shell
-            selected={selected}
-            why={why}
-            mark={pick ? 'pick' : 'asks'}
-            line={ask.question}
-            time={clock(new Date(entry.at))}
-            tiles={entry.tiles}
-            label={`${entry.topic} asks: ${ask.question}`}
-            onPress={() => {
-              actions.onOpen(ask.task, entry.id);
-            }}
-          >
-            {ask.options.length > 0 ? (
-              <Fits>
-                <InlineAnswers
-                  ask={ask}
-                  onAnswer={actions.onAnswer}
-                  modifiers={[padding({ top: space[1] })]}
-                />
-              </Fits>
-            ) : null}
-            <Failure text={ask.failed} />
-          </Shell>
-        </Swiped>
+        <AskRow
+          entry={entry}
+          ask={entry.ask}
+          why={why}
+          selected={selected}
+          swiped={swiped}
+          actions={actions}
+        />
       );
     }
 
     case 'task': {
       const { task } = entry;
-      const agents = task.state === 'working' ? atWork(task.agents).length : 0;
       const mark: MarkState = task.state === 'done' ? 'read' : task.state;
 
       return (
@@ -130,7 +80,7 @@ export const EntryRow = ({
             mark={mark}
             line={task.line || STATE_WORDS[task.state]}
             time={taskTime(task)}
-            meta={agents ? `${agents} agent${agents === 1 ? '' : 's'}` : undefined}
+            meta={agentsAtWork(task)}
             tiles={entry.tiles}
             label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
             onPress={() => {
@@ -226,6 +176,88 @@ export const EntryRow = ({
       return entry satisfies never;
     }
   }
+};
+
+const agentsAtWork = (task: TaskRow) => {
+  const n = task.state === 'working' ? atWork(task.agents).length : 0;
+
+  return n ? `${n} agent${n === 1 ? '' : 's'}` : undefined;
+};
+
+const AskRow = ({
+  entry,
+  ask,
+  why,
+  selected,
+  swiped,
+  actions,
+}: {
+  entry: Entry;
+  ask: Ask;
+  why?: Part[];
+  selected: boolean;
+  swiped: { trail: Tile[]; onTile: (tile: Tile) => void };
+  actions: RowActions;
+}) => {
+  const said = actions.answered[ask.id] ?? '';
+
+  if (said !== '') {
+    return (
+      <Folded
+        ask={ask}
+        label={said}
+        onUndo={() => {
+          actions.onUndo(ask);
+        }}
+        onAgain={() => {
+          actions.onAgain(ask);
+        }}
+      />
+    );
+  }
+
+  const pick = ask.options.find((option) => option.pick === true);
+
+  return (
+    <Swiped
+      {...swiped}
+      lead={
+        pick && {
+          label: pick.label,
+          onPress: () => {
+            actions.onAnswer(ask, pick);
+          },
+        }
+      }
+      onAway={() => {
+        actions.onDismiss(ask);
+      }}
+    >
+      <Shell
+        selected={selected}
+        why={why}
+        mark={pick ? 'pick' : 'asks'}
+        line={ask.question}
+        time={clock(new Date(entry.at))}
+        tiles={entry.tiles}
+        label={`${entry.topic} asks: ${ask.question}`}
+        onPress={() => {
+          actions.onOpen(ask.task, entry.id);
+        }}
+      >
+        {ask.options.length > 0 ? (
+          <Fits>
+            <InlineAnswers
+              ask={ask}
+              onAnswer={actions.onAnswer}
+              modifiers={[padding({ top: space[1] })]}
+            />
+          </Fits>
+        ) : null}
+        <Failure text={ask.failed} />
+      </Shell>
+    </Swiped>
+  );
 };
 
 interface Swipe {

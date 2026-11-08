@@ -155,9 +155,7 @@ export const Steps = ({
         const words = step.kind === 'think' || step.kind === 'say';
         const opened = open === key;
         const mark = stepMark(step);
-
-        const agent =
-          (step.agent ?? '') === '' ? undefined : agents?.find((one) => one.id === step.agent);
+        const agent = agentOf(step, agents);
 
         const folded = words ? 3 : 1;
         const detail = step.detail ?? '';
@@ -201,6 +199,9 @@ export const Steps = ({
   );
 };
 
+const agentOf = (step: TaskStep, agents: TaskAgent[] | undefined) =>
+  (step.agent ?? '') === '' ? undefined : agents?.find((one) => one.id === step.agent);
+
 const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: Tone }) => (
   <Column alignment="start" spacing={0} modifiers={[padding({ top: space[1] })]}>
     {lines.map((line, i) => (
@@ -217,15 +218,22 @@ const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: 
   </Column>
 );
 
+const agentShows = (agent: AgentTrail, open: boolean) => {
+  const working = agent.state === 'working';
+
+  return {
+    newest: working && !open ? (agent.line ?? agent.steps[0]?.text ?? '') : '',
+    result: open && !working ? (agent.result ?? '') : '',
+    steps: open ? agentSteps(agent) : [],
+    link: open ? (agent.link ?? '') : '',
+  };
+};
+
 const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
   const [whole, setWhole] = useState(false);
-  const working = agent.state === 'working';
-  const newest = working && !open ? (agent.line ?? agent.steps[0]?.text ?? '') : '';
-  const result = open && !working ? (agent.result ?? '') : '';
-  const steps = open ? agentSteps(agent) : [];
+  const { newest, result, steps, link } = agentShows(agent, open);
   const meta = agentMeta(agent);
-  const link = open ? (agent.link ?? '') : '';
 
   return (
     <Background alignment="topLeading">

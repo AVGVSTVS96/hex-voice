@@ -116,8 +116,6 @@ export const ThreadPage = ({
   const place = PLACES[placeOf(thread.app)];
   const { running } = thread;
   const title = thread.place || thread.name;
-  // Its back names the topic, so the topic's own thread is headed for what it holds.
-  const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
   const turns = chat?.turns ?? [];
   const first = (chat?.total ?? 0) - turns.length;
 
@@ -131,31 +129,7 @@ export const ThreadPage = ({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
     >
-      {beside ? (
-        <PageBar
-          title="Messages"
-          subtitle={chat === undefined || chat.total === 0 ? undefined : String(chat.total)}
-        />
-      ) : (
-        <Header
-          title={heading}
-          subtitle={
-            running
-              ? `working for ${taskTime(thread)}`
-              : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
-          }
-          door={
-            thread.link === undefined || thread.link === ''
-              ? undefined
-              : {
-                  place: placeOf(thread.app),
-                  onPress: () => {
-                    onOpen(thread);
-                  },
-                }
-          }
-        />
-      )}
+      <ThreadHead thread={thread} beside={beside} chat={chat} onOpen={onOpen} />
       <Faded>
         <ScrollView
           showsIndicators={false}
@@ -244,6 +218,51 @@ export const ThreadPage = ({
         </Foot>
       )}
     </Column>
+  );
+};
+
+const ThreadHead = ({
+  thread,
+  beside,
+  chat,
+  onOpen,
+}: {
+  thread: TaskRow | Task;
+  beside: boolean;
+  chat: Chat | undefined;
+  onOpen: (thread: TaskRow) => void;
+}) => {
+  if (beside) {
+    return (
+      <PageBar
+        title="Messages"
+        subtitle={chat === undefined || chat.total === 0 ? undefined : String(chat.total)}
+      />
+    );
+  }
+
+  // Its back names the topic, so the topic's own thread is headed for what it holds.
+  const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
+
+  return (
+    <Header
+      title={heading}
+      subtitle={
+        thread.running
+          ? `working for ${taskTime(thread)}`
+          : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
+      }
+      door={
+        thread.link === undefined || thread.link === ''
+          ? undefined
+          : {
+              place: placeOf(thread.app),
+              onPress: () => {
+                onOpen(thread);
+              },
+            }
+      }
+    />
   );
 };
 

@@ -122,25 +122,41 @@ export const Pill = ({
       {mark ? (
         <Icon name={mark} size={metrics.symbol.small} color={theme[pick ? 'accent' : ink]} />
       ) : null}
-      <Column alignment={grow ? 'center' : 'start'} spacing={0}>
-        <Text
-          numberOfLines={grow ? 2 : 1}
-          variant={small ? 'detail' : 'body'}
-          weight={pick ? 'medium' : 'regular'}
-          tone={ink}
-          align={grow ? 'center' : undefined}
-        >
-          {label}
-        </Text>
-        {pick && !small ? (
-          <Text numberOfLines={1} variant="caption" tone="accent">
-            {PICK}
-          </Text>
-        ) : null}
-      </Column>
+      <PillLabel label={label} pick={pick} small={small} grow={grow} ink={ink} />
     </Row>
   );
 };
+
+const PillLabel = ({
+  label,
+  pick,
+  small,
+  grow,
+  ink,
+}: {
+  label: string;
+  pick: boolean;
+  small: boolean;
+  grow: boolean;
+  ink: 'text' | 'tertiary';
+}) => (
+  <Column alignment={grow ? 'center' : 'start'} spacing={0}>
+    <Text
+      numberOfLines={grow ? 2 : 1}
+      variant={small ? 'detail' : 'body'}
+      weight={pick ? 'medium' : 'regular'}
+      tone={ink}
+      align={grow ? 'center' : undefined}
+    >
+      {label}
+    </Text>
+    {pick && !small ? (
+      <Text numberOfLines={1} variant="caption" tone="accent">
+        {PICK}
+      </Text>
+    ) : null}
+  </Column>
+);
 
 // Puts an ask away without an answer: a row's swipe action at the trailing edge, where iOS puts the
 // one that clears a row, so a full swipe left takes it, as it does in Mail.

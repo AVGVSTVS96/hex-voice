@@ -80,7 +80,7 @@ export const Detail = ({
   foot?: number;
 }) => {
   const full = 'lately' in task ? task : undefined;
-  const needs = task.state === 'needs' && !asks.length ? (full?.needs ?? task.line) : undefined;
+  const needs = needsOf(task, asks);
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
 
   const working = [task, ...threads.filter((one) => one.id !== task.id)].filter(
@@ -88,8 +88,7 @@ export const Detail = ({
   );
 
   const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
-  const door = [task, ...threads].find((one) => (one.link ?? '') !== '');
-  const tracks = tracksOf(task.name, threads.length ? threads : [task]);
+  const tracks = laneOf(task, threads);
   // The lane ends at now, as of when the page opened.
   const now = useNow(false).getTime();
 
@@ -98,14 +97,7 @@ export const Detail = ({
       <Header
         title={task.name}
         subtitle={subtitleOf(task, open)}
-        door={
-          door && {
-            place: placeOf(door.app),
-            onPress: () => {
-              onOpen(door);
-            },
-          }
-        }
+        door={firstDoor([task, ...threads], onOpen)}
       />
       <Faded>
         <List key={task.id} modifiers={pageList(asks, answered)}>
@@ -221,15 +213,36 @@ export const Detail = ({
           </Column>
         </List>
       </Faded>
-      {beside || answering ? null : (
-        <Foot foot={foot}>
-          {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
-          <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
-        </Foot>
-      )}
+      <DetailFoot
+        task={task}
+        hidden={beside || answering}
+        foot={foot}
+        onWrite={onWrite}
+        onTalk={onTalk}
+      />
     </Column>
   );
 };
+
+const DetailFoot = ({
+  task,
+  hidden,
+  foot,
+  onWrite,
+  onTalk,
+}: {
+  task: TaskRow | Task;
+  hidden: boolean;
+  foot: number;
+  onWrite?: () => void;
+  onTalk: () => void;
+}) =>
+  hidden ? null : (
+    <Foot foot={foot}>
+      {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
+      <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
+    </Foot>
+  );
 
 // A project with no thread to show (its threads left the board, or it's what's stuck or what
 // finished) still opens on what it has: its asks, then its other rows, with its way back and a
@@ -520,6 +533,28 @@ const Run = ({
       )}
     </Column>
   );
+};
+
+const firstDoor = (threads: (TaskRow | Task)[], onOpen: (thread: TaskRow) => void) => {
+  const door = threads.find((one) => (one.link ?? '') !== '');
+
+  return (
+    door && {
+      place: placeOf(door.app),
+      onPress: () => {
+        onOpen(door);
+      },
+    }
+  );
+};
+
+const laneOf = (task: TaskRow | Task, threads: TaskRow[]) =>
+  tracksOf(task.name, threads.length > 0 ? threads : [task]);
+
+const needsOf = (task: TaskRow | Task, asks: Ask[]) => {
+  const full = 'lately' in task ? task : undefined;
+
+  return task.state === 'needs' && asks.length === 0 ? (full?.needs ?? task.line) : undefined;
 };
 
 const pastMark = (state: TaskState): MarkState => (state === 'failed' ? 'failed' : 'read');
