@@ -1,61 +1,66 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack } from 'expo-router';
+import type { SFSymbol } from 'sf-symbols-typescript';
+import { Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import LiveScreen from '@/call/call-screen';
-import { STAGES } from '@/live/inbox';
-import { TaskId } from '@/live/tasks';
-import { SplitView } from '@/screens/split-view';
-
-// A link opens the app at a place (scripts/duo-states): ?tasks for Tasks' list, &stage=<stage> on
-// one of its tabs, ?tasks=<topic> for a topic, ?open=settings or ?open=calls for those sheets, ?report=pose to write the pose where
-// checks read it, ?split=first or second to stand in for Split View. ?demo=call, a pretend call, is
-// read where the call lives (src/app/_layout.tsx).
-export default function Index() {
-  const { tasks, stage, open, report, split } = useLocalSearchParams<{
-    tasks?: string;
-    stage?: string;
-    open?: string;
-    report?: string;
-    split?: string;
-  }>();
-  const screen = (
-    <LiveScreen
-      opening={{
-        tasks:
-          tasks === undefined
-            ? undefined
-            : {
-                task: tasks ? TaskId.parse(tasks) : undefined,
-                stage: STAGES.find(({ key }) => key === stage)?.key,
-              },
-        open: open === 'settings' || open === 'calls' ? open : undefined,
-        reportPose: report === 'pose',
-        split: split === 'first' || split === 'second',
-      }}
-    />
+// Probe (not for main): where iOS puts each kind of bar item in each iPhone Duo pose, over an empty
+// screen whose safe area is outlined.
+function Dock() {
+  return (
+    <View style={{ alignItems: 'center', gap: 2, padding: 2 }}>
+      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#7c5cff' }} />
+      <Text style={{ color: 'white', fontSize: 11, fontVariant: ['tabular-nums'] }}>1:23</Text>
+    </View>
   );
-  const page =
-    split === 'first' || split === 'second' ? <SplitView side={split}>{screen}</SplitView> : screen;
+}
+
+const button = (identifier: string, label: string, name: SFSymbol) =>
+  ({
+    type: 'button',
+    identifier,
+    label,
+    icon: { type: 'sfSymbol', name },
+    onPress: () => {},
+  }) as const;
+
+export default function Index() {
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, headerTransparent: true, title: '' }} />
-      <Stack.Toolbar placement="left">
-        <Stack.Toolbar.Button icon="chevron.left" onPress={() => {}} />
-        <Stack.Toolbar.Button icon="list.bullet" onPress={() => {}} />
-      </Stack.Toolbar>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button icon="checklist" onPress={() => {}} />
-        <Stack.Toolbar.Button icon="gearshape" onPress={() => {}} />
-      </Stack.Toolbar>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          title: '',
+          unstable_headerLeftItems: () => [
+            button('back', 'Back', 'chevron.left'),
+            button('calls', 'Calls', 'list.bullet'),
+          ],
+          unstable_headerRightItems: () => [
+            { type: 'custom', element: <Dock />, hidesSharedBackground: true },
+            button('tasks', 'Tasks', 'checklist'),
+            button('settings', 'Settings', 'gearshape'),
+          ],
+        }}
+      />
       <Stack.Toolbar>
-        <Stack.Toolbar.Button icon="mic.fill" onPress={() => {}} />
+        <Stack.Toolbar.Spacer />
+        <Stack.Toolbar.Button icon="mic.fill" onPress={() => {}}>
+          Mute
+        </Stack.Toolbar.Button>
         <Stack.Toolbar.Button
           icon="phone.down.fill"
           variant="prominent"
           tintColor="red"
           onPress={() => {}}
-        />
+        >
+          End
+        </Stack.Toolbar.Button>
       </Stack.Toolbar>
-      {page}
+      <View style={{ flex: 1, backgroundColor: '#202024' }}>
+        <SafeAreaView style={{ flex: 1, borderWidth: 2, borderColor: '#3ddc84' }}>
+          <View style={{ flex: 1 }} />
+        </SafeAreaView>
+      </View>
     </>
   );
 }
