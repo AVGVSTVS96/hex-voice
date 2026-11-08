@@ -4,11 +4,12 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { Context, ReactNode } from 'react';
 import { Alert, AppState } from 'react-native';
 
 import { callIdOf, callOf, isHere, withSent } from '@/call/call';
@@ -40,9 +41,14 @@ const Sending = createContext<{
 // The call's audio lives above every screen, so moving between them never ends it. A demo session
 // plays a pretend call (src/live/demo-call.ts), starting as the call screen opens.
 export const CallProvider = ({ demo, children }: { demo: boolean; children: ReactNode }) => {
-  const [session] = useState(() =>
-    demo ? new LiveSession(demoTransport, demoAPI) : new LiveSession(createTransport, hex.session),
-  );
+  const [value] = useState(() => ({
+    session: demo
+      ? new LiveSession(demoTransport, demoAPI)
+      : new LiveSession(createTransport, hex.session),
+    demo,
+  }));
+
+  const { session } = value;
 
   useEffect(() => {
     const onAppStateChange = (state: typeof AppState.currentState) => {
@@ -68,10 +74,9 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       void session.stop();
     };
   }, [session]);
-  const [value] = useState({ session, demo });
   const [sent, setSent] = useState<Sent[]>([]);
 
-  const [go] = useState(() => async (call: CallId, batch: Sent[]) => {
+  const go = async (call: CallId, batch: Sent[]) => {
     const outcome = await deliver(call, batch, {
       upload: hex.media.upload,
       media: hex.calls.media,
@@ -82,7 +87,7 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
     }
 
     setSent((now) => settle(now, batch, outcome));
-  });
+  };
 
   // What was sent to an earlier call goes as the next call's first one does.
   const send = (call: CallId, at: number, picked: Picked[]) => {
@@ -98,13 +103,15 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       return;
     }
 
-    setSent((now) => now.map((one) => again.find(({ entry }) => entry.id === one.entry.id) ?? one));
+    setSent((now) => now.map((one) => again.find((redo) => redo.entry.id === one.entry.id) ?? one));
     void go(again[0].call, again);
   };
 
+  const sending = useMemo(() => ({ sent, send, retry }), [sent, send, retry]);
+
   return (
     <Session value={value}>
-      <Sending value={{ sent, send, retry }}>{children}</Sending>
+      <Sending value={sending}>{children}</Sending>
     </Session>
   );
 };
@@ -112,7 +119,7 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
 // The one call the screen shows: this phone's own, or the one hex holds elsewhere (`held`, from
 // /activity), followed word by word until it ends.
 export const useCall = (held: CallId | null) => {
-  const { session, demo } = use(Session)!;
+  const { session, demo } = useProvided(Session);
 
   const snapshot = useSyncExternalStore(
     session.subscribe,
@@ -127,7 +134,7 @@ export const useCall = (held: CallId | null) => {
     here,
   );
 
-  const { sent } = use(Sending)!;
+  const { sent } = useProvided(Sending);
 
   const call = withSent(
     callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving }),
@@ -146,14 +153,20 @@ export const useCall = (held: CallId | null) => {
       await session.start(voice, about);
     },
     end: async () => {
-      if (call.kind === 'elsewhere') {
-        await elsewhere.hangUp();
-      } else {
-        await session.stop();
-      }
+      await (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop());
     },
     toggleMute: session.toggleMute,
   };
+};
+
+const useProvided = <Value,>(context: Context<Value | null>) => {
+  const value = use(context);
+
+  if (value === null) {
+    throw new Error('The call hooks work only inside CallProvider.');
+  }
+
+  return value;
 };
 
 // The call ended before what you picked could go to it.
@@ -163,7 +176,7 @@ const ended = () => {
 
 // Whether a call on this phone holds the microphone, so nothing else here records sound.
 export const useMicHeld = () => {
-  const { session } = use(Session)!;
+  const { session } = useProvided(Session);
 
   const { status } = useSyncExternalStore(
     session.subscribe,
@@ -177,7 +190,7 @@ export const useMicHeld = () => {
 // What you send a call shows in its words at once, going, then sent or why it didn't. It goes to
 // the call on screen when you send it, which may have ended while you picked.
 export const useShare = (call: Call) => {
-  const { send } = use(Sending)!;
+  const { send } = useProvided(Sending);
   const now = useRef(call);
   useEffect(() => {
     now.current = call;
@@ -201,12 +214,12 @@ export const useShare = (call: Call) => {
 };
 
 // Sends again what you sent a call that didn't get there.
-export const useRetry = () => use(Sending)!.retry;
+export const useRetry = () => useProvided(Sending).retry;
 
 // The call's audio levels, from where they are as the screen first draws, then as they change,
 // outside React's renders.
 export const useLevels = (hear: (levels: Levels) => void) => {
-  const { session } = use(Session)!;
+  const { session } = useProvided(Session);
   const take = useEffectEvent(hear);
   useLayoutEffect(() => {
     const now = () => {
