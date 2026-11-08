@@ -5,7 +5,7 @@ import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from
 import { CallAsk } from '@/components/call-ask';
 import { SentMedia } from '@/components/media/sent';
 import type { CallCard } from '@/live/agents';
-import type { AskOption } from '@/live/asks';
+import type { AskOption, Sent } from '@/live/asks';
 import type { TaskId } from '@/live/tasks';
 import type { TranscriptEntry } from '@/live/types';
 import { motion } from '@/motion';
@@ -32,7 +32,7 @@ export const Transcript = ({
   size?: 'regular' | 'large';
   emptyAt?: 'end' | 'center';
   cards?: CallCard[];
-  onAnswer?: (card: CallCard, option: AskOption) => Promise<unknown>;
+  onAnswer?: (card: CallCard, option: AskOption) => Promise<Sent>;
   onOpenTask?: (task: TaskId) => void;
 }) => {
   const scroll = useRef<ScrollViewInstance>(null);
@@ -90,7 +90,9 @@ export const Transcript = ({
             <CallAsk
               key={`ask ${moment.ask.id}`}
               card={moment}
-              onAnswer={async (option) => await (onAnswer?.(moment, option) ?? Promise.resolve())}
+              onAnswer={async (option) => {
+                await onAnswer?.(moment, option);
+              }}
               onOpenTask={() => onOpenTask?.(moment.ask.task)}
             />
           ) : moment.media ? (

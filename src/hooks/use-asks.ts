@@ -50,13 +50,19 @@ export const useAsks = (open: boolean) => {
 
   // hex takes one thing at a time per ask, so each answer, undo or send again here goes once the
   // one before it is done, and only the latest you did may change how its card shows.
-  const queue = useRef(new Map<AskId, { last: Promise<unknown>; turn: number }>());
+  const queue = useRef(new Map<AskId, { last: Promise<void>; turn: number }>());
 
-  const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<unknown>) => {
+  const inTurn = (id: AskId, work: (latest: () => boolean) => Promise<void>) => {
     const now = queue.current.get(id) ?? { last: Promise.resolve(), turn: 0 };
     const turn = now.turn + 1;
     const latest = () => queue.current.get(id)?.turn === turn;
-    queue.current.set(id, { last: now.last.then(async () => await work(latest)), turn });
+
+    const last = (async () => {
+      await now.last;
+      await work(latest);
+    })();
+
+    queue.current.set(id, { last, turn });
   };
 
   // What went out for each ask and hasn't been taken back, sent the same way by Send again.
@@ -158,13 +164,11 @@ export const useAsks = (open: boolean) => {
       }
 
       reached(ask.id);
-      inTurn(
-        ask.id,
-        async () =>
-          await tries.attempt(ask.id, 'Not sent again', async () => {
-            reached(ask.id, await send());
-          }),
-      );
+      inTurn(ask.id, async () => {
+        await tries.attempt(ask.id, 'Not sent again', async () => {
+          reached(ask.id, await send());
+        });
+      });
     },
     undo,
     act: async (id: string) =>

@@ -13,19 +13,18 @@ export const useSavedPreference = <T extends string>(
 
   useEffect(() => {
     let active = true;
-    void AsyncStorage.getItem(key)
-      .then((stored) => {
-        // A delayed read must not replace a selection made during startup.
-        if (active && !changed.current && isValid(stored)) {
-          setSaved(stored);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) {
-          setLoaded(true);
-        }
-      });
+    void (async () => {
+      const stored = await AsyncStorage.getItem(key).catch(() => null);
+
+      // A delayed read must not replace a selection made during startup.
+      if (active && !changed.current && isValid(stored)) {
+        setSaved(stored);
+      }
+
+      if (active) {
+        setLoaded(true);
+      }
+    })();
 
     return () => {
       active = false;
@@ -41,13 +40,16 @@ export const useSavedPreference = <T extends string>(
       changed.current = true;
       setSaved(next);
       // Keep rapid carousel selections in order when writing to storage.
-      writes.current = writes.current
-        .then(async () => {
+      const before = writes.current;
+      writes.current = (async () => {
+        await before;
+
+        try {
           await AsyncStorage.setItem(key, next);
-        })
-        .catch(() => {
+        } catch {
           console.warn(`[hex] Could not save preference: ${key}`);
-        });
+        }
+      })();
     },
     [key, isValid],
   );

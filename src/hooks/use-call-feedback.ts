@@ -29,9 +29,10 @@ export const useCallFeedback = (
       }
 
       if (sounds) {
-        void connect.seekTo(0).then(() => {
+        void (async () => {
+          await connect.seekTo(0);
           connect.play();
-        });
+        })();
       }
     } else {
       if (haptics) {
@@ -39,9 +40,10 @@ export const useCallFeedback = (
       }
 
       if (sounds) {
-        void end.seekTo(0).then(() => {
+        void (async () => {
+          await end.seekTo(0);
           end.play();
-        });
+        })();
       }
     }
   }, [live, connect, end, sounds, haptics]);

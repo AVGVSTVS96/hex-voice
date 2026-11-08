@@ -44,9 +44,9 @@ export const useAppUpdates = (callLive: boolean) => {
 };
 
 const download = async () => {
-  try {
-    if ((await Updates.checkForUpdateAsync()).isAvailable) {
-      await Updates.fetchUpdateAsync();
-    }
-  } catch {}
+  const update = await Updates.checkForUpdateAsync().catch(() => null);
+
+  if (update?.isAvailable === true) {
+    await Updates.fetchUpdateAsync().catch(() => null);
+  }
 };

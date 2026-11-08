@@ -29,25 +29,27 @@ export type { PersonaState, PersonaProps } from './animation';
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
 const loadFile = async (variant: PersonaVariant) => {
-  let promise = fileCache.get(variant);
+  const cached = fileCache.get(variant);
 
-  if (!promise) {
-    promise = RiveFileFactory.fromSource(PERSONA_ASSETS[variant], undefined, false).catch(
-      (error) => {
-        fileCache.delete(variant);
-        throw error;
-      },
-    );
-    fileCache.set(variant, promise);
+  if (cached) {
+    return await cached;
   }
 
-  return await promise;
+  const loading = RiveFileFactory.fromSource(PERSONA_ASSETS[variant], undefined, false);
+  fileCache.set(variant, loading);
+
+  try {
+    return await loading;
+  } catch (error) {
+    fileCache.delete(variant);
+    throw error;
+  }
 };
 
 // Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
 export const preloadPersonas = (variants: readonly PersonaVariant[]) => {
   for (const variant of variants) {
-    void loadFile(variant).catch(() => {});
+    void loadFile(variant).catch(() => null);
   }
 };
 
@@ -66,13 +68,13 @@ export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) =
   const reducedMotion = useReducedMotion();
   useEffect(() => {
     let active = true;
-    void loadFile(variant)
-      .catch(() => {})
-      .then(() => {
-        if (active) {
-          setShown(variant);
-        }
-      });
+    void (async () => {
+      await loadFile(variant).catch(() => null);
+
+      if (active) {
+        setShown(variant);
+      }
+    })();
 
     return () => {
       active = false;
@@ -126,17 +128,19 @@ const PersonaRenderer = ({
 
   useEffect(() => {
     let active = true;
-    void loadFile(variant)
-      .then((loaded) => {
+    void (async () => {
+      try {
+        const loaded = await loadFile(variant);
+
         if (active) {
           setFile(loaded);
         }
-      })
-      .catch(() => {
+      } catch {
         if (active) {
           setFailed(true);
         }
-      });
+      }
+    })();
 
     return () => {
       active = false;

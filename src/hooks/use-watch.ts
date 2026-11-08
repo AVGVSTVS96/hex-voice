@@ -67,7 +67,9 @@ export const useWatch = <K extends string, T extends { version?: number }>(
           }
 
           setWatching('offline');
-          await new Promise((resolve) => setTimeout(resolve, RETRY));
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, RETRY);
+          });
         }
       }
     })();
@@ -96,7 +98,7 @@ export const useActive = () =>
 // ends the asking, since asking again gets the same answer.
 export const useAnswer = <K extends string, T>(
   key: K | null,
-  fresh: unknown,
+  fresh: number | undefined,
   ask: (key: K) => Promise<T>,
 ) => {
   const [got, setGot] = useState<{ key: K; answer?: T; refused?: Refused }>();

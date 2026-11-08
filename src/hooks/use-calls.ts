@@ -23,11 +23,13 @@ export const useCalls = () => {
   const tries = useFailures();
 
   useEffect(() => {
-    void restore(LIST, z.array(CallSummary)).then((kept) => {
+    void (async () => {
+      const kept = await restore(LIST, z.array(CallSummary));
+
       if (kept) {
         setListed((current) => current ?? kept);
       }
-    });
+    })();
   }, []);
 
   useEffect(() => {
@@ -52,23 +54,23 @@ export const useCalls = () => {
     const fromHere = justEnded.find((call) => call.id === id);
     setListed((current) => current && others(current));
     setJustEnded(others);
-    void tries
-      .attempt(id, 'Not deleted', async () => {
+    void (async () => {
+      const deleted = await tries.attempt(id, 'Not deleted', async () => {
         await hex.calls.remove(id);
-      })
-      .then((deleted) => {
-        if (deleted) {
-          void AsyncStorage.removeItem(saved(id)).catch(() => {});
-        }
-
-        if (!deleted && fromHex) {
-          setListed((current) => putBack(current ?? [], fromHex));
-        }
-
-        if (!deleted && fromHere) {
-          setJustEnded((current) => putBack(current, fromHere));
-        }
       });
+
+      if (deleted) {
+        void AsyncStorage.removeItem(saved(id)).catch(() => null);
+      }
+
+      if (!deleted && fromHex) {
+        setListed((current) => putBack(current ?? [], fromHex));
+      }
+
+      if (!deleted && fromHere) {
+        setJustEnded((current) => putBack(current, fromHere));
+      }
+    })();
   };
 
   // A call that wouldn't delete comes back in its place saying why.
@@ -101,11 +103,13 @@ export const usePastCall = (id: CallId | undefined) => {
     }
 
     let active = true;
-    void restore(saved(id), CallRecord).then((kept) => {
+    void (async () => {
+      const kept = await restore(saved(id), CallRecord);
+
       if (active && kept) {
         setCall((current) => (current?.id === id ? current : kept));
       }
-    });
+    })();
 
     return () => {
       active = false;
@@ -114,7 +118,7 @@ export const usePastCall = (id: CallId | undefined) => {
 
   const watching = useWatch(
     id ?? null,
-    async (after, signal, id) => await hex.calls.get(id, after, signal),
+    async (after, signal, watched) => await hex.calls.get(watched, after, signal),
     (fresh) => {
       setCall(fresh);
 

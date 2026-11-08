@@ -18,7 +18,7 @@ export const CallAsk = ({
   onOpenTask,
 }: {
   card: CallCard;
-  onAnswer: (option: AskOption) => Promise<unknown>;
+  onAnswer: (option: AskOption) => Promise<void>;
   onOpenTask: () => void;
 }) => {
   const { ask } = card;
@@ -35,23 +35,22 @@ export const CallAsk = ({
 
   const answer = card.answer ?? sent;
 
-  const choose = (option: AskOption) => {
+  const choose = async (option: AskOption) => {
     if ((sending ?? '') !== '') {
       return;
     }
 
     setSending(option.label);
     setFailed(undefined);
-    onAnswer(option).then(
-      () => {
-        setSending(undefined);
-        setSent(option.label);
-      },
-      (error: unknown) => {
-        setSending(undefined);
-        setFailed(failure('Not sent', error));
-      },
-    );
+
+    try {
+      await onAnswer(option);
+      setSending(undefined);
+      setSent(option.label);
+    } catch (error) {
+      setSending(undefined);
+      setFailed(failure('Not sent', error));
+    }
   };
 
   if ((answer ?? '') !== '') {
@@ -92,7 +91,7 @@ export const CallAsk = ({
               disabled: (sending ?? '') !== '',
             }}
             onPress={() => {
-              choose(option);
+              void choose(option);
             }}
             style={({ pressed }) => [
               styles.option,
@@ -115,9 +114,11 @@ export const CallAsk = ({
               accessibilityRole="link"
               hitSlop={8}
               onPress={async () => {
-                await openURL(link.url).catch((error: Error) => {
+                try {
+                  await openURL(link.url);
+                } catch (error) {
                   setFailed(failure('Not opened', error));
-                });
+                }
               }}
             >
               <Text style={styles.link}>{`${link.label} ↗`}</Text>

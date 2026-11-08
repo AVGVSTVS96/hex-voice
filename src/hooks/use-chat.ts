@@ -23,12 +23,12 @@ export const useChat = (id: TaskId | null, live: boolean) => {
   const tries = useFailures();
   useWatch(
     live ? id : null,
-    async (after, signal, id) => await hex.tasks.chat(id, after, signal),
-    (chat, id) => {
-      setSeen({ id, chat });
+    async (after, signal, thread) => await hex.tasks.chat(thread, after, signal),
+    (chat, thread) => {
+      setSeen({ id: thread, chat });
 
-      if (writable?.[id] !== chat.sends) {
-        keepWritable({ ...writable, [id]: chat.sends });
+      if (writable?.[thread] !== chat.sends) {
+        keepWritable({ ...writable, [thread]: chat.sends });
       }
     },
   );
@@ -41,10 +41,16 @@ export const useChat = (id: TaskId | null, live: boolean) => {
       ...now.filter(({ key }) => key !== sent.key),
       { ...sent, failed: undefined },
     ]);
-    hex.tasks.send(sent.id, sent.text, sent.key, sent.media).catch((error: unknown) => {
-      const failed = { why: failure('Not sent', error), again: !(error instanceof Refused) };
-      setSending((now) => now.map((each) => (each.key === sent.key ? { ...each, failed } : each)));
-    });
+    void (async () => {
+      try {
+        await hex.tasks.send(sent.id, sent.text, sent.key, sent.media);
+      } catch (error) {
+        const failed = { why: failure('Not sent', error), again: !(error instanceof Refused) };
+        setSending((now) =>
+          now.map((each) => (each.key === sent.key ? { ...each, failed } : each)),
+        );
+      }
+    })();
   };
 
   return {

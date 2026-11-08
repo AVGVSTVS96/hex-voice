@@ -62,7 +62,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
 
     const clip = await camera.current
       ?.recordAsync({ maxDuration: CLIP_SECONDS, progressUpdateInterval: 0.1 })
-      .catch(() => {});
+      .catch(() => null);
 
     held.current = false;
     cancelAnimation(filled);

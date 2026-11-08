@@ -85,7 +85,7 @@ export const useCallActivity = (
             outcome: line,
             bad: outcome?.bad,
           })
-          .catch(() => {});
+          .catch(() => null);
       }
 
       since.current = 0;
@@ -100,7 +100,7 @@ export const useCallActivity = (
     const props: CallActivityProps = { orb, since: since.current, state };
 
     if (activity.current) {
-      void activity.current.update(props).catch(() => {});
+      void activity.current.update(props).catch(() => null);
 
       return;
     }

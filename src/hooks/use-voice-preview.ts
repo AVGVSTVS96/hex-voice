@@ -30,19 +30,19 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
     }
 
     let open = true;
-    void setAudioModeAsync(PREVIEW_AUDIO)
-      .catch(() => {})
-      .then(() => {
-        if (open) {
-          setReady(true);
-        }
-      });
+    void (async () => {
+      await setAudioModeAsync(PREVIEW_AUDIO).catch(() => null);
+
+      if (open) {
+        setReady(true);
+      }
+    })();
 
     return () => {
       open = false;
       setReady(false);
       player.pause();
-      void setAudioModeAsync(SHARED_AUDIO).catch(() => {});
+      void setAudioModeAsync(SHARED_AUDIO).catch(() => null);
     };
   }, [player, playing]);
 
@@ -54,16 +54,16 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
     }
 
     let current = true;
-    void setIsAudioActiveAsync(true)
-      .catch(() => {})
-      .then(() => {
-        if (!current) {
-          return;
-        }
+    void (async () => {
+      await setIsAudioActiveAsync(true).catch(() => null);
 
-        player.replace(VOICE_PREVIEWS[voice]);
-        player.play();
-      });
+      if (!current) {
+        return;
+      }
+
+      player.replace(VOICE_PREVIEWS[voice]);
+      player.play();
+    })();
 
     return () => {
       current = false;

@@ -4,16 +4,21 @@ import type * as z from 'zod/mini';
 
 // What this device kept, read back through the schema of hex's answer, since an older app may have
 // written it.
-export const restore = async <S extends z.ZodMiniType>(key: string, schema: S) => {
+export const restore = async <S extends z.ZodMiniType>(
+  key: string,
+  schema: S,
+): Promise<z.output<S> | undefined> => {
   try {
     const saved = await AsyncStorage.getItem(key);
 
-    return saved ? schema.safeParse(JSON.parse(saved)).data : undefined;
-  } catch {}
+    return saved === null || saved === '' ? undefined : schema.safeParse(JSON.parse(saved)).data;
+  } catch {
+    return undefined;
+  }
 };
 
 export const store = (key: string, value: unknown) => {
-  void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => {});
+  void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => null);
 };
 
 // What hex last sent, kept on this device, so while hex is slow or out of reach the screen shows
@@ -21,11 +26,13 @@ export const store = (key: string, value: unknown) => {
 export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
   const [value, setValue] = useState<z.output<S>>();
   useEffect(() => {
-    void restore(`kept:${key}`, schema).then((saved) => {
+    void (async () => {
+      const saved = await restore(`kept:${key}`, schema);
+
       if (saved !== undefined) {
         setValue((now) => now ?? saved);
       }
-    });
+    })();
   }, [key]);
 
   const keep = useCallback(
