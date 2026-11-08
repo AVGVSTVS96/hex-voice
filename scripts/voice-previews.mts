@@ -25,7 +25,7 @@ const ServerEvent = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('session.output_transcript.delta'),
     delta: z.string(),
-    end_ms: z.number(),
+    end_ms: z.optional(z.number()),
   }),
   z.object({ type: z.literal('session.output_audio.delta'), delta: z.string() }),
 ]);
@@ -109,7 +109,7 @@ const render = async (voice: LiveVoice, name: string) => {
 
     if (event.type === 'session.output_transcript.delta') {
       transcript += event.delta;
-      spokenUntil = event.end_ms;
+      spokenUntil = event.end_ms ?? spokenUntil;
       clearTimeout(pause);
       pause = setTimeout(() => {
         quiet = true;
