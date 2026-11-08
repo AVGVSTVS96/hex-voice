@@ -7,12 +7,15 @@ import type { HostProps } from '@expo/ui/swift-ui';
 // type in Tasks. A Host that holds a field keeps above the `keyboard`, so the field and its send
 // button stay over it. A sheet's Host only presents its sheet, which iOS lays out as the `system`
 // does, keyboard and all.
+const ignoredSafeArea = {
+  nothing: 'all',
+  keyboard: 'container',
+  system: undefined,
+} as const satisfies Record<string, HostProps['ignoreSafeArea']>;
+
 export const Host = ({
-  avoids,
+  avoids = 'nothing',
   ...props
-}: Omit<HostProps, 'ignoreSafeArea'> & { avoids?: 'keyboard' | 'system' }) => (
-  <SwiftUIHost
-    {...props}
-    ignoreSafeArea={avoids === 'keyboard' ? 'container' : avoids === 'system' ? undefined : 'all'}
-  />
+}: Omit<HostProps, 'ignoreSafeArea'> & { avoids?: keyof typeof ignoredSafeArea }) => (
+  <SwiftUIHost {...props} ignoreSafeArea={ignoredSafeArea[avoids]} />
 );

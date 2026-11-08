@@ -4,7 +4,7 @@ import type { ColorValue } from 'react-native';
 import { color, film } from '@/ui/tokens';
 import type { Tone } from '@/ui/tokens';
 
-// iOS picks the side of each color that matches the system's appearance.
+// SAFETY: fromEntries maps every entry of color, so it holds each Tone.
 export const theme = Object.fromEntries(
   Object.entries(color).map(([tone, pair]) => [tone, DynamicColorIOS(pair)]),
 ) as Record<Tone, ColorValue>;

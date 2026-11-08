@@ -43,12 +43,12 @@ export const Text = ({
   tone,
   paragraph,
   align,
-  modifiers = [],
+  modifiers,
   ...props
 }: Omit<TextProps, 'textStyle'> & Look & { align?: 'center' }) => (
   <UniversalText
     {...props}
     textStyle={align && { textAlign: align }}
-    modifiers={[...textLook({ variant, weight, tone, paragraph }), ...modifiers]}
+    modifiers={[...textLook({ variant, weight, tone, paragraph }), ...(modifiers ?? [])]}
   />
 );

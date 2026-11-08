@@ -258,8 +258,8 @@ export type ToolbarGaps = 'regular' | 'compact';
 
 // How long the call buttons' stack runs at a size, along its row or column: mute and the call
 // button.
-export const stack = (size: ControlsSize) => {
-  const { mute, call, gap } = metrics.controls[size];
+export const stack = (controls: ControlsSize) => {
+  const { mute, call, gap } = metrics.controls[controls];
 
   return metrics[mute] + gap + metrics[call];
 };

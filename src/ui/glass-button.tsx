@@ -78,7 +78,7 @@ export const GlassButton = ({
   bare = false,
 }: Props & { bare?: boolean }) => {
   // Chosen, the glass fills a little, as Muse marks the tab you're on; mint stays for what needs you.
-  const color = prominent ? theme.onProminent : disabled ? theme.tertiary : theme.text;
+  const color = symbolColor(prominent, disabled);
   const look = face(size, selected);
 
   return (
@@ -127,6 +127,14 @@ export const GlassFace = ({ icon, size = 'tool' }: { icon: Props['icon']; size?:
     modifiers={[stroke(metrics.symbol.regular), ...face(size, false)]}
   />
 );
+
+const symbolColor = (prominent: boolean, disabled: boolean) => {
+  if (prominent) {
+    return theme.onProminent;
+  }
+
+  return disabled ? theme.tertiary : theme.text;
+};
 
 const face = (size: GlassSize, selected: boolean) => {
   const diameter = metrics[size];

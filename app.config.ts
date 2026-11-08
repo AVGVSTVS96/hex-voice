@@ -1,6 +1,9 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...(config as ExpoConfig),
-  updates: { url: process.env.HEX_UPDATES_URL },
-});
+const withUpdates = ({ config }: ConfigContext): Partial<ExpoConfig> => {
+  const env: Partial<Record<string, string>> = process.env;
+
+  return { ...config, updates: { url: env.HEX_UPDATES_URL } };
+};
+
+export default withUpdates;
