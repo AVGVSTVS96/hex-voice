@@ -355,9 +355,11 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
     () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
   );
   // Calls comes in from under a card that slides aside, and all the way in over one that doesn't.
+  // Shut, it isn't drawn, so a card's rounded corners (iPad, beside Tasks) never show it beneath.
   const over = list.place === 'over';
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * (over ? list.width : 48),
+    opacity: drawer.get() > 0 ? 1 : 0,
   }));
   // A closing pane fades on its way out, so the inbox's width never shows past Calls coming in.
   const paneStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pane.get() * 4) }));
