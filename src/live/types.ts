@@ -5,10 +5,12 @@ import type { Shown } from './media';
 import type { TaskId } from './tasks';
 import type { LiveVoice } from './voices';
 
+export interface FailedHere {
+  failed?: string;
+}
+
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
 
-// A photo or clip you sent shows as your turn: going while hex takes it in, which for a clip
-// takes a few seconds, then sent, or why it didn't go.
 export interface TranscriptEntry {
   id: string;
   role: 'user' | 'assistant';
@@ -31,13 +33,11 @@ export interface LiveSnapshot {
   interrupted: boolean;
 }
 
-// How loud the microphone and hex's voice are, 0 to 1, several times a second during a call.
 export interface Levels {
   input: number;
   output: number;
 }
 
-// The events this app acts on, of all the voice service sends over the data channel.
 const LiveEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.started') }),
   z.object({
@@ -61,7 +61,6 @@ export type LiveEvent = z.infer<typeof LiveEvent>;
 
 const Message = z.object({ data: z.string() });
 
-// A data channel message as one of the events above, or nothing when it's none of them.
 export const parseEvent = (message: unknown): LiveEvent | undefined => {
   const text = Message.safeParse(message).data?.data;
 
@@ -104,7 +103,6 @@ export interface TransportCallbacks {
 
 export type TransportFactory = (callbacks: TransportCallbacks) => Promise<LiveTransport>;
 
-// What a call is about when it starts: a task, or going through your asks.
 export type CallAbout = { task: TaskId } | 'asks';
 
 export interface SessionAPI {

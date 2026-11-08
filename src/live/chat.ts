@@ -1,9 +1,6 @@
 import type { Picked } from './media';
 import type { Chat, ChatTurn, TaskId } from './tasks';
 
-// What you sent from here to thread `id` that its chat doesn't show yet: `total` is how long the
-// chat was then, so it's found once it shows up after that point. One that failed says why and
-// keeps its key, so trying again delivers it once; one hex refused can't be tried again.
 export interface Sending {
   id: TaskId;
   key: string;
@@ -13,7 +10,6 @@ export interface Sending {
   failed?: { why: string; again: boolean };
 }
 
-// Whether hex's chat has what you sent: waiting to be taken under its key, or said in the chat.
 export const arrived = (chat: Chat, sent: Sending) =>
   chat.waiting.some(({ key }) => key.endsWith(`:${sent.key}`)) ||
   chat.turns
@@ -28,10 +24,6 @@ export const arrived = (chat: Chat, sent: Sending) =>
 export const newKey = () =>
   `app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-// How a turn reads: your words, hex's, or something you did there, which every app writes the same
-// way, its label in parentheses first: "(answered in the app) Ship it?: Yes", "(vote: Go)",
-// "(photo)". A voice message is just your words, and a question to Siri shows without what Siri
-// asked hex to do with it ("(asked Siri: reply once, in one short spoken sentence)").
 export type Said =
   { kind: 'me' | 'hex'; text: string } | { kind: 'event'; label: string; text: string };
 

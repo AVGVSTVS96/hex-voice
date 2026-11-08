@@ -13,8 +13,6 @@ const AgentTask = z.object({
 
 export type AgentTask = z.infer<typeof AgentTask>;
 
-// An ask hex put on screen during the call, with the answer once it has one and what that reached,
-// until an undo takes it back.
 const CallCard = z.object({
   at: z.number(),
   ask: Ask,
@@ -39,8 +37,6 @@ export interface AgentLine {
   where: string;
 }
 
-// The tasks come most recently changed first, so the first running one is the agent that
-// took a step last. A task that just finished holds the line until something runs again.
 export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine | null => {
   const running = tasks.filter((task) => task.state === 'running');
   const task = running.at(0);
@@ -70,7 +66,6 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
   };
 };
 
-// The task a new snapshot shows finishing: running in the last one, done or failed now.
 export const justFinished = (before: AgentTask[], after: AgentTask[]) => {
   const wasRunning = new Set(before.flatMap((task) => (task.state === 'running' ? [task.id] : [])));
 

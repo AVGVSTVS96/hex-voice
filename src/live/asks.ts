@@ -2,22 +2,18 @@ import * as z from 'zod/mini';
 
 import { CallId, timeOfDay } from './calls';
 import { TaskId } from './tasks';
+import type { FailedHere } from './types';
 
 export const AskId = z.string().brand<'AskId'>();
 
 export type AskId = z.infer<typeof AskId>;
 
-// An answer: each tells hex something. A page an ask points to is a link, and opening it answers
-// nothing.
 const AskOption = z.object({
   label: z.string(),
   value: z.optional(z.string()),
   pick: z.optional(z.boolean()),
-  // Its screenshot's number, when the choice is between looks, and that screenshot's width over its
-  // height.
   shot: z.optional(z.number()),
   shape: z.optional(z.number()),
-  // What answering with it does, costs and gives up.
   detail: z.optional(z.string()),
 });
 
@@ -27,9 +23,6 @@ const AskLink = z.object({ label: z.string(), url: z.string() });
 
 export type AskLink = z.infer<typeof AskLink>;
 
-// Each place an ask was asked: a thread in its app (`task` is its id among the tasks) or a call
-// (`app: 'voice'`, opened in Calls by `call`). Without a link we know it's from there but can't open
-// it. hex sends the ones that open first, then the rest, each newest first.
 const AskPlace = z.object({
   app: z.string(),
   place: z.string(),
@@ -49,31 +42,20 @@ export const Ask = z.object({
   at: z.string(),
   question: z.string(),
   context: z.optional(z.string()),
-  // Why hex picks the option it marks.
   why: z.optional(z.string()),
   options: z.array(AskOption),
   links: z.optional(z.array(AskLink)),
   places: z.array(AskPlace),
   tag: z.optional(z.string()),
-  // The ids it was listed under before hex's check took it up.
   was: z.optional(z.array(AskId)),
 });
 
-// Where an ask came from in its thread's own words, read when its card opens: the place as Tasks
-// names it, when it was said there, and the words, as written.
 export const Words = z.object({ place: z.string(), at: z.optional(z.string()), text: z.string() });
 
 export type Words = z.infer<typeof Words>;
 
-// Every item names the app it lives in; a stuck one is T3 Code's, or hex's own (`hex`). `failed` and
-// `missed` are this app's, never hex's: what you did to it here that didn't go through, and why, and
-// how many places an answer from here couldn't reach, which still ask it.
-export type Ask = z.infer<typeof Ask> & { failed?: string; missed?: number };
+export type Ask = z.infer<typeof Ask> & FailedHere & { missed?: number };
 
-// What an answer, a note or a not needed reached: the hex thread it told and that thread's name, how
-// many open copies of the ask (buttons or polls) it sent an answer or settle to, and how many copies
-// or threads it couldn't reach because their app's hub was down. Hubs don't confirm, so `settled`
-// means sent to.
 export const Sent = z.object({
   thread: z.string(),
   topic: z.string(),
@@ -83,13 +65,10 @@ export const Sent = z.object({
 
 export type Sent = z.infer<typeof Sent>;
 
-// What a not needed reads as, folded here and on a call's card, where hex records it as the answer.
 export const NOT_NEEDED = 'Not needed';
 
-// What marks the option hex would answer with, wherever it's offered.
 export const PICK = 'hex’s pick';
 
-// The places an answer couldn't reach, which still ask it until it's sent again.
 export const unreached = (missed: number) =>
   missed === 1
     ? 'One place was out of reach and still asks it'
@@ -107,7 +86,7 @@ export const Stuck = z.object({
   sent: z.optional(z.string()),
 });
 
-export type Stuck = z.infer<typeof Stuck> & { failed?: string };
+export type Stuck = z.infer<typeof Stuck> & FailedHere;
 
 export const Fresh = z.object({
   id: z.string(),
@@ -119,7 +98,7 @@ export const Fresh = z.object({
   read: z.boolean(),
 });
 
-export type Fresh = z.infer<typeof Fresh> & { failed?: string };
+export type Fresh = z.infer<typeof Fresh> & FailedHere;
 
 const CheckSummary = z.object({
   at: z.string(),
@@ -152,17 +131,12 @@ export const AskList = z.object({
   check: z.nullable(CheckSummary),
 });
 
-// What this app holds of hex's list, with what didn't go through here on each item it's about.
 export type AskList = Omit<z.infer<typeof AskList>, 'asks' | 'stuck' | 'fresh'> & {
   asks: Ask[];
   stuck: Stuck[];
   fresh: Fresh[];
 };
 
-// What's yours as this phone shows it: hex's list, with each ask answered here held in its place,
-// folded to what you said, until the sheet closes, so Undo stays in reach. Closing keeps the ones
-// it's told to, like an answer still missing a place. An undone ask (null) stays put until hex
-// lists it as open again.
 export interface Yours {
   list?: AskList;
   answered: Record<string, string | null>;
@@ -218,8 +192,6 @@ export const yours = (state: Yours, action: YoursAction): Yours => {
   }
 };
 
-// hex's list with what didn't go through on each item it's about, and on each ask an answer from
-// here left open somewhere, how many places still ask it.
 export const failedOn = (
   list: AskList,
   failed: Record<string, string>,
@@ -238,11 +210,9 @@ export const failedOn = (
   };
 };
 
-// The asks still open, for the counts: the folded ones are already off your plate.
 export const openAsks = ({ list, answered }: Yours) =>
   (list?.asks ?? []).filter((ask) => !isAnswered(answered, ask.id));
 
-// hex's new list, with every held ask it dropped put back right after the ask it followed.
 export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => boolean) => {
   const shown = [...after];
   const at = (id: string) => shown.findIndex((ask) => ask.id === id);
@@ -262,7 +232,6 @@ export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => b
 const without = <T>(record: Record<string, T>, ids: string[]) =>
   Object.fromEntries(Object.entries(record).filter(([id]) => !ids.includes(id)));
 
-// "Checked 6:31pm" with what it did: "fixed 4 · flagged 3".
 export const checkLine = (check: CheckSummary) => {
   const did = [check.fixed && `fixed ${check.fixed}`, check.flagged && `flagged ${check.flagged}`]
     .filter(Boolean)

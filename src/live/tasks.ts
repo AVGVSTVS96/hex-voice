@@ -11,8 +11,6 @@ export const TaskState = z.catch(z.enum(['needs', 'working', 'done', 'failed', '
 
 export type TaskState = z.infer<typeof TaskState>;
 
-// What a step did: a thought, something it said, a step of its plan, a command, a read, an edit, a
-// search of the code or the web, an agent it started, or another tool.
 const StepKind = z.catch(
   z.enum(['think', 'say', 'plan', 'run', 'read', 'edit', 'search', 'web', 'agent', 'tool']),
   'tool',
@@ -20,8 +18,6 @@ const StepKind = z.catch(
 
 export type StepKind = z.infer<typeof StepKind>;
 
-// A step that called a tool says how it went, `detail` is what it acted on (the command, a path,
-// the query), `result` the first lines of what came back, and `agent` the agent it started.
 const TaskStep = z.object({
   id: z.optional(z.string()),
   at: z.string(),
@@ -36,9 +32,6 @@ const TaskStep = z.object({
 
 export type TaskStep = z.infer<typeof TaskStep>;
 
-// An agent a thread started: a Claude Code subagent or session, or a T3 Code delegation. `who` is
-// its model in words, `line` its newest step while it works, `result` what it handed back, and
-// `link` opens it in T3 Code. Stopped is interrupted or cancelled.
 const AgentState = z.catch(z.enum(['working', 'done', 'failed', 'stopped']), 'done');
 
 export type AgentState = z.infer<typeof AgentState>;
@@ -67,7 +60,6 @@ const TaskMoment = z.object({ at: z.string(), state: TaskState, text: z.string()
 
 export type TaskMoment = z.infer<typeof TaskMoment>;
 
-// The plan as Claude Code's todo list stands.
 const Planned = z.object({
   text: z.string(),
   state: z.catch(z.enum(['done', 'running', 'pending']), 'pending'),
@@ -75,13 +67,10 @@ const Planned = z.object({
 
 export type Planned = z.infer<typeof Planned>;
 
-// One entry of the job's last week: the state it was in then, a change or a step within one.
 const Turn = z.object({ at: z.string(), state: TaskState });
 
 export type Turn = z.infer<typeof Turn>;
 
-// `place` is what the thread is called where it lives: a Telegram topic's name, General or DM, or
-// T3 Code's own title for its thread.
 const row = {
   id: TaskId,
   app: z.string(),
@@ -112,7 +101,6 @@ export const Task = z.object({
 
 export type Task = z.infer<typeof Task>;
 
-// A thread off the board, closed or quiet past a week: a page to read, with nothing to act on.
 const Page = z.object({
   id: TaskId,
   app: z.string(),
@@ -125,8 +113,6 @@ const Page = z.object({
   state: z.optional(z.never()),
 });
 
-// What hex has for one thread: its task while it's on the board, else its page, which has no
-// state.
 export const TaskOrPage = z.union([
   z.pipe(
     Task,
@@ -142,8 +128,6 @@ export type TaskOrPage = z.output<typeof TaskOrPage>;
 
 export type TaskPage = Extract<TaskOrPage, { kind: 'page' }>;
 
-// A task hex closed in the last day: what it was, the proof it was closed with, and the project it
-// was done in, with `run` its thread while that's on the board and `app` and `link` where it lives.
 export const Finished = z.object({
   id: z.string(),
   title: z.string(),
@@ -165,9 +149,6 @@ export const TaskList = z.object({
 
 export type TaskList = z.infer<typeof TaskList>;
 
-// A thread's chat: the latest of what you said (with any photos and clips) and hex replied across
-// its sessions (`turns`, out of `total`), what you sent that its session hasn't taken in yet, and
-// whether words typed here reach it (T3 Code threads take only what's typed in T3 Code).
 const ChatTurn = z.object({
   from: z.catch(z.enum(['me', 'hex']), 'hex'),
   text: z.string(),
@@ -195,7 +176,6 @@ export const TaskCounts = z.object({
 
 export type TaskCounts = z.infer<typeof TaskCounts>;
 
-// How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
 export const taskTime = (task: TaskRow, now = new Date()) => {
   if (task.state === 'working') {
     return duration(now.getTime() - Date.parse(task.since));
@@ -234,8 +214,6 @@ const took = (ms: number) => {
   return seconds < 60 ? `${seconds}s` : duration(ms);
 };
 
-// A step's mark when its state says more than its kind: turning while it runs, red when it failed.
-// Only a running step turns, so a thread waiting on its agents shows them at work instead.
 export const stepMark = (step: TaskStep): 'failed' | 'working' | undefined => {
   if (step.state === 'failed') {
     return 'failed';
@@ -248,10 +226,6 @@ export const stepMark = (step: TaskStep): 'failed' | 'working' | undefined => {
   return undefined;
 };
 
-// How long each step took, newest first: from when it began until its result came back, and while
-// it runs, so far: "8s", "2 min". A reply ends its turn, and what follows it is the wait for the
-// next one, so a reply says when it was said instead. A step that never said when it ended lasts
-// until the next one began, and says nothing when that was at once.
 export const stepTimes = (steps: TaskStep[], now = new Date()) =>
   steps.map((step, i) => {
     if (step.kind === 'say') {
@@ -286,9 +260,6 @@ const inOrder = <A extends TaskAgent>(agents: A[]) => [
   ...agents.filter((agent) => agent.state !== 'working').toSorted((a, b) => ended(b) - ended(a)),
 ];
 
-// A thread's agents as the Trace lists them: those at work first, newest started first, then the
-// finished, newest finished first. Earlier tries, agents that stopped and were run again under the
-// same name, are kept apart.
 export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {
   const retried = (agent: A) =>
     agent.state === 'stopped' &&
@@ -303,7 +274,6 @@ export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {
 export const atWork = <A extends TaskAgent>(agents: A[]) =>
   inOrder(agents.filter((agent) => agent.state === 'working'));
 
-// How many agents are in each state, those at work first: "2 working · 9 done".
 export const agentCounts = (agents: TaskAgent[]) =>
   (['working', 'done', 'failed', 'stopped'] as const)
     .flatMap((state) => {
@@ -313,8 +283,6 @@ export const agentCounts = (agents: TaskAgent[]) =>
     })
     .join(' · ');
 
-// Who an agent is and how it's going: "Opus 5.5 · 4 min" while it works or how long it took once
-// done, "Opus 5.5 · stopped" or "· failed" otherwise.
 export const agentMeta = (agent: TaskAgent, now = new Date()) => {
   const { since, state } = agent;
   const end = state === 'working' ? now.getTime() : Date.parse(agent.end ?? '');
@@ -325,8 +293,6 @@ export const agentMeta = (agent: TaskAgent, now = new Date()) => {
   return [agent.who, time].filter(Boolean).join(' · ');
 };
 
-// An agent's steps once it's open, without its last reply when that only repeats what it handed
-// back, which shows above them.
 export const agentSteps = (agent: AgentTrail) => {
   const [last, ...rest] = agent.steps;
 
@@ -339,8 +305,6 @@ export const agentSteps = (agent: AgentTrail) => {
   return last.text.slice(0, same) === agent.result.slice(0, same) ? rest : agent.steps;
 };
 
-// A thread's agents in a few words, each by its name up to a colon: those at work while it works,
-// "2 agents working · today, sol", and once it's done all it ran, "2 agents · voice, sol".
 export const agentWords = (agents: TaskAgent[], working: boolean): string | undefined => {
   const named = working ? atWork(agents) : agentsInOrder(agents).shown;
 
@@ -354,14 +318,9 @@ export const agentWords = (agents: TaskAgent[], working: boolean): string | unde
   return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;
 };
 
-// A thread that isn't working shows its last run on its topic's page while it kept what it did.
 export const lastRun = (task: Task) =>
   task.state !== 'working' && !!(task.steps.length || task.agents.length);
 
-// Where a moment falls on a lane `width` wide: the last week on a log scale, now at the right edge.
-// It's about linear for the last few minutes, then each step left covers more time, so the last
-// hour takes the right 40% and the last day 77%. Tuned to hex's real sessions: TAU is about twice
-// the median working stretch (61s), and a week is as long as Tasks keeps a finished thread.
 const TAU = 2 * 60_000;
 const WEEK = 7 * 24 * 3_600_000;
 const FULL = Math.log1p(WEEK / TAU);

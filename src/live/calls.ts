@@ -3,7 +3,7 @@ import * as z from 'zod/mini';
 
 import { MediaId } from './media';
 import type { Shared } from './media';
-import type { TranscriptEntry } from './types';
+import type { FailedHere, TranscriptEntry } from './types';
 
 export const CallId = z.string().brand<'CallId'>();
 
@@ -49,8 +49,7 @@ export const CallSummary = z.object({
   preview: z.string(),
 });
 
-// `failed` is this app's, never hex's: why deleting it here didn't go through.
-export type CallSummary = z.infer<typeof CallSummary> & { failed?: string };
+export type CallSummary = z.infer<typeof CallSummary> & FailedHere;
 
 const CallTurn = z.object({
   who: z.catch(z.enum(['you', 'voice']), 'voice'),
@@ -69,9 +68,6 @@ const CallTask = z.object({
 
 export type CallTask = z.infer<typeof CallTask>;
 
-// hex's exact words to the voice (say, note), things that happened to the call itself, the asks
-// it put on screen with their answers and the undos that took one back, and the photos and clips
-// you sent it.
 const CallMark = z.object({
   at: z.number(),
   kind: z.catch(
@@ -95,7 +91,6 @@ const CallMark = z.object({
 
 export type CallMark = z.infer<typeof CallMark>;
 
-// A live call's record carries a version, and asking with it waits for the next word.
 export const CallRecord = z.object({
   ...callFields,
   turns: z.array(CallTurn),
@@ -114,7 +109,6 @@ export const CallList = z.object({
 
 export type CallList = z.infer<typeof CallList>;
 
-// `where` is what the call screen says while it shows a call held somewhere other than this app.
 export const SOURCES: Record<CallSource, { started: string; where: string; symbol: SFSymbol }> = {
   app: { started: 'You called from the app', where: 'In the app', symbol: 'iphone' },
   web: { started: 'You called from the web page', where: 'On the web page', symbol: 'globe' },
@@ -132,8 +126,6 @@ export const SOURCES: Record<CallSource, { started: string; where: string; symbo
   other: { started: 'A call with hex', where: 'Somewhere else', symbol: 'phone' },
 };
 
-// `line` closes the call on screen; `short` joins a list row, which only mentions the ending when
-// it wasn't you hanging up.
 export const ENDINGS: Record<CallEnding, { line: string; short?: string; bad?: true }> = {
   you: { line: 'You hung up' },
   hex: { line: 'hex hung up', short: 'hex hung up' },
@@ -147,12 +139,13 @@ export const ENDINGS: Record<CallEnding, { line: string; short?: string; bad?: t
 export const callName = ({ title, preview }: Pick<CallSummary, 'title' | 'preview'>) =>
   [title, preview].find((name) => name !== undefined && name !== '') ?? 'A quiet call';
 
-// hex names a call within seconds of it ending; past ten minutes it isn't coming.
+const NAME_ARRIVES_WITHIN = 10 * 60_000;
+
 export const isNaming = (call: CallSummary, now = Date.now()) =>
   (call.title ?? '') === '' &&
   call.ended !== undefined &&
   call.ended !== '' &&
-  now - Date.parse(call.ended) < 10 * 60_000;
+  now - Date.parse(call.ended) < NAME_ARRIVES_WITHIN;
 
 const tasksWord = (count: number) => {
   if (count === 1) {
@@ -196,8 +189,6 @@ const momentText = (moment: Moment) => {
   return `[${moment.kind === 'task' ? moment.task.text : moment.mark.text}]`;
 };
 
-// A call's turns and what you sent it as the live transcript shows them, each keyed by where it
-// starts so it keeps its place as its words grow.
 export const liveEntries = ({
   turns,
   moments = [],
@@ -218,7 +209,6 @@ export const liveEntries = ({
     }),
   ].toSorted((a, b) => a.startMs - b.startMs);
 
-// The photo or clip a moment says you sent.
 const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
   media && (kind === 'photo' || kind === 'video') ? { id: media, kind } : undefined;
 
@@ -279,15 +269,12 @@ export const dayLabel = (iso: string, now = new Date()) => {
   });
 };
 
-// A call back among the others, newest first, where it sat before.
 export const putBack = (calls: CallSummary[], call: CallSummary) => {
   const at = calls.findIndex((one) => one.started < call.started);
 
   return at === -1 ? [...calls, call] : [...calls.slice(0, at), call, ...calls.slice(at)];
 };
 
-// Calls under three heads at most, so a day's name doesn't head nearly every call: today,
-// yesterday, and everything before, each newest first, as hex sends them.
 export const byDay = (calls: CallSummary[], now = new Date()) => {
   const days: { label: string; calls: CallSummary[] }[] = [];
 
@@ -319,8 +306,6 @@ const periodOf = (iso: string, now: Date) => {
 const daysAgo = (iso: string, now: Date) =>
   Math.round((dayStart(now) - dayStart(new Date(iso))) / 86_400_000);
 
-// When a call was, beside its name: the time today and yesterday, as their heads say the day;
-// before that, the day of the week, or the date once it's more than a week back.
 export const callTime = (iso: string, now = new Date()) => {
   const days = daysAgo(iso, now);
 
@@ -341,8 +326,6 @@ export const callTime = (iso: string, now = new Date()) => {
   });
 };
 
-// What happened to the call shows in it; hex's say and note text is the voice's own words already,
-// and its asks show as cards.
 const SHOWN = { paused: true, resumed: true, warned: true };
 
 export type ShownMark = CallMark & { kind: keyof typeof SHOWN };
@@ -355,7 +338,6 @@ export type Moment =
   | { kind: 'mark'; key: string; at: number; mark: ShownMark }
   | { kind: 'media'; key: string; at: number; media: Shared };
 
-// One marker per task, where hex started it, showing how it ended up.
 export const timeline = ({
   turns,
   tasks,
