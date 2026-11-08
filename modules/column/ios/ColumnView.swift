@@ -34,8 +34,10 @@ struct ColumnView: ExpoSwiftUI.View {
       .offset(x: place.shift)
     }
     // The column is the bar's inset, all of it outside the safe area across, so it reads its
-    // room across in full and keeps the window's top and foot insets.
+    // room across in full and keeps the window's top and foot insets. Its call buttons fade under
+    // the keyboard rather than rise above it.
     .ignoresSafeArea(.container, edges: .horizontal)
+    .ignoresSafeArea(.keyboard)
   }
 
   // The tools' and call buttons' distance from the room's top and foot, which sit inside the

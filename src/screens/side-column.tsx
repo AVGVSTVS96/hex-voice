@@ -35,7 +35,7 @@ export function SideColumn({
     <View pointerEvents="box-none" style={[styles.row, bar === 'left' && styles.reversed]}>
       <View pointerEvents="none" style={styles.content} />
       <SafeAreaView mode="padding" edges={[bar]} pointerEvents="box-none">
-        <Host style={styles.column}>
+        <Host avoids="system" style={styles.column}>
           <ColumnView top={COLUMN.top} clear={COLUMN.clear}>
             <RNHostView matchContents>
               <View>{tools}</View>
