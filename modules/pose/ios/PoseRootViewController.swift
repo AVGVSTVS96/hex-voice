@@ -17,12 +17,31 @@ final class PoseRootViewController: ExpoRootViewController {
     super.viewDidLoad()
     guard #available(iOS 27.1, *) else { return }
     registerForTraitChanges(UITraitCollection.systemTraitsAffectingVerticalBarEdge) {
-      (controller: Self, _) in controller.setNeedsUpdateOfSupportedInterfaceOrientations()
+      (controller: Self, _) in
+      controller.probe("traits")
+      controller.setNeedsUpdateOfSupportedInterfaceOrientations()
     }
+    probe("loaded")
   }
 
   override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-    turns ? .all : .portrait
+    probe("asked")
+    return turns ? .all : .portrait
+  }
+
+  // PROBE, not to land: what the controller can tell about the screen as it starts.
+  private func probe(_ when: String) {
+    guard #available(iOS 27.1, *) else { return }
+    let scene = viewIfLoaded?.window?.windowScene
+    let screen = scene?.screen ?? UIScreen.main
+    NSLog(
+      "pose-probe %@ t=%.3f own=%ld scene=%ld screen=%ld bounds=%@ native=%@ device=%ld iface=%ld",
+      when, ProcessInfo.processInfo.systemUptime,
+      traitCollection.verticalBarEdge.rawValue,
+      scene?.traitCollection.verticalBarEdge.rawValue ?? -1,
+      screen.traitCollection.verticalBarEdge.rawValue,
+      NSCoder.string(for: screen.bounds), NSCoder.string(for: screen.nativeBounds),
+      UIDevice.current.orientation.rawValue, scene?.effectiveGeometry.interfaceOrientation.rawValue ?? -1)
   }
 
   // Once seen, a bar edge stays seen: iOS leaves the edge unspecified in orientations without a

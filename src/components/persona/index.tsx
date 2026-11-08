@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
-import { circle, theme } from '@/theme';
+import { theme } from '@/theme';
 import { textOf } from '@/ui/tokens';
 import {
   PERSONA_MODELS,
@@ -54,6 +54,10 @@ function loadFile(variant: PersonaVariant) {
 export function preloadPersonas(variants: readonly PersonaVariant[]) {
   for (const variant of variants) void loadFile(variant).catch(() => {});
 }
+
+// The default persona's file is read as the app starts, so the call screen's orb doesn't wait on it.
+// Until a file is read the orb's place stays empty: it shows only whole.
+preloadPersonas([DEFAULT_PERSONA]);
 
 function sameColor(a: number, b: number) {
   return [0, 8, 16].every((shift) => Math.abs(((a >> shift) & 255) - ((b >> shift) & 255)) <= 1);
@@ -214,21 +218,9 @@ function PersonaRenderer({
           onError={() => setFailed(true)}
           style={{ width: size, height: size, backgroundColor: 'transparent' }}
         />
-      ) : (
-        <View
-          style={{
-            ...circle(size * 0.6),
-            borderWidth: 1,
-            borderColor: theme.accentMuted,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {failed && (
-            <Text style={{ ...textOf('caption'), color: theme.secondary }}>Visual unavailable</Text>
-          )}
-        </View>
-      )}
+      ) : failed ? (
+        <Text style={{ ...textOf('caption'), color: theme.secondary }}>Visual unavailable</Text>
+      ) : null}
     </View>
   );
 }

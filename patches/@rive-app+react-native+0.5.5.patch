@@ -1,0 +1,14 @@
+diff --git a/node_modules/@rive-app/react-native/ios/legacy/RiveReactNativeView.swift b/node_modules/@rive-app/react-native/ios/legacy/RiveReactNativeView.swift
+index 324688f..7a55a50 100644
+--- a/node_modules/@rive-app/react-native/ios/legacy/RiveReactNativeView.swift
++++ b/node_modules/@rive-app/react-native/ios/legacy/RiveReactNativeView.swift
+@@ -63,6 +63,9 @@ class RiveReactNativeView: UIView, RiveStateMachineDelegate {
+       let model = RiveModel(riveFile: config.riveFile)
+       baseViewModel = RiveViewModel(model, stateMachineName: config.stateMachineName, autoPlay: config.autoPlay, artboardName: config.artboardName)
+       createViewFromViewModel()
++      // hex's persona files open on a dot that grows for their first second. The view takes that
++      // second's step before it first draws, so the orb shows whole from its first frame.
++      riveView?.advance(delta: 1.0)
+ 
+       if let viewSource = config.viewSource {
+         self.viewSource = viewSource
