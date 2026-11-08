@@ -162,7 +162,8 @@ export function spotOf(level: Level, pages: Placing, room: Room): Spot {
 }
 
 // A page steps down over the one before, which waits a third of a page behind; on the Duo a whole
-// page, since its clear pages would show through each other.
+// page, since its clear pages would show through each other. One waiting off the trailing edge
+// already has the way back it comes in with, so its back button slides in with it.
 function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
@@ -173,7 +174,8 @@ function spotAlone(level: Level, { levels, closes }: Placing, room: Room): Spot 
     shown: x === 0,
     width: page,
     ...footOf(room.foot),
-    back: level === 'list' ? (front && closes ? 'call' : undefined) : levels[i - 1],
+    back:
+      level === 'list' ? (front && closes ? 'call' : undefined) : (levels[i - 1] ?? levels.at(-1)),
   };
 }
 

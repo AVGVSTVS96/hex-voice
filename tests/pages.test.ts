@@ -229,7 +229,7 @@ test('a page ending at the fold keeps nothing clear below it, and Back always sa
   assert.equal(spotOf('list', pagesOf(go(), beside), beside).back, 'call');
 });
 
-test('on its side, Tasks is one page: the list fills it and a topic pushes over it', () => {
+test('on its side, Tasks is one page: the list fills it and a topic pushes over it, its Back with it', () => {
   const page = layoutOf(
     { width: 669, height: 951 },
     { top: 82, right: 0, bottom: 34, left: 0 },
@@ -241,4 +241,6 @@ test('on its side, Tasks is one page: the list fills it and a topic pushes over 
   assert.deepEqual(onScreen(go({ to: 'topic', id: A }), room), ['topic']);
   const topic = spotOf('topic', pagesOf(go({ to: 'topic', id: A }), room), room);
   assert.deepEqual([topic.back, topic.width], ['list', 669]);
+  const waiting = spotOf('topic', pagesOf(go(), room), room);
+  assert.deepEqual([waiting.shown, waiting.back], [false, 'list']);
 });
