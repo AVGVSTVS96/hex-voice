@@ -61,10 +61,11 @@ import { Viewport } from '@/hooks/use-viewport';
 import type { Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { activityOrb } from '@/live/activity-orb';
-import type { TaskRow } from '@/live/tasks';
-import type { CallAbout } from '@/live/types';
+import type { CallCard } from '@/live/agents';
+import type { TaskId, TaskRow } from '@/live/tasks';
+import type { CallAbout, TranscriptEntry } from '@/live/types';
 import { transcriptText } from '@/live/calls';
-import type { CallSummary } from '@/live/calls';
+import type { CallId, CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
 import { screenLayout } from '@/screens/layout';
@@ -156,7 +157,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const viewing = scene.words.call;
   const calls = useCalls();
 
-  const shown = (viewing ?? '') === '' ? undefined : calls.calls?.find((one) => one.id === viewing);
+  const shown = pastOf(calls.calls, viewing);
 
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
@@ -183,18 +184,21 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     pulls,
   } = layout;
 
-  const split = layout.kind === 'split';
-  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
-  // footer and agent line follow the words there instead of spanning the screen.
-  const moves = split || !!orb.dock;
-  // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
-  const follows = moves || !!layout.duo?.beside;
-  // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
-  // place of its own over the call, and the call goes on in the bar.
-  const panes = side.place !== 'sheet';
-  // iPhone Duo shows settings as a place of its own where Tasks goes, beside its column, so the
-  // column's buttons still answer while it's open.
-  const settingsPlace = duo?.tasks.area;
+  const {
+    split,
+    moves,
+    follows,
+    panes,
+    settingsPlace,
+    inbox,
+    paneWidth,
+    before,
+    controlsAt,
+    controlsColumn,
+    rowControls,
+    footerControls,
+  } = arrangementOf(layout, onCall);
+
   const shared = !!settingsPlace;
 
   // Everything that opens and closes goes through `send`, and every open flag and lit button
@@ -240,9 +244,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     },
   );
 
-  // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
-  // in a rail; once a call starts, Tasks narrows to its pane beside it.
-  const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
   const inboxShown = !!inbox && tasksOpen;
   const status = statusOf(call);
 
@@ -274,40 +275,14 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const reaction = amountOf(preferences.reaction);
   const { wake, breath, level, pitch, tone } = useOrbLife(call, { reducedMotion, reaction });
 
-  // The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
-  // and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
-  // page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
-  // height over a compact screen, and the resting orb keeps clear of it too, small, still listening.
-  const [footer, setFooter] = useState(
-    layout.footer.bottom + (layout.controls === 'inline' ? metrics.call : 0),
-  );
+  const { rest, restY, restScale, footerHeight, setFooter } = useOrbRest({
+    layout,
+    moves,
+    overSheet: tasksOpen && onCall && side.place === 'sheet',
+    height,
+    reducedMotion,
+  });
 
-  const overSheet = tasksOpen && onCall && side.place === 'sheet';
-
-  const rest = orbRest(
-    {
-      top: orb.room.top,
-      bottom: Math.min(
-        moves ? orb.room.bottom : layout.content.height - footer,
-        overSheet ? height / 2 : height,
-      ),
-    },
-    orb.rest.y,
-    size,
-    overSheet ? OVER_SHEET : size,
-  );
-
-  const restY = useSharedValue(rest.y);
-  const restScale = useSharedValue(rest.scale);
-  const footerHeight = useSharedValue(footer);
-  useEffect(() => {
-    const settle = (to: number) =>
-      reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
-
-    restY.set(settle(rest.y));
-    restScale.set(settle(rest.scale));
-    footerHeight.set(settle(footer));
-  }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
   // With Tasks open on iPhone Duo during a call, the orb moves into the bar, small, still answering
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
   const { docked, dock, covers, aside } = duoTasks;
@@ -317,9 +292,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // mounted, so a camera it opened stays up through the call ending.
   const adds =
     buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? '') === '';
-
-  // Where the call's words and the lines under them go when they take the page before the fold.
-  const before = duo?.beside?.words ?? { ...words, raise: 0 };
 
   const closeTasks = () => {
     tick();
@@ -426,29 +398,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     pullWords(false);
   };
 
-  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
-  const pane = useSharedValue(panes && placeOpen ? 1 : 0);
-  const paneWidth = inbox ? inbox.width : side.width;
-  const paneW = useSharedValue(paneWidth);
-  const wide = useSharedValue(inbox ? 1 : 0);
-  useEffect(() => {
-    if (!panes) {
-      return;
-    }
-
-    const settle = (to: number) =>
-      reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
-
-    // A pane that opens from closed takes its width at once; one already open moves to it.
-    if (placeOpen) {
-      const closed = pane.get() < 0.01;
-      const wideTo = inbox ? 1 : 0;
-      paneW.set(closed ? paneWidth : settle(paneWidth));
-      wide.set(closed ? wideTo : settle(wideTo));
-    }
-
-    pane.set(settle(placeOpen ? 1 : 0));
-  }, [placeOpen, panes, paneWidth, !!inbox, reducedMotion, pane, paneW, wide]);
+  const { pane, paneW, wide } = usePaneMotion({
+    panes,
+    open: placeOpen,
+    width: paneWidth,
+    inbox: !!inbox,
+    reducedMotion,
+  });
 
   // The card's place and corners, and what keeps the stage on it put, all come from cardOf.
   const cardStyle = useAnimatedStyle(() => {
@@ -554,14 +510,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         (before.width - words.width) * a,
     };
   });
-
-  const controlsAt =
-    layout.controls !== 'inline' && 'center' in layout.controls
-      ? layout.controls.center
-      : undefined;
-
-  const controlsColumn =
-    layout.controls !== 'inline' && 'axis' in layout.controls ? layout.controls : undefined;
 
   const rail = layout.inbox;
 
@@ -705,22 +653,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     };
   });
 
-  // What an action on a call couldn't do shows in the footer's error line while that call lasts.
-  const callNow = callIdOf(call);
-  const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
-
-  const tried = async (what: string, action: Promise<unknown>) => {
-    const on = callNow;
-    setTrouble(undefined);
-
-    try {
-      await action;
-    } catch (error) {
-      setTrouble({ call: on, why: failure(what, error) });
-    }
-  };
-
-  const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
+  const { tried, troubleNow } = useTrouble(callIdOf(call));
 
   const startCall = (about?: CallAbout) => {
     if ((viewing ?? '') !== '') {
@@ -802,13 +735,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     openCall(id, place);
   };
 
-  const removeShown =
-    shown && shown.id !== calls.live
-      ? () => {
-          leaveCall();
-          calls.remove(shown.id);
-        }
-      : undefined;
+  const removeCall = (id: CallId) => {
+    if (id === viewing) {
+      leaveCall();
+    }
+
+    calls.remove(id);
+  };
 
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
@@ -857,42 +790,6 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     />
   );
 
-  // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
-  // whether Tasks is open or not.
-  const inRow = !!duo?.call.controls;
-
-  const sidebar = (
-    <GestureDetector gesture={listClose}>
-      <Animated.View
-        style={[
-          styles.sidebar,
-          { width: list.width, top: list.below ?? 0, zIndex: over ? 1 : 0 },
-          sidebarStyle,
-        ]}
-      >
-        <CallsSidebar
-          top={list.below === undefined ? insets.top : 0}
-          width={list.width}
-          calls={calls.calls}
-          live={calls.live}
-          viewing={viewing}
-          offline={calls.offline}
-          haptics={preferences.haptics}
-          onOpen={(picked) => {
-            openCall(picked.id);
-          }}
-          onDelete={(id) => {
-            if (id === viewing) {
-              leaveCall();
-            }
-
-            calls.remove(id);
-          }}
-        />
-      </Animated.View>
-    </GestureDetector>
-  );
-
   const tasks = {
     open: tasksOpen,
     stack: scene.pages,
@@ -908,7 +805,17 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   return (
     <ToolbarBackProvider value={duo ? publish : null}>
-      {sidebar}
+      <CallsList
+        gesture={listClose}
+        list={list}
+        style={sidebarStyle}
+        top={insets.top}
+        calls={calls}
+        viewing={viewing}
+        haptics={preferences.haptics}
+        onOpen={openCall}
+        onRemove={removeCall}
+      />
       {panes && !duo && (
         <TasksPane
           {...tasks}
@@ -929,66 +836,29 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         <Animated.View style={[styles.stage, { width: layout.content.width }, stageStyle]}>
           <GestureDetector gesture={screenDrag}>
             <View style={styles.fill}>
-              <Animated.View
-                pointerEvents={reading ? 'auto' : 'none'}
-                accessibilityElementsHidden={!reading}
-                importantForAccessibility={reading ? 'auto' : 'no-hide-descendants'}
+              <CallWords
+                reading={reading}
                 style={[styles.transcript, wordsStyle, transcriptStyle]}
-              >
-                {shown && (
-                  <PastCallBar
-                    call={shown}
-                    live={shown.id === calls.live}
-                    onCall={onCall}
-                    transcript={past.call && transcriptText(past.call)}
-                    onBack={backToCall}
-                    onDelete={removeShown}
-                  />
-                )}
-                <View style={styles.words}>
-                  {shown ? (
-                    <CallTranscript
-                      summary={shown}
-                      call={past.call}
-                      failed={past.failed}
-                      live={shown.id === calls.live}
-                    />
-                  ) : (
-                    <Transcript
-                      entries={wordsOf(call)}
-                      active={reading}
-                      size={layout.text}
-                      emptyAt={pulls ? 'end' : 'center'}
-                      cards={cards}
-                      onAnswer={async (card, option) => await answerAsk(card.ask, option)}
-                      onOpenTask={(task) => {
-                        openTasks({ task });
-                      }}
-                    />
-                  )}
-                  <Animated.View pointerEvents="none" style={[styles.fade, callColorStyle]} />
-                  <Animated.View pointerEvents="none" style={[styles.fadeBottom, callColorStyle]} />
-                  {duo && (
-                    <>
-                      <AnimatedView
-                        pointerEvents="none"
-                        style={[styles.fade, styles.onBackdrop]}
-                        animate={backdropFade}
-                      />
-                      <AnimatedView
-                        pointerEvents="none"
-                        style={[styles.fadeBottom, styles.onBackdropBottom]}
-                        animate={backdropFade}
-                      />
-                    </>
-                  )}
-                </View>
-              </Animated.View>
+                shown={shown}
+                live={calls.live}
+                onCall={onCall}
+                past={past}
+                entries={wordsOf(call)}
+                size={layout.text}
+                pulls={pulls}
+                cards={cards}
+                fadeStyle={callColorStyle}
+                onBackdrop={duo !== undefined}
+                backdropFade={backdropFade}
+                onBack={backToCall}
+                onRemove={removeCall}
+                onOpenTask={(task) => {
+                  openTasks({ task });
+                }}
+              />
               {pulls && (
                 <AnimatedView
-                  pointerEvents={reading ? 'none' : 'auto'}
-                  accessibilityElementsHidden={reading}
-                  importantForAccessibility={reading ? 'no-hide-descendants' : 'auto'}
+                  {...reachable(!reading)}
                   style={[
                     styles.dock,
                     { left: orb.read.x - metrics.docked / 2, top: orb.read.y - metrics.docked / 2 },
@@ -1008,9 +878,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
               )}
               <AnimatedView
                 animate={addFade}
-                pointerEvents={adds && !docked ? 'auto' : 'none'}
-                accessibilityElementsHidden={!adds || docked}
-                importantForAccessibility={adds && !docked ? 'auto' : 'no-hide-descendants'}
+                {...reachable(adds && !docked)}
                 style={[
                   styles.dock,
                   { left: add.x - metrics.docked / 2, top: add.y - metrics.docked / 2 },
@@ -1051,12 +919,10 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
               openTasks({ stage: 'needs' });
             }}
           >
-            {layout.controls === 'inline' && !inRow && controls}
+            {footerControls && controls}
           </CallFooter>
           <AnimatedPressable
-            pointerEvents={agent ? 'auto' : 'none'}
-            accessibilityElementsHidden={!agent}
-            importantForAccessibility={agent ? 'auto' : 'no-hide-descendants'}
+            {...reachable(agent !== null)}
             onPress={() => {
               openTasks({ stage: 'working' });
             }}
@@ -1082,16 +948,14 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             }}
           />
         )}
-        {!callsOpen && !(duo && tasksOpen) && (
-          <GestureDetector gesture={edgeOpen}>
-            <View testID="calls-edge" style={[styles.edge, { left: layout.content.x }]} />
-          </GestureDetector>
-        )}
-        {callsOpen && list.place === 'slide' && (
-          <GestureDetector gesture={peekClose}>
-            <View accessibilityLabel="Close calls" style={styles.fill} />
-          </GestureDetector>
-        )}
+        <CallsEdges
+          open={callsOpen}
+          covered={duo !== undefined && tasksOpen}
+          slides={slides}
+          x={layout.content.x}
+          edgeOpen={edgeOpen}
+          peekClose={peekClose}
+        />
       </Animated.View>
       {duo && (
         <DuoTasks
@@ -1124,15 +988,11 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         personaEnabled={personaLoaded}
         preferences={preferences}
       />
-      {duo?.call.controls && inRow ? (
+      {rowControls ? (
         <CallControls
           {...buttons}
           size="tool"
-          style={{
-            position: 'absolute',
-            right: duo.call.controls.right,
-            top: duo.call.controls.top,
-          }}
+          style={{ position: 'absolute', right: rowControls.right, top: rowControls.top }}
         />
       ) : null}
       {layout.column ? (
@@ -1147,6 +1007,317 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     </ToolbarBackProvider>
   );
 };
+
+const arrangementOf = (layout: Layout, onCall: boolean) => {
+  const split = layout.kind === 'split';
+  // Where the call moves with the room a pane leaves (iPad), and iPhone Duo's open pages: the
+  // footer and agent line follow the words there instead of spanning the screen.
+  const moves = split || !!layout.orb.dock;
+  // Before a call on a wide iPad, Tasks takes the screen as a two-column inbox and the call waits
+  // in a rail; once a call starts, Tasks narrows to its pane beside it.
+  const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
+  const { controls } = layout;
+  const rowControls = layout.duo?.call.controls;
+
+  return {
+    split,
+    moves,
+    // The footer and agent line follow the words there and beside iPhone Duo's Tasks.
+    follows: moves || !!layout.duo?.beside,
+    // On iPad, Tasks is a pane like Calls, and one of the two is open at a time. On iPhone Duo it's a
+    // place of its own over the call, and the call goes on in the bar.
+    panes: layout.tasks.place !== 'sheet',
+    // iPhone Duo shows settings as a place of its own where Tasks goes, beside its column, so the
+    // column's buttons still answer while it's open.
+    settingsPlace: layout.duo?.tasks.area,
+    inbox,
+    paneWidth: inbox ? inbox.width : layout.tasks.width,
+    // Where the call's words and the lines under them go when they take the page before the fold.
+    before: layout.duo?.beside?.words ?? { ...layout.words, raise: 0 },
+    controlsAt: controls !== 'inline' && 'center' in controls ? controls.center : undefined,
+    controlsColumn: controls !== 'inline' && 'axis' in controls ? controls : undefined,
+    // Open on its side, the toolbar runs across the top and the call buttons sit in it, at one spot
+    // whether Tasks is open or not.
+    rowControls,
+    footerControls: controls === 'inline' && !rowControls,
+  };
+};
+
+const settleTo = (to: number, reducedMotion: boolean) =>
+  reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
+
+const usePaneMotion = ({
+  panes,
+  open,
+  width,
+  inbox,
+  reducedMotion,
+}: {
+  panes: boolean;
+  open: boolean;
+  width: number;
+  inbox: boolean;
+  reducedMotion: boolean;
+}) => {
+  // Tasks open at launch shows from the first frame, as Calls does, never waiting on a fade in.
+  const pane = useSharedValue(panes && open ? 1 : 0);
+  const paneW = useSharedValue(width);
+  const wide = useSharedValue(inbox ? 1 : 0);
+  useEffect(() => {
+    if (!panes) {
+      return;
+    }
+
+    // A pane that opens from closed takes its width at once; one already open moves to it.
+    if (open) {
+      const closed = pane.get() < 0.01;
+      const wideTo = inbox ? 1 : 0;
+      paneW.set(closed ? width : settleTo(width, reducedMotion));
+      wide.set(closed ? wideTo : settleTo(wideTo, reducedMotion));
+    }
+
+    pane.set(settleTo(open ? 1 : 0, reducedMotion));
+  }, [open, panes, width, inbox, reducedMotion, pane, paneW, wide]);
+
+  return { pane, paneW, wide };
+};
+
+// The footer (how the call ended, hex's wrap-up, and on the phone the call buttons) is measured,
+// and what sits above it (the resting orb, or the words) keeps clear of it; where the words have a
+// page of their own, the footer sits on that page, away from the orb. On a call Tasks opens half
+// height over a compact screen, and the resting orb keeps clear of it too, small, still listening.
+const useOrbRest = ({
+  layout,
+  moves,
+  overSheet,
+  height,
+  reducedMotion,
+}: {
+  layout: Layout;
+  moves: boolean;
+  overSheet: boolean;
+  height: number;
+  reducedMotion: boolean;
+}) => {
+  const { orb } = layout;
+
+  const [footer, setFooter] = useState(
+    layout.footer.bottom + (layout.controls === 'inline' ? metrics.call : 0),
+  );
+
+  const rest = orbRest(
+    {
+      top: orb.room.top,
+      bottom: Math.min(
+        moves ? orb.room.bottom : layout.content.height - footer,
+        overSheet ? height / 2 : height,
+      ),
+    },
+    orb.rest.y,
+    orb.size,
+    overSheet ? OVER_SHEET : orb.size,
+  );
+
+  const restY = useSharedValue(rest.y);
+  const restScale = useSharedValue(rest.scale);
+  const footerHeight = useSharedValue(footer);
+  useEffect(() => {
+    restY.set(settleTo(rest.y, reducedMotion));
+    restScale.set(settleTo(rest.scale, reducedMotion));
+    footerHeight.set(settleTo(footer, reducedMotion));
+  }, [rest.y, rest.scale, footer, reducedMotion, restY, restScale, footerHeight]);
+
+  return { rest, restY, restScale, footerHeight, setFooter };
+};
+
+// What an action on a call couldn't do shows in the footer's error line while that call lasts.
+const useTrouble = (callNow: CallId | undefined) => {
+  const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
+
+  const tried = async (what: string, action: Promise<unknown>) => {
+    const on = callNow;
+    setTrouble(undefined);
+
+    try {
+      await action;
+    } catch (error) {
+      setTrouble({ call: on, why: failure(what, error) });
+    }
+  };
+
+  return { tried, troubleNow: trouble && trouble.call === callNow ? trouble.why : undefined };
+};
+
+type Drawer = ReturnType<typeof useDrawer>;
+
+const pastOf = (calls: CallSummary[] | undefined, viewing: string | null) =>
+  (viewing ?? '') === '' ? undefined : calls?.find((one) => one.id === viewing);
+
+const CallsList = ({
+  gesture,
+  list,
+  style,
+  top,
+  calls,
+  viewing,
+  haptics,
+  onOpen,
+  onRemove,
+}: {
+  gesture: Drawer['listClose'];
+  list: CallsPlacement;
+  style: ComponentProps<typeof Animated.View>['style'];
+  top: number;
+  calls: ReturnType<typeof useCalls>;
+  viewing: string | null;
+  haptics: boolean;
+  onOpen: (id: string) => void;
+  onRemove: (id: CallId) => void;
+}) => (
+  <GestureDetector gesture={gesture}>
+    <Animated.View
+      style={[
+        styles.sidebar,
+        { width: list.width, top: list.below ?? 0, zIndex: list.place === 'over' ? 1 : 0 },
+        style,
+      ]}
+    >
+      <CallsSidebar
+        top={list.below === undefined ? top : 0}
+        width={list.width}
+        calls={calls.calls}
+        live={calls.live}
+        viewing={viewing}
+        offline={calls.offline}
+        haptics={haptics}
+        onOpen={(picked) => {
+          onOpen(picked.id);
+        }}
+        onDelete={onRemove}
+      />
+    </Animated.View>
+  </GestureDetector>
+);
+
+const CallWords = ({
+  reading,
+  style,
+  shown,
+  live,
+  onCall,
+  past,
+  entries,
+  size,
+  pulls,
+  cards,
+  fadeStyle,
+  onBackdrop,
+  backdropFade,
+  onBack,
+  onRemove,
+  onOpenTask,
+}: {
+  reading: boolean;
+  style: ComponentProps<typeof Animated.View>['style'];
+  shown: CallSummary | undefined;
+  live: CallId | undefined;
+  onCall: boolean;
+  past: ReturnType<typeof usePastCall>;
+  entries: TranscriptEntry[];
+  size: ComponentProps<typeof Transcript>['size'];
+  pulls: boolean;
+  cards: CallCard[];
+  fadeStyle: ComponentProps<typeof Animated.View>['style'];
+  onBackdrop: boolean;
+  backdropFade: ComponentProps<typeof AnimatedView>['animate'];
+  onBack: () => void;
+  onRemove: (id: CallId) => void;
+  onOpenTask: (task: TaskId) => void;
+}) => (
+  <Animated.View {...reachable(reading)} style={style}>
+    {shown && (
+      <PastCallBar
+        call={shown}
+        live={shown.id === live}
+        onCall={onCall}
+        transcript={past.call && transcriptText(past.call)}
+        onBack={onBack}
+        onDelete={
+          shown.id === live
+            ? undefined
+            : () => {
+                onRemove(shown.id);
+              }
+        }
+      />
+    )}
+    <View style={styles.words}>
+      {shown ? (
+        <CallTranscript
+          summary={shown}
+          call={past.call}
+          failed={past.failed}
+          live={shown.id === live}
+        />
+      ) : (
+        <Transcript
+          entries={entries}
+          active={reading}
+          size={size}
+          emptyAt={pulls ? 'end' : 'center'}
+          cards={cards}
+          onAnswer={async (card, option) => await answerAsk(card.ask, option)}
+          onOpenTask={onOpenTask}
+        />
+      )}
+      <Animated.View pointerEvents="none" style={[styles.fade, fadeStyle]} />
+      <Animated.View pointerEvents="none" style={[styles.fadeBottom, fadeStyle]} />
+      {onBackdrop && (
+        <>
+          <AnimatedView
+            pointerEvents="none"
+            style={[styles.fade, styles.onBackdrop]}
+            animate={backdropFade}
+          />
+          <AnimatedView
+            pointerEvents="none"
+            style={[styles.fadeBottom, styles.onBackdropBottom]}
+            animate={backdropFade}
+          />
+        </>
+      )}
+    </View>
+  </Animated.View>
+);
+
+const CallsEdges = ({
+  open,
+  covered,
+  slides,
+  x,
+  edgeOpen,
+  peekClose,
+}: {
+  open: boolean;
+  covered: boolean;
+  slides: boolean;
+  x: number;
+  edgeOpen: Drawer['edgeOpen'];
+  peekClose: Drawer['peekClose'];
+}) => (
+  <>
+    {!open && !covered && (
+      <GestureDetector gesture={edgeOpen}>
+        <View testID="calls-edge" style={[styles.edge, { left: x }]} />
+      </GestureDetector>
+    )}
+    {open && slides && (
+      <GestureDetector gesture={peekClose}>
+        <View accessibilityLabel="Close calls" style={styles.fill} />
+      </GestureDetector>
+    )}
+  </>
+);
 
 // The toolbar across the top, following the call's card as Calls slides. Its style is made as it
 // mounts: Reanimated starts each view at the value a style had when it was first made, so a style
@@ -1200,6 +1371,13 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
     started.current = null;
   }, [call.kind, live]);
 };
+
+const reachable = (on: boolean) =>
+  ({
+    pointerEvents: on ? 'auto' : 'none',
+    accessibilityElementsHidden: !on,
+    importantForAccessibility: on ? 'auto' : 'no-hide-descendants',
+  }) as const;
 
 const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
   'worklet';
