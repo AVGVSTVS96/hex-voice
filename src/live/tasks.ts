@@ -285,7 +285,8 @@ export const agentCounts = (agents: TaskAgent[]) =>
 
 export const agentMeta = (agent: TaskAgent, now = new Date()) => {
   const { since, state } = agent;
-  const end = state === 'working' ? now.getTime() : Date.parse(agent.end ?? '');
+  const finish = agent.end === undefined ? Number.NaN : Date.parse(agent.end);
+  const end = state === 'working' ? now.getTime() : finish;
   const timed = since !== undefined && since !== '' && end !== 0 && !Number.isNaN(end);
   const spent = timed ? took(end - Date.parse(since)) : '';
   const time = state === 'stopped' || state === 'failed' ? state : spent;
