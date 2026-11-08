@@ -173,8 +173,9 @@ const PersonaRenderer = ({
       }
 
       if (variant === 'opal') {
-        originalPalette.current ??= riveViewRef.getNumberInputValue('color');
-        riveViewRef.setNumberInputValue('color', palette ?? originalPalette.current);
+        const original = originalPalette.current ?? riveViewRef.getNumberInputValue('color');
+        originalPalette.current = original;
+        riveViewRef.setNumberInputValue('color', palette ?? original);
       }
 
       if (!grown.current) {

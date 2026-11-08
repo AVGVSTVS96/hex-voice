@@ -8,7 +8,7 @@ export const useFailures = () => {
   const [failed, setFailed] = useState<Record<string, string>>({});
 
   const attempt = async (key: string, what: string, work: () => Promise<void>) => {
-    setFailed(({ [key]: _, ...rest }) => rest);
+    setFailed((now) => Object.fromEntries(Object.entries(now).filter(([one]) => one !== key)));
 
     try {
       await work();

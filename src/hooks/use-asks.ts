@@ -32,9 +32,11 @@ export const useAsks = (open: boolean) => {
   const [missed, setMissed] = useState<Record<string, number>>({});
 
   const reached = (id: AskId, sent?: Sent) => {
-    setMissed(({ [id]: _, ...rest }) =>
-      sent !== undefined && sent.missed !== 0 ? { ...rest, [id]: sent.missed } : rest,
-    );
+    setMissed((now) => {
+      const rest = Object.fromEntries(Object.entries(now).filter(([key]) => key !== id));
+
+      return sent !== undefined && sent.missed !== 0 ? { ...rest, [id]: sent.missed } : rest;
+    });
   };
 
   const queue = useRef(new Map<AskId, { last: Promise<void>; turn: number }>());

@@ -347,7 +347,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     setCalls(!callsOpen);
   };
 
-  const openCall = (id: string, place = list.place) => {
+  const openCall = (id: string, at?: CallsPlacement['place']) => {
+    const place = at ?? list.place;
+
     if (place !== 'beside') {
       setCalls(false);
     }
@@ -1261,8 +1263,8 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
   const live = call.kind === 'here' && call.phase === 'live';
   const ended = call.kind === 'none' ? call.last : undefined;
   useEffect(() => {
-    if (live) {
-      started.current ??= new Date().toISOString();
+    if (live && started.current === null) {
+      started.current = new Date().toISOString();
     }
 
     if (!ended?.id || ended.from !== 'app' || started.current === null) {

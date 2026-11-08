@@ -97,7 +97,6 @@ const pending = {
   'react/no-object-type-as-default-prop': 'off',
   'react/no-react-children': 'off',
   'react/style-prop-object': 'off',
-  'react/todo': 'off',
   'require-unicode-regexp': 'off',
   'typescript/await-thenable': 'off',
   'typescript/consistent-return': 'off',

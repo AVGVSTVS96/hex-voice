@@ -267,8 +267,8 @@ export const VoiceSettings = ({
 
   useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
-  const haptic = (enabled = preferences.haptics) => {
-    if (enabled) {
+  const haptic = (enabled?: boolean) => {
+    if (enabled ?? preferences.haptics) {
       void Haptics.selectionAsync();
     }
   };
