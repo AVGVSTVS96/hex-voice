@@ -1,9 +1,9 @@
 import AppIntents
 import Foundation
 
-// Siri hands hex the words the way the app's chat does, into hex's Siri topic in Telegram, then
-// waits there for hex's reply and speaks it.
-struct AskHex: AppIntent {
+// Siri hands hex the words the way the app's chat does, into hex's Siri topic, then waits for
+// hex's reply, however long its work takes, and speaks it.
+struct AskHex: AppIntent, ProgressReportingIntent {
   static let title: LocalizedStringResource = "Ask hex"
   static let description = IntentDescription(
     "Sends a question or request to hex, Bassim's own assistant that runs his projects, servers and tasks, and returns hex's reply.",
@@ -11,15 +11,27 @@ struct AskHex: AppIntent {
 
   @Parameter(
     title: "Request",
-    description: "What to ask or tell hex, in the person's own words.",
+    description: "What to ask or tell hex, word for word as the person said it.",
     requestValueDialog: "What should I ask hex?")
   var request: String
 
   func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
-    let answer = try await Hex().ask(request.trimmingCharacters(in: .whitespacesAndNewlines))
+    let words = request.trimmingCharacters(in: .whitespacesAndNewlines)
+    let progress = progress
+    let ask = { try await Hex().ask(words, progress: progress) }
+    let answer: String
+    if #available(iOS 27, *) {
+      answer = try await performBackgroundTask(operation: ask)
+    } else {
+      answer = try await ask()
+    }
     return .result(value: answer, dialog: "\(answer)")
   }
 }
+
+// iOS ends an intent after 30 seconds unless it runs as a long-running task that reports progress.
+@available(iOS 27, *)
+extension AskHex: LongRunningIntent {}
 
 // Xcode 27.3's Swift is the first with ToolIntent; older Xcodes build the intent without it.
 #if compiler(>=6.4.2)
@@ -54,9 +66,9 @@ private struct HexError: Error, CustomLocalizedStringResourceConvertible {
 }
 
 private struct Hex {
-  // How long Siri waits for hex's reply before leaving it to the topic.
-  static let patience: TimeInterval = 20
-  static let later = "hex has it and will answer in its Siri topic in Telegram."
+  // Past this, hex is stuck rather than busy.
+  static let patience: TimeInterval = 600
+  static let stuck = "hex has been on it for ten minutes and still hasn't answered."
   // The topic's id, kept once found: a topic quiet for a week drops off hex's board.
   static let kept = "siriTopic"
 
@@ -72,17 +84,28 @@ private struct Hex {
     token = info["HexToken"] as? String ?? ""
   }
 
-  func ask(_ words: String) async throws -> String {
+  func ask(_ words: String, progress: Progress) async throws -> String {
     guard !words.isEmpty else { throw HexError(localizedStringResource: "Tell me what to ask hex.") }
+    progress.totalUnitCount = Int64(Self.patience)
+    progress.localizedDescription = "Asking hex"
+    let start = Date()
+    let ticking = Task {
+      while !Task.isCancelled {
+        progress.completedUnitCount = Int64(-start.timeIntervalSinceNow)
+        try await Task.sleep(for: .seconds(3))
+      }
+    }
+    defer { ticking.cancel() }
+
     let (chat, before) = try await topic()
     // Each message carries how to answer it, so whichever session holds the topic knows.
     let said = "(asked Siri: reply once, in one short spoken sentence) \(words)"
     let key = "app-siri-\(UUID().uuidString.prefix(8).lowercased())"
     _ = try await call(chat, body: ["text": said, "key": key])
 
-    // Sent: from here on, anything short of hex's reply leaves it to the topic, so Siri never sends
-    // it again. hex answers the topic's questions in turn, one reply each, so this one's answer is
-    // the reply that follows it once hex has answered every question still open before it.
+    // Sent: from here on Siri only waits, so it never sends the words twice. The chat shows the
+    // words once hex has taken them in, and hex answers the topic's questions in turn, one reply
+    // each, so this one's answer is the reply that follows it once every earlier one is answered.
     let end = Date().addingTimeInterval(Self.patience)
     var latest = before
     var mine: (at: Int, after: Int)?
@@ -95,15 +118,19 @@ private struct Hex {
       {
         let answered = latest.turns[..<asked].lastIndex(where: { $0.from == "hex" }) ?? -1
         mine = (shown + asked, latest.turns[(answered + 1)..<asked].filter { $0.from == "me" }.count)
+        progress.localizedDescription = "hex is working on it"
       }
       if let mine {
         let replies = latest.turns.indices.filter { shown + $0 > mine.at && latest.turns[$0].from == "hex" }
         if replies.count > mine.after { return latest.turns[replies[mine.after]].text }
       }
-      guard end.timeIntervalSinceNow > 1,
-        let next: Chat = try? await get("\(chat)?after=\(Int64(latest.version))", within: end.timeIntervalSinceNow)
-      else { return Self.later }
-      latest = next
+      guard end.timeIntervalSinceNow > 1 else { return Self.stuck }
+      // A dropped connection on the way waits and asks again; only the patience ends the wait.
+      if let next: Chat = try? await get("\(chat)?after=\(Int64(latest.version))", within: 40) {
+        latest = next
+      } else {
+        try await Task.sleep(for: .seconds(2))
+      }
     }
   }
 
