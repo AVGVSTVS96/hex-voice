@@ -444,8 +444,6 @@ mac_fold() {
   states=$(cat)
   while read -r -u 4 state url arguments; do
     for screen in 3 1; do
-      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
-      xcrun simctl terminate "$id" "${url#launch:}" 2>/dev/null || true
       place cover-up
       case $url in
         launch:*) xcrun simctl launch "$id" "${url#launch:}" >/dev/null ;;
@@ -470,6 +468,9 @@ mac_fold() {
       done
       kill -INT "$film" 2>/dev/null || true
       wait "$film" || true
+      # Quit what it filmed, the probe too, so no app is left holding the simulator.
+      xcrun simctl terminate "$id" "${url#launch:}" 2>/dev/null || true
+      xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
     done
   done 4<<<"$states"
 }
