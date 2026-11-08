@@ -21,10 +21,14 @@ export type Shown = Picked | Shared;
 export const MOST = 4;
 export const CLIP_SECONDS = 60;
 
-// How a turn that's only media reads where its words would: "Photo", "2 videos", "3 items".
+// How a turn that's only media reads where its words would: "Photo", "2 videos", "2 photos and a video".
 export function mediaWords(media: readonly { kind: MediaKind }[]) {
-  if (!media.length) return '';
-  const kinds = new Set(media.map(({ kind }) => kind));
-  const noun = kinds.size > 1 ? 'item' : media[0]!.kind;
-  return media.length === 1 ? noun[0]!.toUpperCase() + noun.slice(1) : `${media.length} ${noun}s`;
+  const words = MediaKind.options
+    .map((kind) => [kind, media.filter((one) => one.kind === kind).length] as const)
+    .filter(([, count]) => count)
+    .map(([kind, count]) =>
+      count > 1 ? `${count} ${kind}s` : media.length > 1 ? `a ${kind}` : kind,
+    )
+    .join(' and ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

@@ -72,7 +72,11 @@ test('a photo sent with no words arrives as your turn holding that many photos',
 test('a turn that is only media reads as what it holds', () => {
   assert.equal(mediaWords([{ kind: 'photo' }]), 'Photo');
   assert.equal(mediaWords([{ kind: 'video' }, { kind: 'video' }]), '2 videos');
-  assert.equal(mediaWords([{ kind: 'photo' }, { kind: 'video' }, { kind: 'photo' }]), '3 items');
+  assert.equal(
+    mediaWords([{ kind: 'photo' }, { kind: 'video' }, { kind: 'photo' }]),
+    '2 photos and a video',
+  );
+  assert.equal(mediaWords([{ kind: 'photo' }, { kind: 'video' }]), 'A photo and a video');
 });
 
 test('app keys fit what hex takes', () => {
