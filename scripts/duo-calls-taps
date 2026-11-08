@@ -1,4 +1,4 @@
-# Opens and closes Calls by its button, an edge swipe and Tasks, and from settings goes to Tasks,
+# Opens and closes Calls by its button, an edge swipe and Tasks, from settings goes to Tasks, and on a call opens Calls beside it,
 # checking only one of Calls, Tasks and settings is lit:
 # scripts/duo tap <ref> scripts/duo-calls-taps
 launch hexvoice:///
@@ -38,3 +38,11 @@ shoot tasks-from-settings
 selected tasks-button
 unselected voice-settings-button
 tap tasks-button
+# On a call, Calls leaves the call in view: a peek of it, or the call beside it.
+launch hexvoice:///?demo=call
+wait 3
+tap calls-button
+wait 1
+shoot calls-on-call
+selected calls-button
+tap calls-button
