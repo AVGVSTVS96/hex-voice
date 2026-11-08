@@ -10,18 +10,15 @@ const MEASURE = 680;
 const LIST = 360;
 const SIDEBAR = 330;
 
-// What of the call still shows beside Calls slid in, to tap back to it.
-const PEEK = 72;
+const CALL_PEEK = 72;
 export const TASKS = 380;
-const CALL = 368;
+const PORTRAIT_PAD_CALL = 368;
 const BESIDE_BUTTONS = 56;
 const GAP = 12;
 
-// How far the call's words keep from the fold.
-const OFF_FOLD = 8;
+const WORDS_OFF_FOLD = 8;
 
-// Persona's Rive art fills three quarters of its view, as measured in the simulator.
-const ART = 0.75;
+const RIVE_ART_FILL = 0.75;
 
 interface Place {
   x: number;
@@ -44,10 +41,6 @@ export interface ColumnControls {
   size?: ControlsSize;
 }
 
-// The room the call stage lays out in, as the screen gives it: its size, the window's safe area
-// along its top and foot, how far down it a bar across the top reaches (none where the bar runs
-// down the side), the fold across it in its own coordinates, where its call buttons sit when
-// they're out in a side column, and whether its width is regular.
 export interface Box {
   width: number;
   height: number;
@@ -63,60 +56,36 @@ export interface Pane<Where> {
   place: Where;
 }
 
-// Calls that starts `below` a band of status and bar buttons leaves that band whole.
 export type CallsPlacement = Pane<'slide' | 'beside' | 'over'> & { below?: number };
 
 export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
-// Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
 export interface Beside<T> {
   open: T;
   calls: T;
   tasks: T;
 }
 
-// The call stage's geometry, in its own box's coordinates. It comes in three arrangements:
-// - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
-// - split: the orb on the leading page and the words on the trailing one, both there from the
-//   start (iPad landscape, iPhone Duo open)
-// - stacked: the orb above and the words below it (iPad portrait, iPhone Duo open on its side)
-//
-// Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
-// (single), and everywhere else they have a place of their own and always show.
 export interface Stage {
   kind: 'single' | 'split' | 'stacked';
-  // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
-  // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
-  // `rest` under the orb while it rests alone.
   controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
-  // The orb rests at `rest`, kept clear of what's below it within `room`, and moves to `read`
-  // when the words show: docked small in the corner, or at full size on its own page. On iPad it
-  // docks just before the call buttons' stack in the room a pane leaves (`dock`), never covered or
-  // faded.
   orb: {
     size: number;
     rest: Spot;
     room: { top: number; bottom: number };
     read: Spot;
-    // Beside Calls the orb rests at `calls`, and where the words then need that room, at `read`.
     dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
   };
   words: Words;
   text: 'regular' | 'large';
-  // Where the words move while Calls or Tasks sit beside them.
   besideCalls: Words;
   besideTasks: Words;
   footer: Span & { bottom: number };
   agent: Span & { bottom: number };
-  // How far the footer and agent line rise while a pane is open, to clear the call buttons that
-  // move in under them.
   lift: { calls: number; tasks: number };
   calls: CallsPlacement;
   tasks: TasksPlacement;
   pulls: boolean;
-  // The + that sends the call a photo or video, at the foot of the orb's room on its leading side:
-  // beside the transcript button where the words pull down over the orb, in the corner of the orb's
-  // own page where they have one.
   add: Place;
 }
 
@@ -138,16 +107,12 @@ export const stageLayout = (box: Box): Stage => {
   return single(box);
 };
 
-// Where the content starts: under the status items, and under a bar across the top.
 export const topOf = ({ safe, bar }: Box) => Math.max(safe.top, bar);
 
-// How far the footer keeps above the box's foot, clear of the home indicator.
 export const footOf = ({ safe }: Box) => Math.max(safe.bottom, 20) + 14;
 
-// The +'s spot at the room's leading edge, centered `y` down.
 const leading = (y: number): Place => ({ x: metrics.gutter + metrics.docked / 2, y });
 
-// The +'s spot beside the transcript button, where the orb docks while the words show.
 const besideDock = ({ x, y }: Place): Place => ({ x: x + metrics.docked + GAP, y });
 
 const single = (box: Box): Stage => {
@@ -188,12 +153,10 @@ const single = (box: Box): Stage => {
       besideCalls: top12,
       besideTasks: top12,
       footer: { ...inset, bottom: bottomInset },
-      calls: { width: Math.min(across - PEEK, SIDEBAR), place: 'slide' },
+      calls: { width: Math.min(across - CALL_PEEK, SIDEBAR), place: 'slide' },
     };
   }
 
-  // With the buttons in the side column, the docked orb takes the content's bottom corner and the
-  // footer sits above it.
   const dock = height - safe.bottom - 8 - metrics.docked / 2;
   const below = { ...words, top: safe.top + 72 };
   const read = { x: metrics.gutter + metrics.docked / 2, y: dock, size: metrics.docked };
@@ -212,36 +175,27 @@ const single = (box: Box): Stage => {
     besideCalls: below,
     besideTasks: below,
     footer: { ...inset, bottom: height - dock + metrics.docked / 2 + 18 },
-    calls: { width: Math.min(across - PEEK, LIST), place: 'slide' },
+    calls: { width: Math.min(across - CALL_PEEK, LIST), place: 'slide' },
   };
 };
 
-// iPad, either way up. One rule places the call: it's centered in the room the open pane leaves,
-// the whole screen when none is. With nothing open the orb is a third of the short side, beside
-// the words in landscape with its buttons under it, above them in portrait. With Calls or Tasks
-// open the buttons sit at the room's foot and the orb joins them, drawn as tall as they are, just
-// before mute with the gap the buttons keep, so the header holds only the toolbar and the words
-// keep their height. Tasks takes two thirds of a landscape iPad; standing up, a third is too
-// narrow to read, so the call keeps CALL.
 const pad = (box: Box): Stage => {
   const { width, height } = box;
   const bottomInset = footOf(box);
   const landscape = width > height;
   const size = Math.round(Math.min(width, height) * 0.32);
-  const tasks = landscape ? Math.round((width * 2) / 3) : width - CALL;
+  const tasks = landscape ? Math.round((width * 2) / 3) : width - PORTRAIT_PAD_CALL;
   const below = box.bar;
   const foot = height - bottomInset - metrics.call / 2;
   const agentLow = bottomInset;
   const agentHigh = bottomInset + metrics.call + 14;
 
   const docked = (from: number, to: number) => {
-    // The orb and the buttons are centered as one group, so the orb keeps clear of the card's
-    // rounded corner in a narrow room.
     const center = from + (to - from) / 2 + (BESIDE_BUTTONS + GAP) / 2;
     const buttons = center - stack('regular') / 2;
 
     return {
-      orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / ART },
+      orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / RIVE_ART_FILL },
       words: { ...measure(from, to), top: below + 16 },
       controls: { x: center, y: foot },
     };
@@ -321,30 +275,26 @@ const pad = (box: Box): Stage => {
   };
 };
 
-// Calls sits beside the call only where that leaves the call a page; otherwise it slides over all
-// but a peek of it. Starting `below` a band, it leaves the band whole either way.
 export const callsBeside = (width: number, below?: number): CallsPlacement => {
   const placement: CallsPlacement =
     width - LIST >= breakpoint.page
       ? { width: LIST, place: 'beside' }
-      : { width: width - PEEK, place: 'slide' };
+      : { width: width - CALL_PEEK, place: 'slide' };
 
   return below === undefined ? placement : { ...placement, below };
 };
 
-// The words' measure, centered in the room between `from` and `to`.
 const measure = (from: number, to: number): Span => {
   const width = Math.min(to - from - 2 * metrics.gutter, MEASURE);
 
   return { x: from + (to - from - width) / 2, width };
 };
 
-// iPhone Duo open: the orb on the page before the fold at `fold`, the words on the page after it.
 const split = (box: Box, fold?: number): Stage => {
   const { width: across, height, safe, controls } = box;
   const bottomInset = footOf(box);
   const pane = fold ?? across / 2;
-  const page = fold === undefined ? pane : fold + OFF_FOLD;
+  const page = fold === undefined ? pane : fold + WORDS_OFF_FOLD;
   const right = across - metrics.gutter;
   const words = { x: page, width: Math.min(right - page, WORDS_BESIDE) };
   const agentBottom = controls ? safe.bottom : bottomInset + metrics.call + 14;
@@ -373,12 +323,11 @@ const split = (box: Box, fold?: number): Stage => {
   };
 };
 
-// iPhone Duo open on its side: the orb above the fold at `fold`, the words below it.
 const stacked = (box: Box, fold: number): Stage => {
   const base = single(box);
   const top = topOf(box);
   const size = Math.min(base.orb.size, (fold - top) * 0.78);
-  const words = { ...base.words, top: fold + OFF_FOLD };
+  const words = { ...base.words, top: fold + WORDS_OFF_FOLD };
   const read = { x: base.orb.rest.x, y: (top + fold) / 2 };
 
   return {
@@ -393,9 +342,6 @@ const stacked = (box: Box, fold: number): Stage => {
   };
 };
 
-// Where the call's words go on the page before the fold, beside Tasks: upright, at the words' own
-// height; on its side, from under the band down to the fold, so they and the agent line beneath
-// them rise until that line ends a gap short of it.
 export const wordsBefore = (
   box: Box,
   { words, agent }: Stage,
@@ -403,12 +349,12 @@ export const wordsBefore = (
 ): Words & { raise: number } => {
   if ('x' in fold) {
     const x = metrics.gutter;
-    const width = Math.min(fold.x - OFF_FOLD - x, WORDS_BESIDE);
+    const width = Math.min(fold.x - WORDS_OFF_FOLD - x, WORDS_BESIDE);
 
     return { x, width, top: words.top, raise: 0 };
   }
 
-  const raise = box.height - fold.y + OFF_FOLD - agent.bottom;
+  const raise = box.height - fold.y + WORDS_OFF_FOLD - agent.bottom;
 
   return { ...words, top: topOf(box) + 12, raise };
 };
