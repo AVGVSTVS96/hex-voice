@@ -1,6 +1,5 @@
 import { BottomSheet, Button, Group, Menu, RNHostView } from '@expo/ui/swift-ui';
 import {
-  accessibilityIdentifier,
   accessibilityLabel,
   disabled,
   frame,
@@ -68,13 +67,12 @@ export function AddMedia({
     <BottomSheet
       isPresented={camera}
       onIsPresentedChange={setCamera}
-      testID={`${testID}-camera`}
+      testID={testID}
       anchor={
         <Menu
           label={children}
           modifiers={[
             accessibilityLabel(label),
-            accessibilityIdentifier(testID),
             disabled(most < 1),
             ...(glass ? [onGlass('circle')] : []),
           ]}
