@@ -1,5 +1,5 @@
-import { requireNativeView } from 'expo';
-import type { ViewProps } from 'react-native';
+import { requireNativeView } from "expo";
+import type { ViewProps } from "react-native";
 
 export interface Rect {
   x: number;
@@ -10,7 +10,7 @@ export interface Rect {
 
 export interface Pose {
   regular: boolean;
-  bar?: 'left' | 'right';
+  bar?: "left" | "right";
   fold?: Rect;
   occlusions?: Rect[];
 }
@@ -20,4 +20,4 @@ export type PoseViewProps = ViewProps & {
 };
 
 export const PoseView =
-  process.env.EXPO_OS === 'ios' ? requireNativeView<PoseViewProps>('Pose') : undefined;
+  process.env.EXPO_OS === "ios" ? requireNativeView<PoseViewProps>("Pose") : undefined;

@@ -1,20 +1,20 @@
-import { ZStack } from '@expo/ui/swift-ui';
-import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
-import { StyleSheet, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
-import type { AnimatedStyle } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { ZStack } from "@expo/ui/swift-ui";
+import { clipped, frame } from "@expo/ui/swift-ui/modifiers";
+import { StyleSheet, View } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
+import type { AnimatedStyle } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { pagedRoom, shapeOf, usePages } from '@/components/tasks/pages';
-import { Tasks, TasksView } from '@/components/tasks/tasks-view';
-import type { TasksProps } from '@/components/tasks/tasks-view';
-import type { Page } from '@/screens/layout';
-import { logPose } from '@/screens/pose-log';
-import { theme } from '@/theme';
-import { AnimatedView } from '@/ui/animated-view';
-import { Host } from '@/ui/host';
+import { pagedRoom, shapeOf, usePages } from "@/components/tasks/pages";
+import { Tasks, TasksView } from "@/components/tasks/tasks-view";
+import type { TasksProps } from "@/components/tasks/tasks-view";
+import type { Page } from "@/screens/layout";
+import { logPose } from "@/screens/pose-log";
+import { theme } from "@/theme";
+import { AnimatedView } from "@/ui/animated-view";
+import { Host } from "@/ui/host";
 
 const BACK_EDGE_WIDTH = 16;
 const BACK_SWIPE_DISTANCE = 48;
@@ -35,7 +35,7 @@ export const TasksPane = ({
   <AnimatedView
     testID="tasks-pane"
     accessibilityElementsHidden={!view.open}
-    importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
+    importantForAccessibility={view.open ? "auto" : "no-hide-descendants"}
     style={[styles.pane, { width, paddingTop: top }]}
     animate={animate}
   >
@@ -73,18 +73,18 @@ export const TasksPage = ({
     <Animated.View
       testID="tasks-page"
       onLayout={({ nativeEvent: { layout } }) => {
-        logPose('tasks', { ...layout, shape: pages.shape });
+        logPose("tasks", { ...layout, shape: pages.shape });
       }}
-      pointerEvents={view.open ? 'auto' : 'none'}
+      pointerEvents={view.open ? "auto" : "none"}
       accessibilityElementsHidden={!view.open}
-      importantForAccessibility={view.open ? 'auto' : 'no-hide-descendants'}
+      importantForAccessibility={view.open ? "auto" : "no-hide-descendants"}
       style={[styles.page, page.margin, style]}
     >
       <Host seedColor={theme.tint} avoids="keyboard" style={styles.fill}>
         <ZStack
           alignment="top"
           modifiers={[
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
             clipped(),
           ]}
         >
@@ -99,8 +99,8 @@ export const TasksPage = ({
 };
 
 const styles = StyleSheet.create({
-  pane: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },
-  page: { position: 'absolute' },
+  pane: { position: "absolute", top: 0, bottom: 0, right: 0, backgroundColor: theme.sheet },
+  page: { position: "absolute" },
   fill: { flex: 1 },
-  edge: { position: 'absolute', top: 0, bottom: 0, left: 0, width: BACK_EDGE_WIDTH },
+  edge: { position: "absolute", top: 0, bottom: 0, left: 0, width: BACK_EDGE_WIDTH },
 });

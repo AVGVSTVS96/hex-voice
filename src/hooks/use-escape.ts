@@ -1,6 +1,6 @@
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent } from "react";
 
-import { Escape } from '../../modules/escape';
+import { Escape } from "../../modules/escape";
 
 export const useEscape = (onEscape?: () => void) => {
   const escape = useEffectEvent(() => onEscape?.());
@@ -11,7 +11,7 @@ export const useEscape = (onEscape?: () => void) => {
       return;
     }
 
-    const subscription = Escape.addListener('onEscape', () => escape());
+    const subscription = Escape.addListener("onEscape", () => escape());
 
     return () => {
       subscription.remove();

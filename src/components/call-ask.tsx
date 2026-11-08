@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { failure, openURL } from '@/hooks/use-failures';
-import type { CallCard } from '@/live/agents';
-import { PICK } from '@/live/asks';
-import type { AskOption } from '@/live/asks';
-import { reachedBy } from '@/live/inbox';
-import { circle, theme } from '@/theme';
-import { labelOf, metrics, radius, space, textOf } from '@/ui/tokens';
+import { failure, openURL } from "@/hooks/use-failures";
+import type { CallCard } from "@/live/agents";
+import { PICK } from "@/live/asks";
+import type { AskOption } from "@/live/asks";
+import { reachedBy } from "@/live/inbox";
+import { circle, theme } from "@/theme";
+import { labelOf, metrics, radius, space, textOf } from "@/ui/tokens";
 
 export const CallAsk = ({
   card,
@@ -23,7 +23,7 @@ export const CallAsk = ({
   const [sent, setSent] = useState<string>();
   const [failed, setFailed] = useState<string>();
 
-  if ((card.answer ?? '') !== '' && ((sent ?? '') !== '' || failed !== undefined)) {
+  if ((card.answer ?? "") !== "" && ((sent ?? "") !== "" || failed !== undefined)) {
     setSent(undefined);
     setFailed(undefined);
   }
@@ -31,7 +31,7 @@ export const CallAsk = ({
   const answer = card.answer ?? sent;
 
   const choose = async (option: AskOption) => {
-    if ((sending ?? '') !== '') {
+    if ((sending ?? "") !== "") {
       return;
     }
 
@@ -44,11 +44,11 @@ export const CallAsk = ({
       setSent(option.label);
     } catch (error) {
       setSending(undefined);
-      setFailed(failure('Not sent', error));
+      setFailed(failure("Not sent", error));
     }
   };
 
-  if ((answer ?? '') !== '') {
+  if ((answer ?? "") !== "") {
     return (
       <View style={styles.sent}>
         <View style={styles.check}>
@@ -69,7 +69,7 @@ export const CallAsk = ({
           <Pressable accessibilityRole="link" hitSlop={8} onPress={onOpenTask}>
             <Text style={styles.topic}>{`${ask.topic} ›`}</Text>
           </Pressable>
-          {(ask.tag ?? '') === '' ? null : <Text style={styles.tag}>{ask.tag}</Text>}
+          {(ask.tag ?? "") === "" ? null : <Text style={styles.tag}>{ask.tag}</Text>}
         </View>
         <Text selectable style={styles.question}>
           {ask.question}
@@ -83,7 +83,7 @@ export const CallAsk = ({
             accessibilityLabel={option.pick === true ? `${option.label}, ${PICK}` : option.label}
             accessibilityState={{
               selected: sending === option.label,
-              disabled: (sending ?? '') !== '',
+              disabled: (sending ?? "") !== "",
             }}
             onPress={() => {
               void choose(option);
@@ -91,7 +91,7 @@ export const CallAsk = ({
             style={({ pressed }) => [
               styles.option,
               option.pick === true && styles.pick,
-              (pressed || ((sending ?? '') !== '' && sending !== option.label)) && styles.pressed,
+              (pressed || ((sending ?? "") !== "" && sending !== option.label)) && styles.pressed,
             ]}
           >
             <Text style={[styles.optionText, option.pick === true && styles.pickText]}>
@@ -112,7 +112,7 @@ export const CallAsk = ({
                 try {
                   await openURL(link.url);
                 } catch (error) {
-                  setFailed(failure('Not opened', error));
+                  setFailed(failure("Not opened", error));
                 }
               }}
             >
@@ -123,7 +123,7 @@ export const CallAsk = ({
       ) : null}
       {failed === undefined ? (
         <Text style={styles.hint}>
-          {sending === undefined || sending === '' ? 'Tap, or just say it' : `Sending ${sending}…`}
+          {sending === undefined || sending === "" ? "Tap, or just say it" : `Sending ${sending}…`}
         </Text>
       ) : (
         <Text accessibilityRole="alert" style={[styles.hint, styles.failed]}>
@@ -136,63 +136,63 @@ export const CallAsk = ({
 
 const styles = StyleSheet.create({
   card: {
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
     backgroundColor: theme.surface,
     borderRadius: radius.group,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     padding: space[4],
     gap: space[3],
   },
   title: { gap: space[2] },
   head: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: space[2],
     paddingHorizontal: space[0.5],
   },
-  topic: { ...labelOf('caption', 'medium'), color: theme.secondary },
-  question: { ...textOf('headline'), color: theme.text, paddingHorizontal: space[0.5] },
+  topic: { ...labelOf("caption", "medium"), color: theme.secondary },
+  question: { ...textOf("headline"), color: theme.text, paddingHorizontal: space[0.5] },
   tag: {
-    ...labelOf('caption', 'medium'),
+    ...labelOf("caption", "medium"),
     color: theme.text,
     backgroundColor: theme.surfaceSelected,
     borderRadius: radius.inner,
-    overflow: 'hidden',
+    overflow: "hidden",
     paddingHorizontal: space[3],
     paddingVertical: space[1],
   },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  options: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   option: {
     minHeight: metrics.pill.regular,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: space[4],
     borderRadius: radius.option,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     backgroundColor: theme.surfaceSelected,
   },
   pick: { backgroundColor: theme.accentMuted, paddingVertical: space[2] },
-  pickText: { ...labelOf('body', 'medium'), color: theme.text },
-  pickNote: { ...labelOf('caption'), color: theme.accent },
+  pickText: { ...labelOf("body", "medium"), color: theme.text },
+  pickNote: { ...labelOf("caption"), color: theme.accent },
   pressed: { opacity: 0.6 },
-  optionText: { ...labelOf('body'), color: theme.text },
+  optionText: { ...labelOf("body"), color: theme.text },
   links: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: space[4],
     paddingHorizontal: space[0.5],
   },
-  link: { ...labelOf('detail'), color: theme.secondary },
-  hint: { ...labelOf('caption'), color: theme.tertiary, textAlign: 'center' },
+  link: { ...labelOf("detail"), color: theme.secondary },
+  hint: { ...labelOf("caption"), color: theme.tertiary, textAlign: "center" },
   failed: { color: theme.danger },
-  sent: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3], paddingRight: space[6] },
+  sent: { flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingRight: space[6] },
   check: {
     ...circle(26),
     backgroundColor: theme.surfaceSelected,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  checkMark: { ...labelOf('caption', 'medium'), color: theme.secondary },
-  sentText: { ...textOf('body'), flex: 1, color: theme.text },
+  checkMark: { ...labelOf("caption", "medium"), color: theme.secondary },
+  sentText: { ...textOf("body"), flex: 1, color: theme.text },
   quiet: { color: theme.secondary },
 });

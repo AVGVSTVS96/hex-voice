@@ -1,7 +1,8 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
 
-import { LiveSession } from '../src/live/session';
+import { CallId } from "../src/live/calls";
+import { LiveSession } from "../src/live/session";
 import type {
   AudioStats,
   LiveEvent,
@@ -9,9 +10,8 @@ import type {
   SessionAPI,
   TransportCallbacks,
   TransportFactory,
-} from '../src/live/types';
-import type { LiveVoice } from '../src/live/voices';
-import { CallId } from '../src/live/calls';
+} from "../src/live/types";
+import type { LiveVoice } from "../src/live/voices";
 
 const settle = async () => {
   for (let i = 0; i < 12; i += 1) {
@@ -78,7 +78,7 @@ interface Command {
   event_id?: string;
 }
 
-const offerAnswer = async () => 'offer';
+const offerAnswer = async () => "offer";
 
 const quietStats = async (): Promise<AudioStats> => ({
   inputLevel: 0.1,
@@ -94,7 +94,7 @@ class FakeTransport implements LiveTransport {
   answers: string[] = [];
   closed = false;
   statsCalls = 0;
-  acknowledgeClose: 'sync' | 'microtask' | 'none' = 'microtask';
+  acknowledgeClose: "sync" | "microtask" | "none" = "microtask";
   onCommand?: (event: Command) => void;
   offerResult = offerAnswer;
   statsResult = quietStats;
@@ -108,20 +108,20 @@ class FakeTransport implements LiveTransport {
   }
   async answer(sdp: string) {
     this.answers.push(sdp);
-    this.emit({ type: 'session.started' });
+    this.emit({ type: "session.started" });
   }
   send(event: Command) {
     this.commands.push(event);
     this.onCommand?.(event);
 
-    if (event.type === 'session.close') {
-      if (this.acknowledgeClose === 'sync') {
-        this.emit({ type: 'session.closed' });
+    if (event.type === "session.close") {
+      if (this.acknowledgeClose === "sync") {
+        this.emit({ type: "session.closed" });
       }
 
-      if (this.acknowledgeClose === 'microtask') {
+      if (this.acknowledgeClose === "microtask") {
         queueMicrotask(() => {
-          this.emit({ type: 'session.closed' });
+          this.emit({ type: "session.closed" });
         });
       }
     }
@@ -145,9 +145,9 @@ class FakeTransport implements LiveTransport {
   acknowledge(command: Command) {
     this.emit({
       type:
-        command.type === 'session.input_audio.mute'
-          ? 'session.input_audio.muted'
-          : 'session.input_audio.unmuted',
+        command.type === "session.input_audio.mute"
+          ? "session.input_audio.muted"
+          : "session.input_audio.unmuted",
       client_event_id: command.event_id,
     });
   }
@@ -205,7 +205,7 @@ const harness = () => {
       await settle();
 
       for (const transport of transports) {
-        transport.emit({ type: 'session.closed' });
+        transport.emit({ type: "session.closed" });
       }
 
       await stop;
@@ -214,78 +214,78 @@ const harness = () => {
   };
 };
 
-test('a call hex can’t start says why and lets go of the microphone', async () => {
+test("a call hex can’t start says why and lets go of the microphone", async () => {
   const h = harness();
   h.control.create = async () => {
-    throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
+    throw new Error("Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.");
   };
 
   try {
     await h.session.start();
-    assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /EXPO_PUBLIC_HEX_URL/u);
+    assert.equal(h.session.getSnapshot().status, "error");
+    assert.match(h.session.getSnapshot().error ?? "", /EXPO_PUBLIC_HEX_URL/u);
     assert.equal(h.transports[0].closed, true);
   } finally {
     await h.cleanup();
   }
 });
 
-test('uses the selected voice only when starting a new session and defaults to Marin', async () => {
+test("uses the selected voice only when starting a new session and defaults to Marin", async () => {
   const h = harness();
 
   try {
-    await h.session.start('cedar');
-    await h.session.start('quartz');
-    assert.deepEqual(h.voices, ['cedar']);
+    await h.session.start("cedar");
+    await h.session.start("quartz");
+    assert.deepEqual(h.voices, ["cedar"]);
     await h.session.stop();
-    await h.session.start('quartz');
-    assert.deepEqual(h.voices, ['cedar', 'quartz']);
+    await h.session.start("quartz");
+    assert.deepEqual(h.voices, ["cedar", "quartz"]);
     await h.session.stop();
     await h.session.start();
-    assert.deepEqual(h.voices, ['cedar', 'quartz', 'marin']);
+    assert.deepEqual(h.voices, ["cedar", "quartz", "marin"]);
   } finally {
     await h.cleanup();
   }
 });
 
-test('keeps both audio directions active during assistant speech and overlapping captions', async () => {
+test("keeps both audio directions active during assistant speech and overlapping captions", async () => {
   const h = harness();
 
   try {
     await h.session.start();
     const [transport] = h.transports;
     transport.emit({
-      type: 'session.input_transcript.delta',
-      delta: 'Could you',
+      type: "session.input_transcript.delta",
+      delta: "Could you",
       start_ms: 100,
       end_ms: 400,
     });
     transport.emit({
-      type: 'session.output_transcript.delta',
-      delta: 'Sure,',
+      type: "session.output_transcript.delta",
+      delta: "Sure,",
       start_ms: 250,
       end_ms: 450,
     });
     transport.emit({
-      type: 'session.input_transcript.delta',
-      delta: ' explain this?',
+      type: "session.input_transcript.delta",
+      delta: " explain this?",
       start_ms: 400,
       end_ms: 700,
     });
     transport.emit({
-      type: 'session.output_transcript.delta',
-      delta: ' tell me more.',
+      type: "session.output_transcript.delta",
+      delta: " tell me more.",
       start_ms: 450,
       end_ms: 900,
     });
     await h.clock.fire(120);
     const snapshot = h.session.getSnapshot();
-    assert.equal(snapshot.status, 'connected');
+    assert.equal(snapshot.status, "connected");
     assert.deepEqual(
       snapshot.transcript.map(({ role, text }) => ({ role, text })),
       [
-        { role: 'user', text: 'Could you explain this?' },
-        { role: 'assistant', text: 'Sure, tell me more.' },
+        { role: "user", text: "Could you explain this?" },
+        { role: "assistant", text: "Sure, tell me more." },
       ],
     );
     const levels = h.session.getLevels();
@@ -297,7 +297,7 @@ test('keeps both audio directions active during assistant speech and overlapping
   }
 });
 
-test('audio levels move without changing the call, so the call screen redraws only for the call', async () => {
+test("audio levels move without changing the call, so the call screen redraws only for the call", async () => {
   const h = harness();
 
   try {
@@ -333,7 +333,7 @@ test('audio levels move without changing the call, so the call screen redraws on
   }
 });
 
-test('allows a fresh start after cancellation while microphone permission is pending', async () => {
+test("allows a fresh start after cancellation while microphone permission is pending", async () => {
   const h = harness();
   const ready = Promise.withResolvers<LiveTransport>();
   const originalFactory = h.control.factory;
@@ -347,7 +347,7 @@ test('allows a fresh start after cancellation while microphone permission is pen
   try {
     const starting = h.session.start();
     await h.session.stop();
-    assert.equal(h.session.getSnapshot().status, 'idle');
+    assert.equal(h.session.getSnapshot().status, "idle");
     const lateTransport = new FakeTransport(callbacks);
     ready.resolve(lateTransport);
     await starting;
@@ -355,13 +355,13 @@ test('allows a fresh start after cancellation while microphone permission is pen
     assert.equal(h.created.length, 0);
     h.control.factory = originalFactory;
     await h.session.start();
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
   } finally {
     await h.cleanup();
   }
 });
 
-test('a late session creation is closed without applying its answer after cancellation', async () => {
+test("a late session creation is closed without applying its answer after cancellation", async () => {
   const h = harness();
   const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
@@ -370,37 +370,37 @@ test('a late session creation is closed without applying its answer after cancel
     const starting = h.session.start();
     await settle();
     const [transport] = h.transports;
-    transport.acknowledgeClose = 'none';
+    transport.acknowledgeClose = "none";
     const stopping = h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late') });
+    response.resolve({ sdp: "late-answer", sessionId: CallId.parse("live_late") });
     await starting;
     assert.deepEqual(transport.answers, []);
-    assert.deepEqual(h.closed, ['live_late']);
-    transport.emit({ type: 'session.closed' });
+    assert.deepEqual(h.closed, ["live_late"]);
+    transport.emit({ type: "session.closed" });
     await stopping;
-    assert.equal(h.session.getSnapshot().status, 'idle');
+    assert.equal(h.session.getSnapshot().status, "idle");
   } finally {
     await h.cleanup();
   }
 });
 
-test('late creation cleanup failure is visible after cancellation has finished', async () => {
+test("late creation cleanup failure is visible after cancellation has finished", async () => {
   const h = harness();
   const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
   h.control.close = async () => {
-    throw new Error('Network unavailable');
+    throw new Error("Network unavailable");
   };
 
   try {
     const starting = h.session.start();
     await settle();
     await h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
+    response.resolve({ sdp: "late-answer", sessionId: CallId.parse("live_late_failure") });
     await starting;
-    assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/u);
-    assert.deepEqual(h.closed, ['live_late_failure']);
+    assert.equal(h.session.getSnapshot().status, "error");
+    assert.match(h.session.getSnapshot().error ?? "", /server could not confirm session closure/u);
+    assert.deepEqual(h.closed, ["live_late_failure"]);
     assert.equal(h.transports[0].closed, true);
     assert.deepEqual(h.transports[0].answers, []);
   } finally {
@@ -408,34 +408,34 @@ test('late creation cleanup failure is visible after cancellation has finished',
   }
 });
 
-test('stop finalization cannot erase a late creation cleanup failure', async () => {
+test("stop finalization cannot erase a late creation cleanup failure", async () => {
   const h = harness();
   const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
   h.control.close = async () => {
-    throw new Error('Network unavailable');
+    throw new Error("Network unavailable");
   };
 
   try {
     const starting = h.session.start();
     await settle();
     const [transport] = h.transports;
-    transport.acknowledgeClose = 'none';
+    transport.acknowledgeClose = "none";
     const stopping = h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_late_failure') });
+    response.resolve({ sdp: "late-answer", sessionId: CallId.parse("live_late_failure") });
     await settle();
-    assert.deepEqual(h.closed, ['live_late_failure']);
-    transport.emit({ type: 'session.closed' });
+    assert.deepEqual(h.closed, ["live_late_failure"]);
+    transport.emit({ type: "session.closed" });
     await Promise.all([starting, stopping]);
-    assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /server could not confirm session closure/u);
+    assert.equal(h.session.getSnapshot().status, "error");
+    assert.match(h.session.getSnapshot().error ?? "", /server could not confirm session closure/u);
     assert.equal(transport.closed, true);
   } finally {
     await h.cleanup();
   }
 });
 
-test('late creation cleanup failure preserves a newer connected conversation', async () => {
+test("late creation cleanup failure preserves a newer connected conversation", async () => {
   const h = harness();
   const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   const cleanup = Promise.withResolvers<undefined>();
@@ -455,24 +455,24 @@ test('late creation cleanup failure preserves a newer connected conversation', a
     const starting = h.session.start();
     await settle();
     await h.session.stop();
-    response.resolve({ sdp: 'late-answer', sessionId: CallId.parse('live_old_failure') });
+    response.resolve({ sdp: "late-answer", sessionId: CallId.parse("live_old_failure") });
     await settle();
-    assert.deepEqual(h.closed, ['live_old_failure']);
+    assert.deepEqual(h.closed, ["live_old_failure"]);
 
     h.control.create = originalCreate;
     await h.session.start();
     h.transports[1].emit({
-      type: 'session.input_transcript.delta',
-      delta: 'New conversation',
+      type: "session.input_transcript.delta",
+      delta: "New conversation",
       start_ms: 0,
       end_ms: 100,
     });
     const current = h.session.getSnapshot();
-    cleanup.reject(new Error('Old cleanup failed'));
+    cleanup.reject(new Error("Old cleanup failed"));
     await starting;
 
     assert.strictEqual(h.session.getSnapshot(), current);
-    assert.equal(current.status, 'connected');
+    assert.equal(current.status, "connected");
     assert.equal(current.error, null);
     assert.equal(h.transports[1].closed, false);
     assert.equal(warnings.length, 1);
@@ -483,32 +483,32 @@ test('late creation cleanup failure preserves a newer connected conversation', a
   }
 });
 
-test('accepts a synchronous close acknowledgment and can restart', async () => {
+test("accepts a synchronous close acknowledgment and can restart", async () => {
   const h = harness();
 
   try {
     await h.session.start();
-    h.transports[0].acknowledgeClose = 'sync';
+    h.transports[0].acknowledgeClose = "sync";
     await h.session.stop();
-    assert.equal(h.session.getSnapshot().status, 'idle');
+    assert.equal(h.session.getSnapshot().status, "idle");
     assert.deepEqual(h.closed, []);
     await h.session.start();
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
     assert.equal(h.created.length, 2);
   } finally {
     await h.cleanup();
   }
 });
 
-test('server-initiated finalization cleans up without another close command or HTTP request', async () => {
+test("server-initiated finalization cleans up without another close command or HTTP request", async () => {
   const h = harness();
 
   try {
     await h.session.start();
     const [transport] = h.transports;
-    transport.emit({ type: 'session.closed' });
+    transport.emit({ type: "session.closed" });
     await settle();
-    assert.equal(h.session.getSnapshot().status, 'idle');
+    assert.equal(h.session.getSnapshot().status, "idle");
     assert.equal(transport.closed, true);
     assert.deepEqual(transport.commands, []);
     assert.deepEqual(h.closed, []);
@@ -517,7 +517,7 @@ test('server-initiated finalization cleans up without another close command or H
   }
 });
 
-test('stale mute acknowledgments cannot satisfy the current unmute command', async () => {
+test("stale mute acknowledgments cannot satisfy the current unmute command", async () => {
   const h = harness();
 
   try {
@@ -526,20 +526,20 @@ test('stale mute acknowledgments cannot satisfy the current unmute command', asy
     h.session.toggleMute();
     h.session.toggleMute();
     const [mute, unmute] = transport.commands;
-    assert.ok(mute.event_id !== undefined && mute.event_id !== '');
-    assert.ok(unmute.event_id !== undefined && unmute.event_id !== '');
+    assert.ok(mute.event_id !== undefined && mute.event_id !== "");
+    assert.ok(unmute.event_id !== undefined && unmute.event_id !== "");
     assert.notEqual(mute.event_id, unmute.event_id);
     transport.acknowledge(mute);
     assert.deepEqual(transport.muteChanges, [true]);
     await h.clock.fire(5000);
-    assert.equal(h.session.getSnapshot().status, 'error');
-    assert.match(h.session.getSnapshot().error ?? '', /microphone change was not confirmed/u);
+    assert.equal(h.session.getSnapshot().status, "error");
+    assert.match(h.session.getSnapshot().error ?? "", /microphone change was not confirmed/u);
   } finally {
     await h.cleanup();
   }
 });
 
-test('only the newest unmute acknowledgment resumes local microphone capture', async () => {
+test("only the newest unmute acknowledgment resumes local microphone capture", async () => {
   const h = harness();
 
   try {
@@ -554,34 +554,34 @@ test('only the newest unmute acknowledgment resumes local microphone capture', a
     transport.acknowledge(transport.commands[3]);
     assert.deepEqual(transport.muteChanges, [true, true, false]);
     await h.clock.fire(5000);
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
   } finally {
     await h.cleanup();
   }
 });
 
-test('synchronous mute acknowledgment clears the confirmation timeout', async () => {
+test("synchronous mute acknowledgment clears the confirmation timeout", async () => {
   const h = harness();
 
   try {
     await h.session.start();
     const [transport] = h.transports;
     transport.onCommand = (command) => {
-      if (command.type.startsWith('session.input_audio.')) {
+      if (command.type.startsWith("session.input_audio.")) {
         transport.acknowledge(command);
       }
     };
 
     h.session.toggleMute();
     await h.clock.fire(5000);
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
     assert.equal(h.session.getSnapshot().muted, true);
   } finally {
     await h.cleanup();
   }
 });
 
-test('backgrounding preserves the live transport and captions while pausing visual stats', async () => {
+test("backgrounding preserves the live transport and captions while pausing visual stats", async () => {
   const h = harness();
 
   try {
@@ -592,19 +592,19 @@ test('backgrounding preserves the live transport and captions while pausing visu
     h.session.setAppActive(false);
     h.clock.now += 45_000;
     transport.emit({
-      type: 'session.input_transcript.delta',
-      delta: 'Still here',
+      type: "session.input_transcript.delta",
+      delta: "Still here",
       start_ms: 45_000,
       end_ms: 45_400,
     });
     transport.emit({
-      type: 'session.output_transcript.delta',
-      delta: 'I can hear you.',
+      type: "session.output_transcript.delta",
+      delta: "I can hear you.",
       start_ms: 45_200,
       end_ms: 45_800,
     });
     await h.clock.fire(120);
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
     assert.equal(h.session.getSnapshot().transcript.length, 2);
     assert.equal(transport.statsCalls, 1);
     assert.equal(transport.closed, false);
@@ -622,7 +622,7 @@ test('backgrounding preserves the live transport and captions while pausing visu
   }
 });
 
-test('a call hung up from the Lock Screen after a quiet stretch keeps its full length', async () => {
+test("a call hung up from the Lock Screen after a quiet stretch keeps its full length", async () => {
   const h = harness();
 
   try {
@@ -631,7 +631,7 @@ test('a call hung up from the Lock Screen after a quiet stretch keeps its full l
     h.clock.now += 200_000;
     const stop = h.session.stop();
     assert.equal(h.session.getSnapshot().elapsedSeconds, 200);
-    h.transports[0].emit({ type: 'session.closed' });
+    h.transports[0].emit({ type: "session.closed" });
     await stop;
     assert.equal(h.session.getSnapshot().elapsedSeconds, 200);
   } finally {
@@ -639,7 +639,7 @@ test('a call hung up from the Lock Screen after a quiet stretch keeps its full l
   }
 });
 
-test('a muted microphone stays muted when returning from the background', async () => {
+test("a muted microphone stays muted when returning from the background", async () => {
   const h = harness();
 
   try {
@@ -659,7 +659,7 @@ test('a muted microphone stays muted when returning from the background', async 
   }
 });
 
-test('a session connecting during background transition is kept without starting visual stats', async () => {
+test("a session connecting during background transition is kept without starting visual stats", async () => {
   const h = harness();
   const response = Promise.withResolvers<{ sdp: string; sessionId: CallId }>();
   h.control.create = async () => await response.promise;
@@ -668,10 +668,10 @@ test('a session connecting during background transition is kept without starting
     const starting = h.session.start();
     await settle();
     h.session.setAppActive(false);
-    response.resolve({ sdp: 'background-answer', sessionId: CallId.parse('live_background') });
+    response.resolve({ sdp: "background-answer", sessionId: CallId.parse("live_background") });
     await starting;
     await h.clock.fire(120);
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
     assert.equal(h.transports[0].statsCalls, 0);
     assert.equal(h.transports[0].closed, false);
     assert.deepEqual(h.transports[0].muteChanges, []);
@@ -682,7 +682,7 @@ test('a session connecting during background transition is kept without starting
   }
 });
 
-test('a stats result arriving in the background does not restore visual levels', async () => {
+test("a stats result arriving in the background does not restore visual levels", async () => {
   const h = harness();
   const pending = Promise.withResolvers<AudioStats>();
 
@@ -694,13 +694,13 @@ test('a stats result arriving in the background does not restore visual levels',
     pending.resolve({ inputLevel: 0.2, outputLevel: 0.3, sentPackets: 10, receivedPackets: 20 });
     await settle();
     assert.deepEqual(h.session.getLevels(), { input: 0, output: 0 });
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
   } finally {
     await h.cleanup();
   }
 });
 
-test('an earlier stalled stats operation cannot block a new session', async () => {
+test("an earlier stalled stats operation cannot block a new session", async () => {
   const h = harness();
 
   try {
@@ -718,25 +718,25 @@ test('an earlier stalled stats operation cannot block a new session', async () =
   }
 });
 
-test('missing close acknowledgment uses the server fallback once', async () => {
+test("missing close acknowledgment uses the server fallback once", async () => {
   const h = harness();
 
   try {
     await h.session.start();
-    h.transports[0].acknowledgeClose = 'none';
+    h.transports[0].acknowledgeClose = "none";
     const stopping = h.session.stop();
     await settle();
     await h.clock.fire(1500);
     await stopping;
-    assert.deepEqual(h.closed, ['live_1']);
-    assert.equal(h.session.getSnapshot().status, 'idle');
+    assert.deepEqual(h.closed, ["live_1"]);
+    assert.equal(h.session.getSnapshot().status, "idle");
     assert.equal(h.transports[0].closed, true);
   } finally {
     await h.cleanup();
   }
 });
 
-test('old transport events cannot alter a later conversation', async () => {
+test("old transport events cannot alter a later conversation", async () => {
   const h = harness();
 
   try {
@@ -744,43 +744,43 @@ test('old transport events cannot alter a later conversation', async () => {
     const [old] = h.transports;
     await h.session.stop();
     await h.session.start();
-    old.emit({ type: 'session.closed' });
+    old.emit({ type: "session.closed" });
     old.emit({
-      type: 'session.output_transcript.delta',
-      delta: 'Old speech',
+      type: "session.output_transcript.delta",
+      delta: "Old speech",
       start_ms: 10,
       end_ms: 20,
     });
-    old.callbacks.onFailure('Old failure');
+    old.callbacks.onFailure("Old failure");
     await settle();
-    assert.equal(h.session.getSnapshot().status, 'connected');
+    assert.equal(h.session.getSnapshot().status, "connected");
     assert.deepEqual(h.session.getSnapshot().transcript, []);
   } finally {
     await h.cleanup();
   }
 });
 
-test('a call remembers how it ended: you, hex, or a dropped connection', async () => {
+test("a call remembers how it ended: you, hex, or a dropped connection", async () => {
   const h = harness();
 
   try {
     await h.session.start();
     await settle();
     await h.session.stop();
-    assert.equal(h.session.getSnapshot().ending, 'you');
-    assert.equal(h.transports[0].commands.at(-1)?.event_id, 'close-you-app');
+    assert.equal(h.session.getSnapshot().ending, "you");
+    assert.equal(h.transports[0].commands.at(-1)?.event_id, "close-you-app");
 
     await h.session.start();
     await settle();
-    h.transports[1].emit({ type: 'session.closed', reason: 'expired' });
+    h.transports[1].emit({ type: "session.closed", reason: "expired" });
     await settle();
-    assert.equal(h.session.getSnapshot().ending, 'expired');
+    assert.equal(h.session.getSnapshot().ending, "expired");
 
     await h.session.start();
     await settle();
-    h.transports[2].callbacks.onFailure('The audio connection failed.');
+    h.transports[2].callbacks.onFailure("The audio connection failed.");
     await settle();
-    assert.equal(h.session.getSnapshot().ending, 'dropped');
+    assert.equal(h.session.getSnapshot().ending, "dropped");
 
     await h.session.start();
     assert.equal(h.session.getSnapshot().ending, null);
@@ -789,7 +789,7 @@ test('a call remembers how it ended: you, hex, or a dropped connection', async (
   }
 });
 
-test('when iOS never hands the audio back, a tap on the microphone ends the pause', async () => {
+test("when iOS never hands the audio back, a tap on the microphone ends the pause", async () => {
   const h = harness();
 
   try {
@@ -801,7 +801,7 @@ test('when iOS never hands the audio back, a tap on the microphone ends the paus
     assert.equal(h.session.getSnapshot().interrupted, false);
     assert.equal(h.session.getSnapshot().muted, false);
     assert.deepEqual(transport.muteChanges.at(-1), false);
-    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
+    assert.equal(transport.commands.at(-1)?.type, "session.input_audio.unmute");
 
     h.session.toggleMute();
     const muting = transport.commands.at(-1);
@@ -810,13 +810,13 @@ test('when iOS never hands the audio back, a tap on the microphone ends the paus
     h.session.interrupt(true);
     h.session.toggleMute();
     assert.equal(h.session.getSnapshot().interrupted, false);
-    assert.equal(h.session.getSnapshot().muted, false, 'muted and paused, one tap unmutes');
+    assert.equal(h.session.getSnapshot().muted, false, "muted and paused, one tap unmutes");
   } finally {
     await h.cleanup();
   }
 });
 
-test('a phone call or Siri pauses the microphone, tells hex, and gives it back unless you muted', async () => {
+test("a phone call or Siri pauses the microphone, tells hex, and gives it back unless you muted", async () => {
   const h = harness();
   const marks: string[] = [];
   h.api.mark = async (id, kind) => {
@@ -831,12 +831,12 @@ test('a phone call or Siri pauses the microphone, tells hex, and gives it back u
     h.session.interrupt(true);
     assert.equal(h.session.getSnapshot().interrupted, true);
     assert.deepEqual(transport.muteChanges.at(-1), true);
-    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.mute');
+    assert.equal(transport.commands.at(-1)?.type, "session.input_audio.mute");
     h.session.interrupt(false);
     assert.equal(h.session.getSnapshot().interrupted, false);
     assert.deepEqual(transport.muteChanges.at(-1), false);
-    assert.equal(transport.commands.at(-1)?.type, 'session.input_audio.unmute');
-    assert.deepEqual(marks, ['live_1 paused', 'live_1 resumed']);
+    assert.equal(transport.commands.at(-1)?.type, "session.input_audio.unmute");
+    assert.deepEqual(marks, ["live_1 paused", "live_1 resumed"]);
 
     h.session.toggleMute();
     const muting = transport.commands.at(-1);

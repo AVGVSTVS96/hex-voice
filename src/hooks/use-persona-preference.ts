@@ -1,9 +1,9 @@
-import { DEFAULT_PERSONA, isPersonaVariant } from '@/components/persona/variants';
-import { useSavedPreference } from '@/hooks/use-saved-preference';
+import { DEFAULT_PERSONA, isPersonaVariant } from "@/components/persona/variants";
+import { useSavedPreference } from "@/hooks/use-saved-preference";
 
 export const usePersonaPreference = () => {
   const { value, setValue, loaded } = useSavedPreference(
-    'live.persona',
+    "live.persona",
     DEFAULT_PERSONA,
     isPersonaVariant,
   );

@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import * as z from 'zod/mini';
+import { useState } from "react";
+import * as z from "zod/mini";
 
-import { hex } from '@/hex';
-import { RefusedError } from '@/hex/client';
-import { useFailures, failure } from '@/hooks/use-failures';
-import { useKept } from '@/hooks/use-kept';
-import { useWatch } from '@/hooks/use-watch';
-import { arrived, newKey } from '@/live/chat';
-import type { Sending } from '@/live/chat';
-import type { Picked } from '@/live/media';
-import type { Chat, TaskId } from '@/live/tasks';
+import { hex } from "@/hex";
+import { RefusedError } from "@/hex/client";
+import { useFailures, failure } from "@/hooks/use-failures";
+import { useKept } from "@/hooks/use-kept";
+import { useWatch } from "@/hooks/use-watch";
+import { arrived, newKey } from "@/live/chat";
+import type { Sending } from "@/live/chat";
+import type { Picked } from "@/live/media";
+import type { Chat, TaskId } from "@/live/tasks";
 
 export const useChat = (id: TaskId | null, live: boolean) => {
   const [seen, setSeen] = useState<{ id: TaskId; chat: Chat }>();
-  const [writable, keepWritable] = useKept('sends', z.record(z.string(), z.boolean()));
+  const [writable, keepWritable] = useKept("sends", z.record(z.string(), z.boolean()));
   const [sending, setSending] = useState<Sending[]>([]);
   const tries = useFailures();
   useWatch(
@@ -40,7 +40,7 @@ export const useChat = (id: TaskId | null, live: boolean) => {
       try {
         await hex.tasks.send(sent.id, sent.text, sent.key, sent.media);
       } catch (error) {
-        const failed = { why: failure('Not sent', error), again: !(error instanceof RefusedError) };
+        const failed = { why: failure("Not sent", error), again: !(error instanceof RefusedError) };
         setSending((now) =>
           now.map((each) => (each.key === sent.key ? { ...each, failed } : each)),
         );
@@ -60,7 +60,7 @@ export const useChat = (id: TaskId | null, live: boolean) => {
     retry: deliver,
     stop: async () => {
       if (id) {
-        await tries.attempt(id, 'Not stopped', async () => {
+        await tries.attempt(id, "Not stopped", async () => {
           await hex.tasks.stop(id);
         });
       }

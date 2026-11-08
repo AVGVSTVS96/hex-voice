@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect } from "react";
+import { StyleSheet } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -7,20 +7,20 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
+} from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 
-import { TasksPage } from '@/components/tasks-pane';
-import { useKeyboardUp } from '@/hooks/use-keyboard-up';
-import type { TasksProps } from '@/components/tasks/tasks-view';
-import { clock } from '@/live/calls';
-import { motion } from '@/motion';
-import { BAR_TIME } from '@/screens/layout';
-import type { Duo } from '@/screens/layout';
-import { theme } from '@/theme';
-import { AnimatedView } from '@/ui/animated-view';
-import { HostedGlassButton } from '@/ui/glass-button';
-import { metrics } from '@/ui/tokens';
+import { TasksPage } from "@/components/tasks-pane";
+import type { TasksProps } from "@/components/tasks/tasks-view";
+import { useKeyboardUp } from "@/hooks/use-keyboard-up";
+import { clock } from "@/live/calls";
+import { motion } from "@/motion";
+import { BAR_TIME } from "@/screens/layout";
+import type { Duo } from "@/screens/layout";
+import { theme } from "@/theme";
+import { AnimatedView } from "@/ui/animated-view";
+import { HostedGlassButton } from "@/ui/glass-button";
+import { metrics } from "@/ui/tokens";
 
 export const useDuoTasks = (
   duo: Duo | undefined,
@@ -55,7 +55,7 @@ export const useDuoTasks = (
 };
 
 export const uncovered = (covers: number) => {
-  'worklet';
+  "worklet";
 
   return 1 - Math.min(1, 2 * covers);
 };
@@ -94,7 +94,7 @@ export const DuoTasks = ({
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
 
   const offerFade = () => {
-    'worklet';
+    "worklet";
 
     return { opacity: state.offer.get() };
   };
@@ -115,13 +115,13 @@ export const DuoTasks = ({
           dockedStyle,
         ]}
       >
-        {onCall ? clock(seconds * 1000) : ''}
+        {onCall ? clock(seconds * 1000) : ""}
       </Animated.Text>
       {button && (
         <AnimatedView
-          pointerEvents={state.offered ? 'box-none' : 'none'}
+          pointerEvents={state.offered ? "box-none" : "none"}
           accessibilityElementsHidden={!state.offered}
-          importantForAccessibility={state.offered ? 'auto' : 'no-hide-descendants'}
+          importantForAccessibility={state.offered ? "auto" : "no-hide-descendants"}
           style={[
             styles.button,
             { left: button.x - metrics.tool / 2, top: button.y - metrics.tool / 2 },
@@ -129,7 +129,7 @@ export const DuoTasks = ({
           animate={offerFade}
         >
           <HostedGlassButton
-            icon={stacks ? 'beside-column' : 'beside-row'}
+            icon={stacks ? "beside-column" : "beside-row"}
             label="Transcript beside Tasks"
             testID="transcript-beside-button"
             selected={state.beside}
@@ -155,12 +155,12 @@ const pageOf = (duo: Duo, { above, beside }: { above: boolean; beside: boolean }
 
 const styles = StyleSheet.create({
   time: {
-    position: 'absolute',
+    position: "absolute",
     height: BAR_TIME,
     color: theme.secondary,
     fontSize: 12,
     lineHeight: BAR_TIME,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
-  button: { position: 'absolute' },
+  button: { position: "absolute" },
 });

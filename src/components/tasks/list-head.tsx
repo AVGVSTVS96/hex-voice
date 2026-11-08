@@ -1,5 +1,5 @@
-import { Icon, Row, TextInput } from '@expo/ui';
-import type { TextInputRef } from '@expo/ui';
+import { Icon, Row, TextInput } from "@expo/ui";
+import type { TextInputRef } from "@expo/ui";
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -12,20 +12,20 @@ import {
   monospacedDigit,
   padding,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
-import { useContext } from 'react';
-import type { RefObject } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
+import { useContext } from "react";
+import type { RefObject } from "react";
 
-import { BackButton, BarButton } from '@/components/tasks/bar';
-import type { Back } from '@/components/tasks/bar';
-import { Typing } from '@/components/tasks/pages';
-import { TABS } from '@/live/inbox';
-import type { Stage, Tab } from '@/live/inbox';
-import { theme } from '@/theme';
-import { glass } from '@/ui/glass-button';
-import { Text } from '@/ui/text';
-import { labelOf, metrics, space } from '@/ui/tokens';
+import { BackButton, BarButton } from "@/components/tasks/bar";
+import type { Back } from "@/components/tasks/bar";
+import { Typing } from "@/components/tasks/pages";
+import { TABS } from "@/live/inbox";
+import type { Stage, Tab } from "@/live/inbox";
+import { theme } from "@/theme";
+import { glass } from "@/ui/glass-button";
+import { Text } from "@/ui/text";
+import { labelOf, metrics, space } from "@/ui/tokens";
 
 export const SearchButton = ({ onPress }: { onPress: () => void }) => (
   <BarButton shape="circle" label="Search" testID="tasks-search" onPress={onPress}>
@@ -61,7 +61,7 @@ export const Tabs = ({
       frame({ maxWidth: Infinity }),
     ]}
   >
-    {title === undefined || title === '' ? null : (
+    {title === undefined || title === "" ? null : (
       <Row
         alignment="center"
         spacing={space[3]}
@@ -81,13 +81,13 @@ export const Tabs = ({
           leading: metrics.list.inset - metrics.tabs.pad,
           trailing: metrics.list.inset - metrics.tabs.pad,
         }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
       ]}
     >
       {TABS.map(({ key, title: name }) => {
         const on = key === stage;
-        const count = key === 'all' ? undefined : counts[key];
-        const needs = !unknown && key === 'needs' && count !== undefined && count > 0;
+        const count = key === "all" ? undefined : counts[key];
+        const needs = !unknown && key === "needs" && count !== undefined && count > 0;
 
         return (
           <Row
@@ -101,17 +101,17 @@ export const Tabs = ({
               padding({ leading: metrics.tabs.pad, trailing: metrics.tabs.pad }),
               frame({ height: metrics.tabs.height }),
               ...(on ? [background(theme.card)] : []),
-              clipShape('capsule'),
+              clipShape("capsule"),
               contentShape(shapes.capsule()),
               accessibilityLabel(unknown || count === undefined ? name : `${name}, ${count}`),
-              ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
+              ...(on ? [accessibilityAddTraits(["isSelected"])] : []),
             ]}
           >
             <Text
               numberOfLines={1}
               variant="caption"
-              weight={on ? 'medium' : 'regular'}
-              tone={on ? 'text' : 'secondary'}
+              weight={on ? "medium" : "regular"}
+              tone={on ? "text" : "secondary"}
               modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
             >
               {name}
@@ -119,11 +119,11 @@ export const Tabs = ({
             {count === undefined ? null : (
               <Text
                 variant="caption"
-                weight={needs ? 'medium' : 'regular'}
-                tone={needs ? 'accent' : 'tertiary'}
+                weight={needs ? "medium" : "regular"}
+                tone={needs ? "accent" : "tertiary"}
                 modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
               >
-                {unknown ? '–' : String(count)}
+                {unknown ? "–" : String(count)}
               </Text>
             )}
           </Row>
@@ -176,7 +176,7 @@ export const Search = ({
           padding({ leading: space[4], trailing: space[4] }),
           frame({ height: metrics.bar.button }),
           frame({ maxWidth: Infinity }),
-          glass('capsule'),
+          glass("capsule"),
         ]}
       >
         <Icon name="magnifyingglass" size={metrics.symbol.small} color={theme.secondary} />
@@ -198,10 +198,10 @@ export const Search = ({
           placeholderTextColor={theme.tertiary}
           cursorColor={theme.accent}
           onChangeText={onChange}
-          textStyle={labelOf('body')}
+          textStyle={labelOf("body")}
           modifiers={[
             foregroundStyle(theme.text),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
           ]}
         />
       </Row>

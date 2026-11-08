@@ -6,11 +6,11 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-} from 'react';
+} from "react";
 
-import type { Back } from '@/components/tasks/bar';
+import type { Back } from "@/components/tasks/bar";
 
-export type BackFrom = 'tasks' | 'settings' | 'call';
+export type BackFrom = "tasks" | "settings" | "call";
 
 type Publish = (from: BackFrom, back: Back | undefined) => void;
 

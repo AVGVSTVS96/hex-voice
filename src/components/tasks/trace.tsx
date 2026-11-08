@@ -1,5 +1,5 @@
-import { Column, Icon, Row, ScrollView, Spacer } from '@expo/ui';
-import { Background, Rectangle } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, ScrollView, Spacer } from "@expo/ui";
+import { Background, Rectangle } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   contentShape,
@@ -9,16 +9,17 @@ import {
   padding,
   scrollClipDisabled,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
-import type { SFSymbol } from 'sf-symbols-typescript';
+} from "@expo/ui/swift-ui/modifiers";
+import { useState } from "react";
+import type { ReactElement, ReactNode } from "react";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Header } from '@/components/tasks/bar';
-import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
-import { useNow } from '@/hooks/use-now';
-import { PLACES, placeOf } from '@/live/inbox';
+import { Header } from "@/components/tasks/bar";
+import { Mark } from "@/components/tasks/mark";
+import { Faded, SectionHead, Sections, Waiting } from "@/components/tasks/parts";
+import { useNow } from "@/hooks/use-now";
+import type { Answered } from "@/hooks/use-watch";
+import { PLACES, placeOf } from "@/live/inbox";
 import {
   STATE_WORDS,
   agentCounts,
@@ -28,28 +29,27 @@ import {
   stepMark,
   stepTimes,
   taskTime,
-} from '@/live/tasks';
-import type { AgentTrail, StepKind, Task, TaskAgent, TaskStep } from '@/live/tasks';
-import type { Answered } from '@/hooks/use-watch';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
-import type { Tone } from '@/ui/tokens';
+} from "@/live/tasks";
+import type { AgentTrail, StepKind, Task, TaskAgent, TaskStep } from "@/live/tasks";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, space } from "@/ui/tokens";
+import type { Tone } from "@/ui/tokens";
 
 export const KIND: Record<StepKind, SFSymbol> = {
-  think: 'lightbulb',
-  say: 'text.bubble',
-  plan: 'list.bullet',
-  run: 'terminal',
-  read: 'doc.text',
-  edit: 'pencil',
-  search: 'magnifyingglass',
-  web: 'globe',
-  agent: 'arrow.triangle.branch',
-  tool: 'wrench.and.screwdriver',
+  think: "lightbulb",
+  say: "text.bubble",
+  plan: "list.bullet",
+  run: "terminal",
+  read: "doc.text",
+  edit: "pencil",
+  search: "magnifyingglass",
+  web: "globe",
+  agent: "arrow.triangle.branch",
+  tool: "wrench.and.screwdriver",
 };
 
-const PLANNED = { done: 'done', running: 'working', pending: 'pending' } as const;
+const PLANNED = { done: "done", running: "working", pending: "pending" } as const;
 const TEXT = metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap;
 
 const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
@@ -59,7 +59,7 @@ export const StepsLoading = (answered: Answered) => (
   <Column
     alignment="center"
     spacing={0}
-    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
   >
     <Header title="Steps" subtitle=" " />
     <Waiting {...answered} gone="These steps aren’t there any more." />
@@ -67,8 +67,8 @@ export const StepsLoading = (answered: Answered) => (
 );
 
 export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) => {
-  const working = task.state === 'working';
-  const done = task.plan.filter((item) => item.state === 'done').length;
+  const working = task.state === "working";
+  const done = task.plan.filter((item) => item.state === "done").length;
   const { shown, tries } = agentsInOrder(task.agents);
   const place = PLACES[placeOf(task.app)];
 
@@ -76,7 +76,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
     <Column
       alignment="center"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
     >
       <Header
         title="Steps"
@@ -87,7 +87,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
           showsIndicators={false}
           modifiers={[
             scrollClipDisabled(),
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
           ]}
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
@@ -100,7 +100,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                       key={`${i} ${item.text}`}
                       lead={<Mark state={PLANNED[item.state]} />}
                       text={item.text}
-                      tone={item.state === 'pending' ? 'secondary' : undefined}
+                      tone={item.state === "pending" ? "secondary" : undefined}
                     />
                   ))}
                 </Column>
@@ -115,11 +115,11 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                 </Column>
               ) : null}
               <Column key="steps" alignment="start" spacing={0}>
-                <SectionHead title="Steps" count={task.steps.length ? 'newest first' : undefined} />
+                <SectionHead title="Steps" count={task.steps.length ? "newest first" : undefined} />
                 {task.steps.length ? (
                   <Steps steps={task.steps} agents={task.agents} />
                 ) : (
-                  <Quiet text={working ? 'No steps yet' : 'Steps show while it works'} />
+                  <Quiet text={working ? "No steps yet" : "Steps show while it works"} />
                 )}
               </Column>
             </Sections>
@@ -142,21 +142,21 @@ export const Steps = ({
   opens?: boolean;
 }) => {
   const [open, setOpen] = useState<string | null>(null);
-  const now = useNow(steps.some((step) => step.state === 'running'));
+  const now = useNow(steps.some((step) => step.state === "running"));
   const times = stepTimes(steps, now);
 
   return (
     <Column alignment="start" spacing={0}>
       {steps.map((step, i) => {
         const key = step.id ?? `${step.at} ${step.text}`;
-        const words = step.kind === 'think' || step.kind === 'say';
+        const words = step.kind === "think" || step.kind === "say";
         const opened = open === key;
         const mark = stepMark(step);
         const agent = agentOf(step, agents);
 
         const folded = words ? 3 : 1;
-        const detail = step.detail ?? '';
-        const result = step.result ?? '';
+        const detail = step.detail ?? "";
+        const result = step.result ?? "";
 
         return (
           <TraceLine
@@ -184,9 +184,9 @@ export const Steps = ({
             {opened && detail ? <Output lines={[detail]} wraps={4} tone="secondary" /> : null}
             {opened && result ? (
               <Output
-                lines={result.split('\n').slice(0, 6)}
+                lines={result.split("\n").slice(0, 6)}
                 wraps={1}
-                tone={step.state === 'failed' ? 'danger' : 'tertiary'}
+                tone={step.state === "failed" ? "danger" : "tertiary"}
               />
             ) : null}
           </TraceLine>
@@ -197,7 +197,7 @@ export const Steps = ({
 };
 
 const agentOf = (step: TaskStep, agents: TaskAgent[] | undefined) =>
-  (step.agent ?? '') === '' ? undefined : agents?.find((one) => one.id === step.agent);
+  (step.agent ?? "") === "" ? undefined : agents?.find((one) => one.id === step.agent);
 
 const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: Tone }) => (
   <Column alignment="start" spacing={0} modifiers={[padding({ top: space[1] })]}>
@@ -207,7 +207,7 @@ const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: 
         numberOfLines={wraps}
         variant="code"
         tone={tone}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         {line}
       </Text>
@@ -216,13 +216,13 @@ const Output = ({ lines, wraps, tone }: { lines: string[]; wraps: number; tone: 
 );
 
 const agentShows = (agent: AgentTrail, open: boolean) => {
-  const working = agent.state === 'working';
+  const working = agent.state === "working";
 
   return {
-    newest: working && !open ? (agent.line ?? agent.steps[0]?.text ?? '') : '',
-    result: open && !working ? (agent.result ?? '') : '',
+    newest: working && !open ? (agent.line ?? agent.steps[0]?.text ?? "") : "",
+    result: open && !working ? (agent.result ?? "") : "",
     steps: open ? agentSteps(agent) : [],
-    link: open ? (agent.link ?? '') : '',
+    link: open ? (agent.link ?? "") : "",
   };
 };
 
@@ -238,12 +238,12 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
         <TraceLine
           lead={<Mark state={agent.state} />}
           text={agent.label}
-          tone={agent.state === 'stopped' ? 'secondary' : undefined}
+          tone={agent.state === "stopped" ? "secondary" : undefined}
           time={meta}
           onPress={() => {
             setOpen(!open);
           }}
-          label={`${agent.label}, ${meta || agent.state}${newest ? `: ${newest}` : ''}. ${open ? 'Hides' : 'Shows'} what it did`}
+          label={`${agent.label}, ${meta || agent.state}${newest ? `: ${newest}` : ""}. ${open ? "Hides" : "Shows"} what it did`}
         >
           {newest ? <Under text={newest} /> : null}
         </TraceLine>
@@ -267,7 +267,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
             <Under
               text={result}
               lines={whole ? 0 : 3}
-              tone={agent.state === 'failed' ? 'danger' : 'secondary'}
+              tone={agent.state === "failed" ? "danger" : "secondary"}
             />
           </Row>
         ) : null}
@@ -306,7 +306,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
 
 const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
-  const words = `${tries.length} earlier ${tries.length === 1 ? 'try' : 'tries'}, stopped`;
+  const words = `${tries.length} earlier ${tries.length === 1 ? "try" : "tries"}, stopped`;
 
   return (
     <Column alignment="start" spacing={0}>
@@ -314,11 +314,11 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
         lead={<Mark state="stopped" />}
         text={words}
         tone="tertiary"
-        chevron={open ? 'chevron.down' : 'chevron.right'}
+        chevron={open ? "chevron.down" : "chevron.right"}
         onPress={() => {
           setOpen(!open);
         }}
-        label={`${words}. ${open ? 'Hides' : 'Shows'} them`}
+        label={`${words}. ${open ? "Hides" : "Shows"} them`}
       />
       {open ? tries.map((agent) => <Agent key={agent.id} agent={agent} onOpen={onOpen} />) : null}
     </Column>
@@ -328,7 +328,7 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
 const Under = ({
   text,
   lines = 1,
-  tone = 'secondary',
+  tone = "secondary",
 }: {
   text: string;
   lines?: number;
@@ -339,7 +339,7 @@ const Under = ({
     variant="detail"
     tone={tone}
     paragraph
-    modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+    modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
   >
     {text}
   </Text>
@@ -349,13 +349,13 @@ export const TraceLine = ({
   lead,
   text,
   lines = 1,
-  time = '',
-  tone = 'text',
+  time = "",
+  tone = "text",
   indent = 0,
   after,
   chevron,
   onPress,
-  label = '',
+  label = "",
   children,
 }: {
   lead: ReactNode;
@@ -365,7 +365,7 @@ export const TraceLine = ({
   tone?: Tone;
   indent?: number;
   after?: ReactElement;
-  chevron?: 'chevron.down' | 'chevron.right';
+  chevron?: "chevron.down" | "chevron.right";
   onPress?: () => void;
   label?: string;
   children?: ReactNode;
@@ -381,7 +381,7 @@ export const TraceLine = ({
         top: space[2],
         bottom: space[2],
       }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
       contentShape(shapes.rectangle()),
       ...(label ? [accessibilityLabel(label)] : []),
     ]}
@@ -399,7 +399,7 @@ export const TraceLine = ({
         variant="detail"
         tone={tone}
         paragraph
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         {text}
       </Text>

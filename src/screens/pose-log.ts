@@ -1,4 +1,4 @@
-import { Settings } from 'react-native';
+import { Settings } from "react-native";
 
 const KEPT = 60;
 let entries: object[] = [];

@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text } from "react-native";
+import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
-import { CallAsk } from '@/components/call-ask';
-import { SentMedia } from '@/components/media/sent';
-import type { CallCard } from '@/live/agents';
-import type { AskOption, Sent } from '@/live/asks';
-import type { TaskId } from '@/live/tasks';
-import type { TranscriptEntry } from '@/live/types';
-import { motion } from '@/motion';
-import { theme } from '@/theme';
-import { ScrollView } from '@/ui/scroll';
-import { Turn } from '@/ui/turn';
-import { metrics, space, textOf } from '@/ui/tokens';
+import { CallAsk } from "@/components/call-ask";
+import { SentMedia } from "@/components/media/sent";
+import type { CallCard } from "@/live/agents";
+import type { AskOption, Sent } from "@/live/asks";
+import type { TaskId } from "@/live/tasks";
+import type { TranscriptEntry } from "@/live/types";
+import { motion } from "@/motion";
+import { theme } from "@/theme";
+import { ScrollView } from "@/ui/scroll";
+import { metrics, space, textOf } from "@/ui/tokens";
+import { Turn } from "@/ui/turn";
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
@@ -21,16 +21,16 @@ const NO_CARDS: CallCard[] = [];
 export const Transcript = ({
   entries,
   active,
-  size = 'regular',
-  emptyAt = 'end',
+  size = "regular",
+  emptyAt = "end",
   cards = NO_CARDS,
   onAnswer,
   onOpenTask,
 }: {
   entries: TranscriptEntry[];
   active: boolean;
-  size?: 'regular' | 'large';
-  emptyAt?: 'end' | 'center';
+  size?: "regular" | "large";
+  emptyAt?: "end" | "center";
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => Promise<Sent>;
   onOpenTask?: (task: TaskId) => void;
@@ -38,7 +38,7 @@ export const Transcript = ({
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
-  const visible = entries.filter((entry) => entry.media !== undefined || entry.text.trim() !== '');
+  const visible = entries.filter((entry) => entry.media !== undefined || entry.text.trim() !== "");
   const moments = interleave(visible, cards);
 
   useEffect(() => {
@@ -81,12 +81,12 @@ export const Transcript = ({
       }}
       contentContainerStyle={[
         styles.content,
-        !moments.length && emptyAt === 'center' && styles.centered,
+        !moments.length && emptyAt === "center" && styles.centered,
       ]}
     >
       {moments.length ? (
         moments.map((moment) => {
-          if ('ask' in moment) {
+          if ("ask" in moment) {
             return (
               <CallAsk
                 key={`ask ${moment.ask.id}`}
@@ -124,21 +124,21 @@ const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
 
   for (const card of cards.toSorted((a, b) => a.at - b.at)) {
-    const after = moments.findIndex((moment) => !('ask' in moment) && moment.startMs > card.at);
+    const after = moments.findIndex((moment) => !("ask" in moment) && moment.startMs > card.at);
     moments.splice(after === -1 ? moments.length : after, 0, card);
   }
 
   return moments;
 };
 
-const Line = ({ entry, size }: { entry: TranscriptEntry; size: 'regular' | 'large' }) => {
+const Line = ({ entry, size }: { entry: TranscriptEntry; size: "regular" | "large" }) => {
   const text = entry.text.trim();
   const [warm, settled] = useSettledLength(text.length);
-  const user = entry.role === 'user';
+  const user = entry.role === "user";
 
   return (
     <Turn you={user}>
-      <Text accessibilityLabel={`${user ? 'You' : 'hex'}: ${text}`} selectable style={styles[size]}>
+      <Text accessibilityLabel={`${user ? "You" : "hex"}: ${text}`} selectable style={styles[size]}>
         {text.slice(0, settled)}
         <Text style={styles.warm}>{text.slice(settled, warm)}</Text>
         <Text style={styles.fresh}>{text.slice(warm)}</Text>
@@ -165,20 +165,20 @@ const useSettledLength = (length: number) => {
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
     gap: space[6],
     paddingTop: metrics.fade,
     paddingBottom: metrics.fade,
   },
-  centered: { justifyContent: 'center' },
-  regular: { ...textOf('words'), color: theme.text },
-  large: { ...textOf('words'), color: theme.text },
+  centered: { justifyContent: "center" },
+  regular: { ...textOf("words"), color: theme.text },
+  large: { ...textOf("words"), color: theme.text },
   warm: { color: theme.secondary },
   fresh: { color: theme.tertiary },
   empty: {
-    ...textOf('body'),
+    ...textOf("body"),
     color: theme.secondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingBottom: space[3],
   },
 });

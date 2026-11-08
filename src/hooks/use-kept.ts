@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
-import type * as z from 'zod/mini';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useEffect, useState } from "react";
+import type * as z from "zod/mini";
 
 export const restore = async <S extends z.ZodMiniType>(
   key: string,
@@ -9,7 +9,7 @@ export const restore = async <S extends z.ZodMiniType>(
   try {
     const saved = await AsyncStorage.getItem(key);
 
-    return saved === null || saved === '' ? undefined : schema.safeParse(JSON.parse(saved)).data;
+    return saved === null || saved === "" ? undefined : schema.safeParse(JSON.parse(saved)).data;
   } catch {
     return undefined;
   }

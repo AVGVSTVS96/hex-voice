@@ -1,6 +1,6 @@
-import * as Updates from 'expo-updates';
-import { useEffect, useEffectEvent } from 'react';
-import { AppState } from 'react-native';
+import * as Updates from "expo-updates";
+import { useEffect, useEffectEvent } from "react";
+import { AppState } from "react-native";
 
 export const useAppUpdates = (callLive: boolean) => {
   const { isUpdatePending } = Updates.useUpdates();
@@ -18,11 +18,11 @@ export const useAppUpdates = (callLive: boolean) => {
 
     let last = AppState.currentState;
 
-    const listener = AppState.addEventListener('change', (state) => {
-      const fromBackground = last === 'background' && state === 'active';
+    const listener = AppState.addEventListener("change", (state) => {
+      const fromBackground = last === "background" && state === "active";
       last = state;
 
-      if (state !== 'active') {
+      if (state !== "active") {
         return;
       }
 

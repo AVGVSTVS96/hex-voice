@@ -1,12 +1,12 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
 
-import type { Pose } from '../modules/pose';
-import { barOf, cardOf } from '../src/call/card';
-import { screenLayout } from '../src/screens/layout';
-import { roomOf } from '../src/screens/window';
-import type { Insets, Size } from '../src/screens/window';
-import { metrics, radius } from '../src/ui/tokens';
+import type { Pose } from "../modules/pose";
+import { barOf, cardOf } from "../src/call/card";
+import { screenLayout } from "../src/screens/layout";
+import { roomOf } from "../src/screens/window";
+import type { Insets, Size } from "../src/screens/window";
+import { metrics, radius } from "../src/ui/tokens";
 
 interface Fixture {
   window: Size;
@@ -26,34 +26,34 @@ const screens = {
     insets: { top: 62, right: 0, bottom: 34, left: 0 },
     pose: { regular: false },
   },
-  'iPad landscape': { window: { width: 1194, height: 834 }, insets: pad, pose: { regular: true } },
-  'iPad portrait': { window: { width: 834, height: 1194 }, insets: pad, pose: { regular: true } },
-  'Duo folded upright': {
+  "iPad landscape": { window: { width: 1194, height: 834 }, insets: pad, pose: { regular: true } },
+  "iPad portrait": { window: { width: 834, height: 1194 }, insets: pad, pose: { regular: true } },
+  "Duo folded upright": {
     window: { width: 466, height: 678 },
     insets: column,
-    pose: { regular: false, bar: 'right', occlusions: [{ x: 382, y: 0, width: 84, height: 170 }] },
+    pose: { regular: false, bar: "right", occlusions: [{ x: 382, y: 0, width: 84, height: 170 }] },
   },
-  'Duo folded, column leading': {
+  "Duo folded, column leading": {
     window: { width: 466, height: 678 },
     insets: { ...column, right: 0, left: 84 },
-    pose: { regular: false, bar: 'left', occlusions: [{ x: 0, y: 0, width: 84, height: 170 }] },
+    pose: { regular: false, bar: "left", occlusions: [{ x: 0, y: 0, width: 84, height: 170 }] },
   },
-  'Duo open upright': {
+  "Duo open upright": {
     window: { width: 951, height: 669 },
     insets: column,
-    pose: { regular: true, bar: 'right', fold: { ...upright } },
+    pose: { regular: true, bar: "right", fold: { ...upright } },
   },
-  'Duo open, column leading': {
+  "Duo open, column leading": {
     window: { width: 951, height: 669 },
     insets: { ...column, right: 0, left: 84 },
-    pose: { regular: true, bar: 'left', fold: { ...upright, x: 539.5 } },
+    pose: { regular: true, bar: "left", fold: { ...upright, x: 539.5 } },
   },
-  'Duo partly open upright': {
+  "Duo partly open upright": {
     window: { width: 951, height: 669 },
     insets: column,
-    pose: { regular: true, bar: 'right', fold: { ...upright } },
+    pose: { regular: true, bar: "right", fold: { ...upright } },
   },
-  'Duo open on its side': {
+  "Duo open on its side": {
     window: { width: 669, height: 951 },
     insets: band,
     pose: {
@@ -66,7 +66,7 @@ const screens = {
 
 const layoutOf = ({ window, insets, pose }: Fixture) => screenLayout(roomOf(pose, window, insets));
 
-test('on every screen, the call card rounds off by the one card corner whenever Calls is in, and meets Calls’ edge', () => {
+test("on every screen, the call card rounds off by the one card corner whenever Calls is in, and meets Calls’ edge", () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const card = cardOf(layout, 1, 0, layout.tasks.width);
@@ -75,15 +75,15 @@ test('on every screen, the call card rounds off by the one card corner whenever 
   }
 });
 
-test('on every screen, the call card rounds off against Tasks beside it, and Tasks over it leaves it whole', () => {
+test("on every screen, the call card rounds off against Tasks beside it, and Tasks over it leaves it whole", () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const card = cardOf(layout, 0, 1, layout.tasks.width);
-    assert.equal(card.borderRadius, layout.tasks.place === 'beside' ? radius.card : 0, name);
+    assert.equal(card.borderRadius, layout.tasks.place === "beside" ? radius.card : 0, name);
   }
 });
 
-test('on every screen, a call card with nothing beside it fills the screen square', () => {
+test("on every screen, a call card with nothing beside it fills the screen square", () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const card = cardOf(layout, 0, 0, layout.tasks.width);
@@ -96,17 +96,17 @@ test('on every screen, a call card with nothing beside it fills the screen squar
   }
 });
 
-test('what is on the call card stays put in the window unless the card slides aside to Calls’ edge', () => {
+test("what is on the call card stays put in the window unless the card slides aside to Calls’ edge", () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
 
     for (const drawer of [0.5, 1]) {
       const card = cardOf(layout, drawer, 0, layout.tasks.width);
-      const slid = layout.calls.place === 'slide' ? drawer * layout.calls.width : 0;
+      const slid = layout.calls.place === "slide" ? drawer * layout.calls.width : 0;
       assert.equal(card.left + card.stage.left, layout.content.x + slid, `${name} at ${drawer}`);
       assert.equal(card.top + card.stage.top, 0, `${name} at ${drawer}`);
 
-      if (layout.calls.place === 'slide' && drawer === 1) {
+      if (layout.calls.place === "slide" && drawer === 1) {
         assert.equal(card.stage.left, 0, `${name}: the call's content peeks from Calls' edge`);
       }
     }
@@ -118,12 +118,12 @@ const foldAcrossMiddle = (width: number, height: number) =>
     ? { x: width / 2 - 20, y: 0, width: 40, height }
     : { x: 0, y: height / 2 - 20, width, height: 40 };
 
-test('in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square', () => {
+test("in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square", () => {
   const problems: string[] = [];
 
   for (const width of [375, 440, 466, 669, 834, 951, 1194]) {
     for (const height of [466, 669, 678, 834, 951, 1194]) {
-      for (const side of [undefined, 'left', 'right'] as const) {
+      for (const side of [undefined, "left", "right"] as const) {
         for (const folded of [false, true]) {
           const fold = folded ? foldAcrossMiddle(width, height) : undefined;
 
@@ -132,13 +132,13 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
             insets: {
               top: side ? 0 : 24,
               bottom: 20,
-              left: side === 'left' ? 84 : 0,
-              right: side === 'right' ? 84 : 0,
+              left: side === "left" ? 84 : 0,
+              right: side === "right" ? 84 : 0,
             },
             pose: { regular: width >= 669, bar: side, fold },
           });
 
-          const name = `${width}x${height} ${side ?? 'no'} column${folded ? ', folded' : ''}`;
+          const name = `${width}x${height} ${side ?? "no"} column${folded ? ", folded" : ""}`;
           const calls = cardOf(layout, 1, 0, layout.tasks.width);
 
           if (calls.borderRadius !== radius.card) {
@@ -160,14 +160,14 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
   assert.deepEqual(problems, []);
 });
 
-test('on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it', () => {
+test("on every screen, the bar across the top keeps one place clear of Tasks beside it, and Calls only carries it", () => {
   const least = 3 * metrics.tool + 2 * metrics.toolbar.row;
 
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const { toolbar, calls, tasks } = layout;
 
-    if (toolbar.axis !== 'row') {
+    if (toolbar.axis !== "row") {
       continue;
     }
 
@@ -186,7 +186,7 @@ test('on every screen, the bar across the top keeps one place clear of Tasks bes
       if (drawer === 0) {
         assert.ok(left >= 0 && end <= window, `${where}: inside the window`);
 
-        if (tasks.place === 'beside') {
+        if (tasks.place === "beside") {
           assert.ok(end <= window - tasks.width, `${where}: clear of Tasks`);
         }
       }
@@ -201,10 +201,10 @@ test('on every screen, the bar across the top keeps one place clear of Tasks bes
   }
 });
 
-test('Calls coming in over the call leaves the card where it is', () => {
+test("Calls coming in over the call leaves the card where it is", () => {
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
-    const over = { ...layout, calls: { width: layout.content.width, place: 'over' as const } };
+    const over = { ...layout, calls: { width: layout.content.width, place: "over" as const } };
     assert.deepEqual(
       cardOf(over, 1, 0, layout.tasks.width),
       cardOf(over, 0, 0, layout.tasks.width),

@@ -1,35 +1,35 @@
-import { Column, Row, ScrollView } from '@expo/ui';
+import { Column, Row, ScrollView } from "@expo/ui";
 import {
   background,
   clipShape,
   frame,
   padding,
   scrollClipDisabled,
-} from '@expo/ui/swift-ui/modifiers';
+} from "@expo/ui/swift-ui/modifiers";
 
-import { Header } from '@/components/tasks/bar';
-import { Mark } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, Waiting } from '@/components/tasks/parts';
-import type { Check, CheckNote } from '@/live/asks';
-import { timeOfDay } from '@/live/calls';
-import type { Answered } from '@/hooks/use-watch';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, radius, space } from '@/ui/tokens';
+import { Header } from "@/components/tasks/bar";
+import { Mark } from "@/components/tasks/mark";
+import { Faded, SectionHead, Sections, Waiting } from "@/components/tasks/parts";
+import type { Answered } from "@/hooks/use-watch";
+import type { Check, CheckNote } from "@/live/asks";
+import { timeOfDay } from "@/live/calls";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, radius, space } from "@/ui/tokens";
 
 export const LastCheck = ({ check, ...answered }: Answered & { check?: Check }) => (
   <Column
     alignment="center"
     spacing={0}
-    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
   >
-    <Header title="Last check" subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : ' '} />
+    <Header title="Last check" subtitle={check ? `${timeOfDay(check.at)} · ${check.why}` : " "} />
     <Faded>
       <ScrollView
         showsIndicators={false}
         modifiers={[
           scrollClipDisabled(),
-          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
         ]}
       >
         {check ? (
@@ -74,7 +74,7 @@ const Read = ({ read }: { read: Record<string, number> }) => (
       padding({ top: space[4], bottom: space[4], leading: space[2], trailing: space[2] }),
       frame({ maxWidth: Infinity }),
       background(theme.card),
-      clipShape('roundedRectangle', radius.group),
+      clipShape("roundedRectangle", radius.group),
       padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
     ]}
   >
@@ -105,14 +105,14 @@ const NoteRow = ({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
         top: space[3],
         bottom: space[3],
       }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
     ]}
   >
-    <Mark state={fixed ? 'done' : 'needs'} />
+    <Mark state={fixed ? "done" : "needs"} />
     <Column
       alignment="start"
       spacing={space[1]}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <Text variant="detail" weight="medium" paragraph>
         {note.title}
@@ -120,7 +120,7 @@ const NoteRow = ({ note, fixed = false }: { note: CheckNote; fixed?: boolean }) 
       <Text variant="detail" tone="secondary" paragraph>
         {note.text}
       </Text>
-      {note.did === undefined || note.did === '' ? null : (
+      {note.did === undefined || note.did === "" ? null : (
         <Text variant="detail" weight="medium" paragraph>
           {note.did}
         </Text>

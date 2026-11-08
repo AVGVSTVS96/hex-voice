@@ -1,20 +1,20 @@
-import { GlassEffectContainer, HStack, Spacer, VStack } from '@expo/ui/swift-ui';
-import { frame } from '@expo/ui/swift-ui/modifiers';
-import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
-import { StyleSheet, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import { GlassEffectContainer, HStack, Spacer, VStack } from "@expo/ui/swift-ui";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
+import { StyleSheet, View } from "react-native";
+import type { ViewStyle } from "react-native";
 
-import { buttonsOf } from '@/call/call';
-import type { Call, CallButton } from '@/call/call';
-import { GlassButton } from '@/ui/glass-button';
-import { Host } from '@/ui/host';
-import { metrics } from '@/ui/tokens';
-import type { ControlsSize } from '@/ui/tokens';
+import { buttonsOf } from "@/call/call";
+import type { Call, CallButton } from "@/call/call";
+import { GlassButton } from "@/ui/glass-button";
+import { Host } from "@/ui/host";
+import { metrics } from "@/ui/tokens";
+import type { ControlsSize } from "@/ui/tokens";
 
 interface Props {
   call: Call;
   ready: boolean;
-  axis: 'row' | 'column';
+  axis: "row" | "column";
   mute?: boolean;
   size?: ControlsSize;
   onMute: () => void;
@@ -23,13 +23,13 @@ interface Props {
 
 const PRIMARY: Record<
   CallButton,
-  { icon: 'close' | 'waveform'; label: string; loading?: true; off?: true }
+  { icon: "close" | "waveform"; label: string; loading?: true; off?: true }
 > = {
-  start: { icon: 'waveform', label: 'Start conversation' },
-  retry: { icon: 'waveform', label: 'Retry conversation' },
-  cancel: { icon: 'close', label: 'Cancel connection', loading: true },
-  end: { icon: 'close', label: 'End conversation' },
-  ending: { icon: 'waveform', label: 'Ending conversation', loading: true, off: true },
+  start: { icon: "waveform", label: "Start conversation" },
+  retry: { icon: "waveform", label: "Retry conversation" },
+  cancel: { icon: "close", label: "Cancel connection", loading: true },
+  end: { icon: "close", label: "End conversation" },
+  ending: { icon: "waveform", label: "Ending conversation", loading: true, off: true },
 };
 
 export const CallButtons = ({
@@ -37,7 +37,7 @@ export const CallButtons = ({
   ready,
   axis,
   mute = true,
-  size = 'regular',
+  size = "regular",
   modifiers,
   onMute,
   onPrimary,
@@ -46,7 +46,7 @@ export const CallButtons = ({
   const buttons = buttonsOf(call);
   const primary = PRIMARY[buttons.call];
   const muteSide = metrics[sizes.mute];
-  const Stack = axis === 'row' ? HStack : VStack;
+  const Stack = axis === "row" ? HStack : VStack;
 
   return (
     <GlassEffectContainer modifiers={modifiers}>
@@ -54,8 +54,8 @@ export const CallButtons = ({
         {mute &&
           (buttons.mute ? (
             <GlassButton
-              icon={buttons.mute.muted ? 'mic-off' : 'mic'}
-              label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
+              icon={buttons.mute.muted ? "mic-off" : "mic"}
+              label={buttons.mute.muted ? "Unmute microphone" : "Mute microphone"}
               testID="session-mute-button"
               disabled={!buttons.mute.enabled}
               selected={buttons.mute.muted}
@@ -81,7 +81,7 @@ export const CallButtons = ({
 };
 
 export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle }) => {
-  const { axis, mute = true, size = 'regular' } = props;
+  const { axis, mute = true, size = "regular" } = props;
   const sizes = metrics.controls[size];
   const callSide = metrics[sizes.call];
   const along = (mute ? metrics[sizes.mute] + sizes.gap : 0) + callSide;
@@ -89,12 +89,12 @@ export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle })
   return (
     <View
       pointerEvents="box-none"
-      style={[styles[axis], axis === 'row' && { height: callSide }, style]}
+      style={[styles[axis], axis === "row" && { height: callSide }, style]}
     >
       <Host
         matchContents
         style={
-          axis === 'row' ? { width: along, height: callSide } : { width: callSide, height: along }
+          axis === "row" ? { width: along, height: callSide } : { width: callSide, height: along }
         }
       >
         <CallButtons {...props} />
@@ -105,10 +105,10 @@ export const CallControls = ({ style, ...props }: Props & { style?: ViewStyle })
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     height: metrics.call,
   },
-  column: { alignItems: 'center', width: metrics.call },
+  column: { alignItems: "center", width: metrics.call },
 });

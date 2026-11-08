@@ -1,9 +1,8 @@
-import { callsBeside, stageLayout, wordsBefore } from '@/call/stage';
-import type { Box, CallsPlacement, ColumnControls, Stage, Words } from '@/call/stage';
-import { metrics, space, stack } from '@/ui/tokens';
-import type { ToolbarGaps } from '@/ui/tokens';
-
-import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
+import { callsBeside, stageLayout, wordsBefore } from "@/call/stage";
+import type { Box, CallsPlacement, ColumnControls, Stage, Words } from "@/call/stage";
+import type { Fold, Insets, Rect, Room, Size } from "@/screens/window";
+import { metrics, space, stack } from "@/ui/tokens";
+import type { ToolbarGaps } from "@/ui/tokens";
 
 const GAP = 12;
 
@@ -37,14 +36,14 @@ interface Span {
   width: number;
 }
 
-type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGaps };
+type Toolbar = Spot & { width: number; axis: "row" | "column"; gaps?: ToolbarGaps };
 
 export interface Duo {
   tasks: Page;
   beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
   call: {
     orb: Required<Spot>;
-    time: Place & { width: number; align: 'center' | 'left' };
+    time: Place & { width: number; align: "center" | "left" };
     controls?: { right: number; top: number };
   };
 }
@@ -52,13 +51,13 @@ export interface Duo {
 export interface Page {
   area: Rect;
   margin: Insets;
-  foot: number | 'fold';
+  foot: number | "fold";
 }
 
 export type Layout = Stage & {
   content: Rect;
   toolbar: Toolbar;
-  column?: { bar: 'left' | 'right' };
+  column?: { bar: "left" | "right" };
   inbox?: Inbox;
   duo?: Duo;
 };
@@ -81,7 +80,7 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
     height: content.height,
     safe: { top: insets.top, bottom: insets.bottom },
     bar: frame.column ? 0 : toolbar.y + metrics.tool,
-    fold: fold && ('x' in fold ? { x: fold.x - content.x } : fold),
+    fold: fold && ("x" in fold ? { x: fold.x - content.x } : fold),
     controls: frame.column?.controls,
     regular,
   };
@@ -104,8 +103,8 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
     : belowBand(frame, fold, before);
 
   const calls = frame.column ? layout.calls : callsBeside(box.width, frame.top);
-  const banded = !frame.column && calls.place === 'beside';
-  const whole = !call && layout.kind !== 'split';
+  const banded = !frame.column && calls.place === "beside";
+  const whole = !call && layout.kind !== "split";
 
   const besideCalls = banded
     ? {
@@ -119,12 +118,12 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
     ...layout,
     content,
     toolbar,
-    calls: whole ? { ...calls, width: content.width, place: 'over' } : calls,
+    calls: whole ? { ...calls, width: content.width, place: "over" } : calls,
     besideCalls,
-    tasks: { width: content.width, place: 'page' },
-    column: frame.column && { bar: frame.column.x === 0 ? 'left' : 'right' },
+    tasks: { width: content.width, place: "page" },
+    column: frame.column && { bar: frame.column.x === 0 ? "left" : "right" },
     orb:
-      calls.place === 'beside'
+      calls.place === "beside"
         ? { ...layout.orb, dock: orbBesideCalls(frame, box, layout, calls, duo) }
         : layout.orb,
     duo,
@@ -137,7 +136,7 @@ const orbBesideCalls = (
   layout: Stage,
   calls: CallsPlacement,
   duo: Duo,
-): NonNullable<Stage['orb']['dock']> => {
+): NonNullable<Stage["orb"]["dock"]> => {
   const from = calls.width;
   const to = frame.column ? frame.column.x - frame.content.x : box.width;
 
@@ -186,7 +185,7 @@ const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room
         x: metrics.gutter,
         y: insets.top + (regular ? 16 : 12),
         width: window.width - 2 * metrics.gutter,
-        axis: 'row' as const,
+        axis: "row" as const,
       };
 
   return {
@@ -205,7 +204,7 @@ const band = (window: Size, insets: Insets, occlusions: Rect[]): Toolbar => {
   return {
     ...widestClear(metrics.gutter, window.width - metrics.gutter, status),
     y: insets.top / 2 + STATUS_DROP - metrics.tool / 2,
-    axis: 'row',
+    axis: "row",
   };
 };
 
@@ -226,9 +225,9 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
   return to - start > best.width ? { x: start, width: to - start } : best;
 };
 
-const columnFrame = (window: Size, insets: Insets, bar: 'left' | 'right', occlusions: Rect[]) => {
-  const width = bar === 'right' ? insets.right : insets.left;
-  const x = bar === 'right' ? window.width - width : 0;
+const columnFrame = (window: Size, insets: Insets, bar: "left" | "right", occlusions: Rect[]) => {
+  const width = bar === "right" ? insets.right : insets.left;
+  const x = bar === "right" ? window.width - width : 0;
   const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
   const high = (area: Rect) => area.y + area.height / 2 < window.height / 2;
 
@@ -256,8 +255,8 @@ const columnFrame = (window: Size, insets: Insets, bar: 'left' | 'right', occlus
       x: center - metrics.tool / 2,
       y: Math.max(top, COLUMN.top),
       width: metrics.tool,
-      axis: 'column' as const,
-      gaps: tight ? ('compact' as const) : ('regular' as const),
+      axis: "column" as const,
+      gaps: tight ? ("compact" as const) : ("regular" as const),
     },
     column: {
       x,
@@ -266,8 +265,8 @@ const columnFrame = (window: Size, insets: Insets, bar: 'left' | 'right', occlus
       controls: {
         right: window.width - center - metrics.call / 2,
         bottom: foot,
-        axis: 'column' as const,
-        size: tight ? ('compact' as const) : ('regular' as const),
+        axis: "column" as const,
+        size: tight ? ("compact" as const) : ("regular" as const),
       },
     },
     top: insets.top,
@@ -276,13 +275,13 @@ const columnFrame = (window: Size, insets: Insets, bar: 'left' | 'right', occlus
 
 const besideColumn = (
   frame: Frame,
-  column: NonNullable<Frame['column']>,
+  column: NonNullable<Frame["column"]>,
   fold?: Fold,
   before?: Words & { raise: number },
 ): Duo => {
   const { window, insets, toolbar } = frame;
-  const gaps = metrics.toolbar[toolbar.gaps ?? 'regular'];
-  const size = column.controls.size ?? 'regular';
+  const gaps = metrics.toolbar[toolbar.gaps ?? "regular"];
+  const size = column.controls.size ?? "regular";
   const sizes = metrics.controls[size];
   const x = column.center;
   const reach = Math.max(metrics.tool, metrics[sizes.mute], metrics[sizes.call]) / 2;
@@ -321,7 +320,7 @@ const besideColumn = (
       },
     call: {
       orb: { x, y: y + orb / 2, size: orb },
-      time: { x: x - BAR_TIME_WIDTH / 2, y: time, width: BAR_TIME_WIDTH, align: 'center' },
+      time: { x: x - BAR_TIME_WIDTH / 2, y: time, width: BAR_TIME_WIDTH, align: "center" },
     },
   };
 };
@@ -344,7 +343,7 @@ const belowBand = (frame: Frame, fold?: Fold, before?: Words & { raise: number }
 
   const end = toolbar.x + toolbar.width - BACK - TASKS_AND_SETTINGS - GAP;
   const middle = toolbar.y + metrics.tool / 2;
-  const mute = end - stack('tool');
+  const mute = end - stack("tool");
   const button = { x: mute - 14 - metrics.tool / 2, y: middle };
   const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - BAR_TIME_WIDTH;
 
@@ -353,7 +352,7 @@ const belowBand = (frame: Frame, fold?: Fold, before?: Words & { raise: number }
     beside: after && before && { tasks: after, typing: above, words: before, button },
     call: {
       orb: { x: time - 6 - BAR_ORB / 2, y: middle, size: BAR_ORB },
-      time: { x: time, y: middle - BAR_TIME / 2, width: BAR_TIME_WIDTH, align: 'left' },
+      time: { x: time, y: middle - BAR_TIME / 2, width: BAR_TIME_WIDTH, align: "left" },
       controls: { right: window.width - end, top: toolbar.y },
     },
   };
@@ -366,7 +365,7 @@ interface Paged {
 }
 
 const paged = (window: Size, { area, foot }: { area: Rect; foot: number }, fold?: Fold): Paged => {
-  const at = (rect: Rect, end: number | 'fold'): Page => ({
+  const at = (rect: Rect, end: number | "fold"): Page => ({
     area: rect,
     margin: {
       top: rect.y,
@@ -383,13 +382,13 @@ const paged = (window: Size, { area, foot }: { area: Rect; foot: number }, fold?
     return { tasks };
   }
 
-  if ('x' in fold) {
+  if ("x" in fold) {
     return { tasks, after: at({ ...area, x: fold.x, width: area.x + area.width - fold.x }, foot) };
   }
 
   return {
     tasks,
     after: at({ ...area, y: fold.y, height: area.y + area.height - fold.y }, foot),
-    before: at({ ...area, height: fold.y - area.y }, 'fold'),
+    before: at({ ...area, height: fold.y - area.y }, "fold"),
   };
 };

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import { useSharedValue, withSpring } from 'react-native-reanimated';
+import { useEffect } from "react";
+import { useSharedValue, withSpring } from "react-native-reanimated";
 
-import { VoiceTone } from '../../modules/voice-tone';
-import { useActive } from '@/hooks/use-watch';
-import { motion } from '@/motion';
+import { useActive } from "@/hooks/use-watch";
+import { motion } from "@/motion";
+
+import { VoiceTone } from "../../modules/voice-tone";
 
 export const useVoiceTone = (listening: boolean) => {
   const pitch = useSharedValue(0);
@@ -17,7 +18,7 @@ export const useVoiceTone = (listening: boolean) => {
       return;
     }
 
-    const subscription = voice.addListener('onTone', (heard) => {
+    const subscription = voice.addListener("onTone", (heard) => {
       pitch.set(withSpring(heard.pitch, motion.tone));
       tone.set(withSpring(heard.tone, motion.tone));
     });

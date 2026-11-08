@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
 import {
   background,
   clipShape,
@@ -7,19 +7,19 @@ import {
   padding,
   shapes,
   textSelection,
-} from '@expo/ui/swift-ui/modifiers';
-import { useContext, useState } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import { useContext, useState } from "react";
 
-import { Markdown } from '@/components/markdown';
-import { Mark } from '@/components/tasks/mark';
-import { Failure, SectionHead } from '@/components/tasks/parts';
-import { Selectable } from '@/components/tasks/said';
-import { openURL, useFailures } from '@/hooks/use-failures';
-import { pinSections } from '@/live/pinned';
-import type { PinLine, PinSection } from '@/live/pinned';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, radius, space } from '@/ui/tokens';
+import { Markdown } from "@/components/markdown";
+import { Mark } from "@/components/tasks/mark";
+import { Failure, SectionHead } from "@/components/tasks/parts";
+import { Selectable } from "@/components/tasks/said";
+import { openURL, useFailures } from "@/hooks/use-failures";
+import { pinSections } from "@/live/pinned";
+import type { PinLine, PinSection } from "@/live/pinned";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, radius, space } from "@/ui/tokens";
 
 export const Pinned = ({ text }: { text: string }) => {
   const sections = pinSections(text);
@@ -79,7 +79,7 @@ const Line = ({ line }: { line: PinLine }) => {
   const tries = useFailures();
   const selectable = useContext(Selectable);
 
-  if (line.kind === 'code') {
+  if (line.kind === "code") {
     return (
       <Text
         variant="code"
@@ -87,9 +87,9 @@ const Line = ({ line }: { line: PinLine }) => {
         modifiers={[
           textSelection(selectable),
           padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
           background(theme.surface),
-          clipShape('roundedRectangle', radius.inner),
+          clipShape("roundedRectangle", radius.inner),
           padding({
             leading: metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.gap,
             trailing: metrics.list.inset,
@@ -109,12 +109,12 @@ const Line = ({ line }: { line: PinLine }) => {
     url === undefined
       ? undefined
       : () => {
-          void tries.attempt(url, 'Not opened', async () => {
+          void tries.attempt(url, "Not opened", async () => {
             await openURL(url);
           });
         };
 
-  if (line.kind === 'text' && url === undefined) {
+  if (line.kind === "text" && url === undefined) {
     return (
       <Markdown
         inline
@@ -128,7 +128,7 @@ const Line = ({ line }: { line: PinLine }) => {
             top: space[2],
             bottom: space[2],
           }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
         ]}
       >
         {line.text}
@@ -136,7 +136,7 @@ const Line = ({ line }: { line: PinLine }) => {
     );
   }
 
-  if (line.kind === 'text') {
+  if (line.kind === "text") {
     return (
       <Row
         alignment="start"
@@ -149,20 +149,20 @@ const Line = ({ line }: { line: PinLine }) => {
             top: space[2],
             bottom: space[2],
           }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
           contentShape(shapes.rectangle()),
         ]}
       >
         <Column
           alignment="start"
           spacing={space[0.5]}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           <Markdown
             inline
             variant="detail"
             tone="secondary"
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
           >
             {line.text}
           </Markdown>
@@ -185,21 +185,21 @@ const Line = ({ line }: { line: PinLine }) => {
           top: space[2],
           bottom: space[2],
         }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
         contentShape(shapes.rectangle()),
       ]}
     >
-      <Mark state={line.mark === 'done' ? 'read' : line.mark} />
+      <Mark state={line.mark === "done" ? "read" : line.mark} />
       <Column
         alignment="start"
         spacing={space[0.5]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         <Markdown
           inline
           variant="detail"
-          tone={line.mark === 'done' ? 'secondary' : 'text'}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          tone={line.mark === "done" ? "secondary" : "text"}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           {line.text}
         </Markdown>

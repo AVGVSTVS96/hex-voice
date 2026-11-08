@@ -1,10 +1,10 @@
-import { Text as UniversalText } from '@expo/ui';
-import type { TextProps } from '@expo/ui';
-import { font, foregroundStyle, lineSpacing } from '@expo/ui/swift-ui/modifiers';
+import { Text as UniversalText } from "@expo/ui";
+import type { TextProps } from "@expo/ui";
+import { font, foregroundStyle, lineSpacing } from "@expo/ui/swift-ui/modifiers";
 
-import { theme } from '@/theme';
-import { type } from '@/ui/tokens';
-import type { TextStyle, TextVariant, Tone, Weight } from '@/ui/tokens';
+import { theme } from "@/theme";
+import { type } from "@/ui/tokens";
+import type { TextStyle, TextVariant, Tone, Weight } from "@/ui/tokens";
 
 interface Look {
   variant?: TextVariant;
@@ -14,9 +14,9 @@ interface Look {
 }
 
 export const textLook = ({
-  variant = 'body',
+  variant = "body",
   weight,
-  tone = 'text',
+  tone = "text",
   paragraph = false,
 }: Look = {}) => {
   const style: TextStyle = type[variant];
@@ -41,7 +41,7 @@ export const Text = ({
   align,
   modifiers,
   ...props
-}: Omit<TextProps, 'textStyle'> & Look & { align?: 'center' }) => (
+}: Omit<TextProps, "textStyle"> & Look & { align?: "center" }) => (
   <UniversalText
     {...props}
     textStyle={align && { textAlign: align }}

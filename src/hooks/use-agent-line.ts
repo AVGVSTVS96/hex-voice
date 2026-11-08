@@ -1,12 +1,12 @@
-import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
+import * as Haptics from "expo-haptics";
+import { useEffect, useRef, useState } from "react";
 
-import { hex } from '@/hex';
-import { useWatch } from '@/hooks/use-watch';
-import { agentLine, justFinished } from '@/live/agents';
-import type { AgentTask, CallCard } from '@/live/agents';
-import type { CallId } from '@/live/calls';
-import { motion } from '@/motion';
+import { hex } from "@/hex";
+import { useWatch } from "@/hooks/use-watch";
+import { agentLine, justFinished } from "@/live/agents";
+import type { AgentTask, CallCard } from "@/live/agents";
+import type { CallId } from "@/live/calls";
+import { motion } from "@/motion";
 
 interface Live {
   call: CallId | null;
@@ -19,7 +19,7 @@ export const useAgentLine = (haptics: boolean) => {
   const [finished, setFinished] = useState<AgentTask>();
   const seen = useRef<AgentTask[]>([]);
 
-  useWatch('activity', hex.activity.watch, (activity) => {
+  useWatch("activity", hex.activity.watch, (activity) => {
     const tasks = activity.call ? activity.tasks : [];
     const done = justFinished(seen.current, tasks);
     seen.current = tasks;
@@ -35,7 +35,7 @@ export const useAgentLine = (haptics: boolean) => {
 
     setFinished(done);
 
-    if (haptics && process.env.EXPO_OS === 'ios') {
+    if (haptics && process.env.EXPO_OS === "ios") {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     }
   });

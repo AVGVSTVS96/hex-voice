@@ -1,15 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useMemo, useState } from 'react';
-import * as z from 'zod/mini';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useMemo, useState } from "react";
+import * as z from "zod/mini";
 
-import { hex } from '@/hex';
-import { useFailures } from '@/hooks/use-failures';
-import { restore, store } from '@/hooks/use-kept';
-import { useWatch } from '@/hooks/use-watch';
-import { CallRecord, CallSummary, putBack } from '@/live/calls';
-import type { CallId } from '@/live/calls';
+import { hex } from "@/hex";
+import { useFailures } from "@/hooks/use-failures";
+import { restore, store } from "@/hooks/use-kept";
+import { useWatch } from "@/hooks/use-watch";
+import { CallRecord, CallSummary, putBack } from "@/live/calls";
+import type { CallId } from "@/live/calls";
 
-const LIST = 'calls';
+const LIST = "calls";
 const saved = (id: CallId) => `call:${id}`;
 
 export const useCalls = () => {
@@ -34,7 +34,7 @@ export const useCalls = () => {
     }
   }, [listed]);
 
-  const watching = useWatch('calls', hex.calls.list, (list) => {
+  const watching = useWatch("calls", hex.calls.list, (list) => {
     setListed(list.calls);
     setJustEnded([]);
     setLive(list.live);
@@ -51,7 +51,7 @@ export const useCalls = () => {
     setListed((current) => current && others(current));
     setJustEnded(others);
     void (async () => {
-      const deleted = await tries.attempt(id, 'Not deleted', async () => {
+      const deleted = await tries.attempt(id, "Not deleted", async () => {
         await hex.calls.remove(id);
       });
 
@@ -84,7 +84,7 @@ export const useCalls = () => {
     );
   }, [listed, justEnded, tries.failed]);
 
-  return { calls: shown, live, offline: watching === 'offline', add, remove };
+  return { calls: shown, live, offline: watching === "offline", add, remove };
 };
 
 export const usePastCall = (id: CallId | undefined) => {
@@ -115,11 +115,11 @@ export const usePastCall = (id: CallId | undefined) => {
     (fresh) => {
       setCall(fresh);
 
-      if ((fresh.ended ?? '') !== '') {
+      if ((fresh.ended ?? "") !== "") {
         store(saved(fresh.id), fresh);
       }
     },
   );
 
-  return { call: call?.id === id ? call : undefined, failed: watching === 'offline' };
+  return { call: call?.id === id ? call : undefined, failed: watching === "offline" };
 };

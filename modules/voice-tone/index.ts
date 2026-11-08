@@ -1,5 +1,5 @@
-import type { NativeModule } from 'expo';
-import { requireOptionalNativeModule } from 'expo';
+import type { NativeModule } from "expo";
+import { requireOptionalNativeModule } from "expo";
 
 export interface Tone {
   pitch: number;
@@ -11,4 +11,4 @@ declare class VoiceToneModule extends NativeModule<{ onTone: (tone: Tone) => voi
   stop(): void;
 }
 
-export const VoiceTone = requireOptionalNativeModule<VoiceToneModule>('VoiceTone');
+export const VoiceTone = requireOptionalNativeModule<VoiceToneModule>("VoiceTone");

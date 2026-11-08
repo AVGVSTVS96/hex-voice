@@ -1,4 +1,4 @@
-import { Column, Icon, Row, ScrollView } from '@expo/ui';
+import { Column, Icon, Row, ScrollView } from "@expo/ui";
 import {
   accessibilityAddTraits,
   accessibilityElement,
@@ -12,32 +12,32 @@ import {
   padding,
   scrollClipDisabled,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import type { SFSymbol } from 'sf-symbols-typescript';
+} from "@expo/ui/swift-ui/modifiers";
+import { useState } from "react";
+import type { ReactNode } from "react";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Markdown } from '@/components/markdown';
-import { Header, PageBar, useChrome } from '@/components/tasks/bar';
-import { Links, Shots } from '@/components/tasks/ask-card';
-import { Faded, questions } from '@/components/tasks/parts';
-import { Foot } from '@/components/tasks/thread';
-import { useWords } from '@/hooks/use-asks';
-import { PICK } from '@/live/asks';
-import type { Ask, AskId, AskOption } from '@/live/asks';
-import { clock } from '@/live/tasks';
-import { motion } from '@/motion';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, radius, space } from '@/ui/tokens';
-import type { Tone } from '@/ui/tokens';
+import { Markdown } from "@/components/markdown";
+import { Links, Shots } from "@/components/tasks/ask-card";
+import { Header, PageBar, useChrome } from "@/components/tasks/bar";
+import { Faded, questions } from "@/components/tasks/parts";
+import { Foot } from "@/components/tasks/thread";
+import { useWords } from "@/hooks/use-asks";
+import { PICK } from "@/live/asks";
+import type { Ask, AskId, AskOption } from "@/live/asks";
+import { clock } from "@/live/tasks";
+import { motion } from "@/motion";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, radius, space } from "@/ui/tokens";
+import type { Tone } from "@/ui/tokens";
 
 export interface Picked {
   ask: Ask;
   option: AskOption;
 }
 
-type Choice = AskOption | 'later';
+type Choice = AskOption | "later";
 
 export const usePickChoices = () => {
   const [choices, setChoices] = useState<Record<AskId, Choice>>({});
@@ -55,11 +55,11 @@ export const usePickChoices = () => {
 
 export type PickChoices = ReturnType<typeof usePickChoices>;
 
-const LATER = 'Decide later';
+const LATER = "Decide later";
 
 const wraps = [
   fixedSize({ horizontal: false, vertical: true }),
-  frame({ maxWidth: Infinity, alignment: 'leading' }),
+  frame({ maxWidth: Infinity, alignment: "leading" }),
 ];
 
 export const PicksPage = ({
@@ -80,7 +80,7 @@ export const PicksPage = ({
   const taken = picks.flatMap((picked) => {
     const choice = choices.choiceOf(picked);
 
-    return choice === 'later' ? [] : [{ ask: picked.ask, option: choice }];
+    return choice === "later" ? [] : [{ ask: picked.ask, option: choice }];
   });
 
   const later = picks.length - taken.length;
@@ -98,7 +98,7 @@ export const PicksPage = ({
           showsIndicators={false}
           modifiers={[
             scrollClipDisabled(),
-            frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
+            frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: "top" }),
           ]}
         >
           <Column
@@ -145,14 +145,14 @@ export const PicksPage = ({
             frame({ height: metrics.pill.height }),
             frame({ maxWidth: metrics.readable }),
             background(taken.length ? theme.prominent : theme.fill),
-            clipShape('capsule'),
+            clipShape("capsule"),
             contentShape(shapes.capsule()),
             animation(motion.list, taken.length),
             accessibilityLabel(`Answer ${questions(taken.length)}`),
-            accessibilityAddTraits(['isButton']),
+            accessibilityAddTraits(["isButton"]),
           ]}
         >
-          <Text variant="headline" tone={taken.length ? 'onProminent' : 'tertiary'}>
+          <Text variant="headline" tone={taken.length ? "onProminent" : "tertiary"}>
             {`Answer ${questions(taken.length)}`}
           </Text>
         </Row>
@@ -172,7 +172,7 @@ const PickRow = ({
   open: boolean;
   onPress: () => void;
 }) => {
-  const answer = choice === 'later' ? LATER : choice.label;
+  const answer = choice === "later" ? LATER : choice.label;
 
   return (
     <Column
@@ -182,13 +182,13 @@ const PickRow = ({
       testID="pick-row"
       modifiers={[
         padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[4] }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
         background(open ? theme.fill : theme.card),
-        clipShape('roundedRectangle', radius.group),
+        clipShape("roundedRectangle", radius.group),
         contentShape(shapes.rectangle()),
-        accessibilityElement('combine'),
+        accessibilityElement("combine"),
         accessibilityLabel(`${ask.topic}. ${ask.question}. ${answer}. Opens it`),
-        accessibilityAddTraits(open ? ['isButton', 'isSelected'] : ['isButton']),
+        accessibilityAddTraits(open ? ["isButton", "isSelected"] : ["isButton"]),
       ]}
     >
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -196,9 +196,9 @@ const PickRow = ({
           variant="caption"
           tone="secondary"
           numberOfLines={1}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
-          {ask.tag === undefined || ask.tag === '' ? ask.topic : `${ask.topic} · ${ask.tag}`}
+          {ask.tag === undefined || ask.tag === "" ? ask.topic : `${ask.topic} · ${ask.tag}`}
         </Text>
         <Icon name="chevron.right" size={metrics.symbol.small} color={theme.secondary} />
       </Row>
@@ -218,20 +218,20 @@ interface TagLook {
 }
 
 const tagLook = (choice: Choice): TagLook => {
-  if (choice === 'later') {
-    return { pick: false, icon: 'clock', ink: 'tertiary', text: LATER };
+  if (choice === "later") {
+    return { pick: false, icon: "clock", ink: "tertiary", text: LATER };
   }
 
   if (choice.pick === true) {
-    return { pick: true, icon: 'sparkle', ink: 'accent', text: `${choice.label} · ${PICK}` };
+    return { pick: true, icon: "sparkle", ink: "accent", text: `${choice.label} · ${PICK}` };
   }
 
-  return { pick: false, icon: 'checkmark', ink: 'text', text: choice.label };
+  return { pick: false, icon: "checkmark", ink: "text", text: choice.label };
 };
 
 const AnswerTag = ({ choice }: { choice: Choice }) => {
   const { pick, icon, ink, text } = tagLook(choice);
-  const later = choice === 'later';
+  const later = choice === "later";
 
   return (
     <Row
@@ -241,14 +241,14 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
         padding({ leading: space[3], trailing: space[3], top: space[1], bottom: space[1] }),
         frame({ minHeight: metrics.pill.small }),
         background(pick ? theme.accentMuted : theme.fill),
-        clipShape('capsule'),
+        clipShape("capsule"),
       ]}
     >
       <Icon name={icon} size={metrics.symbol.small} color={theme[ink]} />
       <Text
         variant="detail"
         weight="medium"
-        tone={later ? 'secondary' : 'text'}
+        tone={later ? "secondary" : "text"}
         paragraph
         modifiers={[fixedSize({ horizontal: false, vertical: true })]}
       >
@@ -275,7 +275,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
   const { ask } = picked;
   const choice = choices.choiceOf(picked);
   const hexs = ask.options.find((option) => option.pick === true);
-  const door = ask.places.find((place) => (place.link ?? '') !== '');
+  const door = ask.places.find((place) => (place.link ?? "") !== "");
 
   const links = [
     ...(door?.link === undefined ? [] : [{ label: `Open ${door.place}`, url: door.link }]),
@@ -290,7 +290,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
           showsIndicators={false}
           modifiers={[
             scrollClipDisabled(),
-            frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
+            frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: "top" }),
           ]}
         >
           <Column
@@ -307,15 +307,15 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                 {ask.question}
               </Text>
             </Column>
-            {ask.why !== undefined && ask.why !== '' && hexs ? (
+            {ask.why !== undefined && ask.why !== "" && hexs ? (
               <Column
                 alignment="start"
                 spacing={space[2]}
                 modifiers={[
                   padding({ all: space[4] }),
-                  frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  frame({ maxWidth: Infinity, alignment: "leading" }),
                   background(theme.accentMuted),
-                  clipShape('roundedRectangle', radius.group),
+                  clipShape("roundedRectangle", radius.group),
                   padding({ top: space[5] }),
                 ]}
               >
@@ -343,7 +343,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                   title={option.label}
                   detail={option.detail}
                   pick={option.pick}
-                  chosen={choice !== 'later' && choice.label === option.label}
+                  chosen={choice !== "later" && choice.label === option.label}
                   onPress={() => {
                     choices.choose(ask.id, option);
                   }}
@@ -352,13 +352,13 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
               <OptionCard
                 title={LATER}
                 detail="Stays in Needs you, unanswered."
-                chosen={choice === 'later'}
+                chosen={choice === "later"}
                 onPress={() => {
-                  choices.choose(ask.id, 'later');
+                  choices.choose(ask.id, "later");
                 }}
               />
             </Column>
-            {ask.context !== undefined && ask.context !== '' ? (
+            {ask.context !== undefined && ask.context !== "" ? (
               <Column
                 alignment="start"
                 spacing={space[2]}
@@ -372,7 +372,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
                     ...wraps,
                     padding({ all: space[4] }),
                     background(theme.card),
-                    clipShape('roundedRectangle', radius.group),
+                    clipShape("roundedRectangle", radius.group),
                   ]}
                 >
                   {ask.context}
@@ -391,7 +391,7 @@ const Page = ({ children }: { children: ReactNode }) => (
   <Column
     alignment="center"
     spacing={0}
-    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
   >
     {children}
   </Column>
@@ -404,7 +404,7 @@ const Heading = ({ title, detail }: { title: string; detail?: string }) => (
     modifiers={[padding({ leading: space[2], top: space[6], bottom: space[1] })]}
   >
     <Text variant="headline">{title}</Text>
-    {detail === undefined || detail === '' ? null : (
+    {detail === undefined || detail === "" ? null : (
       <Text variant="caption" tone="secondary" paragraph modifiers={wraps}>
         {detail}
       </Text>
@@ -432,18 +432,18 @@ const OptionCard = ({
     testID="pick-option"
     modifiers={[
       padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
       background(chosen ? theme.fill : theme.card),
-      clipShape('roundedRectangle', radius.option),
+      clipShape("roundedRectangle", radius.option),
       contentShape(shapes.rectangle()),
       animation(motion.list, chosen),
-      accessibilityElement('combine'),
-      accessibilityLabel([title, pick ? PICK : '', detail ?? ''].filter(Boolean).join('. ')),
-      accessibilityAddTraits(chosen ? ['isButton', 'isSelected'] : ['isButton']),
+      accessibilityElement("combine"),
+      accessibilityLabel([title, pick ? PICK : "", detail ?? ""].filter(Boolean).join(". ")),
+      accessibilityAddTraits(chosen ? ["isButton", "isSelected"] : ["isButton"]),
     ]}
   >
     <Icon
-      name={chosen ? 'checkmark.circle.fill' : 'circle'}
+      name={chosen ? "checkmark.circle.fill" : "circle"}
       size={metrics.symbol.row}
       color={chosen ? theme.text : theme.secondary}
     />
@@ -451,7 +451,7 @@ const OptionCard = ({
       <Text variant="body" weight="medium" paragraph modifiers={wraps}>
         {title}
       </Text>
-      {detail === undefined || detail === '' ? null : (
+      {detail === undefined || detail === "" ? null : (
         <Text variant="detail" tone="secondary" paragraph modifiers={wraps}>
           {detail}
         </Text>
@@ -469,7 +469,7 @@ const OptionCard = ({
 );
 
 const saidAt = (at: string | undefined) =>
-  at === undefined || at === '' ? '' : ` · ${clock(new Date(at))}`;
+  at === undefined || at === "" ? "" : ` · ${clock(new Date(at))}`;
 
 const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
   const words = useWords(id);
@@ -490,9 +490,9 @@ const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string 
           tone="secondary"
           modifiers={[
             padding({ all: space[4] }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
             background(theme.card),
-            clipShape('roundedRectangle', radius.group),
+            clipShape("roundedRectangle", radius.group),
           ]}
         >
           {words.text}

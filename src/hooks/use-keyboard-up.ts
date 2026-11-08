@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Keyboard } from 'react-native';
-import type { KeyboardEvent } from 'react-native';
+import { useEffect, useState } from "react";
+import { Keyboard } from "react-native";
+import type { KeyboardEvent } from "react-native";
 
 export const useKeyboardUp = () => {
   const [up, setUp] = useState(false);
   useEffect(() => {
-    const shown = Keyboard.addListener('keyboardWillShow', (event) => {
+    const shown = Keyboard.addListener("keyboardWillShow", (event) => {
       if (ours(event)) {
         setUp(true);
       }
     });
 
-    const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
+    const hidden = Keyboard.addListener("keyboardWillHide", (event) => {
       if (ours(event)) {
         setUp(false);
       }
@@ -26,4 +26,4 @@ export const useKeyboardUp = () => {
   return up;
 };
 
-const ours = (event: KeyboardEvent) => !('isEventFromThisApp' in event) || event.isEventFromThisApp;
+const ours = (event: KeyboardEvent) => !("isEventFromThisApp" in event) || event.isEventFromThisApp;

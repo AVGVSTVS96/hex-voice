@@ -1,15 +1,15 @@
-import { useEffect } from 'react';
-import { Gesture } from 'react-native-gesture-handler';
+import { useEffect } from "react";
+import { Gesture } from "react-native-gesture-handler";
 import {
   cancelAnimation,
   useAnimatedReaction,
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { motion } from '@/motion';
+import { motion } from "@/motion";
 
 const COMMIT = 0.35;
 const FLICK = 500;
@@ -17,13 +17,13 @@ const RUBBER_BAND = 44;
 const LANDED = 2;
 
 const bandOf = (over: number, limit: number) => {
-  'worklet';
+  "worklet";
 
   return limit * (1 - 1 / ((over * 0.55) / limit + 1));
 };
 
 const rubberBanded = (raw: number, limit: number) => {
-  'worklet';
+  "worklet";
 
   if (raw < 0) {
     return -bandOf(-raw, limit);
@@ -33,7 +33,7 @@ const rubberBanded = (raw: number, limit: number) => {
 };
 
 const landingOf = (velocity: number, from: number, crossed: boolean) => {
-  'worklet';
+  "worklet";
 
   if (velocity > FLICK) {
     return 1;
@@ -47,13 +47,13 @@ const landingOf = (velocity: number, from: number, crossed: boolean) => {
 };
 
 const snapped = (p: number) => {
-  'worklet';
+  "worklet";
 
   return p < 0.5 ? 0 : 1;
 };
 
 const arcOf = (t: number) => {
-  'worklet';
+  "worklet";
 
   if (t <= 0) {
     return 0;
@@ -87,7 +87,7 @@ export const useGlide = ({
   const landing = useSharedValue(-1);
 
   const glideTo = (target: number, velocity = 0) => {
-    'worklet';
+    "worklet";
     goal.set(target);
     landing.set(target);
 
@@ -141,7 +141,7 @@ export const useGlide = ({
     Gesture.Pan()
       .activeOffsetY([-12, 12])
       .onStart(({ translationY }) => {
-        'worklet';
+        "worklet";
         cancelAnimation(progress);
         landing.set(-1);
         const now = progress.get();
@@ -152,7 +152,7 @@ export const useGlide = ({
         });
       })
       .onUpdate(({ translationY }) => {
-        'worklet';
+        "worklet";
         const { offset, line, crossed } = grab.get();
         const raw = offset + translationY / travel;
         progress.set(rubberBanded(raw, RUBBER_BAND / travel));
@@ -164,7 +164,7 @@ export const useGlide = ({
         }
       })
       .onEnd(({ velocityY }) => {
-        'worklet';
+        "worklet";
         const target = landingOf(velocityY, goal.get(), grab.get().crossed);
 
         glideTo(target, velocityY / travel);
@@ -172,7 +172,7 @@ export const useGlide = ({
       });
 
   const glide = (p: number) => {
-    'worklet';
+    "worklet";
     const t = reducedMotion ? snapped(p) : p;
 
     return { t, arc: arcOf(t) };

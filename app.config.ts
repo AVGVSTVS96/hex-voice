@@ -1,4 +1,4 @@
-import type { ConfigContext, ExpoConfig } from 'expo/config';
+import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const withUpdates = ({ config }: ConfigContext): Partial<ExpoConfig> => {
   const env: Partial<Record<string, string>> = process.env;

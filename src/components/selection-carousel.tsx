@@ -1,5 +1,5 @@
-import { Column, RNHostView, Row, Spacer } from '@expo/ui';
-import { Circle, TabView, ZStack } from '@expo/ui/swift-ui';
+import { Column, RNHostView, Row, Spacer } from "@expo/ui";
+import { Circle, TabView, ZStack } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -8,13 +8,13 @@ import {
   frame,
   shapes,
   tabViewStyle,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ReactElement } from 'react';
-import { View } from 'react-native';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ReactElement } from "react";
+import { View } from "react-native";
 
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, space } from "@/ui/tokens";
 
 interface SelectionOption {
   id: string;
@@ -75,7 +75,7 @@ export const SelectionCarousel = ({
       testID={testID}
       modifiers={[
         frame({ width, height: totalHeight }),
-        tabViewStyle({ type: 'page', indexDisplayMode: 'never' }),
+        tabViewStyle({ type: "page", indexDisplayMode: "never" }),
         accessibilityLabel(label),
       ]}
     >
@@ -115,7 +115,7 @@ export const SelectionCarousel = ({
               frame({ width: DOT * 2, height: REACH }),
               contentShape(shapes.rectangle()),
               accessibilityLabel(`${option.label}, ${i + 1} of ${options.length}`),
-              ...(current ? [accessibilityAddTraits(['isSelected'])] : []),
+              ...(current ? [accessibilityAddTraits(["isSelected"])] : []),
             ]}
           >
             <Circle
@@ -136,7 +136,7 @@ export const SelectionCarousel = ({
         <Column
           alignment="center"
           spacing={0}
-          modifiers={[frame({ width, height: totalHeight, alignment: 'top' })]}
+          modifiers={[frame({ width, height: totalHeight, alignment: "top" })]}
         >
           <RNHostView matchContents>
             <View
@@ -144,8 +144,8 @@ export const SelectionCarousel = ({
               style={{
                 width,
                 height: previewHeight,
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {preview}

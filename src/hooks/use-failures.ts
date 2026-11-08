@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Linking } from 'react-native';
+import { useState } from "react";
+import { Linking } from "react-native";
 
 export const failure = (what: string, cause: unknown) =>
   `${what} · ${cause instanceof Error ? cause.message : String(cause)}`;
@@ -32,6 +32,6 @@ export const useFailures = () => {
 
 export const openURL = async (url: string) => {
   await Linking.openURL(url).catch(() => {
-    throw new Error('No app on this device opens this link');
+    throw new Error("No app on this device opens this link");
   });
 };

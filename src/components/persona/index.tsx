@@ -7,21 +7,22 @@ import {
   RiveView,
   useRive,
   useViewModelInstance,
-} from '@rive-app/react-native';
-import type { RiveFile } from '@rive-app/react-native';
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, useColorScheme } from 'react-native';
-import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
+} from "@rive-app/react-native";
+import type { RiveFile } from "@rive-app/react-native";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View, useColorScheme } from "react-native";
+import Animated, { FadeIn, FadeOut, useReducedMotion } from "react-native-reanimated";
 
-import { theme } from '@/theme';
-import { textOf } from '@/ui/tokens';
-import { PERSONA_MODELS, PERSONA_STATE_MACHINE, personaInputValues } from './animation';
-import type { PersonaProps } from './animation';
-import { PERSONA_ASSETS } from './assets';
-import { DEFAULT_PERSONA, DEFAULT_PERSONA_COLOR, personaColorOnLight } from './variants';
-import type { PersonaVariant } from './variants';
+import { theme } from "@/theme";
+import { textOf } from "@/ui/tokens";
 
-export type { PersonaState, PersonaProps } from './animation';
+import { PERSONA_MODELS, PERSONA_STATE_MACHINE, personaInputValues } from "./animation";
+import type { PersonaProps } from "./animation";
+import { PERSONA_ASSETS } from "./assets";
+import { DEFAULT_PERSONA, DEFAULT_PERSONA_COLOR, personaColorOnLight } from "./variants";
+import type { PersonaVariant } from "./variants";
+
+export type { PersonaState, PersonaProps } from "./animation";
 
 const fileCache = new Map<PersonaVariant, Promise<RiveFile>>();
 
@@ -94,7 +95,7 @@ const GROW_IN = 1000;
 
 const PersonaRenderer = ({
   variant,
-  state = 'idle',
+  state = "idle",
   size = SIZE,
   color = DEFAULT_PERSONA_COLOR,
   palette,
@@ -115,7 +116,7 @@ const PersonaRenderer = ({
   const still = useRef(false);
   const originalPalette = useRef<number>(undefined);
   const reducedMotion = useReducedMotion();
-  const shown = useColorScheme() === 'light' ? personaColorOnLight(color) : color;
+  const shown = useColorScheme() === "light" ? personaColorOnLight(color) : color;
 
   useEffect(() => {
     let active = true;
@@ -174,10 +175,10 @@ const PersonaRenderer = ({
         riveViewRef.setBooleanInputValue(name, value);
       }
 
-      if (variant === 'opal') {
-        const original = originalPalette.current ?? riveViewRef.getNumberInputValue('color');
+      if (variant === "opal") {
+        const original = originalPalette.current ?? riveViewRef.getNumberInputValue("color");
         originalPalette.current = original;
-        riveViewRef.setNumberInputValue('color', palette ?? original);
+        riveViewRef.setNumberInputValue("color", palette ?? original);
       }
 
       if (!grown.current) {
@@ -217,7 +218,7 @@ const PersonaRenderer = ({
   ]);
 
   useEffect(() => {
-    const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
+    const property = riveViewRef ? colorModel?.colorProperty("color") : undefined;
 
     if (!property) {
       return;
@@ -238,10 +239,10 @@ const PersonaRenderer = ({
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
       {failed ? (
-        <Text style={{ ...textOf('caption'), color: theme.secondary }}>Visual unavailable</Text>
+        <Text style={{ ...textOf("caption"), color: theme.secondary }}>Visual unavailable</Text>
       ) : (
         file &&
         (!dynamicColor || colorModel) && (
@@ -255,7 +256,7 @@ const PersonaRenderer = ({
             onError={() => {
               setFailed(true);
             }}
-            style={{ width: size, height: size, backgroundColor: 'transparent' }}
+            style={{ width: size, height: size, backgroundColor: "transparent" }}
           />
         )
       )}

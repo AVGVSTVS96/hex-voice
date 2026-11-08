@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { Glyph } from '@/components/glyph';
-import { Thumb } from '@/components/media/thumb';
-import type { Picked } from '@/live/media';
-import { circle } from '@/theme';
-import { film, metrics, radius, space } from '@/ui/tokens';
+import { Glyph } from "@/components/glyph";
+import { Thumb } from "@/components/media/thumb";
+import type { Picked } from "@/live/media";
+import { circle } from "@/theme";
+import { film, metrics, radius, space } from "@/ui/tokens";
 
 export const Waiting = ({
   media,
@@ -37,15 +37,15 @@ export const Waiting = ({
 const REMOVE = space[5];
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   one: { width: metrics.media.waiting, height: metrics.media.waiting },
   remove: {
     ...circle(REMOVE),
-    position: 'absolute',
+    position: "absolute",
     top: space[1],
     right: space[1],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: film.glass,
   },
 });

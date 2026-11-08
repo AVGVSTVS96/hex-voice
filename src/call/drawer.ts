@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Gesture } from 'react-native-gesture-handler';
+import { useEffect, useState } from "react";
+import { Gesture } from "react-native-gesture-handler";
 import {
   cancelAnimation,
   useAnimatedReaction,
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { motion } from '@/motion';
+import { motion } from "@/motion";
 
 const OMEGA = Math.sqrt(motion.drawer.stiffness / motion.drawer.mass);
 
@@ -38,7 +38,7 @@ export const useDrawer = ({
   );
 
   const settle = (now: boolean, velocity = 0) => {
-    'worklet';
+    "worklet";
     target.set(now);
     const noOvershoot = OMEGA * Math.abs((now ? 1 : 0) - drawer.get());
     drawer.set(
@@ -52,7 +52,7 @@ export const useDrawer = ({
   };
 
   const letGo = (now: boolean, velocity = 0) => {
-    'worklet';
+    "worklet";
     settle(now, velocity);
     scheduleOnRN(onChange, now);
   };
@@ -69,16 +69,16 @@ export const useDrawer = ({
       .activeOffsetX(offset)
       .failOffsetY([-14, 14])
       .onStart(() => {
-        'worklet';
+        "worklet";
         cancelAnimation(drawer);
         from.set(drawer.get());
       })
       .onUpdate(({ translationX }) => {
-        'worklet';
+        "worklet";
         drawer.set(Math.min(1, Math.max(0, from.get() + translationX / width)));
       })
       .onEnd(({ velocityX }) => {
-        'worklet';
+        "worklet";
         letGo(velocityX > 400 || (velocityX > -400 && drawer.get() > 0.5), velocityX);
       });
 
@@ -92,7 +92,7 @@ export const useDrawer = ({
       pan([-10, 10]),
       // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
       Gesture.Tap().onEnd(() => {
-        'worklet';
+        "worklet";
         letGo(false);
       }),
     ),

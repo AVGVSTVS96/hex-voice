@@ -1,4 +1,4 @@
-import { Button, Image, Menu, ProgressView } from '@expo/ui/swift-ui';
+import { Button, Image, Menu, ProgressView } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -11,28 +11,28 @@ import {
   glassEffect,
   shapes,
   tint,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
 
-import { theme } from '@/theme';
-import { Host } from '@/ui/host';
-import { metrics } from '@/ui/tokens';
-import type { GlassSize } from '@/ui/tokens';
+import { theme } from "@/theme";
+import { Host } from "@/ui/host";
+import { metrics } from "@/ui/tokens";
+import type { GlassSize } from "@/ui/tokens";
 
 const symbols = {
-  back: 'chevron.left',
-  settings: 'slider.horizontal.3',
-  transcript: 'text.bubble',
-  'beside-row': 'rectangle.split.2x1',
-  'beside-column': 'rectangle.split.1x2',
-  calls: 'clock.arrow.circlepath',
-  tasks: 'list.bullet',
-  mic: 'mic',
-  'mic-off': 'mic.slash',
-  close: 'xmark',
-  waveform: 'waveform',
-  more: 'ellipsis',
-  add: 'plus',
+  back: "chevron.left",
+  settings: "slider.horizontal.3",
+  transcript: "text.bubble",
+  "beside-row": "rectangle.split.2x1",
+  "beside-column": "rectangle.split.1x2",
+  calls: "clock.arrow.circlepath",
+  tasks: "list.bullet",
+  mic: "mic",
+  "mic-off": "mic.slash",
+  close: "xmark",
+  waveform: "waveform",
+  more: "ellipsis",
+  add: "plus",
 } as const;
 
 interface Props {
@@ -48,12 +48,12 @@ interface Props {
 }
 
 export const glass = (
-  shape: 'circle' | 'capsule',
+  shape: "circle" | "capsule",
   { prominent = false, disabled = false }: { prominent?: boolean; disabled?: boolean } = {},
 ) =>
   glassEffect({
     glass: {
-      variant: 'regular',
+      variant: "regular",
       interactive: !disabled,
       tint: prominent ? theme.prominent : undefined,
     },
@@ -67,7 +67,7 @@ export const GlassButton = ({
   label,
   onPress,
   testID,
-  size = 'tool',
+  size = "tool",
   disabled = false,
   selected = false,
   prominent = false,
@@ -82,11 +82,11 @@ export const GlassButton = ({
       onPress={onPress}
       testID={testID}
       modifiers={[
-        buttonStyle('plain'),
+        buttonStyle("plain"),
         disable(disabled),
         accessibilityLabel(label),
-        accessibilityAddTraits(selected ? ['isSelected'] : []),
-        ...(bare ? [] : [glass('circle', { prominent, disabled })]),
+        accessibilityAddTraits(selected ? ["isSelected"] : []),
+        ...(bare ? [] : [glass("circle", { prominent, disabled })]),
       ]}
     >
       {loading ? (
@@ -94,9 +94,9 @@ export const GlassButton = ({
       ) : (
         <Image
           systemName={symbols[icon]}
-          size={metrics.symbol[prominent ? 'prominent' : 'regular']}
+          size={metrics.symbol[prominent ? "prominent" : "regular"]}
           color={color}
-          modifiers={[stroke(metrics.symbol[prominent ? 'prominent' : 'regular']), ...look]}
+          modifiers={[stroke(metrics.symbol[prominent ? "prominent" : "regular"]), ...look]}
         />
       )}
     </Button>
@@ -107,13 +107,13 @@ export const GlassMenu = ({
   icon,
   label,
   children,
-}: Pick<Props, 'icon' | 'label'> & { children: ReactNode }) => (
-  <Menu label={<GlassFace icon={icon} />} modifiers={[accessibilityLabel(label), glass('circle')]}>
+}: Pick<Props, "icon" | "label"> & { children: ReactNode }) => (
+  <Menu label={<GlassFace icon={icon} />} modifiers={[accessibilityLabel(label), glass("circle")]}>
     {children}
   </Menu>
 );
 
-export const GlassFace = ({ icon, size = 'tool' }: { icon: Props['icon']; size?: GlassSize }) => (
+export const GlassFace = ({ icon, size = "tool" }: { icon: Props["icon"]; size?: GlassSize }) => (
   <Image
     systemName={symbols[icon]}
     size={metrics.symbol.regular}
@@ -136,14 +136,14 @@ const face = (size: GlassSize, selected: boolean) => {
   return [
     frame({ width: diameter, height: diameter }),
     ...(selected
-      ? [background({ type: 'hierarchical', style: 'quaternary' }, shapes.circle())]
+      ? [background({ type: "hierarchical", style: "quaternary" }, shapes.circle())]
       : []),
     contentShape(shapes.circle()),
   ];
 };
 
 export const HostedGlassButton = (props: Props) => {
-  const diameter = metrics[props.size ?? 'tool'];
+  const diameter = metrics[props.size ?? "tool"];
 
   return (
     <Host matchContents style={{ width: diameter, height: diameter }}>

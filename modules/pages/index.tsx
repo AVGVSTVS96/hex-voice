@@ -1,7 +1,7 @@
-import { requireNativeView } from 'expo';
-import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
-import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
+import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
+import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
+import { requireNativeView } from "expo";
+import type { ReactNode } from "react";
 
 export type PagesProps = CommonViewModifierProps & {
   pages: string[];
@@ -13,12 +13,12 @@ export type PagesProps = CommonViewModifierProps & {
   children: ReactNode;
 };
 
-type NativeProps = Omit<PagesProps, 'onPaired'> & {
+type NativeProps = Omit<PagesProps, "onPaired"> & {
   onPaired: (event: { nativeEvent: { paired: boolean } }) => void;
 };
 
 const Native =
-  process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Pages', 'PagesView') : null;
+  process.env.EXPO_OS === "ios" ? requireNativeView<NativeProps>("Pages", "PagesView") : null;
 
 export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
   if (!Native) {

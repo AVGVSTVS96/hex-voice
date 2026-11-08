@@ -1,6 +1,6 @@
-import { Icon } from '@expo/ui';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Icon } from "@expo/ui";
+import { useEffect } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -12,19 +12,19 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import type { AgentLine as Line } from '@/live/agents';
-import { motion } from '@/motion';
-import { circle, theme } from '@/theme';
-import { Host } from '@/ui/host';
-import { space, textOf } from '@/ui/tokens';
+import type { AgentLine as Line } from "@/live/agents";
+import { motion } from "@/motion";
+import { circle, theme } from "@/theme";
+import { Host } from "@/ui/host";
+import { space, textOf } from "@/ui/tokens";
 
 const { step, turn, rise } = motion.agent;
 const timing = { duration: step, easing: Easing.out(Easing.cubic) };
 
 const enter = () => {
-  'worklet';
+  "worklet";
 
   return {
     initialValues: { opacity: 0, transform: [{ translateY: rise }] },
@@ -36,7 +36,7 @@ const enter = () => {
 };
 
 const leave = () => {
-  'worklet';
+  "worklet";
 
   return {
     initialValues: { opacity: 1, transform: [{ translateY: 0 }] },
@@ -52,7 +52,7 @@ export const AgentLine = ({ line }: { line: Line | null }) => {
     return null;
   }
 
-  const label = `hex is ${line.state === 'running' ? 'working' : line.state}: ${line.text}${line.where ? `, ${line.where}` : ''}`;
+  const label = `hex is ${line.state === "running" ? "working" : line.state}: ${line.text}${line.where ? `, ${line.where}` : ""}`;
 
   return (
     <Animated.View
@@ -79,8 +79,8 @@ export const AgentLine = ({ line }: { line: Line | null }) => {
         <Text
           style={[
             styles.where,
-            line.state === 'done' && styles.done,
-            line.state === 'failed' && styles.failed,
+            line.state === "done" && styles.done,
+            line.state === "failed" && styles.failed,
           ]}
         >
           {line.where}
@@ -90,17 +90,17 @@ export const AgentLine = ({ line }: { line: Line | null }) => {
   );
 };
 
-const Mark = ({ state }: { state: Line['state'] }) => (
-  <View style={[styles.mark, state === 'failed' && styles.markFailed]}>
-    {state === 'running' ? (
+const Mark = ({ state }: { state: Line["state"] }) => (
+  <View style={[styles.mark, state === "failed" && styles.markFailed]}>
+    {state === "running" ? (
       <Arc />
     ) : (
       <Animated.View key={state} entering={ZoomIn.springify().damping(14)}>
         <Host matchContents>
           <Icon
-            name={state === 'done' ? 'checkmark' : 'exclamationmark'}
+            name={state === "done" ? "checkmark" : "exclamationmark"}
             size={11}
-            color={state === 'done' ? theme.secondary : theme.danger}
+            color={state === "done" ? theme.secondary : theme.danger}
           />
         </Host>
       </Animated.View>
@@ -128,12 +128,12 @@ export const Arc = ({ size = 12 }: { size?: number }) => {
 };
 
 const styles = StyleSheet.create({
-  row: { height: 22, flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  row: { height: 22, flexDirection: "row", alignItems: "center", gap: space[3] },
   mark: {
     ...circle(22),
     backgroundColor: theme.fill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   markFailed: { backgroundColor: theme.dangerMuted },
   arc: {
@@ -141,16 +141,16 @@ const styles = StyleSheet.create({
     borderColor: theme.progressMuted,
     borderTopColor: theme.progress,
   },
-  ticker: { flex: 1, height: 22, overflow: 'hidden' },
+  ticker: { flex: 1, height: 22, overflow: "hidden" },
   text: {
-    ...textOf('detail', 'medium'),
-    position: 'absolute',
+    ...textOf("detail", "medium"),
+    position: "absolute",
     left: 0,
     right: 0,
     color: theme.text,
   },
   waiting: { color: theme.secondary },
-  where: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
+  where: { ...textOf("tag"), color: theme.tertiary, fontVariant: ["tabular-nums"] },
   done: { color: theme.text },
   failed: { color: theme.danger },
 });

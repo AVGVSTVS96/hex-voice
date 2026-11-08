@@ -1,25 +1,25 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import type { CameraType } from 'expo-camera';
-import { useEffect, useRef, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import type { CameraType } from "expo-camera";
+import { useEffect, useRef, useState } from "react";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
-import type { SFSymbol } from 'sf-symbols-typescript';
+} from "react-native-reanimated";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { useMicHeld } from '@/call/use-call';
-import { Glyph } from '@/components/glyph';
-import { CLIP_SECONDS } from '@/live/media';
-import type { Picked } from '@/live/media';
-import { clock } from '@/live/calls';
-import { circle } from '@/theme';
-import { film, metrics, radius, space, textOf } from '@/ui/tokens';
+import { useMicHeld } from "@/call/use-call";
+import { Glyph } from "@/components/glyph";
+import { clock } from "@/live/calls";
+import { CLIP_SECONDS } from "@/live/media";
+import type { Picked } from "@/live/media";
+import { circle } from "@/theme";
+import { film, metrics, radius, space, textOf } from "@/ui/tokens";
 
-type Phase = { at: 'live' } | { at: 'recording'; since: number } | { at: 'review'; shot: Picked };
+type Phase = { at: "live" } | { at: "recording"; since: number } | { at: "review"; shot: Picked };
 
 const { shutter, ring } = metrics.media;
 
@@ -28,12 +28,12 @@ const QUICKTAKE_HOLD_MS = 280;
 export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) => void }) => {
   const camera = useRef<CameraView>(null);
   const [permission, ask] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>('back');
-  const [phase, setPhase] = useState<Phase>({ at: 'live' });
+  const [facing, setFacing] = useState<CameraType>("back");
+  const [phase, setPhase] = useState<Phase>({ at: "live" });
   const quiet = useMicHeld();
   const filled = useSharedValue(0);
   const held = useRef(false);
-  const recording = phase.at === 'recording';
+  const recording = phase.at === "recording";
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -45,13 +45,13 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     const photo = await camera.current?.takePictureAsync({ quality: 0.8 });
 
     if (photo) {
-      setPhase({ at: 'review', shot: { uri: photo.uri, kind: 'photo', type: 'image/jpeg' } });
+      setPhase({ at: "review", shot: { uri: photo.uri, kind: "photo", type: "image/jpeg" } });
     }
   };
 
   const record = async () => {
     held.current = true;
-    setPhase({ at: 'recording', since: Date.now() });
+    setPhase({ at: "recording", since: Date.now() });
     filled.set(withTiming(1, { duration: CLIP_SECONDS * 1000, easing: Easing.linear }));
 
     const clip = await camera.current
@@ -63,8 +63,8 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     filled.set(0);
     setPhase(
       clip
-        ? { at: 'review', shot: { uri: clip.uri, kind: 'video', type: 'video/quicktime' } }
-        : { at: 'live' },
+        ? { at: "review", shot: { uri: clip.uri, kind: "video", type: "video/quicktime" } }
+        : { at: "live" },
     );
   };
 
@@ -104,29 +104,29 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
         mode="video"
         videoQuality="720p"
         mute={quiet}
-        active={phase.at !== 'review'}
+        active={phase.at !== "review"}
         onRecordingProgress={() => {
           if (!held.current) {
             camera.current?.stopRecording();
           }
         }}
       />
-      {phase.at === 'review' && phase.shot.kind === 'photo' && (
+      {phase.at === "review" && phase.shot.kind === "photo" && (
         <Image
           source={{ uri: phase.shot.uri }}
           resizeMode="cover"
           style={StyleSheet.absoluteFill}
         />
       )}
-      {phase.at === 'recording' && <Timer since={phase.since} />}
+      {phase.at === "recording" && <Timer since={phase.since} />}
       <View style={styles.foot}>
-        {phase.at === 'review' ? (
+        {phase.at === "review" ? (
           <>
             <Pressable
               accessibilityRole="button"
               testID="camera-retake"
               onPress={() => {
-                setPhase({ at: 'live' });
+                setPhase({ at: "live" });
               }}
               style={styles.retake}
             >
@@ -146,7 +146,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
           <>
             <View style={styles.side} />
             <View style={styles.middle}>
-              {phase.at === 'live' && <Text style={styles.hint}>Hold for video</Text>}
+              {phase.at === "live" && <Text style={styles.hint}>Hold for video</Text>}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Take photo"
@@ -165,13 +165,13 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
               </Pressable>
             </View>
             <View style={styles.side}>
-              {phase.at === 'live' && (
+              {phase.at === "live" && (
                 <Round
                   symbol="arrow.triangle.2.circlepath"
                   label="Flip camera"
                   testID="camera-flip"
                   onPress={() => {
-                    setFacing((now) => (now === 'back' ? 'front' : 'back'));
+                    setFacing((now) => (now === "back" ? "front" : "back"));
                   }}
                 />
               )}
@@ -274,38 +274,38 @@ const half = shutter / 2;
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: film.black },
-  blocked: { alignItems: 'center', justifyContent: 'center', gap: space[3] },
-  words: { ...textOf('body'), color: film.ink },
-  strong: textOf('body', 'medium'),
-  digits: { fontVariant: ['tabular-nums'] },
-  hint: { ...textOf('caption', 'medium'), color: film.ink },
+  blocked: { alignItems: "center", justifyContent: "center", gap: space[3] },
+  words: { ...textOf("body"), color: film.ink },
+  strong: textOf("body", "medium"),
+  digits: { fontVariant: ["tabular-nums"] },
+  hint: { ...textOf("caption", "medium"), color: film.ink },
   foot: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: space[12],
     paddingHorizontal: space[6],
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
   },
-  side: { width: metrics.tool, height: shutter, justifyContent: 'center' },
-  middle: { alignItems: 'center', gap: space[3] },
+  side: { width: metrics.tool, height: shutter, justifyContent: "center" },
+  middle: { alignItems: "center", gap: space[3] },
   round: {
     ...circle(metrics.tool),
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: film.glass,
   },
   bright: { backgroundColor: film.ink },
   retake: {
     height: metrics.tool,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: space[5],
     borderRadius: metrics.tool / 2,
     backgroundColor: film.glass,
   },
-  shutter: { width: shutter, height: shutter, alignItems: 'center', justifyContent: 'center' },
+  shutter: { width: shutter, height: shutter, alignItems: "center", justifyContent: "center" },
   track: {
     ...StyleSheet.absoluteFill,
     borderRadius: half,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderColor: film.glass,
   },
   red: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     width: shutter,
@@ -329,17 +329,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.inner / 2,
     backgroundColor: film.recording,
   },
-  half: { position: 'absolute', top: 0, width: half, height: shutter, overflow: 'hidden' },
+  half: { position: "absolute", top: 0, width: half, height: shutter, overflow: "hidden" },
   left: { left: 0 },
   right: { left: half },
-  turning: { position: 'absolute', top: 0, left: 0, width: shutter, height: shutter },
+  turning: { position: "absolute", top: 0, left: 0, width: shutter, height: shutter },
   fromRight: { left: -half },
   timer: {
-    position: 'absolute',
+    position: "absolute",
     top: space[6],
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
     gap: space[2],
     paddingHorizontal: space[3],
     height: space[8],

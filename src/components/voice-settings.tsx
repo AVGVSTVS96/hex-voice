@@ -1,4 +1,4 @@
-import { Column, Icon, RNHostView, Row, Spacer } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer } from "@expo/ui";
 import {
   ArrangementView,
   BottomSheet,
@@ -10,7 +10,7 @@ import {
   Text as NativeText,
   Toggle,
   ZStack,
-} from '@expo/ui/swift-ui';
+} from "@expo/ui/swift-ui";
 import {
   fixedSize,
   accessibilityElement,
@@ -38,12 +38,11 @@ import {
   presentationSizing,
   tag,
   tint,
-} from '@expo/ui/swift-ui/modifiers';
-import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "@expo/ui/swift-ui/modifiers";
+import * as Haptics from "expo-haptics";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -52,39 +51,40 @@ import Animated, {
   useSharedValue,
   withSequence,
   withSpring,
-} from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
-import * as z from 'zod/mini';
+} from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as z from "zod/mini";
 
-import { Persona, preloadPersonas } from '@/components/persona';
-import { PageBar } from '@/components/tasks/bar';
+import { Persona, preloadPersonas } from "@/components/persona";
+import { PersonaColors } from "@/components/persona-colors";
 import {
   PERSONA_VARIANTS,
   isPersonaVariant,
   opalPaletteInput,
-} from '@/components/persona/variants';
-import type { PersonaVariant } from '@/components/persona/variants';
-import { PersonaColors } from '@/components/persona-colors';
-import { SelectionCarousel } from '@/components/selection-carousel';
-import { Group, Separator, SettingRow, groupHeight } from '@/components/settings-list';
-import { REACTIONS } from '@/hooks/use-call-preferences';
-import type { CallPreferences, Reaction } from '@/hooks/use-call-preferences';
-import { useViewport } from '@/hooks/use-viewport';
-import type { Size } from '@/hooks/use-viewport';
-import { useVoicePreview } from '@/hooks/use-voice-preview';
-import { useToolbarBack } from '@/components/toolbar-back';
-import { VOICES, isLiveVoice } from '@/live/voices';
-import type { LiveVoice } from '@/live/voices';
-import { heard, motion } from '@/motion';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import type { Rect } from '@/screens/window';
-import { Host } from '@/ui/host';
-import { breakpoint, metrics, space } from '@/ui/tokens';
+} from "@/components/persona/variants";
+import type { PersonaVariant } from "@/components/persona/variants";
+import { SelectionCarousel } from "@/components/selection-carousel";
+import { Group, Separator, SettingRow, groupHeight } from "@/components/settings-list";
+import { PageBar } from "@/components/tasks/bar";
+import { useToolbarBack } from "@/components/toolbar-back";
+import { REACTIONS } from "@/hooks/use-call-preferences";
+import type { CallPreferences, Reaction } from "@/hooks/use-call-preferences";
+import { useViewport } from "@/hooks/use-viewport";
+import type { Size } from "@/hooks/use-viewport";
+import { useVoicePreview } from "@/hooks/use-voice-preview";
+import { VOICES, isLiveVoice } from "@/live/voices";
+import type { LiveVoice } from "@/live/voices";
+import { heard, motion } from "@/motion";
+import type { Rect } from "@/screens/window";
+import { theme } from "@/theme";
+import { Host } from "@/ui/host";
+import { Text } from "@/ui/text";
+import { breakpoint, metrics, space } from "@/ui/tokens";
 
-export type SettingsSheet = 'phone' | 'form' | 'page';
+export type SettingsSheet = "phone" | "form" | "page";
 
-type Pane = 'persona' | 'rows' | 'alone';
+type Pane = "persona" | "rows" | "alone";
 
 interface Props {
   sheet: SettingsSheet;
@@ -103,7 +103,7 @@ interface Props {
 
 const voiceOptions = VOICES.map((voice) => ({
   ...voice,
-  description: 'accent' in voice ? voice.accent : 'Swipe to hear each voice',
+  description: "accent" in voice ? voice.accent : "Swipe to hear each voice",
 }));
 
 const PHRASE = [
@@ -235,7 +235,7 @@ export const VoiceSettings = ({
   preferences,
 }: Props) => {
   const screen = useViewport();
-  const phone = sheet === 'phone';
+  const phone = sheet === "phone";
   const insets = useSafeAreaInsets();
   const [given, setGiven] = useState<number>();
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
@@ -280,16 +280,16 @@ export const VoiceSettings = ({
 
   const back = onVoicePage
     ? {
-        to: 'Settings',
+        to: "Settings",
         onPress: () => {
           showVoices(false);
         },
       }
-    : { to: 'Call', onPress: onDismiss };
+    : { to: "Call", onPress: onDismiss };
 
-  const backInToolbar = useToolbarBack('settings', isPresented ? back : undefined, !!place);
+  const backInToolbar = useToolbarBack("settings", isPresented ? back : undefined, !!place);
 
-  const slide = (shown: boolean, away: number, alignment: 'top' | 'center') => [
+  const slide = (shown: boolean, away: number, alignment: "top" | "center") => [
     frame({ maxWidth: Infinity, maxHeight: Infinity, alignment }),
     background(theme.sheet),
     offset({ x: shown ? 0 : away }),
@@ -371,7 +371,7 @@ export const VoiceSettings = ({
             testID="reaction-picker"
             modifiers={[
               fixedSize({ horizontal: true, vertical: false }),
-              accessibilityLabel('How much the orb reacts to your voice'),
+              accessibilityLabel("How much the orb reacts to your voice"),
             ]}
           >
             <Picker
@@ -418,7 +418,7 @@ export const VoiceSettings = ({
               preferences.setSounds(on);
             }}
             testID="sounds-toggle"
-            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel('Call sounds')]}
+            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel("Call sounds")]}
           />
         </SettingRow>
         <Separator />
@@ -430,7 +430,7 @@ export const VoiceSettings = ({
               preferences.setHaptics(on);
             }}
             testID="haptics-toggle"
-            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel('Haptics')]}
+            modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel("Haptics")]}
           />
         </SettingRow>
       </Group>
@@ -461,7 +461,7 @@ export const VoiceSettings = ({
     />
   );
 
-  const align = two ? 'center' : 'top';
+  const align = two ? "center" : "top";
 
   const placed = place && panes && (
     <SettingsPlace
@@ -564,10 +564,10 @@ const VoicePage = ({
           onPress={onBack}
           testID="voice-back"
           modifiers={[
-            labelStyle('iconOnly'),
-            buttonStyle('glass'),
-            buttonBorderShape('circle'),
-            controlSize('large'),
+            labelStyle("iconOnly"),
+            buttonStyle("glass"),
+            buttonBorderShape("circle"),
+            controlSize("large"),
           ]}
         />
       )}
@@ -582,7 +582,7 @@ const VoicePage = ({
       width={width}
       height={VOICE_CAROUSEL}
       enabled={enabled}
-      disabledHint={locked ? 'End the conversation to change voices.' : 'Loading your voice…'}
+      disabledHint={locked ? "End the conversation to change voices." : "Loading your voice…"}
       label="Voice"
       testID="voice-carousel"
       onPress={onPress}
@@ -622,14 +622,14 @@ const Sheet = ({
   onClosed: () => void;
   onWidth: (width: number) => void;
 }) => {
-  const phone = sheet === 'phone';
+  const phone = sheet === "phone";
 
   const detents = phone
     ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
     : [{ height: appearanceHeight }];
 
   const page = (shown: boolean, away: number, height: number) => [
-    frame({ height, alignment: 'top' }),
+    frame({ height, alignment: "top" }),
     frame({ maxWidth: Infinity }),
     background(theme.sheet),
     offset({ x: shown ? 0 : away }),
@@ -638,7 +638,7 @@ const Sheet = ({
   ];
 
   return (
-    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} avoids="system" style={{ position: "absolute" }}>
       <BottomSheet
         keepMounted
         isPresented={!placed && open}
@@ -651,7 +651,7 @@ const Sheet = ({
       >
         <SheetContent
           modifiers={[
-            presentationDragIndicator('visible'),
+            presentationDragIndicator("visible"),
             presentationDetents(detents, {
               selection: detents[onVoicePage ? detents.length - 1 : 0],
               onSelectionChange: (detent) => {
@@ -687,7 +687,7 @@ const Sheet = ({
                       maxWidth: Infinity,
                       minHeight: 0,
                       maxHeight: Infinity,
-                      alignment: 'bottom',
+                      alignment: "bottom",
                     }),
                     clipped(),
                   ]
@@ -697,8 +697,8 @@ const Sheet = ({
                     clipped(),
                     animation(motion.page, onVoicePage),
                   ]),
-              accessibilityElement('contain'),
-              accessibilityIdentifier('voice-settings-sheet'),
+              accessibilityElement("contain"),
+              accessibilityIdentifier("voice-settings-sheet"),
             ]}
           >
             <RNHostView>
@@ -777,7 +777,7 @@ const SettingsPlace = ({
   }));
 
   const pane = (name: Pane, sides: { leading: number; trailing: number }) => [
-    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
     onGeometryChange((size) => {
       onPane(name, size);
     }),
@@ -788,7 +788,7 @@ const SettingsPlace = ({
     <Column
       alignment="center"
       spacing={0}
-      modifiers={pane(two ? 'persona' : 'alone', { leading, trailing: two ? 0 : trailing })}
+      modifiers={pane(two ? "persona" : "alone", { leading, trailing: two ? 0 : trailing })}
     >
       <Column
         alignment="center"
@@ -808,7 +808,7 @@ const SettingsPlace = ({
   );
 
   const rowsPane = (
-    <Column alignment="center" spacing={0} modifiers={pane('rows', { leading: 0, trailing })}>
+    <Column alignment="center" spacing={0} modifiers={pane("rows", { leading: 0, trailing })}>
       {rows}
     </Column>
   );
@@ -816,17 +816,17 @@ const SettingsPlace = ({
   return (
     <Animated.View
       testID="settings-place"
-      pointerEvents={open ? 'auto' : 'none'}
+      pointerEvents={open ? "auto" : "none"}
       accessibilityElementsHidden={!open}
-      importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+      importantForAccessibility={open ? "auto" : "no-hide-descendants"}
       style={[StyleSheet.absoluteFill, fade]}
     >
       <Host seedColor={theme.tint} style={{ flex: 1 }}>
         <ZStack
           modifiers={[
             frame({ maxWidth: Infinity, maxHeight: Infinity }),
-            accessibilityElement('contain'),
-            accessibilityIdentifier('voice-settings-sheet'),
+            accessibilityElement("contain"),
+            accessibilityIdentifier("voice-settings-sheet"),
           ]}
         >
           <Rectangle
@@ -835,7 +835,7 @@ const SettingsPlace = ({
           {row === undefined ? (
             <ArrangementView
               modifiers={[
-                arrangementViewStyle('split', { axes: 'horizontal' }),
+                arrangementViewStyle("split", { axes: "horizontal" }),
                 frame({ maxWidth: Infinity, maxHeight: Infinity }),
               ]}
             >

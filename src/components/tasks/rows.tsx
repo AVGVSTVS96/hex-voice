@@ -1,5 +1,5 @@
-import { Column, Row, Spacer } from '@expo/ui';
-import { Button, HStack, SwipeActions, Text as NativeText } from '@expo/ui/swift-ui';
+import { Column, Row, Spacer } from "@expo/ui";
+import { Button, HStack, SwipeActions, Text as NativeText } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   background,
@@ -10,24 +10,24 @@ import {
   monospacedDigit,
   padding,
   tint,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
 
-import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
-import { Mark } from '@/components/tasks/mark';
-import type { MarkState } from '@/components/tasks/mark';
-import { Failure, NotNeededButton, Pill, listRow, rowFrame } from '@/components/tasks/parts';
-import { TileIcon, swipeLook } from '@/components/tasks/places';
-import type { Ask, AskOption } from '@/live/asks';
-import { PLACES, STUCK, headlineOf, problemOf, opens, pageOf, proofWords } from '@/live/inbox';
-import type { Entry, Part, Stage, Tile, Topic, PageId } from '@/live/inbox';
-import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
-import type { TaskRow } from '@/live/tasks';
-import { theme } from '@/theme';
-import { Text, textLook } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { InlineAnswers, Unreached } from "@/components/tasks/ask-card";
+import { Mark } from "@/components/tasks/mark";
+import type { MarkState } from "@/components/tasks/mark";
+import { Failure, NotNeededButton, Pill, listRow, rowFrame } from "@/components/tasks/parts";
+import { TileIcon, swipeLook } from "@/components/tasks/places";
+import type { Ask, AskOption } from "@/live/asks";
+import { PLACES, STUCK, headlineOf, problemOf, opens, pageOf, proofWords } from "@/live/inbox";
+import type { Entry, Part, Stage, Tile, Topic, PageId } from "@/live/inbox";
+import { STATE_WORDS, atWork, clock, taskTime } from "@/live/tasks";
+import type { TaskRow } from "@/live/tasks";
+import { theme } from "@/theme";
+import { Text, textLook } from "@/ui/text";
+import { metrics, space } from "@/ui/tokens";
 
-import { Fits } from '../../../modules/rows';
+import { Fits } from "../../../modules/rows";
 
 export interface RowActions {
   selected?: string | null;
@@ -55,7 +55,7 @@ export const EntryRow = ({
   };
 
   switch (entry.kind) {
-    case 'ask': {
+    case "ask": {
       return (
         <AskRow
           entry={entry}
@@ -68,9 +68,9 @@ export const EntryRow = ({
       );
     }
 
-    case 'task': {
+    case "task": {
       const { task } = entry;
-      const mark: MarkState = task.state === 'done' ? 'read' : task.state;
+      const mark: MarkState = task.state === "done" ? "read" : task.state;
 
       return (
         <Swiped {...swiped}>
@@ -91,10 +91,10 @@ export const EntryRow = ({
       );
     }
 
-    case 'stuck': {
+    case "stuck": {
       const { stuck } = entry;
 
-      const sent = stuck.sent !== undefined && stuck.sent !== '';
+      const sent = stuck.sent !== undefined && stuck.sent !== "";
 
       const act = sent
         ? undefined
@@ -114,14 +114,14 @@ export const EntryRow = ({
             label={`${STUCK}: ${stuck.title}. ${stuck.why}`}
           >
             {stuck.why ? <Why text={stuck.why} /> : null}
-            <Action label={sent ? 'Sent to hex' : stuck.action} onPress={act} />
+            <Action label={sent ? "Sent to hex" : stuck.action} onPress={act} />
             <Failure text={stuck.failed} />
           </Shell>
         </Swiped>
       );
     }
 
-    case 'fresh': {
+    case "fresh": {
       const { fresh } = entry;
 
       const read = fresh.read
@@ -131,11 +131,11 @@ export const EntryRow = ({
           };
 
       return (
-        <Swiped {...swiped} lead={read && { label: 'Read', onPress: read }}>
+        <Swiped {...swiped} lead={read && { label: "Read", onPress: read }}>
           <Shell
             selected={selected}
             why={why}
-            mark={fresh.read ? 'read' : 'done'}
+            mark={fresh.read ? "read" : "done"}
             line={`${fresh.title}: ${fresh.line}`}
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
@@ -148,7 +148,7 @@ export const EntryRow = ({
       );
     }
 
-    case 'finished': {
+    case "finished": {
       const { finished } = entry;
       const proof = proofWords(finished.proof);
 
@@ -161,7 +161,7 @@ export const EntryRow = ({
             line={finished.title}
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
-            label={`${finished.title}, done${proof ? `: ${proof}` : ''}. Opens it`}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ""}. Opens it`}
             onPress={() => {
               actions.onOpen(pageOf({ name: entry.topic, entries: [entry], marks: [] }), entry.id);
             }}
@@ -179,9 +179,9 @@ export const EntryRow = ({
 };
 
 const agentsAtWork = (task: TaskRow) => {
-  const n = task.state === 'working' ? atWork(task.agents).length : 0;
+  const n = task.state === "working" ? atWork(task.agents).length : 0;
 
-  return n ? `${n} agent${n === 1 ? '' : 's'}` : undefined;
+  return n ? `${n} agent${n === 1 ? "" : "s"}` : undefined;
 };
 
 const AskRow = ({
@@ -199,9 +199,9 @@ const AskRow = ({
   swiped: { trail: Tile[]; onTile: (tile: Tile) => void };
   actions: RowActions;
 }) => {
-  const said = actions.answered[ask.id] ?? '';
+  const said = actions.answered[ask.id] ?? "";
 
-  if (said !== '') {
+  if (said !== "") {
     return (
       <Folded
         ask={ask}
@@ -236,7 +236,7 @@ const AskRow = ({
       <Shell
         selected={selected}
         why={why}
-        mark={pick ? 'pick' : 'asks'}
+        mark={pick ? "pick" : "asks"}
         line={ask.question}
         time={clock(new Date(entry.at))}
         tiles={entry.tiles}
@@ -347,18 +347,18 @@ const Shell = ({
     <Column
       alignment="start"
       spacing={space[1]}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <HStack
         alignment="firstTextBaseline"
         spacing={space[3]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         <Text
           numberOfLines={2}
           variant="body"
           paragraph
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           {line}
         </Text>
@@ -386,7 +386,7 @@ const Tiles = ({ tiles }: { tiles: Tile[] }) => {
   );
 };
 
-const lookOf = (tile: Tile) => (tile.kind === 'app' ? `${tile.place}:${opens(tile)}` : tile.kind);
+const lookOf = (tile: Tile) => (tile.kind === "app" ? `${tile.place}:${opens(tile)}` : tile.kind);
 
 const Meta = ({ text }: { text: string }) => (
   <Text numberOfLines={1} variant="caption" tone="tertiary">
@@ -422,7 +422,7 @@ const Folded = ({
     <Column
       alignment="start"
       spacing={space[1]}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <Text numberOfLines={2} variant="detail" tone="secondary">
         {ask.question}
@@ -437,17 +437,17 @@ const Folded = ({
   </Row>
 );
 
-const STAGE_WORDS: Record<Exclude<Stage, 'needs'>, string> = {
-  working: 'working',
-  done: 'done',
-  quiet: 'quiet',
+const STAGE_WORDS: Record<Exclude<Stage, "needs">, string> = {
+  working: "working",
+  done: "done",
+  quiet: "quiet",
 };
 
 const STAGE_MARK: Record<Stage, MarkState> = {
-  needs: 'needs',
-  working: 'working',
-  done: 'done',
-  quiet: 'idle',
+  needs: "needs",
+  working: "working",
+  done: "done",
+  quiet: "idle",
 };
 
 export const ProjectRow = ({
@@ -470,9 +470,9 @@ export const ProjectRow = ({
   const said = headlineOf(newest);
   const problem = problemOf(said);
   const headline = problem ?? said;
-  const needs = stage === 'needs';
-  const counted = `${count} ${needs ? 'waiting' : STAGE_WORDS[stage]}`;
-  const settled = problem === undefined ? STAGE_MARK[stage] : 'failed';
+  const needs = stage === "needs";
+  const counted = `${count} ${needs ? "waiting" : STAGE_WORDS[stage]}`;
+  const settled = problem === undefined ? STAGE_MARK[stage] : "failed";
   const mark = needs ? waiting(newest) : settled;
 
   return (
@@ -491,12 +491,12 @@ export const ProjectRow = ({
       <Column
         alignment="start"
         spacing={space[1]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         <HStack
           alignment="firstTextBaseline"
           spacing={space[2]}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
             {topic.name}
@@ -509,9 +509,9 @@ export const ProjectRow = ({
           <Text
             numberOfLines={2}
             variant="detail"
-            tone={problem === undefined ? 'secondary' : 'danger'}
+            tone={problem === undefined ? "secondary" : "danger"}
             paragraph
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
           >
             {headline}
           </Text>
@@ -523,21 +523,21 @@ export const ProjectRow = ({
 
 const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
-    case 'ask': {
-      return entry.ask.options.some((option) => option.pick === true) ? 'pick' : 'asks';
+    case "ask": {
+      return entry.ask.options.some((option) => option.pick === true) ? "pick" : "asks";
     }
 
-    case 'stuck': {
+    case "stuck": {
       return entry.stuck.mark;
     }
 
-    case 'task':
-    case 'fresh': {
-      return 'needs';
+    case "task":
+    case "fresh": {
+      return "needs";
     }
 
-    case 'finished': {
-      return 'done';
+    case "finished": {
+      return "done";
     }
 
     default: {
@@ -550,28 +550,28 @@ const Count = ({ count, needs }: { count: number; needs: boolean }) => (
   <Text
     variant="caption"
     weight="medium"
-    tone={needs ? 'accent' : 'tertiary'}
+    tone={needs ? "accent" : "tertiary"}
     modifiers={[
       monospacedDigit(),
       padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
       ...(needs ? [background(theme.accentMuted)] : []),
-      clipShape('capsule'),
+      clipShape("capsule"),
     ]}
   >
     {String(count)}
   </Text>
 );
 
-const newTextForNewPieces = (parts: Part[]) => parts.map((part) => part.text).join('\u0000');
+const newTextForNewPieces = (parts: Part[]) => parts.map((part) => part.text).join("\u0000");
 
 const Found = ({ parts }: { parts: Part[] }) => (
   <NativeText
     key={newTextForNewPieces(parts)}
-    modifiers={[...textLook({ variant: 'detail', tone: 'secondary' }), lineLimit(2)]}
+    modifiers={[...textLook({ variant: "detail", tone: "secondary" }), lineLimit(2)]}
   >
     {parts.map((part, at) =>
       part.hit ? (
-        <NativeText key={at} modifiers={textLook({ variant: 'detail', weight: 'medium' })}>
+        <NativeText key={at} modifiers={textLook({ variant: "detail", weight: "medium" })}>
           {part.text}
         </NativeText>
       ) : (

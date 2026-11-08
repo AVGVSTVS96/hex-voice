@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import type { DimensionValue } from 'react-native';
+import { useState } from "react";
+import { Image, StyleSheet, View } from "react-native";
+import type { DimensionValue } from "react-native";
 
-import { Glyph } from '@/components/glyph';
-import { mediaSource } from '@/hooks/use-media';
-import type { Shown } from '@/live/media';
-import { bevel, circle, theme } from '@/theme';
-import { film, metrics, radius, space } from '@/ui/tokens';
+import { Glyph } from "@/components/glyph";
+import { mediaSource } from "@/hooks/use-media";
+import type { Shown } from "@/live/media";
+import { bevel, circle, theme } from "@/theme";
+import { film, metrics, radius, space } from "@/ui/tokens";
 
 export const Thumb = ({
   media,
@@ -25,7 +25,7 @@ export const Thumb = ({
   return (
     <View
       accessibilityRole="image"
-      accessibilityLabel={media.kind === 'video' ? 'Video' : 'Photo'}
+      accessibilityLabel={media.kind === "video" ? "Video" : "Photo"}
       style={[styles.frame, { width, aspectRatio: square ? 1 : shape, borderRadius: corner }]}
     >
       <Image
@@ -36,7 +36,7 @@ export const Thumb = ({
           setShape(Math.min(4 / 3, Math.max(3 / 4, loaded.width / loaded.height)));
         }}
       />
-      {media.kind === 'video' && (
+      {media.kind === "video" && (
         <View style={styles.play}>
           <Glyph name="play.fill" size={metrics.symbol.bar} color={film.ink} />
         </View>
@@ -68,24 +68,24 @@ export const Album = ({
 };
 
 const styles = StyleSheet.create({
-  album: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[1] },
+  album: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: space[1] },
   dim: { opacity: 0.6 },
   frame: {
-    overflow: 'hidden',
-    borderCurve: 'continuous',
+    overflow: "hidden",
+    borderCurve: "continuous",
     backgroundColor: theme.skeleton,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   play: {
     ...circle(metrics.tool),
     backgroundColor: film.glass,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   edge: {
     ...StyleSheet.absoluteFill,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     borderWidth: bevel.width,
     borderColor: bevel.side,
     borderTopColor: bevel.light,

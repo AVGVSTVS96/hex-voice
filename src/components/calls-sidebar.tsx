@@ -1,7 +1,7 @@
-import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from "expo-haptics";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeOut,
   LinearTransition,
@@ -9,16 +9,16 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { Glyph } from '@/components/glyph';
-import { ENDINGS, SOURCES, byDay, callDetails, callName, callTime } from '@/live/calls';
-import type { CallId, CallSummary } from '@/live/calls';
-import { motion } from '@/motion';
-import { circle, theme } from '@/theme';
-import { ScrollView } from '@/ui/scroll';
-import { metrics, radius, space, textOf } from '@/ui/tokens';
+import { Glyph } from "@/components/glyph";
+import { ENDINGS, SOURCES, byDay, callDetails, callName, callTime } from "@/live/calls";
+import type { CallId, CallSummary } from "@/live/calls";
+import { motion } from "@/motion";
+import { circle, theme } from "@/theme";
+import { ScrollView } from "@/ui/scroll";
+import { metrics, radius, space, textOf } from "@/ui/tokens";
 
 const ACTION = 64;
 const DELETE_AT = 180;
@@ -105,7 +105,7 @@ const Row = ({
   const [open, setOpen] = useState(false);
 
   const remove = () => {
-    if (process.env.EXPO_OS === 'ios' && haptics) {
+    if (process.env.EXPO_OS === "ios" && haptics) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
@@ -113,7 +113,7 @@ const Row = ({
   };
 
   const settle = (to: number, velocity = 0) => {
-    'worklet';
+    "worklet";
     x.set(withSpring(to, { ...motion.row, velocity }));
     scheduleOnRN(setOpen, to !== 0);
   };
@@ -166,7 +166,7 @@ const Row = ({
         <Pressable
           accessibilityLabel="Delete call"
           accessibilityElementsHidden={!open}
-          importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+          importantForAccessibility={open ? "auto" : "no-hide-descendants"}
           onPress={remove}
           style={styles.delete}
         >
@@ -179,9 +179,9 @@ const Row = ({
           accessible
           accessibilityRole="button"
           accessibilityLabel={`${callName(call)}, ${call.failed ?? callDetails(call)}, ${callTime(call.started)}`}
-          accessibilityActions={live ? [] : [{ name: 'delete', label: 'Delete call' }]}
+          accessibilityActions={live ? [] : [{ name: "delete", label: "Delete call" }]}
           onAccessibilityAction={({ nativeEvent }) => {
-            if (nativeEvent.actionName === 'delete') {
+            if (nativeEvent.actionName === "delete") {
               remove();
             }
           }}
@@ -191,10 +191,10 @@ const Row = ({
             <Text numberOfLines={2} style={styles.name}>
               {callName(call)}
             </Text>
-            <Text style={styles.when}>{live ? 'Now' : callTime(call.started)}</Text>
+            <Text style={styles.when}>{live ? "Now" : callTime(call.started)}</Text>
           </View>
           <View style={styles.metaRow}>
-            {call.from === 'app' ? null : (
+            {call.from === "app" ? null : (
               <Glyph
                 name={SOURCES[call.from].symbol}
                 size={metrics.symbol.small}
@@ -216,7 +216,7 @@ const CallStatus = ({ call, live }: { call: CallSummary; live: boolean }) => {
     return <Text style={styles.live}>Live now</Text>;
   }
 
-  if (call.failed !== undefined && call.failed !== '') {
+  if (call.failed !== undefined && call.failed !== "") {
     return <Text style={styles.bad}>{call.failed}</Text>;
   }
 
@@ -236,30 +236,30 @@ const Empty = ({ offline }: { offline: boolean }) => (
   <View style={styles.empty}>
     <View style={styles.ring}>
       <Glyph
-        name={offline ? 'wifi.slash' : 'clock.arrow.circlepath'}
+        name={offline ? "wifi.slash" : "clock.arrow.circlepath"}
         size={metrics.symbol.regular}
         color={theme.secondary}
       />
     </View>
-    <Text style={styles.emptyTitle}>{offline ? 'Can’t reach hex' : 'No calls yet'}</Text>
+    <Text style={styles.emptyTitle}>{offline ? "Can’t reach hex" : "No calls yet"}</Text>
     <Text style={styles.emptyText}>
       {offline
-        ? 'Check that Tailscale is on. Calls catches up on its own once hex answers.'
-        : 'When a call ends, it lands here, whether you called from this app, the web page or your phone.'}
+        ? "Check that Tailscale is on. Calls catches up on its own once hex answers."
+        : "When a call ends, it lands here, whether you called from this app, the web page or your phone."}
     </Text>
   </View>
 );
 
 const styles = StyleSheet.create({
   sidebar: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
     backgroundColor: theme.sheet,
   },
   title: {
-    ...textOf('title'),
+    ...textOf("title"),
     color: theme.text,
     paddingHorizontal: metrics.list.inset,
     paddingTop: space[3],
@@ -267,13 +267,13 @@ const styles = StyleSheet.create({
   },
   list: { paddingBottom: space[10] },
   offline: {
-    ...textOf('caption'),
+    ...textOf("caption"),
     color: theme.secondary,
     paddingHorizontal: metrics.list.inset,
     paddingTop: space[2],
   },
   day: {
-    ...textOf('detail'),
+    ...textOf("detail"),
     color: theme.secondary,
     paddingHorizontal: metrics.list.inset,
     paddingTop: space[6],
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   row: {
     marginHorizontal: space[2],
     borderRadius: radius.control,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
   },
   selected: { backgroundColor: theme.card },
   slide: {
@@ -290,35 +290,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: metrics.list.inset - space[2],
     paddingVertical: space[3],
     borderRadius: radius.control,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     backgroundColor: theme.sheet,
   },
-  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
-  name: { ...textOf('headline'), flex: 1, color: theme.text },
-  meta: { ...textOf('detail'), flexShrink: 1, color: theme.secondary },
+  nameRow: { flexDirection: "row", alignItems: "baseline", gap: space[2] },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: space[1] },
+  name: { ...textOf("headline"), flex: 1, color: theme.text },
+  meta: { ...textOf("detail"), flexShrink: 1, color: theme.secondary },
   live: { color: theme.progress },
   bad: { color: theme.danger },
-  when: { ...textOf('caption'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  action: { position: 'absolute', right: space[2], top: 0, bottom: 0, justifyContent: 'center' },
+  when: { ...textOf("caption"), color: theme.tertiary, fontVariant: ["tabular-nums"] },
+  action: { position: "absolute", right: space[2], top: 0, bottom: 0, justifyContent: "center" },
   delete: {
     ...circle(44),
     backgroundColor: theme.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  empty: { alignItems: 'center', paddingHorizontal: space[8], paddingTop: metrics.emptyTop },
+  empty: { alignItems: "center", paddingHorizontal: space[8], paddingTop: metrics.emptyTop },
   ring: {
     ...circle(72),
     backgroundColor: theme.skeleton,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  emptyTitle: { ...textOf('title'), color: theme.text, marginTop: space[6] },
+  emptyTitle: { ...textOf("title"), color: theme.text, marginTop: space[6] },
   emptyText: {
-    ...textOf('body'),
+    ...textOf("body"),
     color: theme.secondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: space[2],
   },
 });

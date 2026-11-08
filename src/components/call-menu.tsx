@@ -1,8 +1,8 @@
-import { Button, Label, ShareLink } from '@expo/ui/swift-ui';
+import { Button, Label, ShareLink } from "@expo/ui/swift-ui";
 
-import { GlassMenu } from '@/ui/glass-button';
-import { Host } from '@/ui/host';
-import { metrics } from '@/ui/tokens';
+import { GlassMenu } from "@/ui/glass-button";
+import { Host } from "@/ui/host";
+import { metrics } from "@/ui/tokens";
 
 interface Props {
   transcript?: string;

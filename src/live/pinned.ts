@@ -1,9 +1,9 @@
-export type PinMark = 'done' | 'working' | 'needs' | 'failed' | 'idle';
+export type PinMark = "done" | "working" | "needs" | "failed" | "idle";
 
 export type PinLine =
-  | { kind: 'item'; text: string; mark: PinMark; url?: string }
-  | { kind: 'code'; text: string }
-  | { kind: 'text'; text: string; url?: string };
+  | { kind: "item"; text: string; mark: PinMark; url?: string }
+  | { kind: "code"; text: string }
+  | { kind: "text"; text: string; url?: string };
 
 export interface PinSection {
   title: string;
@@ -25,16 +25,16 @@ const TITLES =
   /^(?<title>(?:\*\*|__)?(?:done|running|working|in progress|pending|waiting on you|blocked on you|your call|known|known problems|next|later|live|links)\b[^:]{0,30}):(?:\*\*|__)?\s*(?<rest>.+)$/iu;
 
 const EMOJI_MARKS: [RegExp, PinMark][] = [
-  [/^(?:✅|☑️|✔️|✔|✓)\s*/u, 'done'],
-  [/^(?:❌|⚠️|🔴|🛑)\s*/u, 'failed'],
-  [/^(?:🔄|⏳|🏃|🟡)\s*/u, 'working'],
-  [/^(?:❓|👉|🟢)\s*/u, 'needs'],
+  [/^(?:✅|☑️|✔️|✔|✓)\s*/u, "done"],
+  [/^(?:❌|⚠️|🔴|🛑)\s*/u, "failed"],
+  [/^(?:🔄|⏳|🏃|🟡)\s*/u, "working"],
+  [/^(?:❓|👉|🟢)\s*/u, "needs"],
 ];
 
 export const pinSections = (text: string): PinSection[] => {
   const sections: PinSection[] = [];
-  let current: PinSection = { title: '', mark: 'idle', folded: false, lines: [] };
-  const lines = text.split('\n');
+  let current: PinSection = { title: "", mark: "idle", folded: false, lines: [] };
+  const lines = text.split("\n");
 
   for (let i = 0; i < lines.length; i += 1) {
     const raw = lines[i];
@@ -46,20 +46,20 @@ export const pinSections = (text: string): PinSection[] => {
         code.push(lines[i]);
       }
 
-      current.lines.push({ kind: 'code', text: code.join('\n') });
+      current.lines.push({ kind: "code", text: code.join("\n") });
       continue;
     }
 
-    const line = raw.trim().replace(PIN, '');
+    const line = raw.trim().replace(PIN, "");
 
     if (!line) {
       continue;
     }
 
-    const inline = TITLES.exec(line.replace(WHOLE_BOLD, '$<bold>$<title>$<bold>$<rest>'))?.groups;
+    const inline = TITLES.exec(line.replace(WHOLE_BOLD, "$<bold>$<title>$<bold>$<rest>"))?.groups;
     const heading = inline ? plain(inline.title) : headingOf(line);
 
-    if (heading !== undefined && heading !== '') {
+    if (heading !== undefined && heading !== "") {
       if (current.title || current.lines.length) {
         sections.push(current);
       }
@@ -68,16 +68,16 @@ export const pinSections = (text: string): PinSection[] => {
       current = {
         title: heading,
         mark,
-        folded: mark === 'done',
+        folded: mark === "done",
         lines: inline ? [item(inline.rest, mark)] : [],
       };
       continue;
     }
 
     if (BULLET.test(line)) {
-      current.lines.push(item(line.replace(BULLET, ''), current.mark));
+      current.lines.push(item(line.replace(BULLET, ""), current.mark));
     } else {
-      current.lines.push({ kind: 'text', ...linked(line) });
+      current.lines.push({ kind: "text", ...linked(line) });
     }
   }
 
@@ -92,13 +92,13 @@ const headingOf = (line: string): string | undefined => {
   const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups;
 
   if (bold) {
-    return bold.title.replace(HEADING_EMOJI, '').replace(/:$/u, '').trim();
+    return bold.title.replace(HEADING_EMOJI, "").replace(/:$/u, "").trim();
   }
 
   const bare = plain(line);
 
-  if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line)) {
-    return bare.slice(0, -1).replace(HEADING_EMOJI, '').trim();
+  if (bare.length <= 60 && bare.endsWith(":") && !BULLET.test(line)) {
+    return bare.slice(0, -1).replace(HEADING_EMOJI, "").trim();
   }
 
   return undefined;
@@ -106,22 +106,22 @@ const headingOf = (line: string): string | undefined => {
 
 const sectionMark = (title: string): PinMark => {
   if (/\b(?:done|shipped|finished|live)\b/iu.test(title)) {
-    return 'done';
+    return "done";
   }
 
   if (/\b(?:running|working|in progress|underway)\b/iu.test(title)) {
-    return 'working';
+    return "working";
   }
 
   if (/\b(?:waiting on you|your call|needs you|blocked on you|for you|to decide)\b/iu.test(title)) {
-    return 'needs';
+    return "needs";
   }
 
   if (/\b(?:known|problem|broken|fail|blocked|stuck)\b/iu.test(title)) {
-    return 'failed';
+    return "failed";
   }
 
-  return 'idle';
+  return "idle";
 };
 
 const item = (text: string, mark: PinMark): PinLine => {
@@ -134,11 +134,11 @@ const item = (text: string, mark: PinMark): PinLine => {
     }
 
     own = emojiMark;
-    rest = rest.replace(emoji, '');
+    rest = rest.replace(emoji, "");
     break;
   }
 
-  return { kind: 'item', ...linked(rest), mark: own };
+  return { kind: "item", ...linked(rest), mark: own };
 };
 
 const linked = (text: string) => {
@@ -146,9 +146,9 @@ const linked = (text: string) => {
   const url = link?.groups?.url ?? URL.exec(text)?.[0];
 
   return {
-    text: (link ? text.replace(LINK, '$<label>') : text).trim(),
+    text: (link ? text.replace(LINK, "$<label>") : text).trim(),
     ...(url !== undefined && { url }),
   };
 };
 
-const plain = (text: string) => text.replaceAll(/\*\*|__/gu, '').trim();
+const plain = (text: string) => text.replaceAll(/\*\*|__/gu, "").trim();

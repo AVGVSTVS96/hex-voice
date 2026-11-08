@@ -1,6 +1,6 @@
-import { requireNativeView } from 'expo';
-import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
-import type { ReactNode } from 'react';
+import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
+import { requireNativeView } from "expo";
+import type { ReactNode } from "react";
 
 export type ColumnProps = CommonViewModifierProps & {
   top: number;
@@ -9,4 +9,4 @@ export type ColumnProps = CommonViewModifierProps & {
 };
 
 export const ColumnView =
-  process.env.EXPO_OS === 'ios' ? requireNativeView<ColumnProps>('Column', 'ColumnView') : null;
+  process.env.EXPO_OS === "ios" ? requireNativeView<ColumnProps>("Column", "ColumnView") : null;

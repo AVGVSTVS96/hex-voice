@@ -1,12 +1,12 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { Divider } from '@expo/ui/swift-ui';
-import { accessibilityLabel, padding } from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
-import type { SFSymbol } from 'sf-symbols-typescript';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
+import { Divider } from "@expo/ui/swift-ui";
+import { accessibilityLabel, padding } from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { hairline, theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, radius } from '@/ui/tokens';
+import { hairline, theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, radius } from "@/ui/tokens";
 
 export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 
@@ -45,7 +45,7 @@ export const SettingRow = ({
     style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
     onPress={onPress}
     testID={testID}
-    modifiers={label === undefined || label === '' ? [] : [accessibilityLabel(label)]}
+    modifiers={label === undefined || label === "" ? [] : [accessibilityLabel(label)]}
   >
     <Icon
       name={icon}

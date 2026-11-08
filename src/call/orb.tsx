@@ -1,21 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   useAnimatedReaction,
   useSharedValue,
   withRepeat,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { personaOf, wakeOf } from '@/call/call';
-import type { Call } from '@/call/call';
-import { useLevels } from '@/call/use-call';
-import { Persona } from '@/components/persona';
-import type { PersonaProps } from '@/components/persona';
-import { useVoiceTone } from '@/hooks/use-voice-tone';
-import { motion } from '@/motion';
+import { personaOf, wakeOf } from "@/call/call";
+import type { Call } from "@/call/call";
+import { useLevels } from "@/call/use-call";
+import { Persona } from "@/components/persona";
+import type { PersonaProps } from "@/components/persona";
+import { useVoiceTone } from "@/hooks/use-voice-tone";
+import { motion } from "@/motion";
 
-export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaProps, 'state'>) => {
+export const CallPersona = ({ call, ...persona }: { call: Call } & Omit<PersonaProps, "state">) => {
   const [speaking, setSpeaking] = useState(false);
   useLevels(({ output }) => {
     setSpeaking(output > 0.035);
@@ -35,8 +35,8 @@ export const useOrbLife = (
   const awake = wakeOf(call);
 
   const reacting =
-    call.kind === 'here' &&
-    call.phase === 'live' &&
+    call.kind === "here" &&
+    call.phase === "live" &&
     !call.mic.muted &&
     !reducedMotion &&
     reaction > 0;

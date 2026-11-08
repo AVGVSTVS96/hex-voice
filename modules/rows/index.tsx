@@ -1,8 +1,8 @@
-import { requireNativeView } from 'expo';
-import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
-import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
-import type { ComponentType, ReactNode } from 'react';
-import type { ColorValue } from 'react-native';
+import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
+import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
+import { requireNativeView } from "expo";
+import type { ComponentType, ReactNode } from "react";
+import type { ColorValue } from "react-native";
 
 export type FitsProps = CommonViewModifierProps & { children: ReactNode };
 
@@ -17,7 +17,7 @@ export type LaneProps = CommonViewModifierProps & {
 };
 
 const view = <Props extends CommonViewModifierProps>(name: string): ComponentType<Props> => {
-  const Native = process.env.EXPO_OS === 'ios' ? requireNativeView<Props>('Rows', name) : null;
+  const Native = process.env.EXPO_OS === "ios" ? requireNativeView<Props>("Rows", name) : null;
 
   const Rows = (props: Props) => {
     if (!Native) {
@@ -35,6 +35,6 @@ const view = <Props extends CommonViewModifierProps>(name: string): ComponentTyp
   return Rows;
 };
 
-export const Fits = view<FitsProps>('FitsView');
-export const EvenRow = view<EvenRowProps>('EvenRowView');
-export const Lane = view<LaneProps>('LaneView');
+export const Fits = view<FitsProps>("FitsView");
+export const EvenRow = view<EvenRowProps>("EvenRowView");
+export const Lane = view<LaneProps>("LaneView");

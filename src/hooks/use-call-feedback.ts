@@ -1,9 +1,9 @@
-import { useAudioPlayer } from 'expo-audio';
-import * as Haptics from 'expo-haptics';
-import { useEffect, useRef } from 'react';
+import { useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
+import { useEffect, useRef } from "react";
 
-import connectSound from '@/assets/sounds/connect.wav';
-import endSound from '@/assets/sounds/end.wav';
+import connectSound from "@/assets/sounds/connect.wav";
+import endSound from "@/assets/sounds/end.wav";
 
 const options = { keepAudioSessionActive: true };
 
@@ -19,7 +19,7 @@ export const useCallFeedback = (
     const was = previous.current;
     previous.current = live;
 
-    if (process.env.EXPO_OS !== 'ios' || live === was) {
+    if (process.env.EXPO_OS !== "ios" || live === was) {
       return;
     }
 

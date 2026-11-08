@@ -1,6 +1,6 @@
-import type { ComponentProps } from 'react';
-import type { ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import type { ComponentProps } from "react";
+import type { ViewStyle } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 export const AnimatedView = ({
   animate,

@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { List } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
+import { List } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   animation,
@@ -13,20 +13,20 @@ import {
   scrollClipDisabled,
   scrollContentBackground,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useMemo } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import { useEffect, useMemo } from "react";
 
-import { PageBar, useChrome } from '@/components/tasks/bar';
-import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
-import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
-import { useField } from '@/components/tasks/pages';
-import type { Pages, Spot } from '@/components/tasks/pages';
-import { Empty, Faded, Loading, UNREACHED, listRow } from '@/components/tasks/parts';
-import type { Feel } from '@/components/tasks/parts';
-import { EntryRow, ProjectRow } from '@/components/tasks/rows';
-import type { useAsks } from '@/hooks/use-asks';
-import type { Ask, AskOption } from '@/live/asks';
-import type { Counts } from '@/hooks/use-tasks';
+import { PageBar, useChrome } from "@/components/tasks/bar";
+import { CheckRow, PicksRow, TopicHead } from "@/components/tasks/inbox";
+import { Search, SearchButton, Tabs } from "@/components/tasks/list-head";
+import { useField } from "@/components/tasks/pages";
+import type { Pages, Spot } from "@/components/tasks/pages";
+import { Empty, Faded, Loading, UNREACHED, listRow } from "@/components/tasks/parts";
+import type { Feel } from "@/components/tasks/parts";
+import { EntryRow, ProjectRow } from "@/components/tasks/rows";
+import type { useAsks } from "@/hooks/use-asks";
+import type { Counts } from "@/hooks/use-tasks";
+import type { Ask, AskOption } from "@/live/asks";
 import {
   doneIn,
   picksOf,
@@ -39,22 +39,22 @@ import {
   taskOf,
   topicIn,
   topicsOf,
-} from '@/live/inbox';
-import type { Entry, PageId, Tab, Tile, Topic } from '@/live/inbox';
-import type { TaskRow } from '@/live/tasks';
-import { motion, rowsKey } from '@/motion';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { breakpoint, metrics, space } from '@/ui/tokens';
+} from "@/live/inbox";
+import type { Entry, PageId, Tab, Tile, Topic } from "@/live/inbox";
+import type { TaskRow } from "@/live/tasks";
+import { motion, rowsKey } from "@/motion";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { breakpoint, metrics, space } from "@/ui/tokens";
 
-import { Fits } from '../../../modules/rows';
+import { Fits } from "../../../modules/rows";
 
 const EMPTY: Record<Tab, string> = {
-  all: 'Nothing from hex yet',
-  needs: 'Nothing waits on you',
-  working: 'Nothing is working',
-  done: 'Nothing done in the last day',
-  quiet: 'Nothing is quiet',
+  all: "Nothing from hex yet",
+  needs: "Nothing waits on you",
+  working: "Nothing is working",
+  done: "Nothing done in the last day",
+  quiet: "Nothing is quiet",
 };
 
 type Yours = ReturnType<typeof useAsks>;
@@ -96,7 +96,7 @@ export const ListPage = ({
   const { query } = pages;
 
   const setQuery = (next: string | null) => {
-    pages.go({ to: 'search', query: next });
+    pages.go({ to: "search", query: next });
   };
 
   const counts = stageCounts(entries, yours.answered);
@@ -127,11 +127,11 @@ export const ListPage = ({
 
   const picks = picksOf(entries, yours.answered);
   const searching = query !== null;
-  const needsTab = !searching && stage === 'needs';
+  const needsTab = !searching && stage === "needs";
   const first = firstPage(searching, shown, topics);
   useEffect(() => {
-    if (open && (pages.task ?? '') === '' && first !== undefined && first !== '') {
-      pages.go({ to: 'beside', id: first });
+    if (open && (pages.task ?? "") === "" && first !== undefined && first !== "") {
+      pages.go({ to: "beside", id: first });
     }
   }, [open, pages.task, first]);
   const { beside, apart, selected, openTopic } = besideOf(pages, shown, entries);
@@ -141,22 +141,22 @@ export const ListPage = ({
   const openPage = (page: PageId, row?: string) => {
     feel.tick();
     searchField.current?.blur();
-    pages.go({ to: 'topic', id: page, row });
+    pages.go({ to: "topic", id: page, row });
   };
 
   const chooseStage = (next: Tab) => {
     feel.tick();
-    pages.go({ to: 'stage', stage: next });
+    pages.go({ to: "stage", stage: next });
     const lead = stageTopics(entries, next).at(0);
 
     if (beside) {
-      pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
+      pages.go({ to: "beside", id: lead ? pageOf(lead) : null });
     }
   };
 
   const startSearch = () => {
     feel.tick();
-    setQuery('');
+    setQuery("");
   };
 
   const actions = {
@@ -202,7 +202,7 @@ export const ListPage = ({
     <Column
       alignment="start"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
     >
       {searching ? (
         <Search
@@ -237,25 +237,25 @@ export const ListPage = ({
       <Faded>
         <List
           modifiers={[
-            listStyle('plain'),
-            scrollContentBackground('hidden'),
+            listStyle("plain"),
+            scrollContentBackground("hidden"),
             scrollClipDisabled(),
             frame({ maxWidth: metrics.readable, maxHeight: Infinity }),
             animation(
               motion.list,
-              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
+              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ""}`)),
             ),
-            id(searching ? 'search' : stage),
+            id(searching ? "search" : stage),
           ]}
         >
           {behind ? <Behind /> : null}
           {needsTab && picks.length > 1 ? (
             <PicksRow
               n={picks.length}
-              selected={apart === 'picks'}
+              selected={apart === "picks"}
               onOpen={() => {
                 feel.tick();
-                pages.go({ to: 'picks' });
+                pages.go({ to: "picks" });
               }}
             />
           ) : null}
@@ -263,10 +263,10 @@ export const ListPage = ({
             if (!searching) {
               return [
                 <ProjectRow
-                  key={stage === 'done' ? topic.entries[0].id : topic.name}
+                  key={stage === "done" ? topic.entries[0].id : topic.name}
                   topic={topic}
                   selected={
-                    stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic
+                    stage === "done" ? pageOf(topic) === pages.task : topic.name === openTopic
                   }
                   onOpen={() => {
                     openPage(pageOf(topic), topic.entries[0]?.id);
@@ -293,10 +293,10 @@ export const ListPage = ({
           {needsTab && yours.list?.check ? (
             <CheckRow
               check={yours.list.check}
-              selected={apart === 'check'}
+              selected={apart === "check"}
               onPress={() => {
                 feel.tick();
-                pages.go({ to: 'check' });
+                pages.go({ to: "check" });
               }}
             />
           ) : null}
@@ -317,9 +317,9 @@ const statusOf = (yours: Yours, tasks: TaskRow[] | undefined, offline: boolean) 
 };
 
 const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
-  const beside = pages.shape !== 'one';
+  const beside = pages.shape !== "one";
   const [lead] = pages.path;
-  const apart = beside && (lead === 'picks' || lead === 'check') ? lead : undefined;
+  const apart = beside && (lead === "picks" || lead === "check") ? lead : undefined;
 
   if (!beside || apart !== undefined) {
     return { beside, apart, selected: null, openTopic: undefined };
@@ -347,7 +347,7 @@ const selectedIn = (shown: Entry[], { task, row }: Pages) =>
   )?.id ?? null;
 
 const emptyText = (query: string | null, stage: Tab) =>
-  query === null || query === '' ? EMPTY[stage] : 'Nothing matches';
+  query === null || query === "" ? EMPTY[stage] : "Nothing matches";
 
 const Behind = () => (
   <Text
@@ -355,7 +355,7 @@ const Behind = () => (
     tone="tertiary"
     modifiers={[
       padding({ leading: metrics.list.inset, top: space[2], bottom: space[2] }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
       ...listRow(),
     ]}
   >
@@ -372,7 +372,7 @@ const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => 
       frame({ height: metrics.pill.height }),
       frame({ maxWidth: metrics.readable }),
       background(theme.fill),
-      clipShape('capsule'),
+      clipShape("capsule"),
       contentShape(shapes.capsule()),
       padding({
         leading: space[4],
@@ -381,7 +381,7 @@ const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => 
         bottom: Math.max(space[4], foot),
       }),
       frame({ maxWidth: Infinity }),
-      accessibilityLabel('Go through them with hex'),
+      accessibilityLabel("Go through them with hex"),
     ]}
   >
     <Spacer flexible />

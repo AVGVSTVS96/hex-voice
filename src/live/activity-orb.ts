@@ -1,11 +1,11 @@
+import { PERSONA_MODELS } from "@/components/persona/animation";
 import {
   OPAL_PALETTES,
   PERSONA_COLORS,
   PERSONA_VARIANTS,
   personaColorOnLight,
-} from '@/components/persona/variants';
-import type { OpalPalette, PersonaVariant } from '@/components/persona/variants';
-import { PERSONA_MODELS } from '@/components/persona/animation';
+} from "@/components/persona/variants";
+import type { OpalPalette, PersonaVariant } from "@/components/persona/variants";
 
 export interface ActivityOrb {
   name: string;
@@ -16,14 +16,14 @@ export interface ActivityOrb {
 }
 
 const named = (variant: PersonaVariant, suffix?: string) =>
-  suffix === undefined || suffix === ''
+  suffix === undefined || suffix === ""
     ? `orb-${variant}`
     : `orb-${variant}-${suffix.toLowerCase()}`;
 
 export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: variant }) => {
-  if (variant === 'opal') {
+  if (variant === "opal") {
     return OPAL_PALETTES.map(({ id }) =>
-      id === 'original'
+      id === "original"
         ? { name: named(variant), variant }
         : { name: named(variant, id), variant, palette: Number(id) },
     );
@@ -42,8 +42,8 @@ export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: varian
 });
 
 const orbName = (variant: PersonaVariant, color: string, palette: OpalPalette) => {
-  if (variant === 'opal') {
-    return named(variant, palette === 'original' ? undefined : palette);
+  if (variant === "opal") {
+    return named(variant, palette === "original" ? undefined : palette);
   }
 
   return PERSONA_MODELS[variant].dynamicColor ? named(variant, color.slice(1)) : named(variant);

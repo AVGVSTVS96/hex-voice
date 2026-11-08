@@ -1,9 +1,9 @@
-import assert from 'node:assert/strict';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
 
-import { color, space, type } from '../src/ui/tokens';
+import { color, space, type } from "../src/ui/tokens";
 
 const files = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -17,11 +17,11 @@ const files = (dir: string): string[] =>
   });
 
 const notYetOnTokens = new Set([
-  'src/components/tasks/tasks-view.tsx',
-  'src/screens/duo-tasks.tsx',
+  "src/components/tasks/tasks-view.tsx",
+  "src/screens/duo-tasks.tsx",
 ]);
 
-const widgetWithoutTokens = 'src/live/call-activity.tsx';
+const widgetWithoutTokens = "src/live/call-activity.tsx";
 
 const fromTokensOrParent =
   /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\)|hairline)/gu;
@@ -35,7 +35,7 @@ const groupsOf = (match: RegExpExecArray) => {
 };
 
 const raw = (value: string, constants: Map<string, string>, whole: boolean): boolean => {
-  const rest = value.replaceAll(fromTokensOrParent, '').replaceAll(halvedToCenter, '');
+  const rest = value.replaceAll(fromTokensOrParent, "").replaceAll(halvedToCenter, "");
 
   if (whole && rest.trim()) {
     return true;
@@ -64,7 +64,7 @@ const rawLooks = (file: string) => {
     return [];
   }
 
-  const source = readFileSync(file, 'utf-8');
+  const source = readFileSync(file, "utf-8");
 
   const constants = new Map(
     [...source.matchAll(/^(?:export )?const (?<name>[A-Z][A-Z\d_]+) = (?<value>[^;\n]+);/gmu)].map(
@@ -98,28 +98,28 @@ const rawLooks = (file: string) => {
   );
 };
 
-test('every look comes from the tokens, so a component looks the same wherever it sits', () => {
-  const found = files('src')
-    .filter((file) => !file.endsWith('theme.ts') && !file.startsWith('src/ui/'))
+test("every look comes from the tokens, so a component looks the same wherever it sits", () => {
+  const found = files("src")
+    .filter((file) => !file.endsWith("theme.ts") && !file.startsWith("src/ui/"))
     .filter((file) => file !== widgetWithoutTokens && !notYetOnTokens.has(file))
     .flatMap(rawLooks);
 
   assert.deepEqual(found, []);
 });
 
-test('the files left to move onto the tokens still have something to move', () => {
+test("the files left to move onto the tokens still have something to move", () => {
   const done = [...notYetOnTokens].filter((file) => rawLooks(file).length === 0);
-  assert.deepEqual(done, [], 'take these off the list: they draw only with tokens now');
+  assert.deepEqual(done, [], "take these off the list: they draw only with tokens now");
 });
 
-test('every corner comes from the tokens, in every file', () => {
+test("every corner comes from the tokens, in every file", () => {
   const corner = /borderRadius: [\d.]|roundedRectangle', [\d.]|cornerRadius: [\d.]/u;
 
-  const found = files('src')
-    .filter((file) => !file.endsWith('theme.ts'))
+  const found = files("src")
+    .filter((file) => !file.endsWith("theme.ts"))
     .flatMap((file) =>
-      readFileSync(file, 'utf-8')
-        .split('\n')
+      readFileSync(file, "utf-8")
+        .split("\n")
         .flatMap((line, i) => (corner.test(line) ? [`${file}:${i + 1}: ${line.trim()}`] : [])),
     );
 
@@ -127,21 +127,21 @@ test('every corner comes from the tokens, in every file', () => {
 });
 
 const orbPalettesYouPick = new Set([
-  'src/components/persona/variants.ts',
-  'src/components/persona-colors.tsx',
+  "src/components/persona/variants.ts",
+  "src/components/persona-colors.tsx",
 ]);
 
-test('every color comes from the tokens, so mint, blue and red each keep one meaning', () => {
-  const found = files('src')
+test("every color comes from the tokens, so mint, blue and red each keep one meaning", () => {
+  const found = files("src")
     .filter(
       (file) =>
-        file !== 'src/ui/tokens.ts' &&
+        file !== "src/ui/tokens.ts" &&
         file !== widgetWithoutTokens &&
         !orbPalettesYouPick.has(file),
     )
     .flatMap((file) =>
-      readFileSync(file, 'utf-8')
-        .split('\n')
+      readFileSync(file, "utf-8")
+        .split("\n")
         .flatMap((line, i) =>
           /#[\dA-Fa-f]{3,8}\b|\brgba?\(|\bhsla?\(/u.test(line)
             ? [`${file}:${i + 1}: ${line.trim()}`]
@@ -152,11 +152,11 @@ test('every color comes from the tokens, so mint, blue and red each keep one mea
   assert.deepEqual(found, []);
 });
 
-test('the type is four sizes in two weights, and every gap is on the 4pt grid', () => {
+test("the type is four sizes in two weights, and every gap is on the 4pt grid", () => {
   assert.ok(new Set(Object.values(type).map((style) => style.fontSize)).size <= 4);
   assert.deepEqual(
-    [...new Set(Object.values(type).flatMap((style) => ('weight' in style ? [style.weight] : [])))],
-    ['medium'],
+    [...new Set(Object.values(type).flatMap((style) => ("weight" in style ? [style.weight] : [])))],
+    ["medium"],
   );
   assert.deepEqual(
     Object.values(space).filter((gap) => gap !== 2 && gap % 4 !== 0),

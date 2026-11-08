@@ -1,8 +1,8 @@
-import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
-import type { ComponentProps, ReactElement } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from "expo-haptics";
+import { useEffect, useRef, useState } from "react";
+import type { ComponentProps, ReactElement } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   createAnimatedComponent,
   Extrapolation,
@@ -12,87 +12,88 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
+} from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { barOf, cardOf } from '@/call/card';
-import { buttonsOf, callIdOf, showsWords, statusOf, voiceLocked, wordsOf } from '@/call/call';
-import type { Call } from '@/call/call';
-import { useDrawer } from '@/call/drawer';
-import type { CallsPlacement } from '@/call/stage';
-import { CallFooter } from '@/call/footer';
-import { useGlide } from '@/call/glide';
-import { CallPersona, useOrbLife } from '@/call/orb';
-import { PoseReport } from '@/call/pose-report';
-import { useCall } from '@/call/use-call';
-import { AgentLine } from '@/components/agent-line';
-import { CallControls } from '@/components/call-controls';
-import { CallAdd } from '@/components/media/call-add';
-import { CallTranscript } from '@/components/call-transcript';
-import { CallsSidebar } from '@/components/calls-sidebar';
-import { PastCallBar } from '@/components/past-call-bar';
-import { ScreenToolbar } from '@/components/screen-toolbar';
-import { ToolbarBackProvider, useToolbarBacks } from '@/components/toolbar-back';
-import type { BackFrom } from '@/components/toolbar-back';
-import { TasksPane } from '@/components/tasks-pane';
-import { TasksSheet } from '@/components/tasks-sheet';
-import type { Move, TasksAt } from '@/components/tasks/pages';
-import { opalPaletteInput } from '@/components/persona/variants';
-import { Transcript } from '@/components/transcript';
-import { VoiceSettings } from '@/components/voice-settings';
-import type { SettingsSheet } from '@/components/voice-settings';
-import { useCallActivity } from '@/hooks/use-call-activity';
-import { REACTIONS, useCallPreferences } from '@/hooks/use-call-preferences';
-import type { Reaction } from '@/hooks/use-call-preferences';
-import { useCallFeedback } from '@/hooks/use-call-feedback';
-import { useAgentLine } from '@/hooks/use-agent-line';
-import { useAppUpdates } from '@/hooks/use-app-updates';
-import { useCalls, usePastCall } from '@/hooks/use-calls';
-import { failure } from '@/hooks/use-failures';
-import { useEscape } from '@/hooks/use-escape';
-import { useNow } from '@/hooks/use-now';
-import { answerAsk, raiseAsks } from '@/hooks/use-asks';
-import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
-import type { Counts } from '@/hooks/use-tasks';
-import { usePersonaPreference } from '@/hooks/use-persona-preference';
-import { Viewport } from '@/hooks/use-viewport';
-import type { Size } from '@/hooks/use-viewport';
-import { useVoicePreference } from '@/hooks/use-voice-preference';
-import { activityOrb } from '@/live/activity-orb';
-import type { CallCard } from '@/live/agents';
-import type { TaskId, TaskRow } from '@/live/tasks';
-import type { CallAbout, TranscriptEntry } from '@/live/types';
-import { transcriptText } from '@/live/calls';
-import type { CallId, CallSummary } from '@/live/calls';
-import { heard, motion } from '@/motion';
-import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout } from '@/screens/layout';
-import type { Layout } from '@/screens/layout';
-import { SideColumn } from '@/screens/side-column';
-import { logPose } from '@/screens/pose-log';
-import { orbRest } from '@/screens/orb-rest';
-import { hairline, theme } from '@/theme';
-import { AnimatedView } from '@/ui/animated-view';
-import { HostedGlassButton } from '@/ui/glass-button';
-import { metrics, stack } from '@/ui/tokens';
-import { roomOf } from '@/screens/window';
-import type { Room } from '@/screens/window';
-import { shown as inView, start as startScreen, step } from './screen';
-import type { Action, Screen } from './screen';
-import { PoseView } from '../../modules/pose';
-import type { Pose } from '../../modules/pose';
+import { buttonsOf, callIdOf, showsWords, statusOf, voiceLocked, wordsOf } from "@/call/call";
+import type { Call } from "@/call/call";
+import { barOf, cardOf } from "@/call/card";
+import { useDrawer } from "@/call/drawer";
+import { CallFooter } from "@/call/footer";
+import { useGlide } from "@/call/glide";
+import { CallPersona, useOrbLife } from "@/call/orb";
+import { PoseReport } from "@/call/pose-report";
+import type { CallsPlacement } from "@/call/stage";
+import { useCall } from "@/call/use-call";
+import { AgentLine } from "@/components/agent-line";
+import { CallControls } from "@/components/call-controls";
+import { CallTranscript } from "@/components/call-transcript";
+import { CallsSidebar } from "@/components/calls-sidebar";
+import { CallAdd } from "@/components/media/call-add";
+import { PastCallBar } from "@/components/past-call-bar";
+import { opalPaletteInput } from "@/components/persona/variants";
+import { ScreenToolbar } from "@/components/screen-toolbar";
+import { TasksPane } from "@/components/tasks-pane";
+import { TasksSheet } from "@/components/tasks-sheet";
+import type { Move, TasksAt } from "@/components/tasks/pages";
+import { ToolbarBackProvider, useToolbarBacks } from "@/components/toolbar-back";
+import type { BackFrom } from "@/components/toolbar-back";
+import { Transcript } from "@/components/transcript";
+import { VoiceSettings } from "@/components/voice-settings";
+import type { SettingsSheet } from "@/components/voice-settings";
+import { useAgentLine } from "@/hooks/use-agent-line";
+import { useAppUpdates } from "@/hooks/use-app-updates";
+import { answerAsk, raiseAsks } from "@/hooks/use-asks";
+import { useCallActivity } from "@/hooks/use-call-activity";
+import { useCallFeedback } from "@/hooks/use-call-feedback";
+import { REACTIONS, useCallPreferences } from "@/hooks/use-call-preferences";
+import type { Reaction } from "@/hooks/use-call-preferences";
+import { useCalls, usePastCall } from "@/hooks/use-calls";
+import { useEscape } from "@/hooks/use-escape";
+import { failure } from "@/hooks/use-failures";
+import { useNow } from "@/hooks/use-now";
+import { usePersonaPreference } from "@/hooks/use-persona-preference";
+import { raiseTask, useTaskCounts } from "@/hooks/use-tasks";
+import type { Counts } from "@/hooks/use-tasks";
+import { Viewport } from "@/hooks/use-viewport";
+import type { Size } from "@/hooks/use-viewport";
+import { useVoicePreference } from "@/hooks/use-voice-preference";
+import { activityOrb } from "@/live/activity-orb";
+import type { CallCard } from "@/live/agents";
+import { transcriptText } from "@/live/calls";
+import type { CallId, CallSummary } from "@/live/calls";
+import type { TaskId, TaskRow } from "@/live/tasks";
+import type { CallAbout, TranscriptEntry } from "@/live/types";
+import { heard, motion } from "@/motion";
+import { DuoTasks, uncovered, useDuoTasks } from "@/screens/duo-tasks";
+import { screenLayout } from "@/screens/layout";
+import type { Layout } from "@/screens/layout";
+import { orbRest } from "@/screens/orb-rest";
+import { logPose } from "@/screens/pose-log";
+import { SideColumn } from "@/screens/side-column";
+import { roomOf } from "@/screens/window";
+import type { Room } from "@/screens/window";
+import { hairline, theme } from "@/theme";
+import { AnimatedView } from "@/ui/animated-view";
+import { HostedGlassButton } from "@/ui/glass-button";
+import { metrics, stack } from "@/ui/tokens";
+
+import { PoseView } from "../../modules/pose";
+import type { Pose } from "../../modules/pose";
+import { shown as inView, start as startScreen, step } from "./screen";
+import type { Action, Screen } from "./screen";
 
 const AGENT_ROW = 22;
-const CONTROLS_BOX = stack('regular');
+const CONTROLS_BOX = stack("regular");
 
 const ORB_OVER_SHEET = 96;
 const AnimatedPressable = createAnimatedComponent(Pressable);
 
 export interface Opening {
   tasks?: TasksAt;
-  open?: 'settings' | 'calls';
+  open?: "settings" | "calls";
   reportPose: boolean;
   split?: boolean;
 }
@@ -151,7 +152,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   const { call, start, end, toggleMute } = useCall(held);
-  const onCall = call.kind !== 'none';
+  const onCall = call.kind !== "none";
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
   const layout = screenLayout(room, { call: called });
@@ -198,22 +199,22 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   } = inView(scene, shared);
 
   const pullWords = (pulled: boolean) => {
-    send({ to: 'words', pulled });
+    send({ to: "words", pulled });
   };
 
   const showCall = (id: string | null) => {
-    send({ to: 'call', id });
+    send({ to: "call", id });
   };
 
   const reducedMotion = useReducedMotion();
-  const live = call.kind === 'here' && call.phase === 'live';
+  const live = call.kind === "here" && call.phase === "live";
 
   const reading = layout.pulls
     ? scene.words.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
 
   if (scene.words.beside && !(duo?.beside && onCall)) {
-    send({ to: 'beside', on: false });
+    send({ to: "beside", on: false });
   }
 
   const duoTasks = useDuoTasks(
@@ -222,7 +223,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     onCall,
     reducedMotion,
     (on) => {
-      send({ to: 'beside', on });
+      send({ to: "beside", on });
     },
   );
 
@@ -238,7 +239,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   });
 
   const haptic = (feedback: () => Promise<void>) => {
-    if (process.env.EXPO_OS === 'ios' && preferences.haptics) {
+    if (process.env.EXPO_OS === "ios" && preferences.haptics) {
       void feedback();
     }
   };
@@ -260,7 +261,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { rest, restY, restScale, footerHeight, setFooter } = useOrbRest({
     layout,
     moves,
-    overSheet: tasksOpen && onCall && side.place === 'sheet',
+    overSheet: tasksOpen && onCall && side.place === "sheet",
     height,
     reducedMotion,
   });
@@ -268,15 +269,15 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { docked, dock, covers, aside } = duoTasks;
 
   const adds =
-    buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? '') === '';
+    buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? "") === "";
 
   const closeTasks = () => {
     tick();
-    send({ to: 'tasks', open: false });
+    send({ to: "tasks", open: false });
   };
 
   useEscape(tasksOpen ? closeTasks : undefined);
-  const now = useNow(docked && call.kind === 'elsewhere');
+  const now = useNow(docked && call.kind === "elsewhere");
 
   const callSeconds = secondsOf(call, now);
 
@@ -304,7 +305,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     Gesture.Tap()
       .enabled(docked || (pulls ? reading : viewing !== null))
       .onEnd(() => {
-        'worklet';
+        "worklet";
 
         if (docked) {
           scheduleOnRN(closeTasks);
@@ -324,7 +325,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   );
 
   const setCalls = (open: boolean) => {
-    send({ to: 'calls', open });
+    send({ to: "calls", open });
   };
 
   const {
@@ -349,10 +350,10 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     setCalls(!callsOpen);
   };
 
-  const openCall = (id: string, at?: CallsPlacement['place']) => {
+  const openCall = (id: string, at?: CallsPlacement["place"]) => {
     const place = at ?? list.place;
 
-    if (place !== 'beside') {
+    if (place !== "beside") {
       setCalls(false);
     }
 
@@ -398,7 +399,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     () => cardOf(layout, drawer.get(), pane.get(), paneW.get()).stage,
   );
 
-  const over = list.place === 'over';
+  const over = list.place === "over";
 
   const sidebarStyle = useAnimatedStyle(() => ({
     left: layout.content.x + (drawer.get() - 1) * (over ? list.width : 48),
@@ -406,7 +407,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   }));
 
   const paneFade = () => {
-    'worklet';
+    "worklet";
 
     return { opacity: Math.min(1, pane.get() * 4) };
   };
@@ -414,11 +415,11 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { toolbar } = layout;
 
   const besidenessOfStyleReads = (drawn: number, paned: number) => {
-    'worklet';
+    "worklet";
 
     return {
-      d: list.place === 'beside' ? drawn : 0,
-      t: side.place === 'beside' ? paned : 0,
+      d: list.place === "beside" ? drawn : 0,
+      t: side.place === "beside" ? paned : 0,
     };
   };
 
@@ -429,7 +430,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     paned: number,
     a: number,
   ) => {
-    'worklet';
+    "worklet";
 
     if (!follows) {
       return { left: own.x, width: own.width, marginBottom: 0 };
@@ -454,7 +455,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     columnOfStyleReads(layout.agent, drawer.get(), pane.get(), aside.get()),
   );
 
-  const slides = list.place === 'slide';
+  const slides = list.place === "slide";
 
   const linesStyle = useAnimatedStyle(() => {
     const { t } = besidenessOfStyleReads(drawer.get(), pane.get());
@@ -479,7 +480,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const rail = layout.inbox;
 
   const controlsPlace = () => {
-    'worklet';
+    "worklet";
 
     if (!controlsAt) {
       return {};
@@ -566,7 +567,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   });
 
   const dockFade = () => {
-    'worklet';
+    "worklet";
 
     return {
       opacity:
@@ -577,7 +578,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
 
   const addFade = () => {
-    'worklet';
+    "worklet";
 
     return {
       opacity: (adds ? 1 : 0) * (slides ? 1 - drawer.get() : 1) * uncovered(covers.get()),
@@ -585,7 +586,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
 
   const backdropFade = () => {
-    'worklet';
+    "worklet";
 
     return { opacity: pane.get() };
   };
@@ -613,7 +614,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { tried, troubleNow } = useTrouble(callIdOf(call));
 
   const startCall = (about?: CallAbout) => {
-    if ((viewing ?? '') !== '') {
+    if ((viewing ?? "") !== "") {
       leaveCall();
     }
 
@@ -621,7 +622,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
 
   const onPrimaryPress = () => {
-    if ((onCall && call.phase === 'ending') || !voiceLoaded) {
+    if ((onCall && call.phase === "ending") || !voiceLoaded) {
       return;
     }
 
@@ -629,12 +630,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     });
 
-    if (call.kind === 'here') {
+    if (call.kind === "here") {
       void end();
-    } else if (call.kind === 'elsewhere') {
-      void tried('Not ended', end());
+    } else if (call.kind === "elsewhere") {
+      void tried("Not ended", end());
     } else {
-      if (list.place !== 'beside') {
+      if (list.place !== "beside") {
         setCalls(false);
       }
 
@@ -649,7 +650,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   const openTasks = (at: TasksAt = {}) => {
     tick();
-    send({ to: 'tasks', open: true, at });
+    send({ to: "tasks", open: true, at });
   };
 
   const toggleTasks = () => {
@@ -662,7 +663,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 
   const stepAside = () => {
     if (!panes) {
-      send({ to: 'tasks', open: false });
+      send({ to: "tasks", open: false });
     }
   };
 
@@ -670,7 +671,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     stepAside();
 
     if (onCall) {
-      void tried('Not sent', raiseTask(task.id));
+      void tried("Not sent", raiseTask(task.id));
     } else if (voiceLoaded) {
       startCall({ task: task.id });
     }
@@ -680,7 +681,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     stepAside();
     const { place } = screenLayout(room).calls;
 
-    if (place === 'beside') {
+    if (place === "beside") {
       setCalls(true);
     }
 
@@ -699,16 +700,16 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     stepAside();
 
     if (onCall) {
-      void tried('Not sent', raiseAsks());
+      void tried("Not sent", raiseAsks());
     } else if (voiceLoaded) {
-      startCall('asks');
+      startCall("asks");
     }
   };
 
   const buttons = {
     call,
     ready: voiceLoaded,
-    axis: 'row' as const,
+    axis: "row" as const,
     mute: !inboxShown,
     onMute,
     onPrimary: onPrimaryPress,
@@ -719,13 +720,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const { backs, publish } = useToolbarBacks();
   const back = backs[frontOf(settingsOpen, tasksOpen)];
 
-  const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>['style']) => (
+  const screenToolbar = (style: ComponentProps<typeof ScreenToolbar>["style"]) => (
     <ScreenToolbar
       onLayout={({ nativeEvent }) => {
-        logPose('toolbar', nativeEvent.layout);
+        logPose("toolbar", nativeEvent.layout);
       }}
       axis={toolbar.axis}
-      gaps={'gaps' in toolbar ? toolbar.gaps : undefined}
+      gaps={"gaps" in toolbar ? toolbar.gaps : undefined}
       style={style}
       callsOpen={callsOpen}
       tasks={{ ...counts, open: tasksOpen }}
@@ -735,7 +736,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       onCalls={toggleDrawer}
       onTasks={toggleTasks}
       onSettings={() => {
-        send({ to: 'settings', open: !settingsOpen });
+        send({ to: "settings", open: !settingsOpen });
       }}
     />
   );
@@ -744,7 +745,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     open: tasksOpen,
     stack: scene.pages,
     onMove: (move: Move) => {
-      send({ to: 'pages', move });
+      send({ to: "pages", move });
     },
     haptics: preferences.haptics,
     onTalk: talkAbout,
@@ -840,7 +841,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
                 <Animated.View
                   accessible
                   accessibilityLabel={status}
-                  accessibilityHint={docked ? 'Closes Tasks for the call' : undefined}
+                  accessibilityHint={docked ? "Closes Tasks for the call" : undefined}
                   style={[styles.orb, { width: size, height: size }, orbStyle]}
                 >
                   <CallPersona
@@ -866,7 +867,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             }}
             onOpen={showCall}
             onMore={() => {
-              openTasks({ stage: 'needs' });
+              openTasks({ stage: "needs" });
             }}
           >
             {footerControls && controls}
@@ -874,7 +875,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           <AnimatedPressable
             {...reachable(agent !== null)}
             onPress={() => {
-              openTasks({ stage: 'working' });
+              openTasks({ stage: "working" });
             }}
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
@@ -894,7 +895,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             {...tasks}
             onCall={onCall}
             onDismiss={() => {
-              send({ to: 'tasks', open: false });
+              send({ to: "tasks", open: false });
             }}
           />
         )}
@@ -912,7 +913,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           duo={duo}
           tasks={{ ...tasks, onClose: closeTasks }}
           state={duoTasks}
-          shown={!shared || scene.front === 'tasks'}
+          shown={!shared || scene.front === "tasks"}
           onCall={onCall}
           seconds={callSeconds}
           pane={pane}
@@ -922,12 +923,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         sheet={sheetOf(split, room.regular)}
         place={
           settingsPlace
-            ? { area: settingsPlace, shown: scene.front === 'settings', pane }
+            ? { area: settingsPlace, shown: scene.front === "settings", pane }
             : undefined
         }
         isPresented={settingsOpen}
         onDismiss={() => {
-          send({ to: 'settings', open: false });
+          send({ to: "settings", open: false });
         }}
         voice={voice}
         onVoiceChange={setVoice}
@@ -942,13 +943,13 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         <CallControls
           {...buttons}
           size="tool"
-          style={{ position: 'absolute', right: rowControls.right, top: rowControls.top }}
+          style={{ position: "absolute", right: rowControls.right, top: rowControls.top }}
         />
       ) : null}
       {layout.column ? (
         <SideColumn
           column={layout.column}
-          tools={screenToolbar({ position: 'relative' })}
+          tools={screenToolbar({ position: "relative" })}
           controls={buttons}
         />
       ) : (
@@ -964,7 +965,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
 };
 
 const arrangementOf = (layout: Layout, onCall: boolean) => {
-  const split = layout.kind === 'split';
+  const split = layout.kind === "split";
   const moves = split || !!layout.orb.dock;
   const inbox = layout.inbox && !onCall ? layout.inbox : undefined;
   const { controls } = layout;
@@ -974,15 +975,15 @@ const arrangementOf = (layout: Layout, onCall: boolean) => {
     split,
     moves,
     follows: moves || !!layout.duo?.beside,
-    panes: layout.tasks.place !== 'sheet',
+    panes: layout.tasks.place !== "sheet",
     settingsPlace: layout.duo?.tasks.area,
     inbox,
     paneWidth: inbox ? inbox.width : layout.tasks.width,
     before: layout.duo?.beside?.words ?? { ...layout.words, raise: 0 },
-    controlsAt: controls !== 'inline' && 'center' in controls ? controls.center : undefined,
-    controlsColumn: controls !== 'inline' && 'axis' in controls ? controls : undefined,
+    controlsAt: controls !== "inline" && "center" in controls ? controls.center : undefined,
+    controlsColumn: controls !== "inline" && "axis" in controls ? controls : undefined,
     rowControls,
-    footerControls: controls === 'inline' && !rowControls,
+    footerControls: controls === "inline" && !rowControls,
   };
 };
 
@@ -1039,7 +1040,7 @@ const useOrbRest = ({
   const { orb } = layout;
 
   const [footer, setFooter] = useState(
-    layout.footer.bottom + (layout.controls === 'inline' ? metrics.call : 0),
+    layout.footer.bottom + (layout.controls === "inline" ? metrics.call : 0),
   );
 
   const rest = orbRest(
@@ -1087,7 +1088,7 @@ const useTrouble = (callNow: CallId | undefined) => {
 type Drawer = ReturnType<typeof useDrawer>;
 
 const pastOf = (calls: CallSummary[] | undefined, viewing: string | null) =>
-  (viewing ?? '') === '' ? undefined : calls?.find((one) => one.id === viewing);
+  (viewing ?? "") === "" ? undefined : calls?.find((one) => one.id === viewing);
 
 const CallsList = ({
   gesture,
@@ -1100,9 +1101,9 @@ const CallsList = ({
   onOpen,
   onRemove,
 }: {
-  gesture: Drawer['listClose'];
+  gesture: Drawer["listClose"];
   list: CallsPlacement;
-  style: ComponentProps<typeof Animated.View>['style'];
+  style: ComponentProps<typeof Animated.View>["style"];
   top: number;
   calls: ReturnType<typeof useCalls>;
   viewing: string | null;
@@ -1114,7 +1115,7 @@ const CallsList = ({
     <Animated.View
       style={[
         styles.sidebar,
-        { width: list.width, top: list.below ?? 0, zIndex: list.place === 'over' ? 1 : 0 },
+        { width: list.width, top: list.below ?? 0, zIndex: list.place === "over" ? 1 : 0 },
         style,
       ]}
     >
@@ -1154,18 +1155,18 @@ const CallWords = ({
   onOpenTask,
 }: {
   reading: boolean;
-  style: ComponentProps<typeof Animated.View>['style'];
+  style: ComponentProps<typeof Animated.View>["style"];
   shown: CallSummary | undefined;
   live: CallId | undefined;
   onCall: boolean;
   past: ReturnType<typeof usePastCall>;
   entries: TranscriptEntry[];
-  size: ComponentProps<typeof Transcript>['size'];
+  size: ComponentProps<typeof Transcript>["size"];
   pulls: boolean;
   cards: CallCard[];
-  fadeStyle: ComponentProps<typeof Animated.View>['style'];
+  fadeStyle: ComponentProps<typeof Animated.View>["style"];
   onBackdrop: boolean;
-  backdropFade: ComponentProps<typeof AnimatedView>['animate'];
+  backdropFade: ComponentProps<typeof AnimatedView>["animate"];
   onBack: () => void;
   onRemove: (id: CallId) => void;
   onOpenTask: (task: TaskId) => void;
@@ -1200,7 +1201,7 @@ const CallWords = ({
           entries={entries}
           active={reading}
           size={size}
-          emptyAt={pulls ? 'end' : 'center'}
+          emptyAt={pulls ? "end" : "center"}
           cards={cards}
           onAnswer={async (card, option) => await answerAsk(card.ask, option)}
           onOpenTask={onOpenTask}
@@ -1238,8 +1239,8 @@ const CallsEdges = ({
   covered: boolean;
   slides: boolean;
   x: number;
-  edgeOpen: Drawer['edgeOpen'];
-  peekClose: Drawer['peekClose'];
+  edgeOpen: Drawer["edgeOpen"];
+  peekClose: Drawer["peekClose"];
 }) => (
   <>
     {!open && !covered && (
@@ -1264,7 +1265,7 @@ const BarStyledWhenMounted = ({
   layout: Layout;
   width: number;
   drawer: SharedValue<number>;
-  toolbar: (style: ComponentProps<typeof ScreenToolbar>['style']) => ReactElement;
+  toolbar: (style: ComponentProps<typeof ScreenToolbar>["style"]) => ReactElement;
 }) => {
   const style = useAnimatedStyle(() => barOf(layout, width, drawer.get()));
 
@@ -1273,14 +1274,14 @@ const BarStyledWhenMounted = ({
 
 const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => void) => {
   const started = useRef<string | null>(null);
-  const live = call.kind === 'here' && call.phase === 'live';
-  const ended = call.kind === 'none' ? call.last : undefined;
+  const live = call.kind === "here" && call.phase === "live";
+  const ended = call.kind === "none" ? call.last : undefined;
   useEffect(() => {
     if (live && started.current === null) {
       started.current = new Date().toISOString();
     }
 
-    if (!ended?.id || ended.from !== 'app' || started.current === null) {
+    if (!ended?.id || ended.from !== "app" || started.current === null) {
       return;
     }
 
@@ -1289,15 +1290,15 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
       started: started.current,
       ended: new Date().toISOString(),
       end: ended.ending,
-      from: 'app',
+      from: "app",
       voice,
       seconds: ended.seconds,
       tasks: 0,
       preview:
         ended.words
-          .find((entry) => entry.role === 'user')
+          .find((entry) => entry.role === "user")
           ?.text.trim()
-          .slice(0, 160) ?? '',
+          .slice(0, 160) ?? "",
     });
     started.current = null;
   }, [call.kind, live]);
@@ -1305,13 +1306,13 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
 
 const reachable = (on: boolean) =>
   ({
-    pointerEvents: on ? 'auto' : 'none',
+    pointerEvents: on ? "auto" : "none",
     accessibilityElementsHidden: !on,
-    importantForAccessibility: on ? 'auto' : 'no-hide-descendants',
+    importantForAccessibility: on ? "auto" : "no-hide-descendants",
   }) as const;
 
 const toward = (open: number, calls: number, tasks: number, d: number, t: number) => {
-  'worklet';
+  "worklet";
 
   return open + (calls - open) * d + (tasks - open) * t;
 };
@@ -1319,33 +1320,33 @@ const toward = (open: number, calls: number, tasks: number, d: number, t: number
 const amountOf = (reaction: Reaction) => REACTIONS.find(({ id }) => id === reaction)?.amount ?? 0;
 
 const secondsOf = (call: Call, now: Date) => {
-  if (call.kind === 'here') {
+  if (call.kind === "here") {
     return call.seconds;
   }
 
-  return call.kind === 'elsewhere'
+  return call.kind === "elsewhere"
     ? Math.max(0, Math.floor((now.getTime() - Date.parse(call.record.started)) / 1000))
     : 0;
 };
 
 const frontOf = (settings: boolean, tasks: boolean): BackFrom => {
   if (settings) {
-    return 'settings';
+    return "settings";
   }
 
-  return tasks ? 'tasks' : 'call';
+  return tasks ? "tasks" : "call";
 };
 
 const sheetOf = (split: boolean, regular: boolean): SettingsSheet => {
   if (split) {
-    return 'page';
+    return "page";
   }
 
-  return regular ? 'form' : 'phone';
+  return regular ? "form" : "phone";
 };
 
-const FADE = [{ color: theme.background }, { color: 'transparent' }];
-const FADE_BACKDROP = [{ color: theme.sheet }, { color: 'transparent' }];
+const FADE = [{ color: theme.background }, { color: "transparent" }];
+const FADE_BACKDROP = [{ color: theme.sheet }, { color: "transparent" }];
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.sheet },
@@ -1353,50 +1354,50 @@ const styles = StyleSheet.create({
   card: {
     ...StyleSheet.absoluteFill,
     backgroundColor: theme.background,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderColor: theme.edge,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
   },
-  sidebar: { position: 'absolute', top: 0, bottom: 0 },
-  edge: { position: 'absolute', top: 0, bottom: 0, width: 20 },
+  sidebar: { position: "absolute", top: 0, bottom: 0 },
+  edge: { position: "absolute", top: 0, bottom: 0, width: 20 },
   fill: { ...StyleSheet.absoluteFill },
-  stage: { position: 'absolute', top: 0, bottom: 0 },
-  transcript: { position: 'absolute' },
+  stage: { position: "absolute", top: 0, bottom: 0 },
+  transcript: { position: "absolute" },
   words: { flex: 1 },
   fade: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: metrics.fade,
-    experimental_backgroundImage: [{ type: 'linear-gradient', colorStops: FADE }],
+    experimental_backgroundImage: [{ type: "linear-gradient", colorStops: FADE }],
   },
   fadeBottom: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     height: metrics.fade,
     experimental_backgroundImage: [
-      { type: 'linear-gradient', direction: 'to top', colorStops: FADE },
+      { type: "linear-gradient", direction: "to top", colorStops: FADE },
     ],
   },
   onBackdrop: {
-    experimental_backgroundImage: [{ type: 'linear-gradient', colorStops: FADE_BACKDROP }],
+    experimental_backgroundImage: [{ type: "linear-gradient", colorStops: FADE_BACKDROP }],
   },
   onBackdropBottom: {
     experimental_backgroundImage: [
-      { type: 'linear-gradient', direction: 'to top', colorStops: FADE_BACKDROP },
+      { type: "linear-gradient", direction: "to top", colorStops: FADE_BACKDROP },
     ],
   },
-  orb: { position: 'absolute', left: 0, top: 0 },
-  dock: { position: 'absolute' },
-  agent: { position: 'absolute', height: AGENT_ROW },
+  orb: { position: "absolute", left: 0, top: 0 },
+  dock: { position: "absolute" },
+  agent: { position: "absolute", height: AGENT_ROW },
   controls: {
-    position: 'absolute',
+    position: "absolute",
     width: CONTROLS_BOX,
     height: metrics.call,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -1,5 +1,5 @@
-import { Column, Icon, Row } from '@expo/ui';
-import { Button } from '@expo/ui/swift-ui';
+import { Column, Icon, Row } from "@expo/ui";
+import { Button } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   buttonStyle,
@@ -9,17 +9,17 @@ import {
   opacity,
   padding,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
 
-import { PlaceTile } from '@/components/tasks/places';
-import { glass } from '@/ui/glass-button';
-import { PLACES } from '@/live/inbox';
-import type { Place } from '@/live/inbox';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { PlaceTile } from "@/components/tasks/places";
+import { PLACES } from "@/live/inbox";
+import type { Place } from "@/live/inbox";
+import { theme } from "@/theme";
+import { glass } from "@/ui/glass-button";
+import { Text } from "@/ui/text";
+import { metrics, space } from "@/ui/tokens";
 
 export interface Back {
   to: string;
@@ -62,7 +62,7 @@ export const Header = ({
 
 export const PageBar = ({
   title,
-  subtitle = '',
+  subtitle = "",
   large = false,
   back,
   trailing,
@@ -94,9 +94,9 @@ export const PageBar = ({
       <Column
         alignment="start"
         spacing={space[0.5]}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
-        <Text numberOfLines={1} variant={large ? 'title' : 'headline'}>
+        <Text numberOfLines={1} variant={large ? "title" : "headline"}>
           {title}
         </Text>
         {subtitle ? (
@@ -132,7 +132,7 @@ export const Talk = ({
   onPress: () => void;
 }) => (
   <BarButton
-    shape={alone ? 'capsule' : 'circle'}
+    shape={alone ? "capsule" : "circle"}
     label={`Talk ${about} through with hex`}
     testID="talk-it-through"
     onPress={onPress}
@@ -154,7 +154,7 @@ export const BarButton = ({
   onPress,
   children,
 }: {
-  shape: 'circle' | 'capsule';
+  shape: "circle" | "capsule";
   label: string;
   testID?: string;
   disabled?: boolean;
@@ -165,16 +165,16 @@ export const BarButton = ({
     onPress={onPress}
     testID={testID}
     modifiers={[
-      buttonStyle('plain'),
+      buttonStyle("plain"),
       ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),
       accessibilityLabel(label),
     ]}
   >
     <Row
       alignment="center"
-      spacing={shape === 'circle' ? 0 : metrics.bar.capsule.gap}
+      spacing={shape === "circle" ? 0 : metrics.bar.capsule.gap}
       modifiers={[
-        ...(shape === 'circle'
+        ...(shape === "circle"
           ? [frame({ width: metrics.bar.button, height: metrics.bar.button })]
           : [
               padding({
@@ -184,7 +184,7 @@ export const BarButton = ({
               frame({ height: metrics.bar.button }),
             ]),
         glass(shape),
-        contentShape(shape === 'circle' ? shapes.circle() : shapes.capsule()),
+        contentShape(shape === "circle" ? shapes.circle() : shapes.capsule()),
       ]}
     >
       {children}

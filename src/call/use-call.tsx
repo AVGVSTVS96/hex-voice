@@ -7,26 +7,27 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from 'react';
-import type { Context, ReactNode } from 'react';
-import { Alert, AppState } from 'react-native';
+} from "react";
+import type { Context, ReactNode } from "react";
+import { Alert, AppState } from "react-native";
 
-import { callIdOf, callOf, isHere, withSent } from '@/call/call';
-import type { Call } from '@/call/call';
-import { hex } from '@/hex';
-import { RefusedError } from '@/hex/client';
-import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
-import type { CallId } from '@/live/calls';
-import { newKey } from '@/live/chat';
-import type { Picked } from '@/live/media';
-import { batchOf, deliver, retrying, settle } from '@/live/shares';
-import type { Sent } from '@/live/shares';
-import { demoAPI, demoTransport } from '@/live/demo-call';
-import { LiveSession } from '@/live/session';
-import { createTransport } from '@/live/transport';
-import type { CallAbout, Levels } from '@/live/types';
-import type { LiveVoice } from '@/live/voices';
-import { CallInterruptions } from '../../modules/call-interruptions';
+import { callIdOf, callOf, isHere, withSent } from "@/call/call";
+import type { Call } from "@/call/call";
+import { hex } from "@/hex";
+import { RefusedError } from "@/hex/client";
+import { useCallElsewhere } from "@/hooks/use-call-elsewhere";
+import type { CallId } from "@/live/calls";
+import { newKey } from "@/live/chat";
+import { demoAPI, demoTransport } from "@/live/demo-call";
+import type { Picked } from "@/live/media";
+import { LiveSession } from "@/live/session";
+import { batchOf, deliver, retrying, settle } from "@/live/shares";
+import type { Sent } from "@/live/shares";
+import { createTransport } from "@/live/transport";
+import type { CallAbout, Levels } from "@/live/types";
+import type { LiveVoice } from "@/live/voices";
+
+import { CallInterruptions } from "../../modules/call-interruptions";
 
 const Session = createContext<{ session: LiveSession; demo: boolean } | null>(null);
 
@@ -48,17 +49,17 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
 
   useEffect(() => {
     const onAppStateChange = (state: typeof AppState.currentState) => {
-      session.setAppActive(state === 'active');
+      session.setAppActive(state === "active");
 
-      if (state === 'background' && process.env.EXPO_OS !== 'ios') {
+      if (state === "background" && process.env.EXPO_OS !== "ios") {
         void session.stop();
       }
     };
 
     onAppStateChange(AppState.currentState);
-    const listener = AppState.addEventListener('change', onAppStateChange);
+    const listener = AppState.addEventListener("change", onAppStateChange);
 
-    const interruptions = CallInterruptions?.addListener('onInterruption', ({ began }) => {
+    const interruptions = CallInterruptions?.addListener("onInterruption", ({ began }) => {
       session.interrupt(began);
     });
 
@@ -145,7 +146,7 @@ export const useCall = (held: CallId | null) => {
       await session.start(voice, about);
     },
     end: async () => {
-      await (call.kind === 'elsewhere' ? elsewhere.hangUp() : session.stop());
+      await (call.kind === "elsewhere" ? elsewhere.hangUp() : session.stop());
     },
     toggleMute: session.toggleMute,
   };
@@ -155,14 +156,14 @@ const useProvided = <Value,>(context: Context<Value | null>) => {
   const value = use(context);
 
   if (value === null) {
-    throw new Error('The call hooks work only inside CallProvider.');
+    throw new Error("The call hooks work only inside CallProvider.");
   }
 
   return value;
 };
 
 const endedBeforeSent = () => {
-  Alert.alert('The call has ended', 'What you picked wasn’t sent.');
+  Alert.alert("The call has ended", "What you picked wasn’t sent.");
 };
 
 export const useMicHeld = () => {
@@ -188,14 +189,14 @@ export const useShare = (call: Call) => {
     const live = now.current;
     const id = callIdOf(live);
 
-    if (live.kind === 'none' || !id) {
+    if (live.kind === "none" || !id) {
       endedBeforeSent();
 
       return;
     }
 
     const at =
-      live.kind === 'here' ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
+      live.kind === "here" ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
 
     send(id, at, picked);
   };

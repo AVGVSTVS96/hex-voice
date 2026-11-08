@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import * as z from 'zod/mini';
+import { useState } from "react";
+import * as z from "zod/mini";
 
-import { hex } from '@/hex';
-import { useKept } from '@/hooks/use-kept';
-import { useAnswer, useWatch } from '@/hooks/use-watch';
-import { Finished, TaskCounts, TaskRow } from '@/live/tasks';
-import type { TaskId } from '@/live/tasks';
+import { hex } from "@/hex";
+import { useKept } from "@/hooks/use-kept";
+import { useAnswer, useWatch } from "@/hooks/use-watch";
+import { Finished, TaskCounts, TaskRow } from "@/live/tasks";
+import type { TaskId } from "@/live/tasks";
 
 export interface Counts {
   needs: number;
@@ -13,8 +13,8 @@ export interface Counts {
 }
 
 export const useTaskCounts = (listed: Counts | undefined): Counts => {
-  const [counts, keep] = useKept('task-counts', TaskCounts);
-  useWatch('counts', hex.tasks.counts, keep);
+  const [counts, keep] = useKept("task-counts", TaskCounts);
+  useWatch("counts", hex.tasks.counts, keep);
 
   if (listed) {
     return listed;
@@ -32,11 +32,11 @@ export const raiseTask = async (id: TaskId) => {
 const NONE: Finished[] = [];
 
 export const useTasks = (open: boolean) => {
-  const [tasks, keep] = useKept('tasks', z.array(TaskRow));
-  const [finished, keepFinished] = useKept('finished', z.array(Finished));
+  const [tasks, keep] = useKept("tasks", z.array(TaskRow));
+  const [finished, keepFinished] = useKept("finished", z.array(Finished));
   const [version, setVersion] = useState<number>();
 
-  const watching = useWatch(open ? 'tasks' : null, hex.tasks.list, (list) => {
+  const watching = useWatch(open ? "tasks" : null, hex.tasks.list, (list) => {
     keep(list.tasks);
     keepFinished(list.finished);
     setVersion(list.version);
@@ -46,8 +46,8 @@ export const useTasks = (open: boolean) => {
     tasks,
     finished: finished ?? NONE,
     version,
-    offline: watching === 'offline',
-    current: watching === 'current',
+    offline: watching === "offline",
+    current: watching === "current",
   };
 };
 
@@ -57,5 +57,5 @@ export const useTaskOrPage = (id: TaskId | null, version: number | undefined) =>
 export const useTask = (id: TaskId | null, version: number | undefined) => {
   const { answer, ...answered } = useTaskOrPage(id, version);
 
-  return { task: answer?.kind === 'task' ? answer : undefined, ...answered };
+  return { task: answer?.kind === "task" ? answer : undefined, ...answered };
 };

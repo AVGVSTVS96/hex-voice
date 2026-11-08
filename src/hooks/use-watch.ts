@@ -1,11 +1,11 @@
-import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
-import { AppState } from 'react-native';
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { AppState } from "react-native";
 
-import { RefusedError } from '@/hex/client';
+import { RefusedError } from "@/hex/client";
 
 const RETRY = 2000;
 
-export type Watching = 'waiting' | 'current' | 'offline';
+export type Watching = "waiting" | "current" | "offline";
 
 export const useWatch = <K extends string, T extends { version?: number }>(
   key: K | null,
@@ -13,14 +13,14 @@ export const useWatch = <K extends string, T extends { version?: number }>(
   take: (answer: T, key: K) => void,
 ) => {
   const active = useActive();
-  const [watching, setWatching] = useState<Watching>('waiting');
+  const [watching, setWatching] = useState<Watching>("waiting");
   const [watched, setWatched] = useState(key);
 
   if (key !== watched) {
     setWatched(key);
 
     if (key !== null) {
-      setWatching('waiting');
+      setWatching("waiting");
     }
   }
 
@@ -47,7 +47,7 @@ export const useWatch = <K extends string, T extends { version?: number }>(
           }
 
           taking(answer, key);
-          setWatching('current');
+          setWatching("current");
 
           if (answer.version === undefined) {
             return;
@@ -59,7 +59,7 @@ export const useWatch = <K extends string, T extends { version?: number }>(
             return;
           }
 
-          setWatching('offline');
+          setWatching("offline");
           // oxlint-disable-next-line no-await-in-loop, promise/avoid-new -- waits RETRY before asking again; React Native's setTimeout has no promise form
           await new Promise<void>((resolve) => {
             setTimeout(resolve, RETRY);
@@ -77,7 +77,7 @@ export const useWatch = <K extends string, T extends { version?: number }>(
 };
 
 const onAppState = (change: () => void) => {
-  const listener = AppState.addEventListener('change', change);
+  const listener = AppState.addEventListener("change", change);
 
   return () => {
     listener.remove();
@@ -85,7 +85,7 @@ const onAppState = (change: () => void) => {
 };
 
 export const useActive = () =>
-  useSyncExternalStore(onAppState, () => AppState.currentState === 'active');
+  useSyncExternalStore(onAppState, () => AppState.currentState === "active");
 
 export const useAnswer = <K extends string, T>(
   key: K | null,
@@ -123,8 +123,8 @@ export const useAnswer = <K extends string, T>(
   return {
     answer: mine?.answer,
     refused: mine?.refused,
-    failed: watching === 'offline' && !mine,
+    failed: watching === "offline" && !mine,
   };
 };
 
-export type Answered = Omit<ReturnType<typeof useAnswer>, 'answer'>;
+export type Answered = Omit<ReturnType<typeof useAnswer>, "answer">;

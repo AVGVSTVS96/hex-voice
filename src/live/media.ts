@@ -1,10 +1,10 @@
-import * as z from 'zod/mini';
+import * as z from "zod/mini";
 
-export const MediaKind = z.enum(['photo', 'video']);
+export const MediaKind = z.enum(["photo", "video"]);
 
 export type MediaKind = z.infer<typeof MediaKind>;
 
-export const MediaId = z.string().brand<'MediaId'>();
+export const MediaId = z.string().brand<"MediaId">();
 
 export type MediaId = z.infer<typeof MediaId>;
 
@@ -34,7 +34,7 @@ export const mediaWords = (media: readonly { kind: MediaKind }[]) => {
 
       return count === 1 ? [media.length > 1 ? `a ${kind}` : kind] : [];
     })
-    .join(' and ');
+    .join(" and ");
 
   return words.charAt(0).toUpperCase() + words.slice(1);
 };

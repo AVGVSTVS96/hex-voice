@@ -1,7 +1,6 @@
-import { breakpoint, metrics, stack } from '@/ui/tokens';
-import type { ControlsSize } from '@/ui/tokens';
-
-import type { Fold } from '@/screens/window';
+import type { Fold } from "@/screens/window";
+import { breakpoint, metrics, stack } from "@/ui/tokens";
+import type { ControlsSize } from "@/ui/tokens";
 
 const AGENT = 22;
 const WORDS = 600;
@@ -37,7 +36,7 @@ export type Words = Span & { top: number };
 export interface ColumnControls {
   right: number;
   bottom: number;
-  axis: 'row' | 'column';
+  axis: "row" | "column";
   size?: ControlsSize;
 }
 
@@ -56,9 +55,9 @@ export interface Pane<Where> {
   place: Where;
 }
 
-export type CallsPlacement = Pane<'slide' | 'beside' | 'over'> & { below?: number };
+export type CallsPlacement = Pane<"slide" | "beside" | "over"> & { below?: number };
 
-export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
+export type TasksPlacement = Pane<"beside" | "sheet" | "page">;
 
 export interface Beside<T> {
   open: T;
@@ -67,8 +66,8 @@ export interface Beside<T> {
 }
 
 export interface Stage {
-  kind: 'single' | 'split' | 'stacked';
-  controls: 'inline' | ColumnControls | { center: Beside<Place> & { rest: Place } };
+  kind: "single" | "split" | "stacked";
+  controls: "inline" | ColumnControls | { center: Beside<Place> & { rest: Place } };
   orb: {
     size: number;
     rest: Spot;
@@ -77,7 +76,7 @@ export interface Stage {
     dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
   };
   words: Words;
-  text: 'regular' | 'large';
+  text: "regular" | "large";
   besideCalls: Words;
   besideTasks: Words;
   footer: Span & { bottom: number };
@@ -96,7 +95,7 @@ export const stageLayout = (box: Box): Stage => {
     return pad(box);
   }
 
-  if (fold && 'y' in fold) {
+  if (fold && "y" in fold) {
     return stacked(box, fold.y);
   }
 
@@ -127,11 +126,11 @@ const single = (box: Box): Stage => {
   const size = Math.min(across * 0.62, height * 0.34, 280);
 
   const shared = {
-    kind: 'single' as const,
-    text: 'regular' as const,
+    kind: "single" as const,
+    text: "regular" as const,
     agent,
     lift: { calls: 0, tasks: 0 },
-    tasks: { width: TASKS, place: 'sheet' as const },
+    tasks: { width: TASKS, place: "sheet" as const },
     pulls: true,
   };
 
@@ -146,14 +145,14 @@ const single = (box: Box): Stage => {
 
     return {
       ...shared,
-      controls: 'inline',
+      controls: "inline",
       orb: { size, rest: { x: center, y: height / 2 }, room: { top, bottom: height }, read },
       add: besideDock(read),
       words: top12,
       besideCalls: top12,
       besideTasks: top12,
       footer: { ...inset, bottom: bottomInset },
-      calls: { width: Math.min(across - CALL_PEEK, SIDEBAR), place: 'slide' },
+      calls: { width: Math.min(across - CALL_PEEK, SIDEBAR), place: "slide" },
     };
   }
 
@@ -175,7 +174,7 @@ const single = (box: Box): Stage => {
     besideCalls: below,
     besideTasks: below,
     footer: { ...inset, bottom: height - dock + metrics.docked / 2 + 18 },
-    calls: { width: Math.min(across - CALL_PEEK, LIST), place: 'slide' },
+    calls: { width: Math.min(across - CALL_PEEK, LIST), place: "slide" },
   };
 };
 
@@ -192,7 +191,7 @@ const pad = (box: Box): Stage => {
 
   const docked = (from: number, to: number) => {
     const center = from + (to - from) / 2 + (BESIDE_BUTTONS + GAP) / 2;
-    const buttons = center - stack('regular') / 2;
+    const buttons = center - stack("regular") / 2;
 
     return {
       orb: { x: buttons - GAP - BESIDE_BUTTONS / 2, y: foot, size: BESIDE_BUTTONS / RIVE_ART_FILL },
@@ -211,7 +210,7 @@ const pad = (box: Box): Stage => {
     const words = { ...measure(half, width), top: below + 16 };
 
     return {
-      kind: 'split',
+      kind: "split",
       controls: {
         center: {
           open: { x: half / 2, y: top + size + 40 + metrics.call / 2 },
@@ -228,14 +227,14 @@ const pad = (box: Box): Stage => {
         dock: { calls: withCalls.orb, tasks: withTasks.orb },
       },
       words,
-      text: 'large' as const,
+      text: "large" as const,
       besideCalls: withCalls.words,
       besideTasks: withTasks.words,
       footer: { ...words, bottom: agentLow + AGENT },
       agent: { ...words, bottom: agentLow },
       lift: { calls: agentHigh - agentLow, tasks: agentHigh - agentLow },
       calls: callsBeside(width),
-      tasks: { width: tasks, place: 'beside' },
+      tasks: { width: tasks, place: "beside" },
       pulls: false,
       add: leading(foot),
     };
@@ -245,7 +244,7 @@ const pad = (box: Box): Stage => {
   const words = { ...measure(0, width), top: orbY + size / 2 + 24 };
 
   return {
-    kind: 'stacked',
+    kind: "stacked",
     controls: {
       center: {
         open: { x: width / 2, y: foot },
@@ -262,14 +261,14 @@ const pad = (box: Box): Stage => {
       dock: { calls: withCalls.orb, tasks: withTasks.orb },
     },
     words,
-    text: 'large' as const,
+    text: "large" as const,
     besideCalls: withCalls.words,
     besideTasks: withTasks.words,
     footer: { ...words, bottom: agentHigh + AGENT },
     agent: { ...words, bottom: agentHigh },
     lift: { calls: 0, tasks: 0 },
     calls: callsBeside(width),
-    tasks: { width: tasks, place: 'beside' },
+    tasks: { width: tasks, place: "beside" },
     pulls: false,
     add: leading(foot),
   };
@@ -278,8 +277,8 @@ const pad = (box: Box): Stage => {
 export const callsBeside = (width: number, below?: number): CallsPlacement => {
   const placement: CallsPlacement =
     width - LIST >= breakpoint.page
-      ? { width: LIST, place: 'beside' }
-      : { width: width - CALL_PEEK, place: 'slide' };
+      ? { width: LIST, place: "beside" }
+      : { width: width - CALL_PEEK, place: "slide" };
 
   return below === undefined ? placement : { ...placement, below };
 };
@@ -301,8 +300,8 @@ const split = (box: Box, fold?: number): Stage => {
   const top = controls ? safe.top + 72 : box.bar + 16;
 
   return {
-    kind: 'split',
-    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: 'row' },
+    kind: "split",
+    controls: controls ?? { right: metrics.gutter, bottom: bottomInset, axis: "row" },
     orb: {
       size: Math.min(pane * 0.62, height * 0.42, 300),
       rest: { x: across / 2, y: height / 2 },
@@ -310,14 +309,14 @@ const split = (box: Box, fold?: number): Stage => {
       read: { x: pane / 2, y: height / 2 },
     },
     words: { ...words, top },
-    text: 'regular' as const,
+    text: "regular" as const,
     besideCalls: { x: page, width: right - page, top },
     besideTasks: { ...words, top },
     footer: { ...words, bottom: agentBottom + AGENT },
     agent: { ...words, bottom: agentBottom },
     lift: { calls: 0, tasks: 0 },
-    calls: fold === undefined ? callsBeside(across) : { width: pane, place: 'beside' },
-    tasks: { width: TASKS, place: 'sheet' },
+    calls: fold === undefined ? callsBeside(across) : { width: pane, place: "beside" },
+    tasks: { width: TASKS, place: "sheet" },
     pulls: false,
     add: leading(height - (controls ? safe.bottom + 8 : bottomInset) - metrics.docked / 2),
   };
@@ -332,7 +331,7 @@ const stacked = (box: Box, fold: number): Stage => {
 
   return {
     ...base,
-    kind: 'stacked',
+    kind: "stacked",
     orb: { ...base.orb, size, read },
     words,
     besideCalls: words,
@@ -347,7 +346,7 @@ export const wordsBefore = (
   { words, agent }: Stage,
   fold: Fold,
 ): Words & { raise: number } => {
-  if ('x' in fold) {
+  if ("x" in fold) {
     const x = metrics.gutter;
     const width = Math.min(fold.x - WORDS_OFF_FOLD - x, WORDS_BESIDE);
 

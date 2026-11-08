@@ -1,18 +1,18 @@
-import { BottomSheet, Group as SheetContent } from '@expo/ui/swift-ui';
+import { BottomSheet, Group as SheetContent } from "@expo/ui/swift-ui";
 import {
   presentationBackground,
   presentationBackgroundInteraction,
   presentationDetents,
   presentationDragIndicator,
-} from '@expo/ui/swift-ui/modifiers';
-import type { PresentationDetent } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useState } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { PresentationDetent } from "@expo/ui/swift-ui/modifiers";
+import { useEffect, useState } from "react";
 
-import { TasksView } from '@/components/tasks/tasks-view';
-import type { TasksProps } from '@/components/tasks/tasks-view';
-import { useViewport } from '@/hooks/use-viewport';
-import { theme } from '@/theme';
-import { Host } from '@/ui/host';
+import { TasksView } from "@/components/tasks/tasks-view";
+import type { TasksProps } from "@/components/tasks/tasks-view";
+import { useViewport } from "@/hooks/use-viewport";
+import { theme } from "@/theme";
+import { Host } from "@/ui/host";
 
 export const TasksSheet = ({
   onDismiss,
@@ -20,15 +20,15 @@ export const TasksSheet = ({
   ...view
 }: TasksProps & { onDismiss: () => void; onCall: boolean }) => {
   const { width } = useViewport();
-  const [detent, setDetent] = useState<PresentationDetent>(onCall ? 'medium' : 'large');
+  const [detent, setDetent] = useState<PresentationDetent>(onCall ? "medium" : "large");
   useEffect(() => {
     if (view.open) {
-      setDetent(onCall ? 'medium' : 'large');
+      setDetent(onCall ? "medium" : "large");
     }
   }, [view.open, onCall]);
 
   return (
-    <Host seedColor={theme.tint} avoids="system" style={{ position: 'absolute' }}>
+    <Host seedColor={theme.tint} avoids="system" style={{ position: "absolute" }}>
       <BottomSheet
         isPresented={view.open}
         onIsPresentedChange={(presented) => {
@@ -41,13 +41,13 @@ export const TasksSheet = ({
       >
         <SheetContent
           modifiers={[
-            presentationDragIndicator('visible'),
-            presentationDetents(onCall ? ['medium', 'large'] : ['large'], {
+            presentationDragIndicator("visible"),
+            presentationDetents(onCall ? ["medium", "large"] : ["large"], {
               selection: detent,
               onSelectionChange: setDetent,
             }),
             ...(onCall
-              ? [presentationBackgroundInteraction({ type: 'enabledUpThrough', detent: 'medium' })]
+              ? [presentationBackgroundInteraction({ type: "enabledUpThrough", detent: "medium" })]
               : []),
             presentationBackground(theme.sheet),
           ]}

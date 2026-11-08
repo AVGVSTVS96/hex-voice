@@ -1,18 +1,18 @@
-import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from 'expo-audio';
-import type { AudioMode } from 'expo-audio';
-import { useEffect, useState } from 'react';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from "expo-audio";
+import type { AudioMode } from "expo-audio";
+import { useEffect, useState } from "react";
 
-import { VOICE_PREVIEWS } from '@/live/voice-previews';
-import type { LiveVoice } from '@/live/voices';
+import { VOICE_PREVIEWS } from "@/live/voice-previews";
+import type { LiveVoice } from "@/live/voices";
 
 const PREVIEW_AUDIO: Partial<AudioMode> = {
   playsInSilentMode: true,
-  interruptionMode: 'duckOthers',
+  interruptionMode: "duckOthers",
 };
 
 const SHARED_AUDIO: Partial<AudioMode> = {
   playsInSilentMode: true,
-  interruptionMode: 'mixWithOthers',
+  interruptionMode: "mixWithOthers",
 };
 
 export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) => {

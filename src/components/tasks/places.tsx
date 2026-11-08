@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { ZStack } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
+import { ZStack } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   background,
@@ -10,31 +10,31 @@ import {
   padding,
   shapes,
   strokeBorder,
-} from '@expo/ui/swift-ui/modifiers';
-import { useState } from 'react';
-import { Platform } from 'react-native';
-import type { SFSymbol } from 'sf-symbols-typescript';
+} from "@expo/ui/swift-ui/modifiers";
+import { useState } from "react";
+import { Platform } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Hairline, SectionHead } from '@/components/tasks/parts';
-import { PLACES, placeOf } from '@/live/inbox';
-import type { Place, Tile } from '@/live/inbox';
-import { clock } from '@/live/tasks';
-import type { TaskId, TaskRow } from '@/live/tasks';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { brand, metrics, space } from '@/ui/tokens';
+import { Hairline, SectionHead } from "@/components/tasks/parts";
+import { PLACES, placeOf } from "@/live/inbox";
+import type { Place, Tile } from "@/live/inbox";
+import { clock } from "@/live/tasks";
+import type { TaskId, TaskRow } from "@/live/tasks";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { brand, metrics, space } from "@/ui/tokens";
 
 const GLYPH: Record<Place, SFSymbol> = {
-  telegram: 'paperplane.fill',
-  t3: 'chevron.left.forwardslash.chevron.right',
-  buzz: 'bolt.fill',
-  discord: 'bubble.left.and.bubble.right.fill',
-  server: 'terminal.fill',
+  telegram: "paperplane.fill",
+  t3: "chevron.left.forwardslash.chevron.right",
+  buzz: "bolt.fill",
+  discord: "bubble.left.and.bubble.right.fill",
+  server: "terminal.fill",
 };
 
-const QUIET_GHOSTS = new Set<Place>(['t3', 'server']);
+const QUIET_GHOSTS = new Set<Place>(["t3", "server"]);
 const SHOWN = 5;
-const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
+const DEVICE = Platform.OS === "ios" && Platform.isPad ? "iPad" : "iPhone";
 
 interface TileLook {
   color: string;
@@ -44,16 +44,16 @@ interface TileLook {
 
 const look = (tile: Tile): TileLook => {
   switch (tile.kind) {
-    case 'app': {
+    case "app": {
       return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
     }
 
-    case 'call': {
-      return { color: brand.t3, glyph: 'waveform', ink: brand.ink };
+    case "call": {
+      return { color: brand.t3, glyph: "waveform", ink: brand.ink };
     }
 
-    case 'link': {
-      return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
+    case "link": {
+      return { color: brand.link, glyph: "arrow.up.right", ink: brand.ink };
     }
 
     default: {
@@ -62,16 +62,16 @@ const look = (tile: Tile): TileLook => {
   }
 };
 
-const hasLink = ({ link }: { link?: string }) => link !== undefined && link !== '';
+const hasLink = ({ link }: { link?: string }) => link !== undefined && link !== "";
 
 export const swipeLook = (tile: Tile) => {
   const { color, glyph } = look(tile);
 
-  return { color: tile.kind === 'call' ? theme.accentSolid : color, glyph };
+  return { color: tile.kind === "call" ? theme.accentSolid : color, glyph };
 };
 
 export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
-  if (tile.kind === 'app' && !hasLink(tile)) {
+  if (tile.kind === "app" && !hasLink(tile)) {
     return <Ghost place={tile.place} size={size} />;
   }
 
@@ -99,7 +99,7 @@ const Solid = ({
     modifiers={[
       frame({ width: size, height: size }),
       background(color),
-      clipShape('roundedRectangle', size * metrics.tileCorner),
+      clipShape("roundedRectangle", size * metrics.tileCorner),
     ]}
   >
     <Icon name={glyph} size={size * 0.5} color={ink} />
@@ -117,7 +117,7 @@ const Ghost = ({ place, size }: { place: Place; size: number }) => {
           strokeBorder({
             content: ink,
             style: { lineWidth: 1 },
-            shape: 'roundedRectangle',
+            shape: "roundedRectangle",
             cornerRadius: size * metrics.tileCorner,
           }),
           opacity(0.35),
@@ -166,7 +166,7 @@ export const Places = ({
 
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
-          : `${PLACES[place]} · ${clock(new Date(thread.at))}${linked ? '' : ' · no link'}`;
+          : `${PLACES[place]} · ${clock(new Date(thread.at))}${linked ? "" : " · no link"}`;
 
         return (
           <Column
@@ -196,7 +196,7 @@ export const Places = ({
                   top: metrics.list.place,
                   bottom: metrics.list.place,
                 }),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                frame({ maxWidth: Infinity, alignment: "leading" }),
                 contentShape(shapes.rectangle()),
                 accessibilityLabel(`${thread.place}, ${note}`),
               ]}
@@ -205,18 +205,18 @@ export const Places = ({
               <Column
                 alignment="start"
                 spacing={space[0.5]}
-                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+                modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
               >
                 <Text numberOfLines={1} variant="detail" weight="medium">
                   {thread.place}
                 </Text>
-                <Text numberOfLines={1} variant="caption" tone={gone ? 'danger' : 'secondary'}>
+                <Text numberOfLines={1} variant="caption" tone={gone ? "danger" : "secondary"}>
                   {note}
                 </Text>
               </Column>
               {opens ? (
                 <Icon
-                  name={linked ? 'arrow.up.right' : 'chevron.right'}
+                  name={linked ? "arrow.up.right" : "chevron.right"}
                   size={12}
                   color={theme.tertiary}
                 />
@@ -235,10 +235,10 @@ export const Places = ({
           tone="secondary"
           modifiers={[
             padding({ leading: metrics.list.inset + space[10], top: space[3], bottom: space[1] }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
           ]}
         >
-          {`Show ${rest} more thread${rest === 1 ? '' : 's'}`}
+          {`Show ${rest} more thread${rest === 1 ? "" : "s"}`}
         </Text>
       ) : null}
     </Column>

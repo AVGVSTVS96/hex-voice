@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": ["plugins/**"],
+  "sortImports": true,
+  "overrides": [
+    {
+      "files": ["tools/oxlint/no-comments.ts"],
+      "options": { "printWidth": 80, "trailingComma": "es5" }
+    }
+  ]
+}

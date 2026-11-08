@@ -1,22 +1,21 @@
-import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
-import { StyleSheet, View } from 'react-native';
-import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
-import Animated, { withTiming } from 'react-native-reanimated';
-import type { AnimatedStyle } from 'react-native-reanimated';
+import { HStack, Overlay, VStack } from "@expo/ui/swift-ui";
+import { StyleSheet, View } from "react-native";
+import type { StyleProp, ViewProps, ViewStyle } from "react-native";
+import Animated, { withTiming } from "react-native-reanimated";
+import type { AnimatedStyle } from "react-native-reanimated";
 
-import type { Back } from '@/components/tasks/bar';
-
-import { NeedsDot, TasksButton } from '@/components/tasks-button';
-import { AnimatedView } from '@/ui/animated-view';
-import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
-import { Host } from '@/ui/host';
-import { motion } from '@/motion';
-import { metrics } from '@/ui/tokens';
-import type { ToolbarGaps } from '@/ui/tokens';
+import { NeedsDot, TasksButton } from "@/components/tasks-button";
+import type { Back } from "@/components/tasks/bar";
+import { motion } from "@/motion";
+import { AnimatedView } from "@/ui/animated-view";
+import { GlassButton, HostedGlassButton, glass } from "@/ui/glass-button";
+import { Host } from "@/ui/host";
+import { metrics } from "@/ui/tokens";
+import type { ToolbarGaps } from "@/ui/tokens";
 
 interface Props {
-  axis: 'row' | 'column';
-  onLayout?: ViewProps['onLayout'];
+  axis: "row" | "column";
+  onLayout?: ViewProps["onLayout"];
   gaps?: ToolbarGaps;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
@@ -32,7 +31,7 @@ interface Props {
 export const ScreenToolbar = ({
   axis,
   onLayout,
-  gaps = 'regular',
+  gaps = "regular",
   style,
   callsOpen,
   tasks,
@@ -44,26 +43,26 @@ export const ScreenToolbar = ({
   onSettings,
 }: Props) => {
   const column = metrics.toolbar[gaps];
-  const gap = axis === 'row' ? metrics.toolbar.row : column.group;
-  const Group = axis === 'row' ? HStack : VStack;
+  const gap = axis === "row" ? metrics.toolbar.row : column.group;
+  const Group = axis === "row" ? HStack : VStack;
   const long = 2 * metrics.tool + gap;
 
   const backFade = () => {
-    'worklet';
+    "worklet";
 
     return { opacity: withTiming(back ? 1 : 0, { duration: motion.toolbar }) };
   };
 
   const backButton = holdsBack ? (
     <AnimatedView
-      pointerEvents={back ? 'auto' : 'none'}
+      pointerEvents={back ? "auto" : "none"}
       accessibilityElementsHidden={!back}
-      importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
+      importantForAccessibility={back ? "auto" : "no-hide-descendants"}
       animate={backFade}
     >
       <HostedGlassButton
         icon="back"
-        label={back ? `Back to ${back.to}` : 'Back'}
+        label={back ? `Back to ${back.to}` : "Back"}
         testID="back"
         onPress={() => back?.onPress()}
       />
@@ -84,13 +83,13 @@ export const ScreenToolbar = ({
     <Host
       matchContents
       style={
-        axis === 'row'
+        axis === "row"
           ? { width: long, height: metrics.tool }
           : { width: metrics.tool, height: long }
       }
     >
       <Overlay alignment="topLeading">
-        <Group spacing={gap} modifiers={[glass('capsule')]}>
+        <Group spacing={gap} modifiers={[glass("capsule")]}>
           <TasksButton
             needs={tasks.needs}
             working={tasks.working}
@@ -117,9 +116,9 @@ export const ScreenToolbar = ({
     <Animated.View
       pointerEvents="box-none"
       onLayout={onLayout}
-      style={[styles[axis], axis === 'column' && { gap: column.tools }, style]}
+      style={[styles[axis], axis === "column" && { gap: column.tools }, style]}
     >
-      {axis === 'column' ? (
+      {axis === "column" ? (
         <View pointerEvents="box-none" style={[styles.columnGroup, { gap: column.group }]}>
           {backButton}
           {calls}
@@ -127,7 +126,7 @@ export const ScreenToolbar = ({
       ) : (
         calls
       )}
-      {axis === 'row' ? (
+      {axis === "row" ? (
         <View pointerEvents="box-none" style={[styles.rowGroup, { gap: metrics.toolbar.row }]}>
           {pair}
           {backButton}
@@ -140,8 +139,8 @@ export const ScreenToolbar = ({
 };
 
 const styles = StyleSheet.create({
-  row: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between' },
-  column: { position: 'absolute', alignItems: 'center' },
-  rowGroup: { flexDirection: 'row' },
-  columnGroup: { alignItems: 'center' },
+  row: { position: "absolute", flexDirection: "row", justifyContent: "space-between" },
+  column: { position: "absolute", alignItems: "center" },
+  rowGroup: { flexDirection: "row" },
+  columnGroup: { alignItems: "center" },
 });

@@ -1,20 +1,20 @@
-import { RNHostView, Row } from '@expo/ui';
-import { ColorPicker } from '@expo/ui/swift-ui';
-import { accessibilityLabel, frame, labelsHidden } from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
-import { Pressable, View, useColorScheme } from 'react-native';
+import { RNHostView, Row } from "@expo/ui";
+import { ColorPicker } from "@expo/ui/swift-ui";
+import { accessibilityLabel, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
+import { Pressable, View, useColorScheme } from "react-native";
 
-import { PERSONA_MODELS } from '@/components/persona/animation';
-import { OPAL_PALETTES, PERSONA_COLORS, PERSONA_VARIANTS } from '@/components/persona/variants';
-import type { PersonaVariant } from '@/components/persona/variants';
-import type { CallPreferences } from '@/hooks/use-call-preferences';
-import { circle, theme } from '@/theme';
-import { metrics } from '@/ui/tokens';
+import { PERSONA_MODELS } from "@/components/persona/animation";
+import { OPAL_PALETTES, PERSONA_COLORS, PERSONA_VARIANTS } from "@/components/persona/variants";
+import type { PersonaVariant } from "@/components/persona/variants";
+import type { CallPreferences } from "@/hooks/use-call-preferences";
+import { circle, theme } from "@/theme";
+import { metrics } from "@/ui/tokens";
 
 const SLOTS = OPAL_PALETTES.length;
 const MIN_GAP = 4;
 const MAX_SWATCH = 36;
-const ORIGINAL_OPAL = 'linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)';
+const ORIGINAL_OPAL = "linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)";
 
 interface Layout {
   width: number;
@@ -33,13 +33,13 @@ export const PersonaColors = ({
   width: number;
   onSelect: () => void;
 }) => {
-  const light = useColorScheme() === 'light';
+  const light = useColorScheme() === "light";
   const inner = width - 2 * metrics.rowInset;
   const size = Math.min(MAX_SWATCH, Math.floor((inner - MIN_GAP * (SLOTS - 1)) / SLOTS));
   const gap = (inner - SLOTS * size) / (SLOTS - 1);
   const layout = { width, size, gap };
 
-  if (persona === 'opal') {
+  if (persona === "opal") {
     return (
       <SwatchRow layout={layout} label="Opal colors">
         {OPAL_PALETTES.map((option) => (
@@ -97,7 +97,7 @@ export const PersonaColors = ({
           modifiers={[
             labelsHidden(),
             frame({ width: size, height: size }),
-            accessibilityLabel(custom ? 'Custom color, selected' : 'Custom color'),
+            accessibilityLabel(custom ? "Custom color, selected" : "Custom color"),
           ]}
         />
       }
@@ -106,7 +106,7 @@ export const PersonaColors = ({
         <Swatch
           key={preset.id}
           color={light ? preset.light : preset.id}
-          label={light && 'lightLabel' in preset ? preset.lightLabel : preset.label}
+          label={light && "lightLabel" in preset ? preset.lightLabel : preset.label}
           layout={layout}
           selected={preset.id === color}
           onPress={() => {
@@ -140,9 +140,9 @@ const SwatchRow = ({
     <RNHostView matchContents>
       <View
         accessible={inert}
-        accessibilityRole={inert ? undefined : 'radiogroup'}
+        accessibilityRole={inert ? undefined : "radiogroup"}
         accessibilityLabel={label}
-        style={{ flexDirection: 'row', gap }}
+        style={{ flexDirection: "row", gap }}
       >
         {children}
       </View>
@@ -176,16 +176,16 @@ const Swatch = ({
       style={{
         ...circle(size),
         borderWidth: 2,
-        borderColor: selected ? theme.text : 'transparent',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderColor: selected ? theme.text : "transparent",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       <View
         style={{
           ...circle(inner),
           backgroundColor: color,
-          experimental_backgroundImage: (color ?? '') === '' ? ORIGINAL_OPAL : undefined,
+          experimental_backgroundImage: (color ?? "") === "" ? ORIGINAL_OPAL : undefined,
         }}
       />
     </Pressable>
@@ -196,7 +196,7 @@ const SkeletonSwatch = ({ size }: { size: number }) => {
   const inner = size - 10;
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       <View
         style={{
           ...circle(inner),

@@ -1,18 +1,18 @@
-import type { Layout } from '@/screens/layout';
-import { metrics, radius } from '@/ui/tokens';
+import type { Layout } from "@/screens/layout";
+import { metrics, radius } from "@/ui/tokens";
 
 export const cardOf = (
-  { calls, tasks, content }: Pick<Layout, 'calls' | 'tasks' | 'content'>,
+  { calls, tasks, content }: Pick<Layout, "calls" | "tasks" | "content">,
   drawer: number,
   pane: number,
   paneWidth: number,
 ) => {
-  'worklet';
-  const moved = calls.place === 'over' ? 0 : drawer;
+  "worklet";
+  const moved = calls.place === "over" ? 0 : drawer;
   const left = moved * (content.x + calls.width);
-  const slid = calls.place === 'slide' ? drawer * calls.width : 0;
+  const slid = calls.place === "slide" ? drawer * calls.width : 0;
   const top = (calls.below ?? 0) * moved;
-  const right = (tasks.place === 'beside' ? pane * paneWidth : 0) - slid;
+  const right = (tasks.place === "beside" ? pane * paneWidth : 0) - slid;
   const off = Math.max(top, left, right);
   const rounded = Math.min(1, off / radius.card);
 
@@ -31,11 +31,11 @@ const TASKS_OPEN = 1;
 const BAR_MIN_WIDTH = 3 * metrics.tool + 2 * metrics.toolbar.row;
 
 export const barOf = (
-  layout: Pick<Layout, 'calls' | 'tasks' | 'content' | 'toolbar'>,
+  layout: Pick<Layout, "calls" | "tasks" | "content" | "toolbar">,
   window: number,
   drawer: number,
 ) => {
-  'worklet';
+  "worklet";
   const { toolbar, calls } = layout;
   const carried = calls.below === undefined ? drawer : 0;
   const card = cardOf(layout, carried, TASKS_OPEN, layout.tasks.width);

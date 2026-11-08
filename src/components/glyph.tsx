@@ -1,8 +1,8 @@
-import { Image } from '@expo/ui/swift-ui';
-import type { ColorValue } from 'react-native';
-import type { SFSymbol } from 'sf-symbols-typescript';
+import { Image } from "@expo/ui/swift-ui";
+import type { ColorValue } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Host } from '@/ui/host';
+import { Host } from "@/ui/host";
 
 export const Glyph = ({
   name,

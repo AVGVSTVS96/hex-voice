@@ -1,5 +1,5 @@
-import { Column, RNHostView, Row, Spacer } from '@expo/ui';
-import { Text } from '@expo/ui/swift-ui';
+import { Column, RNHostView, Row, Spacer } from "@expo/ui";
+import { Text } from "@expo/ui/swift-ui";
 import {
   background,
   clipShape,
@@ -8,19 +8,19 @@ import {
   onTapGesture,
   padding,
   textSelection,
-} from '@expo/ui/swift-ui/modifiers';
-import { createContext, useContext } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import { createContext, useContext } from "react";
 
-import { Markdown } from '@/components/markdown';
-import { Album } from '@/components/media/thumb';
-import { said } from '@/live/chat';
-import type { Sending } from '@/live/chat';
-import { mediaWords } from '@/live/media';
-import type { Shown } from '@/live/media';
-import type { ChatTurn } from '@/live/tasks';
-import { theme } from '@/theme';
-import { textLook } from '@/ui/text';
-import { metrics, radius, space } from '@/ui/tokens';
+import { Markdown } from "@/components/markdown";
+import { Album } from "@/components/media/thumb";
+import { said } from "@/live/chat";
+import type { Sending } from "@/live/chat";
+import { mediaWords } from "@/live/media";
+import type { Shown } from "@/live/media";
+import type { ChatTurn } from "@/live/tasks";
+import { theme } from "@/theme";
+import { textLook } from "@/ui/text";
+import { metrics, radius, space } from "@/ui/tokens";
 
 export const Selectable = createContext(true);
 
@@ -28,11 +28,11 @@ export const Said = ({ turn }: { turn: ChatTurn }) => {
   const one = said(turn);
   const selectable = useContext(Selectable);
 
-  if (one.kind === 'me') {
+  if (one.kind === "me") {
     return <Mine text={one.text} media={turn.media ?? []} />;
   }
 
-  if (one.kind === 'event') {
+  if (one.kind === "event") {
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   }
 
@@ -58,9 +58,9 @@ export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
         modifiers={[
           ...(sent.failed?.again === true ? [onTapGesture(onRetry)] : []),
           ...textLook({
-            variant: 'caption',
-            weight: sent.failed ? 'medium' : 'regular',
-            tone: sent.failed ? 'danger' : 'tertiary',
+            variant: "caption",
+            weight: sent.failed ? "medium" : "regular",
+            tone: sent.failed ? "danger" : "tertiary",
           }),
         ]}
       >
@@ -72,10 +72,10 @@ export const Sent = ({ sent, onRetry }: { sent: Sending; onRetry: () => void }) 
 
 const sentNote = ({ failed }: Sending) => {
   if (!failed) {
-    return 'Sending';
+    return "Sending";
   }
 
-  return failed.again ? 'Not sent · Tap to try again' : failed.why;
+  return failed.again ? "Not sent · Tap to try again" : failed.why;
 };
 
 export const SaidLine = ({
@@ -88,7 +88,7 @@ export const SaidLine = ({
   lines: number;
 }) => {
   const one = said(turn);
-  const who = one.kind === 'hex' ? 'hex' : 'You';
+  const who = one.kind === "hex" ? "hex" : "You";
 
   const text = lineOf(one, turn.media ?? []);
 
@@ -107,18 +107,18 @@ export const SaidLine = ({
     >
       <Text
         modifiers={[
-          ...textLook({ variant: 'caption', weight: 'medium', tone: 'secondary' }),
-          frame({ width: 30, alignment: 'leading' }),
+          ...textLook({ variant: "caption", weight: "medium", tone: "secondary" }),
+          frame({ width: 30, alignment: "leading" }),
         ]}
       >
-        {named ? who : ''}
+        {named ? who : ""}
       </Text>
       <Markdown
         inline
         lines={lines}
         variant="detail"
-        tone={one.kind === 'event' ? 'secondary' : 'text'}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        tone={one.kind === "event" ? "secondary" : "text"}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         {text}
       </Markdown>
@@ -127,7 +127,7 @@ export const SaidLine = ({
 };
 
 const lineOf = (one: ReturnType<typeof said>, media: Shown[]) => {
-  if (one.kind === 'event') {
+  if (one.kind === "event") {
     return one.text ? `${one.label} · ${one.text}` : one.label;
   }
 
@@ -155,7 +155,7 @@ const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?
         {text ? (
           <Text
             modifiers={[
-              ...textLook({ tone: dim ? 'secondary' : 'text', paragraph: true }),
+              ...textLook({ tone: dim ? "secondary" : "text", paragraph: true }),
               textSelection(selectable),
               padding({
                 leading: metrics.bubbleX,
@@ -164,7 +164,7 @@ const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?
                 bottom: metrics.bubbleY,
               }),
               background(theme.bubble),
-              clipShape('roundedRectangle', radius.bubble),
+              clipShape("roundedRectangle", radius.bubble),
             ]}
           >
             {text}
@@ -182,7 +182,7 @@ const Event = ({ text }: { text: string }) => (
     modifiers={[padding({ leading: metrics.bubbleRoom, trailing: metrics.list.inset })]}
   >
     <Spacer flexible />
-    <Text modifiers={[...textLook({ variant: 'caption', tone: 'secondary' }), lineLimit(3)]}>
+    <Text modifiers={[...textLook({ variant: "caption", tone: "secondary" }), lineLimit(3)]}>
       {text}
     </Text>
   </Row>

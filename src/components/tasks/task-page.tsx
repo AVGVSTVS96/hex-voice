@@ -1,5 +1,5 @@
-import { Column, Icon, Row } from '@expo/ui';
-import { List } from '@expo/ui/swift-ui';
+import { Column, Icon, Row } from "@expo/ui";
+import { List } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   animation,
@@ -12,30 +12,30 @@ import {
   scrollContentBackground,
   scrollIndicators,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
 
-import { YourCall } from '@/components/tasks/ask-card';
-import { Header, Talk } from '@/components/tasks/bar';
-import type { Door } from '@/components/tasks/bar';
-import { Mark } from '@/components/tasks/mark';
-import type { MarkState } from '@/components/tasks/mark';
-import { Faded, SectionHead, Sections, StageHead, listRow } from '@/components/tasks/parts';
-import { Pinned } from '@/components/tasks/pinned';
-import { PlaceTile, Places, TileIcon, hasPlaces } from '@/components/tasks/places';
-import { Foot, WriteField } from '@/components/tasks/thread';
-import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
-import { useNow } from '@/hooks/use-now';
-import type { Ask, AskOption } from '@/live/asks';
-import { Lane } from '@/components/tasks/lane';
-import { placeOf, proofLinks, proofSays, proofWords, tracksOf } from '@/live/inbox';
-import type { Place, Tile } from '@/live/inbox';
-import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from '@/live/tasks';
-import type { Finished, Task, TaskRow, TaskId, TaskState } from '@/live/tasks';
-import { motion, rowsKey } from '@/motion';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, space } from '@/ui/tokens';
+import { YourCall } from "@/components/tasks/ask-card";
+import { Header, Talk } from "@/components/tasks/bar";
+import type { Door } from "@/components/tasks/bar";
+import { Lane } from "@/components/tasks/lane";
+import { Mark } from "@/components/tasks/mark";
+import type { MarkState } from "@/components/tasks/mark";
+import { Faded, SectionHead, Sections, StageHead, listRow } from "@/components/tasks/parts";
+import { Pinned } from "@/components/tasks/pinned";
+import { PlaceTile, Places, TileIcon, hasPlaces } from "@/components/tasks/places";
+import { Foot, WriteField } from "@/components/tasks/thread";
+import { KIND, Steps, TraceLine } from "@/components/tasks/trace";
+import { useNow } from "@/hooks/use-now";
+import type { Ask, AskOption } from "@/live/asks";
+import { placeOf, proofLinks, proofSays, proofWords, tracksOf } from "@/live/inbox";
+import type { Place, Tile } from "@/live/inbox";
+import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from "@/live/tasks";
+import type { Finished, Task, TaskRow, TaskId, TaskState } from "@/live/tasks";
+import { motion, rowsKey } from "@/motion";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, space } from "@/ui/tokens";
 
 const PREVIEW = 3;
 
@@ -78,15 +78,15 @@ export const Detail = ({
   onWrite?: () => void;
   foot?: number;
 }) => {
-  const full = 'lately' in task ? task : undefined;
+  const full = "lately" in task ? task : undefined;
   const needs = needsOf(task, asks);
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
 
   const working = [task, ...threads.filter((one) => one.id !== task.id)].filter(
-    (one) => one.state === 'working',
+    (one) => one.state === "working",
   );
 
-  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
+  const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const tracks = laneOf(task, threads);
   const now = useNow(false).getTime();
 
@@ -111,14 +111,14 @@ export const Detail = ({
           ) : null}
           <Column alignment="start" spacing={0} modifiers={rest()}>
             <Sections follows={asks.length > 0}>
-              {needs === undefined || needs === '' ? null : (
+              {needs === undefined || needs === "" ? null : (
                 <Column key="needs" alignment="start" spacing={0}>
                   <StageHead tint="needs" title="Needs you" />
                   <Text
                     paragraph
                     modifiers={[
                       padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      frame({ maxWidth: Infinity, alignment: "leading" }),
                     ]}
                   >
                     {needs}
@@ -165,7 +165,7 @@ export const Detail = ({
                   />
                 </Column>
               ) : null}
-              {full?.pin === undefined || full.pin === '' ? null : (
+              {full?.pin === undefined || full.pin === "" ? null : (
                 <Pinned key="pin" text={full.pin} />
               )}
               {messages}
@@ -201,7 +201,7 @@ export const Detail = ({
                       key={`${moment.at} ${i}`}
                       lead={<Mark state={i === 0 ? moment.state : pastMark(moment.state)} />}
                       text={moment.text}
-                      tone={i > 0 ? 'secondary' : undefined}
+                      tone={i > 0 ? "secondary" : undefined}
                       time={clock(new Date(moment.at))}
                     />
                   ))}
@@ -263,14 +263,14 @@ export const Asked = ({
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
 }) => {
-  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
+  const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const others = rows?.length ?? 0;
 
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
         title={topic}
-        subtitle={open ? `${open} need${open === 1 ? 's' : ''} you` : `${others} here`}
+        subtitle={open ? `${open} need${open === 1 ? "s" : ""} you` : `${others} here`}
         door={door}
       />
       <Faded>
@@ -323,7 +323,7 @@ export const DonePage = ({
                   trailing: metrics.list.inset,
                   top: space[4],
                 }),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                frame({ maxWidth: Infinity, alignment: "leading" }),
                 accessibilityLabel(`Done at ${at}: ${finished.title}`),
               ]}
             >
@@ -331,7 +331,7 @@ export const DonePage = ({
               <Text
                 paragraph
                 variant="body"
-                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+                modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
               >
                 {finished.title}
               </Text>
@@ -350,7 +350,7 @@ export const DonePage = ({
                         trailing: metrics.list.inset,
                         bottom: space[2],
                       }),
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      frame({ maxWidth: Infinity, alignment: "leading" }),
                     ]}
                   >
                     {proofWords(finished.proof)}
@@ -364,7 +364,7 @@ export const DonePage = ({
                       key={url}
                       lead={<TileIcon tile={link} size={metrics.list.tile} />}
                       title={link.label}
-                      note={url?.replace(/^https?:\/\//u, '') ?? ''}
+                      note={url?.replace(/^https?:\/\//u, "") ?? ""}
                       out
                       onPress={() => {
                         onOpenLink(link);
@@ -415,7 +415,7 @@ const Way = ({
         top: metrics.list.place,
         bottom: metrics.list.place,
       }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
       contentShape(shapes.rectangle()),
       accessibilityLabel(`${title}, ${note}`),
     ]}
@@ -424,7 +424,7 @@ const Way = ({
     <Column
       alignment="start"
       spacing={space[0.5]}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <Text numberOfLines={1} variant="detail" weight="medium">
         {title}
@@ -434,7 +434,7 @@ const Way = ({
       </Text>
     </Column>
     <Icon
-      name={out ? 'arrow.up.right' : 'chevron.right'}
+      name={out ? "arrow.up.right" : "chevron.right"}
       size={metrics.symbol.small}
       color={theme.tertiary}
     />
@@ -442,12 +442,12 @@ const Way = ({
 );
 
 const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
-  listStyle('plain'),
-  scrollContentBackground('hidden'),
-  scrollIndicators('hidden'),
+  listStyle("plain"),
+  scrollContentBackground("hidden"),
+  scrollIndicators("hidden"),
   scrollClipDisabled(),
-  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
-  animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ''}`))),
+  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
+  animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ""}`))),
 ];
 
 const Run = ({
@@ -459,8 +459,8 @@ const Run = ({
   named: boolean;
   onPress: () => void;
 }) => {
-  const working = thread.state === 'working';
-  const steps = 'steps' in thread ? thread.steps.slice(0, PREVIEW) : [];
+  const working = thread.state === "working";
+  const steps = "steps" in thread ? thread.steps.slice(0, PREVIEW) : [];
   const agents = agentWords(thread.agents, working);
 
   const progress = working ? (
@@ -473,7 +473,7 @@ const Run = ({
       spacing={0}
       onPress={onPress}
       modifiers={[
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
         contentShape(shapes.rectangle()),
         accessibilityLabel(
           `${thread.place}, ${STATE_WORDS[thread.state]}: ${thread.line}. Shows its steps`,
@@ -499,7 +499,7 @@ const Run = ({
             numberOfLines={1}
             variant="detail"
             weight="medium"
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
           >
             {thread.place}
           </Text>
@@ -522,7 +522,7 @@ const Run = ({
 };
 
 const firstDoor = (threads: (TaskRow | Task)[], onOpen: (thread: TaskRow) => void) => {
-  const door = threads.find((one) => (one.link ?? '') !== '');
+  const door = threads.find((one) => (one.link ?? "") !== "");
 
   return (
     door && {
@@ -538,39 +538,39 @@ const laneOf = (task: TaskRow | Task, threads: TaskRow[]) =>
   tracksOf(task.name, threads.length > 0 ? threads : [task]);
 
 const needsOf = (task: TaskRow | Task, asks: Ask[]) => {
-  const full = 'lately' in task ? task : undefined;
+  const full = "lately" in task ? task : undefined;
 
-  return task.state === 'needs' && asks.length === 0 ? (full?.needs ?? task.line) : undefined;
+  return task.state === "needs" && asks.length === 0 ? (full?.needs ?? task.line) : undefined;
 };
 
-const pastMark = (state: TaskState): MarkState => (state === 'failed' ? 'failed' : 'read');
+const pastMark = (state: TaskState): MarkState => (state === "failed" ? "failed" : "read");
 
 const tileUrl = (tile: Tile) => {
-  if (tile.kind === 'link') {
+  if (tile.kind === "link") {
     return tile.url;
   }
 
-  return tile.kind === 'app' ? tile.link : '';
+  return tile.kind === "app" ? tile.link : "";
 };
 
 const subtitleOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
-  const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
+  const asks = open ? `${open} need${open === 1 ? "s" : ""} you` : "";
 
-  if (task.state === 'working') {
-    return [asks, `working for ${time}`].filter(Boolean).join(' · ');
+  if (task.state === "working") {
+    return [asks, `working for ${time}`].filter(Boolean).join(" · ");
   }
 
-  if (task.state === 'needs') {
+  if (task.state === "needs") {
     return `${asks || STATE_WORDS.needs} since ${time}`;
   }
 
-  return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
+  return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(" · ");
 };
 
 const readable = [
-  frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: 'top' }),
-  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+  frame({ maxWidth: metrics.readable, maxHeight: Infinity, alignment: "top" }),
+  frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
 ];
 
 const rest = () => [padding({ bottom: space[10] }), frame({ maxWidth: Infinity }), ...listRow()];

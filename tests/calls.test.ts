@@ -1,5 +1,5 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
 
 import {
   byDay,
@@ -14,27 +14,27 @@ import {
   transcriptText,
   CallId,
   CallSummary,
-} from '../src/live/calls';
-import { MediaId } from '../src/live/media';
+} from "../src/live/calls";
+import { MediaId } from "../src/live/media";
 
-test('a phone call’s turns read as the live transcript, each keeping its place as it grows', () => {
+test("a phone call’s turns read as the live transcript, each keeping its place as it grows", () => {
   const turns = [
-    { who: 'you' as const, at: 1000, text: 'is the build' },
-    { who: 'voice' as const, at: 2500, text: 'One sec.' },
+    { who: "you" as const, at: 1000, text: "is the build" },
+    { who: "voice" as const, at: 2500, text: "One sec." },
   ];
 
   const before = liveEntries({ turns });
-  const after = liveEntries({ turns: [{ ...turns[0], text: 'is the build green?' }, turns[1]] });
+  const after = liveEntries({ turns: [{ ...turns[0], text: "is the build green?" }, turns[1]] });
   assert.deepEqual(before, [
-    { id: 'you 1000', role: 'user', text: 'is the build', startMs: 1000 },
-    { id: 'voice 2500', role: 'assistant', text: 'One sec.', startMs: 2500 },
+    { id: "you 1000", role: "user", text: "is the build", startMs: 1000 },
+    { id: "voice 2500", role: "assistant", text: "One sec.", startMs: 2500 },
   ]);
   assert.deepEqual(
     after.map((entry) => entry.id),
     before.map((entry) => entry.id),
   );
   assert.equal(
-    endedSeconds({ started: '2026-10-14T06:00:00.000Z', ended: '2026-10-14T06:03:05.400Z' }),
+    endedSeconds({ started: "2026-10-14T06:00:00.000Z", ended: "2026-10-14T06:03:05.400Z" }),
     185,
   );
 });
@@ -43,22 +43,22 @@ const call = (id: string, started: string): CallSummary =>
   CallSummary.parse({
     id,
     started,
-    from: 'app',
+    from: "app",
     seconds: 60,
     tasks: 0,
-    preview: 'Is the build green?',
+    preview: "Is the build green?",
   });
 
-test('calls group under today, yesterday and earlier, newest first, as hex sends them', () => {
+test("calls group under today, yesterday and earlier, newest first, as hex sends them", () => {
   const now = new Date(2026, 9, 13, 9);
 
   const days = byDay(
     [
-      call('a', new Date(2026, 9, 13, 3, 5).toISOString()),
-      call('b', new Date(2026, 9, 13, 1, 31).toISOString()),
-      call('c', new Date(2026, 9, 12, 23, 36).toISOString()),
-      call('d', new Date(2026, 9, 10, 12).toISOString()),
-      call('e', new Date(2026, 8, 30, 12).toISOString()),
+      call("a", new Date(2026, 9, 13, 3, 5).toISOString()),
+      call("b", new Date(2026, 9, 13, 1, 31).toISOString()),
+      call("c", new Date(2026, 9, 12, 23, 36).toISOString()),
+      call("d", new Date(2026, 9, 10, 12).toISOString()),
+      call("e", new Date(2026, 8, 30, 12).toISOString()),
     ],
     now,
   );
@@ -66,102 +66,102 @@ test('calls group under today, yesterday and earlier, newest first, as hex sends
   assert.deepEqual(
     days.map((day) => [day.label, day.calls.map(({ id }) => id)]),
     [
-      ['Today', ['a', 'b']],
-      ['Yesterday', ['c']],
-      ['Earlier', ['d', 'e']],
+      ["Today", ["a", "b"]],
+      ["Yesterday", ["c"]],
+      ["Earlier", ["d", "e"]],
     ],
   );
-  assert.equal(callTime(new Date(2026, 9, 10, 12).toISOString(), now), 'Sat');
-  assert.equal(callTime(new Date(2026, 8, 30, 12).toISOString(), now), 'Sep 30');
+  assert.equal(callTime(new Date(2026, 9, 10, 12).toISOString(), now), "Sat");
+  assert.equal(callTime(new Date(2026, 8, 30, 12).toISOString(), now), "Sep 30");
 });
 
-test('a call reads as its title, or your first words until hex names it', () => {
-  assert.equal(callName({ title: 'Build check', preview: 'Is the build green?' }), 'Build check');
-  assert.equal(callName({ preview: 'Is the build green?' }), 'Is the build green?');
-  assert.equal(callLength(14), '14 sec');
-  assert.equal(callLength(13 * 60 + 20), '13 min');
-  assert.equal(callLength(49 * 60), '49 min');
-  assert.equal(callLength(75 * 60), '1 hr 15 min');
-  assert.equal(clock(61_200), '1:01');
+test("a call reads as its title, or your first words until hex names it", () => {
+  assert.equal(callName({ title: "Build check", preview: "Is the build green?" }), "Build check");
+  assert.equal(callName({ preview: "Is the build green?" }), "Is the build green?");
+  assert.equal(callLength(14), "14 sec");
+  assert.equal(callLength(13 * 60 + 20), "13 min");
+  assert.equal(callLength(49 * 60), "49 min");
+  assert.equal(callLength(75 * 60), "1 hr 15 min");
+  assert.equal(clock(61_200), "1:01");
 });
 
-test('each of hex’s tasks is one marker where it started, showing how it ended up', () => {
+test("each of hex’s tasks is one marker where it started, showing how it ended up", () => {
   const moments = timeline({
     turns: [
-      { who: 'you', at: 3000, text: 'Make a plan' },
-      { who: 'voice', at: 9000, text: 'Plan’s up.' },
+      { who: "you", at: 3000, text: "Make a plan" },
+      { who: "voice", at: 9000, text: "Plan’s up." },
     ],
     tasks: [
-      { id: 'plan', state: 'running', at: 4000, text: 'writing the plan' },
-      { id: 'plan', state: 'done', at: 12_000, text: 'plan page ready' },
+      { id: "plan", state: "running", at: 4000, text: "writing the plan" },
+      { id: "plan", state: "done", at: 12_000, text: "plan page ready" },
     ],
   });
 
   assert.deepEqual(
-    moments.map((moment) => (moment.kind === 'task' ? moment.task : moment.kind)),
-    ['turn', { id: 'plan', state: 'done', at: 4000, text: 'plan page ready' }, 'turn'],
+    moments.map((moment) => (moment.kind === "task" ? moment.task : moment.kind)),
+    ["turn", { id: "plan", state: "done", at: 4000, text: "plan page ready" }, "turn"],
   );
 });
 
-test('a call shows when the phone took its audio and the time-limit warning, and its copy leads with hex’s wrap-up', () => {
+test("a call shows when the phone took its audio and the time-limit warning, and its copy leads with hex’s wrap-up", () => {
   const record = {
-    id: CallId.parse('live_1'),
-    started: '2026-10-13T10:00:00.000Z',
-    from: 'app' as const,
-    summary: 'Checked CI and sent the PR to Telegram.',
-    waiting: ['Merge the PR'],
-    turns: [{ who: 'you' as const, at: 1000, text: 'Is CI green?' }],
+    id: CallId.parse("live_1"),
+    started: "2026-10-13T10:00:00.000Z",
+    from: "app" as const,
+    summary: "Checked CI and sent the PR to Telegram.",
+    waiting: ["Merge the PR"],
+    turns: [{ who: "you" as const, at: 1000, text: "Is CI green?" }],
     tasks: [],
     moments: [
-      { at: 2000, kind: 'say' as const, text: 'CI is green.' },
-      { at: 3000, kind: 'paused' as const, text: 'Your phone took over the audio' },
-      { at: 9000, kind: 'resumed' as const, text: 'Back on the call' },
+      { at: 2000, kind: "say" as const, text: "CI is green." },
+      { at: 3000, kind: "paused" as const, text: "Your phone took over the audio" },
+      { at: 9000, kind: "resumed" as const, text: "Back on the call" },
     ],
   };
 
   assert.deepEqual(
     timeline(record).map((moment) => moment.kind),
-    ['turn', 'mark', 'mark'],
+    ["turn", "mark", "mark"],
   );
   assert.equal(
     transcriptText(record),
-    'Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]',
+    "Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]",
   );
 });
 
-test('a photo or clip you sent a call shows as your turn, live and after, wherever it was sent', () => {
+test("a photo or clip you sent a call shows as your turn, live and after, wherever it was sent", () => {
   const sent = {
     turns: [
-      { who: 'you' as const, at: 1000, text: 'Can you see why the internet is out?' },
-      { who: 'voice' as const, at: 9000, text: 'The fourth light is off.' },
+      { who: "you" as const, at: 1000, text: "Can you see why the internet is out?" },
+      { who: "voice" as const, at: 9000, text: "The fourth light is off." },
     ],
     tasks: [],
     moments: [
-      { at: 4000, kind: 'photo' as const, text: '', media: MediaId.parse('m1') },
-      { at: 5000, kind: 'say' as const, text: 'Looking now.' },
+      { at: 4000, kind: "photo" as const, text: "", media: MediaId.parse("m1") },
+      { at: 5000, kind: "say" as const, text: "Looking now." },
     ],
   };
 
   assert.deepEqual(
     liveEntries(sent).map(({ role, media }) => [role, media?.kind]),
     [
-      ['user', undefined],
-      ['user', 'photo'],
-      ['assistant', undefined],
+      ["user", undefined],
+      ["user", "photo"],
+      ["assistant", undefined],
     ],
   );
   assert.deepEqual(
     timeline(sent).map((moment) => moment.kind),
-    ['turn', 'media', 'turn'],
+    ["turn", "media", "turn"],
   );
 });
 
 const callOn = (id: string, day: number) => call(id, new Date(2026, 9, day, 9).toISOString());
 const idsOf = (calls: CallSummary[]) => calls.map(({ id }) => id);
 
-test('a call that wouldn’t delete goes back where it sat, newest first', () => {
-  const [c, b, a] = [callOn('c', 14), callOn('b', 13), callOn('a', 12)];
-  assert.deepEqual(idsOf(putBack([c, a], b)), ['c', 'b', 'a']);
-  assert.deepEqual(idsOf(putBack([b, a], c)), ['c', 'b', 'a']);
-  assert.deepEqual(idsOf(putBack([c, b], a)), ['c', 'b', 'a']);
+test("a call that wouldn’t delete goes back where it sat, newest first", () => {
+  const [c, b, a] = [callOn("c", 14), callOn("b", 13), callOn("a", 12)];
+  assert.deepEqual(idsOf(putBack([c, a], b)), ["c", "b", "a"]);
+  assert.deepEqual(idsOf(putBack([b, a], c)), ["c", "b", "a"]);
+  assert.deepEqual(idsOf(putBack([c, b], a)), ["c", "b", "a"]);
 });

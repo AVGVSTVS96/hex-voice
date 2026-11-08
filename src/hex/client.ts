@@ -1,7 +1,7 @@
-import * as z from 'zod/mini';
+import * as z from "zod/mini";
 
 export class RefusedError extends Error {
-  override readonly name = 'RefusedError';
+  override readonly name = "RefusedError";
 
   readonly status: number;
 
@@ -27,7 +27,7 @@ export interface Config {
 export type Client = ReturnType<typeof createClient>;
 
 interface Options {
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: "GET" | "POST" | "DELETE";
   body?: unknown;
   after?: number;
   signal?: AbortSignal;
@@ -39,21 +39,21 @@ const WRITE = 60_000;
 const WATCH = 120_000;
 
 const UPLOAD = 300_000;
-const UNREACHABLE = new Set(['Network request failed', 'Failed to fetch', 'fetch failed']);
+const UNREACHABLE = new Set(["Network request failed", "Failed to fetch", "fetch failed"]);
 
 export const createClient = ({ url, token, fetch, sendFile }: Config) => {
-  const origin = url?.trim().replace(/\/+$/u, '');
+  const origin = url?.trim().replace(/\/+$/u, "");
 
   const auth: Record<string, string> =
-    token === undefined || token === '' ? {} : { Authorization: `Bearer ${token}` };
+    token === undefined || token === "" ? {} : { Authorization: `Bearer ${token}` };
 
   const reach = async (
     path: string,
-    { signal, timeout }: Pick<Options, 'signal' | 'timeout'>,
+    { signal, timeout }: Pick<Options, "signal" | "timeout">,
     go: (href: string, signal: AbortSignal) => Promise<{ status: number; text: string }>,
   ): Promise<string> => {
-    if (origin === undefined || origin === '') {
-      throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
+    if (origin === undefined || origin === "") {
+      throw new Error("Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.");
     }
 
     const controller = new AbortController();
@@ -62,7 +62,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       controller.abort();
     };
 
-    signal?.addEventListener('abort', abort);
+    signal?.addEventListener("abort", abort);
     const deadline = setTimeout(abort, timeout);
 
     try {
@@ -81,9 +81,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       if (
         controller.signal.aborted ||
         (error instanceof Error &&
-          (['AbortError', 'NetworkError'].includes(error.name) || UNREACHABLE.has(error.message)))
+          (["AbortError", "NetworkError"].includes(error.name) || UNREACHABLE.has(error.message)))
       ) {
-        throw new Error('Cannot reach hex. Check that Tailscale is on, then try again.', {
+        throw new Error("Cannot reach hex. Check that Tailscale is on, then try again.", {
           cause: error,
         });
       }
@@ -91,25 +91,25 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       throw error;
     } finally {
       clearTimeout(deadline);
-      signal?.removeEventListener('abort', abort);
+      signal?.removeEventListener("abort", abort);
     }
   };
 
-  const call = async (path: string, { method = 'GET', body, after, ...options }: Options) =>
+  const call = async (path: string, { method = "GET", body, after, ...options }: Options) =>
     await reach(
       after === undefined ? path : `${path}?after=${after}`,
       options,
       async (href, signal) => {
         const response = await fetch(href, {
           method,
-          headers: body === undefined ? auth : { ...auth, 'Content-Type': 'application/json' },
+          headers: body === undefined ? auth : { ...auth, "Content-Type": "application/json" },
           body: body === undefined ? undefined : JSON.stringify(body),
           signal,
         });
 
         return {
           status: response.status,
-          text: response.status === 204 ? '' : await response.text(),
+          text: response.status === 204 ? "" : await response.text(),
         };
       },
     );
@@ -134,10 +134,10 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       file: { uri: string; type: string },
     ): Promise<z.output<S>> => {
       if (!sendFile) {
-        throw new Error('This app can’t send files from here.');
+        throw new Error("This app can’t send files from here.");
       }
 
-      const headers = { ...auth, 'Content-Type': file.type };
+      const headers = { ...auth, "Content-Type": file.type };
 
       return read(
         path,
@@ -150,8 +150,8 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       );
     },
     source: (path: string) => ({ uri: `${origin}${path}`, headers: auth }),
-    send: async (path: string, options: Omit<Options, 'after' | 'signal'> = {}) => {
-      await call(path, { method: 'POST', ...options, timeout: options.timeout ?? WRITE });
+    send: async (path: string, options: Omit<Options, "after" | "signal"> = {}) => {
+      await call(path, { method: "POST", ...options, timeout: options.timeout ?? WRITE });
     },
   };
 };
@@ -163,8 +163,8 @@ const read = <S extends z.ZodMiniType>(path: string, schema: S, text: string): z
     return parsed.data;
   }
 
-  const where = parsed.error.issues[0]?.path.join('.');
-  throw new Error(`hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`);
+  const where = parsed.error.issues[0]?.path.join(".");
+  throw new Error(`hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ""}.`);
 };
 
 const Said = z.object({ error: z.object({ message: z.string() }) });

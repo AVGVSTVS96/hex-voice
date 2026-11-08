@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
 import {
   accessibilityElement,
   accessibilityLabel,
@@ -9,15 +9,16 @@ import {
   layoutPriority,
   padding,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { Mark } from '@/components/tasks/mark';
-import { Pill, questions, listRow } from '@/components/tasks/parts';
-import { checkLine } from '@/live/asks';
-import type { CheckSummary } from '@/live/asks';
-import type { Topic } from '@/live/inbox';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { metrics, radius, space } from '@/ui/tokens';
+} from "@expo/ui/swift-ui/modifiers";
+
+import { Mark } from "@/components/tasks/mark";
+import { Pill, questions, listRow } from "@/components/tasks/parts";
+import { checkLine } from "@/live/asks";
+import type { CheckSummary } from "@/live/asks";
+import type { Topic } from "@/live/inbox";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { metrics, radius, space } from "@/ui/tokens";
 
 export const TopicHead = ({ topic, onPress }: { topic: Topic; onPress?: () => void }) => (
   <Row
@@ -57,7 +58,7 @@ const Strip = ({
   selected = false,
   onPress,
 }: {
-  mark: 'pick' | 'read';
+  mark: "pick" | "read";
   title: string;
   detail?: string;
   action?: string;
@@ -74,14 +75,14 @@ const Strip = ({
     modifiers={[
       padding({
         leading: space[3],
-        trailing: action === undefined || action === '' ? space[4] : space[2],
+        trailing: action === undefined || action === "" ? space[4] : space[2],
         top: space[2],
         bottom: space[2],
       }),
       frame({ minHeight: metrics.pill.regular + space[4] }),
       frame({ maxWidth: Infinity }),
       background(selected ? theme.fill : theme.card),
-      clipShape('roundedRectangle', radius.group),
+      clipShape("roundedRectangle", radius.group),
       contentShape(shapes.rectangle()),
       padding({
         leading: metrics.list.inset - space[3],
@@ -90,7 +91,7 @@ const Strip = ({
         bottom: space[2],
       }),
       ...listRow(),
-      accessibilityElement('combine'),
+      accessibilityElement("combine"),
       accessibilityLabel(label),
     ]}
   >
@@ -98,18 +99,18 @@ const Strip = ({
     <Column
       alignment="start"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <Text numberOfLines={2} variant="body">
         {title}
       </Text>
-      {detail === undefined || detail === '' ? null : (
+      {detail === undefined || detail === "" ? null : (
         <Text numberOfLines={2} variant="detail" tone="secondary">
           {detail}
         </Text>
       )}
     </Column>
-    {action === undefined || action === '' ? (
+    {action === undefined || action === "" ? (
       <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
     ) : (
       <Pill label={action} onPress={onPress} small />
@@ -134,7 +135,7 @@ export const CheckRow = ({
       selected={selected}
       title={title}
       detail={did}
-      label={`${title}${did ? `, ${did}` : ''}. Opens the last check`}
+      label={`${title}${did ? `, ${did}` : ""}. Opens the last check`}
       onPress={onPress}
     />
   );

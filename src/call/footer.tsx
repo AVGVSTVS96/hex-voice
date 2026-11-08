@@ -1,16 +1,16 @@
-import type { ReactNode } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import type { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import type { AnimatedStyle } from 'react-native-reanimated';
+import type { ReactNode } from "react";
+import { StyleSheet, Text } from "react-native";
+import type { LayoutChangeEvent, StyleProp, ViewStyle } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import type { AnimatedStyle } from "react-native-reanimated";
 
-import { errorOf, footerOf } from '@/call/call';
-import type { Call } from '@/call/call';
-import { WrapUp } from '@/components/wrap-up';
-import type { CallSummary } from '@/live/calls';
-import { motion } from '@/motion';
-import { theme } from '@/theme';
-import { metrics, space, textOf } from '@/ui/tokens';
+import { errorOf, footerOf } from "@/call/call";
+import type { Call } from "@/call/call";
+import { WrapUp } from "@/components/wrap-up";
+import type { CallSummary } from "@/live/calls";
+import { motion } from "@/motion";
+import { theme } from "@/theme";
+import { metrics, space, textOf } from "@/ui/tokens";
 
 interface Props {
   call: Call;
@@ -38,9 +38,9 @@ export const CallFooter = ({
   children,
 }: Props) => {
   const footing = footerOf(call, viewing);
-  const ended = footing?.kind === 'ended' ? footing : undefined;
+  const ended = footing?.kind === "ended" ? footing : undefined;
   const wrapUp = ended && calls?.find(({ id }) => id === ended.id);
-  const error = trouble ?? errorOf(call) ?? '';
+  const error = trouble ?? errorOf(call) ?? "";
 
   return (
     <Animated.View pointerEvents="box-none" onLayout={onLayout} style={[styles.footer, style]}>
@@ -49,7 +49,7 @@ export const CallFooter = ({
           entering={FadeIn.duration(motion.toolbar)}
           style={[styles.wrapUp, leading && styles.leading]}
         >
-          {(wrapUp.title ?? '') === '' ? null : (
+          {(wrapUp.title ?? "") === "" ? null : (
             <Text numberOfLines={1} style={styles.wrapTitle}>
               {wrapUp.title}
             </Text>
@@ -67,13 +67,13 @@ export const CallFooter = ({
       ) : null}
       {footing ? (
         <Text
-          accessibilityRole={footing.kind === 'elsewhere' ? undefined : 'alert'}
+          accessibilityRole={footing.kind === "elsewhere" ? undefined : "alert"}
           style={[styles.ended, leading && styles.leadingText, ended?.bad === true && styles.bad]}
         >
           {footing.text}
         </Text>
       ) : null}
-      {error === '' ? null : (
+      {error === "" ? null : (
         <Text accessibilityRole="alert" style={[styles.error, leading && styles.leadingText]}>
           {error}
         </Text>
@@ -84,20 +84,20 @@ export const CallFooter = ({
 };
 
 const hasWrapUp = ({ title, summary, waiting }: CallSummary) =>
-  (title ?? '') !== '' || (summary ?? '') !== '' || (waiting ?? []).length > 0;
+  (title ?? "") !== "" || (summary ?? "") !== "" || (waiting ?? []).length > 0;
 
 const styles = StyleSheet.create({
-  footer: { position: 'absolute', bottom: 0, gap: metrics.footerGap },
-  wrapUp: { gap: space[3], alignItems: 'center' },
-  leading: { alignItems: 'flex-start' },
-  leadingText: { textAlign: 'left', paddingHorizontal: 0 },
-  wrapTitle: { ...textOf('headline'), color: theme.text },
-  ended: { ...textOf('detail'), color: theme.secondary, textAlign: 'center' },
+  footer: { position: "absolute", bottom: 0, gap: metrics.footerGap },
+  wrapUp: { gap: space[3], alignItems: "center" },
+  leading: { alignItems: "flex-start" },
+  leadingText: { textAlign: "left", paddingHorizontal: 0 },
+  wrapTitle: { ...textOf("headline"), color: theme.text },
+  ended: { ...textOf("detail"), color: theme.secondary, textAlign: "center" },
   bad: { color: theme.danger },
   error: {
-    ...textOf('detail'),
+    ...textOf("detail"),
     color: theme.danger,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: space[3],
   },
 });

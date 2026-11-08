@@ -1,4 +1,4 @@
-import { Button, HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
+import { Button, HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
   activityBackgroundTint,
   background,
@@ -11,20 +11,20 @@ import {
   padding,
   resizable,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { createLiveActivity } from 'expo-widgets';
-import type { ColorValue } from 'react-native';
+} from "@expo/ui/swift-ui/modifiers";
+import { createLiveActivity } from "expo-widgets";
+import type { ColorValue } from "react-native";
 
 export interface CallActivityProps {
   orb: string;
-  state: 'connecting' | 'live' | 'muted' | 'ended';
+  state: "connecting" | "live" | "muted" | "ended";
   since: number;
   outcome?: string;
   bad?: boolean;
 }
 
 const CallActivity = (props: CallActivityProps) => {
-  'widget';
+  "widget";
 
   // oxlint-disable-next-line unicorn/consistent-function-scoping -- a 'widget' function runs alone as a string in the widget extension, so what it calls lives inside it
   const color = (dark: string, light: string) =>
@@ -32,18 +32,18 @@ const CallActivity = (props: CallActivityProps) => {
     // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- the widget extension has no DynamicColorIOS to make this ColorValue
     ({ dynamic: { dark, light } }) as unknown as ColorValue;
 
-  const text = color('#F5F5F5', '#0A0A0A');
-  const secondary = color('#A1A1A6', '#6E6E73');
-  const muted = props.state === 'muted';
-  const outcome = props.outcome ?? '';
-  const micSymbol = muted ? 'mic.slash.fill' : 'mic.fill';
-  const micFill = muted ? color('#363636', '#D9D9DE') : color('#202020', '#EEEEF0');
+  const text = color("#F5F5F5", "#0A0A0A");
+  const secondary = color("#A1A1A6", "#6E6E73");
+  const muted = props.state === "muted";
+  const outcome = props.outcome ?? "";
+  const micSymbol = muted ? "mic.slash.fill" : "mic.fill";
+  const micFill = muted ? color("#363636", "#D9D9DE") : color("#202020", "#EEEEF0");
 
   const orb = (size: number) => (
     <Image assetName={props.orb} modifiers={[resizable(), frame({ width: size, height: size })]} />
   );
 
-  const timer = (size: number, width: number, alignment: 'leading' | 'trailing') => (
+  const timer = (size: number, width: number, alignment: "leading" | "trailing") => (
     <Text
       timerInterval={{ lower: new Date(props.since), upper: new Date(props.since + 86_400_000) }}
       countsDown={false}
@@ -51,26 +51,26 @@ const CallActivity = (props: CallActivityProps) => {
         font({ size }),
         monospacedDigit(),
         multilineTextAlignment(alignment),
-        foregroundStyle(alignment === 'trailing' ? text : secondary),
+        foregroundStyle(alignment === "trailing" ? text : secondary),
         frame({ width, alignment }),
       ]}
     />
   );
 
   const progress = props.since ? (
-    timer(15, 64, 'leading')
+    timer(15, 64, "leading")
   ) : (
     <Text modifiers={[font({ size: 15 }), foregroundStyle(secondary)]}>Connecting</Text>
   );
 
   const subtitle =
-    outcome === '' ? (
+    outcome === "" ? (
       progress
     ) : (
       <Text
         modifiers={[
           font({ size: 15 }),
-          foregroundStyle(props.bad === true ? color('#F0A5A8', '#D93A42') : secondary),
+          foregroundStyle(props.bad === true ? color("#F0A5A8", "#D93A42") : secondary),
         ]}
       >
         {outcome}
@@ -79,23 +79,23 @@ const CallActivity = (props: CallActivityProps) => {
 
   const title = (
     <VStack alignment="leading" spacing={2}>
-      <Text modifiers={[font({ size: 17, weight: 'semibold' }), foregroundStyle(text)]}>hex</Text>
+      <Text modifiers={[font({ size: 17, weight: "semibold" }), foregroundStyle(text)]}>hex</Text>
       {subtitle}
     </VStack>
   );
 
-  const control = (target: 'mute' | 'end', size: number) => {
-    const end = target === 'end';
+  const control = (target: "mute" | "end", size: number) => {
+    const end = target === "end";
 
     return (
-      <Button target={target} modifiers={[buttonStyle('plain')]}>
+      <Button target={target} modifiers={[buttonStyle("plain")]}>
         <Image
-          systemName={end ? 'xmark' : micSymbol}
+          systemName={end ? "xmark" : micSymbol}
           size={size * 0.38}
-          color={end ? color('#080808', '#FAFAFA') : text}
+          color={end ? color("#080808", "#FAFAFA") : text}
           modifiers={[
             frame({ width: size, height: size }),
-            background(end ? color('#F9F9F9', '#0A0A0A') : micFill, shapes.circle()),
+            background(end ? color("#F9F9F9", "#0A0A0A") : micFill, shapes.circle()),
           ]}
         />
       </Button>
@@ -104,19 +104,19 @@ const CallActivity = (props: CallActivityProps) => {
 
   const controls = (size: number) => (
     <HStack spacing={10}>
-      {props.state === 'connecting' || props.state === 'ended' ? null : control('mute', size)}
-      {props.state === 'ended' ? null : control('end', size)}
+      {props.state === "connecting" || props.state === "ended" ? null : control("mute", size)}
+      {props.state === "ended" ? null : control("end", size)}
     </HStack>
   );
 
-  const running = props.since ? timer(15, 44, 'trailing') : null;
+  const running = props.since ? timer(15, 44, "trailing") : null;
   const trailing = muted ? <Image systemName="mic.slash.fill" color={text} size={14} /> : running;
 
   return {
     banner: (
       <HStack
         spacing={14}
-        modifiers={[padding({ all: 16 }), activityBackgroundTint(color('#000000', '#FFFFFF'))]}
+        modifiers={[padding({ all: 16 }), activityBackgroundTint(color("#000000", "#FFFFFF"))]}
       >
         {orb(48)}
         {title}
@@ -125,7 +125,7 @@ const CallActivity = (props: CallActivityProps) => {
       </HStack>
     ),
     compactLeading: orb(24),
-    compactTrailing: outcome === '' ? trailing : null,
+    compactTrailing: outcome === "" ? trailing : null,
     minimal: orb(24),
     expandedLeading: (
       <HStack spacing={12} modifiers={[padding({ leading: 6, top: 6 })]}>
@@ -139,4 +139,4 @@ const CallActivity = (props: CallActivityProps) => {
   };
 };
 
-export default createLiveActivity('CallActivity', CallActivity);
+export default createLiveActivity("CallActivity", CallActivity);

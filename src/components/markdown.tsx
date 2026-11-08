@@ -1,24 +1,25 @@
-import { Column, Text } from '@expo/ui';
-import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
+import { Column, Text } from "@expo/ui";
+import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
 
-import { Failure } from '@/components/tasks/parts';
-import { openURL, useFailures } from '@/hooks/use-failures';
-import { theme } from '@/theme';
-import { radius, space, type } from '@/ui/tokens';
-import type { TextStyle, TextVariant } from '@/ui/tokens';
-import { MarkdownView } from '../../modules/markdown';
+import { Failure } from "@/components/tasks/parts";
+import { openURL, useFailures } from "@/hooks/use-failures";
+import { theme } from "@/theme";
+import { radius, space, type } from "@/ui/tokens";
+import type { TextStyle, TextVariant } from "@/ui/tokens";
+
+import { MarkdownView } from "../../modules/markdown";
 
 export const Markdown = ({
   children,
-  tone = 'text',
-  variant = 'body',
+  tone = "text",
+  variant = "body",
   inline,
   lines,
   selectable,
   modifiers,
 }: {
   children: string;
-  tone?: 'text' | 'secondary';
+  tone?: "text" | "secondary";
   variant?: TextVariant;
   inline?: boolean;
   lines?: number;
@@ -27,7 +28,7 @@ export const Markdown = ({
 }) => {
   const tries = useFailures();
 
-  if (process.env.EXPO_OS !== 'ios') {
+  if (process.env.EXPO_OS !== "ios") {
     return <Text>{children}</Text>;
   }
 
@@ -51,7 +52,7 @@ export const Markdown = ({
         surface={theme.surface}
         accent={theme.accent}
         onLink={(url) => {
-          void tries.attempt(url, 'Not opened', async () => {
+          void tries.attempt(url, "Not opened", async () => {
             await openURL(url);
           });
         }}

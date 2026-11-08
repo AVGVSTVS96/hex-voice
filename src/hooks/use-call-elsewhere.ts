@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-import { hex } from '@/hex';
-import { usePastCall } from '@/hooks/use-calls';
-import type { CallId } from '@/live/calls';
+import { hex } from "@/hex";
+import { usePastCall } from "@/hooks/use-calls";
+import type { CallId } from "@/live/calls";
 
 export const useCallElsewhere = (live: CallId | undefined, here: boolean) => {
   const [shown, setShown] = useState<CallId>();
@@ -17,10 +17,10 @@ export const useCallElsewhere = (live: CallId | undefined, here: boolean) => {
   }
 
   const { call } = usePastCall(shown);
-  const on = call !== undefined && (call.ended ?? '') === '';
+  const on = call !== undefined && (call.ended ?? "") === "";
 
   const hangUp = async () => {
-    if (call === undefined || (call.ended ?? '') !== '') {
+    if (call === undefined || (call.ended ?? "") !== "") {
       return;
     }
 

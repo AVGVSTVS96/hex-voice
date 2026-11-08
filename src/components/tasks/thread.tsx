@@ -1,6 +1,6 @@
-import { Column, Icon, RNHostView, Row, Spacer, TextInput } from '@expo/ui';
-import type { TextInputRef } from '@expo/ui';
-import { ScrollView } from '@expo/ui/swift-ui';
+import { Column, Icon, RNHostView, Row, Spacer, TextInput } from "@expo/ui";
+import type { TextInputRef } from "@expo/ui";
+import { ScrollView } from "@expo/ui/swift-ui";
 import {
   accessibilityIdentifier,
   accessibilityLabel,
@@ -14,28 +14,28 @@ import {
   padding,
   scrollClipDisabled,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useState } from 'react';
-import type { ReactNode, RefObject } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import { useContext, useEffect, useState } from "react";
+import type { ReactNode, RefObject } from "react";
 
-import { AddMedia } from '@/components/media/add-media';
-import { Waiting } from '@/components/media/waiting';
-import { Header, PageBar, Talk } from '@/components/tasks/bar';
-import { useDraft } from '@/hooks/use-draft';
-import { Mark } from '@/components/tasks/mark';
-import { Typing, useField } from '@/components/tasks/pages';
-import { Failure, Faded, SectionHead } from '@/components/tasks/parts';
-import { Said, SaidLine, Sent } from '@/components/tasks/said';
-import { TraceLine } from '@/components/tasks/trace';
-import type { Sending } from '@/live/chat';
-import { MOST } from '@/live/media';
-import type { Picked } from '@/live/media';
-import { PLACES, placeOf } from '@/live/inbox';
-import { STATE_WORDS, taskTime } from '@/live/tasks';
-import type { Chat, Task, TaskRow } from '@/live/tasks';
-import { theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { labelOf, metrics, radius, space } from '@/ui/tokens';
+import { AddMedia } from "@/components/media/add-media";
+import { Waiting } from "@/components/media/waiting";
+import { Header, PageBar, Talk } from "@/components/tasks/bar";
+import { Mark } from "@/components/tasks/mark";
+import { Typing, useField } from "@/components/tasks/pages";
+import { Failure, Faded, SectionHead } from "@/components/tasks/parts";
+import { Said, SaidLine, Sent } from "@/components/tasks/said";
+import { TraceLine } from "@/components/tasks/trace";
+import { useDraft } from "@/hooks/use-draft";
+import type { Sending } from "@/live/chat";
+import { PLACES, placeOf } from "@/live/inbox";
+import { MOST } from "@/live/media";
+import type { Picked } from "@/live/media";
+import { STATE_WORDS, taskTime } from "@/live/tasks";
+import type { Chat, Task, TaskRow } from "@/live/tasks";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { labelOf, metrics, radius, space } from "@/ui/tokens";
 
 export const Messages = ({
   thread,
@@ -55,13 +55,13 @@ export const Messages = ({
         spacing={0}
         onPress={onOpen}
         modifiers={[
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
           contentShape(shapes.rectangle()),
           accessibilityLabel(`${thread.place}. Opens its messages`),
         ]}
       >
         <SectionHead
-          title={thread.place === thread.name ? 'Messages' : `Messages · ${thread.place}`}
+          title={thread.place === thread.name ? "Messages" : `Messages · ${thread.place}`}
           count={chat.total || undefined}
           opens
         />
@@ -115,13 +115,13 @@ export const ThreadPage = ({
   const first = (chat?.total ?? 0) - turns.length;
 
   const doing =
-    'steps' in thread ? thread.steps.find((step) => step.kind !== 'say')?.text : undefined;
+    "steps" in thread ? thread.steps.find((step) => step.kind !== "say")?.text : undefined;
 
   return (
     <Column
       alignment="center"
       spacing={0}
-      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
     >
       <ThreadHead thread={thread} beside={beside} chat={chat} onOpen={onOpen} />
       <Faded>
@@ -129,9 +129,9 @@ export const ThreadPage = ({
           showsIndicators={false}
           modifiers={[
             scrollClipDisabled(),
-            defaultScrollAnchor('bottom'),
-            accessibilityIdentifier('thread-messages'),
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+            defaultScrollAnchor("bottom"),
+            accessibilityIdentifier("thread-messages"),
+            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
           ]}
         >
           <Column
@@ -175,7 +175,7 @@ export const ThreadPage = ({
       {running ? (
         <TraceLine
           lead={<Mark state="working" />}
-          text={doing ?? 'Working'}
+          text={doing ?? "Working"}
           time={taskTime(thread)}
           chevron="chevron.right"
           after={
@@ -184,7 +184,7 @@ export const ThreadPage = ({
             </Text>
           }
           onPress={onSteps}
-          label={`Working: ${doing ?? ''}. Shows its steps`}
+          label={`Working: ${doing ?? ""}. Shows its steps`}
         />
       ) : null}
       <Failure
@@ -235,7 +235,7 @@ const ThreadHead = ({
     );
   }
 
-  const heading = !thread.place || thread.place === thread.name ? 'Messages' : thread.place;
+  const heading = !thread.place || thread.place === thread.name ? "Messages" : thread.place;
 
   return (
     <Header
@@ -243,10 +243,10 @@ const ThreadHead = ({
       subtitle={
         thread.running
           ? `working for ${taskTime(thread)}`
-          : `${STATE_WORDS[thread.state === 'working' ? 'idle' : thread.state]} · ${taskTime(thread)}`
+          : `${STATE_WORDS[thread.state === "working" ? "idle" : thread.state]} · ${taskTime(thread)}`
       }
       door={
-        thread.link === undefined || thread.link === ''
+        thread.link === undefined || thread.link === ""
           ? undefined
           : {
               place: placeOf(thread.app),
@@ -309,8 +309,8 @@ const Composer = ({
 
     onSend(words, media);
     setMedia([]);
-    setText('');
-    keep('');
+    setText("");
+    keep("");
     input.current?.clear();
   };
 
@@ -343,7 +343,7 @@ const Composer = ({
           modifiers={[
             frame({ width: metrics.field, height: metrics.field }),
             background(theme.surface),
-            clipShape('circle'),
+            clipShape("circle"),
             contentShape(shapes.circle()),
           ]}
         >
@@ -363,7 +363,7 @@ const Composer = ({
           frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity }),
           background(theme.surface),
-          clipShape('roundedRectangle', radius.field),
+          clipShape("roundedRectangle", radius.field),
         ]}
       >
         {media.length ? (
@@ -395,11 +395,11 @@ const Composer = ({
             setTyping(false);
             typingHere?.(false);
           }}
-          textStyle={labelOf('body')}
+          textStyle={labelOf("body")}
           testID="thread-input"
           modifiers={[
             foregroundStyle(theme.text),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
             ...(media.length ? [padding({ leading: space[3] })] : []),
           ]}
         />
@@ -412,13 +412,13 @@ const Composer = ({
         modifiers={[
           frame({ width: metrics.field, height: metrics.field }),
           background(lit ? theme.prominent : theme.surface),
-          clipShape('circle'),
+          clipShape("circle"),
           contentShape(shapes.circle()),
-          accessibilityLabel(stops ? 'Stop' : 'Send'),
+          accessibilityLabel(stops ? "Stop" : "Send"),
         ]}
       >
         <Icon
-          name={stops ? 'stop.fill' : 'arrow.up'}
+          name={stops ? "stop.fill" : "arrow.up"}
           size={stops ? 14 : 18}
           color={lit ? theme.onProminent : theme.tertiary}
         />
@@ -457,7 +457,7 @@ export const WriteField = ({ title, onPress }: { title: string; onPress: () => v
       frame({ height: metrics.field }),
       frame({ maxWidth: Infinity }),
       background(theme.surface),
-      clipShape('roundedRectangle', radius.field),
+      clipShape("roundedRectangle", radius.field),
       contentShape(shapes.rectangle()),
       accessibilityLabel(`Message ${title}`),
     ]}

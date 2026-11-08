@@ -1,4 +1,4 @@
-import type { CallEnding, CallId } from './calls';
+import type { CallEnding, CallId } from "./calls";
 import type {
   AudioStats,
   CallAbout,
@@ -8,12 +8,12 @@ import type {
   LiveTransport,
   SessionAPI,
   TransportFactory,
-} from './types';
-import { DEFAULT_VOICE } from './voices';
-import type { LiveVoice } from './voices';
+} from "./types";
+import { DEFAULT_VOICE } from "./voices";
+import type { LiveVoice } from "./voices";
 
 const initialSnapshot = (): LiveSnapshot => ({
-  status: 'idle',
+  status: "idle",
   error: null,
   muted: false,
   elapsedSeconds: 0,
@@ -25,18 +25,18 @@ const initialSnapshot = (): LiveSnapshot => ({
 
 type Caption = Extract<
   LiveEvent,
-  { type: 'session.input_transcript.delta' | 'session.output_transcript.delta' }
+  { type: "session.input_transcript.delta" | "session.output_transcript.delta" }
 >;
 
 type MuteChange = Extract<
   LiveEvent,
-  { type: 'session.input_audio.muted' | 'session.input_audio.unmuted' }
+  { type: "session.input_audio.muted" | "session.input_audio.unmuted" }
 >;
 
 const SILENT: Levels = { input: 0, output: 0 };
 
 const SESSION_CLOSE_MESSAGE =
-  'Audio stopped, but the server could not confirm session closure. Check your network before starting another call.';
+  "Audio stopped, but the server could not confirm session closure. Check your network before starting another call.";
 
 export class LiveSession {
   private readonly factory: TransportFactory;
@@ -115,7 +115,7 @@ export class LiveSession {
     this.serverClosed = false;
     this.serverEnding = null;
     this.statsPending = null;
-    this.update({ status: 'connecting' });
+    this.update({ status: "connecting" });
     const isCurrent = () => generation === this.generation;
     let transport: LiveTransport | undefined;
 
@@ -124,7 +124,7 @@ export class LiveSession {
         onEvent: (event) => {
           if (
             isCurrent() ||
-            (event.type === 'session.closed' && this.closing && transport === this.transport)
+            (event.type === "session.closed" && this.closing && transport === this.transport)
           ) {
             this.onEvent(event);
           }
@@ -161,12 +161,12 @@ export class LiveSession {
             await this.closing;
 
             if (this.generation === generation + 1) {
-              this.update({ status: 'error', error: message });
+              this.update({ status: "error", error: message });
             } else {
-              console.warn('[hex] A cancelled session could not be confirmed closed.');
+              console.warn("[hex] A cancelled session could not be confirmed closed.");
             }
           } else {
-            console.warn('[hex] A cancelled session could not be confirmed closed.');
+            console.warn("[hex] A cancelled session could not be confirmed closed.");
           }
         }
 
@@ -176,13 +176,13 @@ export class LiveSession {
       this.sessionId = session.sessionId;
       this.update({ callId: session.sessionId });
       this.startupTimer = setTimeout(() => {
-        void this.stop('The voice session did not start. Please try again.');
+        void this.stop("The voice session did not start. Please try again.");
       }, 25_000);
       await transport.answer(session.sdp);
     } catch (error) {
       if (isCurrent()) {
         await this.stop(
-          error instanceof Error ? error.message : 'Could not start the conversation.',
+          error instanceof Error ? error.message : "Could not start the conversation.",
         );
       } else {
         transport?.close();
@@ -193,67 +193,67 @@ export class LiveSession {
   private busy() {
     return (
       this.closing !== null ||
-      this.snapshot.status === 'connecting' ||
-      this.snapshot.status === 'connected'
+      this.snapshot.status === "connecting" ||
+      this.snapshot.status === "connected"
     );
   }
 
   private onEvent(event: LiveEvent) {
     if (
-      event.type !== 'session.closed' &&
-      this.snapshot.status === 'connected' &&
+      event.type !== "session.closed" &&
+      this.snapshot.status === "connected" &&
       !this.refreshElapsed()
     ) {
       return;
     }
 
     switch (event.type) {
-      case 'session.started': {
+      case "session.started": {
         clearTimeout(this.startupTimer);
 
-        if (this.snapshot.status !== 'connecting') {
+        if (this.snapshot.status !== "connecting") {
           break;
         }
 
         this.startedAt = Date.now();
         this.reportedDuplex = false;
         this.lastSentPackets = 0;
-        this.update({ status: 'connected' });
+        this.update({ status: "connected" });
         this.startStats();
         break;
       }
 
-      case 'session.input_transcript.delta':
-      case 'session.output_transcript.delta': {
+      case "session.input_transcript.delta":
+      case "session.output_transcript.delta": {
         this.caption(event);
         break;
       }
 
-      case 'session.input_audio.muted':
-      case 'session.input_audio.unmuted': {
+      case "session.input_audio.muted":
+      case "session.input_audio.unmuted": {
         this.confirmMute(event);
         break;
       }
 
-      case 'session.closed': {
+      case "session.closed": {
         this.serverClosed = true;
         this.confirmClosed?.();
 
         if (!this.closing) {
-          this.serverEnding = event.reason === 'expired' ? 'expired' : 'hex';
+          this.serverEnding = event.reason === "expired" ? "expired" : "hex";
           void this.stop();
         }
 
         break;
       }
 
-      case 'error':
-      case 'session.error': {
+      case "error":
+      case "session.error": {
         const message = event.error?.message;
 
         void this.stop(
-          message === undefined || message === ''
-            ? 'The voice service reported an error. Start again to retry.'
+          message === undefined || message === ""
+            ? "The voice service reported an error. Start again to retry."
             : message,
         );
         break;
@@ -262,11 +262,11 @@ export class LiveSession {
   }
 
   private caption(event: Caption) {
-    if (event.delta === '') {
+    if (event.delta === "") {
       return;
     }
 
-    const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
+    const role = event.type === "session.input_transcript.delta" ? "user" : "assistant";
     const entries = [...this.snapshot.transcript];
     const index = entries.findLastIndex((entry) => entry.role === role);
     const previous = index === -1 ? undefined : entries[index];
@@ -298,7 +298,7 @@ export class LiveSession {
     if (
       !command ||
       event.client_event_id !== command.id ||
-      (event.type === 'session.input_audio.muted') !== command.muted
+      (event.type === "session.input_audio.muted") !== command.muted
     ) {
       return;
     }
@@ -328,7 +328,7 @@ export class LiveSession {
   };
 
   private startStats() {
-    if (this.appActive && this.snapshot.status === 'connected') {
+    if (this.appActive && this.snapshot.status === "connected") {
       this.statsTimer = setInterval(() => {
         void this.poll();
       }, 120);
@@ -336,7 +336,7 @@ export class LiveSession {
   }
 
   private refreshElapsed() {
-    if (this.snapshot.status !== 'connected') {
+    if (this.snapshot.status !== "connected") {
       return false;
     }
 
@@ -383,7 +383,7 @@ export class LiveSession {
     });
 
     if (
-      typeof __DEV__ !== 'undefined' &&
+      typeof __DEV__ !== "undefined" &&
       __DEV__ &&
       !this.reportedDuplex &&
       !this.snapshot.muted &&
@@ -391,7 +391,7 @@ export class LiveSession {
       stats.sentPackets > this.lastSentPackets
     ) {
       console.info(
-        '[hex] Duplex transport verified: microphone RTP continues during assistant audio.',
+        "[hex] Duplex transport verified: microphone RTP continues during assistant audio.",
         { sentPackets: stats.sentPackets, receivedPackets: stats.receivedPackets },
       );
       this.reportedDuplex = true;
@@ -401,7 +401,7 @@ export class LiveSession {
   }
 
   interrupt = (began: boolean) => {
-    if (this.snapshot.status !== 'connected' || !this.transport) {
+    if (this.snapshot.status !== "connected" || !this.transport) {
       return;
     }
 
@@ -413,7 +413,7 @@ export class LiveSession {
       this.transport.setMuted(began);
       this.nextCommand += 1;
       this.transport.send({
-        type: began ? 'session.input_audio.mute' : 'session.input_audio.unmute',
+        type: began ? "session.input_audio.mute" : "session.input_audio.unmute",
         event_id: `interruption-${this.nextCommand}`,
       });
     }
@@ -422,12 +422,12 @@ export class LiveSession {
     this.hear({ input: 0 });
 
     if (this.sessionId) {
-      void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
+      void this.api.mark?.(this.sessionId, began ? "paused" : "resumed").catch(() => {});
     }
   };
 
   toggleMute = () => {
-    if (this.snapshot.status !== 'connected' || !this.transport) {
+    if (this.snapshot.status !== "connected" || !this.transport) {
       return;
     }
 
@@ -452,21 +452,21 @@ export class LiveSession {
     const id = `mute-${this.nextCommand}`;
     this.muteCommand = { id, muted };
     this.muteTimer = setTimeout(() => {
-      void this.stop('The microphone change was not confirmed. Please reconnect.');
+      void this.stop("The microphone change was not confirmed. Please reconnect.");
     }, 5000);
 
     const sent = this.transport.send({
-      type: muted ? 'session.input_audio.mute' : 'session.input_audio.unmute',
+      type: muted ? "session.input_audio.mute" : "session.input_audio.unmute",
       event_id: id,
     });
 
     if (!sent) {
-      void this.stop('The voice connection is unavailable. Start again to reconnect.');
+      void this.stop("The voice connection is unavailable. Start again to reconnect.");
     }
   };
 
   stop = async (reason?: string): Promise<void> => {
-    const failure = reason === '' ? undefined : reason;
+    const failure = reason === "" ? undefined : reason;
 
     if (this.closing) {
       await this.closing;
@@ -476,17 +476,17 @@ export class LiveSession {
 
     this.refreshElapsed();
 
-    if (!this.transport && this.snapshot.status !== 'connecting') {
+    if (!this.transport && this.snapshot.status !== "connecting") {
       if (failure !== undefined) {
-        this.update({ status: 'error', error: failure });
+        this.update({ status: "error", error: failure });
       }
 
       return;
     }
 
-    const connected = this.snapshot.status === 'connected';
-    const failed: CallEnding = connected ? 'dropped' : 'no-connect';
-    const ended = this.serverEnding ?? (connected ? 'you' : null);
+    const connected = this.snapshot.status === "connected";
+    const failed: CallEnding = connected ? "dropped" : "no-connect";
+    const ended = this.serverEnding ?? (connected ? "you" : null);
     const ending = failure === undefined ? ended : failed;
 
     this.generation += 1;
@@ -496,7 +496,7 @@ export class LiveSession {
     this.muteCommand = null;
     this.statsPending = null;
     const { transport, sessionId: id } = this;
-    this.update({ status: 'disconnecting' });
+    this.update({ status: "disconnecting" });
     this.hear(SILENT);
     transport?.setMuted(true);
     // oxlint-disable-next-line promise/always-return -- this.closing only marks when the close is over, so it settles with nothing
@@ -516,7 +516,7 @@ export class LiveSession {
             resolve(true);
           };
 
-          if (!transport.send({ type: 'session.close', event_id: 'close-you-app' })) {
+          if (!transport.send({ type: "session.close", event_id: "close-you-app" })) {
             clearTimeout(timeout);
             resolve(false);
           }
@@ -538,7 +538,7 @@ export class LiveSession {
 
       this.confirmClosed = undefined;
       this.update({
-        status: failure !== undefined || closeError !== null ? 'error' : 'idle',
+        status: failure !== undefined || closeError !== null ? "error" : "idle",
         error: failure ?? closeError,
         muted: false,
         interrupted: false,

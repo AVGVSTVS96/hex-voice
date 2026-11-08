@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Settings } from 'react-native';
-import * as z from 'zod/mini';
+import { useState } from "react";
+import { Settings } from "react-native";
+import * as z from "zod/mini";
 
-const KEY = 'HexDrafts';
+const KEY = "HexDrafts";
 
 const Drafts = z.record(z.string(), z.string());
 
@@ -15,7 +15,7 @@ export const keepDraft = (where: string, text: string) => {
 
 export const sentDraft = (where: string, text: string) => {
   if (saved()[where]?.trim() === text.trim()) {
-    keepDraft(where, '');
+    keepDraft(where, "");
   }
 };
 
@@ -23,8 +23,8 @@ export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
 
-  if (old === undefined || old === '') {
-    return all[where] ?? '';
+  if (old === undefined || old === "") {
+    return all[where] ?? "";
   }
 
   const { [old]: text, ...rest } = all;
@@ -34,7 +34,7 @@ export const carryDraft = (where: string, from: string[]) => {
 };
 
 export const useDraft = (where: string) => {
-  const [first] = useState(() => saved()[where] ?? '');
+  const [first] = useState(() => saved()[where] ?? "");
 
   return {
     first,

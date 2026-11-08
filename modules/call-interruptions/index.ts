@@ -1,5 +1,5 @@
-import type { NativeModule } from 'expo';
-import { requireOptionalNativeModule } from 'expo';
+import type { NativeModule } from "expo";
+import { requireOptionalNativeModule } from "expo";
 
 export interface Interruption {
   began: boolean;
@@ -10,4 +10,4 @@ declare class CallInterruptionsModule extends NativeModule<{
 }> {}
 
 export const CallInterruptions =
-  requireOptionalNativeModule<CallInterruptionsModule>('CallInterruptions');
+  requireOptionalNativeModule<CallInterruptionsModule>("CallInterruptions");

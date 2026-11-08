@@ -1,8 +1,8 @@
-import { requireNativeView } from 'expo';
-import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
-import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
-import { processColor } from 'react-native';
-import type { ColorValue, NativeSyntheticEvent } from 'react-native';
+import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
+import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
+import { requireNativeView } from "expo";
+import { processColor } from "react-native";
+import type { ColorValue, NativeSyntheticEvent } from "react-native";
 
 export type MarkdownProps = CommonViewModifierProps & {
   markdown: string;
@@ -21,14 +21,14 @@ export type MarkdownProps = CommonViewModifierProps & {
   onLink: (url: string) => void;
 };
 
-type NativeProps = Omit<MarkdownProps, keyof Colors | 'onLink'> & {
+type NativeProps = Omit<MarkdownProps, keyof Colors | "onLink"> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 } & { onLink: (event: NativeSyntheticEvent<{ url: string }>) => void };
 
-type Colors = Pick<MarkdownProps, 'color' | 'secondary' | 'edge' | 'surface' | 'accent'>;
+type Colors = Pick<MarkdownProps, "color" | "secondary" | "edge" | "surface" | "accent">;
 
 const Native =
-  process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Markdown', 'MarkdownView') : null;
+  process.env.EXPO_OS === "ios" ? requireNativeView<NativeProps>("Markdown", "MarkdownView") : null;
 
 export const MarkdownView = ({
   modifiers,

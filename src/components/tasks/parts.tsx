@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
-import { Button, Mask, ProgressView, Rectangle } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer } from "@expo/ui";
+import { Button, Mask, ProgressView, Rectangle } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityElement,
@@ -16,22 +16,22 @@ import {
   padding,
   shapes,
   tint,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
-import * as Haptics from 'expo-haptics';
-import type { SFSymbol } from 'sf-symbols-typescript';
-import { isValidElement } from 'react';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
+import * as Haptics from "expo-haptics";
+import { isValidElement } from "react";
+import type { ReactNode } from "react";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Badge, inkOf } from '@/components/tasks/mark';
-import type { Tint } from '@/components/tasks/mark';
-import type { Answered } from '@/hooks/use-watch';
-import { NOT_NEEDED, PICK } from '@/live/asks';
-import { hairline, theme } from '@/theme';
-import { Text } from '@/ui/text';
-import { mask, metrics, radius, space } from '@/ui/tokens';
+import { Badge, inkOf } from "@/components/tasks/mark";
+import type { Tint } from "@/components/tasks/mark";
+import type { Answered } from "@/hooks/use-watch";
+import { NOT_NEEDED, PICK } from "@/live/asks";
+import { hairline, theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { mask, metrics, radius, space } from "@/ui/tokens";
 
-export const questions = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
+export const questions = (n: number) => `${n} question${n === 1 ? "" : "s"}`;
 
 export const feel = (haptics: boolean) => {
   const on = haptics;
@@ -54,8 +54,8 @@ export type Feel = ReturnType<typeof feel>;
 
 export const listRow = (): ModifierConfig[] => [
   listRowInsets({ top: 0, leading: 0, bottom: 0, trailing: 0 }),
-  listRowBackground('transparent'),
-  listRowSeparator('hidden'),
+  listRowBackground("transparent"),
+  listRowSeparator("hidden"),
 ];
 
 export const rowFrame = (selected: boolean, { top = metrics.list.row.top } = {}) => [
@@ -65,9 +65,9 @@ export const rowFrame = (selected: boolean, { top = metrics.list.row.top } = {})
     top,
     bottom: metrics.list.row.bottom,
   }),
-  frame({ maxWidth: Infinity, alignment: 'leading' }),
+  frame({ maxWidth: Infinity, alignment: "leading" }),
   ...(selected ? [background(theme.card)] : []),
-  clipShape('roundedRectangle', radius.control),
+  clipShape("roundedRectangle", radius.control),
   contentShape(shapes.rectangle()),
   padding({ leading: space[2], trailing: space[2] }),
 ];
@@ -91,8 +91,8 @@ export const Pill = ({
   accessibility?: string;
   testID?: string;
 }) => {
-  const ink = onPress ? 'text' : 'tertiary';
-  const mark = pick ? 'sparkle' : icon;
+  const ink = onPress ? "text" : "tertiary";
+  const mark = pick ? "sparkle" : icon;
 
   return (
     <Row
@@ -105,15 +105,15 @@ export const Pill = ({
         frame({ minHeight: small ? metrics.pill.small : metrics.pill.regular }),
         ...(grow ? [frame({ maxWidth: Infinity })] : []),
         background(pick ? theme.accentMuted : theme.fill),
-        clipShape('capsule'),
+        clipShape("capsule"),
         contentShape(shapes.capsule()),
-        accessibilityElement('combine'),
+        accessibilityElement("combine"),
         accessibilityLabel(accessibility ?? (pick ? `${label}, ${PICK}` : label)),
-        accessibilityAddTraits(['isButton']),
+        accessibilityAddTraits(["isButton"]),
       ]}
     >
       {mark ? (
-        <Icon name={mark} size={metrics.symbol.small} color={theme[pick ? 'accent' : ink]} />
+        <Icon name={mark} size={metrics.symbol.small} color={theme[pick ? "accent" : ink]} />
       ) : null}
       <PillLabel label={label} pick={pick} small={small} grow={grow} ink={ink} />
     </Row>
@@ -131,15 +131,15 @@ const PillLabel = ({
   pick: boolean;
   small: boolean;
   grow: boolean;
-  ink: 'text' | 'tertiary';
+  ink: "text" | "tertiary";
 }) => (
-  <Column alignment={grow ? 'center' : 'start'} spacing={0}>
+  <Column alignment={grow ? "center" : "start"} spacing={0}>
     <Text
       numberOfLines={grow ? 2 : 1}
-      variant={small ? 'detail' : 'body'}
-      weight={pick ? 'medium' : 'regular'}
+      variant={small ? "detail" : "body"}
+      weight={pick ? "medium" : "regular"}
       tone={ink}
-      align={grow ? 'center' : undefined}
+      align={grow ? "center" : undefined}
     >
       {label}
     </Text>
@@ -222,8 +222,8 @@ export const StageHead = ({
         bottom: space[3],
       }),
       frame({ maxWidth: Infinity }),
-      accessibilityElement('combine'),
-      accessibilityAddTraits(['isHeader']),
+      accessibilityElement("combine"),
+      accessibilityAddTraits(["isHeader"]),
     ]}
   >
     <Badge tint={stage} />
@@ -250,14 +250,14 @@ export const Faded = ({
 }) => (
   <Mask
     alignment="top"
-    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' })]}
+    modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
   >
     <Column
       alignment="center"
       spacing={0}
       modifiers={[
         padding({ top: top ? metrics.list.rest : 0, bottom: bottom ? metrics.list.rest : 0 }),
-        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'top' }),
+        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
       ]}
     >
       {children}
@@ -281,16 +281,16 @@ export const Faded = ({
   </Mask>
 );
 
-const FadeEdge = ({ from }: { from: 'top' | 'bottom' }) => (
+const FadeEdge = ({ from }: { from: "top" | "bottom" }) => (
   <Rectangle
     modifiers={[
       frame({ height: metrics.list.fade }),
       frame({ maxWidth: Infinity }),
       foregroundStyle({
-        type: 'linearGradient',
+        type: "linearGradient",
         colors: [mask.hidden, mask.shown],
-        startPoint: { x: 0.5, y: from === 'top' ? 0 : 1 },
-        endPoint: { x: 0.5, y: from === 'top' ? 1 : 0 },
+        startPoint: { x: 0.5, y: from === "top" ? 0 : 1 },
+        endPoint: { x: 0.5, y: from === "top" ? 1 : 0 },
       }),
     ]}
   />
@@ -355,7 +355,7 @@ export const Loading = () => (
       padding({ top: space[12], bottom: space[12] }),
       frame({ maxWidth: Infinity }),
       ...listRow(),
-      accessibilityLabel('Loading'),
+      accessibilityLabel("Loading"),
     ]}
   >
     <ProgressView />
@@ -379,8 +379,8 @@ export const Waiting = ({ gone, ...answered }: Answered & { gone: string }) => {
         frame({ maxWidth: Infinity }),
       ]}
     >
-      {why === null || why === '' ? (
-        <ProgressView modifiers={[accessibilityLabel('Loading')]} />
+      {why === null || why === "" ? (
+        <ProgressView modifiers={[accessibilityLabel("Loading")]} />
       ) : (
         <Text variant="detail" tone="tertiary">
           {why}
@@ -390,7 +390,7 @@ export const Waiting = ({ gone, ...answered }: Answered & { gone: string }) => {
   );
 };
 
-export const UNREACHED = 'Can’t reach hex. Trying again…';
+export const UNREACHED = "Can’t reach hex. Trying again…";
 
 const whyNot = ({ failed, refused }: Answered, gone: string) => {
   if (refused) {
@@ -407,12 +407,12 @@ export const Failure = ({
   text: string | undefined;
   modifiers?: ModifierConfig[];
 }) =>
-  text === undefined || text === '' ? null : (
+  text === undefined || text === "" ? null : (
     <Text
       variant="caption"
       tone="danger"
       paragraph
-      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), ...(modifiers ?? [])]}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" }), ...(modifiers ?? [])]}
     >
       {text}
     </Text>

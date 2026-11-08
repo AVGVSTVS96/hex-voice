@@ -1,5 +1,5 @@
-import { Column, Icon, Row, Spacer, TextInput } from '@expo/ui';
-import { HStack, SwipeActions, VStack } from '@expo/ui/swift-ui';
+import { Column, Icon, Row, Spacer, TextInput } from "@expo/ui";
+import { HStack, SwipeActions, VStack } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityElement,
@@ -16,27 +16,28 @@ import {
   onTapGesture,
   padding,
   shapes,
-} from '@expo/ui/swift-ui/modifiers';
-import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+} from "@expo/ui/swift-ui/modifiers";
+import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
+import { useContext, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
-import { Markdown } from '@/components/markdown';
-import { Mark } from '@/components/tasks/mark';
-import { Typing, useField } from '@/components/tasks/pages';
-import { noteAsk, shotOf, useWords } from '@/hooks/use-asks';
-import { carryDraft, useDraft } from '@/hooks/use-draft';
-import { openURL, useFailures } from '@/hooks/use-failures';
-import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components/tasks/parts';
-import { NOT_NEEDED, PICK, unreached } from '@/live/asks';
-import type { Ask, AskLink, AskOption, Words } from '@/live/asks';
-import { clock } from '@/live/tasks';
-import { motion } from '@/motion';
-import { theme } from '@/theme';
-import { EvenRow, Fits } from '../../../modules/rows';
-import { ShotsView } from '../../../modules/shots';
-import { Text } from '@/ui/text';
-import { labelOf, metrics, radius, space } from '@/ui/tokens';
+import { Markdown } from "@/components/markdown";
+import { Mark } from "@/components/tasks/mark";
+import { Typing, useField } from "@/components/tasks/pages";
+import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
+import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
+import { carryDraft, useDraft } from "@/hooks/use-draft";
+import { openURL, useFailures } from "@/hooks/use-failures";
+import { NOT_NEEDED, PICK, unreached } from "@/live/asks";
+import type { Ask, AskLink, AskOption, Words } from "@/live/asks";
+import { clock } from "@/live/tasks";
+import { motion } from "@/motion";
+import { theme } from "@/theme";
+import { Text } from "@/ui/text";
+import { labelOf, metrics, radius, space } from "@/ui/tokens";
+
+import { EvenRow, Fits } from "../../../modules/rows";
+import { ShotsView } from "../../../modules/shots";
 
 const SAID_LINES = 6;
 
@@ -62,7 +63,7 @@ export const YourCall = ({
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
 }) => {
-  const open = asks.filter((ask) => (answered[ask.id] ?? '') === '').length;
+  const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
 
   return (
     <>
@@ -70,9 +71,9 @@ export const YourCall = ({
         <StageHead tint="needs" title="Needs you" count={open || undefined} />
       </Column>
       {asks.map((ask) => {
-        const said = answered[ask.id] ?? '';
+        const said = answered[ask.id] ?? "";
 
-        if (said !== '') {
+        if (said !== "") {
           return (
             <Card key={ask.id}>
               <HStack alignment="top" spacing={metrics.list.gap}>
@@ -80,7 +81,7 @@ export const YourCall = ({
                 <VStack
                   alignment="leading"
                   spacing={space[1]}
-                  modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+                  modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
                 >
                   <Text variant="detail" tone="secondary" paragraph>
                     {ask.question}
@@ -134,9 +135,9 @@ const Card = ({ children }: { children: ReactNode }) => (
     spacing={space[3]}
     modifiers={[
       padding({ all: CARD_PADDING }),
-      frame({ maxWidth: Infinity, alignment: 'leading' }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
       background(theme.card),
-      clipShape('roundedRectangle', radius.group),
+      clipShape("roundedRectangle", radius.group),
       padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN, bottom: space[3] }),
       ...listRow(),
     ]}
@@ -159,7 +160,7 @@ const AskCard = ({
   );
 
   const [open, setOpen] = useState(held);
-  const [writing, setWriting] = useState<boolean | 'held'>(held && 'held');
+  const [writing, setWriting] = useState<boolean | "held">(held && "held");
   const words = useWords(open ? ask.id : null);
   const notes = useFailures();
   const [noting, setNoting] = useState(false);
@@ -168,7 +169,7 @@ const AskCard = ({
   const note = async (text: string) => {
     setNoting(true);
 
-    const sent = await notes.attempt('note', 'Note not sent', async () => {
+    const sent = await notes.attempt("note", "Note not sent", async () => {
       await noteAsk(ask, text);
     });
 
@@ -193,7 +194,7 @@ const AskCard = ({
         <Text
           variant="caption"
           tone="tertiary"
-          modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[monospacedDigit(), frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           {clock(new Date(ask.at))}
         </Text>
@@ -202,14 +203,14 @@ const AskCard = ({
           size={metrics.symbol.bar}
           color={writing === false ? theme.secondary : theme.text}
           modifiers={[
-            frame({ width: metrics.bar.button, height: metrics.symbol.bar, alignment: 'trailing' }),
+            frame({ width: metrics.bar.button, height: metrics.symbol.bar, alignment: "trailing" }),
             contentShape(shapes.rectangle()),
             onTapGesture(() => {
               setOpen(true);
               setWriting(writing === false);
             }),
-            accessibilityLabel(writing === false ? 'Write your own' : 'Close your answer'),
-            accessibilityAddTraits(['isButton']),
+            accessibilityLabel(writing === false ? "Write your own" : "Close your answer"),
+            accessibilityAddTraits(["isButton"]),
           ]}
         />
       </HStack>
@@ -217,13 +218,13 @@ const AskCard = ({
         alignment="leading"
         spacing={space[2]}
         modifiers={[
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
           contentShape(shapes.rectangle()),
           onTapGesture(() => {
             setOpen(!open);
           }),
-          accessibilityIdentifier('ask-card'),
-          accessibilityLabel(`${ask.question}. ${open ? 'Folds it' : 'Opens it'}`),
+          accessibilityIdentifier("ask-card"),
+          accessibilityLabel(`${ask.question}. ${open ? "Folds it" : "Opens it"}`),
         ]}
       >
         <Text
@@ -231,19 +232,19 @@ const AskCard = ({
           paragraph
           modifiers={[
             fixedSize({ horizontal: false, vertical: true }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
           ]}
         >
           {ask.question}
         </Text>
-        {ask.context === undefined || ask.context === '' ? null : (
+        {ask.context === undefined || ask.context === "" ? null : (
           <Text
             variant="detail"
             tone="secondary"
             paragraph
             modifiers={[
               fixedSize({ horizontal: false, vertical: true }),
-              frame({ maxWidth: Infinity, alignment: 'leading' }),
+              frame({ maxWidth: Infinity, alignment: "leading" }),
             ]}
           >
             {ask.context}
@@ -254,7 +255,7 @@ const AskCard = ({
         <VStack
           alignment="leading"
           spacing={space[2]}
-          modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
           {words ? <Said words={words} /> : null}
           {links.length > 0 ? <Links links={links} /> : null}
@@ -320,7 +321,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
 
 export const Said = ({ words }: { words: Words }) => {
   const [whole, setWhole] = useState(false);
-  const when = words.at === undefined || words.at === '' ? '' : ` · ${clock(new Date(words.at))}`;
+  const when = words.at === undefined || words.at === "" ? "" : ` · ${clock(new Date(words.at))}`;
 
   return (
     <Column
@@ -331,12 +332,12 @@ export const Said = ({ words }: { words: Words }) => {
       }}
       modifiers={[
         padding({ all: space[3] }),
-        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
         background(theme.fill),
-        clipShape('roundedRectangle', radius.inner),
+        clipShape("roundedRectangle", radius.inner),
         contentShape(shapes.rectangle()),
         animation(motion.list, whole),
-        accessibilityElement('combine'),
+        accessibilityElement("combine"),
       ]}
     >
       <Text variant="caption" tone="secondary">
@@ -347,7 +348,7 @@ export const Said = ({ words }: { words: Words }) => {
         lines={whole ? undefined : SAID_LINES}
         variant="detail"
         tone="secondary"
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         {words.text}
       </Markdown>
@@ -369,7 +370,7 @@ export const Links = ({ links }: { links: AskLink[] }) => {
             icon="arrow.up.right"
             accessibility={`Open ${link.label}`}
             onPress={() => {
-              void tries.attempt(link.url, 'Not opened', async () => {
+              void tries.attempt(link.url, "Not opened", async () => {
                 await openURL(link.url);
               });
             }}
@@ -449,16 +450,16 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
           modifiers={[
             padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
             frame({ minHeight: metrics.pill.regular }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
             background(option.pick === true ? theme.accentMuted : theme.fill),
-            clipShape('roundedRectangle', radius.option),
+            clipShape("roundedRectangle", radius.option),
             contentShape(shapes.rectangle()),
-            accessibilityElement('combine'),
+            accessibilityElement("combine"),
             accessibilityLabel(option.pick === true ? `${option.label}, ${PICK}` : option.label),
-            accessibilityAddTraits(['isButton']),
+            accessibilityAddTraits(["isButton"]),
           ]}
         >
-          <Text variant="body" weight={option.pick === true ? 'medium' : 'regular'} paragraph>
+          <Text variant="body" weight={option.pick === true ? "medium" : "regular"} paragraph>
             {option.label}
           </Text>
           {option.pick === true ? (
@@ -509,7 +510,7 @@ const Composer = ({
   const [text, setText] = useState(first);
   const typing = useTyping();
   const field = useField();
-  const words = sending ? '' : text.trim();
+  const words = sending ? "" : text.trim();
 
   return (
     <Column alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -519,9 +520,9 @@ const Composer = ({
         modifiers={[
           padding({ leading: space[4], trailing: space[1], top: space[1], bottom: space[1] }),
           frame({ minHeight: metrics.field }),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
           background(theme.fill),
-          clipShape('roundedRectangle', radius.field),
+          clipShape("roundedRectangle", radius.field),
         ]}
       >
         <TextInput
@@ -543,11 +544,11 @@ const Composer = ({
             setText(now);
             keep(now);
           }}
-          textStyle={labelOf('body')}
+          textStyle={labelOf("body")}
           modifiers={[
             foregroundStyle(theme.text),
             padding({ top: space[2], bottom: space[2] }),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
           ]}
         />
         <Icon
@@ -583,7 +584,7 @@ const Composer = ({
         <Spacer flexible />
         <Text
           variant="detail"
-          tone={sending ? 'tertiary' : 'secondary'}
+          tone={sending ? "tertiary" : "secondary"}
           onPress={sending ? undefined : onDismiss}
           modifiers={[padding({ top: space[2], bottom: space[2], leading: space[2] })]}
         >

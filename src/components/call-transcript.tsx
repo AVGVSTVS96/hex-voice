@@ -1,30 +1,30 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import type { ColorValue } from 'react-native';
-import type { SFSymbol } from 'sf-symbols-typescript';
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import type { ColorValue } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
 
-import { Glyph } from '@/components/glyph';
-import { SentMedia } from '@/components/media/sent';
-import { WrapUp } from '@/components/wrap-up';
-import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from '@/live/calls';
-import type { CallRecord, CallSummary, CallTask, ShownMark } from '@/live/calls';
-import { circle, theme } from '@/theme';
-import { ScrollView } from '@/ui/scroll';
-import { Turn } from '@/ui/turn';
-import { metrics, space, textOf } from '@/ui/tokens';
+import { Glyph } from "@/components/glyph";
+import { SentMedia } from "@/components/media/sent";
+import { WrapUp } from "@/components/wrap-up";
+import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from "@/live/calls";
+import type { CallRecord, CallSummary, CallTask, ShownMark } from "@/live/calls";
+import { circle, theme } from "@/theme";
+import { ScrollView } from "@/ui/scroll";
+import { metrics, space, textOf } from "@/ui/tokens";
+import { Turn } from "@/ui/turn";
 
-const MARKS: Record<ShownMark['kind'], SFSymbol> = {
-  paused: 'pause.circle',
-  resumed: 'play.circle',
-  warned: 'timer',
+const MARKS: Record<ShownMark["kind"], SFSymbol> = {
+  paused: "pause.circle",
+  resumed: "play.circle",
+  warned: "timer",
 };
 
 const MARKERS: Record<
-  CallTask['state'],
+  CallTask["state"],
   { symbol: SFSymbol; color: ColorValue; fill: ColorValue }
 > = {
-  running: { symbol: 'circle.dotted', color: theme.progress, fill: theme.progressMuted },
-  done: { symbol: 'checkmark', color: theme.secondary, fill: theme.fill },
-  failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerMuted },
+  running: { symbol: "circle.dotted", color: theme.progress, fill: theme.progressMuted },
+  done: { symbol: "checkmark", color: theme.secondary, fill: theme.fill },
+  failed: { symbol: "exclamationmark", color: theme.danger, fill: theme.dangerMuted },
 };
 
 interface Props {
@@ -49,11 +49,11 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
       />
       {call &&
         timeline(call).map((moment) => {
-          if (moment.kind === 'task') {
+          if (moment.kind === "task") {
             return <Marker key={moment.key} task={moment.task} />;
           }
 
-          if (moment.kind === 'mark') {
+          if (moment.kind === "mark") {
             return (
               <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
                 {`${moment.mark.text} · ${clock(moment.at)}`}
@@ -61,12 +61,12 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
             );
           }
 
-          if (moment.kind === 'media') {
+          if (moment.kind === "media") {
             return <SentMedia key={moment.key} id={moment.key} media={moment.media} />;
           }
 
           return (
-            <Turn key={moment.key} you={moment.turn.who === 'you'}>
+            <Turn key={moment.key} you={moment.turn.who === "you"}>
               <Text selectable style={styles.text}>
                 {moment.turn.text}
               </Text>
@@ -124,21 +124,21 @@ const Marker = ({ task }: { task: CallTask }) => {
 const styles = StyleSheet.create({
   content: { gap: space[6], paddingTop: metrics.fade, paddingBottom: metrics.fade },
   line: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
     gap: space[2],
   },
-  lineText: textOf('caption'),
-  text: { ...textOf('words'), color: theme.text },
-  marker: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
+  lineText: textOf("caption"),
+  text: { ...textOf("words"), color: theme.text },
+  marker: { flexDirection: "row", alignItems: "flex-start", gap: space[3] },
   dot: {
     ...circle(22),
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  task: { ...textOf('detail', 'medium'), flex: 1, color: theme.text },
-  at: { ...textOf('tag'), color: theme.tertiary, fontVariant: ['tabular-nums'] },
-  note: { ...textOf('body'), color: theme.secondary, textAlign: 'center' },
+  task: { ...textOf("detail", "medium"), flex: 1, color: theme.text },
+  at: { ...textOf("tag"), color: theme.tertiary, fontVariant: ["tabular-nums"] },
+  note: { ...textOf("body"), color: theme.secondary, textAlign: "center" },
   loading: { marginTop: space[10] },
 });

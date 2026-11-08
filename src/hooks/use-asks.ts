@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
-import { hex } from '@/hex';
-import { keepDraft, sentDraft } from '@/hooks/use-draft';
-import { useFailures } from '@/hooks/use-failures';
-import { useKept } from '@/hooks/use-kept';
-import { useAnswer, useWatch } from '@/hooks/use-watch';
-import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from '@/live/asks';
-import type { Ask, AskId, AskOption, Sent } from '@/live/asks';
+import { hex } from "@/hex";
+import { keepDraft, sentDraft } from "@/hooks/use-draft";
+import { useFailures } from "@/hooks/use-failures";
+import { useKept } from "@/hooks/use-kept";
+import { useAnswer, useWatch } from "@/hooks/use-watch";
+import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from "@/live/asks";
+import type { Ask, AskId, AskOption, Sent } from "@/live/asks";
 
 export const answerAsk = async (ask: Ask, option: AskOption) => {
   const sent = await hex.asks.answer(ask.id, option.label);
-  keepDraft(`ask:${ask.id}`, '');
+  keepDraft(`ask:${ask.id}`, "");
 
   return sent;
 };
@@ -55,16 +55,16 @@ export const useAsks = (open: boolean) => {
   };
 
   const resends = useRef(new Map<AskId, () => Promise<Sent>>());
-  const [kept, keep] = useKept('asks', AskList);
+  const [kept, keep] = useKept("asks", AskList);
   useEffect(() => {
     if (kept && !state.list) {
-      dispatch({ type: 'list', list: kept });
+      dispatch({ type: "list", list: kept });
     }
   }, [kept]);
 
-  const watching = useWatch(open ? 'asks' : null, hex.asks.list, (list) => {
+  const watching = useWatch(open ? "asks" : null, hex.asks.list, (list) => {
     keep(list);
-    dispatch({ type: 'list', list });
+    dispatch({ type: "list", list });
   });
 
   const [wasOpen, setWasOpen] = useState(open);
@@ -74,7 +74,7 @@ export const useAsks = (open: boolean) => {
     setWasOpen(open);
 
     if (open) {
-      dispatch({ type: 'close', keep: Object.keys(missed) });
+      dispatch({ type: "close", keep: Object.keys(missed) });
       tries.clear(shownFailed);
     } else {
       setShownFailed(Object.keys(tries.failed));
@@ -87,7 +87,7 @@ export const useAsks = (open: boolean) => {
   );
 
   const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
-    dispatch({ type: 'answer', id: ask.id, label });
+    dispatch({ type: "answer", id: ask.id, label });
     inTurn(ask.id, async (latest) => {
       if (
         await tries.attempt(ask.id, what, async () => {
@@ -96,19 +96,19 @@ export const useAsks = (open: boolean) => {
       ) {
         resends.current.set(ask.id, send);
       } else if (latest()) {
-        dispatch({ type: 'failed', id: ask.id });
+        dispatch({ type: "failed", id: ask.id });
       }
     });
   };
 
   const undo = (id: AskId) => {
-    const label = state.answered[id] ?? '';
+    const label = state.answered[id] ?? "";
 
-    if (label === '') {
+    if (label === "") {
       return;
     }
 
-    dispatch({ type: 'undo', id });
+    dispatch({ type: "undo", id });
     reached(id);
     inTurn(id, async (latest) => {
       if (!resends.current.has(id)) {
@@ -116,13 +116,13 @@ export const useAsks = (open: boolean) => {
       }
 
       if (
-        await tries.attempt(id, 'Not undone', async () => {
+        await tries.attempt(id, "Not undone", async () => {
           await hex.asks.undo(id);
         })
       ) {
         resends.current.delete(id);
       } else if (latest()) {
-        dispatch({ type: 'answer', id, label });
+        dispatch({ type: "answer", id, label });
       }
     });
   };
@@ -132,13 +132,13 @@ export const useAsks = (open: boolean) => {
     shown: list?.asks ?? [],
     answered: state.answered,
     open: openAsks(state),
-    offline: watching === 'offline',
-    current: watching === 'current',
+    offline: watching === "offline",
+    current: watching === "current",
     answer: (ask: Ask, option: AskOption) => {
-      settle(ask, option.label, 'Not answered', async () => await answerAsk(ask, option));
+      settle(ask, option.label, "Not answered", async () => await answerAsk(ask, option));
     },
     dismiss: (ask: Ask) => {
-      settle(ask, NOT_NEEDED, 'Not put away', async () => await hex.asks.dismiss(ask.id));
+      settle(ask, NOT_NEEDED, "Not put away", async () => await hex.asks.dismiss(ask.id));
     },
     again: (ask: Ask) => {
       const send = resends.current.get(ask.id);
@@ -149,18 +149,18 @@ export const useAsks = (open: boolean) => {
 
       reached(ask.id);
       inTurn(ask.id, async () => {
-        await tries.attempt(ask.id, 'Not sent again', async () => {
+        await tries.attempt(ask.id, "Not sent again", async () => {
           reached(ask.id, await send());
         });
       });
     },
     undo,
     act: async (id: string) =>
-      await tries.attempt(id, 'Not sent', async () => {
+      await tries.attempt(id, "Not sent", async () => {
         await hex.asks.act(id);
       }),
     read: async (id: string) =>
-      await tries.attempt(id, 'Not marked read', async () => {
+      await tries.attempt(id, "Not marked read", async () => {
         await hex.asks.read(id);
       }),
   };

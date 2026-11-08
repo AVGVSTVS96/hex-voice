@@ -1,5 +1,5 @@
-import { laneX } from './tasks';
-import type { Turn } from './tasks';
+import { laneX } from "./tasks";
+import type { Turn } from "./tasks";
 
 export interface Lane {
   spans: { from: number; to: number }[];
@@ -11,16 +11,16 @@ export const APART = 0.012;
 
 export const laneOf = (tracks: Turn[][], now: number): Lane => {
   const x = (at: string) => laneX(Date.parse(at), now, 1);
-  const spans: Lane['spans'] = [];
+  const spans: Lane["spans"] = [];
   const failures: number[] = [];
 
   for (const track of tracks) {
     for (const [i, turn] of track.entries()) {
       const next = track.at(i + 1);
 
-      if (turn.state === 'working') {
+      if (turn.state === "working") {
         spans.push({ from: x(turn.at), to: next ? x(next.at) : 1 });
-      } else if (turn.state === 'failed') {
+      } else if (turn.state === "failed") {
         failures.push(x(turn.at));
       }
     }
@@ -29,8 +29,8 @@ export const laneOf = (tracks: Turn[][], now: number): Lane => {
   return { spans: merged(spans), failures: apart(failures) };
 };
 
-const merged = (spans: Lane['spans']) => {
-  const out: Lane['spans'] = [];
+const merged = (spans: Lane["spans"]) => {
+  const out: Lane["spans"] = [];
 
   for (const span of spans.toSorted((a, b) => a.from - b.from)) {
     const last = out.at(-1);

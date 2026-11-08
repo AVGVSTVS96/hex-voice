@@ -1,6 +1,6 @@
-import type { CallId } from './calls';
-import type { MediaId, Picked, Shared, Shown } from './media';
-import type { TranscriptEntry } from './types';
+import type { CallId } from "./calls";
+import type { MediaId, Picked, Shared, Shown } from "./media";
+import type { TranscriptEntry } from "./types";
 
 export interface Sent {
   call: CallId;
@@ -27,7 +27,7 @@ export const batchOf = (call: CallId, at: number, picked: Picked[], key: string)
     call,
     batch,
     picked: media,
-    entry: { id: `sent ${batch} ${i}`, role: 'user', text: '', startMs: at, media, sending: true },
+    entry: { id: `sent ${batch} ${i}`, role: "user", text: "", startMs: at, media, sending: true },
   }));
 };
 
@@ -38,8 +38,8 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
     ),
   );
 
-  const shared = uploads.map((one) => (one.status === 'fulfilled' ? one.value : undefined));
-  const lost = uploads.find((one) => one.status === 'rejected');
+  const shared = uploads.map((one) => (one.status === "fulfilled" ? one.value : undefined));
+  const lost = uploads.find((one) => one.status === "rejected");
 
   if (lost) {
     return { shared, error: lost.reason };
@@ -58,7 +58,7 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
 };
 
 export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome): Sent[] => {
-  const why = error instanceof Error ? error.message : 'Not sent';
+  const why = error instanceof Error ? error.message : "Not sent";
   const failed = error === undefined ? undefined : why;
 
   return sent.map((one) => {
@@ -69,7 +69,7 @@ export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome):
     }
 
     const kept = shared[i];
-    const still = kept && one.picked.kind === 'video' ? { media: kept } : {};
+    const still = kept && one.picked.kind === "video" ? { media: kept } : {};
 
     return {
       ...one,
@@ -83,7 +83,7 @@ export const retrying = (sent: Sent[], entry: string): Sent[] => {
   const batch = sent.find((one) => one.entry.id === entry)?.batch;
 
   return sent.flatMap((one) =>
-    one.batch === batch && (one.entry.failed ?? '') !== ''
+    one.batch === batch && (one.entry.failed ?? "") !== ""
       ? [{ ...one, entry: { ...one.entry, sending: true, failed: undefined } }]
       : [],
   );

@@ -1,7 +1,7 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import assert from "node:assert/strict";
+import test from "node:test";
 
-import type * as z from 'zod/mini';
+import type * as z from "zod/mini";
 
 import {
   agentCounts,
@@ -16,8 +16,8 @@ import {
   stepTimes,
   taskTime,
   TaskRow,
-} from '../src/live/tasks';
-import type { AgentTrail, Task, TaskStep } from '../src/live/tasks';
+} from "../src/live/tasks";
+import type { AgentTrail, Task, TaskStep } from "../src/live/tasks";
 
 const now = new Date(2026, 9, 13, 10, 0);
 
@@ -26,17 +26,17 @@ const at = (hours: number, minutes = 0, day = 13) =>
 
 const row = (
   name: string,
-  state: TaskRow['state'],
+  state: TaskRow["state"],
   when = at(9),
   extra: Partial<z.input<typeof TaskRow>> = {},
 ): TaskRow =>
   TaskRow.parse({
     id: `telegram:${name}`,
-    app: 'telegram',
+    app: "telegram",
     name,
     place: name,
     state,
-    running: state === 'working',
+    running: state === "working",
     line: `${name} line`,
     since: when,
     at: when,
@@ -45,35 +45,35 @@ const row = (
     ...extra,
   });
 
-test('a row says how long it has worked, or since when it waited or finished', () => {
-  assert.equal(taskTime(row('voiceapp', 'working', at(9, 46)), now), '14 min');
-  assert.equal(taskTime(row('Films', 'working', at(8, 0)), now), '2 hr');
-  assert.match(taskTime(row('autofork', 'needs', at(8, 30)), now), /^8:30\sAM$/u);
-  assert.match(taskTime(row('Cloud', 'needs', at(9, 0, 11)), now), /Oct 11|11 Oct/u);
+test("a row says how long it has worked, or since when it waited or finished", () => {
+  assert.equal(taskTime(row("voiceapp", "working", at(9, 46)), now), "14 min");
+  assert.equal(taskTime(row("Films", "working", at(8, 0)), now), "2 hr");
+  assert.match(taskTime(row("autofork", "needs", at(8, 30)), now), /^8:30\sAM$/u);
+  assert.match(taskTime(row("Cloud", "needs", at(9, 0, 11)), now), /Oct 11|11 Oct/u);
 });
 
-const stepAt = (minute: number, secs: number, kind: TaskStep['kind'] = 'run'): TaskStep => ({
+const stepAt = (minute: number, secs: number, kind: TaskStep["kind"] = "run"): TaskStep => ({
   at: new Date(2026, 9, 13, 9, minute, secs).toISOString(),
   kind,
-  text: 'step',
+  text: "step",
 });
 
-test('a step without an end lasts until the next began, and a reply says when it was said', () => {
-  const steps = [stepAt(59, 20), stepAt(59, 12, 'think'), stepAt(56, 12), stepAt(55, 50)];
-  assert.deepEqual(stepTimes(steps, now), ['', '8s', '3 min', '22s']);
+test("a step without an end lasts until the next began, and a reply says when it was said", () => {
+  const steps = [stepAt(59, 20), stepAt(59, 12, "think"), stepAt(56, 12), stepAt(55, 50)];
+  assert.deepEqual(stepTimes(steps, now), ["", "8s", "3 min", "22s"]);
   assert.deepEqual(stepTimes([], now), []);
-  const instant = { at: second(59), end: second(59), kind: 'read', text: 'Read it' } as const;
+  const instant = { at: second(59), end: second(59), kind: "read", text: "Read it" } as const;
   assert.deepEqual(stepTimes([steps[0], { ...steps[0], end: undefined }, instant], now), [
-    '',
-    '',
-    '1s',
+    "",
+    "",
+    "1s",
   ]);
-  const said = stepTimes([stepAt(59, 30, 'run'), stepAt(20, 0, 'say')], now);
-  assert.equal(said[0], '');
+  const said = stepTimes([stepAt(59, 30, "run"), stepAt(20, 0, "say")], now);
+  assert.equal(said[0], "");
   assert.match(said[1], /^9:20\sAM$/u);
 });
 
-test('a lane shows the last week on a log scale, now at the right edge', () => {
+test("a lane shows the last week on a log scale, now at the right edge", () => {
   const tenOClock = Date.parse(at(10));
   const hour = 3_600_000;
   const x = (age: number, width = 84) => laneX(tenOClock - age, tenOClock, width);
@@ -93,96 +93,96 @@ const second = (minute: number, seconds = 0, hour = 9) =>
 const agent = (id: string, extra: Partial<AgentTrail>): AgentTrail => ({
   id,
   label: id,
-  state: 'done',
+  state: "done",
   steps: [],
   ...extra,
 });
 
 const agents = [
-  agent('t3:recipes-1', {
-    label: 'recipes: what the pantry can make',
-    state: 'stopped',
-    who: 'Opus 5.5',
+  agent("t3:recipes-1", {
+    label: "recipes: what the pantry can make",
+    state: "stopped",
+    who: "Opus 5.5",
     since: second(10),
     end: second(20),
   }),
-  agent('t3:prices', {
-    label: 'prices: what a week of groceries costs',
-    state: 'stopped',
-    who: 'Opus 5.5',
+  agent("t3:prices", {
+    label: "prices: what a week of groceries costs",
+    state: "stopped",
+    who: "Opus 5.5",
     since: second(12),
     end: second(20),
   }),
-  agent('t3:stores', {
-    label: 'stores: which ones deliver',
-    who: 'Opus 5.5',
+  agent("t3:stores", {
+    label: "stores: which ones deliver",
+    who: "Opus 5.5",
     since: second(21),
     end: second(28, 20),
-    result: 'Two deliver on Sundays: the co-op and the corner market.',
+    result: "Two deliver on Sundays: the co-op and the corner market.",
     steps: [
       {
         at: second(28),
-        kind: 'say',
-        text: 'Two deliver on Sundays: the co-op and the corner market.',
+        kind: "say",
+        text: "Two deliver on Sundays: the co-op and the corner market.",
       },
-      { at: second(25), end: second(26), kind: 'web', text: 'Searched the web', state: 'done' },
+      { at: second(25), end: second(26), kind: "web", text: "Searched the web", state: "done" },
     ],
   }),
-  agent('t3:recipes-2', {
-    label: 'recipes: what the pantry can make',
-    state: 'working',
-    who: 'Opus 5.5',
+  agent("t3:recipes-2", {
+    label: "recipes: what the pantry can make",
+    state: "working",
+    who: "Opus 5.5",
     since: second(22),
-    line: 'Reading pantry.json',
+    line: "Reading pantry.json",
   }),
-  agent('t3:review', {
-    label: 'review: a second opinion',
-    state: 'working',
-    who: 'Sol',
+  agent("t3:review", {
+    label: "review: a second opinion",
+    state: "working",
+    who: "Sol",
     since: second(50),
   }),
 ];
 
-test('a step takes as long as its result took to come back, and only a running step turns', () => {
+test("a step takes as long as its result took to come back, and only a running step turns", () => {
   const steps: TaskStep[] = [
-    { at: second(59, 50), kind: 'run', text: 'Run the tests', state: 'running' },
-    { at: second(59, 0), end: second(59, 8), kind: 'search', text: 'Find the menu', state: 'done' },
-    { at: second(56), end: second(58, 30), kind: 'run', text: 'Build it', state: 'failed' },
-    { at: second(55), kind: 'agent', text: 'Handed off review', agent: 't3:review' },
-    { at: second(50), kind: 'think', text: 'thinking' },
+    { at: second(59, 50), kind: "run", text: "Run the tests", state: "running" },
+    { at: second(59, 0), end: second(59, 8), kind: "search", text: "Find the menu", state: "done" },
+    { at: second(56), end: second(58, 30), kind: "run", text: "Build it", state: "failed" },
+    { at: second(55), kind: "agent", text: "Handed off review", agent: "t3:review" },
+    { at: second(50), kind: "think", text: "thinking" },
   ];
 
-  assert.deepEqual(stepTimes(steps, now), ['10s', '8s', '3 min', '1 min', '5 min']);
-  assert.deepEqual(steps.map(stepMark), ['working', undefined, 'failed', undefined, undefined]);
-  assert.equal(stepTimes(steps, new Date(2026, 9, 13, 10, 3))[0], '3 min');
+  assert.deepEqual(stepTimes(steps, now), ["10s", "8s", "3 min", "1 min", "5 min"]);
+  assert.deepEqual(steps.map(stepMark), ["working", undefined, "failed", undefined, undefined]);
+  assert.equal(stepTimes(steps, new Date(2026, 9, 13, 10, 3))[0], "3 min");
   assert.equal(stepMark(steps[4]), undefined);
 });
 
-test('agents at work come first, newest started first, then the finished, and earlier tries apart', () => {
+test("agents at work come first, newest started first, then the finished, and earlier tries apart", () => {
   const { shown, tries } = agentsInOrder(agents);
   assert.deepEqual(
     shown.map((one) => one.id),
-    ['t3:review', 't3:recipes-2', 't3:stores', 't3:prices'],
+    ["t3:review", "t3:recipes-2", "t3:stores", "t3:prices"],
   );
   assert.deepEqual(
     tries.map((one) => one.id),
-    ['t3:recipes-1'],
+    ["t3:recipes-1"],
   );
-  assert.equal(agentCounts(shown), '2 working · 1 done · 1 stopped');
-  assert.equal(agentCounts([]), '');
-  const failed = agentsInOrder([agent('a', { state: 'failed', since: second(1) }), agent('a', {})]);
+  assert.equal(agentCounts(shown), "2 working · 1 done · 1 stopped");
+  assert.equal(agentCounts([]), "");
+  const failed = agentsInOrder([agent("a", { state: "failed", since: second(1) }), agent("a", {})]);
   assert.equal(failed.tries.length, 0);
 });
 
-test('an agent says who it is and how long it has worked or took, or that it stopped', () => {
+test("an agent says who it is and how long it has worked or took, or that it stopped", () => {
   const [review, recipes, stores, prices] = agentsInOrder(agents).shown;
-  assert.equal(agentMeta(review, now), 'Sol · 10 min');
-  assert.equal(agentMeta(recipes, now), 'Opus 5.5 · 38 min');
-  assert.equal(agentMeta(stores, now), 'Opus 5.5 · 7 min');
-  assert.equal(agentMeta({ ...stores, end: second(21, 40) }, now), 'Opus 5.5 · 40s');
-  assert.equal(agentMeta(prices, now), 'Opus 5.5 · stopped');
-  assert.equal(agentMeta({ ...review, who: undefined, state: 'failed' }, now), 'failed');
-  assert.equal(agentMeta(agent('old', { state: 'working' }), now), '');
+  assert.equal(agentMeta(review, now), "Sol · 10 min");
+  assert.equal(agentMeta(recipes, now), "Opus 5.5 · 38 min");
+  assert.equal(agentMeta(stores, now), "Opus 5.5 · 7 min");
+  assert.equal(agentMeta({ ...stores, end: second(21, 40) }, now), "Opus 5.5 · 40s");
+  assert.equal(agentMeta(prices, now), "Opus 5.5 · stopped");
+  assert.equal(agentMeta({ ...review, who: undefined, state: "failed" }, now), "failed");
+  assert.equal(agentMeta(agent("old", { state: "working" }), now), "");
 });
 
 test("an opened agent's steps leave out a last reply that only repeats its result", () => {
@@ -190,27 +190,27 @@ test("an opened agent's steps leave out a last reply that only repeats its resul
   assert.ok(stores);
   assert.deepEqual(
     agentSteps(stores).map((step) => step.text),
-    ['Searched the web'],
+    ["Searched the web"],
   );
-  assert.equal(agentSteps({ ...stores, result: 'Only the co-op delivers.' }).length, 2);
+  assert.equal(agentSteps({ ...stores, result: "Only the co-op delivers." }).length, 2);
   assert.equal(agentSteps({ ...stores, result: undefined }).length, 2);
 });
 
-test('a thread names the agents still at work, and once done all it ran', () => {
+test("a thread names the agents still at work, and once done all it ran", () => {
   assert.equal(atWork(agents).length, 2);
-  assert.equal(agentWords(agents, true), '2 agents working · review, recipes');
+  assert.equal(agentWords(agents, true), "2 agents working · review, recipes");
   assert.equal(
-    agentWords([agent('x', { label: 'Explore the voice plugin', state: 'working' })], true),
-    '1 agent working · Explore the voice plugin',
+    agentWords([agent("x", { label: "Explore the voice plugin", state: "working" })], true),
+    "1 agent working · Explore the voice plugin",
   );
-  const done = agents.filter((one) => one.state !== 'working');
+  const done = agents.filter((one) => one.state !== "working");
   assert.equal(agentWords(done, true), undefined);
-  assert.equal(agentWords(done, false), '3 agents · stores, recipes, prices');
+  assert.equal(agentWords(done, false), "3 agents · stores, recipes, prices");
   assert.equal(agentWords([], false), undefined);
 });
 
 const doneTask = (extra: Partial<Task>): Task => ({
-  ...row('Films', 'done'),
+  ...row("Films", "done"),
   lately: [],
   plan: [],
   steps: [],
@@ -219,8 +219,8 @@ const doneTask = (extra: Partial<Task>): Task => ({
 });
 
 test("a thread that's done shows its last run while it has steps or agents", () => {
-  assert.equal(lastRun(doneTask({ steps: [{ at: at(9), kind: 'run', text: 'Build it' }] })), true);
+  assert.equal(lastRun(doneTask({ steps: [{ at: at(9), kind: "run", text: "Build it" }] })), true);
   assert.equal(lastRun(doneTask({ agents })), true);
   assert.equal(lastRun(doneTask({})), false);
-  assert.equal(lastRun(doneTask({ state: 'working', agents })), false);
+  assert.equal(lastRun(doneTask({ state: "working", agents })), false);
 });

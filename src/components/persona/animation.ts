@@ -1,6 +1,6 @@
-import type { PersonaVariant } from './variants';
+import type { PersonaVariant } from "./variants";
 
-export type PersonaState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'asleep';
+export type PersonaState = "idle" | "listening" | "thinking" | "speaking" | "asleep";
 
 export interface PersonaProps {
   variant?: PersonaVariant;
@@ -12,8 +12,8 @@ export interface PersonaProps {
   drawn?: boolean;
 }
 
-export const PERSONA_STATE_MACHINE = 'default';
-export const PERSONA_INPUTS = ['listening', 'thinking', 'speaking', 'asleep'] as const;
+export const PERSONA_STATE_MACHINE = "default";
+export const PERSONA_INPUTS = ["listening", "thinking", "speaking", "asleep"] as const;
 
 export const PERSONA_MODELS: Record<PersonaVariant, { dynamicColor: boolean }> = {
   obsidian: { dynamicColor: true },

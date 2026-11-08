@@ -1,5 +1,5 @@
-import type { Picked } from './media';
-import type { Chat, ChatTurn, TaskId } from './tasks';
+import type { Picked } from "./media";
+import type { Chat, ChatTurn, TaskId } from "./tasks";
 
 export interface Sending {
   id: TaskId;
@@ -16,7 +16,7 @@ export const arrived = (chat: Chat, sent: Sending) =>
     .slice(Math.max(0, sent.total - (chat.total - chat.turns.length)))
     .some(
       (turn) =>
-        turn.from === 'me' &&
+        turn.from === "me" &&
         turn.text === sent.text &&
         (turn.media?.length ?? 0) === sent.media.length,
     );
@@ -25,12 +25,13 @@ export const newKey = () =>
   `app-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 export type Said =
-  { kind: 'me' | 'hex'; text: string } | { kind: 'event'; label: string; text: string };
+  | { kind: "me" | "hex"; text: string }
+  | { kind: "event"; label: string; text: string };
 
 const EVENT = /^\((?<label>[^()\n]+)\)\s*(?<text>[\s\S]*)$/u;
 
 export const said = (turn: ChatTurn): Said => {
-  const event = turn.from === 'me' ? EVENT.exec(turn.text)?.groups : undefined;
+  const event = turn.from === "me" ? EVENT.exec(turn.text)?.groups : undefined;
 
   if (!event) {
     return { kind: turn.from, text: turn.text };
@@ -38,13 +39,13 @@ export const said = (turn: ChatTurn): Said => {
 
   const { label, text } = event;
 
-  if (label === 'voice message') {
-    return { kind: 'me', text };
+  if (label === "voice message") {
+    return { kind: "me", text };
   }
 
-  if (label.startsWith('asked Siri')) {
-    return { kind: 'event', label: 'Asked Siri', text };
+  if (label.startsWith("asked Siri")) {
+    return { kind: "event", label: "Asked Siri", text };
   }
 
-  return { kind: 'event', label: label[0].toUpperCase() + label.slice(1), text };
+  return { kind: "event", label: label[0].toUpperCase() + label.slice(1), text };
 };

@@ -2,29 +2,29 @@ import {
   DEFAULT_PERSONA_COLOR,
   isOpalPalette,
   isPersonaColor,
-} from '@/components/persona/variants';
-import type { OpalPalette } from '@/components/persona/variants';
-import { useSavedPreference } from '@/hooks/use-saved-preference';
+} from "@/components/persona/variants";
+import type { OpalPalette } from "@/components/persona/variants";
+import { useSavedPreference } from "@/hooks/use-saved-preference";
 
 export const REACTIONS = [
-  { id: 'off', label: 'Off', amount: 0 },
-  { id: 'subtle', label: 'Subtle', amount: 0.07 },
-  { id: 'lively', label: 'Lively', amount: 0.16 },
+  { id: "off", label: "Off", amount: 0 },
+  { id: "subtle", label: "Subtle", amount: 0.07 },
+  { id: "lively", label: "Lively", amount: 0.16 },
 ] as const;
 
-export type Reaction = (typeof REACTIONS)[number]['id'];
+export type Reaction = (typeof REACTIONS)[number]["id"];
 
 const isReaction = (value: unknown): value is Reaction =>
   REACTIONS.some((reaction) => reaction.id === value);
 
-const isSwitch = (value: unknown): value is 'on' | 'off' => value === 'on' || value === 'off';
+const isSwitch = (value: unknown): value is "on" | "off" => value === "on" || value === "off";
 
 export const useCallPreferences = () => {
-  const color = useSavedPreference('live.personaColor', DEFAULT_PERSONA_COLOR, isPersonaColor);
-  const opal = useSavedPreference<OpalPalette>('live.opalPalette', 'original', isOpalPalette);
-  const reaction = useSavedPreference<Reaction>('live.reaction', 'subtle', isReaction);
-  const sounds = useSavedPreference<'on' | 'off'>('live.sounds', 'on', isSwitch);
-  const haptics = useSavedPreference<'on' | 'off'>('live.haptics', 'on', isSwitch);
+  const color = useSavedPreference("live.personaColor", DEFAULT_PERSONA_COLOR, isPersonaColor);
+  const opal = useSavedPreference<OpalPalette>("live.opalPalette", "original", isOpalPalette);
+  const reaction = useSavedPreference<Reaction>("live.reaction", "subtle", isReaction);
+  const sounds = useSavedPreference<"on" | "off">("live.sounds", "on", isSwitch);
+  const haptics = useSavedPreference<"on" | "off">("live.haptics", "on", isSwitch);
 
   return {
     personaColor: color.value,
@@ -33,13 +33,13 @@ export const useCallPreferences = () => {
     setOpalPalette: opal.setValue,
     reaction: reaction.value,
     setReaction: reaction.setValue,
-    sounds: sounds.value === 'on',
+    sounds: sounds.value === "on",
     setSounds: (on: boolean) => {
-      sounds.setValue(on ? 'on' : 'off');
+      sounds.setValue(on ? "on" : "off");
     },
-    haptics: haptics.value === 'on',
+    haptics: haptics.value === "on",
     setHaptics: (on: boolean) => {
-      haptics.setValue(on ? 'on' : 'off');
+      haptics.setValue(on ? "on" : "off");
     },
   };
 };

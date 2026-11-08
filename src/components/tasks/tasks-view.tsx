@@ -1,5 +1,5 @@
-import { Column, Row, Spacer, Text } from '@expo/ui';
-import { ProgressView, ZStack } from '@expo/ui/swift-ui';
+import { Column, Row, Spacer, Text } from "@expo/ui";
+import { ProgressView, ZStack } from "@expo/ui/swift-ui";
 import {
   accessibilityHidden,
   animation,
@@ -9,31 +9,31 @@ import {
   frame,
   offset,
   scrollDismissesKeyboard,
-} from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Linking } from 'react-native';
+} from "@expo/ui/swift-ui/modifiers";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { Linking } from "react-native";
 
-import { TASKS } from '@/call/stage';
-import { PageChrome } from '@/components/tasks/bar';
-import type { Back, Chrome, Door } from '@/components/tasks/bar';
-import { LastCheck } from '@/components/tasks/last-check';
-import { ListPage } from '@/components/tasks/list';
-import { PickPage, PicksPage, usePickChoices } from '@/components/tasks/picks';
-import { levelsOf, shapeOf, spotOf, usePages, Showing, Typing } from '@/components/tasks/pages';
-import type { Level, Move, Pages, Room, Spot, Stack } from '@/components/tasks/pages';
-import { feel } from '@/components/tasks/parts';
-import { useToolbarBack } from '@/components/toolbar-back';
-import { EntryRow } from '@/components/tasks/rows';
-import { Selectable } from '@/components/tasks/said';
-import { Asked, Detail, DonePage } from '@/components/tasks/task-page';
-import { Messages, ThreadPage } from '@/components/tasks/thread';
-import { StepsLoading, Trace } from '@/components/tasks/trace';
-import { useAsks, useCheck } from '@/hooks/use-asks';
-import { useChat } from '@/hooks/use-chat';
-import { useTask, useTasks } from '@/hooks/use-tasks';
-import type { Counts } from '@/hooks/use-tasks';
-import type { Ask, AskOption } from '@/live/asks';
+import { TASKS } from "@/call/stage";
+import { PageChrome } from "@/components/tasks/bar";
+import type { Back, Chrome, Door } from "@/components/tasks/bar";
+import { LastCheck } from "@/components/tasks/last-check";
+import { ListPage } from "@/components/tasks/list";
+import { levelsOf, shapeOf, spotOf, usePages, Showing, Typing } from "@/components/tasks/pages";
+import type { Level, Move, Pages, Room, Spot, Stack } from "@/components/tasks/pages";
+import { feel } from "@/components/tasks/parts";
+import { PickPage, PicksPage, usePickChoices } from "@/components/tasks/picks";
+import { EntryRow } from "@/components/tasks/rows";
+import { Selectable } from "@/components/tasks/said";
+import { Asked, Detail, DonePage } from "@/components/tasks/task-page";
+import { Messages, ThreadPage } from "@/components/tasks/thread";
+import { StepsLoading, Trace } from "@/components/tasks/trace";
+import { useToolbarBack } from "@/components/toolbar-back";
+import { useAsks, useCheck } from "@/hooks/use-asks";
+import { useChat } from "@/hooks/use-chat";
+import { useTask, useTasks } from "@/hooks/use-tasks";
+import type { Counts } from "@/hooks/use-tasks";
+import type { Ask, AskOption } from "@/live/asks";
 import {
   inboxEntries,
   openingStage,
@@ -45,13 +45,13 @@ import {
   stageTopics,
   taskIn,
   topicIn,
-} from '@/live/inbox';
-import type { Entry, PageId, Place, Tab, Tile } from '@/live/inbox';
-import type { Task, TaskId, TaskRow } from '@/live/tasks';
-import { motion, rowsKey } from '@/motion';
-import { theme } from '@/theme';
+} from "@/live/inbox";
+import type { Entry, PageId, Place, Tab, Tile } from "@/live/inbox";
+import type { Task, TaskId, TaskRow } from "@/live/tasks";
+import { motion, rowsKey } from "@/motion";
+import { theme } from "@/theme";
 
-import { PagesView } from '../../../modules/pages';
+import { PagesView } from "../../../modules/pages";
 
 export interface TasksProps {
   open: boolean;
@@ -91,7 +91,7 @@ export const Tasks = ({
   const [typing, setTyping] = useState<Level | null>(null);
   const choices = usePickChoices();
   const traced = useTask(pages.stepsOf, version);
-  const checked = useCheck(pages.path.includes('check') ? yours.list?.check?.at : undefined);
+  const checked = useCheck(pages.path.includes("check") ? yours.list?.check?.at : undefined);
   const touch = feel(haptics);
   const { tick, tap } = touch;
 
@@ -103,11 +103,11 @@ export const Tasks = ({
   const loaded = !!(yours.list && tasks);
 
   const stage =
-    pages.stage ?? (loaded ? openingStage(stageCounts(entries, yours.answered)) : 'needs');
+    pages.stage ?? (loaded ? openingStage(stageCounts(entries, yours.answered)) : "needs");
 
   useEffect(() => {
     if (open && loaded && !pages.stage) {
-      pages.go({ to: 'stage', stage });
+      pages.go({ to: "stage", stage });
     }
   }, [open, loaded, pages.stage, stage]);
 
@@ -172,14 +172,14 @@ export const Tasks = ({
   };
 
   const doorOf = (ask: Ask) => {
-    const where = ask.places.find((one) => (one.link ?? '') !== '');
+    const where = ask.places.find((one) => (one.link ?? "") !== "");
 
     return where?.link === undefined ? undefined : doorTo(where.link, placeOf(where.app));
   };
 
   const openTile = (tile: Tile) => {
-    if (tile.kind === 'app') {
-      if (tile.link !== undefined && tile.link !== '') {
+    if (tile.kind === "app") {
+      if (tile.link !== undefined && tile.link !== "") {
         void openLink(tile.link, tile.place);
       }
 
@@ -188,7 +188,7 @@ export const Tasks = ({
 
     tap();
 
-    if (tile.kind === 'call') {
+    if (tile.kind === "call") {
       onOpenCall(tile.call);
     } else {
       void Linking.openURL(tile.url).catch(() => null);
@@ -197,12 +197,12 @@ export const Tasks = ({
 
   const openSteps = (id: TaskId) => {
     tick();
-    pages.go({ to: 'steps', id });
+    pages.go({ to: "steps", id });
   };
 
   const write = (typed: boolean) => {
     tick();
-    pages.go({ to: 'thread', write: typed });
+    pages.go({ to: "thread", write: typed });
   };
 
   const talk = (thread: TaskRow) => {
@@ -214,10 +214,10 @@ export const Tasks = ({
 
   const names = namesOf(opened);
 
-  const backTo = (back: Level | 'call'): Back => ({
+  const backTo = (back: Level | "call"): Back => ({
     to: names[back],
     onPress:
-      back === 'call'
+      back === "call"
         ? pages.back
         : () => {
             tick();
@@ -228,7 +228,7 @@ export const Tasks = ({
   const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back !== undefined)?.back;
 
   const inToolbar = useToolbarBack(
-    'tasks',
+    "tasks",
     open && shownBack ? backTo(shownBack) : undefined,
     room.paged,
   );
@@ -247,11 +247,11 @@ export const Tasks = ({
     });
 
     if (on) {
-      pages.go({ to: 'composerFocused' });
+      pages.go({ to: "composerFocused" });
     }
   };
 
-  const moved = rowsKey([...pages.path, pages.stepsOf ?? '', pages.pick ?? '']);
+  const moved = rowsKey([...pages.path, pages.stepsOf ?? "", pages.pick ?? ""]);
 
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
@@ -276,7 +276,7 @@ export const Tasks = ({
       open={open}
       stage={stage}
       pages={pages}
-      spot={spot('list')}
+      spot={spot("list")}
       tasks={tasks}
       entries={entries}
       offline={offline}
@@ -291,7 +291,7 @@ export const Tasks = ({
     />
   );
 
-  const paired = spot('topic').shown && spot('thread').shown;
+  const paired = spot("topic").shown && spot("thread").shown;
 
   const topicPage = () => {
     if (opened) {
@@ -313,7 +313,7 @@ export const Tasks = ({
           onOpen={openThread}
           onOpenTask={(id) => {
             tick();
-            pages.go({ to: 'topic', id });
+            pages.go({ to: "topic", id });
           }}
           messages={
             !paired && said.chat && (said.chat.total || said.chat.sends) ? (
@@ -328,7 +328,7 @@ export const Tasks = ({
             ) : undefined
           }
           beside={paired}
-          answering={typing === 'topic'}
+          answering={typing === "topic"}
           onWrite={
             !paired && said.sends
               ? () => {
@@ -336,7 +336,7 @@ export const Tasks = ({
                 }
               : undefined
           }
-          foot={spot('topic').foot}
+          foot={spot("topic").foot}
         />
       );
     }
@@ -348,16 +348,16 @@ export const Tasks = ({
         <DonePage
           finished={did}
           door={
-            did.link === undefined || did.link === ''
+            did.link === undefined || did.link === ""
               ? undefined
               : doorTo(did.link, placeOf(did.app))
           }
           onOpenLink={openTile}
           onOpenProject={
-            run !== undefined && run !== '' && tasks?.some((row) => row.id === run) === true
+            run !== undefined && run !== "" && tasks?.some((row) => row.id === run) === true
               ? () => {
                   tick();
-                  pages.go({ to: 'topic', id: run });
+                  pages.go({ to: "topic", id: run });
                 }
               : undefined
           }
@@ -365,7 +365,7 @@ export const Tasks = ({
       );
     }
 
-    if (topic !== undefined && topic !== '') {
+    if (topic !== undefined && topic !== "") {
       return (
         <Asked
           topic={topic}
@@ -373,14 +373,14 @@ export const Tasks = ({
           answered={yours.answered}
           door={asked && doorOf(asked)}
           rows={entries
-            .filter((entry) => entry.topic === topic && entry.kind !== 'ask')
+            .filter((entry) => entry.topic === topic && entry.kind !== "ask")
             .map((entry) => (
               <EntryRow
                 key={entry.id}
                 entry={entry}
                 answered={yours.answered}
                 onOpen={(id) => {
-                  pages.go({ to: 'topic', id });
+                  pages.go({ to: "topic", id });
                 }}
                 onOpenTile={openTile}
                 onAnswer={answer}
@@ -418,7 +418,7 @@ export const Tasks = ({
         pending={said.pending}
         failed={said.failed}
         focus={pages.focusComposer}
-        foot={spot('thread').foot}
+        foot={spot("thread").foot}
         onOpen={openThread}
         onSteps={() => {
           openSteps(opened.id);
@@ -440,7 +440,7 @@ export const Tasks = ({
       <Trace
         task={traced.task}
         onOpen={(link) => {
-          void openLink(link, 't3');
+          void openLink(link, "t3");
         }}
       />
     ) : (
@@ -451,11 +451,11 @@ export const Tasks = ({
       <PicksPage
         picks={picks}
         choices={choices}
-        open={pages.path.at(-1) === 'pick' ? pages.pick : null}
-        foot={spot('picks').foot}
+        open={pages.path.at(-1) === "pick" ? pages.pick : null}
+        foot={spot("picks").foot}
         onOpen={(id) => {
           tick();
-          pages.go({ to: 'pick', id });
+          pages.go({ to: "pick", id });
         }}
         onTake={(taken) => {
           tap();
@@ -465,7 +465,7 @@ export const Tasks = ({
           }
 
           choices.clear();
-          pages.go({ to: 'back' });
+          pages.go({ to: "back" });
         }}
       />
     ),
@@ -475,19 +475,19 @@ export const Tasks = ({
   const levels = PUSHED.map((level) => page(level, content[level]));
 
   const fill = [
-    frame({ maxWidth: Infinity, alignment: 'top' }),
+    frame({ maxWidth: Infinity, alignment: "top" }),
     upTo(),
     clipped(),
-    scrollDismissesKeyboard('immediately'),
+    scrollDismissesKeyboard("immediately"),
   ];
 
-  if (pages.shape === 'columns') {
+  if (pages.shape === "columns") {
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
         <Column
           alignment="start"
           spacing={0}
-          modifiers={[frame({ width: spot('list').width, alignment: 'top' }), upTo()]}
+          modifiers={[frame({ width: spot("list").width, alignment: "top" }), upTo()]}
         >
           {list}
         </Column>
@@ -506,13 +506,13 @@ export const Tasks = ({
   }
 
   if (room.paged) {
-    const children = [page('list', list), ...levels];
+    const children = [page("list", list), ...levels];
 
     return (
       <PagesView
-        pages={['list', ...PUSHED]}
-        one={levelsOf(pages, 'one')}
-        two={levelsOf(pages, 'panes')}
+        pages={["list", ...PUSHED]}
+        one={levelsOf(pages, "one")}
+        two={levelsOf(pages, "panes")}
         page={TASKS}
         meet={room.meet ?? 0}
         onPaired={pages.placed}
@@ -525,17 +525,17 @@ export const Tasks = ({
 
   return (
     <ZStack alignment="top" modifiers={fill}>
-      {page('list', list)}
+      {page("list", list)}
       {levels}
     </ZStack>
   );
 };
 
-const PUSHED = ['topic', 'thread', 'steps', 'check', 'picks', 'pick'] as const satisfies Level[];
+const PUSHED = ["topic", "thread", "steps", "check", "picks", "pick"] as const satisfies Level[];
 
 const showingOf = (pages: Pages, entries: Entry[], stage: Tab) => {
   const leading = (
-    pages.shape !== 'one' && (pages.task ?? '') === '' ? stageTopics(entries, stage) : []
+    pages.shape !== "one" && (pages.task ?? "") === "" ? stageTopics(entries, stage) : []
   ).at(0);
 
   return pages.task ?? (leading ? pageOf(leading) : null);
@@ -565,21 +565,21 @@ const threadsOf = (opened: TaskRow | Task | undefined, tasks: TaskRow[] | undefi
   opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
 
 const asksIn = (shown: Ask[], topic: string | undefined, row: string | null) =>
-  topic === undefined || topic === ''
+  topic === undefined || topic === ""
     ? []
     : shown
         .filter((ask) => ask.topic === topic)
         .toSorted((a, b) => Number(b.id === row) - Number(a.id === row));
 
-const namesOf = (opened: TaskRow | Task | undefined): Record<Level | 'call', string> => ({
-  call: 'Call',
-  list: 'Tasks',
-  topic: opened?.name ?? 'Topic',
-  thread: opened === undefined ? 'Thread' : opened.place || opened.name,
-  steps: 'Steps',
-  check: 'Last check',
-  picks: 'hex’s picks',
-  pick: 'Question',
+const namesOf = (opened: TaskRow | Task | undefined): Record<Level | "call", string> => ({
+  call: "Call",
+  list: "Tasks",
+  topic: opened?.name ?? "Topic",
+  thread: opened === undefined ? "Thread" : opened.place || opened.name,
+  steps: "Steps",
+  check: "Last check",
+  picks: "hex’s picks",
+  pick: "Question",
 });
 
 const newestOf = (rows: TaskRow[]) => {
@@ -621,7 +621,7 @@ const PageAt = ({
   moved: number;
   children: ReactNode;
 }) => {
-  const fills = [frame({ maxWidth: Infinity, alignment: 'top' }), upTo()];
+  const fills = [frame({ maxWidth: Infinity, alignment: "top" }), upTo()];
 
   return (
     <Column
@@ -644,4 +644,4 @@ const PageAt = ({
   );
 };
 
-const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: 'top' });
+const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: "top" });

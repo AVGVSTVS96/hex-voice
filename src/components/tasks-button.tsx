@@ -1,4 +1,4 @@
-import { Circle } from '@expo/ui/swift-ui';
+import { Circle } from "@expo/ui/swift-ui";
 import {
   Animation,
   animation,
@@ -8,11 +8,11 @@ import {
   opacity,
   scaleEffect,
   strokeBorder,
-} from '@expo/ui/swift-ui/modifiers';
+} from "@expo/ui/swift-ui/modifiers";
 
-import { theme } from '@/theme';
-import { GlassButton } from '@/ui/glass-button';
-import { metrics } from '@/ui/tokens';
+import { theme } from "@/theme";
+import { GlassButton } from "@/ui/glass-button";
+import { metrics } from "@/ui/tokens";
 
 const DOT = 14;
 const LINE = 2;
@@ -29,12 +29,12 @@ export const TasksButton = ({
   onPress: () => void;
 }) => {
   const label = [
-    'Tasks',
-    needs ? `${needs} need${needs === 1 ? 's' : ''} you` : '',
-    working ? `${working} working` : '',
+    "Tasks",
+    needs ? `${needs} need${needs === 1 ? "s" : ""} you` : "",
+    working ? `${working} working` : "",
   ]
     .filter(Boolean)
-    .join(', ');
+    .join(", ");
 
   return (
     <GlassButton
@@ -53,7 +53,7 @@ export const NeedsDot = ({ needs }: { needs: number }) => (
     modifiers={[
       foregroundStyle(theme.accent),
       frame({ width: DOT, height: DOT }),
-      strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: 'circle' }),
+      strokeBorder({ content: theme.background, style: { lineWidth: LINE }, shape: "circle" }),
       offset({ x: metrics.tool - DOT }),
       scaleEffect(needs > 0 ? 1 : 0.01),
       opacity(needs > 0 ? 1 : 0),

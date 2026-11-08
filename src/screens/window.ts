@@ -1,8 +1,8 @@
-import { breakpoint } from '@/ui/tokens';
+import { breakpoint } from "@/ui/tokens";
 
-import type { Pose, Rect } from '../../modules/pose';
+import type { Pose, Rect } from "../../modules/pose";
 
-export type { Rect } from '../../modules/pose';
+export type { Rect } from "../../modules/pose";
 
 export type Fold = { x: number } | { y: number };
 
@@ -22,14 +22,14 @@ export interface Room {
   size: Size;
   insets: Insets;
   regular: boolean;
-  bar?: 'left' | 'right';
+  bar?: "left" | "right";
   fold?: Fold;
   occlusions: Rect[];
 }
 
 export const roomOf = (pose: Pose, size: Size, insets: Insets): Room => {
   const bar =
-    pose.bar && (pose.bar === 'right' ? insets.right : insets.left) > 0 ? pose.bar : undefined;
+    pose.bar && (pose.bar === "right" ? insets.right : insets.left) > 0 ? pose.bar : undefined;
 
   return {
     size,

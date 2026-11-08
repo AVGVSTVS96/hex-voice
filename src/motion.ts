@@ -1,5 +1,5 @@
-import { Animation } from '@expo/ui/swift-ui/modifiers';
-import { Easing } from 'react-native-reanimated';
+import { Animation } from "@expo/ui/swift-ui/modifiers";
+import { Easing } from "react-native-reanimated";
 
 const TEMPO = 1.1;
 const ms = (duration: number) => Math.round(duration / TEMPO);
@@ -23,7 +23,7 @@ export const motion = {
 } as const;
 
 export const heard = (amount: number, size: number, level: number, pitch: number, tone: number) => {
-  'worklet';
+  "worklet";
 
   return [
     { translateY: -0.4 * amount * size * pitch },
@@ -36,7 +36,7 @@ export const heard = (amount: number, size: number, level: number, pitch: number
 export const rowsKey = (rows: string[]) => {
   let key = 0;
 
-  for (const char of rows.join('\n')) {
+  for (const char of rows.join("\n")) {
     // oxlint-disable-next-line no-bitwise, unicorn/prefer-math-trunc, unicorn/prefer-code-point -- Java's String.hashCode: | 0 wraps to 32 bits, which Math.trunc doesn't, over UTF-16 units
     key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
   }

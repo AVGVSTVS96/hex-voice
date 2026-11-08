@@ -1,28 +1,28 @@
-import { Icon, RNHostView, Spacer } from '@expo/ui';
-import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
-import { foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
-import type { ReactNode } from 'react';
-import { View } from 'react-native';
-import type { ColorValue } from 'react-native';
+import { Icon, RNHostView, Spacer } from "@expo/ui";
+import { Circle, Rectangle, ZStack } from "@expo/ui/swift-ui";
+import { foregroundStyle, frame, strokeBorder } from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
+import { View } from "react-native";
+import type { ColorValue } from "react-native";
 
-import { Arc } from '@/components/agent-line';
-import type { TaskState } from '@/live/tasks';
-import { theme } from '@/theme';
-import { metrics, radius, space } from '@/ui/tokens';
-import type { Tone } from '@/ui/tokens';
+import { Arc } from "@/components/agent-line";
+import type { TaskState } from "@/live/tasks";
+import { theme } from "@/theme";
+import { metrics, radius, space } from "@/ui/tokens";
+import type { Tone } from "@/ui/tokens";
 
-export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 'read' | 'pending';
+export type MarkState = TaskState | "asks" | "pick" | "paused" | "stopped" | "read" | "pending";
 
 export const Mark = ({ state }: { state: MarkState }) => {
-  if (state === 'working') {
+  if (state === "working") {
     return (
       <RNHostView matchContents>
         <View
           style={{
             width: metrics.list.mark,
             height: metrics.list.mark,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <Arc size={metrics.list.arc} />
@@ -41,7 +41,7 @@ export const Mark = ({ state }: { state: MarkState }) => {
   );
 };
 
-const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
+const Face = ({ state }: { state: Exclude<MarkState, "working"> }) => {
   const square = metrics.list.todo;
 
   const disc = (color: ColorValue, children: ReactNode) => (
@@ -52,7 +52,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
   );
 
   switch (state) {
-    case 'needs': {
+    case "needs": {
       return disc(
         theme.accentMuted,
         <Circle
@@ -64,21 +64,21 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
       );
     }
 
-    case 'asks': {
+    case "asks": {
       return disc(
         theme.accentMuted,
         <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />,
       );
     }
 
-    case 'pick': {
+    case "pick": {
       return disc(
         theme.accentMuted,
         <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />,
       );
     }
 
-    case 'done': {
+    case "done": {
       return (
         <>
           <Spacer
@@ -87,7 +87,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
               strokeBorder({
                 content: theme.tertiary,
                 style: { lineWidth: metrics.list.stroke },
-                shape: 'roundedRectangle',
+                shape: "roundedRectangle",
                 cornerRadius: radius.mark,
               }),
             ]}
@@ -97,7 +97,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
       );
     }
 
-    case 'read': {
+    case "read": {
       return (
         <Circle
           modifiers={[
@@ -108,21 +108,21 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
       );
     }
 
-    case 'failed': {
+    case "failed": {
       return disc(
         theme.dangerMuted,
         <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />,
       );
     }
 
-    case 'paused': {
+    case "paused": {
       return disc(
         theme.surfaceSelected,
         <Icon name="pause.fill" size={metrics.symbol.mark} color={theme.secondary} />,
       );
     }
 
-    case 'stopped': {
+    case "stopped": {
       return (
         <Rectangle
           modifiers={[
@@ -133,7 +133,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
       );
     }
 
-    case 'pending': {
+    case "pending": {
       return (
         <Spacer
           modifiers={[
@@ -141,14 +141,14 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
             strokeBorder({
               content: theme.tertiary,
               style: { lineWidth: metrics.list.stroke, dash: [2, 2] },
-              shape: 'circle',
+              shape: "circle",
             }),
           ]}
         />
       );
     }
 
-    case 'idle': {
+    case "idle": {
       return (
         <Spacer
           modifiers={[
@@ -156,7 +156,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
             strokeBorder({
               content: theme.tertiary,
               style: { lineWidth: metrics.list.stroke },
-              shape: 'circle',
+              shape: "circle",
             }),
           ]}
         />
@@ -169,12 +169,12 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
   }
 };
 
-export type Tint = 'needs' | 'working' | 'failed';
+export type Tint = "needs" | "working" | "failed";
 
 const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
-  needs: { ink: 'accent', wash: 'accentMuted' },
-  working: { ink: 'progress', wash: 'progressMuted' },
-  failed: { ink: 'danger', wash: 'dangerMuted' },
+  needs: { ink: "accent", wash: "accentMuted" },
+  working: { ink: "progress", wash: "progressMuted" },
+  failed: { ink: "danger", wash: "dangerMuted" },
 };
 
 export const Badge = ({ tint }: { tint: Tint }) => {

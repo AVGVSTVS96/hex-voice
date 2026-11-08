@@ -1,9 +1,9 @@
-import { fetch } from 'expo/fetch';
-import { File, UploadType } from 'expo-file-system';
-import * as z from 'zod/mini';
+import { File, UploadType } from "expo-file-system";
+import { fetch } from "expo/fetch";
+import * as z from "zod/mini";
 
-import { createHex } from './api';
-import { createClient } from './client';
+import { createHex } from "./api";
+import { createClient } from "./client";
 
 const Setting = z.optional(z.string());
 
@@ -15,7 +15,7 @@ export const hex = createHex(
         uploadType: UploadType.BINARY_CONTENT,
         mimeType: type,
         headers,
-        sessionType: 'foreground',
+        sessionType: "foreground",
         signal,
       });
 

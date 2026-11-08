@@ -1,19 +1,19 @@
-import * as z from 'zod/mini';
+import * as z from "zod/mini";
 
-import { timeOfDay } from './calls';
-import { Shared } from './media';
+import { timeOfDay } from "./calls";
+import { Shared } from "./media";
 
-export const TaskId = z.string().brand<'TaskId'>();
+export const TaskId = z.string().brand<"TaskId">();
 
 export type TaskId = z.infer<typeof TaskId>;
 
-export const TaskState = z.catch(z.enum(['needs', 'working', 'done', 'failed', 'idle']), 'idle');
+export const TaskState = z.catch(z.enum(["needs", "working", "done", "failed", "idle"]), "idle");
 
 export type TaskState = z.infer<typeof TaskState>;
 
 const StepKind = z.catch(
-  z.enum(['think', 'say', 'plan', 'run', 'read', 'edit', 'search', 'web', 'agent', 'tool']),
-  'tool',
+  z.enum(["think", "say", "plan", "run", "read", "edit", "search", "web", "agent", "tool"]),
+  "tool",
 );
 
 export type StepKind = z.infer<typeof StepKind>;
@@ -24,7 +24,7 @@ const TaskStep = z.object({
   end: z.optional(z.string()),
   kind: StepKind,
   text: z.string(),
-  state: z.catch(z.optional(z.enum(['running', 'done', 'failed'])), undefined),
+  state: z.catch(z.optional(z.enum(["running", "done", "failed"])), undefined),
   detail: z.optional(z.string()),
   result: z.optional(z.string()),
   agent: z.optional(z.string()),
@@ -32,7 +32,7 @@ const TaskStep = z.object({
 
 export type TaskStep = z.infer<typeof TaskStep>;
 
-const AgentState = z.catch(z.enum(['working', 'done', 'failed', 'stopped']), 'done');
+const AgentState = z.catch(z.enum(["working", "done", "failed", "stopped"]), "done");
 
 export type AgentState = z.infer<typeof AgentState>;
 
@@ -62,7 +62,7 @@ export type TaskMoment = z.infer<typeof TaskMoment>;
 
 const Planned = z.object({
   text: z.string(),
-  state: z.catch(z.enum(['done', 'running', 'pending']), 'pending'),
+  state: z.catch(z.enum(["done", "running", "pending"]), "pending"),
 });
 
 export type Planned = z.infer<typeof Planned>;
@@ -116,17 +116,17 @@ const Page = z.object({
 export const TaskOrPage = z.union([
   z.pipe(
     Task,
-    z.transform((task) => ({ ...task, kind: 'task' as const })),
+    z.transform((task) => ({ ...task, kind: "task" as const })),
   ),
   z.pipe(
     Page,
-    z.transform((page) => ({ ...page, kind: 'page' as const })),
+    z.transform((page) => ({ ...page, kind: "page" as const })),
   ),
 ]);
 
 export type TaskOrPage = z.output<typeof TaskOrPage>;
 
-export type TaskPage = Extract<TaskOrPage, { kind: 'page' }>;
+export type TaskPage = Extract<TaskOrPage, { kind: "page" }>;
 
 export const Finished = z.object({
   id: z.string(),
@@ -150,7 +150,7 @@ export const TaskList = z.object({
 export type TaskList = z.infer<typeof TaskList>;
 
 const ChatTurn = z.object({
-  from: z.catch(z.enum(['me', 'hex']), 'hex'),
+  from: z.catch(z.enum(["me", "hex"]), "hex"),
   text: z.string(),
   media: z.optional(z.array(Shared)),
 });
@@ -177,11 +177,11 @@ export const TaskCounts = z.object({
 export type TaskCounts = z.infer<typeof TaskCounts>;
 
 export const taskTime = (task: TaskRow, now = new Date()) => {
-  if (task.state === 'working') {
+  if (task.state === "working") {
     return duration(now.getTime() - Date.parse(task.since));
   }
 
-  return clock(new Date(task.state === 'needs' ? task.since : task.at), now);
+  return clock(new Date(task.state === "needs" ? task.since : task.at), now);
 };
 
 export const clock = (at: Date, now = new Date()) => {
@@ -189,14 +189,14 @@ export const clock = (at: Date, now = new Date()) => {
     return timeOfDay(at.toISOString());
   }
 
-  return at.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return at.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
 const duration = (ms: number) => {
   const minutes = Math.max(0, Math.round(ms / 60_000));
 
   if (minutes < 1) {
-    return 'now';
+    return "now";
   }
 
   if (minutes < 60) {
@@ -214,13 +214,13 @@ const took = (ms: number) => {
   return seconds < 60 ? `${seconds}s` : duration(ms);
 };
 
-export const stepMark = (step: TaskStep): 'failed' | 'working' | undefined => {
-  if (step.state === 'failed') {
-    return 'failed';
+export const stepMark = (step: TaskStep): "failed" | "working" | undefined => {
+  if (step.state === "failed") {
+    return "failed";
   }
 
-  if (step.state === 'running') {
-    return 'working';
+  if (step.state === "running") {
+    return "working";
   }
 
   return undefined;
@@ -228,41 +228,41 @@ export const stepMark = (step: TaskStep): 'failed' | 'working' | undefined => {
 
 export const stepTimes = (steps: TaskStep[], now = new Date()) =>
   steps.map((step, i) => {
-    if (step.kind === 'say') {
+    if (step.kind === "say") {
       return timeOfDay(step.at);
     }
 
     const at = Date.parse(step.at);
 
-    if (step.end !== undefined && step.end !== '') {
+    if (step.end !== undefined && step.end !== "") {
       return took(Date.parse(step.end) - at);
     }
 
-    if (step.state === 'running') {
+    if (step.state === "running") {
       return took(now.getTime() - at);
     }
 
     const until = i === 0 ? at : Date.parse(steps[i - 1].at);
 
-    return until - at < 500 ? '' : took(until - at);
+    return until - at < 500 ? "" : took(until - at);
   });
 
 const started = (agent: TaskAgent) =>
-  agent.since === undefined || agent.since === '' ? 0 : Date.parse(agent.since);
+  agent.since === undefined || agent.since === "" ? 0 : Date.parse(agent.since);
 
 const ended = (agent: TaskAgent) =>
-  agent.end === undefined || agent.end === '' ? started(agent) : Date.parse(agent.end);
+  agent.end === undefined || agent.end === "" ? started(agent) : Date.parse(agent.end);
 
 const inOrder = <A extends TaskAgent>(agents: A[]) => [
   ...agents
-    .filter((agent) => agent.state === 'working')
+    .filter((agent) => agent.state === "working")
     .toSorted((a, b) => started(b) - started(a)),
-  ...agents.filter((agent) => agent.state !== 'working').toSorted((a, b) => ended(b) - ended(a)),
+  ...agents.filter((agent) => agent.state !== "working").toSorted((a, b) => ended(b) - ended(a)),
 ];
 
 export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {
   const retried = (agent: A) =>
-    agent.state === 'stopped' &&
+    agent.state === "stopped" &&
     agents.some((other) => other.label === agent.label && started(other) > started(agent));
 
   return {
@@ -272,32 +272,32 @@ export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {
 };
 
 export const atWork = <A extends TaskAgent>(agents: A[]) =>
-  inOrder(agents.filter((agent) => agent.state === 'working'));
+  inOrder(agents.filter((agent) => agent.state === "working"));
 
 export const agentCounts = (agents: TaskAgent[]) =>
-  (['working', 'done', 'failed', 'stopped'] as const)
+  (["working", "done", "failed", "stopped"] as const)
     .flatMap((state) => {
       const count = agents.filter((agent) => agent.state === state).length;
 
       return count > 0 ? [`${count} ${state}`] : [];
     })
-    .join(' · ');
+    .join(" · ");
 
 export const agentMeta = (agent: TaskAgent, now = new Date()) => {
   const { since, state } = agent;
   const finish = agent.end === undefined ? Number.NaN : Date.parse(agent.end);
-  const end = state === 'working' ? now.getTime() : finish;
-  const timed = since !== undefined && since !== '' && end !== 0 && !Number.isNaN(end);
-  const spent = timed ? took(end - Date.parse(since)) : '';
-  const time = state === 'stopped' || state === 'failed' ? state : spent;
+  const end = state === "working" ? now.getTime() : finish;
+  const timed = since !== undefined && since !== "" && end !== 0 && !Number.isNaN(end);
+  const spent = timed ? took(end - Date.parse(since)) : "";
+  const time = state === "stopped" || state === "failed" ? state : spent;
 
-  return [agent.who, time].filter(Boolean).join(' · ');
+  return [agent.who, time].filter(Boolean).join(" · ");
 };
 
 export const agentSteps = (agent: AgentTrail) => {
   const [last, ...rest] = agent.steps;
 
-  if (last?.kind !== 'say' || agent.result === undefined || agent.result === '') {
+  if (last?.kind !== "say" || agent.result === undefined || agent.result === "") {
     return agent.steps;
   }
 
@@ -313,14 +313,14 @@ export const agentWords = (agents: TaskAgent[], working: boolean): string | unde
     return undefined;
   }
 
-  const names = named.map((agent) => agent.label.split(':')[0].trim());
-  const count = `${named.length} agent${named.length === 1 ? '' : 's'}`;
+  const names = named.map((agent) => agent.label.split(":")[0].trim());
+  const count = `${named.length} agent${named.length === 1 ? "" : "s"}`;
 
-  return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;
+  return `${count}${working ? " working" : ""} · ${names.join(", ")}`;
 };
 
 export const lastRun = (task: Task) =>
-  task.state !== 'working' && !!(task.steps.length || task.agents.length);
+  task.state !== "working" && !!(task.steps.length || task.agents.length);
 
 const TAU = 2 * 60_000;
 const WEEK = 7 * 24 * 3_600_000;
@@ -338,9 +338,9 @@ export const startOfDay = (now: Date) => {
 };
 
 export const STATE_WORDS: Record<TaskState, string> = {
-  needs: 'waiting on you',
-  working: 'working',
-  done: 'done',
-  failed: 'failed',
-  idle: 'idle',
+  needs: "waiting on you",
+  working: "working",
+  done: "done",
+  failed: "failed",
+  idle: "idle",
 };
