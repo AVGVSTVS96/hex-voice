@@ -1,32 +1,41 @@
 import type { TextInputRef } from '@expo/ui';
-import { createContext, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { TASKS } from '@/call/stage';
-import type { TasksAt } from '@/components/tasks/tasks-view';
-import type { PageId } from '@/live/inbox';
+import type { PageId, Stage } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
 import type { Page } from '@/screens/layout';
 
 export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
 
+// Every opening passes a new one, which starts Tasks afresh there.
+export type TasksAt = { task?: TaskId; stage?: Stage };
+
+// Where you are in Tasks: its pages, the list's tab and what it's searched for. The call screen
+// holds it (`Screen`), so it outlasts the pane, the sheet or the Duo's pages that show it, which
+// the window's size swaps.
 export type Stack = {
   path: Pushed[];
   task: PageId | null;
   row: string | null;
   stepsOf: TaskId | null;
   focusComposer: boolean;
+  // The tab Tasks was sent to, or once the list has loaded, the one it opened on or was moved to.
+  stage: Stage | null;
+  query: string | null;
 };
 
 export type Move =
-  | { to: 'start'; at: TasksAt }
   | { to: 'topic'; id: PageId; row?: string }
   | { to: 'beside'; id: PageId | null }
   | { to: 'thread'; write?: boolean }
   | { to: 'composerFocused' }
   | { to: 'steps'; id: TaskId }
   | { to: 'check' }
-  | { to: 'back' };
+  | { to: 'back' }
+  | { to: 'stage'; stage: Stage }
+  | { to: 'search'; query: string | null };
 
 export type Shape = 'one' | 'columns' | 'panes';
 
@@ -36,7 +45,19 @@ export const START: Stack = {
   row: null,
   stepsOf: null,
   focusComposer: false,
+  stage: null,
+  query: null,
 };
+
+// Every opening starts Tasks afresh where it's sent.
+export function startAt(at: TasksAt): Stack {
+  return {
+    ...START,
+    task: at.task ?? null,
+    path: at.task ? ['topic'] : [],
+    stage: at.stage ?? null,
+  };
+}
 
 // Wide enough for the list and a topic's page side by side: Tasks on a 13-inch iPad beside a call,
 // or anywhere before one. An 11-inch keeps one wide list beside a call.
@@ -51,8 +72,6 @@ export function shapeOf({ width, paged, meet = 0 }: Room): Shape {
 
 export function move(stack: Stack, step: Move): Stack {
   switch (step.to) {
-    case 'start':
-      return { ...START, task: step.at.task ?? null, path: step.at.task ? ['topic'] : [] };
     case 'topic':
       return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
     case 'beside':
@@ -71,6 +90,10 @@ export function move(stack: Stack, step: Move): Stack {
       return { ...stack, path: ['check'] };
     case 'back':
       return { ...stack, path: stack.path.slice(0, -1), focusComposer: false };
+    case 'stage':
+      return { ...stack, stage: step.stage };
+    case 'search':
+      return { ...stack, query: step.query };
   }
 }
 
@@ -89,31 +112,28 @@ export function backLeavesTasks(stack: Stack, shape: Shape): boolean {
 
 // On iPhone Duo SwiftUI places the pages, so whether they're two side by side is its call: it
 // reports it (`placed`) as the width changes, in the frame it does, and `shape` is only the guess
-// until it has.
+// until it has. Where you are is the call screen's (`stack`), so only how this container lays it out
+// is its own.
 export function usePages({
-  open,
-  at,
+  stack,
+  onMove,
   shape: guess,
   onClose,
 }: {
-  open: boolean;
-  at: TasksAt;
+  stack: Stack;
+  onMove: (move: Move) => void;
   shape: Shape;
   onClose?: () => void;
 }) {
   const [placed, setPlaced] = useState<Shape>();
   const shape = placed ?? guess;
-  const [stack, go] = useReducer(move, START);
-  useEffect(() => {
-    if (open) go({ to: 'start', at });
-  }, [open, at]);
-  const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : go({ to: 'back' }));
+  const back = () => (backLeavesTasks(stack, shape) ? onClose?.() : onMove({ to: 'back' }));
   return {
     ...stack,
     shape,
     levels: levelsOf(stack, shape),
     closes: !!onClose,
-    go,
+    go: onMove,
     back,
     placed: (paired: boolean) => setPlaced(paired ? 'panes' : 'one'),
   };

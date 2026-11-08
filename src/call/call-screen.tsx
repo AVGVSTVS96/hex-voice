@@ -32,7 +32,7 @@ import { ScreenToolbar } from '@/components/screen-toolbar';
 import { ToolbarBackProvider, useToolbarBacks } from '@/components/toolbar-back';
 import { TasksPane } from '@/components/tasks-pane';
 import { TasksSheet } from '@/components/tasks-sheet';
-import type { TasksAt } from '@/components/tasks/tasks-view';
+import type { Move, TasksAt } from '@/components/tasks/pages';
 import { opalPaletteInput } from '@/components/persona/variants';
 import { Transcript } from '@/components/transcript';
 import { VoiceSettings } from '@/components/voice-settings';
@@ -663,7 +663,8 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
 
   const tasks = {
     open: tasksOpen,
-    at: scene.at,
+    stack: scene.pages,
+    onMove: (move: Move) => send({ to: 'pages', move }),
     haptics: preferences.haptics,
     onTalk: talkAbout,
     onGoThrough: goThrough,

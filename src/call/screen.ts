@@ -1,18 +1,20 @@
-import type { TasksAt } from '@/components/tasks/tasks-view';
+import { move, startAt, type Move, type Stack, type TasksAt } from '@/components/tasks/pages';
 
 // What the call screen has open, in one place, so no two parts of it can disagree. Calls and Tasks
 // come in over the call one at a time (`over`). Settings is a layer: where it has a place of its own
 // (the open Duo, `shared`) it and Tasks take turns in that place like tabs; elsewhere it's a sheet
 // over whatever is open, so opening it leaves Tasks be. `front` stays on the last of the two opened
 // while it closes, so its place fades out. The call's words are pulled down over the orb or not, and
-// show the live call or a past one; on iPhone Duo they can be chosen to sit beside Tasks.
+// show the live call or a past one; on iPhone Duo they can be chosen to sit beside Tasks. Where you
+// are in Tasks is here too (`pages`), so it lasts while the window's size swaps the container
+// showing it, and only an opening starts it afresh.
 export type Over = 'none' | 'calls' | 'tasks';
 export type Place = 'tasks' | 'settings';
 export type Screen = {
   over: Over;
   settings: boolean;
   front: Place;
-  at: TasksAt;
+  pages: Stack;
   words: { pulled: boolean; call: string | null; beside: boolean };
 };
 
@@ -23,14 +25,15 @@ export type Action =
   | { to: 'settings'; open: boolean }
   | { to: 'words'; pulled: boolean }
   | { to: 'beside'; on: boolean }
-  | { to: 'call'; id: string | null };
+  | { to: 'call'; id: string | null }
+  | { to: 'pages'; move: Move };
 
 export function start(opening: { tasks?: TasksAt; open?: 'settings' | 'calls' }): Screen {
   return {
     over: opening.open === 'calls' ? 'calls' : opening.tasks ? 'tasks' : 'none',
     settings: opening.open === 'settings',
     front: opening.open === 'settings' ? 'settings' : 'tasks',
-    at: opening.tasks ?? {},
+    pages: startAt(opening.tasks ?? {}),
     words: { pulled: false, call: null, beside: false },
   };
 }
@@ -51,7 +54,7 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
       return {
         ...now,
         over: 'tasks',
-        at: action.at ?? {},
+        pages: startAt(action.at ?? {}),
         front: 'tasks',
         settings: shared ? false : now.settings,
       };
@@ -77,6 +80,8 @@ export function step(now: Screen, action: Action, { shared }: { shared: boolean 
         ...now,
         words: { ...now.words, pulled: now.words.pulled || action.id !== null, call: action.id },
       };
+    case 'pages':
+      return { ...now, pages: move(now.pages, action.move) };
   }
 }
 

@@ -55,12 +55,7 @@ export function TasksPage({
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
 }) {
   const room = pagedRoom(page);
-  const pages = usePages({
-    open: view.open,
-    at: view.at,
-    shape: shapeOf(room),
-    onClose,
-  });
+  const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room), onClose });
   const { back } = pages;
   const swipe = Gesture.Pan()
     .activeOffsetX(12)

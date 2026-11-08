@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { TaskId } from '../src/live/tasks';
+import { startAt } from '../src/components/tasks/pages';
 import { shown, start, step, type Action, type Screen } from '../src/call/screen';
 
 const go = (shared: boolean, ...actions: Action[]) =>
@@ -17,7 +20,7 @@ test('nothing is open at first, unless the link opens something', () => {
   });
   assert.equal(shown(start({ open: 'calls' }), false).calls, true);
   assert.equal(shown(start({ tasks: { task: A } }), true).tasks, true);
-  assert.deepEqual(start({ tasks: { task: A } }).at, { task: A });
+  assert.deepEqual(start({ tasks: { task: A } }).pages, startAt({ task: A }));
 });
 
 test('Calls and Tasks come in one at a time: opening one closes the other', () => {
@@ -37,10 +40,11 @@ test('closing Calls leaves Tasks alone, and closing Tasks leaves Calls alone', (
 });
 
 test('Tasks opens where it was sent', () => {
-  assert.deepEqual(go(false, { to: 'tasks', open: true, at: { stage: 'working' } }).at, {
-    stage: 'working',
-  });
-  assert.deepEqual(go(false, { to: 'tasks', open: true }).at, {});
+  assert.deepEqual(
+    go(false, { to: 'tasks', open: true, at: { stage: 'working' } }).pages,
+    startAt({ stage: 'working' }),
+  );
+  assert.deepEqual(go(false, { to: 'tasks', open: true }).pages, startAt({}));
 });
 
 test('where settings is a sheet, opening it leaves Tasks open beneath, and closing it brings Tasks back', () => {
@@ -143,4 +147,49 @@ test('the words chosen beside Tasks stay chosen as Tasks, settings and the words
   const after = moved.reduce((now, action) => step(now, action, { shared: true }), chosen);
   assert.equal(after.words.beside, true);
   assert.equal(step(after, { to: 'beside', on: false }, { shared: true }).words.beside, false);
+});
+
+test('where you are in Tasks lasts through everything but opening it again', () => {
+  const there = go(
+    false,
+    { to: 'tasks', open: true },
+    { to: 'pages', move: { to: 'stage', stage: 'done' } },
+    { to: 'pages', move: { to: 'search', query: 'fold' } },
+    { to: 'pages', move: { to: 'topic', id: A } },
+    { to: 'pages', move: { to: 'thread' } },
+  );
+  const others: Action[] = [
+    { to: 'settings', open: true },
+    { to: 'settings', open: false },
+    { to: 'calls', open: true },
+    { to: 'calls', open: false },
+    { to: 'words', pulled: true },
+    { to: 'call', id: 'c1' },
+    { to: 'beside', on: true },
+    { to: 'tasks', open: false },
+  ];
+  for (const shared of [false, true]) {
+    const after = others.reduce((now, action) => step(now, action, { shared }), there);
+    assert.deepEqual(after.pages, there.pages);
+    assert.deepEqual(step(after, { to: 'tasks', open: true }, { shared }).pages, startAt({}));
+  }
+});
+
+// The window's size picks which container shows Tasks (the iPad's pane, the sheet, the Duo's pages)
+// and can swap it at any time, so none of them may keep where you are: only the screen moves it.
+test('only the call screen moves through Tasks; its containers only lay out where it is', () => {
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory()
+        ? files(join(dir, entry.name))
+        : /\.tsx?$/.test(entry.name)
+          ? [join(dir, entry.name)]
+          : [],
+    );
+  const movers = files('src').filter((file) =>
+    /import \{[^}]*\b(?:move|startAt|START)\b[^}]*\} from '@\/components\/tasks\/pages'/.test(
+      readFileSync(file, 'utf8'),
+    ),
+  );
+  assert.deepEqual(movers, ['src/call/screen.ts']);
 });

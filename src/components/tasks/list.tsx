@@ -14,7 +14,7 @@ import {
   scrollContentBackground,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
@@ -22,13 +22,11 @@ import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
 import { useField, type Pages, type Spot } from '@/components/tasks/pages';
 import { Empty, Faded, Loading, UNREACHED, listRow, type Feel } from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
-import type { TasksAt } from '@/components/tasks/tasks-view';
 import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
 import type { Counts } from '@/hooks/use-tasks';
 import {
   doneIn,
-  openingStage,
   picksOf,
   search,
   whyOf,
@@ -60,7 +58,7 @@ const EMPTY: Record<Stage, string> = {
 
 export function ListPage({
   open,
-  at,
+  stage,
   pages,
   spot,
   tasks,
@@ -76,7 +74,7 @@ export function ListPage({
   onCounts,
 }: {
   open: boolean;
-  at: TasksAt;
+  stage: Stage;
   pages: Pages;
   spot: Spot;
   tasks: TaskRow[] | undefined;
@@ -93,8 +91,8 @@ export function ListPage({
   onCounts: (counts: Counts | undefined) => void;
 }) {
   const { back } = useChrome();
-  const [stage, setStage] = useState<Stage>('needs');
-  const [query, setQuery] = useState<string | null>(null);
+  const { query } = pages;
+  const setQuery = (query: string | null) => pages.go({ to: 'search', query });
   const counts = stageCounts(entries, yours.answered);
   const loaded = !!(yours.list && tasks);
   const behind = loaded && (offline || yours.offline);
@@ -105,18 +103,6 @@ export function ListPage({
     onCounts({ needs, working });
     return () => onCounts(undefined);
   }, [counted, needs, working, onCounts]);
-  // Opening starts on the tab it's sent to, else Needs you while anything waits, set in the render
-  // that opens so the tab it was left on never shows first.
-  const opening = open && loaded ? at : null;
-  const [openedAt, setOpenedAt] = useState<TasksAt | null>(null);
-  if (opening !== openedAt) {
-    setOpenedAt(opening);
-    if (opening) {
-      setStage(openingStage(opening.stage, counts));
-      setQuery(null);
-    }
-  }
-
   const shown = useMemo(
     () =>
       query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
@@ -131,12 +117,10 @@ export function ListPage({
   const searching = query !== null;
   const first = searching ? shown.map(taskOf).find(Boolean) : topics[0] && pageOf(topics[0]);
   // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
-  // out as two pages it's already there; on one page it waits unpicked behind the list. Opening
-  // starts the pages afresh after this has run (a parent's effect runs after its child's), and the
-  // fresh path is what makes it pick again.
+  // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
-    if (open && openedAt === at && !pages.task && first) pages.go({ to: 'beside', id: first });
-  }, [open, openedAt, at, pages.task, pages.path, first]);
+    if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
+  }, [open, pages.task, first]);
   const selected = beside
     ? ((
         shown.find((entry) => entry.id === doneIn(pages.task)) ??
@@ -159,7 +143,7 @@ export function ListPage({
   // empties between them.
   const chooseStage = (next: Stage) => {
     feel.tick();
-    setStage(next);
+    pages.go({ to: 'stage', stage: next });
     const [lead] = stageTopics(entries, next);
     if (beside) pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
   };
