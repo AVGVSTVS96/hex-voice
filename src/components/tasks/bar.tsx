@@ -21,7 +21,6 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
-// Back is its chevron alone in every pose, and says where it goes to VoiceOver.
 export interface Back {
   to: string;
   onPress: () => void;
@@ -61,8 +60,6 @@ export const Header = ({
   );
 };
 
-// A page's bar: its way back, its name and a line under it, and what it leads to. A `large` name is
-// the list's own, at title size, as Muse names its pages.
 export const PageBar = ({
   title,
   subtitle = '',
@@ -119,16 +116,12 @@ export const BackButton = ({ back }: { back: Back }) => (
   </BarButton>
 );
 
-// The way out to the app a page lives in: its place's tile in a glass circle, so the title keeps
-// the bar's width.
 const DoorPill = ({ door }: { door: Door }) => (
   <BarButton shape="circle" label={`Open in ${PLACES[door.place]}`} onPress={door.onPress}>
     <PlaceTile place={door.place} size={24} />
   </BarButton>
 );
 
-// Talk a topic through with hex: a secondary glass button at a page's foot, a circle beside the
-// composer or named on its own. Its own glyph, so it never reads as the call's button beside it.
 export const Talk = ({
   about,
   alone,
@@ -153,7 +146,6 @@ export const Talk = ({
   </BarButton>
 );
 
-// Not buttonStyle('glass'): its padding grows each control past 44pt by a different amount.
 export const BarButton = ({
   shape,
   label,

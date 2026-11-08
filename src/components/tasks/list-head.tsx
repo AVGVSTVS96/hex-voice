@@ -33,9 +33,6 @@ export const SearchButton = ({ onPress }: { onPress: () => void }) => (
   </BarButton>
 );
 
-// All and the stages as capsules, the chosen one filled, as Muse marks the tab you're on, all five
-// always in sight: on the narrowest page their words tighten a little rather than run off. Each
-// stage counts what it holds, and only a count of what needs you is mint.
 export const Tabs = ({
   counts,
   stage,
@@ -48,10 +45,8 @@ export const Tabs = ({
 }: {
   counts: Record<Stage, number>;
   stage: Tab;
-  // Not loaded yet, or hex can't be reached: no count is better than a made-up 0.
   unknown: boolean;
   onChange: (stage: Tab) => void;
-  // Where the stages share the bar's row: the page's name, and its way back.
   title?: string;
   back?: Back;
   onSearch?: () => void;

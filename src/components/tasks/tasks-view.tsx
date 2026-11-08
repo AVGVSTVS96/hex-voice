@@ -55,14 +55,12 @@ import { PagesView } from '../../../modules/pages';
 
 export interface TasksProps {
   open: boolean;
-  // Where you are in Tasks, which the call screen keeps whichever container shows it.
   stack: Stack;
   onMove: (move: Move) => void;
   haptics: boolean;
   onTalk: (task: TaskRow) => void;
   onGoThrough: () => void;
   onOpenCall: (id: string) => void;
-  // What the list's tabs count, while it shows them up to date.
   onCounts: (counts: Counts | undefined) => void;
 }
 
@@ -102,8 +100,6 @@ export const Tasks = ({
     [tasks, finished, yours.list, yours.shown],
   );
 
-  // Opening starts on the tab it's sent to, else Needs you while anything waits, kept once the list
-  // has loaded so it stays put as the counts change.
   const loaded = !!(yours.list && tasks);
 
   const stage =
@@ -116,10 +112,7 @@ export const Tasks = ({
   }, [open, loaded, pages.stage, stage]);
 
   const showing = showingOf(pages, entries, stage);
-  // A project with no thread to show has a page of its own, with nothing to fetch.
   const { task } = useTask(taskIn(showing), version);
-  // An ask whose thread has left the board opens its topic's newest thread still on it, or else
-  // the topic's asks alone.
   const asked = yours.shown.find((ask) => ask.task === showing);
   const opened = openedOf(task, tasks, showing, asked);
   const did = finished.find((one) => one.id === doneIn(showing));
@@ -149,7 +142,6 @@ export const Tasks = ({
     yours.dismiss(ask);
   };
 
-  // A link to an app that isn't installed fails without a word from iOS, so its place says so.
   const openLink = async (link: string, place: Place) => {
     tap();
 
@@ -179,7 +171,6 @@ export const Tasks = ({
     }
   };
 
-  // Where an ask was asked, as its topic's way there when no thread of it is left to open.
   const doorOf = (ask: Ask) => {
     const where = ask.places.find((one) => (one.link ?? '') !== '');
 
@@ -199,9 +190,7 @@ export const Tasks = ({
 
     if (tile.kind === 'call') {
       onOpenCall(tile.call);
-    }
-    // A page's link is the web's, which the browser always opens.
-    else {
+    } else {
       void Linking.openURL(tile.url).catch(() => null);
     }
   };
@@ -236,7 +225,6 @@ export const Tasks = ({
           },
   });
 
-  // On iPhone Duo the shown page's way back goes to the toolbar, and no page heads itself with one.
   const shownBack = pages.levels.map(spot).find((at) => at.shown && at.back !== undefined)?.back;
 
   const inToolbar = useToolbarBack(
@@ -263,10 +251,6 @@ export const Tasks = ({
     }
   };
 
-  // Pages glide only when you move through Tasks. Another project or tab beside the list moves
-  // nothing, so it lands at once: an animation there would fade each changed word through the last.
-  // Nor does one page or two: the project beside the list comes and goes with the width, and lands
-  // with the turn that changed it.
   const moved = rowsKey([...pages.path, pages.stepsOf ?? '', pages.pick ?? '']);
 
   const page = (level: Level, children: ReactNode) => {
@@ -307,8 +291,6 @@ export const Tasks = ({
     />
   );
 
-  // The topic and its conversation side by side are one view: the conversation's page shows only
-  // the messages and their composer, and the topic's shows everything else.
   const paired = spot('topic').shown && spot('thread').shown;
 
   const topicPage = () => {
@@ -492,8 +474,6 @@ export const Tasks = ({
 
   const levels = PUSHED.map((level) => page(level, content[level]));
 
-  // Any drag of Tasks' scrolling content lets the keyboard go, as the call's words do: interactive
-  // dismissal would wait for the finger to reach the keyboard.
   const fill = [
     frame({ maxWidth: Infinity, alignment: 'top' }),
     upTo(),
@@ -525,8 +505,6 @@ export const Tasks = ({
     );
   }
 
-  // On iPhone Duo SwiftUI picks one page or two from the width it has, places them, and says which
-  // it picked. Each page is keyed by its level, which is how SwiftUI knows which child is which.
   if (room.paged) {
     const children = [page('list', list), ...levels];
 
@@ -555,8 +533,6 @@ export const Tasks = ({
 
 const PUSHED = ['topic', 'thread', 'steps', 'check', 'picks', 'pick'] as const satisfies Level[];
 
-// Beside the list, before the list has picked, the page is the first project of its tab, so the
-// pane is never blank while it picks.
 const showingOf = (pages: Pages, entries: Entry[], stage: Tab) => {
   const leading = (
     pages.shape !== 'one' && (pages.task ?? '') === '' ? stageTopics(entries, stage) : []
@@ -588,7 +564,6 @@ const topicOf = (
 const threadsOf = (opened: TaskRow | Task | undefined, tasks: TaskRow[] | undefined) =>
   opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
 
-// The ask you tapped leads its topic's.
 const asksIn = (shown: Ask[], topic: string | undefined, row: string | null) =>
   topic === undefined || topic === ''
     ? []
@@ -619,7 +594,6 @@ const newestOf = (rows: TaskRow[]) => {
   return newest;
 };
 
-// The page beside the list before a project is open: hex still loading, or nothing picked yet.
 const Nothing = ({ loaded }: { loaded: boolean }) => (
   <Column
     alignment="center"
@@ -636,8 +610,6 @@ const Nothing = ({ loaded }: { loaded: boolean }) => (
   </Column>
 );
 
-// A page glides when you move through Tasks (`moved` changes) and lands at once when only the room
-// changes. On iPhone Duo `PagesView` places it, and here it only fills the spot it's given.
 const PageAt = ({
   spot,
   paged,
@@ -672,7 +644,4 @@ const PageAt = ({
   );
 };
 
-// A height is the most a page may take, never a fixed size. The keyboard shortens the Host it
-// covers, and a page taller than its Host is centered in it: pushed half the keyboard up off the
-// top, with its foot, where you type and send, still under the keyboard.
 const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: 'top' });

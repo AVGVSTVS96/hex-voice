@@ -84,7 +84,6 @@ export const ListPage = ({
   tasks: TaskRow[] | undefined;
   entries: Entry[];
   offline: boolean;
-  // hex has answered since this list showed what was kept on this device, and nothing failed since.
   current: boolean;
   yours: Yours;
   feel: Feel;
@@ -131,8 +130,6 @@ export const ListPage = ({
   const searching = query !== null;
   const needsTab = !searching && stage === 'needs';
   const first = firstPage(searching, shown, topics);
-  // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
-  // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
     if (open && (pages.task ?? '') === '' && first !== undefined && first !== '') {
       pages.go({ to: 'beside', id: first });
@@ -148,8 +145,6 @@ export const ListPage = ({
     pages.go({ to: 'topic', id: page, row });
   };
 
-  // A new tab picks its first project beside the list in the same move, so the page beside never
-  // empties between them.
   const chooseStage = (next: Tab) => {
     feel.tick();
     pages.go({ to: 'stage', stage: next });
@@ -191,9 +186,6 @@ export const ListPage = ({
   };
 
   const loading = loaded ? null : <Loading />;
-  // A page as wide as a landscape phone holds back, its title, the stages and search in one row,
-  // where they fit; a narrower one gives back, its title and search a bar of their own above the
-  // stages. SwiftUI picks from the width it lays the page out at.
   const tabs = { counts, stage, unknown: !loaded, onChange: chooseStage };
 
   const goThrough =
@@ -207,7 +199,6 @@ export const ListPage = ({
       />
     ) : null;
 
-  // The list ends above the pill, so no row ever shows cut beneath it.
   return (
     <Column
       alignment="start"
@@ -255,8 +246,6 @@ export const ListPage = ({
               motion.list,
               rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ''}`)),
             ),
-            // Rows coming and going within a stage settle; another stage or a search is another
-            // list, which swaps in whole instead of fading its rows through this one's.
             id(searching ? 'search' : stage),
           ]}
         >
@@ -331,7 +320,6 @@ const statusOf = (yours: Yours, tasks: TaskRow[] | undefined, offline: boolean) 
 const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
   const beside = pages.shape !== 'one';
   const [lead] = pages.path;
-  // hex's picks or the last check open beside the list in place of a project's page.
   const apart = beside && (lead === 'picks' || lead === 'check') ? lead : undefined;
 
   if (!beside || apart !== undefined) {
@@ -342,7 +330,6 @@ const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
     beside,
     apart,
     selected: selectedIn(shown, pages),
-    // The project open beside the list, by what its page shows.
     openTopic: entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task),
   };
 };
@@ -363,7 +350,6 @@ const selectedIn = (shown: Entry[], { task, row }: Pages) =>
 const emptyText = (query: string | null, stage: Tab) =>
   query === null || query === '' ? EMPTY[stage] : 'Nothing matches';
 
-// While hex is slow or out of reach, what's shown is what it last sent, and says so quietly.
 const Behind = () => (
   <Text
     variant="caption"

@@ -11,24 +11,18 @@ export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check' | 'picks' | 
 
 type Pushed = Exclude<Level, 'list'>;
 
-// Every opening passes a new one, which starts Tasks afresh there.
 export interface TasksAt {
   task?: TaskId;
   stage?: Tab;
 }
 
-// Where you are in Tasks: its pages, the list's tab and what it's searched for. The call screen
-// holds it (`Screen`), so it outlasts the pane, the sheet or the Duo's pages that show it, which
-// the window's size swaps.
 export interface Stack {
   path: Pushed[];
   task: PageId | null;
   row: string | null;
   stepsOf: TaskId | null;
-  // The question of hex's picks open on its own page.
   pick: AskId | null;
   focusComposer: boolean;
-  // The tab Tasks was sent to, or once the list has loaded, the one it opened on or was moved to.
   stage: Tab | null;
   query: string | null;
 }
@@ -59,7 +53,6 @@ export const START: Stack = {
   query: null,
 };
 
-// Every opening starts Tasks afresh where it's sent.
 export const startAt = (at: TasksAt): Stack => ({
   ...START,
   task: at.task ?? null,
@@ -67,12 +60,8 @@ export const startAt = (at: TasksAt): Stack => ({
   stage: at.stage ?? null,
 });
 
-// Wide enough for the list and a topic's page side by side: Tasks on a 13-inch iPad beside a call,
-// or anywhere before one. An 11-inch keeps one wide list beside a call.
 const COLUMNS = 900;
 
-// On iPhone Duo, two pages side by side where each side of the window's middle has a page as wide
-// as the phone's Tasks: open and held wide, not on its side, folded or beside the call's words.
 export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
   if (paged) {
     return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
@@ -158,10 +147,6 @@ export const backLeavesTasks = (stack: Stack, shape: Shape): boolean => {
   return levels.at(-2) === 'list';
 };
 
-// On iPhone Duo SwiftUI places the pages, so whether they're two side by side is its call: it
-// reports it (`placed`) as the width changes, in the frame it does, and `shape` is only the guess
-// until it has. Where you are is the call screen's (`stack`), so only how this container lays it out
-// is its own.
 export const usePages = ({
   stack,
   onMove,
@@ -201,9 +186,6 @@ export type Pages = ReturnType<typeof usePages>;
 
 type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 
-// Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
-// fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and two side by side
-// meet `meet` past its middle.
 export interface Room {
   width: number;
   foot: number | 'fold';
@@ -211,7 +193,6 @@ export interface Room {
   meet?: number;
 }
 
-// A Duo page's room. Its two pages meet in the window's middle, which is where the Duo folds.
 export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
   width: area.width,
   foot,
@@ -219,9 +200,6 @@ export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
   meet: (margin.right - margin.left) / 2,
 });
 
-// A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
-
-// Every page is as tall as the room lets it be, which the keyboard can shorten.
 export interface Spot {
   offset: { x: number; y: number };
   shown: boolean;
@@ -230,14 +208,10 @@ export interface Spot {
   back?: Level | 'call';
 }
 
-// A page that ends at the fold keeps nothing clear below it.
 const footOf = (foot: number | 'fold') => ({ foot: foot === 'fold' ? 0 : foot });
 
-// A field on a page says when it's being typed in, so that page can make room above the keyboard.
 export const Typing = createContext<((on: boolean) => void) | undefined>(undefined);
 
-// Whether a field's page shows. Pages stay mounted as they leave, so a field ends its own editing
-// when its page stops showing, rather than keep the keyboard up for a page that's gone.
 export const Showing = createContext(true);
 
 export const useField = () => {
@@ -252,9 +226,6 @@ export const useField = () => {
   return field;
 };
 
-// On iPhone Duo, SwiftUI places the pages by the same rule from the width it has
-// (`modules/pages`), so a resize lands in the frame it happens; these spots tell each page's content
-// how wide it is, whether it shows and where its Back goes.
 export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
   if (pages.shape === 'panes') {
     return spotInPanes(level, pages, room);
@@ -265,10 +236,6 @@ export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
     : spotAlone(level, pages, room);
 };
 
-// A page steps down over the one before, which waits a third of a page behind; on the Duo a whole
-// page, since its clear pages would show through each other. A page waiting off either edge
-// already has the way back it comes in with, so its back button slides in with it: the list's
-// "‹ Call" too, as it comes back from a project.
 const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
   const i = levels.indexOf(level);
   const front = i === levels.length - 1;
@@ -304,8 +271,6 @@ const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
   };
 };
 
-// Held wide, the deepest level takes the second pane and the one before it the first; deeper ones
-// wait off the leading edge, shallower ones off the trailing edge.
 const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
   const panes = room.width / 2 + (room.meet ?? 0);
   const i = levels.indexOf(level);
