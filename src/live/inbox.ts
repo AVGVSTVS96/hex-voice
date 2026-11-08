@@ -11,8 +11,9 @@ import { type Finished, type TaskId, type TaskRow, type Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
 // stuck, then what's working, then what was done in the last day (each task hex closed, in whatever
-// project), then the rest, quiet. Tasks shows it a stage at a time.
+// project), then the rest, quiet. Tasks shows it a stage at a time, or all of it.
 export type Stage = 'needs' | 'working' | 'done' | 'quiet';
+export type Tab = 'all' | Stage;
 export type Place = 'telegram' | 't3' | 'buzz' | 'discord' | 'server';
 
 // Where a row's item lives, as a tile beside it: a thread in its app, which opens there when it
@@ -36,7 +37,8 @@ export type Entry = Base &
 // last week for its lane.
 export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
 
-export const STAGES: { key: Stage; title: string }[] = [
+export const TABS: { key: Tab; title: string }[] = [
+  { key: 'all', title: 'All' },
   { key: 'needs', title: 'Needs you' },
   { key: 'working', title: 'Working' },
   { key: 'done', title: 'Done' },
@@ -251,11 +253,20 @@ export function topicsOf(shown: Entry[], all: Entry[]): Topic[] {
 export const openingStage = (counts: Record<Stage, number>): Stage =>
   counts.needs ? 'needs' : 'working';
 
+// What a tab shows: its stage's entries, or on All each project's from the first stage it's in, so
+// a project's row there reads as it does on that stage's tab.
+export function tabEntries(entries: Entry[], tab: Tab) {
+  if (tab !== 'all') return entries.filter((entry) => entry.stage === tab);
+  const first = new Map<string, Stage>();
+  for (const entry of entries) if (!first.has(entry.topic)) first.set(entry.topic, entry.stage);
+  return entries.filter((entry) => first.get(entry.topic) === entry.stage);
+}
+
 // A tab's rows: its projects, except Done, which lists each thing done on its own, newest first,
 // whatever else its project has going.
-export function stageTopics(entries: Entry[], stage: Stage): Topic[] {
-  const shown = entries.filter((entry) => entry.stage === stage);
-  return stage === 'done'
+export function stageTopics(entries: Entry[], tab: Tab): Topic[] {
+  const shown = tabEntries(entries, tab);
+  return tab === 'done'
     ? shown.flatMap((entry) => topicsOf([entry], entries))
     : topicsOf(shown, entries);
 }

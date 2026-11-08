@@ -23,6 +23,7 @@ import {
   whyOf,
   stageCounts,
   stageTopics,
+  tabEntries,
   taskOf,
   tilesOf,
   topicsOf,
@@ -622,6 +623,27 @@ test('each task hex finished in the last day is in Done, while its project works
   const [row3] = stageTopics(entries, 'done');
   assert.equal(doneIn(pageOf(row3!)), 't-3');
   assert.equal(taskIn(pageOf(row3!)), null);
+});
+
+test('All lists every project once, in the first stage it has, as that stage reads it', () => {
+  const entries = stream({
+    tasks: [row('voiceapp', 'working'), row('iikb', 'needs'), row('seqno', 'idle')],
+    finished: [done('t-2', 'voiceapp', at(9, 30)), done('t-3', 'pigeon', at(9, 45))],
+  });
+  assert.deepEqual(
+    stageTopics(entries, 'all').map(({ name, entries }) => [
+      name,
+      entries.map((entry) => entry.stage),
+    ]),
+    [
+      ['iikb', ['needs']],
+      ['voiceapp', ['working']],
+      ['pigeon', ['done']],
+      ['seqno', ['quiet']],
+    ],
+  );
+  assert.equal(tabEntries(entries, 'all').length, 4);
+  assert.deepEqual(ids(tabEntries(entries, 'done')), ['t-3', 't-2']);
 });
 
 test('Done is what was done, not who stopped: a thread between runs is quiet', () => {

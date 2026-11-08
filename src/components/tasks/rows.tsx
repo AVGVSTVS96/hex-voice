@@ -403,22 +403,21 @@ const STAGE_MARK: Record<Stage, MarkState> = {
 
 // A project as one row in the list, as Muse lists goals: its mark, its name, and the newest thing
 // in it in gray, as many lines as it needs to be read; how many it has here and when, quietly to
-// the side. Opens its page.
+// the side. A row holds one stage's entries, whichever tab it's on. Opens its page.
 export function ProjectRow({
   topic,
-  stage,
   width,
   selected,
   onOpen,
 }: {
   topic: Topic;
-  stage: Stage;
   width: number;
   selected: boolean;
   onOpen: () => void;
 }) {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!newest) return null;
+  const { stage } = newest;
   const count = topic.entries.length;
   const said = headlineOf(newest);
   const problem = problemOf(said);

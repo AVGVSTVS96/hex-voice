@@ -189,8 +189,8 @@ export const metrics = {
   // iOS 26's bar buttons in Tasks: 44pt glass, and a capsule's room either side of its symbol and
   // name, a little more after the name so the two look even.
   bar: { button: 44, capsule: { leading: space[3], trailing: space[4], gap: space[2] } },
-  // Tasks' stage tabs: each a capsule, filled once chosen, the gap between a tab's name and its
-  // count, and the most their words may tighten to keep all four in sight.
+  // Tasks' tabs: each a capsule, filled once chosen, the gap between a tab's name and its count,
+  // and the most their words may tighten to keep all five in sight.
   tabs: { height: 34, gap: space[1], pad: space[2], tightest: 0.8 },
   // An app's tile rounds its corners by this share of its size, as iOS rounds app icons.
   tileCorner: 0.27,

@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 
 import LiveScreen from '@/call/call-screen';
-import { STAGES } from '@/live/inbox';
+import { TABS } from '@/live/inbox';
 import { TaskId } from '@/live/tasks';
 import { SplitView } from '@/screens/split-view';
 
@@ -25,7 +25,7 @@ export default function Index() {
             ? undefined
             : {
                 task: tasks ? TaskId.parse(tasks) : undefined,
-                stage: STAGES.find(({ key }) => key === stage)?.key,
+                stage: TABS.find(({ key }) => key === stage)?.key,
               },
         open: open === 'settings' || open === 'calls' ? open : undefined,
         reportPose: report === 'pose',

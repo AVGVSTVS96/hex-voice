@@ -32,12 +32,13 @@ import {
   whyOf,
   stageCounts,
   stageTopics,
+  tabEntries,
   pageOf,
   taskOf,
   topicIn,
   topicsOf,
   type Entry,
-  type Stage,
+  type Tab,
   type Tile,
   type PageId,
 } from '@/live/inbox';
@@ -49,7 +50,8 @@ import { metrics, space } from '@/ui/tokens';
 
 const TABS_WITH_BAR = 600;
 
-const EMPTY: Record<Stage, string> = {
+const EMPTY: Record<Tab, string> = {
+  all: 'Nothing from hex yet',
   needs: 'Nothing waits on you',
   working: 'Nothing is working',
   done: 'Nothing done in the last day',
@@ -74,7 +76,7 @@ export function ListPage({
   onCounts,
 }: {
   open: boolean;
-  stage: Stage;
+  stage: Tab;
   pages: Pages;
   spot: Spot;
   tasks: TaskRow[] | undefined;
@@ -104,8 +106,7 @@ export function ListPage({
     return () => onCounts(undefined);
   }, [counted, needs, working, onCounts]);
   const shown = useMemo(
-    () =>
-      query !== null ? search(entries, query) : entries.filter((entry) => entry.stage === stage),
+    () => (query !== null ? search(entries, query) : tabEntries(entries, stage)),
     [entries, stage, query],
   );
   const topics = useMemo(
@@ -141,7 +142,7 @@ export function ListPage({
   };
   // A new tab picks its first project beside the list in the same move, so the page beside never
   // empties between them.
-  const chooseStage = (next: Stage) => {
+  const chooseStage = (next: Tab) => {
     feel.tick();
     pages.go({ to: 'stage', stage: next });
     const [lead] = stageTopics(entries, next);
@@ -263,7 +264,6 @@ export function ListPage({
                 <ProjectRow
                   key={stage === 'done' ? topic.entries[0]!.id : topic.name}
                   topic={topic}
-                  stage={stage}
                   width={width}
                   selected={
                     stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic

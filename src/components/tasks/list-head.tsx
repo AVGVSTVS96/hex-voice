@@ -16,7 +16,7 @@ import { useContext, type RefObject } from 'react';
 
 import { BackButton, BarButton, type Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
-import { STAGES, type Stage } from '@/live/inbox';
+import { TABS, type Stage, type Tab } from '@/live/inbox';
 import { theme } from '@/theme';
 import { glass } from '@/ui/glass-button';
 import { Text } from '@/ui/text';
@@ -30,9 +30,9 @@ export function SearchButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-// The stages as capsules, the chosen one filled, as Muse marks the tab you're on, all four always
-// in sight: on the narrowest page their words tighten a little rather than run off. Only a count
-// of what needs you is mint.
+// All and the stages as capsules, the chosen one filled, as Muse marks the tab you're on, all five
+// always in sight: on the narrowest page their words tighten a little rather than run off. Each
+// stage counts what it holds, and only a count of what needs you is mint.
 export function Tabs({
   counts,
   stage,
@@ -43,10 +43,10 @@ export function Tabs({
   onSearch,
 }: {
   counts: Record<Stage, number>;
-  stage: Stage;
+  stage: Tab;
   // Not loaded yet, or hex can't be reached: no count is better than a made-up 0.
   unknown: boolean;
-  onChange: (stage: Stage) => void;
+  onChange: (stage: Tab) => void;
   // Where the stages share the bar's row: the page's name, and its way back.
   title?: string;
   back?: Back;
@@ -84,10 +84,10 @@ export function Tabs({
           frame({ maxWidth: Infinity, alignment: 'leading' }),
         ]}
       >
-        {STAGES.map(({ key, title }) => {
+        {TABS.map(({ key, title }) => {
           const on = key === stage;
-          const count = counts[key];
-          const needs = !unknown && key === 'needs' && count > 0;
+          const count = key === 'all' ? undefined : counts[key];
+          const needs = !unknown && key === 'needs' && !!count;
           return (
             <Row
               key={key}
@@ -100,27 +100,29 @@ export function Tabs({
                 ...(on ? [background(theme.card)] : []),
                 clipShape('capsule'),
                 contentShape(shapes.capsule()),
-                accessibilityLabel(unknown ? title : `${title}, ${count}`),
+                accessibilityLabel(unknown || count === undefined ? title : `${title}, ${count}`),
                 ...(on ? [accessibilityAddTraits(['isSelected'])] : []),
               ]}
             >
               <Text
                 numberOfLines={1}
-                variant="detail"
+                variant="caption"
                 weight={on ? 'medium' : 'regular'}
                 tone={on ? 'text' : 'secondary'}
                 modifiers={[minimumScaleFactor(metrics.tabs.tightest)]}
               >
                 {title}
               </Text>
-              <Text
-                variant="detail"
-                weight={needs ? 'medium' : 'regular'}
-                tone={needs ? 'accent' : 'tertiary'}
-                modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
-              >
-                {unknown ? '–' : String(count)}
-              </Text>
+              {count === undefined ? null : (
+                <Text
+                  variant="caption"
+                  weight={needs ? 'medium' : 'regular'}
+                  tone={needs ? 'accent' : 'tertiary'}
+                  modifiers={[monospacedDigit(), minimumScaleFactor(metrics.tabs.tightest)]}
+                >
+                  {unknown ? '–' : String(count)}
+                </Text>
+              )}
             </Row>
           );
         })}

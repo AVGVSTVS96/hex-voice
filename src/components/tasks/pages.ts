@@ -2,7 +2,7 @@ import type { TextInputRef } from '@expo/ui';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { TASKS } from '@/call/stage';
-import type { PageId, Stage } from '@/live/inbox';
+import type { PageId, Tab } from '@/live/inbox';
 import type { TaskId } from '@/live/tasks';
 import type { Page } from '@/screens/layout';
 
@@ -10,7 +10,7 @@ export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check';
 type Pushed = Exclude<Level, 'list'>;
 
 // Every opening passes a new one, which starts Tasks afresh there.
-export type TasksAt = { task?: TaskId; stage?: Stage };
+export type TasksAt = { task?: TaskId; stage?: Tab };
 
 // Where you are in Tasks: its pages, the list's tab and what it's searched for. The call screen
 // holds it (`Screen`), so it outlasts the pane, the sheet or the Duo's pages that show it, which
@@ -22,7 +22,7 @@ export type Stack = {
   stepsOf: TaskId | null;
   focusComposer: boolean;
   // The tab Tasks was sent to, or once the list has loaded, the one it opened on or was moved to.
-  stage: Stage | null;
+  stage: Tab | null;
   query: string | null;
 };
 
@@ -34,7 +34,7 @@ export type Move =
   | { to: 'steps'; id: TaskId }
   | { to: 'check' }
   | { to: 'back' }
-  | { to: 'stage'; stage: Stage }
+  | { to: 'stage'; stage: Tab }
   | { to: 'search'; query: string | null };
 
 export type Shape = 'one' | 'columns' | 'panes';
