@@ -20,6 +20,8 @@ install_modules() {
   # fresh folder, since npm ci fails on files a native build left inside node_modules.
   rm -rf node_modules
   npm ci --no-audit --no-fund >/dev/null || die "npm ci failed in $PWD"
+  # Pods built against the packages that were here would point at their files, so they reinstall.
+  rm -f ios/Pods/.inputs
   echo "$lock" >node_modules/.lock
 }
 
