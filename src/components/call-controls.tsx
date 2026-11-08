@@ -57,19 +57,20 @@ export const CallButtons = ({
         {/* With no call there's nothing to mute, so an empty space holds mute's place and the
         call button beside it never moves. Not an invisible button: in a GlassEffectContainer,
         a glass button with opacity 0 still drew, glyph and all. */}
-        {mute && !buttons.mute ? (
-          <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
-        ) : mute && buttons.mute ? (
-          <GlassButton
-            icon={buttons.mute.muted ? 'mic-off' : 'mic'}
-            label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
-            testID="session-mute-button"
-            disabled={!buttons.mute.enabled}
-            selected={buttons.mute.muted}
-            size={sizes.mute}
-            onPress={onMute}
-          />
-        ) : null}
+        {mute &&
+          (buttons.mute ? (
+            <GlassButton
+              icon={buttons.mute.muted ? 'mic-off' : 'mic'}
+              label={buttons.mute.muted ? 'Unmute microphone' : 'Mute microphone'}
+              testID="session-mute-button"
+              disabled={!buttons.mute.enabled}
+              selected={buttons.mute.muted}
+              size={sizes.mute}
+              onPress={onMute}
+            />
+          ) : (
+            <Spacer modifiers={[frame({ width: muteSide, height: muteSide })]} />
+          ))}
         <GlassButton
           icon={primary.icon}
           label={primary.label}

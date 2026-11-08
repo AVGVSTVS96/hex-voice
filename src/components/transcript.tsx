@@ -16,6 +16,8 @@ import { metrics, space, textOf } from '@/ui/tokens';
 
 type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
+const NO_CARDS: CallCard[] = [];
+
 // The call's words, newest at the foot. Where they have a page of their own (iPad), they read a
 // size up, and before any are said the hint sits in the page's middle, level with the orb.
 export const Transcript = ({
@@ -23,7 +25,7 @@ export const Transcript = ({
   active,
   size = 'regular',
   emptyAt = 'end',
-  cards = [],
+  cards = NO_CARDS,
   onAnswer,
   onOpenTask,
 }: {
@@ -85,28 +87,34 @@ export const Transcript = ({
       ]}
     >
       {moments.length ? (
-        moments.map((moment) =>
-          'ask' in moment ? (
-            <CallAsk
-              key={`ask ${moment.ask.id}`}
-              card={moment}
-              onAnswer={async (option) => {
-                await onAnswer?.(moment, option);
-              }}
-              onOpenTask={() => onOpenTask?.(moment.ask.task)}
-            />
-          ) : moment.media ? (
-            <SentMedia
-              key={moment.id}
-              id={moment.id}
-              media={moment.media}
-              sending={moment.sending}
-              failed={moment.failed}
-            />
-          ) : (
-            <Line key={moment.id} entry={moment} size={size} />
-          ),
-        )
+        moments.map((moment) => {
+          if ('ask' in moment) {
+            return (
+              <CallAsk
+                key={`ask ${moment.ask.id}`}
+                card={moment}
+                onAnswer={async (option) => {
+                  await onAnswer?.(moment, option);
+                }}
+                onOpenTask={() => onOpenTask?.(moment.ask.task)}
+              />
+            );
+          }
+
+          if (moment.media) {
+            return (
+              <SentMedia
+                key={moment.id}
+                id={moment.id}
+                media={moment.media}
+                sending={moment.sending}
+                failed={moment.failed}
+              />
+            );
+          }
+
+          return <Line key={moment.id} entry={moment} size={size} />;
+        })
       ) : (
         <Text style={styles.empty}>Your conversation will appear here.</Text>
       )}
@@ -118,7 +126,7 @@ export const Transcript = ({
 const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
 
-  for (const card of [...cards].sort((a, b) => a.at - b.at)) {
+  for (const card of cards.toSorted((a, b) => a.at - b.at)) {
     const after = moments.findIndex((moment) => !('ask' in moment) && moment.startMs > card.at);
     moments.splice(after === -1 ? moments.length : after, 0, card);
   }

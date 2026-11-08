@@ -35,7 +35,7 @@ export const Markdown = ({
     return <Text>{children}</Text>;
   }
 
-  const failed = Object.values(tries.failed)[0];
+  const [failed] = Object.values(tries.failed);
   const look: TextStyle = type[variant];
 
   return (

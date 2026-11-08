@@ -10,6 +10,18 @@ import { ENDINGS, clock } from '@/live/calls';
 // An ended call stays on the lock screen with how it ended, long enough to glance at.
 const LINGER = 2 * 60_000;
 
+const shownState = (call: Call) => {
+  if (call.kind !== 'here') {
+    return null;
+  }
+
+  if (call.phase !== 'live') {
+    return call.phase;
+  }
+
+  return call.mic.muted ? 'muted' : 'live';
+};
+
 // A call on this phone shows on the Lock Screen and in the Dynamic Island while it connects and
 // lasts, with mute and End.
 export const useCallActivity = (
@@ -20,14 +32,7 @@ export const useCallActivity = (
   const activity = useRef<LiveActivity<CallActivityProps>>(null);
   const since = useRef(0);
 
-  const state =
-    call.kind === 'here'
-      ? call.phase === 'live'
-        ? call.mic.muted
-          ? 'muted'
-          : 'live'
-        : call.phase
-      : undefined;
+  const state = shownState(call);
 
   const last = call.kind === 'none' ? call.last : undefined;
 
@@ -64,18 +69,19 @@ export const useCallActivity = (
     }
 
     if (!state) {
-      const current = activity.current;
+      const { current } = activity;
       activity.current = null;
 
       if (current) {
         const ending = last?.ending;
         const outcome = ending && ENDINGS[ending];
 
-        const line = outcome
-          ? since.current && ending !== 'no-connect'
+        const timed = since.current !== 0 && ending !== 'no-connect';
+
+        const line =
+          (outcome && timed
             ? `${outcome.line} · ${clock((last?.seconds ?? 0) * 1000)}`
-            : outcome.line
-          : 'Call ended';
+            : outcome?.line) ?? 'Call ended';
 
         void current
           .end(after(new Date(Date.now() + LINGER)), {

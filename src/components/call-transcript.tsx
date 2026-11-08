@@ -47,29 +47,38 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
         summary={summary.summary ?? call?.summary}
         waiting={summary.waiting ?? call?.waiting}
       />
-      {call ? (
-        timeline(call).map((moment) =>
-          moment.kind === 'task' ? (
-            <Marker key={moment.key} task={moment.task} />
-          ) : moment.kind === 'mark' ? (
-            <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
-              {`${moment.mark.text} · ${clock(moment.at)}`}
-            </Line>
-          ) : moment.kind === 'media' ? (
-            <SentMedia key={moment.key} id={moment.key} media={moment.media} />
-          ) : (
+      {call &&
+        timeline(call).map((moment) => {
+          if (moment.kind === 'task') {
+            return <Marker key={moment.key} task={moment.task} />;
+          }
+
+          if (moment.kind === 'mark') {
+            return (
+              <Line key={moment.key} symbol={MARKS[moment.mark.kind]}>
+                {`${moment.mark.text} · ${clock(moment.at)}`}
+              </Line>
+            );
+          }
+
+          if (moment.kind === 'media') {
+            return <SentMedia key={moment.key} id={moment.key} media={moment.media} />;
+          }
+
+          return (
             <Turn key={moment.key} you={moment.turn.who === 'you'}>
               <Text selectable style={styles.text}>
                 {moment.turn.text}
               </Text>
             </Turn>
-          ),
-        )
-      ) : failed ? (
-        <Text style={styles.note}>hex didn’t answer, so this call can’t open yet.</Text>
-      ) : (
-        <ActivityIndicator color={theme.secondary} style={styles.loading} />
-      )}
+          );
+        })}
+      {!call &&
+        (failed ? (
+          <Text style={styles.note}>hex didn’t answer, so this call can’t open yet.</Text>
+        ) : (
+          <ActivityIndicator color={theme.secondary} style={styles.loading} />
+        ))}
       {call && ending && (
         <Line symbol="phone.down" bad={ending.bad}>
           {`${ending.line} · ${clock(summary.seconds * 1000)}`}

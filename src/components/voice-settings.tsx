@@ -54,6 +54,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
+import * as z from 'zod/mini';
 
 import { Persona, preloadPersonas } from '@/components/persona';
 import { PageBar } from '@/components/tasks/bar';
@@ -163,6 +164,8 @@ const APPEARANCE_HEIGHT =
 
 const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
 
+const VoiceDetent = z.object({ height: z.literal(VOICE_HEIGHT) });
+
 export const VoiceSettings = ({
   sheet,
   place,
@@ -224,14 +227,16 @@ export const VoiceSettings = ({
 
   const rowsWidth = beside ? width - carouselWidth - 3 * metrics.gutter : contentWidth;
 
+  const sheetPreview = beside
+    ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
+    : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
+
   const preview = place
     ? Math.max(
         SHORT_PREVIEW,
         Math.min(BESIDE.preview, personaHeight - PERSONA_PAGE - BAR - SHEET_TOP),
       )
-    : beside
-      ? Math.min(BESIDE.preview, room - PERSONA_PAGE - 2 * SHEET_TOP)
-      : Math.max(SHORT_PREVIEW, Math.min(ORB, room - (APPEARANCE_HEIGHT - ORB)));
+    : sheetPreview;
 
   const appearanceHeight = beside
     ? Math.min(BESIDE.height, room)
@@ -247,12 +252,12 @@ export const VoiceSettings = ({
   const orbSize = Math.min(beside || place ? BESIDE.orb : PREVIEW_ORB, preview - 30);
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
-  const selectedVoice = VOICES.find((option) => option.id === voice)!;
+  const selectedVoice = VOICES.find((option) => option.id === voice) ?? VOICES[0];
   const reducedMotion = useReducedMotion();
   const level = useSharedValue(0);
   const pitch = useSharedValue(0);
   const tone = useSharedValue(0);
-  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction)!;
+  const reaction = REACTIONS.find(({ id }) => id === preferences.reaction) ?? REACTIONS[0];
 
   const orbStyle = useAnimatedStyle(() => ({
     transform: heard(reaction.amount, orbSize, level.get(), pitch.get(), tone.get()),
@@ -278,20 +283,16 @@ export const VoiceSettings = ({
   };
 
   // In the Duo's place, settings' way back, and the voice page's, are the toolbar's.
-  const backInToolbar = useToolbarBack(
-    'settings',
-    isPresented
-      ? onVoicePage
-        ? {
-            to: 'Settings',
-            onPress: () => {
-              showVoices(false);
-            },
-          }
-        : { to: 'Call', onPress: onDismiss }
-      : undefined,
-    !!place,
-  );
+  const back = onVoicePage
+    ? {
+        to: 'Settings',
+        onPress: () => {
+          showVoices(false);
+        },
+      }
+    : { to: 'Call', onPress: onDismiss };
+
+  const backInToolbar = useToolbarBack('settings', isPresented ? back : undefined, !!place);
 
   // The voice page slides in from the right edge while the first page drifts a third of the way
   // left, like a navigation push. Pages hang from the sheet's bottom edge, the one edge that stays
@@ -588,10 +589,7 @@ export const VoiceSettings = ({
                     return;
                   }
 
-                  const voiceSized =
-                    typeof detent === 'object' &&
-                    'height' in detent &&
-                    detent.height === VOICE_HEIGHT;
+                  const voiceSized = VoiceDetent.safeParse(detent).success;
 
                   if (voiceSized === onVoicePage) {
                     return;
@@ -647,27 +645,29 @@ export const VoiceSettings = ({
                   style={StyleSheet.absoluteFill}
                 />
               </RNHostView>
-              {placed ? null : width > 0 && beside ? (
-                <Row
-                  alignment="center"
-                  spacing={metrics.gutter}
-                  style={{ paddingHorizontal: metrics.gutter }}
-                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-                >
-                  {carousel}
-                  <Column spacing={metrics.groupSpacing}>{rows}</Column>
-                </Row>
-              ) : width > 0 ? (
-                <Column
-                  alignment="center"
-                  spacing={metrics.groupSpacing}
-                  style={{ paddingTop: SHEET_TOP }}
-                  modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
-                >
-                  {carousel}
-                  {rows}
-                </Column>
-              ) : null}
+              {!placed &&
+                width > 0 &&
+                (beside ? (
+                  <Row
+                    alignment="center"
+                    spacing={metrics.gutter}
+                    style={{ paddingHorizontal: metrics.gutter }}
+                    modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+                  >
+                    {carousel}
+                    <Column spacing={metrics.groupSpacing}>{rows}</Column>
+                  </Row>
+                ) : (
+                  <Column
+                    alignment="center"
+                    spacing={metrics.groupSpacing}
+                    style={{ paddingTop: SHEET_TOP }}
+                    modifiers={page(!onVoicePage, -width / 3, appearanceHeight)}
+                  >
+                    {carousel}
+                    {rows}
+                  </Column>
+                ))}
               {!placed && width > 0 && (
                 <Column
                   alignment="center"

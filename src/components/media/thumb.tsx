@@ -35,8 +35,8 @@ export const Thumb = ({
         source={source}
         resizeMode="cover"
         style={StyleSheet.absoluteFill}
-        onLoad={({ nativeEvent: { source } }) => {
-          setShape(Math.min(4 / 3, Math.max(3 / 4, source.width / source.height)));
+        onLoad={({ nativeEvent: { source: loaded } }) => {
+          setShape(Math.min(4 / 3, Math.max(3 / 4, loaded.width / loaded.height)));
         }}
       />
       {media.kind === 'video' && (

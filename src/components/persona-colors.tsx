@@ -62,7 +62,7 @@ export const PersonaColors = ({
   }
 
   if (!PERSONA_MODELS[persona].dynamicColor) {
-    const { label } = PERSONA_VARIANTS.find(({ id }) => id === persona)!;
+    const { label } = PERSONA_VARIANTS.find(({ id }) => id === persona) ?? PERSONA_VARIANTS[0];
 
     return (
       <SwatchRow

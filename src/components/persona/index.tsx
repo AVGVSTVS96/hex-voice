@@ -112,7 +112,7 @@ const PersonaRenderer = ({
   const [file, setFile] = useState<RiveFile>();
   const [failed, setFailed] = useState(false);
   const { riveViewRef, setHybridRef } = useRive();
-  const dynamicColor = PERSONA_MODELS[variant].dynamicColor;
+  const { dynamicColor } = PERSONA_MODELS[variant];
 
   const { instance: colorModel } = useViewModelInstance(dynamicColor ? file : null, {
     async: true,
@@ -253,22 +253,25 @@ const PersonaRenderer = ({
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
-      {file && !failed && (!dynamicColor || colorModel) ? (
-        <RiveView
-          hybridRef={setHybridRef}
-          file={file}
-          stateMachineName={PERSONA_STATE_MACHINE}
-          dataBind={colorModel ?? undefined}
-          fit={Fit.Contain}
-          autoPlay={false}
-          onError={() => {
-            setFailed(true);
-          }}
-          style={{ width: size, height: size, backgroundColor: 'transparent' }}
-        />
-      ) : failed ? (
+      {failed ? (
         <Text style={{ ...textOf('caption'), color: theme.secondary }}>Visual unavailable</Text>
-      ) : null}
+      ) : (
+        file &&
+        (!dynamicColor || colorModel) && (
+          <RiveView
+            hybridRef={setHybridRef}
+            file={file}
+            stateMachineName={PERSONA_STATE_MACHINE}
+            dataBind={colorModel ?? undefined}
+            fit={Fit.Contain}
+            autoPlay={false}
+            onError={() => {
+              setFailed(true);
+            }}
+            style={{ width: size, height: size, backgroundColor: 'transparent' }}
+          />
+        )
+      )}
     </View>
   );
 };

@@ -35,7 +35,7 @@ export const personaColorOnLight = (color: string) =>
 export const DEFAULT_PERSONA_COLOR = '#FFFFFF';
 
 export const isPersonaColor = (value: unknown): value is string =>
-  typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value);
+  typeof value === 'string' && /^#[0-9A-F]{6}$/u.test(value);
 
 // Opal's numeric `color` input picks one of these hue palettes; any other value is its original mix.
 export const OPAL_PALETTES = [
