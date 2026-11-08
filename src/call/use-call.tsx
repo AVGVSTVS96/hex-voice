@@ -4,7 +4,6 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -101,10 +100,11 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
     void go(again[0].call, again);
   };
 
-  const sending = useMemo(() => ({ sent, send, retry }), [sent, send, retry]);
+  const sending = { sent, send, retry };
 
   return (
     <Session value={value}>
+      {/* oxlint-disable-next-line react/jsx-no-constructed-context-values -- React Compiler memoizes CallProvider, so sending keeps its identity until sent, send or retry change */}
       <Sending value={sending}>{children}</Sending>
     </Session>
   );
