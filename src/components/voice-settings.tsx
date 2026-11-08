@@ -11,6 +11,7 @@ import {
   ZStack,
 } from '@expo/ui/swift-ui';
 import {
+  fixedSize,
   accessibilityElement,
   accessibilityHidden,
   accessibilityIdentifier,
@@ -245,10 +246,14 @@ export function VoiceSettings({
     haptic();
     setOnVoicePage(show);
   };
-  // In the open Duo's place, the voice page's way back is the toolbar's.
+  // In the Duo's place, settings' way back, and the voice page's, are the toolbar's.
   const backInToolbar = useToolbarBack(
     'settings',
-    isPresented && onVoicePage ? { to: 'Settings', onPress: () => showVoices(false) } : undefined,
+    !isPresented
+      ? undefined
+      : onVoicePage
+        ? { to: 'Settings', onPress: () => showVoices(false) }
+        : { to: 'Call', onPress: onDismiss },
     !!place,
   );
   // The voice page slides in from the right edge while the first page drifts a third of the way
@@ -336,6 +341,7 @@ export function VoiceSettings({
             modifiers={[
               pickerStyle('menu'),
               labelsHidden(),
+              fixedSize({ horizontal: true, vertical: false }),
               tint(theme.secondary),
               accessibilityLabel('How much the orb reacts to your voice'),
             ]}
@@ -450,7 +456,6 @@ export function VoiceSettings({
       row={two && phone ? edges.leading + area.width * PERSONA_SHARE : undefined}
       edges={edges}
       persona={personaHeight}
-      onBack={onDismiss}
       onPane={(pane, size) =>
         setReported((now) =>
           now[pane]?.width === size.width && now[pane]?.height === size.height
@@ -607,7 +612,6 @@ function SettingsPlace({
   row,
   edges: { top, leading, trailing, bottom },
   persona: personaHeight,
-  onBack,
   onPane,
   children: [persona, rows],
 }: {
@@ -618,7 +622,6 @@ function SettingsPlace({
   row?: number;
   edges: { top: number; leading: number; trailing: number; bottom: number };
   persona: number;
-  onBack: () => void;
   onPane: (pane: Pane, size: Size) => void;
   children: [ReactNode, ReactNode];
 }) {
@@ -644,7 +647,7 @@ function SettingsPlace({
           frame({ maxWidth: Infinity }),
         ]}
       >
-        <PageBar title="Settings" large back={{ to: 'Call', onPress: onBack }} />
+        <PageBar title="Settings" large />
         <Spacer flexible />
         {persona}
         <Spacer flexible />
