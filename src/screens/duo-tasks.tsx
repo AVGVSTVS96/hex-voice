@@ -17,6 +17,7 @@ import { clock } from '@/live/calls';
 import { motion } from '@/motion';
 import { TIME, type Duo } from '@/screens/layout';
 import { theme } from '@/theme';
+import { AnimatedView } from '@/ui/animated-view';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics } from '@/ui/tokens';
 
@@ -97,7 +98,10 @@ export function DuoTasks({
     opacity: shown ? interpolate(pane.get(), [0.25, 1], [0, 1], Extrapolation.CLAMP) : 0,
   }));
   const dockedStyle = useAnimatedStyle(() => ({ opacity: state.dock.get() }));
-  const offerStyle = useAnimatedStyle(() => ({ opacity: state.offer.get() }));
+  const offerFade = () => {
+    'worklet';
+    return { opacity: state.offer.get() };
+  };
   const { time } = duo.call;
   const button = duo.beside?.button;
   // The switch shows what it does: the call and Tasks side by side, or one over the other.
@@ -111,29 +115,27 @@ export function DuoTasks({
         }
         style={pageStyle}
       />
-      {onCall && (
-        <Animated.Text
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={[
-            styles.time,
-            { left: time.x, top: time.y, width: time.width, textAlign: time.align },
-            dockedStyle,
-          ]}
-        >
-          {clock(seconds * 1000)}
-        </Animated.Text>
-      )}
+      <Animated.Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.time,
+          { left: time.x, top: time.y, width: time.width, textAlign: time.align },
+          dockedStyle,
+        ]}
+      >
+        {onCall ? clock(seconds * 1000) : ''}
+      </Animated.Text>
       {button && (
-        <Animated.View
+        <AnimatedView
           pointerEvents={state.offered ? 'box-none' : 'none'}
           accessibilityElementsHidden={!state.offered}
           importantForAccessibility={state.offered ? 'auto' : 'no-hide-descendants'}
           style={[
             styles.button,
             { left: button.x - metrics.tool / 2, top: button.y - metrics.tool / 2 },
-            offerStyle,
           ]}
+          animate={offerFade}
         >
           <HostedGlassButton
             icon={stacks ? 'beside-column' : 'beside-row'}
@@ -142,7 +144,7 @@ export function DuoTasks({
             selected={state.beside}
             onPress={state.toggleBeside}
           />
-        </Animated.View>
+        </AnimatedView>
       )}
     </>
   );
