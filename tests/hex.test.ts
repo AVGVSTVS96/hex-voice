@@ -231,7 +231,7 @@ test('an answer, a note and a not needed each go to their ask and say what they 
   await assert.rejects(answering(null).asks.note(ask, 'x'), /asks\/.*note/);
 });
 
-test('a photo goes to hex as its bytes, then to the call or the thread by the id hex gave it', async () => {
+test('a photo goes to hex as its bytes, and to a call or a thread by the ids hex gave it', async () => {
   const seen: { url: string; init?: RequestInit }[] = [];
   const hex = createHex(
     createClient({
@@ -249,7 +249,7 @@ test('a photo goes to hex as its bytes, then to the call or the thread by the id
   );
   const photo = { uri: 'file:///shot.jpg', kind: 'photo' as const, type: 'image/jpeg' };
   assert.deepEqual(await hex.media.upload(photo), { id: 'm1', kind: 'photo' });
-  await hex.calls.share(live, [photo]);
+  await hex.calls.media(live, [MediaId.parse('m2')]);
   await hex.tasks.send(thread, '', 'app-2', [photo, photo]);
   assert.deepEqual(
     await Promise.all(
@@ -261,14 +261,13 @@ test('a photo goes to hex as its bytes, then to the call or the thread by the id
     ),
     [
       ['/media', 'image/jpeg', 'file file:///shot.jpg'],
-      ['/media', 'image/jpeg', 'file file:///shot.jpg'],
       ['/calls/live_1/media', 'application/json', '{"media":["m2"]}'],
       ['/media', 'image/jpeg', 'file file:///shot.jpg'],
       ['/media', 'image/jpeg', 'file file:///shot.jpg'],
       [
         '/tasks/telegram%3A-100%3A908/chat',
         'application/json',
-        '{"text":"","key":"app-2","media":["m4","m5"]}',
+        '{"text":"","key":"app-2","media":["m3","m4"]}',
       ],
     ],
   );

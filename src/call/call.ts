@@ -96,8 +96,10 @@ export function callOf(session: LiveSnapshot, { record, leaving }: Elsewhere): C
 
 // A photo or clip you sent a call from here (`picked`), as its words show it until hex's record has
 // it: going, or why it didn't.
+// What's sent together shares a `batch`, and goes again together.
 export type Sent = {
   call: CallId;
+  batch: string;
   picked: Picked;
   id?: MediaId;
   entry: TranscriptEntry & { media: Shown };

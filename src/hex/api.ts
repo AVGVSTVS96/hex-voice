@@ -49,12 +49,8 @@ export function createHex({ request, send, source, upload }: Client) {
       get: (id: CallId, after?: number, signal?: AbortSignal) =>
         request(`/calls/${enc(id)}`, CallRecord, { after, signal }),
       remove: (id: CallId) => send(`/calls/${enc(id)}`, { method: 'DELETE' }),
-      // The photo or clip goes up, then to the call by the id hex gave it, which comes back.
-      share: async (id: CallId, picked: Picked[]) => {
-        const shared = await Promise.all(picked.map(media.upload));
-        await send(`/calls/${enc(id)}/media`, { body: { media: shared.map((one) => one.id) } });
-        return shared;
-      },
+      // Photos and clips hex already keeps go to the call together, so it hears of them once.
+      media: (id: CallId, media: MediaId[]) => send(`/calls/${enc(id)}/media`, { body: { media } }),
     },
     tasks: {
       list: (after?: number, signal?: AbortSignal) =>

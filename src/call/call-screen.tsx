@@ -253,9 +253,9 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
   // the voice, with the call's time by it; tapping it closes Tasks for the call.
   const { docked, dock, covers, aside } = duoTasks;
   // The + sends the live call on screen a photo or video. It steps away with the call: docked in
-  // the Duo's bar, docked beside a pane on iPad, or behind a past call you're reading.
-  const adds =
-    buttonsOf(call).add && !docked && !(orb.dock && (callsOpen || tasksOpen)) && !viewing;
+  // the Duo's bar, docked beside a pane on iPad, or behind a past call you're reading. It stays
+  // mounted, so a camera it opened stays up through the call ending.
+  const adds = buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && !viewing;
   // Where the call's words and the lines under them go when they take the page before the fold.
   const before = duo?.beside?.words ?? { ...words, raise: 0 };
   const closeTasks = () => {
@@ -533,6 +533,13 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
         uncovered(covers.get()),
     };
   };
+  // The + fades as the transcript button does, short of the words' glide, which it stays through.
+  const addFade = () => {
+    'worklet';
+    return {
+      opacity: (adds ? 1 : 0) * (slides ? 1 - drawer.get() : 1) * uncovered(covers.get()),
+    };
+  };
   // iPhone Duo's Tasks lays one backdrop across the whole screen, the column and the fold too, and
   // the words' fades trade the call's color for the backdrop's as it comes in. The call's own fades
   // wear their style off the Duo too, so its last opacity can't stay behind when a window loses the
@@ -789,16 +796,18 @@ function CallScreen({ room, opening }: { room: Room; opening: Opening }) {
                   />
                 </AnimatedView>
               )}
-              {adds && (
-                <View
-                  style={[
-                    styles.dock,
-                    { left: add.x - metrics.docked / 2, top: add.y - metrics.docked / 2 },
-                  ]}
-                >
-                  <CallAdd call={call} />
-                </View>
-              )}
+              <AnimatedView
+                animate={addFade}
+                pointerEvents={adds && !docked ? 'auto' : 'none'}
+                accessibilityElementsHidden={!adds || docked}
+                importantForAccessibility={adds && !docked ? 'auto' : 'no-hide-descendants'}
+                style={[
+                  styles.dock,
+                  { left: add.x - metrics.docked / 2, top: add.y - metrics.docked / 2 },
+                ]}
+              >
+                <CallAdd call={call} />
+              </AnimatedView>
               <GestureDetector gesture={orbGesture}>
                 <Animated.View
                   accessible

@@ -1,4 +1,4 @@
-import type { Call } from '@/call/call';
+import { buttonsOf, type Call } from '@/call/call';
 import { useShare } from '@/call/use-call';
 import { AddMedia } from '@/components/media/add-media';
 import { MOST } from '@/live/media';
@@ -7,7 +7,7 @@ import { Host } from '@/ui/host';
 import { metrics } from '@/ui/tokens';
 
 // The call's +, a glass button the size of the transcript button beside it: what you shoot or pick
-// goes to the call as you send it.
+// goes to the call as you send it. Off a live call it's off, though a camera it opened stays up.
 export function CallAdd({ call }: { call: Call }) {
   const share = useShare(call);
   return (
@@ -16,7 +16,7 @@ export function CallAdd({ call }: { call: Call }) {
         testID="call-add"
         label="Send a photo or video"
         glass
-        most={MOST}
+        most={buttonsOf(call).add ? MOST : 0}
         sends
         onAdd={share}
       >

@@ -284,6 +284,7 @@ test('what you sent a call shows among its words, going then sent, until the rec
   const photo = { uri: 'file:///router.jpg', kind: 'photo' as const, type: 'image/jpeg' };
   const sent = (call: CallId, at: number, id?: string) => ({
     call,
+    batch: `${at}`,
     picked: photo,
     id: id === undefined ? undefined : MediaId.parse(id),
     entry: { id: `sent ${at}`, role: 'user' as const, text: '', startMs: at, media: photo },
