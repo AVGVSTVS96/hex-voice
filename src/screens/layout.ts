@@ -13,6 +13,10 @@ import { metrics, space, stack, type ToolbarGaps } from '@/ui/tokens';
 import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 
 const GAP = 12;
+// iPhone Duo's side column: the least its tools keep from its top, and how far its call buttons
+// keep above what covers its foot. SwiftUI places them by these (modules/column) and the layout
+// here reads the same places.
+export const COLUMN = { top: GAP + 4, clear: 8 };
 // The toolbar's Tasks and settings, one glass capsule.
 const PAIR = 2 * metrics.tool + metrics.toolbar.row;
 // Back, after the pair across iPhone Duo's band, next to the status items.
@@ -89,10 +93,9 @@ export type Page = {
 export type Layout = Stage & {
   content: Rect;
   toolbar: Toolbar;
-  // iPhone Duo's side column, laid out natively beside the content (src/screens/side-column.tsx):
-  // the side it's on, how far the system's items sit from its middle, where its tools start and how
-  // far up from the foot its call buttons end.
-  column?: { bar: 'left' | 'right'; shift: number; top: number; foot: number };
+  // iPhone Duo's side column, laid out natively beside the content (src/screens/side-column.tsx),
+  // on this side.
+  column?: { bar: 'left' | 'right' };
   // Before a call on iPad, Tasks opens across the screen as an inbox and the call waits in a rail.
   inbox?: Inbox;
   duo?: Duo;
@@ -154,12 +157,7 @@ export function screenLayout(room: Room, { call = true } = {}): Layout {
           },
         }),
     tasks: { width: content.width, place: 'page' },
-    column: frame.column && {
-      bar: frame.column.x === 0 ? 'left' : 'right',
-      shift: frame.column.center - (frame.column.x + frame.column.width / 2),
-      top: toolbar.y,
-      foot: frame.column.controls.bottom,
-    },
+    column: frame.column && { bar: frame.column.x === 0 ? 'left' : 'right' },
     // Where Calls comes in beside the call, the orb's place is under it, so it rests whole in the
     // room the call has left. Upright that room is the words' page, so once there are words it
     // docks in the column, at the spot it takes when Tasks opens on a call; on its side it waits
@@ -269,7 +267,10 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
     .reduce((bottom, area) => Math.max(bottom, area.y + area.height), insets.top);
   const foot = covers
     .filter((area) => !high(area))
-    .reduce((bottom, area) => Math.max(bottom, window.height - area.y + 8), insets.bottom);
+    .reduce(
+      (bottom, area) => Math.max(bottom, window.height - area.y + COLUMN.clear),
+      insets.bottom,
+    );
   // The system draws its time, wifi and camera a few points toward the screen from the inset's
   // middle, where the camera's occlusion is, so the column's buttons center on those.
   const items = covers.filter((area) => area.width < width);
@@ -283,7 +284,7 @@ function column(window: Size, insets: Insets, bar: 'left' | 'right', occlusions:
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
       x: center - metrics.tool / 2,
-      y: Math.max(top, GAP + 4),
+      y: Math.max(top, COLUMN.top),
       width: metrics.tool,
       axis: 'column' as const,
       gaps: tight ? ('compact' as const) : ('regular' as const),
