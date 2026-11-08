@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -119,6 +118,7 @@ const Row = ({
     scheduleOnRN(setOpen, to !== 0);
   };
 
+  // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
   const swipe = Gesture.Pan()
     .enabled(!live)
     .activeOffsetX([-12, 12])
@@ -140,6 +140,7 @@ const Row = ({
       }
     });
 
+  // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
   const tap = Gesture.Tap().onEnd(() => {
     if (x.get() < -1) {
       settle(0);
@@ -172,6 +173,7 @@ const Row = ({
           <Glyph name="trash" size={metrics.symbol.bar} color={theme.onProminent} />
         </Pressable>
       </Animated.View>
+      {/* oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves */}
       <GestureDetector gesture={Gesture.Exclusive(swipe, tap)}>
         <Animated.View
           accessible

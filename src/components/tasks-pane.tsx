@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import { ZStack } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { StyleSheet, View } from 'react-native';
@@ -60,6 +59,7 @@ export const TasksPage = ({
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room), onClose });
   const { back } = pages;
 
+  // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
   const swipe = Gesture.Pan()
     .activeOffsetX(12)
     .failOffsetY([-14, 14])

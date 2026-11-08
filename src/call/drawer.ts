@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import { useEffect, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
@@ -65,6 +64,7 @@ export const useDrawer = ({
   }, [open]);
 
   const pan = (offset: number | [number, number]) =>
+    // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
     Gesture.Pan()
       .activeOffsetX(offset)
       .failOffsetY([-14, 14])
@@ -87,8 +87,10 @@ export const useDrawer = ({
     out,
     edgeOpen: pan(12),
     listClose: pan(-16),
+    // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
     peekClose: Gesture.Race(
       pan([-10, 10]),
+      // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
       Gesture.Tap().onEnd(() => {
         'worklet';
         letGo(false);

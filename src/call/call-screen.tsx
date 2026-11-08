@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps, ReactElement } from 'react';
@@ -298,8 +297,10 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     .enabled(pulls && !reading)
     .failOffsetX([-20, 20]);
 
+  // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
   const orbGesture = Gesture.Race(
     drag().enabled(pulls && reading && !docked),
+    // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
     Gesture.Tap()
       .enabled(docked || (pulls ? reading : viewing !== null))
       .onEnd(() => {

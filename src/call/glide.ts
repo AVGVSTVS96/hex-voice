@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-deprecated -- Gesture Handler 3 deprecates the Gesture builder for hooks; moving changes gesture timing that only his Duo could check */
 import { useEffect } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
@@ -138,6 +137,7 @@ export const useGlide = ({
   );
 
   const drag = () =>
+    // oxlint-disable-next-line typescript/no-deprecated -- Gesture Handler 3 deprecates its Gesture builder for hook gestures, whose timing needs a check on a device before this moves
     Gesture.Pan()
       .activeOffsetY([-12, 12])
       .onStart(({ translationY }) => {
