@@ -2,9 +2,10 @@
 # Builds main once and installs it on the iPhone and iPad. The Mac builds it unsigned in one warm
 # folder, so Xcode only rebuilds what changed. Bassim's paid Apple team signs it with the Mac's
 # development certificate, in profiles that last a year: xtool on the server (Bassim's fork) only
-# makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose login keychain has the key. Then the Mac
-# installs with devicectl on the devices it reaches by cable or Wi-Fi. Never let xtool revoke the
-# certificate to make its own: that breaks what Xcode signs, hex keyboard included.
+# makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose login
+# keychain has the key. Then the Mac installs with devicectl on the devices it reaches by cable or
+# Wi-Fi. Never let xtool revoke the certificate to make its own: that breaks what Xcode signs, hex
+# keyboard included.
 # Runs queue up: one that waited behind another builds the newest main, or nothing when the
 # devices already run it, and reuses a signed build of that main already on the Mac. When the Mac
 # doesn't answer, it's asleep, and the run stops and says so. Installing ends a call the app
