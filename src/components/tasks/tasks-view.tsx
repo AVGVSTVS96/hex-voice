@@ -278,7 +278,7 @@ export function Tasks({
           }
           beside={paired}
           answering={typing === 'topic'}
-          onWrite={!paired && said.chat?.sends ? () => write(true) : undefined}
+          onWrite={!paired && said.sends ? () => write(true) : undefined}
           foot={spot('topic').foot}
         />
       ) : did ? (
