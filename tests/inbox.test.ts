@@ -7,7 +7,10 @@ import { Ask, Fresh, Stuck } from '../src/live/asks';
 import {
   fitsOneLine,
   headlineOf,
+  doneIn,
   pageOf,
+  proofLinks,
+  taskIn,
   topicIn,
   inboxEntries,
   linkName,
@@ -584,6 +587,9 @@ test('each task hex finished in the last day is in Done, while its project works
   assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
   assert.equal(pageOf(topicsOf(tab, entries)[1]!), 'telegram:voiceapp');
   assert.equal(headlineOf(tab[0]!), 't-3 title');
+  const [row3] = tab.flatMap((entry) => topicsOf([entry], entries));
+  assert.equal(doneIn(pageOf(row3!)), 't-3');
+  assert.equal(taskIn(pageOf(row3!)), null);
 });
 
 test('Done is what was done, not who stopped: a thread between runs is quiet', () => {
@@ -601,7 +607,7 @@ test('Done is what was done, not who stopped: a thread between runs is quiet', (
   );
 });
 
-test('a finished task with no thread on the board opens its project’s own page, and its proof link is a tile', () => {
+test('a finished task with no thread on the board still opens its own page, and its proof link is a tile', () => {
   const [entry] = stream({
     finished: [
       done('t-5', 'Launch plan', at(9), {
@@ -612,7 +618,7 @@ test('a finished task with no thread on the board opens its project’s own page
     ],
   });
   assert.equal(taskOf(entry!), undefined);
-  assert.equal(pageOf(topicsOf([entry!], [entry!])[0]!), 'topic:Launch plan');
+  assert.equal(pageOf(topicsOf([entry!], [entry!])[0]!), 'done:t-5');
   assert.deepEqual(entry!.tiles, [
     { kind: 'app', place: 'telegram', label: 'Telegram', link: 'https://t.me/c/1/1' },
     { kind: 'link', label: 'hex #180', url: 'https://github.com/AVGVSTVS96/hex/pull/180' },
@@ -637,6 +643,12 @@ test('a proof reads with each link by its name', () => {
     proofWords('site https://autofork.com; PR https://github.com/AVGVSTVS96/hex/pull/180, live.'),
     'site autofork.com; PR hex #180, live.',
   );
+  assert.equal(proofWords('telegram:-1001234567890:7350'), 'message 7350');
+  assert.deepEqual(
+    proofLinks('telegram:-1001234567890:7350, and again telegram:-1001234567890:7350'),
+    [{ kind: 'link', label: 'message 7350', url: 'https://t.me/c/1234567890/7350' }],
+  );
+  assert.deepEqual(proofLinks('telegram:123456789:12 in the DM'), []);
   const [entry] = stream({
     finished: [done('t-6', 'autofork', at(9), { proof: 'https://autofork.com; npm' })],
   });

@@ -20,19 +20,20 @@ import { Header, Talk, type Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, SectionHead, Sections, StageHead, listRow } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
-import { PlaceTile, Places, hasPlaces } from '@/components/tasks/places';
+import { PlaceTile, Places, TileIcon, hasPlaces } from '@/components/tasks/places';
 import { Foot, WriteField } from '@/components/tasks/thread';
 import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import { useNow } from '@/hooks/use-now';
 import type { Ask, AskOption } from '@/live/asks';
 import { Lane } from '@/components/tasks/lane';
-import { placeOf, tracksOf, type Place } from '@/live/inbox';
+import { placeOf, proofLinks, proofWords, tracksOf, type Place, type Tile } from '@/live/inbox';
 import {
   STATE_WORDS,
   agentWords,
   clock,
   lastRun,
   taskTime,
+  type Finished,
   type Task,
   type TaskRow,
   type TaskId,
@@ -280,6 +281,154 @@ export function Asked({
         </List>
       </Faded>
     </Column>
+  );
+}
+
+// One thing hex did, as Done's row opens it: what it was, when, the proof it was closed with and
+// the pages that proof links to, and the way to the rest of its project.
+export function DonePage({
+  finished,
+  width,
+  door,
+  onOpenLink,
+  onOpenProject,
+}: {
+  finished: Finished;
+  width: number;
+  door?: Door;
+  onOpenLink: (tile: Tile) => void;
+  onOpenProject?: () => void;
+}) {
+  const proof = proofWords(finished.proof);
+  const links = proofLinks(finished.proof);
+  const at = clock(new Date(finished.at));
+  return (
+    <Column alignment="center" spacing={0} modifiers={readable}>
+      <Header title={finished.topic} subtitle={`Done · ${at}`} door={door} />
+      <Faded>
+        <List modifiers={pageList([], {})}>
+          <Column alignment="start" spacing={0} modifiers={rest(width)}>
+            <Row
+              alignment="start"
+              spacing={metrics.list.gap}
+              modifiers={[
+                padding({
+                  leading: metrics.list.inset,
+                  trailing: metrics.list.inset,
+                  top: space[4],
+                }),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                accessibilityLabel(`Done at ${at}: ${finished.title}`),
+              ]}
+            >
+              <Mark state="done" />
+              <Text
+                paragraph
+                variant="body"
+                modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+              >
+                {finished.title}
+              </Text>
+            </Row>
+            {proof ? (
+              <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+                <SectionHead title="Proof" />
+                <Text
+                  paragraph
+                  variant="detail"
+                  tone="secondary"
+                  modifiers={[
+                    padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
+                    frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  ]}
+                >
+                  {proof}
+                </Text>
+              </Column>
+            ) : null}
+            {links.length ? (
+              <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+                <SectionHead title="Links" count={links.length} />
+                {links.map((link) => (
+                  <Way
+                    key={link.url}
+                    lead={<TileIcon tile={link} size={metrics.list.tile} />}
+                    title={link.label}
+                    note={link.url.replace(/^https?:\/\//, '')}
+                    out
+                    onPress={() => onOpenLink(link)}
+                  />
+                ))}
+              </Column>
+            ) : null}
+            {onOpenProject ? (
+              <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+                <SectionHead title="Project" />
+                <Way
+                  lead={<PlaceTile place={placeOf(finished.app)} size={metrics.list.tile} />}
+                  title={finished.topic}
+                  note="Everything else it has going"
+                  onPress={onOpenProject}
+                />
+              </Column>
+            ) : null}
+          </Column>
+        </List>
+      </Faded>
+    </Column>
+  );
+}
+
+// A row on a page that leads somewhere: out of the app, or to another page.
+function Way({
+  lead,
+  title,
+  note,
+  out = false,
+  onPress,
+}: {
+  lead: ReactNode;
+  title: string;
+  note: string;
+  out?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Row
+      alignment="center"
+      spacing={space[3]}
+      onPress={onPress}
+      modifiers={[
+        padding({
+          leading: metrics.list.inset,
+          trailing: metrics.list.inset - space[1],
+          top: metrics.list.place,
+          bottom: metrics.list.place,
+        }),
+        frame({ maxWidth: Infinity, alignment: 'leading' }),
+        contentShape(shapes.rectangle()),
+        accessibilityLabel(`${title}, ${note}`),
+      ]}
+    >
+      {lead}
+      <Column
+        alignment="start"
+        spacing={space[0.5]}
+        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}
+      >
+        <Text numberOfLines={1} variant="detail" weight="medium">
+          {title}
+        </Text>
+        <Text numberOfLines={1} variant="caption" tone="secondary">
+          {note}
+        </Text>
+      </Column>
+      <Icon
+        name={out ? 'arrow.up.right' : 'chevron.right'}
+        size={metrics.symbol.small}
+        color={theme.tertiary}
+      />
+    </Row>
   );
 }
 

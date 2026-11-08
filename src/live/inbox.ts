@@ -102,26 +102,36 @@ const threadTile = (place: Place, link?: string): Tile => ({
 const RANK: Record<Stage, number> = { needs: 0, working: 1, done: 2, quiet: 3 };
 const DAY = 24 * 60 * 60_000;
 
-// A link ends before the punctuation of the sentence it sits in.
-const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]/g;
+// A link ends before the punctuation of the sentence it sits in. A proof can also name a Telegram
+// message by hex's key for it, which in a group opens as that message.
+const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/g;
 
 // What a link is, in a word or two: a GitHub pull request or commit by its repo and number, a repo
-// by its name, else its site.
+// by its name, a Telegram message by its number, else its site.
 export function linkName(url: string) {
   const github = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/);
   if (github?.[2])
     return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3]!.slice(0, 7)}`;
   if (github) return github[1]!;
+  const message = url.match(/^https:\/\/t\.me\/c\/\d+\/(\d+)$/);
+  if (message) return `message ${message[1]}`;
   return url.replace(/^https?:\/\/(www\.)?/, '').replace(/[:/].*$/, '');
 }
 
-// A task's proof as its row reads it, each link by its name.
-export const proofWords = (proof: string) => proof.replace(LINKS, linkName).trim();
-
-const proofTile = (proof: string): Tile[] => {
-  const [url] = proof.match(LINKS) ?? [];
-  return url ? [{ kind: 'link', label: linkName(url), url }] : [];
+const urlOf = (found: string) => {
+  const key = found.match(/^telegram:-100(\d+):(\d+)$/);
+  return key ? `https://t.me/c/${key[1]}/${key[2]}` : found;
 };
+
+// A task's proof as its page reads it, each link by its name.
+export const proofWords = (proof: string) =>
+  proof.replace(LINKS, (found) => linkName(urlOf(found))).trim();
+
+// Each page a proof links to, once.
+export function proofLinks(proof: string): Extract<Tile, { kind: 'link' }>[] {
+  const urls = [...new Set((proof.match(LINKS) ?? []).map(urlOf))];
+  return urls.map((url) => ({ kind: 'link', label: linkName(url), url }));
+}
 
 // The stream, in its order. An ask stands in for the thread that asked it, in that thread's topic
 // while it's on the board, so a thread waiting on your ask is never also quiet; one still working
@@ -191,7 +201,7 @@ export function inboxEntries(
         id: one.id,
         topic: one.topic,
         place: placeOf(one.app),
-        tiles: [threadTile(placeOf(one.app), one.link), ...proofTile(one.proof)],
+        tiles: [threadTile(placeOf(one.app), one.link), ...proofLinks(one.proof).slice(0, 1)],
         stage: 'done',
         at: one.at,
         finished: one,
@@ -312,14 +322,18 @@ export function fitsOneLine(options: AskOption[], width: number, size = SIZE) {
   return ((words + BETWEEN * (options.length - 1)) * size) / SIZE <= width;
 }
 
-// A page in Tasks: a thread's, or a project's own when it has no thread to show.
+// A page in Tasks: a thread's, a project's own when it has no thread to show, or a thing hex did.
 const TOPIC = 'topic:';
-export type PageId = TaskId | `${typeof TOPIC}${string}`;
+const DONE = 'done:';
+export type PageId = TaskId | `${typeof TOPIC}${string}` | `${typeof DONE}${string}`;
 const isTopic = (page: PageId): page is `${typeof TOPIC}${string}` => page.startsWith(TOPIC);
+const isDone = (page: PageId): page is `${typeof DONE}${string}` => page.startsWith(DONE);
 
-// The page a project opens on: its leading thread's, or, with none to show (what's stuck, what
-// finished), a page of its own rows.
+// The page a row opens on: what hex did, for a row of Done; else its project's leading thread's,
+// or, with none to show (what's stuck, a finished T3 thread), a page of its project's own rows.
 export function pageOf(topic: Topic): PageId {
+  const [lead] = topic.entries;
+  if (topic.entries.length === 1 && lead?.kind === 'finished') return `${DONE}${lead.id}`;
   return topic.entries.map(taskOf).find(Boolean) ?? `${TOPIC}${topic.name}`;
 }
 
@@ -328,7 +342,11 @@ export function topicIn(page: PageId | null) {
 }
 
 export function taskIn(page: PageId | null) {
-  return page && !isTopic(page) ? page : null;
+  return page && !isTopic(page) && !isDone(page) ? page : null;
+}
+
+export function doneIn(page: PageId | null) {
+  return page && isDone(page) ? page.slice(DONE.length) : undefined;
 }
 
 // Each of a project's threads' last week, for its lane.

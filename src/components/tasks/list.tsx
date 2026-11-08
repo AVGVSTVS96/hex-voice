@@ -27,6 +27,7 @@ import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
 import type { Counts } from '@/hooks/use-tasks';
 import {
+  doneIn,
   picksOf,
   search,
   stageCounts,
@@ -37,7 +38,6 @@ import {
   type Entry,
   type Stage,
   type Tile,
-  type Topic,
   type PageId,
 } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
@@ -140,6 +140,7 @@ export function ListPage({
   }, [open, pages.task, pages.path, first]);
   const selected = beside
     ? ((
+        shown.find((entry) => entry.id === doneIn(pages.task)) ??
         shown.find((entry) => entry.id === pages.row && taskOf(entry) === pages.task) ??
         shown.find((entry) => taskOf(entry) === pages.task)
       )?.id ?? null)
@@ -154,13 +155,6 @@ export function ListPage({
     feel.tick();
     searchField.current?.blur();
     pages.go({ to: 'topic', id, row });
-  };
-  // A row of Done opens what showed it done, when that's a link, else its project's page.
-  const openRow = (topic: Topic) => {
-    const [entry] = topic.entries;
-    const proof = stage === 'done' && entry?.tiles.find((tile) => tile.kind === 'link');
-    if (proof) onOpenTile(proof);
-    else openPage(pageOf(topic), entry?.id);
   };
   const chooseStage = (next: Stage) => {
     feel.tick();
@@ -285,10 +279,9 @@ export function ListPage({
                   stage={stage}
                   width={width}
                   selected={
-                    topic.name === openTopic &&
-                    (stage !== 'done' || topics.find((one) => one.name === topic.name) === topic)
+                    stage === 'done' ? pageOf(topic) === pages.task : topic.name === openTopic
                   }
-                  onOpen={() => openRow(topic)}
+                  onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
                 />,
               ];
             const lead = topic.entries.map(taskOf).find(Boolean);

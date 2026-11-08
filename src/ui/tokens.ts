@@ -196,6 +196,8 @@ export const metrics = {
     rest: space[3],
     row: { top: space[3], bottom: space[3] },
     place: space[3],
+    // A place's or a link's tile on a page.
+    tile: 28,
     // A step's first line, which its mark, time and chevron center on.
     line: 20,
     // The gap between a row's time, its count and its tiles.

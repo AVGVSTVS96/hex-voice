@@ -167,7 +167,6 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
     case 'finished': {
       const { finished } = entry;
       const proof = proofWords(finished.proof);
-      const page = entry.tiles.find((tile) => tile.kind === 'link');
       return (
         <Swiped {...swiped}>
           <Shell
@@ -176,14 +175,9 @@ export function EntryRow({ entry, ...actions }: { entry: Entry } & RowActions) {
             line={finished.title}
             time={clock(new Date(entry.at))}
             tiles={entry.tiles}
-            label={`${finished.title}, done${proof ? `: ${proof}` : ''}. Opens ${page ? page.label : entry.topic}`}
+            label={`${finished.title}, done${proof ? `: ${proof}` : ''}. Opens it`}
             onPress={() =>
-              page
-                ? actions.onOpenTile(page)
-                : actions.onOpen(
-                    pageOf({ name: entry.topic, entries: [entry], marks: [] }),
-                    entry.id,
-                  )
+              actions.onOpen(pageOf({ name: entry.topic, entries: [entry], marks: [] }), entry.id)
             }
           >
             {proof ? <Why text={proof} /> : null}

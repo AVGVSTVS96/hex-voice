@@ -56,7 +56,7 @@ export function TileIcon({ tile, size }: { tile: Tile; size: number }) {
   return <Solid {...look(tile)} size={size} />;
 }
 
-export function PlaceTile({ place, size = 28 }: { place: Place; size?: number }) {
+export function PlaceTile({ place, size = metrics.list.tile }: { place: Place; size?: number }) {
   return <Solid color={brand[place]} glyph={GLYPH[place]} ink={brand.ink} size={size} />;
 }
 

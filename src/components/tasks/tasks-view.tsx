@@ -32,7 +32,7 @@ import {
 import { feel } from '@/components/tasks/parts';
 import { EntryRow } from '@/components/tasks/rows';
 import { Selectable } from '@/components/tasks/said';
-import { Asked, Detail } from '@/components/tasks/task-page';
+import { Asked, Detail, DonePage } from '@/components/tasks/task-page';
 import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { StepsLoading, Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
@@ -42,6 +42,7 @@ import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
   placeOf,
+  doneIn,
   taskIn,
   topicIn,
   type Place,
@@ -113,6 +114,7 @@ export function Tasks({
     tasks?.find((row) => row.id === pages.task) ??
     (asked ? newestOf((tasks ?? []).filter((row) => row.name === asked.topic)) : undefined);
   const alone = opened || asked ? undefined : topicIn(pages.task);
+  const did = finished.find((one) => one.id === doneIn(pages.task));
   const topic = opened?.name ?? asked?.topic ?? alone;
   const threads = opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
   // The ask you tapped leads its topic's.
@@ -283,6 +285,25 @@ export function Tasks({
           answering={typing === 'topic'}
           onWrite={!paired && said.chat?.sends ? () => write(true) : undefined}
           foot={spot('topic').foot}
+        />
+      ) : did ? (
+        <DonePage
+          finished={did}
+          width={spot('topic').width}
+          door={
+            did.link
+              ? { place: placeOf(did.app), onPress: () => openLink(did.link!, placeOf(did.app)) }
+              : undefined
+          }
+          onOpenLink={openTile}
+          onOpenProject={
+            did.run && tasks?.some((row) => row.id === did.run)
+              ? () => {
+                  tick();
+                  pages.go({ to: 'topic', id: did.run! });
+                }
+              : undefined
+          }
         />
       ) : topic ? (
         <Asked
