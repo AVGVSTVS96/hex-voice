@@ -2,18 +2,19 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CallMenu } from '@/components/call-menu';
 import { useToolbarBack } from '@/components/toolbar-back';
-import { callName, callWhen, type CallSummary } from '@/live/calls';
+import { callName, callWhen } from '@/live/calls';
+import type { CallSummary } from '@/live/calls';
 import { circle, theme } from '@/theme';
 import { metrics, space, textOf } from '@/ui/tokens';
 
-type Props = {
+interface Props {
   call: CallSummary;
   live: boolean;
   onCall: boolean;
   transcript?: string;
   onBack: () => void;
   onDelete?: () => void;
-};
+}
 
 // A past call's title, small, with its menu, heading its words.
 export const PastCallBar = ({ call, live, onCall, transcript, onBack, onDelete }: Props) => {

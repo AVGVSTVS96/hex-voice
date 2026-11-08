@@ -1,7 +1,7 @@
 // expo-widgets builds the Live Activity extension without resources, so this adds the orb
 // stills (made by `npm run activity-orbs`) to it as an asset catalog the extension compiles.
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { withDangerousMod, withXcodeProject } = require('expo/config-plugins');
 
 const TARGET = 'ExpoWidgetsTarget';
@@ -23,9 +23,12 @@ module.exports = function withActivityOrbs(config) {
     const project = config.modResults;
     const target = project.findTargetKey(TARGET);
     const group = project.findPBXGroupKey({ name: TARGET });
-    if (!target || !group)
+    if (!target || !group) {
       throw new Error(`with-activity-orbs: no ${TARGET} target to add orbs to`);
-    if (project.hasFile(CATALOG)) return config;
+    }
+    if (project.hasFile(CATALOG)) {
+      return config;
+    }
     const phase = project
       .pbxNativeTargetSection()
       [target].buildPhases.find(({ comment }) => comment === 'Resources');

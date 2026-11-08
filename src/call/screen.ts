@@ -1,4 +1,5 @@
-import { move, startAt, type Move, type Stack, type TasksAt } from '@/components/tasks/pages';
+import { move, startAt } from '@/components/tasks/pages';
+import type { Move, Stack, TasksAt } from '@/components/tasks/pages';
 
 // What the call screen has open, in one place, so no two parts of it can disagree. Calls and Tasks
 // come in over the call one at a time (`over`). Settings is a layer: where it has a place of its own
@@ -10,13 +11,13 @@ import { move, startAt, type Move, type Stack, type TasksAt } from '@/components
 // showing it, and only an opening starts it afresh.
 export type Over = 'none' | 'calls' | 'tasks';
 export type Place = 'tasks' | 'settings';
-export type Screen = {
+export interface Screen {
   over: Over;
   settings: boolean;
   front: Place;
   pages: Stack;
   words: { pulled: boolean; call: string | null; beside: boolean };
-};
+}
 
 export type Action =
   | { to: 'calls'; open: boolean }
@@ -38,17 +39,19 @@ export const start = (opening: { tasks?: TasksAt; open?: 'settings' | 'calls' })
 
 export const step = (now: Screen, action: Action, { shared }: { shared: boolean }): Screen => {
   switch (action.to) {
-    case 'calls':
+    case 'calls': {
       return action.open
         ? { ...now, over: 'calls', settings: false }
         : { ...now, over: now.over === 'calls' ? 'none' : now.over };
-    case 'tasks':
-      if (!action.open)
+    }
+    case 'tasks': {
+      if (!action.open) {
         return {
           ...now,
           over: now.over === 'tasks' ? 'none' : now.over,
           settings: shared ? false : now.settings,
         };
+      }
       return {
         ...now,
         over: 'tasks',
@@ -56,30 +59,38 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
         front: 'tasks',
         settings: shared ? false : now.settings,
       };
-    case 'settings':
-      if (!action.open) return { ...now, settings: false };
+    }
+    case 'settings': {
+      if (!action.open) {
+        return { ...now, settings: false };
+      }
       return {
         ...now,
         settings: true,
         front: 'settings',
         over: shared ? 'none' : now.over,
       };
-    case 'words':
+    }
+    case 'words': {
       return {
         ...now,
         words: action.pulled
           ? { ...now.words, pulled: true }
           : { ...now.words, pulled: false, call: null },
       };
-    case 'beside':
+    }
+    case 'beside': {
       return { ...now, words: { ...now.words, beside: action.on } };
-    case 'call':
+    }
+    case 'call': {
       return {
         ...now,
         words: { ...now.words, pulled: now.words.pulled || action.id !== null, call: action.id },
       };
-    case 'pages':
+    }
+    case 'pages': {
       return { ...now, pages: move(now.pages, action.move) };
+    }
   }
 };
 

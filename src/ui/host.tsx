@@ -1,4 +1,5 @@
-import { Host as SwiftUIHost, type HostProps } from '@expo/ui/swift-ui';
+import { Host as SwiftUIHost } from '@expo/ui/swift-ui';
+import type { HostProps } from '@expo/ui/swift-ui';
 
 // Where a SwiftUI view sits is React Native's to decide, so by default a Host keeps clear of
 // nothing iOS reserves. One the keyboard covered would otherwise shorten what it holds by the

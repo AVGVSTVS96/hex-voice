@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, StyleSheet, View, type DimensionValue } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import type { DimensionValue } from 'react-native';
 
 import { Glyph } from '@/components/glyph';
 import { mediaSource } from '@/hooks/use-media';

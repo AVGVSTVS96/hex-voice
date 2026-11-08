@@ -1,6 +1,8 @@
-import { DynamicColorIOS, StyleSheet, type ColorValue } from 'react-native';
+import { DynamicColorIOS, StyleSheet } from 'react-native';
+import type { ColorValue } from 'react-native';
 
-import { color, film, type Tone } from '@/ui/tokens';
+import { color, film } from '@/ui/tokens';
+import type { Tone } from '@/ui/tokens';
 
 // iOS picks the side of each color that matches the system's appearance.
 export const theme = Object.fromEntries(

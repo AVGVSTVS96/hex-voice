@@ -2,8 +2,8 @@ import {
   DEFAULT_PERSONA_COLOR,
   isOpalPalette,
   isPersonaColor,
-  type OpalPalette,
 } from '@/components/persona/variants';
+import type { OpalPalette } from '@/components/persona/variants';
 import { useSavedPreference } from '@/hooks/use-saved-preference';
 
 export const REACTIONS = [

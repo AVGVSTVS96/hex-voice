@@ -27,9 +27,12 @@ const token = /\b(?:space\[[\d.]+\]|metrics(?:\.\w+)+|radius\.\w+|textOf\([^)]*\
 
 const raw = (value: string, constants: Map<string, string>, strict: boolean): boolean => {
   const rest = value.replace(token, '').replace(/\/\s*2\b/g, '');
-  if (strict && rest.trim()) return true;
-  if ([...rest.matchAll(/(?<![\w$.])\d*\.?\d+/g)].some(([number]) => Number(number) !== 0))
+  if (strict && rest.trim()) {
     return true;
+  }
+  if ([...rest.matchAll(/(?<![\w$.])\d*\.?\d+/g)].some(([number]) => Number(number) !== 0)) {
+    return true;
+  }
   return [...rest.matchAll(/\b[A-Z][A-Z\d_]+\b/g)].some(([name]) => {
     const defined = constants.get(name);
     return defined === undefined || raw(defined, constants, false);
@@ -37,8 +40,10 @@ const raw = (value: string, constants: Map<string, string>, strict: boolean): bo
 };
 
 const rawLooks = (file: string) => {
-  if (!existsSync(file)) return [];
-  const source = readFileSync(file, 'utf8');
+  if (!existsSync(file)) {
+    return [];
+  }
+  const source = readFileSync(file, 'utf-8');
   const constants = new Map(
     [...source.matchAll(/^(?:export )?const ([A-Z][A-Z\d_]+) = ([^;\n]+);/gm)].map(
       ([, name, value]) => [name, value] as [string, string],
@@ -106,7 +111,7 @@ test('every corner comes from the tokens, in every file', () => {
   const found = files('src')
     .filter((file) => !file.endsWith('theme.ts'))
     .flatMap((file) =>
-      readFileSync(file, 'utf8')
+      readFileSync(file, 'utf-8')
         .split('\n')
         .flatMap((line, i) => (corner.test(line) ? [`${file}:${i + 1}: ${line.trim()}`] : [])),
     );
@@ -120,7 +125,7 @@ test('every color comes from the tokens, so mint, blue and red each keep one mea
   const found = files('src')
     .filter((file) => file !== 'src/ui/tokens.ts' && file !== widget && !art.has(file))
     .flatMap((file) =>
-      readFileSync(file, 'utf8')
+      readFileSync(file, 'utf-8')
         .split('\n')
         .flatMap((line, i) =>
           /#[\dA-Fa-f]{3,8}\b|\brgba?\(|\bhsla?\(/.test(line)

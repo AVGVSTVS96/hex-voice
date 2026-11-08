@@ -1,8 +1,8 @@
 // Ask hex through Siri: the App Intent and its Siri skill go into the app target itself, where
 // Xcode reads App Intents metadata and compiles the skills bundle (both need the iOS 27.3 SDK
 // for Siri to see them), and the app's hex address and token go in Info.plist for the intent.
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { withDangerousMod, withInfoPlist, withXcodeProject } = require('expo/config-plugins');
 
 const FILES = [
@@ -32,10 +32,14 @@ module.exports = function withSiri(config) {
     const name = config.modRequest.projectName;
     const target = project.findTargetKey(name);
     const group = project.findPBXGroupKey({ name });
-    if (!target || !group) throw new Error(`with-siri: no ${name} app target`);
+    if (!target || !group) {
+      throw new Error(`with-siri: no ${name} app target`);
+    }
     const phases = project.pbxNativeTargetSection()[target].buildPhases;
     for (const file of FILES) {
-      if (project.hasFile(`${name}/${file.name}`)) continue;
+      if (project.hasFile(`${name}/${file.name}`)) {
+        continue;
+      }
       const phase = phases.find(({ comment }) => comment === file.phase);
       const section = file.phase === 'Sources' ? 'PBXSourcesBuildPhase' : 'PBXResourcesBuildPhase';
       const added = project.addFile(`${name}/${file.name}`, group, {

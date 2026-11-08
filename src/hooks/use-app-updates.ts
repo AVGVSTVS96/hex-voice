@@ -10,17 +10,25 @@ export const useAppUpdates = (callLive: boolean) => {
   const { isUpdatePending } = Updates.useUpdates();
 
   const apply = useEffectEvent(() => {
-    if (isUpdatePending && !callLive) void Updates.reloadAsync();
+    if (isUpdatePending && !callLive) {
+      void Updates.reloadAsync();
+    }
   });
 
   useEffect(() => {
-    if (!Updates.isEnabled) return;
+    if (!Updates.isEnabled) {
+      return;
+    }
     let last = AppState.currentState;
     const listener = AppState.addEventListener('change', (state) => {
       const back = last === 'background' && state === 'active';
       last = state;
-      if (state !== 'active') return;
-      if (back) apply();
+      if (state !== 'active') {
+        return;
+      }
+      if (back) {
+        apply();
+      }
       void download();
     });
     return () => listener.remove();
@@ -29,6 +37,8 @@ export const useAppUpdates = (callLive: boolean) => {
 
 const download = async () => {
   try {
-    if ((await Updates.checkForUpdateAsync()).isAvailable) await Updates.fetchUpdateAsync();
+    if ((await Updates.checkForUpdateAsync()).isAvailable) {
+      await Updates.fetchUpdateAsync();
+    }
   } catch {}
 };

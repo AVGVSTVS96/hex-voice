@@ -1,12 +1,15 @@
 import { ZStack } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { type AnimatedStyle } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import type { AnimatedStyle } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { pagedRoom, shapeOf, usePages } from '@/components/tasks/pages';
-import { Tasks, TasksView, type TasksProps } from '@/components/tasks/tasks-view';
+import { Tasks, TasksView } from '@/components/tasks/tasks-view';
+import type { TasksProps } from '@/components/tasks/tasks-view';
 import type { Page } from '@/screens/layout';
 import { logPose } from '@/screens/pose-log';
 import { theme } from '@/theme';
@@ -61,7 +64,9 @@ export const TasksPage = ({
     .activeOffsetX(12)
     .failOffsetY([-14, 14])
     .onEnd(({ translationX, velocityX }) => {
-      if (translationX > BACK_SWIPE_DISTANCE || velocityX > BACK_FLICK_SPEED) scheduleOnRN(back);
+      if (translationX > BACK_SWIPE_DISTANCE || velocityX > BACK_FLICK_SPEED) {
+        scheduleOnRN(back);
+      }
     });
   return (
     <Animated.View

@@ -16,7 +16,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { YourCall } from '@/components/tasks/ask-card';
-import { Header, Talk, type Door } from '@/components/tasks/bar';
+import { Header, Talk } from '@/components/tasks/bar';
+import type { Door } from '@/components/tasks/bar';
 import { Mark } from '@/components/tasks/mark';
 import { Faded, SectionHead, Sections, StageHead, listRow } from '@/components/tasks/parts';
 import { Pinned } from '@/components/tasks/pinned';
@@ -26,26 +27,10 @@ import { KIND, Steps, TraceLine } from '@/components/tasks/trace';
 import { useNow } from '@/hooks/use-now';
 import type { Ask, AskOption } from '@/live/asks';
 import { Lane } from '@/components/tasks/lane';
-import {
-  placeOf,
-  proofLinks,
-  proofSays,
-  proofWords,
-  tracksOf,
-  type Place,
-  type Tile,
-} from '@/live/inbox';
-import {
-  STATE_WORDS,
-  agentWords,
-  clock,
-  lastRun,
-  taskTime,
-  type Finished,
-  type Task,
-  type TaskRow,
-  type TaskId,
-} from '@/live/tasks';
+import { placeOf, proofLinks, proofSays, proofWords, tracksOf } from '@/live/inbox';
+import type { Place, Tile } from '@/live/inbox';
+import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from '@/live/tasks';
+import type { Finished, Task, TaskRow, TaskId } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
@@ -521,8 +506,12 @@ const Run = ({
 const subtitleOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
   const asks = open ? `${open} need${open === 1 ? 's' : ''} you` : '';
-  if (task.state === 'working') return [asks, `working for ${time}`].filter(Boolean).join(' · ');
-  if (task.state === 'needs') return `${asks || STATE_WORDS.needs} since ${time}`;
+  if (task.state === 'working') {
+    return [asks, `working for ${time}`].filter(Boolean).join(' · ');
+  }
+  if (task.state === 'needs') {
+    return `${asks || STATE_WORDS.needs} since ${time}`;
+  }
   return [asks, `${STATE_WORDS[task.state]} ${time}`].filter(Boolean).join(' · ');
 };
 

@@ -1,4 +1,5 @@
-import { defineConfig, type OxlintConfig } from 'oxlint';
+import { defineConfig } from 'oxlint';
+import type { OxlintConfig } from 'oxlint';
 import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
 import react from 'ultracite/oxlint/react';
@@ -57,10 +58,7 @@ const pending = {
   'anti-slop/require-safety-comment-for-type-assertion': 'off',
   'class-methods-use-this': 'off',
   complexity: 'off',
-  curly: 'off',
   'default-case': 'off',
-  'import/consistent-type-specifier-style': 'off',
-  'import/newline-after-import': 'off',
   'import/no-named-as-default-member': 'off',
   'jsx-a11y/aria-role': 'off',
   'jsx-a11y/label-has-associated-control': 'off',
@@ -80,13 +78,10 @@ const pending = {
   'no-unexpected-multiline': 'off',
   'no-unused-vars': 'off',
   'no-use-before-define': 'off',
-  'no-useless-return': 'off',
   'no-void': 'off',
   'node/global-require': 'off',
-  'prefer-const': 'off',
   'prefer-destructuring': 'off',
   'prefer-named-capture-group': 'off',
-  'prefer-template': 'off',
   'preserve-caught-error': 'off',
   'promise/always-return': 'off',
   'promise/avoid-new': 'off',
@@ -112,15 +107,11 @@ const pending = {
   'sort-keys': 'off',
   'typescript/await-thenable': 'off',
   'typescript/consistent-return': 'off',
-  'typescript/consistent-type-definitions': 'off',
-  'typescript/consistent-type-imports': 'off',
-  'typescript/method-signature-style': 'off',
   'typescript/no-base-to-string': 'off',
   'typescript/no-confusing-void-expression': 'off',
   'typescript/no-deprecated': 'off',
   'typescript/no-explicit-any': 'off',
   'typescript/no-floating-promises': 'off',
-  'typescript/no-import-type-side-effects': 'off',
   'typescript/no-invalid-void-type': 'off',
   'typescript/no-non-null-assertion': 'off',
   'typescript/no-redundant-type-constituents': 'off',
@@ -155,20 +146,16 @@ const pending = {
   'unicorn/no-negated-condition': 'off',
   'unicorn/no-useless-spread': 'off',
   'unicorn/no-useless-undefined': 'off',
-  'unicorn/numeric-separators-style': 'off',
   'unicorn/prefer-add-event-listener': 'off',
   'unicorn/prefer-code-point': 'off',
   'unicorn/prefer-export-from': 'off',
   'unicorn/prefer-math-trunc': 'off',
   'unicorn/prefer-module': 'off',
-  'unicorn/prefer-node-protocol': 'off',
   'unicorn/prefer-number-properties': 'off',
   'unicorn/prefer-query-selector': 'off',
   'unicorn/prefer-set-has': 'off',
   'unicorn/prefer-string-replace-all': 'off',
   'unicorn/prefer-ternary': 'off',
-  'unicorn/switch-case-braces': 'off',
-  'unicorn/text-encoding-identifier-case': 'off',
 } as const;
 
 export default defineConfig({

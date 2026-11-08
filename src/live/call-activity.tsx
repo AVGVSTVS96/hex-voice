@@ -15,13 +15,13 @@ import {
 import { createLiveActivity } from 'expo-widgets';
 import type { ColorValue } from 'react-native';
 
-export type CallActivityProps = {
+export interface CallActivityProps {
   orb: string;
   state: 'connecting' | 'live' | 'muted' | 'ended';
   since: number;
   outcome?: string;
   bad?: boolean;
-};
+}
 
 const CallActivity = (props: CallActivityProps) => {
   'widget';
@@ -38,7 +38,7 @@ const CallActivity = (props: CallActivityProps) => {
   );
   const timer = (size: number, width: number, alignment: 'leading' | 'trailing') => (
     <Text
-      timerInterval={{ lower: new Date(props.since), upper: new Date(props.since + 86400000) }}
+      timerInterval={{ lower: new Date(props.since), upper: new Date(props.since + 86_400_000) }}
       countsDown={false}
       modifiers={[
         font({ size }),

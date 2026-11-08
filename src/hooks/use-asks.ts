@@ -5,17 +5,8 @@ import { keepDraft, sentDraft } from '@/hooks/use-draft';
 import { useFailures } from '@/hooks/use-failures';
 import { useKept } from '@/hooks/use-kept';
 import { useAnswer, useWatch } from '@/hooks/use-watch';
-import {
-  AskList,
-  NOT_NEEDED,
-  failedOn,
-  openAsks,
-  yours,
-  type Ask,
-  type AskId,
-  type AskOption,
-  type Sent,
-} from '@/live/asks';
+import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from '@/live/asks';
+import type { Ask, AskId, AskOption, Sent } from '@/live/asks';
 
 // The one way to answer an ask, from Tasks or its card on a call: once hex has it, what you'd
 // started typing on it goes, and you get back what the answer reached.
@@ -62,7 +53,9 @@ export const useAsks = (open: boolean) => {
   const out = useRef(new Map<AskId, () => Promise<Sent>>());
   const [kept, keep] = useKept('asks', AskList);
   useEffect(() => {
-    if (kept && !state.list) dispatch({ type: 'list', list: kept });
+    if (kept && !state.list) {
+      dispatch({ type: 'list', list: kept });
+    }
   }, [kept]);
   const watching = useWatch(open ? 'asks' : null, hex.asks.list, (list) => {
     keep(list);
@@ -74,8 +67,9 @@ export const useAsks = (open: boolean) => {
   const [shownFailed, setShownFailed] = useState<string[]>([]);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (!open) setShownFailed(Object.keys(tries.failed));
-    else {
+    if (!open) {
+      setShownFailed(Object.keys(tries.failed));
+    } else {
       dispatch({ type: 'close', keep: Object.keys(missed) });
       tries.clear(shownFailed);
     }
@@ -88,20 +82,29 @@ export const useAsks = (open: boolean) => {
   const settle = (ask: Ask, label: string, what: string, send: () => Promise<Sent>) => {
     dispatch({ type: 'answer', id: ask.id, label });
     inTurn(ask.id, async (latest) => {
-      if (await tries.attempt(ask.id, what, async () => reached(ask.id, await send())))
+      if (await tries.attempt(ask.id, what, async () => reached(ask.id, await send()))) {
         out.current.set(ask.id, send);
-      else if (latest()) dispatch({ type: 'failed', id: ask.id });
+      } else if (latest()) {
+        dispatch({ type: 'failed', id: ask.id });
+      }
     });
   };
   const undo = (id: AskId) => {
     const label = state.answered[id];
-    if (!label) return;
+    if (!label) {
+      return;
+    }
     dispatch({ type: 'undo', id });
     reached(id);
     inTurn(id, async (latest) => {
-      if (!out.current.has(id)) return;
-      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) out.current.delete(id);
-      else if (latest()) dispatch({ type: 'answer', id, label });
+      if (!out.current.has(id)) {
+        return;
+      }
+      if (await tries.attempt(id, 'Not undone', () => hex.asks.undo(id))) {
+        out.current.delete(id);
+      } else if (latest()) {
+        dispatch({ type: 'answer', id, label });
+      }
     });
   };
   return {
@@ -118,7 +121,9 @@ export const useAsks = (open: boolean) => {
     // folded whether or not they answer this time.
     again: (ask: Ask) => {
       const send = out.current.get(ask.id);
-      if (!send) return;
+      if (!send) {
+        return;
+      }
       reached(ask.id);
       inTurn(ask.id, () =>
         tries.attempt(ask.id, 'Not sent again', async () => reached(ask.id, await send())),

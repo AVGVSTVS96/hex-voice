@@ -1,6 +1,7 @@
 import { mediaDevices, RTCPeerConnection, RTCSessionDescription } from 'react-native-webrtc';
 import InCallManager from 'react-native-incall-manager';
-import { parseEvent, type AudioStats, type TransportFactory } from './types';
+import { parseEvent } from './types';
+import type { AudioStats, TransportFactory } from './types';
 
 // On iOS, WebRTC owns the audio session, set up by plugins/with-call-audio.js.
 const callManager = process.env.EXPO_OS === 'android' ? InCallManager : null;
@@ -15,7 +16,9 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
     peer = new RTCPeerConnection({ iceServers: [] });
     // VideoChat means speaker by default with voice processing; no camera is used.
     callManager?.start({ media: 'video', auto: true });
-    for (const track of stream.getAudioTracks()) peer.addTrack(track, stream);
+    for (const track of stream.getAudioTracks()) {
+      peer.addTrack(track, stream);
+    }
     channel = peer.createDataChannel('oai-events', { ordered: true });
   } catch (error) {
     // Every setup failure after capture must release the microphone too.
@@ -31,16 +34,23 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   const energies = new Map<string, { energy: number; duration: number }>();
   channel.onmessage = (message: unknown) => {
     const event = closed ? undefined : parseEvent(message);
-    if (event) onEvent(event);
+    if (event) {
+      onEvent(event);
+    }
   };
   channel.onclose = () => {
-    if (!closed) onFailure('The voice connection closed. Start a new conversation to reconnect.');
+    if (!closed) {
+      onFailure('The voice connection closed. Start a new conversation to reconnect.');
+    }
   };
   pc.onconnectionstatechange = () => {
     clearTimeout(disconnectTimer);
-    if (closed) return;
-    if (pc.connectionState === 'failed')
+    if (closed) {
+      return;
+    }
+    if (pc.connectionState === 'failed') {
       onFailure('The audio connection failed. Check your connection and try again.');
+    }
     if (pc.connectionState === 'disconnected') {
       disconnectTimer = setTimeout(
         () => onFailure('The audio connection was lost. Try starting again.'),
@@ -59,7 +69,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
             reject(
               new Error('Could not establish an audio route. Check your network and try again.'),
             );
-          }, 10000);
+          }, 10_000);
           const check = () => {
             if (pc.iceGatheringState === 'complete') {
               cleanup();
@@ -74,12 +84,16 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
           check();
         });
       }
-      if (!pc.localDescription?.sdp) throw new Error('Could not prepare the audio connection.');
+      if (!pc.localDescription?.sdp) {
+        throw new Error('Could not prepare the audio connection.');
+      }
       return pc.localDescription.sdp;
     },
     answer: (sdp) => pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp })),
     send(event) {
-      if (closed || channel.readyState !== 'open') return false;
+      if (closed || channel.readyState !== 'open') {
+        return false;
+      }
       try {
         channel.send(JSON.stringify(event));
         return true;
@@ -99,10 +113,14 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
         sentPackets: 0,
         receivedPackets: 0,
       };
-      if (closed) return result;
+      if (closed) {
+        return result;
+      }
       const reports = await pc.getStats();
       reports.forEach((report: Record<string, unknown>) => {
-        if (report.kind !== 'audio' && report.mediaType !== 'audio') return;
+        if (report.kind !== 'audio' && report.mediaType !== 'audio') {
+          return;
+        }
         let level = typeof report.audioLevel === 'number' ? report.audioLevel : 0;
         if (
           typeof report.totalAudioEnergy === 'number' &&
@@ -127,17 +145,23 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
             duration: report.totalSamplesDuration,
           });
         }
-        if (report.type === 'media-source') result.inputLevel = Math.max(result.inputLevel, level);
+        if (report.type === 'media-source') {
+          result.inputLevel = Math.max(result.inputLevel, level);
+        }
         if (report.type === 'inbound-rtp') {
           result.outputLevel = Math.max(result.outputLevel, level);
           result.receivedPackets += Number(report.packetsReceived || 0);
         }
-        if (report.type === 'outbound-rtp') result.sentPackets += Number(report.packetsSent || 0);
+        if (report.type === 'outbound-rtp') {
+          result.sentPackets += Number(report.packetsSent || 0);
+        }
       });
       return result;
     },
     close() {
-      if (closed) return;
+      if (closed) {
+        return;
+      }
       closed = true;
       clearTimeout(disconnectTimer);
       stream.getTracks().forEach((track) => track.stop());

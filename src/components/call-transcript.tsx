@@ -1,20 +1,12 @@
-import { ActivityIndicator, StyleSheet, Text, View, type ColorValue } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import type { ColorValue } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Glyph } from '@/components/glyph';
 import { SentMedia } from '@/components/media/sent';
 import { WrapUp } from '@/components/wrap-up';
-import {
-  ENDINGS,
-  SOURCES,
-  clock,
-  timeOfDay,
-  timeline,
-  type CallRecord,
-  type CallSummary,
-  type CallTask,
-  type ShownMark,
-} from '@/live/calls';
+import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from '@/live/calls';
+import type { CallRecord, CallSummary, CallTask, ShownMark } from '@/live/calls';
 import { circle, theme } from '@/theme';
 import { ScrollView } from '@/ui/scroll';
 import { Turn } from '@/ui/turn';
@@ -35,7 +27,12 @@ const MARKERS: Record<
   failed: { symbol: 'exclamationmark', color: theme.danger, fill: theme.dangerMuted },
 };
 
-type Props = { summary: CallSummary; call?: CallRecord; failed: boolean; live: boolean };
+interface Props {
+  summary: CallSummary;
+  call?: CallRecord;
+  failed: boolean;
+  live: boolean;
+}
 
 export const CallTranscript = ({ summary, call, failed, live }: Props) => {
   const ending = summary.end && !live ? ENDINGS[summary.end] : undefined;

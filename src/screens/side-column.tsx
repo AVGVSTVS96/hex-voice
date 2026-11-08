@@ -30,7 +30,9 @@ export const SideColumn = ({
   controls: Omit<ComponentProps<typeof CallButtons>, 'modifiers'>;
 }) => {
   const keyboard = useKeyboardUp();
-  if (!ColumnView) return null;
+  if (!ColumnView) {
+    return null;
+  }
   return (
     <View pointerEvents="box-none" style={[styles.row, bar === 'left' && styles.reversed]}>
       <View pointerEvents="none" style={styles.content} />

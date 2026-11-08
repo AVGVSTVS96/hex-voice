@@ -1,7 +1,8 @@
 import type { SFSymbol } from 'sf-symbols-typescript';
 import * as z from 'zod/mini';
 
-import { MediaId, type Shared } from './media';
+import { MediaId } from './media';
+import type { Shared } from './media';
 import type { TranscriptEntry } from './types';
 
 export const CallId = z.string().brand<'CallId'>();
@@ -190,9 +191,13 @@ export const endedSeconds = ({ started, ended }: Pick<CallSummary, 'started' | '
   ended ? Math.round((Date.parse(ended) - Date.parse(started)) / 1000) : 0;
 
 export const callLength = (seconds: number) => {
-  if (seconds < 60) return `${Math.max(seconds, 1)} sec`;
+  if (seconds < 60) {
+    return `${Math.max(seconds, 1)} sec`;
+  }
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
   return `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
 };
 
@@ -213,9 +218,15 @@ const dayStart = (date: Date) =>
 export const dayLabel = (iso: string, now = new Date()) => {
   const date = new Date(iso);
   const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return date.toLocaleDateString([], { weekday: 'long' });
+  if (days === 0) {
+    return 'Today';
+  }
+  if (days === 1) {
+    return 'Yesterday';
+  }
+  if (days < 7) {
+    return date.toLocaleDateString([], { weekday: 'long' });
+  }
   return date.toLocaleDateString([], {
     month: 'long',
     day: 'numeric',
@@ -235,8 +246,11 @@ export const byDay = (calls: CallSummary[], now = new Date()) => {
   const days: { label: string; calls: CallSummary[] }[] = [];
   for (const call of calls) {
     const label = periodOf(call.started, now);
-    if (days.at(-1)?.label === label) days.at(-1)!.calls.push(call);
-    else days.push({ label, calls: [call] });
+    if (days.at(-1)?.label === label) {
+      days.at(-1)!.calls.push(call);
+    } else {
+      days.push({ label, calls: [call] });
+    }
   }
   return days;
 };
@@ -253,9 +267,13 @@ const daysAgo = (iso: string, now: Date) =>
 // before that, the day of the week, or the date once it's more than a week back.
 export const callTime = (iso: string, now = new Date()) => {
   const days = daysAgo(iso, now);
-  if (days < 2) return timeOfDay(iso);
+  if (days < 2) {
+    return timeOfDay(iso);
+  }
   const date = new Date(iso);
-  if (days < 7) return date.toLocaleDateString([], { weekday: 'short' });
+  if (days < 7) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  }
   return date.toLocaleDateString([], {
     month: 'short',
     day: 'numeric',
@@ -282,8 +300,9 @@ export const timeline = ({
   moments = [],
 }: Pick<CallRecord, 'turns' | 'tasks' | 'moments'>): Moment[] => {
   const markers = new Map<string, CallTask>();
-  for (const task of tasks)
+  for (const task of tasks) {
     markers.set(task.id, { ...task, at: markers.get(task.id)?.at ?? task.at });
+  }
   return [
     ...turns.map((turn, i) => ({ kind: 'turn' as const, key: `turn-${i}`, at: turn.at, turn })),
     ...[...markers.values()].map((task) => ({

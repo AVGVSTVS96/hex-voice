@@ -25,7 +25,9 @@ export const useWatch = <K extends string, T extends { version?: number }>(
   // out keeps showing it as it was.
   if (key !== watched) {
     setWatched(key);
-    if (key !== null) setWatching('waiting');
+    if (key !== null) {
+      setWatching('waiting');
+    }
   }
   const version = useRef<number>(undefined);
   const asking = useEffectEvent(ask);
@@ -34,19 +36,27 @@ export const useWatch = <K extends string, T extends { version?: number }>(
     version.current = undefined;
   }, [key]);
   useEffect(() => {
-    if (key === null || !active) return;
+    if (key === null || !active) {
+      return;
+    }
     const controller = new AbortController();
     void (async () => {
       while (!controller.signal.aborted) {
         try {
           const answer = await asking(version.current, controller.signal, key);
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted) {
+            return;
+          }
           taking(answer, key);
           setWatching('current');
-          if (answer.version === undefined) return;
+          if (answer.version === undefined) {
+            return;
+          }
           version.current = answer.version;
         } catch {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted) {
+            return;
+          }
           setWatching('offline');
           await new Promise((resolve) => setTimeout(resolve, RETRY));
         }
@@ -77,16 +87,22 @@ export const useAnswer = <K extends string, T>(
   const watching = useWatch<string, { version?: undefined; got?: typeof got }>(
     key === null ? null : `${key} ${String(fresh)}`,
     async () => {
-      if (key === null) return {};
+      if (key === null) {
+        return {};
+      }
       try {
         return { got: { key, answer: await ask(key) } };
       } catch (error) {
-        if (error instanceof Refused) return { got: { key, refused: error } };
+        if (error instanceof Refused) {
+          return { got: { key, refused: error } };
+        }
         throw error;
       }
     },
     (answer) => {
-      if (answer.got) setGot(answer.got);
+      if (answer.got) {
+        setGot(answer.got);
+      }
     },
   );
   const mine = got?.key === key ? got : undefined;

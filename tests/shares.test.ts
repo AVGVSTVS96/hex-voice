@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { CallId } from '../src/live/calls';
-import { MediaId, type Picked } from '../src/live/media';
-import { batchOf, deliver, retrying, settle, type ShareAPI } from '../src/live/shares';
+import { MediaId } from '../src/live/media';
+import type { Picked } from '../src/live/media';
+import { batchOf, deliver, retrying, settle } from '../src/live/shares';
+import type { ShareAPI } from '../src/live/shares';
 
 const call = CallId.parse('live_1');
 const photo: Picked = { uri: 'file:///router.jpg', kind: 'photo', type: 'image/jpeg' };
@@ -21,12 +23,16 @@ const hexThat = ({
   const api: ShareAPI = {
     upload: async ({ uri, kind }) => {
       asked.push(`upload ${uri}`);
-      if (refuse.includes(uri)) throw new Error('Cannot reach hex');
+      if (refuse.includes(uri)) {
+        throw new Error('Cannot reach hex');
+      }
       return { id: MediaId.parse(`m${++kept}`), kind };
     },
     media: async (to, ids) => {
       asked.push(`call ${to} ${ids.join(',')}`);
-      if (callFails) throw callFails;
+      if (callFails) {
+        throw callFails;
+      }
     },
   };
   return { api, asked };

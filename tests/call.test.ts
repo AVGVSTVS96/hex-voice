@@ -14,9 +14,10 @@ import {
   wakeOf,
   withSent,
   wordsOf,
-  type Call,
 } from '../src/call/call';
-import { CallId, type CallRecord } from '../src/live/calls';
+import type { Call } from '../src/call/call';
+import { CallId } from '../src/live/calls';
+import type { CallRecord } from '../src/live/calls';
 import { MediaId } from '../src/live/media';
 import type { LiveSnapshot, TranscriptEntry } from '../src/live/types';
 

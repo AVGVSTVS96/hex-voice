@@ -138,7 +138,10 @@ export type AskList = Omit<z.infer<typeof AskList>, 'asks' | 'stuck' | 'fresh'> 
 // folded to what you said, until the sheet closes, so Undo stays in reach. Closing keeps the ones
 // it's told to, like an answer still missing a place. An undone ask (null) stays put until hex
 // lists it as open again.
-export type Yours = { list?: AskList; answered: Record<string, string | null> };
+export interface Yours {
+  list?: AskList;
+  answered: Record<string, string | null>;
+}
 export type YoursAction =
   | { type: 'list'; list: AskList }
   | { type: 'answer'; id: string; label: string }
@@ -157,12 +160,15 @@ export const yours = (state: Yours, action: YoursAction): Yours => {
         answered: back.length ? without(answered, back) : answered,
       };
     }
-    case 'answer':
+    case 'answer': {
       return { list, answered: { ...answered, [action.id]: action.label } };
-    case 'undo':
+    }
+    case 'undo': {
       return { list, answered: { ...answered, [action.id]: null } };
-    case 'failed':
+    }
+    case 'failed': {
       return { list, answered: without(answered, [action.id]) };
+    }
     case 'close': {
       const kept = new Set(action.keep?.filter((id) => answered[id]));
       return {
@@ -204,7 +210,9 @@ export const keepInPlace = (before: Ask[], after: Ask[], held: (id: string) => b
   const shown = [...after];
   const at = (id: string) => shown.findIndex((ask) => ask.id === id);
   before.forEach((ask, i) => {
-    if (!held(ask.id) || at(ask.id) !== -1) return;
+    if (!held(ask.id) || at(ask.id) !== -1) {
+      return;
+    }
     const prior = before.slice(0, i).findLast((one) => at(one.id) !== -1);
     shown.splice(prior ? at(prior.id) + 1 : 0, 0, ask);
   });

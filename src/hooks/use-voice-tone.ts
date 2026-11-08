@@ -15,7 +15,9 @@ export const useVoiceTone = (listening: boolean) => {
   const on = listening && active;
   useEffect(() => {
     const voice = VoiceTone;
-    if (!on || !voice) return;
+    if (!on || !voice) {
+      return;
+    }
     const subscription = voice.addListener('onTone', (heard) => {
       pitch.set(withSpring(heard.pitch, motion.tone));
       tone.set(withSpring(heard.tone, motion.tone));

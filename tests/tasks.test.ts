@@ -15,11 +15,9 @@ import {
   stepMark,
   stepTimes,
   taskTime,
-  type AgentTrail,
-  type Task,
   TaskRow,
-  type TaskStep,
 } from '../src/live/tasks';
+import type { AgentTrail, Task, TaskStep } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
 const at = (hours: number, minutes = 0, day = 13) =>

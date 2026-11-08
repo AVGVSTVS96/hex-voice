@@ -44,7 +44,9 @@ const leave = () => {
 };
 
 export const AgentLine = ({ line }: { line: Line | null }) => {
-  if (!line) return null;
+  if (!line) {
+    return null;
+  }
   const label = `hex is ${line.state === 'running' ? 'working' : line.state}: ${line.text}${line.where ? `, ${line.where}` : ''}`;
   return (
     <Animated.View
@@ -106,7 +108,9 @@ export const Arc = ({ size = 12 }: { size?: number }) => {
   const spin = useSharedValue(0);
   const still = useReducedMotion();
   useEffect(() => {
-    if (still) return;
+    if (still) {
+      return;
+    }
     spin.set(withRepeat(withTiming(1, { duration: turn, easing: Easing.linear }), -1));
     return () => cancelAnimation(spin);
   }, [spin, still]);

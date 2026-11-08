@@ -21,7 +21,9 @@ export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
   const [value, setValue] = useState<z.output<S>>();
   useEffect(() => {
     void restore(`kept:${key}`, schema).then((saved) => {
-      if (saved !== undefined) setValue((now) => now ?? saved);
+      if (saved !== undefined) {
+        setValue((now) => now ?? saved);
+      }
     });
   }, [key]);
   const keep = useCallback(

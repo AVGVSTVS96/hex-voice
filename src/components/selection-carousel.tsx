@@ -16,7 +16,11 @@ import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
-type SelectionOption = { id: string; label: string; description: string };
+interface SelectionOption {
+  id: string;
+  label: string;
+  description: string;
+}
 
 export const SelectionCarousel = ({
   options,
@@ -65,7 +69,9 @@ export const SelectionCarousel = ({
     <TabView
       selection={value}
       onSelectionChange={(next) => {
-        if (next !== value && options.some((option) => option.id === next)) onChange(next);
+        if (next !== value && options.some((option) => option.id === next)) {
+          onChange(next);
+        }
       }}
       testID={testID}
       modifiers={[

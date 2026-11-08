@@ -16,13 +16,15 @@ import {
   padding,
   shapes,
   tint,
-  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
+import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import type { SFSymbol } from 'sf-symbols-typescript';
-import { Children, isValidElement, type ReactNode } from 'react';
+import { Children, isValidElement } from 'react';
+import type { ReactNode } from 'react';
 
-import { Badge, inkOf, type Tint } from '@/components/tasks/mark';
+import { Badge, inkOf } from '@/components/tasks/mark';
+import type { Tint } from '@/components/tasks/mark';
 import type { Answered } from '@/hooks/use-watch';
 import { NOT_NEEDED, PICK } from '@/live/asks';
 import { hairline, theme } from '@/theme';
@@ -36,10 +38,14 @@ export const feel = (haptics: boolean) => {
   const on = haptics;
   return {
     tick: () => {
-      if (on) void Haptics.selectionAsync();
+      if (on) {
+        void Haptics.selectionAsync();
+      }
     },
     tap: () => {
-      if (on) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (on) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     },
   };
 };

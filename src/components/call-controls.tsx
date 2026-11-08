@@ -1,13 +1,17 @@
 import { GlassEffectContainer, HStack, Spacer, VStack } from '@expo/ui/swift-ui';
-import { frame, type ModifierConfig } from '@expo/ui/swift-ui/modifiers';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { frame } from '@expo/ui/swift-ui/modifiers';
+import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
+import { StyleSheet, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
-import { buttonsOf, type Call, type CallButton } from '@/call/call';
+import { buttonsOf } from '@/call/call';
+import type { Call, CallButton } from '@/call/call';
 import { GlassButton } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
-import { metrics, type ControlsSize } from '@/ui/tokens';
+import { metrics } from '@/ui/tokens';
+import type { ControlsSize } from '@/ui/tokens';
 
-type Props = {
+interface Props {
   call: Call;
   ready: boolean;
   axis: 'row' | 'column';
@@ -15,7 +19,7 @@ type Props = {
   size?: ControlsSize;
   onMute: () => void;
   onPrimary: () => void;
-};
+}
 
 const PRIMARY: Record<
   CallButton,

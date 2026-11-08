@@ -1,6 +1,9 @@
 const MARGIN = 24;
 
-export type Room = { top: number; bottom: number };
+export interface Room {
+  top: number;
+  bottom: number;
+}
 
 // Where the orb rests between the toolbar and whatever sits below it (the call's ending and
 // wrap-up, or the half-height Tasks sheet): on the screen's center while it fits there, else only

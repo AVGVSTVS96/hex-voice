@@ -19,8 +19,10 @@ import { useEffect, useMemo } from 'react';
 import { PageBar, useChrome } from '@/components/tasks/bar';
 import { CheckRow, PicksRow, TopicHead } from '@/components/tasks/inbox';
 import { Search, SearchButton, Tabs } from '@/components/tasks/list-head';
-import { useField, type Pages, type Spot } from '@/components/tasks/pages';
-import { Empty, Faded, Loading, UNREACHED, listRow, type Feel } from '@/components/tasks/parts';
+import { useField } from '@/components/tasks/pages';
+import type { Pages, Spot } from '@/components/tasks/pages';
+import { Empty, Faded, Loading, UNREACHED, listRow } from '@/components/tasks/parts';
+import type { Feel } from '@/components/tasks/parts';
 import { EntryRow, ProjectRow } from '@/components/tasks/rows';
 import type { useAsks } from '@/hooks/use-asks';
 import type { Ask, AskOption } from '@/live/asks';
@@ -37,11 +39,8 @@ import {
   taskOf,
   topicIn,
   topicsOf,
-  type Entry,
-  type Tab,
-  type Tile,
-  type PageId,
 } from '@/live/inbox';
+import type { Entry, Tab, Tile, PageId } from '@/live/inbox';
 import type { TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
@@ -101,7 +100,9 @@ export const ListPage = ({
   const { needs, working } = counts;
   const counted = open && loaded && current && yours.current;
   useEffect(() => {
-    if (!counted) return;
+    if (!counted) {
+      return;
+    }
     onCounts({ needs, working });
     return () => onCounts(undefined);
   }, [counted, needs, working, onCounts]);
@@ -120,7 +121,9 @@ export const ListPage = ({
   // The first project is picked beside the list whatever the width, so the moment SwiftUI lays Tasks
   // out as two pages it's already there; on one page it waits unpicked behind the list.
   useEffect(() => {
-    if (open && !pages.task && first) pages.go({ to: 'beside', id: first });
+    if (open && !pages.task && first) {
+      pages.go({ to: 'beside', id: first });
+    }
   }, [open, pages.task, first]);
   // hex's picks or the last check open beside the list in place of a project's page.
   const apart = beside && (pages.path[0] === 'picks' || pages.path[0] === 'check');
@@ -150,7 +153,9 @@ export const ListPage = ({
     feel.tick();
     pages.go({ to: 'stage', stage: next });
     const [lead] = stageTopics(entries, next);
-    if (beside) pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
+    if (beside) {
+      pages.go({ to: 'beside', id: lead ? pageOf(lead) : null });
+    }
   };
   const startSearch = () => {
     feel.tick();
@@ -260,7 +265,7 @@ export const ListPage = ({
             />
           ) : null}
           {topics.flatMap((topic) => {
-            if (!searching)
+            if (!searching) {
               return [
                 <ProjectRow
                   key={stage === 'done' ? topic.entries[0]!.id : topic.name}
@@ -271,6 +276,7 @@ export const ListPage = ({
                   onOpen={() => openPage(pageOf(topic), topic.entries[0]?.id)}
                 />,
               ];
+            }
             const lead = topic.entries.map(taskOf).find(Boolean);
             return [
               <TopicHead

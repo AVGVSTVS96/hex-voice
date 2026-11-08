@@ -40,7 +40,8 @@ import {
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -51,8 +52,8 @@ import Animated, {
   useSharedValue,
   withSequence,
   withSpring,
-  type SharedValue,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 import { Persona, preloadPersonas } from '@/components/persona';
 import { PageBar } from '@/components/tasks/bar';
@@ -60,16 +61,19 @@ import {
   PERSONA_VARIANTS,
   isPersonaVariant,
   opalPaletteInput,
-  type PersonaVariant,
 } from '@/components/persona/variants';
+import type { PersonaVariant } from '@/components/persona/variants';
 import { PersonaColors } from '@/components/persona-colors';
 import { SelectionCarousel } from '@/components/selection-carousel';
 import { Group, Separator, SettingRow, groupHeight } from '@/components/settings-list';
-import { REACTIONS, type CallPreferences, type Reaction } from '@/hooks/use-call-preferences';
-import { useViewport, type Size } from '@/hooks/use-viewport';
+import { REACTIONS } from '@/hooks/use-call-preferences';
+import type { CallPreferences, Reaction } from '@/hooks/use-call-preferences';
+import { useViewport } from '@/hooks/use-viewport';
+import type { Size } from '@/hooks/use-viewport';
 import { useVoicePreview } from '@/hooks/use-voice-preview';
 import { useToolbarBack } from '@/components/toolbar-back';
-import { VOICES, isLiveVoice, type LiveVoice } from '@/live/voices';
+import { VOICES, isLiveVoice } from '@/live/voices';
+import type { LiveVoice } from '@/live/voices';
 import { heard, motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
@@ -86,7 +90,7 @@ export type SettingsSheet = 'phone' | 'form' | 'page';
 // The open Duo's settings panes: the persona's beside the rows', or the persona's alone.
 type Pane = 'persona' | 'rows' | 'alone';
 
-type Props = {
+interface Props {
   sheet: SettingsSheet;
   // On the open Duo, settings is a place of its own over the call instead of a sheet, since iOS
   // moves a sheet off an active fold. It's the place Tasks takes, covering what the toolbar leaves
@@ -102,7 +106,7 @@ type Props = {
   onPersonaChange: (persona: PersonaVariant) => void;
   personaEnabled: boolean;
   preferences: CallPreferences;
-};
+}
 
 const voiceOptions = VOICES.map((voice) => ({
   ...voice,
@@ -241,7 +245,9 @@ export const VoiceSettings = ({
   useVoicePreview(voice, isPresented && onVoicePage && voiceEnabled, take);
 
   const haptic = (enabled = preferences.haptics) => {
-    if (enabled) void Haptics.selectionAsync();
+    if (enabled) {
+      void Haptics.selectionAsync();
+    }
   };
   const showVoices = (show: boolean) => {
     haptic();
@@ -282,11 +288,15 @@ export const VoiceSettings = ({
     accessibilityHidden(!shown),
   ];
   useEffect(() => {
-    if (isPresented) preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
+    if (isPresented) {
+      preloadPersonas(PERSONA_VARIANTS.map((option) => option.id));
+    }
   }, [isPresented]);
   // Leaving settings there leaves the voices too, as dismissing the sheet does.
   useEffect(() => {
-    if (!isPresented) setOnVoicePage(false);
+    if (!isPresented) {
+      setOnVoicePage(false);
+    }
   }, [isPresented]);
 
   const carousel = (
@@ -314,7 +324,9 @@ export const VoiceSettings = ({
       label="Persona appearance"
       testID="persona-carousel"
       onChange={(next) => {
-        if (!personaEnabled || !isPersonaVariant(next)) return;
+        if (!personaEnabled || !isPersonaVariant(next)) {
+          return;
+        }
         haptic();
         onPersonaChange(next);
       }}
@@ -356,7 +368,9 @@ export const VoiceSettings = ({
               onSelectionChange={(next: Reaction) => {
                 haptic();
                 preferences.setReaction(next);
-                if (!reducedMotion) speak();
+                if (!reducedMotion) {
+                  speak();
+                }
               }}
             >
               {REACTIONS.map((option) => (
@@ -450,7 +464,9 @@ export const VoiceSettings = ({
         testID="voice-carousel"
         onPress={() => setTake((count) => count + 1)}
         onChange={(next) => {
-          if (!voiceEnabled || !isLiveVoice(next)) return;
+          if (!voiceEnabled || !isLiveVoice(next)) {
+            return;
+          }
           haptic();
           onVoiceChange(next);
         }}
@@ -508,7 +524,9 @@ export const VoiceSettings = ({
           keepMounted
           isPresented={!placed && isPresented}
           onIsPresentedChange={(presented) => {
-            if (!presented && !placed) onDismiss();
+            if (!presented && !placed) {
+              onDismiss();
+            }
           }}
           onDismiss={() => setOnVoicePage(false)}
         >
@@ -520,14 +538,21 @@ export const VoiceSettings = ({
                 // Dragging the sheet to the other height reads as leaving the page you're on: up from
                 // the voices goes back to settings, down from settings closes the sheet.
                 onSelectionChange: (detent) => {
-                  if (!phone) return;
+                  if (!phone) {
+                    return;
+                  }
                   const voiceSized =
                     typeof detent === 'object' &&
                     'height' in detent &&
                     detent.height === VOICE_HEIGHT;
-                  if (voiceSized === onVoicePage) return;
-                  if (onVoicePage) showVoices(false);
-                  else onDismiss();
+                  if (voiceSized === onVoicePage) {
+                    return;
+                  }
+                  if (onVoicePage) {
+                    showVoices(false);
+                  } else {
+                    onDismiss();
+                  }
                 },
               }),
               ...(phone
@@ -566,7 +591,9 @@ export const VoiceSettings = ({
                   onLayout={({ nativeEvent }) => {
                     // The sheet keeps its contents on the open Duo, laid out there at the window's
                     // width rather than a sheet's.
-                    if (!place) setGiven(nativeEvent.layout.width);
+                    if (!place) {
+                      setGiven(nativeEvent.layout.width);
+                    }
                   }}
                   style={StyleSheet.absoluteFill}
                 />

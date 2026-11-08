@@ -36,7 +36,9 @@ export const useDrawer = ({
   useAnimatedReaction(
     () => drawer.get() > 0,
     (now, before) => {
-      if (now !== before) scheduleOnRN(setOut, now);
+      if (now !== before) {
+        scheduleOnRN(setOut, now);
+      }
     },
   );
   // The spring is critically damped, so it comes to rest without passing its end unless it starts
@@ -60,7 +62,9 @@ export const useDrawer = ({
     scheduleOnRN(onChange, now);
   };
   useEffect(() => {
-    if (target.get() !== open) settle(open);
+    if (target.get() !== open) {
+      settle(open);
+    }
   }, [open]);
   const pan = (offset: number | [number, number]) =>
     Gesture.Pan()

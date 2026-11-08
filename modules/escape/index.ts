@@ -1,4 +1,5 @@
-import { NativeModule, requireOptionalNativeModule } from 'expo';
+import type { NativeModule } from 'expo';
+import { requireOptionalNativeModule } from 'expo';
 
 declare class EscapeModule extends NativeModule<{ onEscape: () => void }> {}
 

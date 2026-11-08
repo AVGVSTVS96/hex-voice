@@ -7,18 +7,20 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type ReactNode,
 } from 'react';
+import type { ReactNode } from 'react';
 import { Alert, AppState } from 'react-native';
 
-import { callIdOf, callOf, isHere, withSent, type Call } from '@/call/call';
+import { callIdOf, callOf, isHere, withSent } from '@/call/call';
+import type { Call } from '@/call/call';
 import { hex } from '@/hex';
 import { Refused } from '@/hex/client';
 import { useCallElsewhere } from '@/hooks/use-call-elsewhere';
 import type { CallId } from '@/live/calls';
 import { newKey } from '@/live/chat';
 import type { Picked } from '@/live/media';
-import { batchOf, deliver, retrying, settle, type Sent } from '@/live/shares';
+import { batchOf, deliver, retrying, settle } from '@/live/shares';
+import type { Sent } from '@/live/shares';
 import { demoAPI, demoTransport } from '@/live/demo-call';
 import { LiveSession } from '@/live/session';
 import { createTransport } from '@/live/transport';
@@ -45,7 +47,9 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       // Native iOS audio continues while the screen is locked or another app is
       // open. Only visual updates pause; the microphone keeps its chosen state.
       session.setAppActive(state === 'active');
-      if (state === 'background' && process.env.EXPO_OS !== 'ios') void session.stop();
+      if (state === 'background' && process.env.EXPO_OS !== 'ios') {
+        void session.stop();
+      }
     };
     onAppStateChange(AppState.currentState);
     const listener = AppState.addEventListener('change', onAppStateChange);
@@ -65,7 +69,9 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
       upload: hex.media.upload,
       media: hex.calls.media,
     });
-    if (outcome.error instanceof Refused && outcome.error.status === 409) ended();
+    if (outcome.error instanceof Refused && outcome.error.status === 409) {
+      ended();
+    }
     setSent((now) => settle(now, batch, outcome));
   });
   // What was sent to an earlier call goes as the next call's first one does.
@@ -76,7 +82,9 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
   };
   const retry = (entry: string) => {
     const again = retrying(sent, entry);
-    if (!again.length) return;
+    if (!again.length) {
+      return;
+    }
     setSent((now) => now.map((one) => again.find(({ entry }) => entry.id === one.entry.id) ?? one));
     void go(again[0]!.call, again);
   };
@@ -107,7 +115,9 @@ export const useCall = (held: CallId | null) => {
     sent,
   );
   useEffect(() => {
-    if (demo) void session.start();
+    if (demo) {
+      void session.start();
+    }
   }, [session, demo]);
   return {
     call,
@@ -144,7 +154,9 @@ export const useShare = (call: Call) => {
   return (picked: Picked[]) => {
     const live = now.current;
     const id = callIdOf(live);
-    if (live.kind === 'none' || !id) return ended();
+    if (live.kind === 'none' || !id) {
+      return ended();
+    }
     const at =
       live.kind === 'here' ? live.seconds * 1000 : Date.now() - Date.parse(live.record.started);
     send(id, at, picked);

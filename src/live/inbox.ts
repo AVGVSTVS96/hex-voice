@@ -1,5 +1,6 @@
-import { unreached, type Ask, type AskList, type Fresh, type Stuck, type Sent } from './asks';
-import { type Finished, type TaskId, type TaskRow, type Turn } from './tasks';
+import { unreached } from './asks';
+import type { Ask, AskList, Fresh, Stuck, Sent } from './asks';
+import type { Finished, TaskId, TaskRow, Turn } from './tasks';
 
 // Everything hex has going, as one stream sorted by what needs you now: your asks and whatever's
 // stuck, then what's working, then what was done in the last day (each task hex closed, in whatever
@@ -15,7 +16,14 @@ export type Tile =
   | { kind: 'call'; label: string; call: string }
   | { kind: 'link'; label: string; url: string };
 
-type Base = { id: string; topic: string; place: Place; tiles: Tile[]; stage: Stage; at: string };
+interface Base {
+  id: string;
+  topic: string;
+  place: Place;
+  tiles: Tile[];
+  stage: Stage;
+  at: string;
+}
 export type Entry = Base &
   (
     | { kind: 'ask'; ask: Ask }
@@ -27,7 +35,11 @@ export type Entry = Base &
 
 // A topic in a stage: what it has there, one mark per thread it has anywhere, and each thread's
 // last week for its lane.
-export type Topic = { name: string; entries: Entry[]; marks: Stage[] };
+export interface Topic {
+  name: string;
+  entries: Entry[];
+  marks: Stage[];
+}
 
 export const TABS: { key: Tab; title: string }[] = [
   { key: 'all', title: 'All' },
@@ -103,11 +115,16 @@ const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/g;
 // by its name, a Telegram message by its number, else its site.
 export const linkName = (url: string) => {
   const github = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/#?]+)(?:\/(pull|commit)\/(\w+))?/);
-  if (github?.[2])
+  if (github?.[2]) {
     return `${github[1]} ${github[2] === 'pull' ? '#' : ''}${github[3]!.slice(0, 7)}`;
-  if (github) return github[1]!;
+  }
+  if (github) {
+    return github[1]!;
+  }
   const message = url.match(/^https:\/\/t\.me\/c\/\d+\/(\d+)$/);
-  if (message) return `message ${message[1]}`;
+  if (message) {
+    return `message ${message[1]}`;
+  }
   return url.replace(/^https?:\/\/(www\.)?/, '').replace(/[:/].*$/, '');
 };
 
@@ -228,9 +245,13 @@ export const topicsOf = (shown: Entry[], all: Entry[]): Topic[] => {
     const threads = new Map<string, Stage>();
     for (const entry of all) {
       const thread = entry.topic === name ? taskOf(entry) : undefined;
-      if (!thread) continue;
+      if (!thread) {
+        continue;
+      }
       const before = threads.get(thread);
-      if (!before || RANK[entry.stage] < RANK[before]) threads.set(thread, entry.stage);
+      if (!before || RANK[entry.stage] < RANK[before]) {
+        threads.set(thread, entry.stage);
+      }
     }
     return {
       name,
@@ -247,9 +268,15 @@ export const openingStage = (counts: Record<Stage, number>): Stage =>
 // What a tab shows: its stage's entries, or on All each project's from the first stage it's in, so
 // a project's row there reads as it does on that stage's tab.
 export const tabEntries = (entries: Entry[], tab: Tab) => {
-  if (tab !== 'all') return entries.filter((entry) => entry.stage === tab);
+  if (tab !== 'all') {
+    return entries.filter((entry) => entry.stage === tab);
+  }
   const first = new Map<string, Stage>();
-  for (const entry of entries) if (!first.has(entry.topic)) first.set(entry.topic, entry.stage);
+  for (const entry of entries) {
+    if (!first.has(entry.topic)) {
+      first.set(entry.topic, entry.stage);
+    }
+  }
   return entries.filter((entry) => first.get(entry.topic) === entry.stage);
 };
 
@@ -265,7 +292,11 @@ export const stageTopics = (entries: Entry[], tab: Tab): Topic[] => {
 // What each tab counts: asks you've answered here are already off your plate.
 export const stageCounts = (entries: Entry[], answered: Record<string, string | null> = {}) => {
   const counts: Record<Stage, number> = { needs: 0, working: 0, done: 0, quiet: 0 };
-  for (const entry of entries) if (!answered[entry.id]) counts[entry.stage]++;
+  for (const entry of entries) {
+    if (!answered[entry.id]) {
+      counts[entry.stage]++;
+    }
+  }
   return counts;
 };
 
@@ -274,7 +305,9 @@ const wordsOf = (query: string) => query.trim().toLowerCase().split(/\s+/).filte
 
 export const search = (entries: Entry[], query: string) => {
   const words = wordsOf(query);
-  if (!words.length) return entries;
+  if (!words.length) {
+    return entries;
+  }
   return entries.filter((entry) => {
     const text = [entry.topic, PLACES[entry.place], ...textOf(entry)].join(' ').toLowerCase();
     return words.every((word) => text.includes(word));
@@ -284,17 +317,24 @@ export const search = (entries: Entry[], query: string) => {
 // Why a search found an entry its row doesn't show the reason for: the stretch of its words
 // around the first search word that neither its line nor its topic holds, with every search word
 // in it marked. Nothing when the row already shows why.
-export type Part = { text: string; hit: boolean };
+export interface Part {
+  text: string;
+  hit: boolean;
+}
 
 export const whyOf = (entry: Entry, query: string): Part[] | undefined => {
   const words = wordsOf(query);
   const shown = `${entry.topic} ${headlineOf(entry)}`.toLowerCase();
   const hidden = words.find((word) => !shown.includes(word));
-  if (!hidden) return undefined;
+  if (!hidden) {
+    return undefined;
+  }
   const text =
     textOf(entry).find((one) => one.toLowerCase().includes(hidden)) ?? PLACES[entry.place];
   const at = text.toLowerCase().indexOf(hidden);
-  if (at < 0) return undefined;
+  if (at < 0) {
+    return undefined;
+  }
   const start = Math.max(0, text.lastIndexOf(' ', Math.max(0, at - WHY_BEFORE)) + 1);
   const end = Math.min(text.length, at + hidden.length + WHY_AFTER);
   const stretch = `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`;
@@ -318,23 +358,30 @@ const marked = (text: string, words: string[]): Part[] => {
 // What an entry asks or says, in one line: the question, the stuck thing, what's new.
 export const headlineOf = (entry: Entry) => {
   switch (entry.kind) {
-    case 'ask':
+    case 'ask': {
       return entry.ask.question;
-    case 'task':
+    }
+    case 'task': {
       return entry.task.line || entry.task.name;
-    case 'stuck':
+    }
+    case 'stuck': {
       return entry.stuck.title;
-    case 'fresh':
+    }
+    case 'fresh': {
       return entry.fresh.title;
-    case 'finished':
+    }
+    case 'finished': {
       return entry.finished.title;
+    }
   }
 };
 
 // A run that ended on the API's own error says what went wrong in words, not the raw message.
 export const problemOf = (line: string) => {
   const error = /^API Error:\s*(.*)$/s.exec(line.trim());
-  if (!error) return undefined;
+  if (!error) {
+    return undefined;
+  }
   return /limit/i.test(error[1] ?? '')
     ? 'Stopped: the server was limiting requests'
     : 'Stopped on an API error';
@@ -342,23 +389,30 @@ export const problemOf = (line: string) => {
 
 const textOf = (entry: Entry) => {
   switch (entry.kind) {
-    case 'ask':
+    case 'ask': {
       return [entry.ask.question, entry.ask.context ?? ''];
-    case 'task':
+    }
+    case 'task': {
       return [entry.task.name, entry.task.place, entry.task.line];
-    case 'stuck':
+    }
+    case 'stuck': {
       return [entry.stuck.title, entry.stuck.why];
-    case 'fresh':
+    }
+    case 'fresh': {
       return [entry.fresh.title, entry.fresh.line];
-    case 'finished':
+    }
+    case 'finished': {
       return [entry.finished.title, proofWords(entry.finished.proof)];
+    }
   }
 };
 
 // The asks hex already has a pick for, to take in one go. Money stays a call you make one by one.
 export const picksOf = (entries: Entry[], answered: Record<string, string | null> = {}) =>
   entries.flatMap((entry) => {
-    if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') return [];
+    if (entry.kind !== 'ask' || answered[entry.id] || entry.ask.tag === 'money') {
+      return [];
+    }
     const option = entry.ask.options.find((one) => one.pick);
     return option ? [{ ask: entry.ask, option }] : [];
   });
@@ -374,7 +428,9 @@ const isDone = (page: PageId): page is `${typeof DONE}${string}` => page.startsW
 // or, with none to show (what's stuck, a finished T3 thread), a page of its project's own rows.
 export const pageOf = (topic: Topic): PageId => {
   const [lead] = topic.entries;
-  if (topic.entries.length === 1 && lead?.kind === 'finished') return `${DONE}${lead.id}`;
+  if (topic.entries.length === 1 && lead?.kind === 'finished') {
+    return `${DONE}${lead.id}`;
+  }
   return topic.entries.map(taskOf).find(Boolean) ?? `${TOPIC}${topic.name}`;
 };
 
@@ -393,9 +449,15 @@ export const tracksOf = (name: string, tasks: TaskRow[]): Turn[][] =>
 
 // The thread a row is about and opens, when it has one on the board.
 export const taskOf = (entry: Entry) => {
-  if (entry.kind === 'ask') return entry.ask.task;
-  if (entry.kind === 'task') return entry.task.id;
-  if (entry.kind === 'finished') return entry.finished.run;
+  if (entry.kind === 'ask') {
+    return entry.ask.task;
+  }
+  if (entry.kind === 'task') {
+    return entry.task.id;
+  }
+  if (entry.kind === 'finished') {
+    return entry.finished.run;
+  }
   return undefined;
 };
 
@@ -403,7 +465,9 @@ export const taskOf = (entry: Entry) => {
 // when it cleared some, and the places it couldn't reach. hex counts them without saying which, so
 // they're named by the apps the ask was asked in only when it reached them all.
 export const reachedBy = (ask: Ask, sent: Sent | undefined) => {
-  if (!sent) return '';
+  if (!sent) {
+    return '';
+  }
   const apps = sent.missed
     ? []
     : [...new Set(ask.places.map((place) => placeOf(place.app)))]

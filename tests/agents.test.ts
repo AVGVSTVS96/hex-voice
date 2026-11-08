@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { agentLine, justFinished, type AgentTask } from '../src/live/agents';
+import { agentLine, justFinished } from '../src/live/agents';
+import type { AgentTask } from '../src/live/agents';
 
 const sent: AgentTask = {
   id: 'orb',

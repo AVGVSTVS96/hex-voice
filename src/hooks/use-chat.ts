@@ -6,7 +6,8 @@ import { Refused } from '@/hex/client';
 import { useFailures, failure } from '@/hooks/use-failures';
 import { useKept } from '@/hooks/use-kept';
 import { useWatch } from '@/hooks/use-watch';
-import { arrived, newKey, type Sending } from '@/live/chat';
+import { arrived, newKey } from '@/live/chat';
+import type { Sending } from '@/live/chat';
 import type { Picked } from '@/live/media';
 import type { Chat, TaskId } from '@/live/tasks';
 
@@ -25,7 +26,9 @@ export const useChat = (id: TaskId | null, live: boolean) => {
     (after, signal, id) => hex.tasks.chat(id, after, signal),
     (chat, id) => {
       setSeen({ id, chat });
-      if (writable?.[id] !== chat.sends) keepWritable({ ...writable, [id]: chat.sends });
+      if (writable?.[id] !== chat.sends) {
+        keepWritable({ ...writable, [id]: chat.sends });
+      }
     },
   );
 

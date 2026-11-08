@@ -109,7 +109,7 @@ test('publishing the same export again leaves the update as it was', async (t) =
   const dist = await exported();
   const update = { dir, dist, platform: 'ios', runtimeVersion: 'abc123', expoConfig };
   assert.equal((await publish(update)).published, true);
-  const first = await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf8');
+  const first = await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf-8');
   assert.equal((await publish(update)).published, false);
-  assert.equal(await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf8'), first);
+  assert.equal(await readFile(join(dir, 'ios/abc123/manifest.json'), 'utf-8'), first);
 });

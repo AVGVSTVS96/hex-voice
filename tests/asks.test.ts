@@ -11,9 +11,8 @@ import {
   unreached,
   yours,
   Ask,
-  type AskList,
-  type Yours,
 } from '../src/live/asks';
+import type { AskList, Yours } from '../src/live/asks';
 import { pinSections } from '../src/live/pinned';
 
 const ask = (id: string, kind: Ask['kind'], extra: Partial<z.input<typeof Ask>> = {}): Ask =>

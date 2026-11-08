@@ -1,14 +1,7 @@
-import {
-  callsBeside,
-  stageLayout,
-  wordsBefore,
-  type Box,
-  type CallsPlacement,
-  type ColumnControls,
-  type Stage,
-  type Words,
-} from '@/call/stage';
-import { metrics, space, stack, type ToolbarGaps } from '@/ui/tokens';
+import { callsBeside, stageLayout, wordsBefore } from '@/call/stage';
+import type { Box, CallsPlacement, ColumnControls, Stage, Words } from '@/call/stage';
+import { metrics, space, stack } from '@/ui/tokens';
+import type { ToolbarGaps } from '@/ui/tokens';
 
 import type { Fold, Insets, Rect, Room, Size } from '@/screens/window';
 
@@ -35,9 +28,15 @@ const TIME_WIDTH = 44;
 // far below the band's middle, as measured in the simulator: the time and battery center 48 down 82.
 const STATUS_DROP = 7;
 
-type Place = { x: number; y: number };
+interface Place {
+  x: number;
+  y: number;
+}
 type Spot = Place & { size?: number };
-type Span = { x: number; width: number };
+interface Span {
+  x: number;
+  width: number;
+}
 type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGaps };
 
 // The screen's regions for the room its window has, never the device's pose: where the call
@@ -67,7 +66,7 @@ type Toolbar = Spot & { width: number; axis: 'row' | 'column'; gaps?: ToolbarGap
 // the page before the fold while Tasks keeps the one after it (`beside`). On its side the keyboard
 // takes the page after the fold, so while you type there Tasks moves to the page before it
 // (`typing`), the way a laptop keeps what you write above its keys. Spots are the window's.
-export type Duo = {
+export interface Duo {
   tasks: Page;
   beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
   call: {
@@ -75,7 +74,7 @@ export type Duo = {
     time: Place & { width: number; align: 'center' | 'left' };
     controls?: { right: number; top: number };
   };
-};
+}
 
 // Where Tasks lays out: `area` runs as wide as it can without reaching under the bar's buttons or
 // the status items, and its content keeps `foot` clear of the home indicator, or ends at the fold.
@@ -83,11 +82,11 @@ export type Duo = {
 // leaves as it was, so Tasks is laid out by it and fills the new window in the frame it changes.
 // Its rows keep their own inset, so its pages run flush to the screen's edges, the fold and the
 // bar's buttons.
-export type Page = {
+export interface Page {
   area: Rect;
   margin: Insets;
   foot: number | 'fold';
-};
+}
 
 // The stage's parts are in its box's coordinates; `content` is that box in the window's.
 export type Layout = Stage & {
@@ -102,12 +101,12 @@ export type Layout = Stage & {
 };
 
 // The bar stays where it is over the inbox, so the inbox starts `top` down, under it.
-export type Inbox = {
+export interface Inbox {
   width: number;
   top: number;
   orb: Required<Spot>;
   controls: Place;
-};
+}
 
 export const screenLayout = (room: Room, { call = true } = {}): Layout => {
   const { insets, regular, bar } = room;
@@ -124,13 +123,14 @@ export const screenLayout = (room: Room, { call = true } = {}): Layout => {
     regular,
   };
   const layout = stageLayout(box);
-  if (!bar && !fold)
+  if (!bar && !fold) {
     return {
       ...layout,
       content,
       toolbar,
       inbox: regular ? rail(frame) : undefined,
     };
+  }
   const before = box.fold && wordsBefore(box, layout, box.fold);
   const duo = frame.column
     ? besideColumn(frame, frame.column, fold, before)
@@ -200,7 +200,7 @@ const rail = ({ window, top, bottomInset }: Frame): Inbox => {
   };
 };
 
-type Frame = {
+interface Frame {
   window: Size;
   insets: Insets;
   bottomInset: number;
@@ -209,11 +209,13 @@ type Frame = {
   // iPhone Duo's side column, the tools at its top and the call buttons at its foot.
   column?: Span & { center: number; controls: ColumnControls };
   top: number;
-};
+}
 
 const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room): Frame => {
   const bottomInset = Math.max(insets.bottom, 20) + 14;
-  if (bar) return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
+  if (bar) {
+    return { window, insets, bottomInset, ...column(window, insets, bar, occlusions) };
+  }
   const toolbar = fold
     ? band(window, insets, occlusions)
     : {
@@ -248,7 +250,9 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
   let start = from;
   for (const area of [...taken].sort((a, b) => a.x - b.x)) {
     const end = Math.min(to, area.x - GAP);
-    if (end - start > best.width) best = { x: start, width: end - start };
+    if (end - start > best.width) {
+      best = { x: start, width: end - start };
+    }
     start = Math.max(start, area.x + area.width + GAP);
   }
   return to - start > best.width ? { x: start, width: to - start } : best;
@@ -412,9 +416,12 @@ const paged = (
     foot,
   });
   const tasks = at(area, foot);
-  if (!fold) return { tasks };
-  if ('x' in fold)
+  if (!fold) {
+    return { tasks };
+  }
+  if ('x' in fold) {
     return { tasks, after: at({ ...area, x: fold.x, width: area.x + area.width - fold.x }, foot) };
+  }
   return {
     tasks,
     after: at({ ...area, y: fold.y, height: area.y + area.height - fold.y }, foot),

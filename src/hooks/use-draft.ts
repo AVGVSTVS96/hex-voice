@@ -18,7 +18,9 @@ export const keepDraft = (where: string, text: string) => {
 
 // Once what you typed has gone, its draft goes too, unless you've typed more since.
 export const sentDraft = (where: string, text: string) => {
-  if (saved()[where]?.trim() === text.trim()) keepDraft(where, '');
+  if (saved()[where]?.trim() === text.trim()) {
+    keepDraft(where, '');
+  }
 };
 
 // What's typed somewhere that's since been listed under another name, like an ask hex's check took
@@ -26,7 +28,9 @@ export const sentDraft = (where: string, text: string) => {
 export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const old = all[where]?.trim() ? undefined : from.find((key) => all[key]?.trim());
-  if (!old) return all[where] ?? '';
+  if (!old) {
+    return all[where] ?? '';
+  }
   const { [old]: text, ...rest } = all;
   Settings.set({ [KEY]: { ...rest, [where]: text } });
   return text!;

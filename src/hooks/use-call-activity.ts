@@ -1,8 +1,10 @@
-import { addUserInteractionListener, after, type LiveActivity } from 'expo-widgets';
+import { addUserInteractionListener, after } from 'expo-widgets';
+import type { LiveActivity } from 'expo-widgets';
 import { useEffect, useEffectEvent, useRef } from 'react';
 
 import type { Call } from '@/call/call';
-import CallActivity, { type CallActivityProps } from '@/live/call-activity';
+import CallActivity from '@/live/call-activity';
+import type { CallActivityProps } from '@/live/call-activity';
 import { ENDINGS, clock } from '@/live/calls';
 
 // An ended call stays on the lock screen with how it ended, long enough to glance at.
@@ -28,13 +30,19 @@ export const useCallActivity = (
   const last = call.kind === 'none' ? call.last : undefined;
 
   const onControl = useEffectEvent((target: string) => {
-    if (target === 'mute') toggleMute();
-    if (target === 'end') void end();
+    if (target === 'mute') {
+      toggleMute();
+    }
+    if (target === 'end') {
+      void end();
+    }
   });
 
   useEffect(() => {
     // An activity can outlive the app process that started it, and its call ended with it.
-    for (const stale of CallActivity.getInstances()) void stale.end('immediate');
+    for (const stale of CallActivity.getInstances()) {
+      void stale.end('immediate');
+    }
     const controls = addUserInteractionListener(({ target }) => onControl(target));
     return () => {
       controls.remove();
@@ -44,7 +52,9 @@ export const useCallActivity = (
   }, []);
 
   useEffect(() => {
-    if (state === 'ending') return;
+    if (state === 'ending') {
+      return;
+    }
     if (!state) {
       const current = activity.current;
       activity.current = null;
@@ -69,7 +79,9 @@ export const useCallActivity = (
       since.current = 0;
       return;
     }
-    if (state !== 'connecting' && !since.current) since.current = Date.now();
+    if (state !== 'connecting' && !since.current) {
+      since.current = Date.now();
+    }
     const props: CallActivityProps = { orb, since: since.current, state };
     if (activity.current) {
       void activity.current.update(props).catch(() => {});

@@ -4,10 +4,15 @@ import test from 'node:test';
 import type { Pose } from '../modules/pose';
 import { barOf, cardOf } from '../src/call/card';
 import { screenLayout } from '../src/screens/layout';
-import { roomOf, type Insets, type Size } from '../src/screens/window';
+import { roomOf } from '../src/screens/window';
+import type { Insets, Size } from '../src/screens/window';
 import { metrics, radius } from '../src/ui/tokens';
 
-type Fixture = { window: Size; insets: Insets; pose: Pose };
+interface Fixture {
+  window: Size;
+  insets: Insets;
+  pose: Pose;
+}
 
 const pad = { top: 24, right: 0, bottom: 20, left: 0 };
 const column = { top: 0, right: 84, bottom: 34, left: 0 };
@@ -101,8 +106,9 @@ test('what is on the call card stays put in the window unless the card slides as
       const slid = layout.calls.place === 'slide' ? drawer * layout.calls.width : 0;
       assert.equal(card.left + card.stage.left, layout.content.x + slid, `${name} at ${drawer}`);
       assert.equal(card.top + card.stage.top, 0, `${name} at ${drawer}`);
-      if (layout.calls.place === 'slide' && drawer === 1)
+      if (layout.calls.place === 'slide' && drawer === 1) {
         assert.equal(card.stage.left, 0, `${name}: the call's content peeks from Calls' edge`);
+      }
     }
   }
 });
@@ -112,9 +118,9 @@ test('what is on the call card stays put in the window unless the card slides as
 // or the card covers any of Calls.
 test('in any window, Calls in rounds the card at Calls’ edge, and nothing in leaves it square', () => {
   const problems: string[] = [];
-  for (const width of [375, 440, 466, 669, 834, 951, 1194])
-    for (const height of [466, 669, 678, 834, 951, 1194])
-      for (const side of [undefined, 'left', 'right'] as const)
+  for (const width of [375, 440, 466, 669, 834, 951, 1194]) {
+    for (const height of [466, 669, 678, 834, 951, 1194]) {
+      for (const side of [undefined, 'left', 'right'] as const) {
         for (const folded of [false, true]) {
           const across = width > height;
           const fold = !folded
@@ -134,12 +140,19 @@ test('in any window, Calls in rounds the card at Calls’ edge, and nothing in l
           });
           const name = `${width}x${height} ${side ?? 'no'} column${folded ? ', folded' : ''}`;
           const calls = cardOf(layout, 1, 0, layout.tasks.width);
-          if (calls.borderRadius !== radius.card) problems.push(`${name}: Calls in, square`);
-          if (calls.left !== layout.content.x + layout.calls.width)
+          if (calls.borderRadius !== radius.card) {
+            problems.push(`${name}: Calls in, square`);
+          }
+          if (calls.left !== layout.content.x + layout.calls.width) {
             problems.push(`${name}: card at ${calls.left}, Calls ends at ${layout.calls.width}`);
-          if (cardOf(layout, 0, 0, layout.tasks.width).borderRadius !== 0)
+          }
+          if (cardOf(layout, 0, 0, layout.tasks.width).borderRadius !== 0) {
             problems.push(`${name}: nothing in, rounded`);
+          }
         }
+      }
+    }
+  }
   assert.deepEqual(problems, []);
 });
 
@@ -150,26 +163,31 @@ test('on every screen, the bar across the top keeps one place clear of Tasks bes
   for (const [name, screen] of Object.entries(screens)) {
     const layout = layoutOf(screen);
     const { toolbar, calls, tasks } = layout;
-    if (toolbar.axis !== 'row') continue;
+    if (toolbar.axis !== 'row') {
+      continue;
+    }
     const window = screen.window.width;
     for (const drawer of [0, 0.5, 1]) {
       const { left, right } = barOf(layout, window, drawer);
       const end = window - right;
       const where = `${name}, Calls at ${drawer}`;
       assert.ok(end - left >= least, `${where}: holds its buttons`);
-      if (calls.below !== undefined)
+      if (calls.below !== undefined) {
         assert.deepEqual([left, end], [toolbar.x, toolbar.x + toolbar.width], `${where}: whole`);
+      }
       if (drawer === 0) {
         assert.ok(left >= 0 && end <= window, `${where}: inside the window`);
-        if (tasks.place === 'beside')
+        if (tasks.place === 'beside') {
           assert.ok(end <= window - tasks.width, `${where}: clear of Tasks`);
+        }
       }
     }
-    if (layout.inbox)
+    if (layout.inbox) {
       assert.ok(
         toolbar.y + metrics.tool <= layout.inbox.top,
         `${name}: the inbox starts under the bar`,
       );
+    }
   }
 });
 

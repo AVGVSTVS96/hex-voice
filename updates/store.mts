@@ -7,7 +7,8 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
@@ -31,17 +32,17 @@ const CONTENT_TYPES: Record<string, string> = {
 const contentType = (ext: string) => CONTENT_TYPES[ext] ?? 'application/octet-stream';
 const NAME = /^\w[\w.-]*$/;
 
-type ExportMetadata = {
+interface ExportMetadata {
   fileMetadata: Record<string, { bundle: string; assets: { path: string; ext: string }[] }>;
-};
+}
 
-export type Publish = {
+export interface Publish {
   dir: string;
   dist: string;
   platform: string;
   runtimeVersion: string;
   expoConfig: { updates: { url: string } };
-};
+}
 
 export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig }: Publish) => {
   const runtime = join(dir, platform, runtimeVersion);
@@ -70,7 +71,7 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
   const hash = createHash('sha256').update(runtimeVersion).update(metadata).digest('hex');
   const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
   const latest = join(runtime, 'manifest.json');
-  if (JSON.parse(await readFile(latest, 'utf8').catch(() => '{}')).id === id) {
+  if (JSON.parse(await readFile(latest, 'utf-8').catch(() => '{}')).id === id) {
     return { id, published: false };
   }
 
@@ -102,11 +103,16 @@ export const serve = (dir: string) =>
   createServer(async (request, response) => {
     const { pathname } = new URL(request.url ?? '/', 'http://localhost');
     try {
-      if (pathname === '/manifest') await sendManifest(dir, request, response);
-      else await sendAsset(dir, pathname, request, response);
+      if (pathname === '/manifest') {
+        await sendManifest(dir, request, response);
+      } else {
+        await sendAsset(dir, pathname, request, response);
+      }
     } catch (error) {
       console.error(error);
-      if (!response.headersSent) response.writeHead(500);
+      if (!response.headersSent) {
+        response.writeHead(500);
+      }
       response.end();
     }
   });
@@ -119,11 +125,17 @@ const sendManifest = async (dir: string, request: IncomingMessage, response: Ser
   };
   const platform = request.headers['expo-platform'];
   const runtime = request.headers['expo-runtime-version'];
-  if (typeof platform !== 'string' || !NAME.test(platform)) return response.writeHead(400).end();
-  if (typeof runtime !== 'string' || !NAME.test(runtime)) return response.writeHead(400).end();
+  if (typeof platform !== 'string' || !NAME.test(platform)) {
+    return response.writeHead(400).end();
+  }
+  if (typeof runtime !== 'string' || !NAME.test(runtime)) {
+    return response.writeHead(400).end();
+  }
   console.log(`${platform} ${runtime} runs ${request.headers['expo-current-update-id']}`);
   const manifest = await readFile(join(dir, platform, runtime, 'manifest.json')).catch(() => null);
-  if (!manifest) return response.writeHead(204, headers).end();
+  if (!manifest) {
+    return response.writeHead(204, headers).end();
+  }
   response.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(manifest);
 };
 
@@ -135,7 +147,9 @@ const sendAsset = async (
 ) => {
   const name = pathname.match(/^\/assets\/([^/]+)$/)?.[1];
   const path = name && NAME.test(name) ? join(dir, 'assets', name) : undefined;
-  if (!path || !(await stat(path).catch(() => null))) return response.writeHead(404).end();
+  if (!path || !(await stat(path).catch(() => null))) {
+    return response.writeHead(404).end();
+  }
   const gzip = /\bgzip\b/.test(request.headers['accept-encoding'] ?? '');
   response.writeHead(200, {
     'content-type': contentType(path.split('.').pop()!),
@@ -149,13 +163,15 @@ const sendAsset = async (
 const main = async () => {
   const [command, ...args] = process.argv.slice(2);
   const dir = process.env.HEX_UPDATES_DIR;
-  if (!dir) throw new Error('HEX_UPDATES_DIR is not set');
+  if (!dir) {
+    throw new Error('HEX_UPDATES_DIR is not set');
+  }
   if (command === 'serve') {
     const port = Number(process.env.PORT ?? 8791);
     serve(dir).listen(port, '127.0.0.1', () => console.log(`serving ${dir} on :${port}`));
   } else if (command === 'publish') {
     const [dist, platform, runtimeVersion, configPath] = args;
-    const expoConfig = JSON.parse(await readFile(configPath, 'utf8'));
+    const expoConfig = JSON.parse(await readFile(configPath, 'utf-8'));
     const { id, published } = await publish({ dir, dist, platform, runtimeVersion, expoConfig });
     console.log(published ? `published update ${id}` : `update ${id} was already published`);
   } else {
@@ -163,4 +179,6 @@ const main = async () => {
   }
 };
 
-if (import.meta.main) void main();
+if (import.meta.main) {
+  void main();
+}

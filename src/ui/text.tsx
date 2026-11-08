@@ -1,10 +1,17 @@
-import { Text as UniversalText, type TextProps } from '@expo/ui';
+import { Text as UniversalText } from '@expo/ui';
+import type { TextProps } from '@expo/ui';
 import { font, foregroundStyle, lineSpacing } from '@expo/ui/swift-ui/modifiers';
 
 import { theme } from '@/theme';
-import { type, type TextStyle, type TextVariant, type Tone, type Weight } from '@/ui/tokens';
+import { type } from '@/ui/tokens';
+import type { TextStyle, TextVariant, Tone, Weight } from '@/ui/tokens';
 
-type Look = { variant?: TextVariant; weight?: Weight; tone?: Tone; paragraph?: boolean };
+interface Look {
+  variant?: TextVariant;
+  weight?: Weight;
+  tone?: Tone;
+  paragraph?: boolean;
+}
 
 // The modifiers that draw SwiftUI text in one of the app's text styles and colors. A `paragraph`
 // spaces its lines by its style's lineSpacing; anything else is a label, on the font's own leading.

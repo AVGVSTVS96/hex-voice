@@ -16,7 +16,8 @@ import type { ReactNode } from 'react';
 
 import { theme } from '@/theme';
 import { Host } from '@/ui/host';
-import { metrics, type GlassSize } from '@/ui/tokens';
+import { metrics } from '@/ui/tokens';
+import type { GlassSize } from '@/ui/tokens';
 
 const symbols = {
   back: 'chevron.left',
@@ -34,7 +35,7 @@ const symbols = {
   add: 'plus',
 } as const;
 
-type Props = {
+interface Props {
   icon: keyof typeof symbols;
   label: string;
   onPress: () => void;
@@ -44,7 +45,7 @@ type Props = {
   selected?: boolean;
   prominent?: boolean;
   loading?: boolean;
-};
+}
 
 // Not buttonStyle('glass'): SwiftUI pads its label past the frame sizes the layout counts on.
 export const glass = (

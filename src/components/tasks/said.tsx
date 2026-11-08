@@ -13,8 +13,10 @@ import { createContext, useContext } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Album } from '@/components/media/thumb';
-import { said, type Sending } from '@/live/chat';
-import { mediaWords, type Shown } from '@/live/media';
+import { said } from '@/live/chat';
+import type { Sending } from '@/live/chat';
+import { mediaWords } from '@/live/media';
+import type { Shown } from '@/live/media';
 import type { ChatTurn } from '@/live/tasks';
 import { theme } from '@/theme';
 import { textLook } from '@/ui/text';
@@ -28,9 +30,12 @@ export const Selectable = createContext(true);
 export const Said = ({ turn }: { turn: ChatTurn }) => {
   const one = said(turn);
   const selectable = useContext(Selectable);
-  if (one.kind === 'me') return <Mine text={one.text} media={turn.media} />;
-  if (one.kind === 'event')
+  if (one.kind === 'me') {
+    return <Mine text={one.text} media={turn.media} />;
+  }
+  if (one.kind === 'event') {
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
+  }
   return (
     <Markdown
       selectable={selectable}

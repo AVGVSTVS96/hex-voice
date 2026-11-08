@@ -1,4 +1,5 @@
-import { breakpoint, metrics, stack, type ControlsSize } from '@/ui/tokens';
+import { breakpoint, metrics, stack } from '@/ui/tokens';
+import type { ControlsSize } from '@/ui/tokens';
 
 import type { Fold } from '@/screens/window';
 
@@ -19,22 +20,28 @@ const OFF_FOLD = 8;
 // Persona's Rive art fills three quarters of its view, as measured in the simulator.
 const ART = 0.75;
 
-type Place = { x: number; y: number };
+interface Place {
+  x: number;
+  y: number;
+}
 type Spot = Place & { size?: number };
-type Span = { x: number; width: number };
+interface Span {
+  x: number;
+  width: number;
+}
 export type Words = Span & { top: number };
-export type ColumnControls = {
+export interface ColumnControls {
   right: number;
   bottom: number;
   axis: 'row' | 'column';
   size?: ControlsSize;
-};
+}
 
 // The room the call stage lays out in, as the screen gives it: its size, the window's safe area
 // along its top and foot, how far down it a bar across the top reaches (none where the bar runs
 // down the side), the fold across it in its own coordinates, where its call buttons sit when
 // they're out in a side column, and whether its width is regular.
-export type Box = {
+export interface Box {
   width: number;
   height: number;
   safe: { top: number; bottom: number };
@@ -42,15 +49,22 @@ export type Box = {
   fold?: Fold;
   controls?: ColumnControls;
   regular: boolean;
-};
+}
 
-export type Pane<Place> = { width: number; place: Place };
+export interface Pane<Place> {
+  width: number;
+  place: Place;
+}
 // Calls that starts `below` a band of status and bar buttons leaves that band whole.
 export type CallsPlacement = Pane<'slide' | 'beside' | 'over'> & { below?: number };
 export type TasksPlacement = Pane<'beside' | 'sheet' | 'page'>;
 
 // Where something sits with nothing beside the call, with Calls beside it, and with Tasks.
-export type Beside<T> = { open: T; calls: T; tasks: T };
+export interface Beside<T> {
+  open: T;
+  calls: T;
+  tasks: T;
+}
 
 // The call stage's geometry, in its own box's coordinates. It comes in three arrangements:
 // - single: the phone's, the orb alone with the words pulled down over it (also iPhone Duo closed)
@@ -60,7 +74,7 @@ export type Beside<T> = { open: T; calls: T; tasks: T };
 //
 // Whether the words show is decided here once: `pulls` says the words are pulled down over the orb
 // (single), and everywhere else they have a place of their own and always show.
-export type Stage = {
+export interface Stage {
   kind: 'single' | 'split' | 'stacked';
   // Inline, the call buttons close the footer as on the phone; in iPhone Duo's side column they sit
   // on their own; on iPad they're centered at `center`, moving with the room a pane leaves, and at
@@ -95,13 +109,19 @@ export type Stage = {
   // beside the transcript button where the words pull down over the orb, in the corner of the orb's
   // own page where they have one.
   add: Place;
-};
+}
 
 export const stageLayout = (box: Box): Stage => {
   const { fold } = box;
-  if (box.regular && !fold && !box.controls) return pad(box);
-  if (fold && 'y' in fold) return stacked(box, fold.y);
-  if (box.regular && box.width > box.height) return split(box, fold?.x);
+  if (box.regular && !fold && !box.controls) {
+    return pad(box);
+  }
+  if (fold && 'y' in fold) {
+    return stacked(box, fold.y);
+  }
+  if (box.regular && box.width > box.height) {
+    return split(box, fold?.x);
+  }
   return single(box);
 };
 

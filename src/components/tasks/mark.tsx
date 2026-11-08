@@ -2,12 +2,14 @@ import { Icon, RNHostView, Spacer } from '@expo/ui';
 import { Circle, Rectangle, ZStack } from '@expo/ui/swift-ui';
 import { foregroundStyle, frame, strokeBorder } from '@expo/ui/swift-ui/modifiers';
 import type { ReactNode } from 'react';
-import { View, type ColorValue } from 'react-native';
+import { View } from 'react-native';
+import type { ColorValue } from 'react-native';
 
 import { Arc } from '@/components/agent-line';
 import type { TaskState } from '@/live/tasks';
 import { theme } from '@/theme';
-import { metrics, radius, space, type Tone } from '@/ui/tokens';
+import { metrics, radius, space } from '@/ui/tokens';
+import type { Tone } from '@/ui/tokens';
 
 // What needs you says what kind it is: a question (`asks`), one hex has a pick for (`pick`), or a
 // reply it waits on (`needs`).
@@ -17,7 +19,7 @@ export type MarkState = TaskState | 'asks' | 'pick' | 'paused' | 'stopped' | 're
 // you is a mint disc, with a question mark for a question and a sparkle for one hex has a pick
 // for; what hex has under way is its blue arc. Only what's finished sits in a square, with a tick.
 export const Mark = ({ state }: { state: MarkState }) => {
-  if (state === 'working')
+  if (state === 'working') {
     return (
       <RNHostView matchContents>
         <View
@@ -32,6 +34,7 @@ export const Mark = ({ state }: { state: MarkState }) => {
         </View>
       </RNHostView>
     );
+  }
   return (
     <ZStack
       alignment="center"
@@ -51,7 +54,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
     </>
   );
   switch (state) {
-    case 'needs':
+    case 'needs': {
       return disc(
         theme.accentMuted,
         <Circle
@@ -61,17 +64,20 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           ]}
         />,
       );
-    case 'asks':
+    }
+    case 'asks': {
       return disc(
         theme.accentMuted,
         <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />,
       );
-    case 'pick':
+    }
+    case 'pick': {
       return disc(
         theme.accentMuted,
         <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />,
       );
-    case 'done':
+    }
+    case 'done': {
       return (
         <>
           <Spacer
@@ -88,7 +94,8 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           <Icon name="checkmark" size={metrics.symbol.mark} color={theme.secondary} />
         </>
       );
-    case 'read':
+    }
+    case 'read': {
       return (
         <Circle
           modifiers={[
@@ -97,17 +104,20 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           ]}
         />
       );
-    case 'failed':
+    }
+    case 'failed': {
       return disc(
         theme.dangerMuted,
         <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />,
       );
-    case 'paused':
+    }
+    case 'paused': {
       return disc(
         theme.surfaceSelected,
         <Icon name="pause.fill" size={metrics.symbol.mark} color={theme.secondary} />,
       );
-    case 'stopped':
+    }
+    case 'stopped': {
       return (
         <Rectangle
           modifiers={[
@@ -116,7 +126,8 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           ]}
         />
       );
-    case 'pending':
+    }
+    case 'pending': {
       return (
         <Spacer
           modifiers={[
@@ -129,7 +140,8 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           ]}
         />
       );
-    case 'idle':
+    }
+    case 'idle': {
       return (
         <Spacer
           modifiers={[
@@ -142,6 +154,7 @@ const Face = ({ state }: { state: Exclude<MarkState, 'working'> }) => {
           ]}
         />
       );
+    }
   }
 };
 

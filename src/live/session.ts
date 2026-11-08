@@ -8,7 +8,8 @@ import type {
   SessionAPI,
   TransportFactory,
 } from './types';
-import { DEFAULT_VOICE, type LiveVoice } from './voices';
+import { DEFAULT_VOICE } from './voices';
+import type { LiveVoice } from './voices';
 
 const initialSnapshot = (): LiveSnapshot => ({
   status: 'idle',
@@ -73,7 +74,9 @@ export class LiveSession {
   };
   private hear(change: Partial<Levels>) {
     const levels = { ...this.levels, ...change };
-    if (levels.input === this.levels.input && levels.output === this.levels.output) return;
+    if (levels.input === this.levels.input && levels.output === this.levels.output) {
+      return;
+    }
     this.levels = levels;
     this.levelListeners.forEach((listener) => listener());
   }
@@ -83,8 +86,9 @@ export class LiveSession {
       this.closing ||
       this.snapshot.status === 'connecting' ||
       this.snapshot.status === 'connected'
-    )
+    ) {
       return;
+    }
     const generation = ++this.generation;
     this.snapshot = initialSnapshot();
     this.serverClosed = false;
@@ -99,11 +103,14 @@ export class LiveSession {
           if (
             isCurrent() ||
             (event.type === 'session.closed' && this.closing && transport === this.transport)
-          )
+          ) {
             this.onEvent(event);
+          }
         },
         onFailure: (message) => {
-          if (isCurrent() && !this.closing) void this.stop(message);
+          if (isCurrent() && !this.closing) {
+            void this.stop(message);
+          }
         },
       });
       if (!isCurrent()) {
@@ -112,7 +119,9 @@ export class LiveSession {
       }
       this.transport = transport;
       const sdp = await transport.offer();
-      if (!isCurrent()) return;
+      if (!isCurrent()) {
+        return;
+      }
       const session = await this.api.create(sdp, voice, about);
       // A cancelled create can still finish on the server. Close its returned session.
       if (!isCurrent()) {
@@ -124,10 +133,14 @@ export class LiveSession {
             // The local close may still be publishing its final idle state.
             // Surface this warning afterward without touching a newer call.
             await this.closing;
-            if (this.generation === generation + 1)
+            if (this.generation === generation + 1) {
               this.update({ status: 'error', error: message });
-            else console.warn('[hex] A cancelled session could not be confirmed closed.');
-          } else console.warn('[hex] A cancelled session could not be confirmed closed.');
+            } else {
+              console.warn('[hex] A cancelled session could not be confirmed closed.');
+            }
+          } else {
+            console.warn('[hex] A cancelled session could not be confirmed closed.');
+          }
         }
         return;
       }
@@ -135,15 +148,16 @@ export class LiveSession {
       this.update({ callId: session.sessionId });
       this.startupTimer = setTimeout(() => {
         void this.stop('The voice session did not start. Please try again.');
-      }, 25000);
+      }, 25_000);
       await transport.answer(session.sdp);
-      if (!isCurrent()) return;
     } catch (error) {
-      if (isCurrent())
+      if (isCurrent()) {
         await this.stop(
           error instanceof Error ? error.message : 'Could not start the conversation.',
         );
-      else transport?.close();
+      } else {
+        transport?.close();
+      }
     }
   };
 
@@ -152,26 +166,32 @@ export class LiveSession {
       event.type !== 'session.closed' &&
       this.snapshot.status === 'connected' &&
       !this.refreshElapsed()
-    )
+    ) {
       return;
+    }
     switch (event.type) {
-      case 'session.started':
+      case 'session.started': {
         clearTimeout(this.startupTimer);
-        if (this.snapshot.status !== 'connecting') break;
+        if (this.snapshot.status !== 'connecting') {
+          break;
+        }
         this.startedAt = Date.now();
         this.reportedDuplex = false;
         this.lastSentPackets = 0;
         this.update({ status: 'connected' });
         this.startStats();
         break;
+      }
       case 'session.input_transcript.delta':
       case 'session.output_transcript.delta': {
-        if (typeof event.delta !== 'string' || !event.delta) break;
+        if (typeof event.delta !== 'string' || !event.delta) {
+          break;
+        }
         const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
         const entries = [...this.snapshot.transcript];
         // Each speaker has an independent caption stream, so overlapping speech
         // must not split a sentence every time the other speaker emits a delta.
-        let index = entries.findLastIndex((entry) => entry.role === role);
+        const index = entries.findLastIndex((entry) => entry.role === role);
         const previous = entries[index];
         const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
         if (!previous || startMs - (previous.endMs ?? previous.startMs) > 2000) {
@@ -200,15 +220,17 @@ export class LiveSession {
           !command ||
           event.client_event_id !== command.id ||
           (event.type === 'session.input_audio.muted') !== command.muted
-        )
+        ) {
           break;
+        }
         clearTimeout(this.muteTimer);
         this.muteCommand = null;
-        if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted)
+        if (!command.muted && !this.snapshot.muted && !this.snapshot.interrupted) {
           this.transport?.setMuted(false);
+        }
         break;
       }
-      case 'session.closed':
+      case 'session.closed': {
         this.serverClosed = true;
         this.confirmClosed?.();
         if (!this.closing) {
@@ -216,19 +238,23 @@ export class LiveSession {
           void this.stop();
         }
         break;
+      }
       case 'error':
-      case 'session.error':
+      case 'session.error': {
         void this.stop(
           event.error?.message || 'The voice service reported an error. Start again to retry.',
         );
         break;
+      }
     }
   }
 
   setAppActive = (active: boolean) => {
     this.appActive = active;
     clearInterval(this.statsTimer);
-    if (!this.refreshElapsed()) return;
+    if (!this.refreshElapsed()) {
+      return;
+    }
     if (active) {
       this.startStats();
       void this.poll();
@@ -246,20 +272,30 @@ export class LiveSession {
   }
 
   private refreshElapsed() {
-    if (this.snapshot.status !== 'connected') return false;
+    if (this.snapshot.status !== 'connected') {
+      return false;
+    }
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
-    if (elapsedSeconds !== this.snapshot.elapsedSeconds) this.update({ elapsedSeconds });
+    if (elapsedSeconds !== this.snapshot.elapsedSeconds) {
+      this.update({ elapsedSeconds });
+    }
     return true;
   }
 
   private async poll() {
-    if (!this.transport || !this.appActive || !this.refreshElapsed()) return;
+    if (!this.transport || !this.appActive || !this.refreshElapsed()) {
+      return;
+    }
     const transport = this.transport;
-    if (this.statsPending === transport) return;
+    if (this.statsPending === transport) {
+      return;
+    }
     this.statsPending = transport;
     try {
       const stats = await transport.stats();
-      if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) return;
+      if (transport !== this.transport || !this.appActive || !this.refreshElapsed()) {
+        return;
+      }
       this.hear({
         input: this.snapshot.muted ? 0 : Math.min(1, stats.inputLevel * 5),
         output: Math.min(1, stats.outputLevel * 5),
@@ -282,15 +318,21 @@ export class LiveSession {
     } catch {
       /* A stats failure does not interrupt the audio connection. */
     } finally {
-      if (this.statsPending === transport) this.statsPending = null;
+      if (this.statsPending === transport) {
+        this.statsPending = null;
+      }
     }
   }
 
   // A phone call or Siri takes the audio session: the microphone pauses, hex marks the moment and
   // tells the voice to wait, and it all comes back when iOS returns the audio.
   interrupt = (began: boolean) => {
-    if (this.snapshot.status !== 'connected' || !this.transport) return;
-    if (began === this.snapshot.interrupted) return;
+    if (this.snapshot.status !== 'connected' || !this.transport) {
+      return;
+    }
+    if (began === this.snapshot.interrupted) {
+      return;
+    }
     if (!this.snapshot.muted) {
       this.transport.setMuted(began);
       this.transport.send({
@@ -300,21 +342,28 @@ export class LiveSession {
     }
     this.update({ interrupted: began });
     this.hear({ input: 0 });
-    if (this.sessionId)
+    if (this.sessionId) {
       void this.api.mark?.(this.sessionId, began ? 'paused' : 'resumed').catch(() => {});
+    }
   };
 
   // iOS doesn't always say when it hands the audio back (Siri, some declined calls), so a tap on the
   // microphone while paused is the way back.
   toggleMute = () => {
-    if (this.snapshot.status !== 'connected' || !this.transport) return;
+    if (this.snapshot.status !== 'connected' || !this.transport) {
+      return;
+    }
     if (this.snapshot.interrupted) {
       this.interrupt(false);
-      if (!this.snapshot.muted) return;
+      if (!this.snapshot.muted) {
+        return;
+      }
     }
     clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
-    if (muted) this.transport.setMuted(true);
+    if (muted) {
+      this.transport.setMuted(true);
+    }
     this.update({ muted });
     this.hear({ input: 0 });
     const id = `mute-${++this.nextCommand}`;
@@ -332,10 +381,14 @@ export class LiveSession {
   };
 
   stop = (reason?: string): Promise<void> => {
-    if (this.closing) return this.closing;
+    if (this.closing) {
+      return this.closing;
+    }
     this.refreshElapsed();
     if (!this.transport && this.snapshot.status !== 'connecting') {
-      if (reason) this.update({ status: 'error', error: reason });
+      if (reason) {
+        this.update({ status: 'error', error: reason });
+      }
       return Promise.resolve();
     }
     const was = this.snapshot.status;

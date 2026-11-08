@@ -16,8 +16,10 @@ import { Platform } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Hairline, SectionHead } from '@/components/tasks/parts';
-import { PLACES, placeOf, type Place, type Tile } from '@/live/inbox';
-import { clock, type TaskId, type TaskRow } from '@/live/tasks';
+import { PLACES, placeOf } from '@/live/inbox';
+import type { Place, Tile } from '@/live/inbox';
+import { clock } from '@/live/tasks';
+import type { TaskId, TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { brand, metrics, space } from '@/ui/tokens';
@@ -36,12 +38,15 @@ const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
 const look = (tile: Tile): { color: string; glyph: SFSymbol; ink: string } => {
   switch (tile.kind) {
-    case 'app':
+    case 'app': {
       return { color: brand[tile.place], glyph: GLYPH[tile.place], ink: brand.ink };
-    case 'call':
+    }
+    case 'call': {
       return { color: brand.t3, glyph: 'waveform', ink: brand.ink };
-    case 'link':
+    }
+    case 'link': {
       return { color: brand.link, glyph: 'arrow.up.right', ink: brand.ink };
+    }
   }
 };
 
@@ -52,7 +57,9 @@ export const swipeLook = (tile: Tile) => {
 
 // A thread without a link is a ghost: we know it's from there, but there's no door.
 export const TileIcon = ({ tile, size }: { tile: Tile; size: number }) => {
-  if (tile.kind === 'app' && !tile.link) return <Ghost place={tile.place} size={size} />;
+  if (tile.kind === 'app' && !tile.link) {
+    return <Ghost place={tile.place} size={size} />;
+  }
   return <Solid {...look(tile)} size={size} />;
 };
 

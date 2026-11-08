@@ -26,13 +26,13 @@ export const AgentActivity = z.object({
   tasks: z.array(AgentTask),
   asks: z.optional(z.array(CallCard)),
 });
-export type AgentLine = {
+export interface AgentLine {
   id: string;
   state: AgentTask['state'];
   text: string;
   waiting: boolean;
   where: string;
-};
+}
 
 // The tasks come most recently changed first, so the first running one is the agent that
 // took a step last. A task that just finished holds the line until something runs again.
@@ -49,7 +49,9 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
       where: [task.to, more].filter(Boolean).join('  '),
     };
   }
-  if (!finished || finished.state === 'running') return null;
+  if (!finished || finished.state === 'running') {
+    return null;
+  }
   return {
     id: finished.id,
     state: finished.state,

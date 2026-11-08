@@ -5,7 +5,8 @@ import test from 'node:test';
 
 import { TaskId } from '../src/live/tasks';
 import { startAt } from '../src/components/tasks/pages';
-import { shown, start, step, type Action, type Screen } from '../src/call/screen';
+import { shown, start, step } from '../src/call/screen';
+import type { Action, Screen } from '../src/call/screen';
 
 const go = (shared: boolean, ...actions: Action[]) =>
   actions.reduce((now, action) => step(now, action, { shared }), start({}));
@@ -105,13 +106,15 @@ test('where settings has a place, only one of Calls, Tasks and settings is ever 
     { to: 'tasks', open: false },
     { to: 'settings', open: false },
   ] as const;
-  for (const a of actions)
-    for (const b of actions)
+  for (const a of actions) {
+    for (const b of actions) {
       for (const c of actions) {
         const now = go(true, a, b, c);
         const { calls, tasks, settings } = shown(now, true);
         assert.ok([calls, tasks, settings].filter(Boolean).length <= 1, JSON.stringify([a, b, c]));
       }
+    }
+  }
 });
 
 test('opening a past call pulls the words, and letting them go goes back to the live call', () => {
@@ -188,7 +191,7 @@ test('only the call screen moves through Tasks; its containers only lay out wher
     );
   const movers = files('src').filter((file) =>
     /import \{[^}]*\b(?:move|startAt|START)\b[^}]*\} from '@\/components\/tasks\/pages'/.test(
-      readFileSync(file, 'utf8'),
+      readFileSync(file, 'utf-8'),
     ),
   );
   assert.deepEqual(movers, ['src/call/screen.ts']);

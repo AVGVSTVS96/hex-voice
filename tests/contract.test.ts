@@ -17,7 +17,7 @@ import { Chat, STATE_WORDS, TaskCounts, TaskList, TaskOrPage, stepMark } from '.
 
 // tests/fixtures holds real answers from hex's voice server, scrubbed (tests/fixtures/capture.mts).
 const real = (name: string): unknown =>
-  JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), 'utf8'));
+  JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), 'utf-8'));
 
 test('every answer hex gives today reads in this app', () => {
   for (const [name, schema] of [
@@ -41,7 +41,9 @@ test('every call hex lists shows where it came from and how it ended', () => {
   const { calls } = CallList.parse(real('calls'));
   for (const call of calls) {
     assert.ok(SOURCES[call.from].symbol, call.from);
-    if (call.end) assert.ok(ENDINGS[call.end].line, call.end);
+    if (call.end) {
+      assert.ok(ENDINGS[call.end].line, call.end);
+    }
     assert.ok(callName(call) && callDetails(call));
   }
 });

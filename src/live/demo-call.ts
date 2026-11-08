@@ -25,12 +25,16 @@ export const demoTransport: TransportFactory = async ({ onEvent }) => {
     offer: async () => '',
     answer: async () => {
       emit({ type: 'session.started' });
-      for (const [type, at, delta] of LINES)
+      for (const [type, at, delta] of LINES) {
         emit({ type, delta, start_ms: at * 1000, end_ms: (at + 4) * 1000 });
+      }
     },
     send: (event) => {
-      if (event.type === 'session.close') emit({ type: 'session.closed' });
-      else emit({ type: `${event.type}d`, client_event_id: event.event_id });
+      if (event.type === 'session.close') {
+        emit({ type: 'session.closed' });
+      } else {
+        emit({ type: `${event.type}d`, client_event_id: event.event_id });
+      }
       return true;
     },
     setMuted: () => {},

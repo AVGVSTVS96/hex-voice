@@ -1,6 +1,9 @@
-import { NativeModule, requireOptionalNativeModule } from 'expo';
+import type { NativeModule } from 'expo';
+import { requireOptionalNativeModule } from 'expo';
 
-export type Interruption = { began: boolean };
+export interface Interruption {
+  began: boolean;
+}
 
 declare class CallInterruptionsModule extends NativeModule<{
   onInterruption: (interruption: Interruption) => void;

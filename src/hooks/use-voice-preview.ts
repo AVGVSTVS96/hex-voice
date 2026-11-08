@@ -1,9 +1,5 @@
-import {
-  setAudioModeAsync,
-  setIsAudioActiveAsync,
-  useAudioPlayer,
-  type AudioMode,
-} from 'expo-audio';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from 'expo-audio';
+import type { AudioMode } from 'expo-audio';
 import { useEffect, useState } from 'react';
 
 import { VOICE_PREVIEWS } from '@/live/voice-previews';
@@ -28,7 +24,9 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing) {
+      return;
+    }
     let open = true;
     void setAudioModeAsync(PREVIEW_AUDIO)
       .catch(() => {})
@@ -44,12 +42,16 @@ export const useVoicePreview = (voice: LiveVoice, playing: boolean, take = 0) =>
   // Waking the audio session can take a moment, so it happens off the JavaScript thread before the
   // swipe's preview starts, leaving play() nothing slow to do.
   useEffect(() => {
-    if (!ready) return;
+    if (!ready) {
+      return;
+    }
     let current = true;
     void setIsAudioActiveAsync(true)
       .catch(() => {})
       .then(() => {
-        if (!current) return;
+        if (!current) {
+          return;
+        }
         player.replace(VOICE_PREVIEWS[voice]);
         player.play();
       });

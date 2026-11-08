@@ -90,7 +90,7 @@ test('each of hex’s tasks is one marker where it started, showing how it ended
     ],
     tasks: [
       { id: 'plan', state: 'running', at: 4000, text: 'writing the plan' },
-      { id: 'plan', state: 'done', at: 12000, text: 'plan page ready' },
+      { id: 'plan', state: 'done', at: 12_000, text: 'plan page ready' },
     ],
   });
   assert.deepEqual(

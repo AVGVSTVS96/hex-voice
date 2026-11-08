@@ -13,16 +13,8 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Glyph } from '@/components/glyph';
-import {
-  ENDINGS,
-  SOURCES,
-  byDay,
-  callDetails,
-  callName,
-  callTime,
-  type CallId,
-  type CallSummary,
-} from '@/live/calls';
+import { ENDINGS, SOURCES, byDay, callDetails, callName, callTime } from '@/live/calls';
+import type { CallId, CallSummary } from '@/live/calls';
 import { motion } from '@/motion';
 import { circle, theme } from '@/theme';
 import { ScrollView } from '@/ui/scroll';
@@ -31,7 +23,7 @@ import { metrics, radius, space, textOf } from '@/ui/tokens';
 const ACTION = 64;
 const DELETE_AT = 180;
 
-type Props = {
+interface Props {
   top: number;
   width: number;
   calls?: CallSummary[];
@@ -41,7 +33,7 @@ type Props = {
   haptics: boolean;
   onOpen: (call: CallSummary) => void;
   onDelete: (id: CallId) => void;
-};
+}
 
 export const CallsSidebar = ({
   top,
@@ -113,8 +105,9 @@ const Row = ({
   // Swiped open, its delete button is there for VoiceOver too; closed, the row's own action is.
   const [open, setOpen] = useState(false);
   const remove = () => {
-    if (process.env.EXPO_OS === 'ios' && haptics)
+    if (process.env.EXPO_OS === 'ios' && haptics) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     onDelete(call.id);
   };
   const settle = (to: number, velocity = 0) => {
@@ -137,11 +130,16 @@ const Row = ({
       if (at < -DELETE_AT) {
         x.set(withTiming(-width, { duration: motion.rowOut }));
         scheduleOnRN(remove);
-      } else settle(at < -ACTION / 2 || velocityX < -400 ? -ACTION : 0, velocityX);
+      } else {
+        settle(at < -ACTION / 2 || velocityX < -400 ? -ACTION : 0, velocityX);
+      }
     });
   const tap = Gesture.Tap().onEnd(() => {
-    if (x.get() < -1) settle(0);
-    else scheduleOnRN(onOpen, call);
+    if (x.get() < -1) {
+      settle(0);
+    } else {
+      scheduleOnRN(onOpen, call);
+    }
   });
   const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
   const action = useAnimatedStyle(() => ({
@@ -174,7 +172,9 @@ const Row = ({
           accessibilityLabel={`${callName(call)}, ${call.failed ?? callDetails(call)}, ${callTime(call.started)}`}
           accessibilityActions={live ? [] : [{ name: 'delete', label: 'Delete call' }]}
           onAccessibilityAction={({ nativeEvent }) => {
-            if (nativeEvent.actionName === 'delete') remove();
+            if (nativeEvent.actionName === 'delete') {
+              remove();
+            }
           }}
           style={[styles.slide, selected && styles.selected, slide]}
         >

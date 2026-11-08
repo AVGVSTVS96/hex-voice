@@ -25,7 +25,9 @@ const Native =
   process.env.EXPO_OS === 'ios' ? requireNativeView<NativeProps>('Pages', 'PagesView') : null;
 
 export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
-  if (!Native) return null;
+  if (!Native) {
+    return null;
+  }
   return (
     <Native
       modifiers={modifiers}

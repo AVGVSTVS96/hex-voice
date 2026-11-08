@@ -12,7 +12,8 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { Mark } from '@/components/tasks/mark';
 import { Pill, questions, listRow } from '@/components/tasks/parts';
-import { checkLine, type CheckSummary } from '@/live/asks';
+import { checkLine } from '@/live/asks';
+import type { CheckSummary } from '@/live/asks';
 import type { Topic } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';

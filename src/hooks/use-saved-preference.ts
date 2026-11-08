@@ -16,11 +16,15 @@ export const useSavedPreference = <T extends string>(
     void AsyncStorage.getItem(key)
       .then((stored) => {
         // A delayed read must not replace a selection made during startup.
-        if (active && !changed.current && isValid(stored)) updateValue(stored);
+        if (active && !changed.current && isValid(stored)) {
+          updateValue(stored);
+        }
       })
       .catch(() => {})
       .finally(() => {
-        if (active) setLoaded(true);
+        if (active) {
+          setLoaded(true);
+        }
       });
     return () => {
       active = false;
@@ -29,7 +33,9 @@ export const useSavedPreference = <T extends string>(
 
   const setValue = useCallback(
     (next: T) => {
-      if (!isValid(next)) return;
+      if (!isValid(next)) {
+        return;
+      }
       changed.current = true;
       updateValue(next);
       // Keep rapid carousel selections in order when writing to storage.

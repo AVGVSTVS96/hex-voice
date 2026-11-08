@@ -10,16 +10,14 @@ import {
   shapeOf,
   spotOf,
   startAt,
-  type Level,
-  type Move,
-  type Room,
-  type Shape,
-  type Stack,
 } from '../src/components/tasks/pages';
+import type { Level, Move, Room, Shape, Stack } from '../src/components/tasks/pages';
 import { TaskId } from '../src/live/tasks';
 import type { Pose } from '../modules/pose';
-import { screenLayout, type Page } from '../src/screens/layout';
-import { roomOf as windowRoom, type Insets, type Size } from '../src/screens/window';
+import { screenLayout } from '../src/screens/layout';
+import type { Page } from '../src/screens/layout';
+import { roomOf as windowRoom } from '../src/screens/window';
+import type { Insets, Size } from '../src/screens/window';
 
 const layoutOf = (window: Size, insets: Insets, pose: Pose) =>
   screenLayout(windowRoom(pose, window, insets));
@@ -160,32 +158,41 @@ test('on the Duo pages cross only while one fades, and never across the fold, so
           },
         ] as const;
       }).filter(([, frame]) => overlap(frame, screen));
-    for (const walk of walks)
-      for (const [i, from] of walk.slice(0, -1).entries())
+    for (const walk of walks) {
+      for (const [i, from] of walk.slice(0, -1).entries()) {
         for (const [a, b] of [
           [from, walk[i + 1]!],
           [walk[i + 1]!, from],
-        ])
+        ]) {
           for (const t of [0, 0.25, 0.5, 0.75, 1]) {
             const frames = seen(a!, b!, t);
             const fades = (level: Level) =>
               spotOf(level, pagesOf(a!, room), room).shown !==
               spotOf(level, pagesOf(b!, room), room).shown;
-            for (const [j, [one, first]] of frames.entries())
-              for (const [other, second] of frames.slice(j + 1))
+            for (const [j, [one, first]] of frames.entries()) {
+              for (const [other, second] of frames.slice(j + 1)) {
                 assert.ok(
                   !overlap(first, second) || fades(one) || fades(other),
                   `${name}, t ${t}: ${one} covers ${other}`,
                 );
+              }
+            }
           }
-    if (shapeOf(room) !== 'panes') continue;
+        }
+      }
+    }
+    if (shapeOf(room) !== 'panes') {
+      continue;
+    }
     const fold = { x: meetOf(room), y: 0, width: 0, height: room.height };
-    for (const [at, stack] of stacks)
-      for (const level of LEVELS)
+    for (const [at, stack] of stacks) {
+      for (const level of LEVELS) {
         assert.ok(
           !overlap(box(level, stack, room), fold),
           `${name}, ${at}: ${level} across the fold`,
         );
+      }
+    }
   }
 });
 

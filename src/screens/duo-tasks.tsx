@@ -7,15 +7,16 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 import { TasksPage } from '@/components/tasks-pane';
 import { useKeyboardUp } from '@/hooks/use-keyboard-up';
 import type { TasksProps } from '@/components/tasks/tasks-view';
 import { clock } from '@/live/calls';
 import { motion } from '@/motion';
-import { TIME, type Duo } from '@/screens/layout';
+import { TIME } from '@/screens/layout';
+import type { Duo } from '@/screens/layout';
 import { theme } from '@/theme';
 import { AnimatedView } from '@/ui/animated-view';
 import { HostedGlassButton } from '@/ui/glass-button';

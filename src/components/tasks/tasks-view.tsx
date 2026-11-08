@@ -10,28 +10,18 @@ import {
   offset,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Linking } from 'react-native';
 
 import { TASKS } from '@/call/stage';
-import { PageChrome, type Back, type Chrome } from '@/components/tasks/bar';
+import { PageChrome } from '@/components/tasks/bar';
+import type { Back, Chrome } from '@/components/tasks/bar';
 import { LastCheck } from '@/components/tasks/last-check';
 import { ListPage } from '@/components/tasks/list';
 import { PickPage, PicksPage, usePickChoices } from '@/components/tasks/picks';
-import {
-  levelsOf,
-  shapeOf,
-  spotOf,
-  usePages,
-  type Level,
-  type Move,
-  type Pages,
-  type Room,
-  type Spot,
-  type Stack,
-  Showing,
-  Typing,
-} from '@/components/tasks/pages';
+import { levelsOf, shapeOf, spotOf, usePages, Showing, Typing } from '@/components/tasks/pages';
+import type { Level, Move, Pages, Room, Spot, Stack } from '@/components/tasks/pages';
 import { feel } from '@/components/tasks/parts';
 import { useToolbarBack } from '@/components/toolbar-back';
 import { EntryRow } from '@/components/tasks/rows';
@@ -41,7 +31,8 @@ import { Messages, ThreadPage } from '@/components/tasks/thread';
 import { StepsLoading, Trace } from '@/components/tasks/trace';
 import { useAsks, useCheck } from '@/hooks/use-asks';
 import { useChat } from '@/hooks/use-chat';
-import { useTask, useTasks, type Counts } from '@/hooks/use-tasks';
+import { useTask, useTasks } from '@/hooks/use-tasks';
+import type { Counts } from '@/hooks/use-tasks';
 import type { Ask, AskOption } from '@/live/asks';
 import {
   inboxEntries,
@@ -54,16 +45,15 @@ import {
   stageTopics,
   taskIn,
   topicIn,
-  type Place,
-  type Tile,
 } from '@/live/inbox';
+import type { Place, Tile } from '@/live/inbox';
 import type { TaskId, TaskRow } from '@/live/tasks';
 import { motion, rowsKey } from '@/motion';
 import { theme } from '@/theme';
 
 import { PagesView } from '../../../modules/pages';
 
-export type TasksProps = {
+export interface TasksProps {
   open: boolean;
   // Where you are in Tasks, which the call screen keeps whichever container shows it.
   stack: Stack;
@@ -74,7 +64,7 @@ export type TasksProps = {
   onOpenCall: (id: string) => void;
   // What the list's tabs count, while it shows them up to date.
   onCounts: (counts: Counts | undefined) => void;
-};
+}
 
 export const TasksView = ({
   width,
@@ -115,7 +105,9 @@ export const Tasks = ({
   const stage =
     pages.stage ?? (loaded ? openingStage(stageCounts(entries, yours.answered)) : 'needs');
   useEffect(() => {
-    if (open && loaded && !pages.stage) pages.go({ to: 'stage', stage });
+    if (open && loaded && !pages.stage) {
+      pages.go({ to: 'stage', stage });
+    }
   }, [open, loaded, pages.stage, stage]);
   // Beside the list, before the list has picked, the page is the first project of its tab, so the
   // pane is never blank while it picks.
@@ -170,19 +162,27 @@ export const Tasks = ({
   // Where an ask was asked, as its topic's way there when no thread of it is left to open.
   const doorOf = (ask: Ask) => {
     const where = ask.places.find((one) => one.link);
-    if (!where?.link) return undefined;
+    if (!where?.link) {
+      return undefined;
+    }
     const place = placeOf(where.app);
     return { place, onPress: () => openLink(where.link!, place) };
   };
   const openTile = (tile: Tile) => {
     if (tile.kind === 'app') {
-      if (tile.link) openLink(tile.link, tile.place);
+      if (tile.link) {
+        openLink(tile.link, tile.place);
+      }
       return;
     }
     tap();
-    if (tile.kind === 'call') onOpenCall(tile.call);
+    if (tile.kind === 'call') {
+      onOpenCall(tile.call);
+    }
     // A page's link is the web's, which the browser always opens.
-    else void Linking.openURL(tile.url).catch(() => undefined);
+    else {
+      void Linking.openURL(tile.url).catch(() => undefined);
+    }
   };
   const openSteps = (id: TaskId) => {
     tick();
@@ -230,7 +230,9 @@ export const Tasks = ({
   });
   const typingOn = (level: Level) => (on: boolean) => {
     setTyping((was) => (on ? level : was === level ? null : was));
-    if (on) pages.go({ to: 'composerFocused' });
+    if (on) {
+      pages.go({ to: 'composerFocused' });
+    }
   };
   // Pages glide only when you move through Tasks. Another project or tab beside the list moves
   // nothing, so it lands at once: an animation there would fade each changed word through the last.
@@ -414,7 +416,9 @@ export const Tasks = ({
         }}
         onTake={(taken) => {
           tap();
-          for (const { ask, option } of taken) yours.answer(ask, option);
+          for (const { ask, option } of taken) {
+            yours.answer(ask, option);
+          }
           choices.clear();
           pages.go({ to: 'back' });
         }}
@@ -434,7 +438,7 @@ export const Tasks = ({
     clipped(),
     scrollDismissesKeyboard('immediately'),
   ];
-  if (pages.shape === 'columns')
+  if (pages.shape === 'columns') {
     return (
       <Row alignment="start" spacing={0} modifiers={fill}>
         <Column
@@ -456,6 +460,7 @@ export const Tasks = ({
         </ZStack>
       </Row>
     );
+  }
   // On iPhone Duo SwiftUI picks one page or two from the width it has, places them, and says which
   // it picked. Each page is keyed by its level, which is how SwiftUI knows which child is which.
   if (room.paged) {

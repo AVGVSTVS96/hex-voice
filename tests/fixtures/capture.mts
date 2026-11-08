@@ -6,7 +6,9 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
-type Item = { [key: string]: Json };
+interface Item {
+  [key: string]: Json;
+}
 
 const hex = process.env.HEX_URL ?? 'http://127.0.0.1:8790';
 const records = join(homedir(), '.claude/channels/voice/calls');
@@ -17,7 +19,9 @@ const read = async (path: string) => {
     headers: { Authorization: `Bearer ${process.env.EXPO_PUBLIC_HEX_TOKEN}` },
     signal: AbortSignal.timeout(900_000),
   });
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`${path}: HTTP ${response.status}`);
+  }
   return (await response.json()) as Item;
 };
 
@@ -42,13 +46,24 @@ const fake = (value: string, as: (n: number) => string) =>
   fakes.get(value) ?? fakes.set(value, as(fakes.size + 1)).get(value)!;
 
 const scrub = (value: Json, key = ''): Json => {
-  if (Array.isArray(value)) return value.map((one) => scrub(one, key));
-  if (value && typeof value === 'object')
+  if (Array.isArray(value)) {
+    return value.map((one) => scrub(one, key));
+  }
+  if (value && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrub(v, k)]));
-  if (key === 'dollars') return 0;
-  if (typeof value !== 'string' || KEPT.has(key) || TIME.test(value)) return value;
-  if (IDS.has(key)) return fake(value, (n) => `${key}-${n}`);
-  if (key === 'link' || key === 'url') return fake(value, (n) => `https://example.com/${n}`);
+  }
+  if (key === 'dollars') {
+    return 0;
+  }
+  if (typeof value !== 'string' || KEPT.has(key) || TIME.test(value)) {
+    return value;
+  }
+  if (IDS.has(key)) {
+    return fake(value, (n) => `${key}-${n}`);
+  }
+  if (key === 'link' || key === 'url') {
+    return fake(value, (n) => `https://example.com/${n}`);
+  }
   return key || 'text';
 };
 
@@ -59,7 +74,7 @@ const calls = await read('/calls');
 write('calls', { ...calls, calls: sample(calls.calls, (call) => `${call.from} ${call.end}`, 8) });
 
 const record = (name: string) =>
-  JSON.parse(readFileSync(join(records, `${name}.json`), 'utf8')) as Item;
+  JSON.parse(readFileSync(join(records, `${name}.json`), 'utf-8')) as Item;
 const kinds = (call: Item) => new Set(((call.moments ?? []) as Item[]).map(field('kind'))).size;
 const all = readdirSync(records)
   .filter((name) => name.startsWith('live_'))

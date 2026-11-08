@@ -3,30 +3,32 @@ import {
   PERSONA_COLORS,
   PERSONA_VARIANTS,
   personaColorOnLight,
-  type OpalPalette,
-  type PersonaVariant,
 } from '@/components/persona/variants';
+import type { OpalPalette, PersonaVariant } from '@/components/persona/variants';
 import { PERSONA_MODELS } from '@/components/persona/animation';
 
-export type ActivityOrb = {
+export interface ActivityOrb {
   name: string;
   variant: PersonaVariant;
   color?: string;
   light?: string;
   palette?: number;
-};
+}
 
 const named = (variant: PersonaVariant, suffix?: string) =>
   suffix ? `orb-${variant}-${suffix.toLowerCase()}` : `orb-${variant}`;
 
 export const ACTIVITY_ORBS = PERSONA_VARIANTS.flatMap<ActivityOrb>(({ id: variant }) => {
-  if (variant === 'opal')
+  if (variant === 'opal') {
     return OPAL_PALETTES.map(({ id }) =>
       id === 'original'
         ? { name: named(variant), variant }
         : { name: named(variant, id), variant, palette: Number(id) },
     );
-  if (!PERSONA_MODELS[variant].dynamicColor) return [{ name: named(variant), variant }];
+  }
+  if (!PERSONA_MODELS[variant].dynamicColor) {
+    return [{ name: named(variant), variant }];
+  }
   return PERSONA_COLORS.map(({ id: color }) => ({
     name: named(variant, color.slice(1)),
     variant,

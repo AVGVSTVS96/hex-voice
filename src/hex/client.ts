@@ -17,21 +17,21 @@ export type SendFile = (
   init: { headers: Record<string, string>; signal: AbortSignal },
 ) => Promise<{ status: number; text: string }>;
 
-export type Config = {
+export interface Config {
   url?: string;
   token?: string;
   fetch: typeof globalThis.fetch;
   sendFile?: SendFile;
-};
+}
 export type Client = ReturnType<typeof createClient>;
 
-type Options = {
+interface Options {
   method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
   after?: number;
   signal?: AbortSignal;
   timeout?: number;
-};
+}
 
 // How long to give hex, which can take a minute to answer when its machine is busy: a read, a
 // write, and a watch, which hex holds open until something changes before it answers.
@@ -54,25 +54,31 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
     { signal, timeout }: Pick<Options, 'signal' | 'timeout'>,
     go: (url: string, signal: AbortSignal) => Promise<{ status: number; text: string }>,
   ): Promise<unknown> => {
-    if (!origin)
+    if (!origin) {
       throw new Error('Set EXPO_PUBLIC_HEX_URL to your hex voice address, then rebuild the app.');
+    }
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort);
     const deadline = setTimeout(abort, timeout);
     try {
       const { status, text } = await go(`${origin}${path}`, controller.signal);
-      if (status < 200 || status >= 300) throw refusal(status, text);
+      if (status < 200 || status >= 300) {
+        throw refusal(status, text);
+      }
       return text ? JSON.parse(text) : undefined;
     } catch (error) {
-      if (signal?.aborted) throw error;
+      if (signal?.aborted) {
+        throw error;
+      }
       if (
         controller.signal.aborted ||
         (error instanceof Error &&
           (['AbortError', 'NetworkError'].includes(error.name) ||
             UNREACHABLE.includes(error.message)))
-      )
+      ) {
         throw new Error('Cannot reach hex. Check that Tailscale is on, then try again.');
+      }
       throw error;
     } finally {
       clearTimeout(deadline);
@@ -96,7 +102,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
 
   const read = <S extends z.ZodMiniType>(path: string, schema: S, answer: unknown) => {
     const parsed = schema.safeParse(answer);
-    if (parsed.success) return parsed.data;
+    if (parsed.success) {
+      return parsed.data;
+    }
     const where = parsed.error.issues[0]?.path.join('.');
     throw new Error(
       `hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ''}.`,
@@ -123,7 +131,9 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
       schema: S,
       file: { uri: string; type: string },
     ): Promise<z.output<S>> => {
-      if (!sendFile) throw new Error('This app can’t send files from here.');
+      if (!sendFile) {
+        throw new Error('This app can’t send files from here.');
+      }
       const headers = { ...auth, 'Content-Type': file.type };
       return read(
         path,

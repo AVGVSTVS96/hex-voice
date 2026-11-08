@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,21 +11,14 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { barOf, cardOf } from '@/call/card';
-import {
-  buttonsOf,
-  callIdOf,
-  showsWords,
-  statusOf,
-  voiceLocked,
-  wordsOf,
-  type Call,
-} from '@/call/call';
+import { buttonsOf, callIdOf, showsWords, statusOf, voiceLocked, wordsOf } from '@/call/call';
+import type { Call } from '@/call/call';
 import { useDrawer } from '@/call/drawer';
 import { CallFooter } from '@/call/footer';
 import { useGlide } from '@/call/glide';
@@ -55,17 +49,21 @@ import { failure } from '@/hooks/use-failures';
 import { useEscape } from '@/hooks/use-escape';
 import { useNow } from '@/hooks/use-now';
 import { answerAsk, raiseAsks } from '@/hooks/use-asks';
-import { raiseTask, useTaskCounts, type Counts } from '@/hooks/use-tasks';
+import { raiseTask, useTaskCounts } from '@/hooks/use-tasks';
+import type { Counts } from '@/hooks/use-tasks';
 import { usePersonaPreference } from '@/hooks/use-persona-preference';
-import { Viewport, type Size } from '@/hooks/use-viewport';
+import { Viewport } from '@/hooks/use-viewport';
+import type { Size } from '@/hooks/use-viewport';
 import { useVoicePreference } from '@/hooks/use-voice-preference';
 import { activityOrb } from '@/live/activity-orb';
 import type { TaskRow } from '@/live/tasks';
 import type { CallAbout } from '@/live/types';
-import { transcriptText, type CallSummary } from '@/live/calls';
+import { transcriptText } from '@/live/calls';
+import type { CallSummary } from '@/live/calls';
 import { heard, motion } from '@/motion';
 import { DuoTasks, uncovered, useDuoTasks } from '@/screens/duo-tasks';
-import { screenLayout, type Layout } from '@/screens/layout';
+import { screenLayout } from '@/screens/layout';
+import type { Layout } from '@/screens/layout';
 import { SideColumn } from '@/screens/side-column';
 import { logPose } from '@/screens/pose-log';
 import { orbRest } from '@/screens/orb-rest';
@@ -73,9 +71,12 @@ import { hairline, theme } from '@/theme';
 import { AnimatedView } from '@/ui/animated-view';
 import { HostedGlassButton } from '@/ui/glass-button';
 import { metrics, stack } from '@/ui/tokens';
-import { roomOf, type Room } from '@/screens/window';
-import { shown as inView, start as startScreen, step, type Action, type Screen } from './screen';
-import { PoseView, type Pose } from '../../modules/pose';
+import { roomOf } from '@/screens/window';
+import type { Room } from '@/screens/window';
+import { shown as inView, start as startScreen, step } from './screen';
+import type { Action, Screen } from './screen';
+import { PoseView } from '../../modules/pose';
+import type { Pose } from '../../modules/pose';
 
 const AGENT_ROW = 22;
 const CONTROLS_BOX = stack('regular');
@@ -83,14 +84,14 @@ const CONTROLS_BOX = stack('regular');
 const OVER_SHEET = 96;
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export type Opening = {
+export interface Opening {
   tasks?: TasksAt;
   open?: 'settings' | 'calls';
   reportPose: boolean;
   // Laid out in half the screen for a check (src/screens/split-view.tsx). A half is compact, as iOS
   // makes a Split View window, though the screen around it is regular.
   split?: boolean;
-};
+}
 
 // The screen lays itself out for the room its window has: the size it's drawn at and what of the
 // device's pose falls inside it (`roomOf`), so it waits for the first of each. The size is the
@@ -191,7 +192,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     ? scene.words.pulled
     : showsWords(call, { viewing: !!shown, cards: cards.length });
   // The words beside Tasks are chosen for one call, where the layout has room for them.
-  if (scene.words.beside && !(duo?.beside && onCall)) send({ to: 'beside', on: false });
+  if (scene.words.beside && !(duo?.beside && onCall)) {
+    send({ to: 'beside', on: false });
+  }
   const duoTasks = useDuoTasks(
     duo,
     { open: placeOpen, tasks: tasksOpen, chosen: scene.words.beside },
@@ -213,7 +216,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     end,
   });
   const haptic = (feedback: () => Promise<void>) => {
-    if (process.env.EXPO_OS === 'ios' && preferences.haptics) void feedback();
+    if (process.env.EXPO_OS === 'ios' && preferences.haptics) {
+      void feedback();
+    }
   };
   const tick = () => haptic(Haptics.selectionAsync);
   const land = () => haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
@@ -323,15 +328,21 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     reducedMotion,
     onChange: setCalls,
   });
-  if (!drawerOut && called !== showing) setCalled(showing);
+  if (!drawerOut && called !== showing) {
+    setCalled(showing);
+  }
   const toggleDrawer = () => {
     tick();
     setCalls(!callsOpen);
   };
   // Side by side, the list stays open beside the call you picked; otherwise it steps aside for it.
   const openCall = (id: string, place = list.place) => {
-    if (place !== 'beside') setCalls(false);
-    if (id === calls.live && onCall) return backToCall();
+    if (place !== 'beside') {
+      setCalls(false);
+    }
+    if (id === calls.live && onCall) {
+      return backToCall();
+    }
     showCall(id);
   };
   // A past call opened mid-call only changes what's on screen; the live call goes on underneath.
@@ -347,7 +358,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const paneW = useSharedValue(paneWidth);
   const wide = useSharedValue(inbox ? 1 : 0);
   useEffect(() => {
-    if (!panes) return;
+    if (!panes) {
+      return;
+    }
     const settle = (to: number) =>
       reducedMotion ? withTiming(to, motion.reduced) : withSpring(to, motion.drawer);
     // A pane that opens from closed takes its width at once; one already open moves to it.
@@ -407,7 +420,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // it stops writing it, so a span React passes beside it would never come back.
   const column = (own: { x: number; width: number }, drawn: number, paned: number, a: number) => {
     'worklet';
-    if (!follows) return { left: own.x, width: own.width, marginBottom: 0 };
+    if (!follows) {
+      return { left: own.x, width: own.width, marginBottom: 0 };
+    }
     const { d, t } = besideness(drawn, paned);
     return {
       left: toward(words.x, besideCalls.x, besideTasks.x, d, t) + (before.x - words.x) * a,
@@ -453,7 +468,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const rail = layout.inbox;
   const controlsPlace = () => {
     'worklet';
-    if (!controlsAt) return {};
+    if (!controlsAt) {
+      return {};
+    }
     const { d, t } = besideness(drawer.get(), pane.get());
     const w = rail ? wide.get() : 0;
     const tasksX = controlsAt.tasks.x + ((rail?.controls.x ?? 0) - controlsAt.tasks.x) * w;
@@ -576,17 +593,25 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   };
   const troubleNow = trouble && trouble.call === callNow ? trouble.why : undefined;
   const startCall = (about?: CallAbout) => {
-    if (viewing) leaveCall();
+    if (viewing) {
+      leaveCall();
+    }
     void start(voice, about);
   };
   const onPrimaryPress = () => {
-    if ((onCall && call.phase === 'ending') || !voiceLoaded) return;
+    if ((onCall && call.phase === 'ending') || !voiceLoaded) {
+      return;
+    }
     haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-    if (call.kind === 'here') void end();
-    else if (call.kind === 'elsewhere') tried('Not ended', end());
-    else {
+    if (call.kind === 'here') {
+      void end();
+    } else if (call.kind === 'elsewhere') {
+      tried('Not ended', end());
+    } else {
       // A call started with Calls slid over it comes into view.
-      if (list.place !== 'beside') setCalls(false);
+      if (list.place !== 'beside') {
+        setCalls(false);
+      }
       startCall();
     }
   };
@@ -601,20 +626,27 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const toggleTasks = () => (tasksOpen ? closeTasks() : openTasks());
   // A sheet steps aside for the call it starts; a pane stays open beside it.
   const stepAside = () => {
-    if (!panes) send({ to: 'tasks', open: false });
+    if (!panes) {
+      send({ to: 'tasks', open: false });
+    }
   };
   // Talk it through: on a call, the voice brings the task up; before one, it starts a call about it.
   const talkAbout = (task: TaskRow) => {
     stepAside();
-    if (onCall) tried('Not sent', raiseTask(task.id));
-    else if (voiceLoaded) startCall({ task: task.id });
+    if (onCall) {
+      tried('Not sent', raiseTask(task.id));
+    } else if (voiceLoaded) {
+      startCall({ task: task.id });
+    }
   };
   // A call an ask was asked on opens from Tasks in Calls, the way picking it there does, with
   // Calls where it sits once there's a call to show.
   const openCallFromTasks = (id: string) => {
     stepAside();
     const { place } = screenLayout(room).calls;
-    if (place === 'beside') setCalls(true);
+    if (place === 'beside') {
+      setCalls(true);
+    }
     openCall(id, place);
   };
   const removeShown =
@@ -628,8 +660,11 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   // Go through them with hex: on a call, hex starts walking your asks; before one, it starts a call for it.
   const goThrough = () => {
     stepAside();
-    if (onCall) tried('Not sent', raiseAsks());
-    else if (voiceLoaded) startCall('asks');
+    if (onCall) {
+      tried('Not sent', raiseAsks());
+    } else if (voiceLoaded) {
+      startCall('asks');
+    }
   };
 
   const buttons = {
@@ -683,7 +718,9 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           haptics={preferences.haptics}
           onOpen={(call) => openCall(call.id)}
           onDelete={(id) => {
-            if (id === viewing) leaveCall();
+            if (id === viewing) {
+              leaveCall();
+            }
             calls.remove(id);
           }}
         />
@@ -955,8 +992,12 @@ const useEndedCall = (call: Call, voice: string, add: (call: CallSummary) => voi
   const live = call.kind === 'here' && call.phase === 'live';
   const ended = call.kind === 'none' ? call.last : undefined;
   useEffect(() => {
-    if (live) started.current ??= new Date().toISOString();
-    if (!ended?.id || ended.from !== 'app' || !started.current) return;
+    if (live) {
+      started.current ??= new Date().toISOString();
+    }
+    if (!ended?.id || ended.from !== 'app' || !started.current) {
+      return;
+    }
     add({
       id: ended.id,
       started: started.current,

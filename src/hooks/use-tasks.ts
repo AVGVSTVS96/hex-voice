@@ -4,9 +4,13 @@ import * as z from 'zod/mini';
 import { hex } from '@/hex';
 import { useKept } from '@/hooks/use-kept';
 import { useAnswer, useWatch } from '@/hooks/use-watch';
-import { Finished, TaskCounts, TaskRow, type TaskId } from '@/live/tasks';
+import { Finished, TaskCounts, TaskRow } from '@/live/tasks';
+import type { TaskId } from '@/live/tasks';
 
-export type Counts = { needs: number; working: number };
+export interface Counts {
+  needs: number;
+  working: number;
+}
 
 // What the Tasks button shows: how many things are yours and how many threads are working. hex
 // answers only when one of the counts moves, so this costs nothing while agents take steps. While
@@ -15,7 +19,9 @@ export type Counts = { needs: number; working: number };
 export const useTaskCounts = (listed: Counts | undefined): Counts => {
   const [counts, keep] = useKept('task-counts', TaskCounts);
   useWatch('counts', hex.tasks.counts, keep);
-  if (listed) return listed;
+  if (listed) {
+    return listed;
+  }
   return counts
     ? { needs: counts.yours ?? counts.needs, working: counts.working }
     : { needs: 0, working: 0 };

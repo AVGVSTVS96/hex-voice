@@ -23,8 +23,11 @@ test('a lane has two kinds of mark: where its threads worked, and where a run fa
 
 test('failures too close to tell apart keep the newest, and a quiet project is the line alone', () => {
   const lane = laneOf([[turn(10, 'failed'), turn(9.99, 'failed'), turn(600, 'failed')]], NOW);
-  for (const [i, x] of lane.failures.entries())
-    for (const other of lane.failures.slice(i + 1)) assert.ok(Math.abs(x - other) >= APART);
+  for (const [i, x] of lane.failures.entries()) {
+    for (const other of lane.failures.slice(i + 1)) {
+      assert.ok(Math.abs(x - other) >= APART);
+    }
+  }
   assert.deepEqual(laneOf([[turn(60, 'idle'), turn(30, 'done')]], NOW), {
     spans: [],
     failures: [],

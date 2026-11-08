@@ -8,7 +8,7 @@ import type { LiveVoice } from './voices';
 export type LiveStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error';
 // A photo or clip you sent shows as your turn: going while hex takes it in, which for a clip
 // takes a few seconds, then sent, or why it didn't go.
-export type TranscriptEntry = {
+export interface TranscriptEntry {
   id: string;
   role: 'user' | 'assistant';
   text: string;
@@ -17,8 +17,8 @@ export type TranscriptEntry = {
   media?: Shown;
   sending?: boolean;
   failed?: string;
-};
-export type LiveSnapshot = {
+}
+export interface LiveSnapshot {
   status: LiveStatus;
   error: string | null;
   muted: boolean;
@@ -27,10 +27,13 @@ export type LiveSnapshot = {
   callId: CallId | null;
   ending: CallEnding | null;
   interrupted: boolean;
-};
+}
 
 // How loud the microphone and hex's voice are, 0 to 1, several times a second during a call.
-export type Levels = { input: number; output: number };
+export interface Levels {
+  input: number;
+  output: number;
+}
 
 // The events this app acts on, of all the voice service sends over the data channel.
 const LiveEvent = z.discriminatedUnion('type', [
@@ -65,32 +68,32 @@ export const parseEvent = (message: unknown) => {
   }
 };
 
-export type LiveCommand = {
+export interface LiveCommand {
   type: 'session.input_audio.mute' | 'session.input_audio.unmute' | 'session.close';
   event_id?: string;
-};
-export type AudioStats = {
+}
+export interface AudioStats {
   inputLevel: number;
   outputLevel: number;
   sentPackets: number;
   receivedPackets: number;
-};
-export interface LiveTransport {
-  offer(): Promise<string>;
-  answer(sdp: string): Promise<void>;
-  send(event: LiveCommand): boolean;
-  setMuted(muted: boolean): void;
-  stats(): Promise<AudioStats>;
-  close(): void;
 }
-export type TransportCallbacks = {
+export interface LiveTransport {
+  offer: () => Promise<string>;
+  answer: (sdp: string) => Promise<void>;
+  send: (event: LiveCommand) => boolean;
+  setMuted: (muted: boolean) => void;
+  stats: () => Promise<AudioStats>;
+  close: () => void;
+}
+export interface TransportCallbacks {
   onEvent: (event: LiveEvent) => void;
   onFailure: (message: string) => void;
-};
+}
 export type TransportFactory = (callbacks: TransportCallbacks) => Promise<LiveTransport>;
 // What a call is about when it starts: a task, or going through your asks.
 export type CallAbout = { task: TaskId } | 'asks';
-export type SessionAPI = {
+export interface SessionAPI {
   create: (
     sdp: string,
     voice?: LiveVoice,
@@ -98,4 +101,4 @@ export type SessionAPI = {
   ) => Promise<{ sdp: string; sessionId: CallId }>;
   close: (sessionId: CallId) => Promise<void>;
   mark?: (sessionId: CallId, kind: 'paused' | 'resumed') => Promise<void>;
-};
+}

@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  type ScrollViewInstance,
-  StyleSheet,
-  Text,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 import { CallAsk } from '@/components/call-ask';
 import { SentMedia } from '@/components/media/sent';
@@ -47,7 +42,9 @@ export const Transcript = ({
   const moments = interleave(visible, cards);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      return;
+    }
     following.current = true;
     scroll.current?.scrollToEnd({ animated: false });
   }, [active]);
@@ -72,10 +69,14 @@ export const Transcript = ({
       }}
       onMomentumScrollEnd={follow}
       onScroll={(event) => {
-        if (touching.current) follow(event);
+        if (touching.current) {
+          follow(event);
+        }
       }}
       onContentSizeChange={() => {
-        if (following.current) scroll.current?.scrollToEnd({ animated: active });
+        if (following.current) {
+          scroll.current?.scrollToEnd({ animated: active });
+        }
       }}
       contentContainerStyle={[
         styles.content,

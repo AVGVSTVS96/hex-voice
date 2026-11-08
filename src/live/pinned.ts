@@ -5,7 +5,12 @@ export type PinLine =
   | { kind: 'item'; text: string; mark: PinMark; url?: string }
   | { kind: 'code'; text: string }
   | { kind: 'text'; text: string; url?: string };
-export type PinSection = { title: string; mark: PinMark; folded: boolean; lines: PinLine[] };
+export interface PinSection {
+  title: string;
+  mark: PinMark;
+  folded: boolean;
+  lines: PinLine[];
+}
 
 const BULLET = /^\s*(?:[-*•·◦▪]|\d+[.)])\s+/;
 const LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/;
@@ -32,16 +37,22 @@ export const pinSections = (text: string): PinSection[] => {
     const raw = lines[i]!;
     if (/^\s*```/.test(raw)) {
       const code: string[] = [];
-      for (i++; i < lines.length && !/^\s*```/.test(lines[i]!); i++) code.push(lines[i]!);
+      for (i++; i < lines.length && !/^\s*```/.test(lines[i]!); i++) {
+        code.push(lines[i]!);
+      }
       current.lines.push({ kind: 'code', text: code.join('\n') });
       continue;
     }
     const line = raw.trim().replace(PIN, '');
-    if (!line) continue;
+    if (!line) {
+      continue;
+    }
     const inline = line.replace(WHOLE_BOLD, '$1$2$1$3').match(TITLES);
     const heading = inline ? plain(inline[1]!) : headingOf(line);
     if (heading) {
-      if (current.title || current.lines.length) sections.push(current);
+      if (current.title || current.lines.length) {
+        sections.push(current);
+      }
       const mark = sectionMark(heading);
       current = {
         title: heading,
@@ -51,29 +62,44 @@ export const pinSections = (text: string): PinSection[] => {
       };
       continue;
     }
-    if (BULLET.test(line)) current.lines.push(item(line.replace(BULLET, ''), current.mark));
-    else current.lines.push({ kind: 'text', ...linked(line) });
+    if (BULLET.test(line)) {
+      current.lines.push(item(line.replace(BULLET, ''), current.mark));
+    } else {
+      current.lines.push({ kind: 'text', ...linked(line) });
+    }
   }
-  if (current.title || current.lines.length) sections.push(current);
+  if (current.title || current.lines.length) {
+    sections.push(current);
+  }
   return sections;
 };
 
 // A short line that names what follows: bold on its own, or ending in a colon, or a known title.
 const headingOf = (line: string) => {
   const bold = line.match(/^\*\*([^*]+)\*\*:?$/);
-  if (bold) return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
+  if (bold) {
+    return bold[1]!.replace(EMOJI, '').replace(/:$/, '').trim();
+  }
   const bare = plain(line);
-  if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line))
+  if (bare.length <= 60 && bare.endsWith(':') && !BULLET.test(line)) {
     return bare.slice(0, -1).replace(EMOJI, '').trim();
+  }
   return undefined;
 };
 
 const sectionMark = (title: string): PinMark => {
-  if (/\b(done|shipped|finished|live)\b/i.test(title)) return 'done';
-  if (/\b(running|working|in progress|underway)\b/i.test(title)) return 'working';
-  if (/\b(waiting on you|your call|needs you|blocked on you|for you|to decide)\b/i.test(title))
+  if (/\b(done|shipped|finished|live)\b/i.test(title)) {
+    return 'done';
+  }
+  if (/\b(running|working|in progress|underway)\b/i.test(title)) {
+    return 'working';
+  }
+  if (/\b(waiting on you|your call|needs you|blocked on you|for you|to decide)\b/i.test(title)) {
     return 'needs';
-  if (/\b(known|problem|broken|fail|blocked|stuck)\b/i.test(title)) return 'failed';
+  }
+  if (/\b(known|problem|broken|fail|blocked|stuck)\b/i.test(title)) {
+    return 'failed';
+  }
   return 'idle';
 };
 
@@ -81,7 +107,9 @@ const item = (text: string, mark: PinMark): PinLine => {
   let own = mark;
   let rest = text;
   for (const [emoji, emojiMark] of EMOJI_MARKS) {
-    if (!emoji.test(rest)) continue;
+    if (!emoji.test(rest)) {
+      continue;
+    }
     own = emojiMark;
     rest = rest.replace(emoji, '');
     break;

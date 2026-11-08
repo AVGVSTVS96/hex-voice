@@ -40,7 +40,9 @@ export const useToolbarBack = (from: BackFrom, back: Back | undefined, when = tr
   });
   const to = back?.to;
   useEffect(() => {
-    if (!publish || !takes) return;
+    if (!publish || !takes) {
+      return;
+    }
     publish(from, to === undefined ? undefined : { to, onPress: () => press.current?.() });
     return () => publish(from, undefined);
   }, [publish, takes, from, to]);

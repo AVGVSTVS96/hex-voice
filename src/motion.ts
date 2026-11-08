@@ -47,6 +47,8 @@ export const heard = (amount: number, size: number, level: number, pitch: number
 // number, so a row arriving, leaving or changing settles with the list's animation.
 export const rowsKey = (rows: string[]) => {
   let key = 0;
-  for (const char of rows.join('\n')) key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
+  for (const char of rows.join('\n')) {
+    key = (Math.imul(key, 31) + char.charCodeAt(0)) | 0;
+  }
   return key;
 };

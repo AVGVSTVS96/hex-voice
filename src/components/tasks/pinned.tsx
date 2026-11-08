@@ -15,7 +15,8 @@ import { Mark } from '@/components/tasks/mark';
 import { Failure, SectionHead } from '@/components/tasks/parts';
 import { Selectable } from '@/components/tasks/said';
 import { openURL, useFailures } from '@/hooks/use-failures';
-import { pinSections, type PinLine, type PinSection } from '@/live/pinned';
+import { pinSections } from '@/live/pinned';
+import type { PinLine, PinSection } from '@/live/pinned';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
@@ -33,7 +34,7 @@ export const Pinned = ({ text }: { text: string }) => {
 
 const Section = ({ section }: { section: PinSection }) => {
   const [open, setOpen] = useState(!section.folded);
-  if (!open)
+  if (!open) {
     return (
       <Row
         alignment="center"
@@ -58,6 +59,7 @@ const Section = ({ section }: { section: PinSection }) => {
         <Icon name="chevron.down" size={13} color={theme.tertiary} />
       </Row>
     );
+  }
   return (
     <Column alignment="start" spacing={0}>
       {section.title ? <SectionHead title={section.title} count={section.lines.length} /> : null}
@@ -71,7 +73,7 @@ const Section = ({ section }: { section: PinSection }) => {
 const Line = ({ line }: { line: PinLine }) => {
   const tries = useFailures();
   const selectable = useContext(Selectable);
-  if (line.kind === 'code')
+  if (line.kind === 'code') {
     return (
       <Text
         variant="code"
@@ -93,9 +95,10 @@ const Line = ({ line }: { line: PinLine }) => {
         {line.text}
       </Text>
     );
+  }
   const url = line.url;
   const open = url ? () => void tries.attempt(url, 'Not opened', () => openURL(url)) : undefined;
-  if (line.kind === 'text' && !url)
+  if (line.kind === 'text' && !url) {
     return (
       <Markdown
         inline
@@ -115,7 +118,8 @@ const Line = ({ line }: { line: PinLine }) => {
         {line.text}
       </Markdown>
     );
-  if (line.kind === 'text')
+  }
+  if (line.kind === 'text') {
     return (
       <Row
         alignment="start"
@@ -150,6 +154,7 @@ const Line = ({ line }: { line: PinLine }) => {
         <Icon name="arrow.up.right" size={13} color={theme.tertiary} />
       </Row>
     );
+  }
   return (
     <Row
       alignment="start"

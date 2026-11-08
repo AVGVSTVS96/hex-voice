@@ -18,13 +18,23 @@ export const useCallFeedback = (
   useEffect(() => {
     const was = previous.current;
     previous.current = live;
-    if (process.env.EXPO_OS !== 'ios' || live === was) return;
+    if (process.env.EXPO_OS !== 'ios' || live === was) {
+      return;
+    }
     if (live) {
-      if (haptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (sounds) void connect.seekTo(0).then(() => connect.play());
+      if (haptics) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      if (sounds) {
+        void connect.seekTo(0).then(() => connect.play());
+      }
     } else {
-      if (haptics) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-      if (sounds) void end.seekTo(0).then(() => end.play());
+      if (haptics) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+      }
+      if (sounds) {
+        void end.seekTo(0).then(() => end.play());
+      }
     }
   }, [live, connect, end, sounds, haptics]);
 };

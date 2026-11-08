@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { failure, openURL } from '@/hooks/use-failures';
 import type { CallCard } from '@/live/agents';
-import { PICK, type AskOption } from '@/live/asks';
+import { PICK } from '@/live/asks';
+import type { AskOption } from '@/live/asks';
 import { reachedBy } from '@/live/inbox';
 import { circle, theme } from '@/theme';
 import { labelOf, metrics, radius, space, textOf } from '@/ui/tokens';
@@ -32,7 +33,9 @@ export const CallAsk = ({
   }
   const answer = card.answer ?? sent;
   const choose = (option: AskOption) => {
-    if (sending) return;
+    if (sending) {
+      return;
+    }
     setSending(option.label);
     setFailed(undefined);
     onAnswer(option).then(
@@ -46,7 +49,7 @@ export const CallAsk = ({
       },
     );
   };
-  if (answer)
+  if (answer) {
     return (
       <View style={styles.sent}>
         <View style={styles.check}>
@@ -58,6 +61,7 @@ export const CallAsk = ({
         </Text>
       </View>
     );
+  }
   return (
     <View style={styles.card}>
       <View style={styles.title}>

@@ -1,6 +1,8 @@
 import { HStack, Overlay, VStack } from '@expo/ui/swift-ui';
-import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
-import Animated, { withTiming, type AnimatedStyle } from 'react-native-reanimated';
+import { StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
+import Animated, { withTiming } from 'react-native-reanimated';
+import type { AnimatedStyle } from 'react-native-reanimated';
 
 import type { Back } from '@/components/tasks/bar';
 
@@ -9,9 +11,10 @@ import { AnimatedView } from '@/ui/animated-view';
 import { GlassButton, HostedGlassButton, glass } from '@/ui/glass-button';
 import { Host } from '@/ui/host';
 import { motion } from '@/motion';
-import { metrics, type ToolbarGaps } from '@/ui/tokens';
+import { metrics } from '@/ui/tokens';
+import type { ToolbarGaps } from '@/ui/tokens';
 
-type Props = {
+interface Props {
   axis: 'row' | 'column';
   onLayout?: ViewProps['onLayout'];
   gaps?: ToolbarGaps;
@@ -26,7 +29,7 @@ type Props = {
   onCalls: () => void;
   onTasks: () => void;
   onSettings: () => void;
-};
+}
 
 // Calls leads, Tasks and settings trail: across the top on the phone and iPad, down iPhone Duo's
 // side column with the two set apart, closer where the column is short. On iPhone Duo, Back sits

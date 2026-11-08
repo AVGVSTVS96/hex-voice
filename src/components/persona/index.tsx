@@ -9,27 +9,19 @@ import {
   RiveView,
   useRive,
   useViewModelInstance,
-  type RiveFile,
 } from '@rive-app/react-native';
+import type { RiveFile } from '@rive-app/react-native';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
 import { theme } from '@/theme';
 import { textOf } from '@/ui/tokens';
-import {
-  PERSONA_MODELS,
-  PERSONA_STATE_MACHINE,
-  personaInputValues,
-  type PersonaProps,
-} from './animation';
+import { PERSONA_MODELS, PERSONA_STATE_MACHINE, personaInputValues } from './animation';
+import type { PersonaProps } from './animation';
 import { PERSONA_ASSETS } from './assets';
-import {
-  DEFAULT_PERSONA,
-  DEFAULT_PERSONA_COLOR,
-  personaColorOnLight,
-  type PersonaVariant,
-} from './variants';
+import { DEFAULT_PERSONA, DEFAULT_PERSONA_COLOR, personaColorOnLight } from './variants';
+import type { PersonaVariant } from './variants';
 
 export type { PersonaState, PersonaProps } from './animation';
 
@@ -52,7 +44,9 @@ const loadFile = (variant: PersonaVariant) => {
 
 // Every persona's file, read ahead, so turning to one in settings doesn't wait on its file.
 export const preloadPersonas = (variants: readonly PersonaVariant[]) => {
-  for (const variant of variants) void loadFile(variant).catch(() => {});
+  for (const variant of variants) {
+    void loadFile(variant).catch(() => {});
+  }
 };
 
 // The default persona's file is read as the app starts, so the call screen's orb doesn't wait on it.
@@ -73,7 +67,9 @@ export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) =
     void loadFile(variant)
       .catch(() => undefined)
       .then(() => {
-        if (active) setShown(variant);
+        if (active) {
+          setShown(variant);
+        }
       });
     return () => {
       active = false;
@@ -126,10 +122,14 @@ const PersonaRenderer = ({
     let active = true;
     void loadFile(variant)
       .then((loaded) => {
-        if (active) setFile(loaded);
+        if (active) {
+          setFile(loaded);
+        }
       })
       .catch(() => {
-        if (active) setFailed(true);
+        if (active) {
+          setFailed(true);
+        }
       });
     return () => {
       active = false;
@@ -142,8 +142,12 @@ const PersonaRenderer = ({
   useEffect(() => () => clearTimeout(growing.current), []);
 
   useEffect(() => {
-    if (!riveViewRef) return;
-    if (dynamicColor && !colorModel) return;
+    if (!riveViewRef) {
+      return;
+    }
+    if (dynamicColor && !colorModel) {
+      return;
+    }
     const pause = () =>
       void riveViewRef.pause().catch(() => {
         setFailed(true);
@@ -151,7 +155,9 @@ const PersonaRenderer = ({
 
     try {
       // Input setters resume playback, so a still persona that has grown keeps its frame.
-      if (reducedMotion && grown.current) return pause();
+      if (reducedMotion && grown.current) {
+        return pause();
+      }
       for (const { name, value } of personaInputValues(state)) {
         riveViewRef.setBooleanInputValue(name, value);
       }
@@ -164,15 +170,21 @@ const PersonaRenderer = ({
       // with Reduce Motion on. Until it's drawn it can't grow, so it isn't paused on the dot.
       if (!grown.current) {
         riveViewRef.playIfNeeded();
-        if (drawn && !growing.current)
+        if (drawn && !growing.current) {
           growing.current = setTimeout(() => {
             grown.current = true;
-            if (still.current) pause();
+            if (still.current) {
+              pause();
+            }
           }, GROW_IN);
+        }
         return;
       }
-      if (paused) pause();
-      else riveViewRef.playIfNeeded();
+      if (paused) {
+        pause();
+      } else {
+        riveViewRef.playIfNeeded();
+      }
     } catch {
       setFailed(true);
     }
@@ -190,12 +202,16 @@ const PersonaRenderer = ({
 
   useEffect(() => {
     const property = riveViewRef ? colorModel?.colorProperty('color') : undefined;
-    if (!property) return;
+    if (!property) {
+      return;
+    }
     const wanted = RiveColor.fromHexString(shown).toInt();
     property.set(wanted);
     // The first advance after binding writes the file's own color back into the model.
     return property.addListener((value) => {
-      if (!sameColor(value, wanted)) property.set(wanted);
+      if (!sameColor(value, wanted)) {
+        property.set(wanted);
+      }
     });
   }, [riveViewRef, colorModel, shown]);
 

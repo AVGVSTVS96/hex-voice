@@ -12,7 +12,11 @@ export type Shared = z.infer<typeof Shared>;
 
 // A photo or clip on this phone, shot or picked, before it goes to hex. `type` is its file's
 // Content-Type.
-export type Picked = { uri: string; kind: MediaKind; type: string };
+export interface Picked {
+  uri: string;
+  kind: MediaKind;
+  type: string;
+}
 
 // What a thumbnail draws: one on this phone, or one hex keeps.
 export type Shown = Picked | Shared;

@@ -13,7 +13,8 @@ import {
   scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Header, PageBar, useChrome } from '@/components/tasks/bar';
@@ -21,14 +22,18 @@ import { Links, Shots } from '@/components/tasks/ask-card';
 import { Faded, questions } from '@/components/tasks/parts';
 import { Foot } from '@/components/tasks/thread';
 import { useWords } from '@/hooks/use-asks';
-import { PICK, type Ask, type AskId, type AskOption } from '@/live/asks';
+import { PICK } from '@/live/asks';
+import type { Ask, AskId, AskOption } from '@/live/asks';
 import { clock } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, radius, space } from '@/ui/tokens';
 
-export type Picked = { ask: Ask; option: AskOption };
+export interface Picked {
+  ask: Ask;
+  option: AskOption;
+}
 
 // What you've chosen on hex's picks before taking them: another answer than hex's, or `later` to
 // leave the question in Needs you. Held by Tasks, so the list and a question's page share it.
@@ -229,7 +234,7 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
 // answer here sets the one "Answer" sends; nothing is sent from this page.
 export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickChoices }) => {
   const { back } = useChrome();
-  if (!picked)
+  if (!picked) {
     return (
       <Page>
         <Header title="hex’s picks" subtitle=" " />
@@ -238,6 +243,7 @@ export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickCh
         </Text>
       </Page>
     );
+  }
   const { ask } = picked;
   const choice = choices.choiceOf(picked);
   const hexs = ask.options.find((option) => option.pick);
@@ -433,7 +439,9 @@ const OptionCard = ({
 // Where it was asked, in the thread's own words, all of them, and the way into the thread.
 const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string }[] }) => {
   const words = useWords(id);
-  if (!words && !links.length) return null;
+  if (!words && !links.length) {
+    return null;
+  }
   return (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       <Heading

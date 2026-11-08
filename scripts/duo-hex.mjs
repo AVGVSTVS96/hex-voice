@@ -24,10 +24,10 @@ const { EXPO_PUBLIC_HEX_URL, EXPO_PUBLIC_HEX_TOKEN } = process.env;
 const SAYS_WHAT_IT_REACHED = /^\/asks\/[^/?]+\/(answer|note|dismiss)(\?|$)/;
 const NOTHING = JSON.stringify({ thread: '', topic: '', settled: 0, missed: 0 });
 const answers = existsSync(DUO_HEX_ANSWERS)
-  ? JSON.parse(readFileSync(DUO_HEX_ANSWERS, 'utf8'))
+  ? JSON.parse(readFileSync(DUO_HEX_ANSWERS, 'utf-8'))
   : {};
 const also = Object.fromEntries(
-  Object.entries(DUO_HEX_ALSO ? JSON.parse(readFileSync(DUO_HEX_ALSO, 'utf8')) : {}).map(
+  Object.entries(DUO_HEX_ALSO ? JSON.parse(readFileSync(DUO_HEX_ALSO, 'utf-8')) : {}).map(
     ([path, answer]) => [path, JSON.stringify(answer)],
   ),
 );
@@ -53,7 +53,9 @@ const SENDS_MEDIA = /^\/(calls|tasks)\/[^/?]+\/(media|chat)(\?|$)/;
 
 const bodyOf = async (request) => {
   const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
   return Buffer.concat(chunks);
 };
 
@@ -97,15 +99,20 @@ createSecureServer(tls, async (request, response) => {
   }
   if (request.method === 'POST' && SENDS_MEDIA.test(request.url ?? '')) {
     const unknown = named(await bodyOf(request)).filter((id) => !media.has(id));
-    if (unknown.length) response.writeHead(400).end(`no media ${unknown.join(', ')}`);
-    else response.writeHead(204).end();
+    if (unknown.length) {
+      response.writeHead(400).end(`no media ${unknown.join(', ')}`);
+    } else {
+      response.writeHead(204).end();
+    }
     return;
   }
   if (request.method !== 'GET') {
     request.resume();
-    if (SAYS_WHAT_IT_REACHED.test(request.url ?? ''))
+    if (SAYS_WHAT_IT_REACHED.test(request.url ?? '')) {
       response.writeHead(200, { 'content-type': 'application/json' }).end(NOTHING);
-    else response.writeHead(204).end();
+    } else {
+      response.writeHead(204).end();
+    }
     return;
   }
   if (DUO_HEX_DOWN && existsSync(DUO_HEX_DOWN)) {
@@ -115,10 +122,15 @@ createSecureServer(tls, async (request, response) => {
   const url = new URL(request.url, 'http://hex');
   const watch = url.searchParams.has('after');
   if (DUO_HEX_REPLAY) {
-    if (watch) return;
+    if (watch) {
+      return;
+    }
     const kept = also[url.pathname] ?? answers[url.pathname];
-    if (kept === undefined) response.writeHead(404).end();
-    else response.writeHead(200, { 'content-type': 'application/json' }).end(kept);
+    if (kept === undefined) {
+      response.writeHead(404).end();
+    } else {
+      response.writeHead(200, { 'content-type': 'application/json' }).end(kept);
+    }
     return;
   }
   try {

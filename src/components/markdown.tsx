@@ -4,7 +4,8 @@ import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
 import { Failure } from '@/components/tasks/parts';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { theme } from '@/theme';
-import { radius, space, type, type TextStyle, type TextVariant } from '@/ui/tokens';
+import { radius, space, type } from '@/ui/tokens';
+import type { TextStyle, TextVariant } from '@/ui/tokens';
 import { MarkdownView } from '../../modules/markdown';
 
 // Markdown in the app's own look, in one of its text styles: words in the text tone or the secondary one, code on the
@@ -29,7 +30,9 @@ export const Markdown = ({
   modifiers?: ModifierConfig[];
 }) => {
   const tries = useFailures();
-  if (process.env.EXPO_OS !== 'ios') return <Text>{children}</Text>;
+  if (process.env.EXPO_OS !== 'ios') {
+    return <Text>{children}</Text>;
+  }
   const failed = Object.values(tries.failed)[0];
   const look: TextStyle = type[variant];
   return (

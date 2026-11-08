@@ -4,11 +4,12 @@ import {
   presentationBackgroundInteraction,
   presentationDetents,
   presentationDragIndicator,
-  type PresentationDetent,
 } from '@expo/ui/swift-ui/modifiers';
+import type { PresentationDetent } from '@expo/ui/swift-ui/modifiers';
 import { useEffect, useState } from 'react';
 
-import { TasksView, type TasksProps } from '@/components/tasks/tasks-view';
+import { TasksView } from '@/components/tasks/tasks-view';
+import type { TasksProps } from '@/components/tasks/tasks-view';
 import { useViewport } from '@/hooks/use-viewport';
 import { theme } from '@/theme';
 import { Host } from '@/ui/host';
@@ -24,7 +25,9 @@ export const TasksSheet = ({
   const { width } = useViewport();
   const [detent, setDetent] = useState<PresentationDetent>(onCall ? 'medium' : 'large');
   useEffect(() => {
-    if (view.open) setDetent(onCall ? 'medium' : 'large');
+    if (view.open) {
+      setDetent(onCall ? 'medium' : 'large');
+    }
   }, [view.open, onCall]);
 
   return (
@@ -32,7 +35,9 @@ export const TasksSheet = ({
       <BottomSheet
         isPresented={view.open}
         onIsPresentedChange={(presented) => {
-          if (!presented) onDismiss();
+          if (!presented) {
+            onDismiss();
+          }
         }}
         onDismiss={onDismiss}
         testID="tasks-sheet"

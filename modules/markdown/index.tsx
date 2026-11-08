@@ -1,7 +1,8 @@
 import { requireNativeView } from 'expo';
 import type { CommonViewModifierProps } from '@expo/ui/swift-ui';
 import { createViewModifierEventListener } from '@expo/ui/swift-ui/modifiers';
-import { processColor, type ColorValue, type NativeSyntheticEvent } from 'react-native';
+import { processColor } from 'react-native';
+import type { ColorValue, NativeSyntheticEvent } from 'react-native';
 
 // Markdown as SwiftUI, drawn by Textual, so it sits in the tree Expo UI builds and takes its modifiers.
 // The block form lays out headings, lists, quotes, code and tables. `inline` is one run of words
@@ -43,7 +44,9 @@ export const MarkdownView = ({
   onLink,
   ...rest
 }: MarkdownProps) => {
-  if (!Native) return null;
+  if (!Native) {
+    return null;
+  }
   return (
     <Native
       modifiers={modifiers}

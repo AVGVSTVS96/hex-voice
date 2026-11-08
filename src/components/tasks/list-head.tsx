@@ -1,4 +1,5 @@
-import { Icon, Row, TextInput, type TextInputRef } from '@expo/ui';
+import { Icon, Row, TextInput } from '@expo/ui';
+import type { TextInputRef } from '@expo/ui';
 import {
   accessibilityAddTraits,
   accessibilityLabel,
@@ -11,13 +12,16 @@ import {
   monospacedDigit,
   padding,
   shapes,
-  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, type RefObject } from 'react';
+import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
+import { useContext } from 'react';
+import type { RefObject } from 'react';
 
-import { BackButton, BarButton, type Back } from '@/components/tasks/bar';
+import { BackButton, BarButton } from '@/components/tasks/bar';
+import type { Back } from '@/components/tasks/bar';
 import { Typing } from '@/components/tasks/pages';
-import { TABS, type Stage, type Tab } from '@/live/inbox';
+import { TABS } from '@/live/inbox';
+import type { Stage, Tab } from '@/live/inbox';
 import { theme } from '@/theme';
 import { glass } from '@/ui/glass-button';
 import { Text } from '@/ui/text';

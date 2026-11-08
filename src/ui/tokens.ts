@@ -63,7 +63,7 @@ export const mask = { shown: '#000000', hidden: '#00000000' } as const;
 // Two weights, as Muse sets its screens: regular reads, medium names.
 export type Weight = 'regular' | 'medium';
 
-export type TextStyle = {
+export interface TextStyle {
   // Apple's text style: SwiftUI text that has one follows the system's text size.
   textStyle?: 'title' | 'headline' | 'body' | 'subheadline' | 'footnote';
   fontSize: number;
@@ -74,7 +74,7 @@ export type TextStyle = {
   lineSpacing?: number;
   weight?: Weight;
   design?: 'monospaced';
-};
+}
 
 // Four sizes: a page's title, a name and what you read, the detail under it, and the small print
 // beside it.

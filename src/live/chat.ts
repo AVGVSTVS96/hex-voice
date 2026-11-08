@@ -4,14 +4,14 @@ import type { Chat, ChatTurn, TaskId } from './tasks';
 // What you sent from here to thread `id` that its chat doesn't show yet: `total` is how long the
 // chat was then, so it's found once it shows up after that point. One that failed says why and
 // keeps its key, so trying again delivers it once; one hex refused can't be tried again.
-export type Sending = {
+export interface Sending {
   id: TaskId;
   key: string;
   text: string;
   media: Picked[];
   total: number;
   failed?: { why: string; again: boolean };
-};
+}
 
 // Whether hex's chat has what you sent: waiting to be taken under its key, or said in the chat.
 export const arrived = (chat: Chat, sent: Sending) =>
@@ -39,9 +39,15 @@ const EVENT = /^\(([^()\n]+)\)\s*([\s\S]*)$/;
 
 export const said = (turn: ChatTurn): Said => {
   const event = turn.from === 'me' ? turn.text.match(EVENT) : null;
-  if (!event) return { kind: turn.from, text: turn.text };
+  if (!event) {
+    return { kind: turn.from, text: turn.text };
+  }
   const [, label, text] = event as unknown as [string, string, string];
-  if (label === 'voice message') return { kind: 'me', text };
-  if (label.startsWith('asked Siri')) return { kind: 'event', label: 'Asked Siri', text };
+  if (label === 'voice message') {
+    return { kind: 'me', text };
+  }
+  if (label.startsWith('asked Siri')) {
+    return { kind: 'event', label: 'Asked Siri', text };
+  }
   return { kind: 'event', label: label[0]!.toUpperCase() + label.slice(1), text };
 };

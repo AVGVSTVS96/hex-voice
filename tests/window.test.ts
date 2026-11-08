@@ -7,7 +7,8 @@ import ts from 'typescript';
 import type { Pose } from '../modules/pose';
 import { pagedRoom, shapeOf } from '../src/components/tasks/pages';
 import { screenLayout } from '../src/screens/layout';
-import { roomOf, type Insets, type Size } from '../src/screens/window';
+import { roomOf } from '../src/screens/window';
+import type { Insets, Size } from '../src/screens/window';
 import { metrics } from '../src/ui/tokens';
 
 const files = (dir: string): string[] =>
@@ -21,14 +22,14 @@ const files = (dir: string): string[] =>
 
 test('only the window module reads the device’s pose; the call screen mounts it and the check reports it', () => {
   const readers = files('src').filter((file) =>
-    /from '(?:\.\.\/)+modules\/pose'/.test(readFileSync(file, 'utf8')),
+    /from '(?:\.\.\/)+modules\/pose'/.test(readFileSync(file, 'utf-8')),
   );
   assert.deepEqual(readers.sort(), [
     'src/call/call-screen.tsx',
     'src/call/pose-report.tsx',
     'src/screens/window.ts',
   ]);
-  const screen = readFileSync('src/call/call-screen.tsx', 'utf8');
+  const screen = readFileSync('src/call/call-screen.tsx', 'utf-8');
   assert.deepEqual(
     [...screen.matchAll(/\bpose\.\w+/g)].map(([read]) => read),
     [],
@@ -42,7 +43,7 @@ test('a view’s identity never comes from the window’s size or pose', () => {
   const layoutWords =
     /\b(?:beside|paired|shape|width|height|compact|wide|duo|panes|split|layout|room|pose|regular|placed)\b/;
   const identities = files('src').flatMap((file) =>
-    [...readFileSync(file, 'utf8').matchAll(/\bkey=\{((?:[^{}]|\{[^{}]*\})*)\}|\bid\(([^)]*)\)/g)]
+    [...readFileSync(file, 'utf-8').matchAll(/\bkey=\{((?:[^{}]|\{[^{}]*\})*)\}|\bid\(([^)]*)\)/g)]
       .filter(([, key, id]) => layoutWords.test(key ?? id ?? ''))
       .map(([found]) => `${file}: ${found}`),
   );
@@ -65,9 +66,11 @@ test('an animated style styles only views that mount with the component making i
     ts.SyntaxKind.QuestionQuestionToken,
   ]);
   const gated = (node: ts.Node, scope: ts.Node) => {
-    for (let up = node.parent; up !== scope; up = up.parent)
-      if (kinds.has(up.kind) || (ts.isBinaryExpression(up) && gates.has(up.operatorToken.kind)))
+    for (let up = node.parent; up !== scope; up = up.parent) {
+      if (kinds.has(up.kind) || (ts.isBinaryExpression(up) && gates.has(up.operatorToken.kind))) {
         return true;
+      }
+    }
     return false;
   };
   const found = files('src')
@@ -75,7 +78,7 @@ test('an animated style styles only views that mount with the component making i
     .flatMap((file) => {
       const source = ts.createSourceFile(
         file,
-        readFileSync(file, 'utf8'),
+        readFileSync(file, 'utf-8'),
         ts.ScriptTarget.Latest,
         true,
       );
@@ -90,7 +93,9 @@ test('an animated style styles only views that mount with the component making i
           node.initializer.expression.text === 'useAnimatedStyle'
         ) {
           let scope: ts.Node = node;
-          while (!ts.isFunctionLike(scope)) scope = scope.parent;
+          while (!ts.isFunctionLike(scope)) {
+            scope = scope.parent;
+          }
           styles.push({ name: node.name, scope });
         }
         ts.forEachChild(node, declared);
@@ -104,10 +109,11 @@ test('an animated style styles only views that mount with the component making i
             node !== name &&
             node.text === name.text &&
             gated(node, scope)
-          )
+          ) {
             uses.push(
               `${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1} ${name.text}`,
             );
+          }
           ts.forEachChild(node, visit);
         };
         visit(scope);
@@ -127,7 +133,7 @@ test('Tasks’ rows and pages never take a width from JS', () => {
     .flatMap((file) => {
       const source = ts.createSourceFile(
         file,
-        readFileSync(file, 'utf8'),
+        readFileSync(file, 'utf-8'),
         ts.ScriptTarget.Latest,
         true,
       );
@@ -139,8 +145,9 @@ test('Tasks’ rows and pages never take a width from JS', () => {
         const token =
           ts.isJsxAttribute(node) &&
           (node.initializer?.getText(source) ?? '').startsWith('{metrics.');
-        if (named && !token)
+        if (named && !token) {
           widths.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+        }
         ts.forEachChild(node, visit);
       };
       visit(source);
@@ -231,8 +238,9 @@ test('in Split View each app lays out as one page in the window it has, as the D
     const tasks = layout.duo?.tasks;
     assert.ok(!tasks || shapeOf(pagedRoom(tasks)) === 'one', `${side}: Tasks is one page`);
     assert.equal(layout.duo?.beside, undefined, `${side}: nothing to put beside Tasks`);
-    for (const span of [layout.words, layout.footer, layout.agent])
+    for (const span of [layout.words, layout.footer, layout.agent]) {
       assert.ok(span.x >= 0 && span.x + span.width <= window.width, `${side}: inside the window`);
+    }
     assert.ok(layout.toolbar.y >= 0 && layout.toolbar.x >= 0, `${side}: the toolbar is on screen`);
     assert.ok(
       layout.toolbar.x + (layout.toolbar.axis === 'row' ? layout.toolbar.width : 48) <=
@@ -250,9 +258,9 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
   const widths = [320, 375, 440, 466, 471, 560, 669, 700, 834, 951, 1194];
   const heights = [408, 466, 669, 678, 834, 951, 1194];
   const problems: string[] = [];
-  for (const width of widths)
-    for (const height of heights)
-      for (const columnSide of [undefined, 'left', 'right'] as const)
+  for (const width of widths) {
+    for (const height of heights) {
+      for (const columnSide of [undefined, 'left', 'right'] as const) {
         for (const at of [undefined, -60, -20, 0, 0.25, 0.5, 0.75, 1, 1.02]) {
           const window = { width, height };
           const insets = {
@@ -282,15 +290,19 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             besideCalls: layout.besideCalls,
             besideTasks: layout.besideTasks,
           };
-          for (const [what, span] of Object.entries(spans))
-            if (!(span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5))
+          for (const [what, span] of Object.entries(spans)) {
+            if (!(span.width > 0 && span.x >= -0.5 && span.x + span.width <= content.width + 0.5)) {
               problems.push(`${name}: ${what} ${span.x}+${span.width} in ${content.width}`);
-          if (!(layout.calls.width > 0 && layout.calls.width < width))
+            }
+          }
+          if (!(layout.calls.width > 0 && layout.calls.width < width)) {
             problems.push(`${name}: Calls ${layout.calls.width} wide`);
-          if (layout.calls.place === 'beside' && content.width - layout.calls.width < 320)
+          }
+          if (layout.calls.place === 'beside' && content.width - layout.calls.width < 320) {
             problems.push(
               `${name}: beside Calls the call keeps ${content.width - layout.calls.width}`,
             );
+          }
           const { add } = layout;
           const half = metrics.docked / 2;
           if (!(
@@ -298,27 +310,35 @@ test('in any window, with the fold anywhere or nowhere, everything the layout pl
             add.x + half <= content.width &&
             add.y - half >= 0 &&
             add.y + half <= content.height
-          ))
+          )) {
             problems.push(
               `${name}: the + at ${add.x},${add.y} in ${content.width}x${content.height}`,
             );
-          if (layout.pulls && Math.abs(add.x - layout.orb.read.x) < metrics.docked)
+          }
+          if (layout.pulls && Math.abs(add.x - layout.orb.read.x) < metrics.docked) {
             problems.push(`${name}: the + on the transcript button`);
+          }
           const crease = room.fold;
           if (
             crease &&
             'x' in crease &&
             add.x + half > Math.min(crease.x - content.x, layout.words.x)
-          )
+          ) {
             problems.push(`${name}: the + past the crease or into the words`);
-          if (crease && 'y' in crease && add.y + half > Math.min(crease.y, layout.words.top))
+          }
+          if (crease && 'y' in crease && add.y + half > Math.min(crease.y, layout.words.top)) {
             problems.push(`${name}: the + past the crease or into the words`);
+          }
           const tasks = layout.duo?.tasks;
           if (tasks) {
             const { area } = tasks;
-            if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5))
+            if (!(area.width > 0 && area.x >= 0 && area.x + area.width <= width + 0.5)) {
               problems.push(`${name}: Tasks ${area.x}+${area.width}`);
+            }
           }
         }
+      }
+    }
+  }
   assert.deepEqual(problems, []);
 });

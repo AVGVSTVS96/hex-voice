@@ -26,8 +26,8 @@ import {
   taskOf,
   tilesOf,
   topicsOf,
-  type Entry,
 } from '../src/live/inbox';
+import type { Entry } from '../src/live/inbox';
 import { Finished, TaskRow } from '../src/live/tasks';
 
 const now = new Date(2026, 9, 13, 10, 0);
@@ -106,13 +106,13 @@ const done = (
     ...extra,
   });
 
-type Parts = {
+interface Parts {
   tasks?: TaskRow[];
   finished?: Finished[];
   asks?: Ask[];
   stuck?: Stuck[];
   fresh?: Fresh[];
-};
+}
 const stream = ({ tasks = [], finished = [], asks = [], stuck = [], fresh = [] }: Parts = {}) =>
   inboxEntries(tasks, finished, { stuck, fresh }, asks, now);
 const ids = (entries: Entry[]) => entries.map((entry) => entry.id);

@@ -25,7 +25,9 @@ const deferred = <T>() => {
 };
 
 const settle = async () => {
-  for (let i = 0; i < 12; i++) await Promise.resolve();
+  for (let i = 0; i < 12; i++) {
+    await Promise.resolve();
+  }
 };
 
 class ManualClock {
@@ -54,8 +56,12 @@ class ManualClock {
   async fire(delay: number) {
     const pending = [...this.timers].filter(([, timer]) => timer.delay === delay);
     for (const [id, timer] of pending) {
-      if (!this.timers.has(id)) continue;
-      if (!timer.interval) this.timers.delete(id);
+      if (!this.timers.has(id)) {
+        continue;
+      }
+      if (!timer.interval) {
+        this.timers.delete(id);
+      }
       timer.callback();
     }
     await settle();
@@ -70,7 +76,10 @@ class ManualClock {
   }
 }
 
-type Command = { type: string; event_id?: string };
+interface Command {
+  type: string;
+  event_id?: string;
+}
 class FakeTransport implements LiveTransport {
   commands: Command[] = [];
   muteChanges: boolean[] = [];
@@ -99,9 +108,12 @@ class FakeTransport implements LiveTransport {
     this.commands.push(event);
     this.onCommand?.(event);
     if (event.type === 'session.close') {
-      if (this.acknowledgeClose === 'sync') this.emit({ type: 'session.closed' });
-      if (this.acknowledgeClose === 'microtask')
+      if (this.acknowledgeClose === 'sync') {
+        this.emit({ type: 'session.closed' });
+      }
+      if (this.acknowledgeClose === 'microtask') {
         queueMicrotask(() => this.emit({ type: 'session.closed' }));
+      }
     }
     return true;
   }
@@ -505,7 +517,9 @@ test('synchronous mute acknowledgment clears the confirmation timeout', async ()
     await h.session.start();
     const transport = h.transports[0];
     transport.onCommand = (command) => {
-      if (command.type.startsWith('session.input_audio.')) transport.acknowledge(command);
+      if (command.type.startsWith('session.input_audio.')) {
+        transport.acknowledge(command);
+      }
     };
     h.session.toggleMute();
     await h.clock.fire(5000);

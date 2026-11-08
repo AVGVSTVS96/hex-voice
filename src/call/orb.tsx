@@ -7,9 +7,11 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-import { personaOf, wakeOf, type Call } from '@/call/call';
+import { personaOf, wakeOf } from '@/call/call';
+import type { Call } from '@/call/call';
 import { useLevels } from '@/call/use-call';
-import { Persona, type PersonaProps } from '@/components/persona';
+import { Persona } from '@/components/persona';
+import type { PersonaProps } from '@/components/persona';
 import { useVoiceTone } from '@/hooks/use-voice-tone';
 import { motion } from '@/motion';
 
@@ -64,7 +66,9 @@ export const useOrbLife = (
   useAnimatedReaction(
     () => (reacting ? Math.max(0, input.get() - 0.06) / 0.94 : 0),
     (loudness, before) => {
-      if (loudness !== before) level.set(withSpring(loudness, motion.reaction));
+      if (loudness !== before) {
+        level.set(withSpring(loudness, motion.reaction));
+      }
     },
     [reacting],
   );

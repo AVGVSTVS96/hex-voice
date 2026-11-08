@@ -14,25 +14,13 @@ import {
 import type { ReactNode } from 'react';
 
 import { InlineAnswers, Unreached } from '@/components/tasks/ask-card';
-import { Mark, type MarkState } from '@/components/tasks/mark';
+import { Mark } from '@/components/tasks/mark';
+import type { MarkState } from '@/components/tasks/mark';
 import { Failure, NotNeededButton, Pill, listRow, rowFrame } from '@/components/tasks/parts';
 import { TileIcon, swipeLook } from '@/components/tasks/places';
 import type { Ask, AskOption } from '@/live/asks';
-import {
-  PLACES,
-  STUCK,
-  headlineOf,
-  problemOf,
-  opens,
-  pageOf,
-  proofWords,
-  type Entry,
-  type Part,
-  type Stage,
-  type Tile,
-  type Topic,
-  type PageId,
-} from '@/live/inbox';
+import { PLACES, STUCK, headlineOf, problemOf, opens, pageOf, proofWords } from '@/live/inbox';
+import type { Entry, Part, Stage, Tile, Topic, PageId } from '@/live/inbox';
 import { STATE_WORDS, atWork, clock, taskTime } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text, textLook } from '@/ui/text';
@@ -40,7 +28,7 @@ import { metrics, space } from '@/ui/tokens';
 
 import { Fits } from '../../../modules/rows';
 
-export type RowActions = {
+export interface RowActions {
   selected?: string | null;
   answered: Record<string, string | null>;
   onOpen: (task: PageId, entry: string) => void;
@@ -51,7 +39,7 @@ export type RowActions = {
   onAgain: (ask: Ask) => void;
   onAct: (id: string) => void;
   onRead: (id: string) => void;
-};
+}
 
 export const EntryRow = ({
   entry,
@@ -67,7 +55,7 @@ export const EntryRow = ({
     case 'ask': {
       const { ask } = entry;
       const said = actions.answered[ask.id];
-      if (said)
+      if (said) {
         return (
           <Folded
             ask={ask}
@@ -76,6 +64,7 @@ export const EntryRow = ({
             onAgain={() => actions.onAgain(ask)}
           />
         );
+      }
       const pick = ask.options.find((option) => option.pick);
       return (
         <Swiped
@@ -193,7 +182,10 @@ export const EntryRow = ({
   }
 };
 
-type Swipe = { label: string; onPress: () => void };
+interface Swipe {
+  label: string;
+  onPress: () => void;
+}
 
 const Swiped = ({
   lead,
@@ -392,7 +384,9 @@ export const ProjectRow = ({
   onOpen: () => void;
 }) => {
   const [newest] = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
-  if (!newest) return null;
+  if (!newest) {
+    return null;
+  }
   const { stage } = newest;
   const count = topic.entries.length;
   const said = headlineOf(newest);
@@ -451,15 +445,19 @@ export const ProjectRow = ({
 // problem, or a reply.
 const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
-    case 'ask':
+    case 'ask': {
       return entry.ask.options.some((option) => option.pick) ? 'pick' : 'asks';
-    case 'stuck':
+    }
+    case 'stuck': {
       return entry.stuck.mark;
+    }
     case 'task':
-    case 'fresh':
+    case 'fresh': {
       return 'needs';
-    case 'finished':
+    }
+    case 'finished': {
       return 'done';
+    }
   }
 };
 

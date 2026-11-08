@@ -10,23 +10,33 @@ import {
   padding,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
 
 import { PlaceTile } from '@/components/tasks/places';
 import { glass } from '@/ui/glass-button';
-import { PLACES, type Place } from '@/live/inbox';
+import { PLACES } from '@/live/inbox';
+import type { Place } from '@/live/inbox';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { metrics, space } from '@/ui/tokens';
 
 // Back is its chevron alone in every pose, and says where it goes to VoiceOver.
-export type Back = { to: string; onPress: () => void };
+export interface Back {
+  to: string;
+  onPress: () => void;
+}
 
-export type Chrome = { back?: Back };
+export interface Chrome {
+  back?: Back;
+}
 export const PageChrome = createContext<Chrome>({});
 export const useChrome = () => useContext(PageChrome);
 
-export type Door = { place: Place; onPress: () => void };
+export interface Door {
+  place: Place;
+  onPress: () => void;
+}
 
 export const Header = ({
   title,

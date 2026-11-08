@@ -1,4 +1,5 @@
-import { buttonsOf, type Call } from '@/call/call';
+import { buttonsOf } from '@/call/call';
+import type { Call } from '@/call/call';
 import { useShare } from '@/call/use-call';
 import { AddMedia } from '@/components/media/add-media';
 import { MOST } from '@/live/media';

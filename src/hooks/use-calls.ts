@@ -6,7 +6,8 @@ import { hex } from '@/hex';
 import { useFailures } from '@/hooks/use-failures';
 import { restore, store } from '@/hooks/use-kept';
 import { useWatch } from '@/hooks/use-watch';
-import { CallRecord, CallSummary, putBack, type CallId } from '@/live/calls';
+import { CallRecord, CallSummary, putBack } from '@/live/calls';
+import type { CallId } from '@/live/calls';
 
 const LIST = 'calls';
 const saved = (id: CallId) => `call:${id}`;
@@ -23,12 +24,16 @@ export const useCalls = () => {
 
   useEffect(() => {
     void restore(LIST, z.array(CallSummary)).then((kept) => {
-      if (kept) setListed((current) => current ?? kept);
+      if (kept) {
+        setListed((current) => current ?? kept);
+      }
     });
   }, []);
 
   useEffect(() => {
-    if (listed) store(LIST, listed);
+    if (listed) {
+      store(LIST, listed);
+    }
   }, [listed]);
 
   const watching = useWatch('calls', hex.calls.list, (list) => {
@@ -49,15 +54,23 @@ export const useCalls = () => {
     void tries
       .attempt(id, 'Not deleted', () => hex.calls.remove(id))
       .then((deleted) => {
-        if (deleted) void AsyncStorage.removeItem(saved(id)).catch(() => {});
-        if (!deleted && fromHex) setListed((current) => putBack(current ?? [], fromHex));
-        if (!deleted && fromHere) setJustEnded((current) => putBack(current, fromHere));
+        if (deleted) {
+          void AsyncStorage.removeItem(saved(id)).catch(() => {});
+        }
+        if (!deleted && fromHex) {
+          setListed((current) => putBack(current ?? [], fromHex));
+        }
+        if (!deleted && fromHere) {
+          setJustEnded((current) => putBack(current, fromHere));
+        }
       });
   };
 
   // A call that wouldn't delete comes back in its place saying why.
   const shown = useMemo(() => {
-    if (!listed && !justEnded.length) return undefined;
+    if (!listed && !justEnded.length) {
+      return undefined;
+    }
     const calls = [
       ...justEnded,
       ...(listed ?? []).filter(({ id }) => !justEnded.some((call) => call.id === id)),
@@ -75,10 +88,14 @@ export const usePastCall = (id: CallId | undefined) => {
   const [call, setCall] = useState<CallRecord>();
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     let active = true;
     void restore(saved(id), CallRecord).then((kept) => {
-      if (active && kept) setCall((current) => (current?.id === id ? current : kept));
+      if (active && kept) {
+        setCall((current) => (current?.id === id ? current : kept));
+      }
     });
     return () => {
       active = false;
@@ -90,7 +107,9 @@ export const usePastCall = (id: CallId | undefined) => {
     (after, signal, id) => hex.calls.get(id, after, signal),
     (fresh) => {
       setCall(fresh);
-      if (fresh.ended) store(saved(fresh.id), fresh);
+      if (fresh.ended) {
+        store(saved(fresh.id), fresh);
+      }
     },
   );
 

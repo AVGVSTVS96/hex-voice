@@ -1,21 +1,18 @@
 import type { ReactNode } from 'react';
-import {
-  StyleSheet,
-  Text,
-  type LayoutChangeEvent,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import Animated, { FadeIn, type AnimatedStyle } from 'react-native-reanimated';
+import { StyleSheet, Text } from 'react-native';
+import type { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import type { AnimatedStyle } from 'react-native-reanimated';
 
-import { errorOf, footerOf, type Call } from '@/call/call';
+import { errorOf, footerOf } from '@/call/call';
+import type { Call } from '@/call/call';
 import { WrapUp } from '@/components/wrap-up';
 import type { CallSummary } from '@/live/calls';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
 import { metrics, space, textOf } from '@/ui/tokens';
 
-type Props = {
+interface Props {
   call: Call;
   // A past call on screen, which hides how the last one ended.
   viewing: boolean;
@@ -30,7 +27,7 @@ type Props = {
   onOpen: (call: string) => void;
   onMore: () => void;
   children?: ReactNode;
-};
+}
 
 // Under the call: hex's wrap-up and how the last call ended, where a call held elsewhere is, that
 // iOS paused the microphone, what didn't go through, and on the phone the call buttons.

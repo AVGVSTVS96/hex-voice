@@ -1,29 +1,23 @@
 import type { PersonaState } from '@/components/persona/animation';
-import {
-  ENDINGS,
-  SOURCES,
-  callLength,
-  endedSeconds,
-  liveEntries,
-  type CallEnding,
-  type CallId,
-  type CallRecord,
-  type CallSource,
-} from '@/live/calls';
+import { ENDINGS, SOURCES, callLength, endedSeconds, liveEntries } from '@/live/calls';
+import type { CallEnding, CallId, CallRecord, CallSource } from '@/live/calls';
 import type { Sent } from '@/live/shares';
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from '@/live/types';
 
-export type Mic = { muted: boolean; interrupted: boolean };
+export interface Mic {
+  muted: boolean;
+  interrupted: boolean;
+}
 
 // What a call leaves on screen once it ends, whether it was here or hex held it elsewhere.
-export type Ended = {
+export interface Ended {
   id?: CallId;
   from: CallSource;
   ending?: CallEnding;
   seconds: number;
   error?: string;
   words: TranscriptEntry[];
-};
+}
 
 // The one call the screen shows. hex holds one call at a time, so a call on this phone and one
 // hex holds elsewhere (a phone call, the web page) never both show; the one here wins.
@@ -39,7 +33,10 @@ export type Call =
     }
   | { kind: 'elsewhere'; phase: 'live' | 'ending'; record: CallRecord; words: TranscriptEntry[] };
 
-export type Elsewhere = { record?: CallRecord; leaving: boolean };
+export interface Elsewhere {
+  record?: CallRecord;
+  leaving: boolean;
+}
 
 const HERE: Partial<Record<LiveStatus, 'connecting' | 'live' | 'ending'>> = {
   connecting: 'connecting',
@@ -51,7 +48,7 @@ export const isHere = (status: LiveStatus) => status in HERE;
 
 export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): Call => {
   const phase = HERE[session.status];
-  if (phase)
+  if (phase) {
     return {
       kind: 'here',
       phase,
@@ -60,14 +57,16 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
       seconds: session.elapsedSeconds,
       words: session.transcript,
     };
-  if (record && !record.ended)
+  }
+  if (record && !record.ended) {
     return {
       kind: 'elsewhere',
       phase: leaving ? 'ending' : 'live',
       record,
       words: liveEntries(record),
     };
-  if (record)
+  }
+  if (record) {
     return {
       kind: 'none',
       last: {
@@ -78,7 +77,10 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
         words: liveEntries(record),
       },
     };
-  if (!session.callId && !session.error) return { kind: 'none' };
+  }
+  if (!session.callId && !session.error) {
+    return { kind: 'none' };
+  }
   return {
     kind: 'none',
     last: {
@@ -95,7 +97,9 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
 // The call with what you sent it among its words. One hex holds elsewhere shows each from its own
 // record once that has it, so a sent one shows only until then.
 export const withSent = (call: Call, sent: Sent[]): Call => {
-  if (call.kind === 'none') return call;
+  if (call.kind === 'none') {
+    return call;
+  }
   const id = callIdOf(call);
   const kept = new Set(
     call.kind === 'elsewhere' ? (call.record.moments ?? []).map((m) => m.media) : [],
@@ -103,13 +107,17 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
   const ours = sent
     .filter((one) => one.call === id && !(one.id && kept.has(one.id)))
     .map((one) => one.entry);
-  if (!ours.length) return call;
+  if (!ours.length) {
+    return call;
+  }
   return { ...call, words: [...call.words, ...ours].sort((a, b) => a.startMs - b.startMs) };
 };
 
 // The call going on now, here or elsewhere; hex names this phone's once it answers.
 export const callIdOf = (call: Call) => {
-  if (call.kind === 'none') return undefined;
+  if (call.kind === 'none') {
+    return undefined;
+  }
   return call.kind === 'here' ? call.id : call.record.id;
 };
 
@@ -123,22 +131,36 @@ export const showsWords = (call: Call, { viewing, cards }: { viewing: boolean; c
 
 // `speaking` is hex's voice on this phone's call, from the audio levels.
 export const personaOf = (call: Call, speaking: boolean): PersonaState => {
-  if (call.kind === 'none') return 'idle';
-  if (call.phase !== 'live') return 'thinking';
-  if (call.kind === 'elsewhere') return 'listening';
+  if (call.kind === 'none') {
+    return 'idle';
+  }
+  if (call.phase !== 'live') {
+    return 'thinking';
+  }
+  if (call.kind === 'elsewhere') {
+    return 'listening';
+  }
   return speaking ? 'speaking' : call.mic.muted ? 'idle' : 'listening';
 };
 
 // How awake the orb rests: asleep and breathing with no call, half while one connects or ends.
 export const wakeOf = (call: Call) => {
-  if (call.kind === 'none') return 0;
+  if (call.kind === 'none') {
+    return 0;
+  }
   return call.phase === 'live' ? 1 : 0.5;
 };
 
 export const statusOf = (call: Call) => {
-  if (call.kind === 'none') return 'Ready to start a conversation';
-  if (call.phase === 'connecting') return 'Connecting';
-  if (call.phase === 'ending') return 'Ending conversation';
+  if (call.kind === 'none') {
+    return 'Ready to start a conversation';
+  }
+  if (call.phase === 'connecting') {
+    return 'Connecting';
+  }
+  if (call.phase === 'ending') {
+    return 'Ending conversation';
+  }
   if (call.kind === 'elsewhere') {
     const { started, where } = SOURCES[call.record.from];
     return `${started}, ${where.toLowerCase()}`;
@@ -152,9 +174,12 @@ export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
 
 // A photo or clip goes to a call once it's live.
 export const buttonsOf = (call: Call): { call: CallButton; mute: MuteButton; add: boolean } => {
-  if (call.kind === 'none')
+  if (call.kind === 'none') {
     return { call: call.last?.error ? 'retry' : 'start', mute: undefined, add: false };
-  if (call.phase === 'ending') return { call: 'ending', mute: muteOf(call), add: false };
+  }
+  if (call.phase === 'ending') {
+    return { call: 'ending', mute: muteOf(call), add: false };
+  }
   return {
     call: call.phase === 'connecting' ? 'cancel' : 'end',
     mute: muteOf(call),
@@ -163,7 +188,9 @@ export const buttonsOf = (call: Call): { call: CallButton; mute: MuteButton; add
 };
 
 const muteOf = (call: Exclude<Call, { kind: 'none' }>): MuteButton => {
-  if (call.kind === 'elsewhere') return { muted: false, enabled: false };
+  if (call.kind === 'elsewhere') {
+    return { muted: false, enabled: false };
+  }
   return {
     muted: call.mic.muted || call.mic.interrupted,
     enabled: call.phase === 'live',
@@ -186,12 +213,15 @@ export const footerOf = (call: Call, viewing: boolean): Footer | undefined => {
     const { where, started } = SOURCES[call.record.from];
     return { kind: 'elsewhere', text: `${where} · ${started}` };
   }
-  if (call.kind === 'here')
+  if (call.kind === 'here') {
     return call.mic.interrupted
       ? { kind: 'paused', text: 'Paused while another app has the audio' }
       : undefined;
+  }
   const last = call.last;
-  if (viewing || !last?.ending) return undefined;
+  if (viewing || !last?.ending) {
+    return undefined;
+  }
   const { line, bad } = ENDINGS[last.ending];
   return {
     kind: 'ended',

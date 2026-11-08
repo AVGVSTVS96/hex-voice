@@ -3,11 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 
 import { hex } from '@/hex';
 import { useWatch } from '@/hooks/use-watch';
-import { agentLine, justFinished, type AgentTask, type CallCard } from '@/live/agents';
+import { agentLine, justFinished } from '@/live/agents';
+import type { AgentTask, CallCard } from '@/live/agents';
 import type { CallId } from '@/live/calls';
 import { motion } from '@/motion';
 
-type Live = { call: CallId | null; tasks: AgentTask[]; cards: CallCard[] };
+interface Live {
+  call: CallId | null;
+  tasks: AgentTask[];
+  cards: CallCard[];
+}
 
 // The call hex holds right now, wherever it is (this app, a phone call, the web page), and what
 // its agents are doing, from the voice plugin's /activity long poll: it answers the moment a call
@@ -23,15 +28,22 @@ export const useAgentLine = (haptics: boolean) => {
     const done = justFinished(seen.current, tasks);
     seen.current = tasks;
     setLive({ call: activity.call, tasks, cards: activity.call ? (activity.asks ?? []) : [] });
-    if (!activity.call) setFinished(undefined);
-    if (!done) return;
+    if (!activity.call) {
+      setFinished(undefined);
+    }
+    if (!done) {
+      return;
+    }
     setFinished(done);
-    if (haptics && process.env.EXPO_OS === 'ios')
+    if (haptics && process.env.EXPO_OS === 'ios') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    }
   });
 
   useEffect(() => {
-    if (!finished) return;
+    if (!finished) {
+      return;
+    }
     const timer = setTimeout(() => setFinished(undefined), motion.agent.hold);
     return () => clearTimeout(timer);
   }, [finished]);

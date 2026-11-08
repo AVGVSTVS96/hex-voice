@@ -5,12 +5,8 @@ import type { ReactNode } from 'react';
 import { Pressable, View, useColorScheme } from 'react-native';
 
 import { PERSONA_MODELS } from '@/components/persona/animation';
-import {
-  OPAL_PALETTES,
-  PERSONA_COLORS,
-  PERSONA_VARIANTS,
-  type PersonaVariant,
-} from '@/components/persona/variants';
+import { OPAL_PALETTES, PERSONA_COLORS, PERSONA_VARIANTS } from '@/components/persona/variants';
+import type { PersonaVariant } from '@/components/persona/variants';
 import type { CallPreferences } from '@/hooks/use-call-preferences';
 import { circle, theme } from '@/theme';
 import { metrics } from '@/ui/tokens';
@@ -20,7 +16,11 @@ const MIN_GAP = 4;
 const MAX_SWATCH = 36;
 const ORIGINAL_OPAL = 'linear-gradient(135deg, #2FB5AD, #9B4DD6 50%, #F07B3F)';
 
-type Layout = { width: number; size: number; gap: number };
+interface Layout {
+  width: number;
+  size: number;
+  gap: number;
+}
 
 // Every persona's colors fill the same slots across the row, so swiping between personas keeps
 // each swatch, and the rows below, exactly where they were.
@@ -41,7 +41,7 @@ export const PersonaColors = ({
   const gap = (inner - SLOTS * size) / (SLOTS - 1);
   const layout = { width, size, gap };
 
-  if (persona === 'opal')
+  if (persona === 'opal') {
     return (
       <SwatchRow layout={layout} label="Opal colors">
         {OPAL_PALETTES.map((option) => (
@@ -59,6 +59,7 @@ export const PersonaColors = ({
         ))}
       </SwatchRow>
     );
+  }
 
   if (!PERSONA_MODELS[persona].dynamicColor) {
     const { label } = PERSONA_VARIANTS.find(({ id }) => id === persona)!;

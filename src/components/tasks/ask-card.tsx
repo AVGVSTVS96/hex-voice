@@ -16,9 +16,10 @@ import {
   onTapGesture,
   padding,
   shapes,
-  type ModifierConfig,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import type { ModifierConfig } from '@expo/ui/swift-ui/modifiers';
+import { useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { Markdown } from '@/components/markdown';
 import { Mark } from '@/components/tasks/mark';
@@ -27,15 +28,8 @@ import { noteAsk, shotOf, useWords } from '@/hooks/use-asks';
 import { carryDraft, useDraft } from '@/hooks/use-draft';
 import { openURL, useFailures } from '@/hooks/use-failures';
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from '@/components/tasks/parts';
-import {
-  NOT_NEEDED,
-  PICK,
-  unreached,
-  type Ask,
-  type AskLink,
-  type AskOption,
-  type Words,
-} from '@/live/asks';
+import { NOT_NEEDED, PICK, unreached } from '@/live/asks';
+import type { Ask, AskLink, AskOption, Words } from '@/live/asks';
 import { clock } from '@/live/tasks';
 import { motion } from '@/motion';
 import { theme } from '@/theme';
@@ -78,7 +72,7 @@ export const YourCall = ({
       </Column>
       {asks.map((ask) => {
         const said = answered[ask.id];
-        if (said)
+        if (said) {
           return (
             <Card key={ask.id}>
               <HStack alignment="top" spacing={metrics.list.gap}>
@@ -108,6 +102,7 @@ export const YourCall = ({
               </HStack>
             </Card>
           );
+        }
         return (
           <SwipeActions key={ask.id} modifiers={listRow()}>
             <AskCard ask={ask} onAnswer={onAnswer} onDismiss={onDismiss} />
@@ -170,7 +165,9 @@ const AskCard = ({
       .then((sent) => {
         setNoting(false);
         setNoted(sent);
-        if (sent) setWriting(false);
+        if (sent) {
+          setWriting(false);
+        }
       });
   };
   // What last didn't go through on it, folded or open.
@@ -278,7 +275,9 @@ const AskCard = ({
 // when every option has one, and all of them full screen on a tap.
 export const Shots = ({ ask }: { ask: Ask }) => {
   const shown = ask.options.filter((option) => option.shot !== undefined);
-  if (!shown.length) return null;
+  if (!shown.length) {
+    return null;
+  }
   const shots = shown.map((option) => shotOf(ask, option.shot!));
   return (
     <ShotsView
@@ -383,7 +382,9 @@ export const InlineAnswers = ({
 // answer sits under its own as a small pill, so its name says which is which in one line.
 const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const n = ask.options.length;
-  if (!n) return null;
+  if (!n) {
+    return null;
+  }
   const shots = ask.options.every((option) => option.shot !== undefined);
   const pills = ask.options.map((option) => (
     <Pill
@@ -395,12 +396,13 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       onPress={() => onAnswer(ask, option)}
     />
   ));
-  if (shots)
+  if (shots) {
     return (
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
         {pills}
       </Row>
     );
+  }
   const blocks = (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       {ask.options.map((option) => (
@@ -436,7 +438,9 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
       ))}
     </Column>
   );
-  if (n > SIDE_BY_SIDE) return blocks;
+  if (n > SIDE_BY_SIDE) {
+    return blocks;
+  }
   return (
     <Fits>
       <EvenRow spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -548,7 +552,9 @@ const useTyping = () => {
   const on = useRef(false);
   useEffect(
     () => () => {
-      if (on.current) typing(false);
+      if (on.current) {
+        typing(false);
+      }
     },
     [],
   );

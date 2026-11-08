@@ -7,7 +7,9 @@ export const useEscape = (onEscape?: () => void) => {
   const listening = !!onEscape;
 
   useEffect(() => {
-    if (!listening || !Escape) return;
+    if (!listening || !Escape) {
+      return;
+    }
     const subscription = Escape.addListener('onEscape', () => escape());
     return () => subscription.remove();
   }, [listening]);

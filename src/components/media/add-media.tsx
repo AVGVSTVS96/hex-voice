@@ -11,11 +11,13 @@ import {
   strokeBorder,
 } from '@expo/ui/swift-ui/modifiers';
 import * as ImagePicker from 'expo-image-picker';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Alert } from 'react-native';
 
 import { Camera } from '@/components/media/camera';
-import { CLIP_SECONDS, type Picked } from '@/live/media';
+import { CLIP_SECONDS } from '@/live/media';
+import type { Picked } from '@/live/media';
 import { bevel } from '@/theme';
 import { glass as onGlass } from '@/ui/glass-button';
 import { film } from '@/ui/tokens';
@@ -52,9 +54,12 @@ export const AddMedia = ({
       // A clip the size the camera records, so a minute of 4K doesn't go up whole.
       videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
-    if (picked.canceled) return;
-    if (picked.assets.some(({ duration }) => (duration ?? 0) > CLIP_SECONDS * 1000))
+    if (picked.canceled) {
+      return;
+    }
+    if (picked.assets.some(({ duration }) => (duration ?? 0) > CLIP_SECONDS * 1000)) {
       return Alert.alert('Videos up to a minute', 'Pick a shorter video, or trim it in Photos.');
+    }
     onAdd(
       picked.assets.map(({ uri, type, mimeType }) =>
         type === 'video'

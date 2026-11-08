@@ -1,4 +1,5 @@
-import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import type { CameraType } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -12,7 +13,8 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { useMicHeld } from '@/call/use-call';
 import { Glyph } from '@/components/glyph';
-import { CLIP_SECONDS, type Picked } from '@/live/media';
+import { CLIP_SECONDS } from '@/live/media';
+import type { Picked } from '@/live/media';
 import { clock } from '@/live/calls';
 import { circle } from '@/theme';
 import { film, metrics, radius, space, textOf } from '@/ui/tokens';
@@ -39,13 +41,16 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   const recording = phase.at === 'recording';
 
   useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain) void ask();
+    if (permission && !permission.granted && permission.canAskAgain) {
+      void ask();
+    }
   }, [permission?.granted, permission?.canAskAgain]);
 
   const take = async () => {
     const photo = await camera.current?.takePictureAsync({ quality: 0.8 });
-    if (photo)
+    if (photo) {
       setPhase({ at: 'review', shot: { uri: photo.uri, kind: 'photo', type: 'image/jpeg' } });
+    }
   };
   const record = async () => {
     held.current = true;
@@ -64,12 +69,14 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     );
   };
   const lift = () => {
-    if (!held.current) return;
+    if (!held.current) {
+      return;
+    }
     held.current = false;
     camera.current?.stopRecording();
   };
 
-  if (!permission?.granted)
+  if (!permission?.granted) {
     return permission && !permission.canAskAgain ? (
       <View style={[styles.fill, styles.blocked]}>
         <Text style={styles.words}>Allow hex to use the camera in Settings.</Text>
@@ -80,6 +87,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
     ) : (
       <View style={styles.fill} />
     );
+  }
 
   return (
     <View style={styles.fill}>
@@ -92,7 +100,9 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
         mute={quiet}
         active={phase.at !== 'review'}
         onRecordingProgress={() => {
-          if (!held.current) camera.current?.stopRecording();
+          if (!held.current) {
+            camera.current?.stopRecording();
+          }
         }}
       />
       {phase.at === 'review' && phase.shot.kind === 'photo' && (

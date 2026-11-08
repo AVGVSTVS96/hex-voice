@@ -1,4 +1,5 @@
-import { Column, Icon, RNHostView, Row, Spacer, TextInput, type TextInputRef } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer, TextInput } from '@expo/ui';
+import type { TextInputRef } from '@expo/ui';
 import { ScrollView } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
@@ -14,7 +15,8 @@ import {
   scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { AddMedia } from '@/components/media/add-media';
 import { Waiting } from '@/components/media/waiting';
@@ -26,9 +28,11 @@ import { Failure, Faded, SectionHead } from '@/components/tasks/parts';
 import { Said, SaidLine, Sent } from '@/components/tasks/said';
 import { TraceLine } from '@/components/tasks/trace';
 import type { Sending } from '@/live/chat';
-import { MOST, type Picked } from '@/live/media';
+import { MOST } from '@/live/media';
+import type { Picked } from '@/live/media';
 import { PLACES, placeOf } from '@/live/inbox';
-import { STATE_WORDS, taskTime, type Chat, type Task, type TaskRow } from '@/live/tasks';
+import { STATE_WORDS, taskTime } from '@/live/tasks';
+import type { Chat, Task, TaskRow } from '@/live/tasks';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
 import { labelOf, metrics, radius, space } from '@/ui/tokens';
@@ -255,7 +259,9 @@ const Composer = ({
   const [typing, setTyping] = useState(false);
   const typingHere = useContext(Typing);
   useEffect(() => {
-    if (!focus) return;
+    if (!focus) {
+      return;
+    }
     const wait = setTimeout(() => input.current?.focus(), 350);
     return () => clearTimeout(wait);
   }, [focus]);
@@ -263,8 +269,12 @@ const Composer = ({
   const stops = working && !text && !media.length;
   const lit = stops || !!words || !!media.length;
   const send = () => {
-    if (stops) return onStop();
-    if (!words && !media.length) return;
+    if (stops) {
+      return onStop();
+    }
+    if (!words && !media.length) {
+      return;
+    }
     onSend(words, media);
     setMedia([]);
     setText('');

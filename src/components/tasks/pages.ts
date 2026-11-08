@@ -11,12 +11,15 @@ export type Level = 'list' | 'topic' | 'thread' | 'steps' | 'check' | 'picks' | 
 type Pushed = Exclude<Level, 'list'>;
 
 // Every opening passes a new one, which starts Tasks afresh there.
-export type TasksAt = { task?: TaskId; stage?: Tab };
+export interface TasksAt {
+  task?: TaskId;
+  stage?: Tab;
+}
 
 // Where you are in Tasks: its pages, the list's tab and what it's searched for. The call screen
 // holds it (`Screen`), so it outlasts the pane, the sheet or the Duo's pages that show it, which
 // the window's size swaps.
-export type Stack = {
+export interface Stack {
   path: Pushed[];
   task: PageId | null;
   row: string | null;
@@ -27,7 +30,7 @@ export type Stack = {
   // The tab Tasks was sent to, or once the list has loaded, the one it opened on or was moved to.
   stage: Tab | null;
   query: string | null;
-};
+}
 
 export type Move =
   | { to: 'topic'; id: PageId; row?: string }
@@ -70,50 +73,68 @@ const COLUMNS = 900;
 // On iPhone Duo, two pages side by side where each side of the window's middle has a page as wide
 // as the phone's Tasks: open and held wide, not on its side, folded or beside the call's words.
 export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
-  if (paged) return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
+  if (paged) {
+    return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? 'panes' : 'one';
+  }
   return width >= COLUMNS ? 'columns' : 'one';
 };
 
 export const move = (stack: Stack, step: Move): Stack => {
   switch (step.to) {
-    case 'topic':
+    case 'topic': {
       return { ...stack, task: step.id, row: step.row ?? null, path: ['topic'] };
-    case 'beside':
+    }
+    case 'beside': {
       return { ...stack, task: step.id };
-    case 'thread':
+    }
+    case 'thread': {
       return { ...stack, path: ['topic', 'thread'], focusComposer: !!step.write };
-    case 'composerFocused':
+    }
+    case 'composerFocused': {
       return stack.focusComposer ? { ...stack, focusComposer: false } : stack;
-    case 'steps':
+    }
+    case 'steps': {
       return {
         ...stack,
         stepsOf: step.id,
         path: [...stack.path.filter((at) => at !== 'steps'), 'steps'],
       };
+    }
     case 'check':
-    case 'picks':
+    case 'picks': {
       return { ...stack, path: [step.to] };
-    case 'pick':
+    }
+    case 'pick': {
       return { ...stack, pick: step.id, path: ['picks', 'pick'] };
-    case 'back':
+    }
+    case 'back': {
       return { ...stack, path: stack.path.slice(0, -1), focusComposer: false };
-    case 'stage':
+    }
+    case 'stage': {
       return { ...stack, stage: step.stage };
-    case 'search':
+    }
+    case 'search': {
       return { ...stack, query: step.query };
+    }
   }
 };
 
 export const levelsOf = (stack: Stack, shape: Shape): Level[] => {
   const levels: Level[] = ['list', ...stack.path];
-  if (shape !== 'one' && levels.length === 1) levels.push('topic');
+  if (shape !== 'one' && levels.length === 1) {
+    levels.push('topic');
+  }
   return levels;
 };
 
 export const backLeavesTasks = (stack: Stack, shape: Shape): boolean => {
   const levels = levelsOf(stack, shape);
-  if (shape === 'one') return levels.length === 1;
-  if (shape === 'columns') return levels.length === 2 && levels[1] === 'topic';
+  if (shape === 'one') {
+    return levels.length === 1;
+  }
+  if (shape === 'columns') {
+    return levels.length === 2 && levels[1] === 'topic';
+  }
   return levels.at(-2) === 'list';
 };
 
@@ -152,7 +173,12 @@ type Placing = Pick<Pages, 'levels' | 'shape' | 'closes'>;
 // Where Tasks lays out: as wide as it's given, keeping `foot` clear at its foot, or ending at the
 // fold. On iPhone Duo its pages are clear over the screen's backdrop (`paged`), and two side by side
 // meet `meet` past its middle.
-export type Room = { width: number; foot: number | 'fold'; paged: boolean; meet?: number };
+export interface Room {
+  width: number;
+  foot: number | 'fold';
+  paged: boolean;
+  meet?: number;
+}
 
 // A Duo page's room. Its two pages meet in the window's middle, which is where the Duo folds.
 export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
@@ -165,13 +191,13 @@ export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
 // A sheet's bar centers its title; a page's on iPhone Duo is one row: back, title, buttons.
 
 // Every page is as tall as the room lets it be, which the keyboard can shorten.
-export type Spot = {
+export interface Spot {
   offset: { x: number; y: number };
   shown: boolean;
   width: number;
   foot: number;
   back?: Level | 'call';
-};
+}
 
 // A page that ends at the fold keeps nothing clear below it.
 const footOf = (foot: number | 'fold') => ({ foot: foot === 'fold' ? 0 : foot });
@@ -187,7 +213,9 @@ export const useField = () => {
   const field = useRef<TextInputRef>(null);
   const showing = useContext(Showing);
   useEffect(() => {
-    if (!showing) field.current?.blur();
+    if (!showing) {
+      field.current?.blur();
+    }
   }, [showing]);
   return field;
 };
@@ -196,7 +224,9 @@ export const useField = () => {
 // (`modules/pages`), so a resize lands in the frame it happens; these spots tell each page's content
 // how wide it is, whether it shows and where its Back goes.
 export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
-  if (pages.shape === 'panes') return spotInPanes(level, pages, room);
+  if (pages.shape === 'panes') {
+    return spotInPanes(level, pages, room);
+  }
   return pages.shape === 'columns'
     ? spotInColumns(level, pages, room)
     : spotAlone(level, pages, room);

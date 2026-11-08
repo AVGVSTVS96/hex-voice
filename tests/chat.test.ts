@@ -3,7 +3,8 @@ import test from 'node:test';
 
 import { arrived, newKey, said } from '../src/live/chat';
 import { MediaId, mediaWords } from '../src/live/media';
-import { TaskId, type Chat } from '../src/live/tasks';
+import { TaskId } from '../src/live/tasks';
+import type { Chat } from '../src/live/tasks';
 
 const chat = (turns: Chat['turns'], waiting: Chat['waiting'] = [], total = turns.length): Chat => ({
   version: 1,

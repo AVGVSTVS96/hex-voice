@@ -159,19 +159,27 @@ export type TaskCounts = z.infer<typeof TaskCounts>;
 
 // How long it's worked, or since when it's waited or finished: "14 min", "9:30", "Oct 11".
 export const taskTime = (task: TaskRow, now = new Date()) => {
-  if (task.state === 'working') return duration(now.getTime() - Date.parse(task.since));
+  if (task.state === 'working') {
+    return duration(now.getTime() - Date.parse(task.since));
+  }
   return clock(new Date(task.state === 'needs' ? task.since : task.at), now);
 };
 
 export const clock = (at: Date, now = new Date()) => {
-  if (at.getTime() >= startOfDay(now)) return timeOfDay(at.toISOString());
+  if (at.getTime() >= startOfDay(now)) {
+    return timeOfDay(at.toISOString());
+  }
   return at.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
 const duration = (ms: number) => {
   const minutes = Math.max(0, Math.round(ms / 60_000));
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 1) {
+    return 'now';
+  }
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
   const hours = Math.round(minutes / 60);
   return hours < 24 ? `${hours} hr` : `${Math.round(hours / 24)} d`;
 };
@@ -184,8 +192,12 @@ const took = (ms: number) => {
 // A step's mark when its state says more than its kind: turning while it runs, red when it failed.
 // Only a running step turns, so a thread waiting on its agents shows them at work instead.
 export const stepMark = (step: TaskStep) => {
-  if (step.state === 'failed') return 'failed';
-  if (step.state === 'running') return 'working';
+  if (step.state === 'failed') {
+    return 'failed';
+  }
+  if (step.state === 'running') {
+    return 'working';
+  }
   return undefined;
 };
 
@@ -195,10 +207,16 @@ export const stepMark = (step: TaskStep) => {
 // until the next one began, and says nothing when that was at once.
 export const stepTimes = (steps: TaskStep[], now = new Date()) =>
   steps.map((step, i) => {
-    if (step.kind === 'say') return timeOfDay(step.at);
+    if (step.kind === 'say') {
+      return timeOfDay(step.at);
+    }
     const at = Date.parse(step.at);
-    if (step.end) return took(Date.parse(step.end) - at);
-    if (step.state === 'running') return took(now.getTime() - at);
+    if (step.end) {
+      return took(Date.parse(step.end) - at);
+    }
+    if (step.state === 'running') {
+      return took(now.getTime() - at);
+    }
     const until = i === 0 ? at : Date.parse(steps[i - 1]!.at);
     return until - at < 500 ? '' : took(until - at);
   });
@@ -251,7 +269,9 @@ export const agentMeta = (agent: TaskAgent, now = new Date()) => {
 // back, which shows above them.
 export const agentSteps = (agent: AgentTrail) => {
   const [last, ...rest] = agent.steps;
-  if (last?.kind !== 'say' || !agent.result) return agent.steps;
+  if (last?.kind !== 'say' || !agent.result) {
+    return agent.steps;
+  }
   const same = Math.min(60, last.text.length, agent.result.length);
   return last.text.slice(0, same) === agent.result.slice(0, same) ? rest : agent.steps;
 };
@@ -260,7 +280,9 @@ export const agentSteps = (agent: AgentTrail) => {
 // "2 agents working · today, sol", and once it's done all it ran, "2 agents · voice, sol".
 export const agentWords = (agents: TaskAgent[], working: boolean) => {
   const named = working ? atWork(agents) : agentsInOrder(agents).shown;
-  if (!named.length) return undefined;
+  if (!named.length) {
+    return undefined;
+  }
   const names = named.map((agent) => agent.label.split(':')[0]!.trim());
   const count = `${named.length} agent${named.length === 1 ? '' : 's'}`;
   return `${count}${working ? ' working' : ''} · ${names.join(', ')}`;

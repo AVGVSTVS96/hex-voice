@@ -5,22 +5,25 @@ import type { TranscriptEntry } from './types';
 // A photo or clip you sent a call from here (`picked`), as its words show it until hex's record has
 // it: going, or why it didn't. What's sent together shares a `batch` and goes again together, and
 // `id` is hex's for it once it went up.
-export type Sent = {
+export interface Sent {
   call: CallId;
   batch: string;
   picked: Picked;
   id?: MediaId;
   entry: TranscriptEntry & { media: Shown };
-};
+}
 
 // What hex is asked: keep a file, and give the call the ones it keeps.
-export type ShareAPI = {
+export interface ShareAPI {
   upload: (picked: Picked) => Promise<Shared>;
   media: (call: CallId, ids: MediaId[]) => Promise<void>;
-};
+}
 
 // How a batch went: what each item went up as, and the first thing that went wrong.
-export type Outcome = { shared: (Shared | undefined)[]; error?: unknown };
+export interface Outcome {
+  shared: (Shared | undefined)[];
+  error?: unknown;
+}
 
 // What you picked, sent together `at` that far into the call, each going.
 export const batchOf = (call: CallId, at: number, picked: Picked[], key: string): Sent[] => {
@@ -43,7 +46,9 @@ export const deliver = async (call: CallId, batch: Sent[], api: ShareAPI): Promi
   );
   const shared = uploads.map((one) => (one.status === 'fulfilled' ? one.value : undefined));
   const lost = uploads.find((one) => one.status === 'rejected');
-  if (lost) return { shared, error: lost.reason };
+  if (lost) {
+    return { shared, error: lost.reason };
+  }
   try {
     await api.media(
       call,
@@ -62,7 +67,9 @@ export const settle = (sent: Sent[], batch: Sent[], { shared, error }: Outcome):
     error === undefined ? undefined : error instanceof Error ? error.message : 'Not sent';
   return sent.map((one) => {
     const i = batch.findIndex(({ entry }) => entry.id === one.entry.id);
-    if (i < 0) return one;
+    if (i < 0) {
+      return one;
+    }
     const kept = shared[i];
     const still = kept && one.picked.kind === 'video' ? { media: kept } : {};
     return {

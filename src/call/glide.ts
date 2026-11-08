@@ -16,7 +16,7 @@ const FLICK = 500;
 const RUBBER_BAND = 44;
 const LANDED = 2;
 
-type Glide = {
+interface Glide {
   // Where it's going: 1 reads the words, 0 rests.
   reading: boolean;
   // How far down the orb travels from resting to reading (negative goes up), and how far it goes.
@@ -27,7 +27,7 @@ type Glide = {
   onCross: () => void;
   onLand: () => void;
   onRelease: (reading: boolean) => void;
-};
+}
 
 // The orb's glide between resting and reading the words: `progress` runs 0 to 1, a drag past
 // either end stretches on a rubber band, and letting go lands it on the side the drag committed
@@ -75,7 +75,9 @@ export const useGlide = ({
   // changed what shows, like turning the device or opening a call.
   useEffect(() => {
     const target = reading ? 1 : 0;
-    if (goal.get() !== target) glideTo(target);
+    if (goal.get() !== target) {
+      glideTo(target);
+    }
   }, [reading]);
 
   useAnimatedReaction(

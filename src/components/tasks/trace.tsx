@@ -10,7 +10,8 @@ import {
   scrollClipDisabled,
   shapes,
 } from '@expo/ui/swift-ui/modifiers';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { Header } from '@/components/tasks/bar';
@@ -27,16 +28,13 @@ import {
   stepMark,
   stepTimes,
   taskTime,
-  type AgentTrail,
-  type StepKind,
-  type Task,
-  type TaskAgent,
-  type TaskStep,
 } from '@/live/tasks';
+import type { AgentTrail, StepKind, Task, TaskAgent, TaskStep } from '@/live/tasks';
 import type { Answered } from '@/hooks/use-watch';
 import { theme } from '@/theme';
 import { Text } from '@/ui/text';
-import { metrics, space, type Tone } from '@/ui/tokens';
+import { metrics, space } from '@/ui/tokens';
+import type { Tone } from '@/ui/tokens';
 
 // Each kind of step's icon, as shadcn's Trace marks what a line did.
 export const KIND: Record<StepKind, SFSymbol> = {

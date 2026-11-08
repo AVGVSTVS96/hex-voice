@@ -17,8 +17,9 @@ module.exports = function withCallAudio(config) {
   return withAppDelegate(config, (config) => {
     let source = config.modResults.contents;
     if (!source.includes('RTCAudioSessionConfiguration')) {
-      if (!source.includes(LAUNCH))
+      if (!source.includes(LAUNCH)) {
         throw new Error('with-call-audio: unexpected AppDelegate.swift');
+      }
       source = `import AVFoundation\nimport WebRTC\n${source}`.replace(LAUNCH, CALL_AUDIO + LAUNCH);
     }
     config.modResults.contents = source;
