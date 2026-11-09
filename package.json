@@ -13,7 +13,7 @@
     "ship:native": "scripts/ship-native",
     "android": "expo run:android --port 8088",
     "test": "tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b",
     "voice-previews": "tsx scripts/voice-previews.mts",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

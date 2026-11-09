@@ -68,3 +68,5 @@ Layout breaks here when JS and SwiftUI both place the same view, so where iOS al
 ## Checks
 
 Run `npm run check`.
+
+Code that runs on the phone (`src/`, `modules/`) is typechecked against what React Native's Hermes has (`tsconfig.app.json`, plus `src/hermes.d.ts` for the newer Array methods it has), and everything else against Node (`tsconfig.node.json`). A method missing there is missing on the phone: write it another way, and add it only once the Hermes that React Native ships has it.

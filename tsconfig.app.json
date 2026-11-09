@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "DOM",
+      "ES2022",
+      "ES2024.Collection",
+      "ES2024.Object",
+      "ES2024.Promise",
+      "ES2024.String",
+      "ES2025.Collection",
+      "ES2025.Iterator",
+      "ES2025.Promise",
+      "ESNext.Error"
+    ],
+    "types": []
+  },
+  "include": ["src", "modules", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}

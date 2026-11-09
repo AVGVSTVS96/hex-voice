@@ -10,8 +10,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/assets/*": ["./assets/*"]
-    },
-    "types": ["node"]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.mts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }
