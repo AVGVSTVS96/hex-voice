@@ -146,9 +146,7 @@ export const Places = ({
 }) => {
   const others = threads
     .filter((thread) => thread.id !== task.id)
-    .toSorted(
-      (a, b) => Number(hasLink(b)) - Number(hasLink(a)) || Date.parse(b.at) - Date.parse(a.at),
-    );
+    .sort((a, b) => Number(hasLink(b)) - Number(hasLink(a)) || Date.parse(b.at) - Date.parse(a.at));
 
   const all = [task, ...others];
   const [every, setEvery] = useState(false);

@@ -123,7 +123,7 @@ export const Transcript = ({
 const interleave = (entries: TranscriptEntry[], cards: CallCard[]) => {
   const moments: (TranscriptEntry | CallCard)[] = [...entries];
 
-  for (const card of cards.toSorted((a, b) => a.at - b.at)) {
+  for (const card of [...cards].sort((a, b) => a.at - b.at)) {
     const after = moments.findIndex((moment) => !("ask" in moment) && moment.startMs > card.at);
     moments.splice(after === -1 ? moments.length : after, 0, card);
   }

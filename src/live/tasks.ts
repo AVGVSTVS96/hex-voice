@@ -255,10 +255,8 @@ const ended = (agent: TaskAgent) =>
   agent.end === undefined || agent.end === "" ? started(agent) : Date.parse(agent.end);
 
 const inOrder = <A extends TaskAgent>(agents: A[]) => [
-  ...agents
-    .filter((agent) => agent.state === "working")
-    .toSorted((a, b) => started(b) - started(a)),
-  ...agents.filter((agent) => agent.state !== "working").toSorted((a, b) => ended(b) - ended(a)),
+  ...agents.filter((agent) => agent.state === "working").sort((a, b) => started(b) - started(a)),
+  ...agents.filter((agent) => agent.state !== "working").sort((a, b) => ended(b) - ended(a)),
 ];
 
 export const agentsInOrder = <A extends TaskAgent>(agents: A[]) => {

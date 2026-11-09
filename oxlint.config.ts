@@ -132,6 +132,8 @@ export default defineConfig({
     "require-await": "off",
     "sort-keys": "off",
     "typescript/consistent-return": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/no-array-sort": "off",
     "typescript/no-floating-promises": [
       "error",
       {

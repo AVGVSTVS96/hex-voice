@@ -32,7 +32,7 @@ export const laneOf = (tracks: Turn[][], now: number): Lane => {
 const merged = (spans: Lane["spans"]) => {
   const out: Lane["spans"] = [];
 
-  for (const span of spans.toSorted((a, b) => a.from - b.from)) {
+  for (const span of [...spans].sort((a, b) => a.from - b.from)) {
     const last = out.at(-1);
 
     if (last && span.from - last.to < JOIN) {
@@ -48,7 +48,7 @@ const merged = (spans: Lane["spans"]) => {
 const apart = (xs: number[]) => {
   const out: number[] = [];
 
-  for (const x of xs.toSorted((a, b) => b - a)) {
+  for (const x of [...xs].sort((a, b) => b - a)) {
     const last = out.at(-1);
 
     if (last === undefined || last - x >= APART) {

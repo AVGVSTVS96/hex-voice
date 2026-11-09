@@ -207,7 +207,7 @@ export const liveEntries = ({
         ? [{ id: `media ${media.id}`, role: "user" as const, text: "", startMs: mark.at, media }]
         : [];
     }),
-  ].toSorted((a, b) => a.startMs - b.startMs);
+  ].sort((a, b) => a.startMs - b.startMs);
 
 const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
   media && (kind === "photo" || kind === "video") ? { id: media, kind } : undefined;
@@ -367,5 +367,5 @@ export const timeline = ({
         ? [{ kind: "media" as const, key: `media-${media.id}`, at: mark.at, media }]
         : [];
     }),
-  ].toSorted((a, b) => a.at - b.at);
+  ].sort((a, b) => a.at - b.at);
 };

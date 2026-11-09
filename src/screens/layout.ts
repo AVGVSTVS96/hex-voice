@@ -214,7 +214,7 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
   let best = { x: from, width: 0 };
   let start = from;
 
-  for (const area of taken.toSorted((a, b) => a.x - b.x)) {
+  for (const area of [...taken].sort((a, b) => a.x - b.x)) {
     const end = Math.min(to, area.x - GAP);
 
     if (end - start > best.width) {

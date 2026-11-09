@@ -294,7 +294,7 @@ const Swiped = ({
       <SwipeActions.Actions edge="trailing" allowsFullSwipe={!!onAway}>
         {onAway ? <NotNeededButton onPress={onAway} /> : null}
         {/* SwiftUI lays actions out in the order listed from the swipe's edge in: https://developer.apple.com/documentation/swiftui/view/swipeactions(edge:allowsfullswipe:content:) */}
-        {trail.toReversed().map((tile, i) => {
+        {[...trail].reverse().map((tile, i) => {
           const { color, glyph } = swipeLook(tile);
 
           return (
@@ -459,7 +459,7 @@ export const ProjectRow = ({
   selected: boolean;
   onOpen: () => void;
 }) => {
-  const newest = topic.entries.toSorted((a, b) => Date.parse(b.at) - Date.parse(a.at)).at(0);
+  const newest = [...topic.entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).at(0);
 
   if (newest === undefined) {
     return null;

@@ -115,7 +115,7 @@ export const withSent = (call: Call, sent: Sent[]): Call => {
     return call;
   }
 
-  return { ...call, words: [...call.words, ...ours].toSorted((a, b) => a.startMs - b.startMs) };
+  return { ...call, words: [...call.words, ...ours].sort((a, b) => a.startMs - b.startMs) };
 };
 
 export const callIdOf = (call: Call): CallId | undefined => {

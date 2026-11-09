@@ -224,7 +224,7 @@ export const inboxEntries = (
 
   return entries
     .map((entry, i) => ({ entry, i }))
-    .toSorted(
+    .sort(
       (a, b) =>
         RANK[a.entry.stage] - RANK[b.entry.stage] ||
         (settled(a.entry) ? Date.parse(b.entry.at) - Date.parse(a.entry.at) : 0) ||
@@ -256,7 +256,7 @@ export const topicsOf = (shown: Entry[], all: Entry[]): Topic[] => {
     return {
       name,
       entries: shown.filter((entry) => entry.topic === name),
-      marks: [...threads.values()].toSorted((a, b) => RANK[a] - RANK[b]),
+      marks: [...threads.values()].sort((a, b) => RANK[a] - RANK[b]),
     };
   });
 };

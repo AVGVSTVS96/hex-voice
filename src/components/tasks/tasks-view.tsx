@@ -569,7 +569,7 @@ const asksIn = (shown: Ask[], topic: string | undefined, row: string | null) =>
     ? []
     : shown
         .filter((ask) => ask.topic === topic)
-        .toSorted((a, b) => Number(b.id === row) - Number(a.id === row));
+        .sort((a, b) => Number(b.id === row) - Number(a.id === row));
 
 const namesOf = (opened: TaskRow | Task | undefined): Record<Level | "call", string> => ({
   call: "Call",
