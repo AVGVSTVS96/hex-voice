@@ -22,8 +22,8 @@ export interface Room {
   size: Size;
   insets: Insets;
   regular: boolean;
-  bar?: "left" | "right";
-  fold?: Fold;
+  bar?: "left" | "right" | undefined;
+  fold?: Fold | undefined;
   occlusions: Rect[];
 }
 

@@ -141,7 +141,7 @@ const Line = ({ line }: { line: PinLine }) => {
       <Row
         alignment="start"
         spacing={metrics.list.gap}
-        onPress={open}
+        {...(open && { onPress: open })}
         modifiers={[
           padding({
             leading: metrics.list.inset,
@@ -177,7 +177,7 @@ const Line = ({ line }: { line: PinLine }) => {
     <Row
       alignment="start"
       spacing={metrics.list.gap}
-      onPress={open}
+      {...(open && { onPress: open })}
       modifiers={[
         padding({
           leading: metrics.list.inset - space[0.5],

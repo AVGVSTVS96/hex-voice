@@ -133,13 +133,11 @@ export const PicksPage = ({
         <Row
           alignment="center"
           spacing={0}
-          onPress={
-            taken.length
-              ? () => {
-                  onTake(taken);
-                }
-              : undefined
-          }
+          {...(taken.length > 0 && {
+            onPress: () => {
+              onTake(taken);
+            },
+          })}
           testID="picks-take"
           modifiers={[
             frame({ height: metrics.pill.height }),
@@ -258,7 +256,13 @@ const AnswerTag = ({ choice }: { choice: Choice }) => {
   );
 };
 
-export const PickPage = ({ picked, choices }: { picked?: Picked; choices: PickChoices }) => {
+export const PickPage = ({
+  picked,
+  choices,
+}: {
+  picked?: Picked | undefined;
+  choices: PickChoices;
+}) => {
   const { back } = useChrome();
 
   if (!picked) {
@@ -397,7 +401,7 @@ const Page = ({ children }: { children: ReactNode }) => (
   </Column>
 );
 
-const Heading = ({ title, detail }: { title: string; detail?: string }) => (
+const Heading = ({ title, detail }: { title: string; detail?: string | undefined }) => (
   <Column
     alignment="start"
     spacing={0}
@@ -420,8 +424,8 @@ const OptionCard = ({
   onPress,
 }: {
   title: string;
-  detail?: string;
-  pick?: boolean;
+  detail?: string | undefined;
+  pick?: boolean | undefined;
   chosen: boolean;
   onPress: () => void;
 }) => (

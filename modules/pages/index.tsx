@@ -27,8 +27,7 @@ export const PagesView = ({ modifiers, onPaired, ...rest }: PagesProps) => {
 
   return (
     <Native
-      modifiers={modifiers}
-      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
+      {...(modifiers && { modifiers, ...createViewModifierEventListener(modifiers) })}
       {...rest}
       onPaired={({ nativeEvent }) => {
         onPaired(nativeEvent.paired);

@@ -43,8 +43,8 @@ export const SettingRow = ({
     alignment="center"
     spacing={metrics.rowSpacing}
     style={{ width, height: metrics.row, paddingHorizontal: metrics.rowInset }}
-    onPress={onPress}
-    testID={testID}
+    {...(onPress && { onPress })}
+    {...(testID !== undefined && { testID })}
     modifiers={label === undefined || label === "" ? [] : [accessibilityLabel(label)]}
   >
     <Icon

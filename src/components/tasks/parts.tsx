@@ -83,8 +83,8 @@ export const Pill = ({
   testID,
 }: {
   label: string;
-  onPress?: () => void;
-  pick?: boolean;
+  onPress?: (() => void) | undefined;
+  pick?: boolean | undefined;
   small?: boolean;
   grow?: boolean;
   icon?: SFSymbol;
@@ -98,8 +98,8 @@ export const Pill = ({
     <Row
       alignment="center"
       spacing={space[2]}
-      onPress={onPress}
-      testID={testID}
+      {...(onPress && { onPress })}
+      {...(testID !== undefined && { testID })}
       modifiers={[
         padding({ leading: small ? space[3] : space[4], trailing: small ? space[3] : space[4] }),
         frame({ minHeight: small ? metrics.pill.small : metrics.pill.regular }),
@@ -139,7 +139,7 @@ const PillLabel = ({
       variant={small ? "detail" : "body"}
       weight={pick ? "medium" : "regular"}
       tone={ink}
-      align={grow ? "center" : undefined}
+      {...(grow && { align: "center" })}
     >
       {label}
     </Text>
@@ -166,7 +166,7 @@ export const SectionHead = ({
   opens = false,
 }: {
   title: string;
-  count?: string | number;
+  count?: string | number | undefined;
   opens?: boolean;
 }) => (
   <Row
@@ -209,7 +209,7 @@ export const StageHead = ({
 }: {
   tint: Tint;
   title: string;
-  count?: number;
+  count?: number | undefined;
 }) => (
   <Row
     alignment="center"

@@ -24,7 +24,7 @@ const hexAt = (fetch: Fetch, token?: string, at = hexUrl) =>
 
 const urlOf = (input: RequestInfo | URL) => (input instanceof Request ? input.url : String(input));
 
-const answering = (body: Json, seen?: { url: string; init?: RequestInit }[]) =>
+const answering = (body: Json, seen?: { url: string; init: RequestInit | undefined }[]) =>
   hexAt(async (input, init) => {
     seen?.push({ url: urlOf(input), init });
 
@@ -59,7 +59,7 @@ test("a build without the hex address says how to set it and asks nothing", asyn
 });
 
 test("sends the offer and voice to hex and reads OpenAI’s session back", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
 
   const hex = hexAt(
     async (input, init) => {
@@ -85,7 +85,7 @@ test("sends the offer and voice to hex and reads OpenAI’s session back", async
 });
 
 test("a call started from a task or for your asks tells hex which", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
   const hex = answering({ session: { id: "live_1" }, transport: { sdp: "answer" } }, seen);
   await hex.session.create("offer", "cedar", { task: thread });
   await hex.session.create("offer", "cedar", "asks");
@@ -96,7 +96,7 @@ test("a call started from a task or for your asks tells hex which", async () => 
 });
 
 test("ends a call, and marks when the phone takes its audio and gives it back", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
   const hex = answering(null, seen);
   await hex.session.close(live);
   await hex.session.mark?.(live, "paused");
@@ -177,7 +177,7 @@ test("every request carries the hex token when the app has one", async () => {
 });
 
 test("lists are asked for, then waited on from the version they last saw", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
   const { signal } = new AbortController();
   await answering({ version: 7, live: "live_2", calls: [] }, seen).calls.list();
   await answering({ version: 7, calls: [] }, seen).calls.list(7);
@@ -223,7 +223,7 @@ test("closing a list stops its waiting request as it is", async () => {
 });
 
 test("each tap goes to hex where it belongs, by id", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
   const hex = answering(null, seen);
   await hex.calls.remove(live);
   await hex.tasks.talk(thread);
@@ -251,7 +251,7 @@ test("each tap goes to hex where it belongs, by id", async () => {
 });
 
 test("an answer, a note and a not needed each go to their ask and say what they reached", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
   const reached = { thread: "telegram:-100:1", topic: "hex", settled: 2, missed: 1 };
   const hex = answering(reached, seen);
   const ask = AskId.parse("telegram:-100:1:7");
@@ -272,7 +272,7 @@ test("an answer, a note and a not needed each go to their ask and say what they 
 });
 
 test("a photo goes to hex as its bytes, and to a call or a thread by the ids hex gave it", async () => {
-  const seen: { url: string; init?: RequestInit }[] = [];
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
 
   const hex = createHex(
     createClient({

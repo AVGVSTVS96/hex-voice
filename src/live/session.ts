@@ -58,7 +58,7 @@ export class LiveSession {
   private muteCommand: { id: string; muted: boolean } | null = null;
   private nextCommand = 0;
   private closing: Promise<void> | null = null;
-  private confirmClosed?: () => void;
+  private confirmClosed: (() => void) | undefined;
   private reportedDuplex = false;
   private lastSentPackets = 0;
   private appActive = true;

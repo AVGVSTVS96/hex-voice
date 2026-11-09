@@ -7,7 +7,7 @@ export interface PersonaProps {
   state?: PersonaState;
   size?: number;
   color?: string;
-  palette?: number;
+  palette?: number | undefined;
   paused?: boolean;
   drawn?: boolean;
 }

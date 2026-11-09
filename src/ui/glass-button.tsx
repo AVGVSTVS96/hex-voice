@@ -44,7 +44,7 @@ interface Props {
   disabled?: boolean;
   selected?: boolean;
   prominent?: boolean;
-  loading?: boolean;
+  loading?: boolean | undefined;
 }
 
 export const glass = (
@@ -55,7 +55,7 @@ export const glass = (
     glass: {
       variant: "regular",
       interactive: !disabled,
-      tint: prominent ? theme.prominent : undefined,
+      ...(prominent && { tint: theme.prominent }),
     },
     shape,
   });

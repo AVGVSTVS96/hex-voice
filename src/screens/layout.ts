@@ -40,7 +40,9 @@ type Toolbar = Spot & { width: number; axis: "row" | "column"; gaps?: ToolbarGap
 
 export interface Duo {
   tasks: Page;
-  beside?: { tasks: Page; typing?: Page; words: Words & { raise: number }; button: Place };
+  beside?:
+    | { tasks: Page; typing?: Page | undefined; words: Words & { raise: number }; button: Place }
+    | undefined;
   call: {
     orb: Required<Spot>;
     time: Place & { width: number; align: "center" | "left" };
@@ -57,8 +59,8 @@ export interface Page {
 export type Layout = Stage & {
   content: Rect;
   toolbar: Toolbar;
-  column?: { bar: "left" | "right" };
-  inbox?: Inbox;
+  column?: { bar: "left" | "right" } | undefined;
+  inbox?: Inbox | undefined;
   duo?: Duo;
 };
 

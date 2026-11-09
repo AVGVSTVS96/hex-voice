@@ -17,7 +17,7 @@ import { theme } from "@/theme";
 import { Text } from "@/ui/text";
 import { metrics, radius, space } from "@/ui/tokens";
 
-export const LastCheck = ({ check, ...answered }: Answered & { check?: Check }) => (
+export const LastCheck = ({ check, ...answered }: Answered & { check?: Check | undefined }) => (
   <Column
     alignment="center"
     spacing={0}

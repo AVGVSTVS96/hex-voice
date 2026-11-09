@@ -7,7 +7,7 @@ const RETRY = 2000;
 
 export type Watching = "waiting" | "current" | "offline";
 
-export const useWatch = <K extends string, T extends { version?: number }>(
+export const useWatch = <K extends string, T extends { version?: number | undefined }>(
   key: K | null,
   ask: (after: number | undefined, signal: AbortSignal, key: K) => Promise<T>,
   take: (answer: T, key: K) => void,

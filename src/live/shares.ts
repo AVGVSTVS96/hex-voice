@@ -6,7 +6,7 @@ export interface Sent {
   call: CallId;
   batch: string;
   picked: Picked;
-  id?: MediaId;
+  id?: MediaId | undefined;
   entry: TranscriptEntry & { media: Shown };
 }
 

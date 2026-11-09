@@ -24,8 +24,8 @@ export type Action =
   | { to: "pages"; move: Move };
 
 interface Opening {
-  tasks?: TasksAt;
-  open?: "settings" | "calls";
+  tasks?: TasksAt | undefined;
+  open?: "settings" | "calls" | undefined;
 }
 
 const overAt = (opening: Opening): Over => {

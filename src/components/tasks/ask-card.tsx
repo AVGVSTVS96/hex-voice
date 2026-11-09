@@ -556,13 +556,11 @@ const Composer = ({
           name="arrow.up.circle.fill"
           size={metrics.symbol.send}
           color={words ? theme.text : theme.tertiary}
-          onPress={
-            words
-              ? () => {
-                  onNote(words);
-                }
-              : undefined
-          }
+          {...(words && {
+            onPress: () => {
+              onNote(words);
+            },
+          })}
           modifiers={[
             frame({ width: metrics.bar.button, height: metrics.bar.button }),
             accessibilityLabel(`Send a note to ${topic}`),
@@ -586,7 +584,7 @@ const Composer = ({
         <Text
           variant="detail"
           tone={sending ? "tertiary" : "secondary"}
-          onPress={sending ? undefined : onDismiss}
+          {...(!sending && { onPress: onDismiss })}
           modifiers={[padding({ top: space[2], bottom: space[2], leading: space[2] })]}
         >
           {NOT_NEEDED}

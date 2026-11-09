@@ -32,10 +32,8 @@ export const useChat = (id: TaskId | null, live: boolean) => {
   const pending = sending.filter((sent) => sent.id === id && !(chat && arrived(chat, sent)));
 
   const deliver = (sent: Sending) => {
-    setSending((now) => [
-      ...now.filter(({ key }) => key !== sent.key),
-      { ...sent, failed: undefined },
-    ]);
+    const { failed: _, ...again } = sent;
+    setSending((now) => [...now.filter(({ key }) => key !== sent.key), again]);
     void (async () => {
       try {
         await hex.tasks.send(sent.id, sent.text, sent.key, sent.media);

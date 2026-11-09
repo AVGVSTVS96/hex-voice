@@ -11,9 +11,9 @@ interface Props {
   call: CallSummary;
   live: boolean;
   onCall: boolean;
-  transcript?: string;
+  transcript?: string | undefined;
   onBack: () => void;
-  onDelete?: () => void;
+  onDelete?: (() => void) | undefined;
 }
 
 export const PastCallBar = ({ call, live, onCall, transcript, onBack, onDelete }: Props) => {

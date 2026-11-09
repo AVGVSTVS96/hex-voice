@@ -10,11 +10,11 @@ export interface Mic {
 }
 
 export interface Ended {
-  id?: CallId;
+  id?: CallId | undefined;
   from: CallSource;
-  ending?: CallEnding;
+  ending?: CallEnding | undefined;
   seconds: number;
-  error?: string;
+  error?: string | undefined;
   words: TranscriptEntry[];
 }
 
@@ -23,7 +23,7 @@ export type Call =
   | {
       kind: "here";
       phase: "connecting" | "live" | "ending";
-      id?: CallId;
+      id?: CallId | undefined;
       mic: Mic;
       seconds: number;
       words: TranscriptEntry[];
@@ -31,7 +31,7 @@ export type Call =
   | { kind: "elsewhere"; phase: "live" | "ending"; record: CallRecord; words: TranscriptEntry[] };
 
 export interface Elsewhere {
-  record?: CallRecord;
+  record?: CallRecord | undefined;
   leaving: boolean;
 }
 
@@ -226,7 +226,7 @@ const muteOf = (call: Exclude<Call, { kind: "none" }>): MuteButton => {
 export const voiceLocked = (call: Call) => call.kind === "here";
 
 export type Footer =
-  | { kind: "ended"; id?: string; text: string; bad: boolean }
+  | { kind: "ended"; id?: string | undefined; text: string; bad: boolean }
   | { kind: "elsewhere"; text: string }
   | { kind: "paused"; text: string };
 

@@ -24,7 +24,7 @@ export const TopicHead = ({ topic, onPress }: { topic: Topic; onPress?: () => vo
   <Row
     alignment="center"
     spacing={space[2]}
-    onPress={onPress}
+    {...(onPress && { onPress })}
     modifiers={[
       padding({
         leading: metrics.list.inset,
@@ -70,8 +70,8 @@ const Strip = ({
   <Row
     alignment="center"
     spacing={metrics.list.gap}
-    onPress={onPress}
-    testID={testID}
+    {...(onPress && { onPress })}
+    {...(testID !== undefined && { testID })}
     modifiers={[
       padding({
         leading: space[3],

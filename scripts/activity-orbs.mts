@@ -30,7 +30,7 @@ const files = new Map([
 
 declare global {
   interface Window {
-    loadOrb: (look: { color?: string; palette?: number }) => Promise<void>;
+    loadOrb: (look: { color: string | undefined; palette: number | undefined }) => Promise<void>;
     cropOrb: (shot: { shot: string; size: number }) => Promise<string>;
   }
 }

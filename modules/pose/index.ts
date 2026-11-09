@@ -10,9 +10,9 @@ export interface Rect {
 
 export interface Pose {
   regular: boolean;
-  bar?: "left" | "right";
-  fold?: Rect;
-  occlusions?: Rect[];
+  bar?: "left" | "right" | undefined;
+  fold?: Rect | undefined;
+  occlusions?: Rect[] | undefined;
 }
 
 export type PoseViewProps = ViewProps & {

@@ -26,8 +26,8 @@ const DELETE_AT = 180;
 interface Props {
   top: number;
   width: number;
-  calls?: CallSummary[];
-  live?: string;
+  calls?: CallSummary[] | undefined;
+  live?: string | undefined;
   viewing: string | null;
   offline: boolean;
   haptics: boolean;

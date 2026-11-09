@@ -75,7 +75,7 @@ export const Detail = ({
   messages?: ReactNode;
   beside?: boolean;
   answering?: boolean;
-  onWrite?: () => void;
+  onWrite?: (() => void) | undefined;
   foot?: number;
 }) => {
   const full = "lately" in task ? task : undefined;
@@ -232,7 +232,7 @@ const DetailFoot = ({
   task: TaskRow | Task;
   hidden: boolean;
   foot: number;
-  onWrite?: () => void;
+  onWrite?: (() => void) | undefined;
   onTalk: () => void;
 }) =>
   hidden ? null : (
@@ -256,7 +256,7 @@ export const Asked = ({
   topic: string;
   asks: Ask[];
   answered: Record<string, string | null>;
-  door?: Door;
+  door?: Door | undefined;
   rows?: ReactNode[];
   onAnswer: (ask: Ask, option: AskOption) => void;
   onUndo: (ask: Ask) => void;
@@ -300,9 +300,9 @@ export const DonePage = ({
   onOpenProject,
 }: {
   finished: Finished;
-  door?: Door;
+  door?: Door | undefined;
   onOpenLink: (tile: Tile) => void;
-  onOpenProject?: () => void;
+  onOpenProject?: (() => void) | undefined;
 }) => {
   const says = proofSays(finished.proof);
   const links = proofLinks(finished.proof);

@@ -48,7 +48,7 @@ export const Tabs = ({
   unknown: boolean;
   onChange: (stage: Tab) => void;
   title?: string;
-  back?: Back;
+  back?: Back | undefined;
   onSearch?: () => void;
   modifiers?: ModifierConfig[];
 }) => (

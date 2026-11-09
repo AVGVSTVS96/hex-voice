@@ -45,8 +45,8 @@ export interface Box {
   height: number;
   safe: { top: number; bottom: number };
   bar: number;
-  fold?: Fold;
-  controls?: ColumnControls;
+  fold?: Fold | undefined;
+  controls?: ColumnControls | undefined;
   regular: boolean;
 }
 
@@ -73,7 +73,7 @@ export interface Stage {
     rest: Spot;
     room: { top: number; bottom: number };
     read: Spot;
-    dock?: { calls: Required<Spot>; read?: Required<Spot>; tasks: Required<Spot> };
+    dock?: { calls: Required<Spot>; read?: Required<Spot> | undefined; tasks: Required<Spot> };
   };
   words: Words;
   text: "regular" | "large";

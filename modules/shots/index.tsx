@@ -33,8 +33,7 @@ export const ShotsView = ({ modifiers, secondary, surface, edge, ...rest }: Shot
 
   return (
     <Native
-      modifiers={modifiers}
-      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
+      {...(modifiers && { modifiers, ...createViewModifierEventListener(modifiers) })}
       secondary={processColor(secondary)}
       surface={processColor(surface)}
       edge={processColor(edge)}

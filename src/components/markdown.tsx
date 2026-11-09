@@ -22,7 +22,7 @@ export const Markdown = ({
   tone?: "text" | "secondary";
   variant?: TextVariant;
   inline?: boolean;
-  lines?: number;
+  lines?: number | undefined;
   selectable?: boolean;
   modifiers?: ModifierConfig[];
 }) => {
@@ -36,7 +36,7 @@ export const Markdown = ({
   const look: TextStyle = type[variant];
 
   return (
-    <Column alignment="start" spacing={space[1]} modifiers={modifiers}>
+    <Column alignment="start" spacing={space[1]} {...(modifiers && { modifiers })}>
       <MarkdownView
         markdown={children}
         inline={inline}

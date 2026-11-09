@@ -12,8 +12,8 @@ export type Level = "list" | "topic" | "thread" | "steps" | "check" | "picks" | 
 type Pushed = Exclude<Level, "list">;
 
 export interface TasksAt {
-  task?: TaskId;
-  stage?: Tab;
+  task?: TaskId | undefined;
+  stage?: Tab | undefined;
 }
 
 export interface Stack {
@@ -28,7 +28,7 @@ export interface Stack {
 }
 
 export type Move =
-  | { to: "topic"; id: PageId; row?: string }
+  | { to: "topic"; id: PageId; row?: string | undefined }
   | { to: "beside"; id: PageId | null }
   | { to: "thread"; write?: boolean }
   | { to: "composerFocused" }
@@ -205,7 +205,7 @@ export interface Spot {
   shown: boolean;
   width: number;
   foot: number;
-  back?: Level | "call";
+  back?: Level | "call" | undefined;
 }
 
 const footOf = (foot: number | "fold") => ({ foot: foot === "fold" ? 0 : foot });

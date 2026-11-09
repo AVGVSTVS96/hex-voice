@@ -138,7 +138,7 @@ export type AskList = Omit<z.infer<typeof AskList>, "asks" | "stuck" | "fresh"> 
 };
 
 export interface Yours {
-  list?: AskList;
+  list?: AskList | undefined;
   answered: Record<string, string | null>;
 }
 

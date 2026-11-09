@@ -19,7 +19,7 @@ export interface TranscriptEntry {
   endMs?: number;
   media?: Shown;
   sending?: boolean;
-  failed?: string;
+  failed?: string | undefined;
 }
 
 export interface LiveSnapshot {

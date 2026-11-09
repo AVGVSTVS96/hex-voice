@@ -92,8 +92,8 @@ const ORB_OVER_SHEET = 96;
 const AnimatedPressable = createAnimatedComponent(Pressable);
 
 export interface Opening {
-  tasks?: TasksAt;
-  open?: "settings" | "calls";
+  tasks?: TasksAt | undefined;
+  open?: "settings" | "calls" | undefined;
   reportPose: boolean;
   split?: boolean;
 }
@@ -1069,7 +1069,7 @@ const useOrbRest = ({
 };
 
 const useTrouble = (callNow: CallId | undefined) => {
-  const [trouble, setTrouble] = useState<{ call?: string; why: string }>();
+  const [trouble, setTrouble] = useState<{ call?: string | undefined; why: string }>();
 
   const tried = async (what: string, action: Promise<unknown>) => {
     const on = callNow;

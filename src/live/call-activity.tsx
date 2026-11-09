@@ -20,7 +20,7 @@ export interface CallActivityProps {
   state: "connecting" | "live" | "muted" | "ended";
   since: number;
   outcome?: string;
-  bad?: boolean;
+  bad?: boolean | undefined;
 }
 
 const CallActivity = (props: CallActivityProps) => {

@@ -29,7 +29,7 @@ const MARKERS: Record<
 
 interface Props {
   summary: CallSummary;
-  call?: CallRecord;
+  call?: CallRecord | undefined;
   failed: boolean;
   live: boolean;
 }
@@ -94,7 +94,7 @@ const Line = ({
   children,
 }: {
   symbol: SFSymbol;
-  bad?: boolean;
+  bad?: boolean | undefined;
   children: string;
 }) => {
   const color = bad ? theme.danger : theme.secondary;

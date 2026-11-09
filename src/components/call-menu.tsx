@@ -5,9 +5,9 @@ import { Host } from "@/ui/host";
 import { metrics } from "@/ui/tokens";
 
 interface Props {
-  transcript?: string;
+  transcript?: string | undefined;
   title: string;
-  onDelete?: () => void;
+  onDelete?: (() => void) | undefined;
 }
 
 export const CallMenu = ({ transcript, title, onDelete }: Props) => (

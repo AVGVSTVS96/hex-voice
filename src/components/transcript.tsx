@@ -29,7 +29,7 @@ export const Transcript = ({
 }: {
   entries: TranscriptEntry[];
   active: boolean;
-  size?: "regular" | "large";
+  size?: "regular" | "large" | undefined;
   emptyAt?: "end" | "center";
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: AskOption) => Promise<Sent>;

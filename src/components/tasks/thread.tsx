@@ -105,7 +105,7 @@ export const ThreadPage = ({
   onRetry: (sent: Sending) => void;
   onStop: () => void;
   onTalk: () => void;
-  failed?: string;
+  failed?: string | undefined;
 }) => {
   const field = useField();
   const place = PLACES[placeOf(thread.app)];

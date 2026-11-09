@@ -49,7 +49,7 @@ export const CallButtons = ({
   const Stack = axis === "row" ? HStack : VStack;
 
   return (
-    <GlassEffectContainer modifiers={modifiers}>
+    <GlassEffectContainer {...(modifiers && { modifiers })}>
       <Stack spacing={sizes.gap}>
         {mute &&
           (buttons.mute ? (

@@ -79,8 +79,10 @@ export const Persona = ({ variant = DEFAULT_PERSONA, ...props }: PersonaProps) =
     <View style={{ width: size, height: size }}>
       <Animated.View
         key={shown}
-        entering={reducedMotion ? undefined : FadeIn.duration(SWAP)}
-        exiting={reducedMotion ? undefined : FadeOut.duration(SWAP)}
+        {...(!reducedMotion && {
+          entering: FadeIn.duration(SWAP),
+          exiting: FadeOut.duration(SWAP),
+        })}
         style={StyleSheet.absoluteFill}
       >
         <PersonaRenderer variant={shown} {...props} />
@@ -250,7 +252,7 @@ const PersonaRenderer = ({
             hybridRef={setHybridRef}
             file={file}
             stateMachineName={PERSONA_STATE_MACHINE}
-            dataBind={colorModel ?? undefined}
+            {...(colorModel && { dataBind: colorModel })}
             fit={Fit.Contain}
             autoPlay={false}
             onError={() => {

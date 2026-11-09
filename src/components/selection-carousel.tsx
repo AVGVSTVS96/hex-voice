@@ -108,13 +108,11 @@ export const SelectionCarousel = ({
             key={option.id}
             alignment="center"
             spacing={0}
-            onPress={
-              current
-                ? undefined
-                : () => {
-                    onChange(option.id);
-                  }
-            }
+            {...(!current && {
+              onPress: () => {
+                onChange(option.id);
+              },
+            })}
             modifiers={[
               frame({ width: DOT * 2, height: REACH }),
               contentShape(shapes.rectangle()),
@@ -178,7 +176,7 @@ const SelectionPage = ({
   width: number;
   height: number;
   previewHeight?: number;
-  onPress?: () => void;
+  onPress?: (() => void) | undefined;
   testID: string;
 }) => (
   <Column
@@ -191,7 +189,7 @@ const SelectionPage = ({
       paddingTop: previewHeight,
       paddingBottom: metrics.pageDots,
     }}
-    onPress={onPress}
+    {...(onPress && { onPress })}
     testID={testID}
   >
     <Spacer flexible />

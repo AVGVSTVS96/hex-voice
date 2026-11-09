@@ -62,7 +62,7 @@ const look = (tile: Tile): TileLook => {
   }
 };
 
-const hasLink = ({ link }: { link?: string }) => link !== undefined && link !== "";
+const hasLink = ({ link }: { link?: string | undefined }) => link !== undefined && link !== "";
 
 export const swipeLook = (tile: Tile) => {
   const { color, glyph } = look(tile);
@@ -178,17 +178,15 @@ export const Places = ({
             <Row
               alignment="center"
               spacing={space[3]}
-              onPress={
-                opens
-                  ? () => {
-                      if (linked) {
-                        onOpen(thread);
-                      } else {
-                        onOpenTask(thread.id);
-                      }
-                    }
-                  : undefined
-              }
+              {...(opens && {
+                onPress: () => {
+                  if (linked) {
+                    onOpen(thread);
+                  } else {
+                    onOpenTask(thread.id);
+                  }
+                },
+              })}
               modifiers={[
                 padding({
                   leading: metrics.list.inset,

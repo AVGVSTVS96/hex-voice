@@ -335,7 +335,7 @@ const Under = ({
   tone?: Tone;
 }) => (
   <Text
-    numberOfLines={lines || undefined}
+    {...(lines !== undefined && lines !== 0 && { numberOfLines: lines })}
     variant="detail"
     tone={tone}
     paragraph
@@ -361,19 +361,19 @@ export const TraceLine = ({
   lead: ReactNode;
   text: string;
   lines?: number;
-  time?: string;
-  tone?: Tone;
+  time?: string | undefined;
+  tone?: Tone | undefined;
   indent?: number;
-  after?: ReactElement;
+  after?: ReactElement | undefined;
   chevron?: "chevron.down" | "chevron.right";
-  onPress?: () => void;
+  onPress?: (() => void) | undefined;
   label?: string;
   children?: ReactNode;
 }) => (
   <Row
     alignment="start"
     spacing={metrics.list.gap}
-    onPress={onPress}
+    {...(onPress && { onPress })}
     modifiers={[
       padding({
         leading: metrics.list.inset - space[0.5] + indent,
@@ -395,7 +395,7 @@ export const TraceLine = ({
     </Row>
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Text
-        numberOfLines={lines || undefined}
+        {...(lines !== undefined && lines !== 0 && { numberOfLines: lines })}
         variant="detail"
         tone={tone}
         paragraph

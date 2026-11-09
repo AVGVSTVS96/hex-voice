@@ -9,7 +9,7 @@ export type Tab = "all" | Stage;
 export type Place = "telegram" | "t3" | "buzz" | "discord" | "server";
 
 export type Tile =
-  | { kind: "app"; place: Place; label: string; link?: string }
+  | { kind: "app"; place: Place; label: string; link?: string | undefined }
   | { kind: "call"; label: string; call: string }
   | { kind: "link"; label: string; url: string };
 

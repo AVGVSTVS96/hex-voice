@@ -14,8 +14,8 @@ export const SentMedia = ({
 }: {
   id: string;
   media: Shown;
-  sending?: boolean;
-  failed?: string;
+  sending?: boolean | undefined;
+  failed?: string | undefined;
 }) => {
   const retry = useRetry();
 

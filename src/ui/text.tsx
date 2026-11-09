@@ -7,10 +7,10 @@ import { type } from "@/ui/tokens";
 import type { TextStyle, TextVariant, Tone, Weight } from "@/ui/tokens";
 
 interface Look {
-  variant?: TextVariant;
-  weight?: Weight;
-  tone?: Tone;
-  paragraph?: boolean;
+  variant?: TextVariant | undefined;
+  weight?: Weight | undefined;
+  tone?: Tone | undefined;
+  paragraph?: boolean | undefined;
 }
 
 export const textLook = ({
@@ -20,13 +20,15 @@ export const textLook = ({
   paragraph = false,
 }: Look = {}) => {
   const style: TextStyle = type[variant];
+  const { textStyle, design } = style;
+  const fontWeight = weight ?? style.weight;
 
   return [
     font({
-      textStyle: style.textStyle,
       size: style.fontSize,
-      weight: weight ?? style.weight,
-      design: style.design,
+      ...(textStyle && { textStyle }),
+      ...(fontWeight && { weight: fontWeight }),
+      ...(design && { design }),
     }),
     foregroundStyle(theme[tone]),
     ...(paragraph && style.lineSpacing !== undefined ? [lineSpacing(style.lineSpacing)] : []),
@@ -44,7 +46,7 @@ export const Text = ({
 }: Omit<TextProps, "textStyle"> & Look & { align?: "center" }) => (
   <UniversalText
     {...props}
-    textStyle={align && { textAlign: align }}
+    {...(align && { textStyle: { textAlign: align } })}
     modifiers={[...textLook({ variant, weight, tone, paragraph }), ...(modifiers ?? [])]}
   />
 );

@@ -88,7 +88,7 @@ type Pane = "persona" | "rows" | "alone";
 
 interface Props {
   sheet: SettingsSheet;
-  place?: { area: Rect; shown: boolean; pane: SharedValue<number> };
+  place?: { area: Rect; shown: boolean; pane: SharedValue<number> } | undefined;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -624,9 +624,9 @@ const Sheet = ({
 }) => {
   const phone = sheet === "phone";
 
-  const detents = phone
-    ? [{ height: appearanceHeight }, { height: VOICE_HEIGHT }]
-    : [{ height: appearanceHeight }];
+  const appearance = { height: appearanceHeight };
+  const voice = { height: VOICE_HEIGHT };
+  const detents = phone ? [appearance, voice] : [appearance];
 
   const page = (shown: boolean, away: number, height: number) => [
     frame({ height, alignment: "top" }),
@@ -653,7 +653,7 @@ const Sheet = ({
           modifiers={[
             presentationDragIndicator("visible"),
             presentationDetents(detents, {
-              selection: detents[onVoicePage ? detents.length - 1 : 0],
+              selection: phone && onVoicePage ? voice : appearance,
               onSelectionChange: (detent) => {
                 if (!phone) {
                   return;
@@ -766,7 +766,7 @@ const SettingsPlace = ({
   open: boolean;
   pane: SharedValue<number>;
   two: boolean;
-  row?: number;
+  row?: number | undefined;
   edges: { top: number; leading: number; trailing: number; bottom: number };
   persona: number;
   onPane: (pane: Pane, size: Size) => void;

@@ -27,7 +27,7 @@ export interface Back {
 }
 
 export interface Chrome {
-  back?: Back;
+  back?: Back | undefined;
 }
 
 export const PageChrome = createContext<Chrome>({});
@@ -45,7 +45,7 @@ export const Header = ({
 }: {
   title: string;
   subtitle: string;
-  door?: Door;
+  door?: Door | undefined;
 }) => {
   const { back } = useChrome();
 
@@ -68,9 +68,9 @@ export const PageBar = ({
   trailing,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: string | undefined;
   large?: boolean;
-  back?: Back;
+  back?: Back | undefined;
   trailing?: ReactNode;
 }) => {
   const backButton = back ? <BackButton back={back} /> : null;
@@ -163,7 +163,7 @@ export const BarButton = ({
 }) => (
   <Button
     onPress={onPress}
-    testID={testID}
+    {...(testID !== undefined && { testID })}
     modifiers={[
       buttonStyle("plain"),
       ...(disabled ? [disabledModifier(true), opacity(0.4)] : []),

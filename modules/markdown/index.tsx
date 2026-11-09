@@ -6,9 +6,9 @@ import type { ColorValue, NativeSyntheticEvent } from "react-native";
 
 export type MarkdownProps = CommonViewModifierProps & {
   markdown: string;
-  inline?: boolean;
-  lines?: number;
-  selectable?: boolean;
+  inline?: boolean | undefined;
+  lines?: number | undefined;
+  selectable?: boolean | undefined;
   size: number;
   leading: number;
   gap: number;
@@ -46,8 +46,7 @@ export const MarkdownView = ({
 
   return (
     <Native
-      modifiers={modifiers}
-      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
+      {...(modifiers && { modifiers, ...createViewModifierEventListener(modifiers) })}
       color={processColor(color)}
       secondary={processColor(secondary)}
       edge={processColor(edge)}

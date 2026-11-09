@@ -158,7 +158,7 @@ const Swatch = ({
   onPress,
   layout: { size, gap },
 }: {
-  color?: string;
+  color?: string | undefined;
   label: string;
   selected: boolean;
   onPress: () => void;

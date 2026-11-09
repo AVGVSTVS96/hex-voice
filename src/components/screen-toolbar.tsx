@@ -16,13 +16,13 @@ import type { ToolbarGaps } from "@/ui/tokens";
 interface Props {
   axis: "row" | "column";
   onLayout?: ViewProps["onLayout"];
-  gaps?: ToolbarGaps;
+  gaps?: ToolbarGaps | undefined;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
   tasks: { needs: number; working: number; open: boolean };
   settingsOpen?: boolean;
   holdsBack?: boolean;
-  back?: Back;
+  back?: Back | undefined;
   onCalls: () => void;
   onTasks: () => void;
   onSettings: () => void;

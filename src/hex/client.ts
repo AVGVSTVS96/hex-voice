@@ -18,8 +18,8 @@ export type SendFile = (
 ) => Promise<{ status: number; text: string }>;
 
 export interface Config {
-  url?: string;
-  token?: string;
+  url?: string | undefined;
+  token?: string | undefined;
   fetch: typeof globalThis.fetch;
   sendFile?: SendFile;
 }
@@ -29,8 +29,8 @@ export type Client = ReturnType<typeof createClient>;
 interface Options {
   method?: "GET" | "POST" | "DELETE";
   body?: unknown;
-  after?: number;
-  signal?: AbortSignal;
+  after?: number | undefined;
+  signal?: AbortSignal | undefined;
   timeout?: number;
 }
 
@@ -103,7 +103,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
         const response = await fetch(href, {
           method,
           headers: body === undefined ? auth : { ...auth, "Content-Type": "application/json" },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          ...(body !== undefined && { body: JSON.stringify(body) }),
           signal,
         });
 

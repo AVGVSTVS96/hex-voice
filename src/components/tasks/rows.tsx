@@ -46,7 +46,7 @@ export const EntryRow = ({
   entry,
   why,
   ...actions
-}: { entry: Entry; why?: Part[] } & RowActions) => {
+}: { entry: Entry; why?: Part[] | undefined } & RowActions) => {
   const selected = actions.selected === entry.id;
 
   const swiped = {
@@ -194,7 +194,7 @@ const AskRow = ({
 }: {
   entry: Entry;
   ask: Ask;
-  why?: Part[];
+  why?: Part[] | undefined;
   selected: boolean;
   swiped: { trail: Tile[]; onTile: (tile: Tile) => void };
   actions: RowActions;
@@ -272,7 +272,7 @@ const Swiped = ({
   onTile,
   children,
 }: {
-  lead?: Swipe;
+  lead?: Swipe | undefined;
   onAway?: () => void;
   trail: Tile[];
   onTile: (tile: Tile) => void;
@@ -330,17 +330,17 @@ const Shell = ({
   mark: MarkState;
   line: string;
   time: string;
-  meta?: string;
+  meta?: string | undefined;
   tiles: Tile[];
   label: string;
-  why?: Part[];
+  why?: Part[] | undefined;
   onPress?: () => void;
   children?: ReactNode;
 }) => (
   <Row
     alignment="start"
     spacing={metrics.list.gap}
-    onPress={onPress}
+    {...(onPress && { onPress })}
     modifiers={[...rowFrame(selected), accessibilityLabel(label)]}
   >
     <Mark state={mark} />
@@ -400,7 +400,7 @@ const Why = ({ text }: { text: string }) => (
   </Text>
 );
 
-const Action = ({ label, onPress }: { label: string; onPress?: () => void }) => (
+const Action = ({ label, onPress }: { label: string; onPress?: (() => void) | undefined }) => (
   <Row alignment="center" spacing={0} modifiers={[padding({ top: space[2] })]}>
     <Pill label={label} onPress={onPress} small />
   </Row>
