@@ -186,7 +186,7 @@ const PersonaRenderer = ({
       if (!grown.current) {
         riveViewRef.playIfNeeded();
 
-        if (drawn && !growing.current) {
+        if (drawn && growing.current === undefined) {
           growing.current = setTimeout(() => {
             grown.current = true;
 
