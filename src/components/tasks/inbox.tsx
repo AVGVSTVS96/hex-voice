@@ -85,8 +85,8 @@ const Strip = ({
       clipShape("roundedRectangle", radius.group),
       contentShape(shapes.rectangle()),
       padding({
-        leading: metrics.list.inset - space[3],
-        trailing: metrics.list.inset - space[3],
+        leading: space[4],
+        trailing: space[4],
         top: space[1],
         bottom: space[2],
       }),
