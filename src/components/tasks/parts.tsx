@@ -242,10 +242,12 @@ export const StageHead = ({
 export const Faded = ({
   top = true,
   bottom = true,
+  under = 0,
   children,
 }: {
   top?: boolean;
   bottom?: boolean;
+  under?: number;
   children: ReactNode;
 }) => (
   <Mask
@@ -256,7 +258,10 @@ export const Faded = ({
       alignment="center"
       spacing={0}
       modifiers={[
-        padding({ top: top ? metrics.list.rest : 0, bottom: bottom ? metrics.list.rest : 0 }),
+        padding({
+          top: top ? metrics.list.rest : 0,
+          bottom: bottom && under === 0 ? metrics.list.rest : 0,
+        }),
         frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
       ]}
     >
@@ -275,16 +280,31 @@ export const Faded = ({
             foregroundStyle(mask.shown),
           ]}
         />
-        {bottom ? <FadeEdge from="bottom" /> : null}
+        {bottom ? <FadeEdge from="bottom" height={metrics.list.fade + under / 2} /> : null}
+        {under > 0 ? (
+          <Rectangle
+            modifiers={[
+              frame({ height: under / 2 }),
+              frame({ maxWidth: Infinity }),
+              foregroundStyle(mask.hidden),
+            ]}
+          />
+        ) : null}
       </Column>
     </Mask.Content>
   </Mask>
 );
 
-const FadeEdge = ({ from }: { from: "top" | "bottom" }) => (
+const FadeEdge = ({
+  from,
+  height = metrics.list.fade,
+}: {
+  from: "top" | "bottom";
+  height?: number;
+}) => (
   <Rectangle
     modifiers={[
-      frame({ height: metrics.list.fade }),
+      frame({ height }),
       frame({ maxWidth: Infinity }),
       foregroundStyle({
         type: "linearGradient",

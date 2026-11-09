@@ -1,11 +1,13 @@
 import { Column, Icon, Row, Spacer } from "@expo/ui";
-import { List } from "@expo/ui/swift-ui";
+import { List, Rectangle, ZStack } from "@expo/ui/swift-ui";
 import {
+  accessibilityHidden,
   accessibilityLabel,
   animation,
   background,
   clipShape,
   contentShape,
+  foregroundStyle,
   frame,
   id,
   listStyle,
@@ -45,7 +47,7 @@ import type { TaskRow } from "@/live/tasks";
 import { motion, rowsKey } from "@/motion";
 import { theme } from "@/theme";
 import { Text } from "@/ui/text";
-import { breakpoint, metrics, space } from "@/ui/tokens";
+import { breakpoint, mask, metrics, space } from "@/ui/tokens";
 
 import { Fits } from "../../../modules/rows";
 
@@ -187,16 +189,7 @@ export const ListPage = ({
   const loading = loaded ? null : <Loading />;
   const tabs = { counts, stage, unknown: !loaded, onChange: chooseStage };
 
-  const goThrough =
-    needsTab && yours.open.length > 0 ? (
-      <GoThrough
-        foot={spot.foot}
-        onPress={() => {
-          feel.tick();
-          onGoThrough();
-        }}
-      />
-    ) : null;
+  const under = needsTab && yours.open.length > 0 ? goThroughHeight(spot.foot) : 0;
 
   return (
     <Column
@@ -234,77 +227,88 @@ export const ListPage = ({
           </Column>
         </Fits>
       )}
-      <Faded>
-        <List
-          modifiers={[
-            listStyle("plain"),
-            scrollContentBackground("hidden"),
-            scrollClipDisabled(),
-            frame({ maxWidth: metrics.readable, maxHeight: Infinity }),
-            animation(
-              motion.list,
-              rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ""}`)),
-            ),
-            id(searching ? "search" : stage),
-          ]}
-        >
-          {behind ? <Behind /> : null}
-          {needsTab && picks.length > 1 ? (
-            <PicksRow
-              n={picks.length}
-              selected={apart === "picks"}
-              onOpen={() => {
-                feel.tick();
-                pages.go({ to: "picks" });
-              }}
-            />
-          ) : null}
-          {topics.flatMap((topic) => {
-            if (!searching) {
+      <ZStack alignment="bottom" modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+        <Faded under={under}>
+          <List
+            modifiers={[
+              listStyle("plain"),
+              scrollContentBackground("hidden"),
+              scrollClipDisabled(),
+              frame({ maxWidth: metrics.readable, maxHeight: Infinity }),
+              animation(
+                motion.list,
+                rowsKey(shown.map((entry) => `${entry.id}:${yours.answered[entry.id] ?? ""}`)),
+              ),
+              id(searching ? "search" : stage),
+            ]}
+          >
+            {behind ? <Behind /> : null}
+            {needsTab && picks.length > 1 ? (
+              <PicksRow
+                n={picks.length}
+                selected={apart === "picks"}
+                onOpen={() => {
+                  feel.tick();
+                  pages.go({ to: "picks" });
+                }}
+              />
+            ) : null}
+            {topics.flatMap((topic) => {
+              if (!searching) {
+                return [
+                  <ProjectRow
+                    key={(stage === "done" ? topic.entries[0]?.id : undefined) ?? topic.name}
+                    topic={topic}
+                    selected={
+                      stage === "done" ? pageOf(topic) === pages.task : topic.name === openTopic
+                    }
+                    onOpen={() => {
+                      openPage(pageOf(topic), topic.entries[0]?.id);
+                    }}
+                  />,
+                ];
+              }
+
+              const lead = topic.entries.map(taskOf).find(Boolean);
+
               return [
-                <ProjectRow
-                  key={(stage === "done" ? topic.entries[0]?.id : undefined) ?? topic.name}
+                <TopicHead
+                  key={`${topic.name}:head`}
                   topic={topic}
-                  selected={
-                    stage === "done" ? pageOf(topic) === pages.task : topic.name === openTopic
-                  }
-                  onOpen={() => {
-                    openPage(pageOf(topic), topic.entries[0]?.id);
+                  onPress={() => {
+                    openPage(lead ?? pageOf(topic));
                   }}
                 />,
+                ...topic.entries.map((entry) => (
+                  <EntryRow key={entry.id} entry={entry} why={whyOf(entry, query)} {...actions} />
+                )),
               ];
-            }
-
-            const lead = topic.entries.map(taskOf).find(Boolean);
-
-            return [
-              <TopicHead
-                key={`${topic.name}:head`}
-                topic={topic}
+            })}
+            {needsTab && yours.list?.check ? (
+              <CheckRow
+                check={yours.list.check}
+                selected={apart === "check"}
                 onPress={() => {
-                  openPage(lead ?? pageOf(topic));
+                  feel.tick();
+                  pages.go({ to: "check" });
                 }}
-              />,
-              ...topic.entries.map((entry) => (
-                <EntryRow key={entry.id} entry={entry} why={whyOf(entry, query)} {...actions} />
-              )),
-            ];
-          })}
-          {needsTab && yours.list?.check ? (
-            <CheckRow
-              check={yours.list.check}
-              selected={apart === "check"}
-              onPress={() => {
-                feel.tick();
-                pages.go({ to: "check" });
-              }}
-            />
-          ) : null}
-          {loaded && !topics.length ? <Empty text={emptyText(query, stage)} /> : null}
-          {unreachable ? <Empty text={UNREACHED} /> : loading}
-        </List>
-      </Faded>
-      {goThrough}
+              />
+            ) : null}
+            {loaded && !topics.length ? <Empty text={emptyText(query, stage)} /> : null}
+            {unreachable ? <Empty text={UNREACHED} /> : loading}
+            <Room under={under} />
+          </List>
+        </Faded>
+        {under > 0 ? (
+          <GoThrough
+            foot={spot.foot}
+            onPress={() => {
+              feel.tick();
+              onGoThrough();
+            }}
+          />
+        ) : null}
+      </ZStack>
     </Column>
   );
 };
@@ -362,6 +366,21 @@ const Behind = () => (
     Last from hex · waiting for an update
   </Text>
 );
+
+const goThroughHeight = (foot: number) => space[3] + metrics.pill.height + Math.max(space[4], foot);
+
+const Room = ({ under }: { under: number }) =>
+  under > 0 ? (
+    <Rectangle
+      modifiers={[
+        frame({ height: under + metrics.list.rest }),
+        frame({ maxWidth: Infinity }),
+        foregroundStyle(mask.hidden),
+        accessibilityHidden(true),
+        ...listRow(),
+      ]}
+    />
+  ) : null;
 
 const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => (
   <Row
