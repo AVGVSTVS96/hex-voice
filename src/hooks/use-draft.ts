@@ -23,22 +23,16 @@ export const carryDraft = (where: string, from: string[]) => {
   const all = saved();
   const here = all[where] ?? "";
 
-  const [old] = here.trim()
-    ? []
-    : from.flatMap((key) => {
-        const text = all[key];
+  const key = here.trim() ? undefined : from.find((each) => (all[each] ?? "").trim() !== "");
 
-        return text !== undefined && text.trim() !== "" ? [{ key, text }] : [];
-      });
-
-  if (!old) {
+  if (key === undefined) {
     return here;
   }
 
-  const { [old.key]: _, ...rest } = all;
-  Settings.set({ [KEY]: { ...rest, [where]: old.text } });
+  const { [key]: text = "", ...rest } = all;
+  Settings.set({ [KEY]: { ...rest, [where]: text } });
 
-  return old.text;
+  return text;
 };
 
 export const useDraft = (where: string) => {

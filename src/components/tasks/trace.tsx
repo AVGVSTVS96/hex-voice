@@ -325,6 +325,9 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
   );
 };
 
+const lineLimit = (lines: number | undefined) =>
+  lines === undefined || lines === 0 ? {} : { numberOfLines: lines };
+
 const Under = ({
   text,
   lines = 1,
@@ -335,7 +338,7 @@ const Under = ({
   tone?: Tone;
 }) => (
   <Text
-    {...(lines !== undefined && lines !== 0 && { numberOfLines: lines })}
+    {...lineLimit(lines)}
     variant="detail"
     tone={tone}
     paragraph
@@ -395,7 +398,7 @@ export const TraceLine = ({
     </Row>
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
       <Text
-        {...(lines !== undefined && lines !== 0 && { numberOfLines: lines })}
+        {...lineLimit(lines)}
         variant="detail"
         tone={tone}
         paragraph
