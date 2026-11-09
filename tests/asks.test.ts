@@ -14,6 +14,7 @@ import {
 } from "../src/live/asks";
 import type { AskList, Yours } from "../src/live/asks";
 import { pinSections } from "../src/live/pinned";
+import { nth } from "./nth";
 
 const ask = (id: string, kind: Ask["kind"], extra: Partial<z.input<typeof Ask>> = {}): Ask =>
   Ask.parse({
@@ -70,11 +71,11 @@ test("a pinned post reads as sections: what waits on you, what runs, known probl
       ["Done", "done", true],
     ],
   );
-  assert.deepEqual(sections[3].lines, [
+  assert.deepEqual(nth(sections, 3).lines, [
     { kind: "item", text: "herdr fork’s sync has failed since Sep 16", mark: "failed" },
     { kind: "code", text: "claude setup-token" },
   ]);
-  assert.deepEqual(sections[4].lines[0], {
+  assert.deepEqual(nth(sections, 4).lines[0], {
     kind: "item",
     text: "Launch review is live",
     mark: "done",
@@ -145,7 +146,7 @@ test("held asks go back after the ask they followed, or first when none of those
 });
 
 test("a pinned section’s heading drops its own emoji, which its mark already says", () => {
-  const [done] = pinSections("**🟢 Done:**\n- shipped the band");
+  const done = nth(pinSections("**🟢 Done:**\n- shipped the band"), 0);
   assert.deepEqual([done.title, done.mark], ["Done", "done"]);
 });
 
@@ -153,6 +154,8 @@ test("a pinned text line shows a markdown link’s label and opens its url, as a
   const [section] = pinSections(
     "Signed with xtool. [Paper](https://app.paper.design/file/abc)\nNo link here.",
   );
+
+  assert.ok(section);
 
   assert.deepEqual(section.lines, [
     { kind: "text", text: "Signed with xtool. Paper", url: "https://app.paper.design/file/abc" },
@@ -165,6 +168,8 @@ test("a pinned line keeps its bold and code for the screen to draw, and a title 
     "📌 **Running:** the **Mac** build of `main`\n- **iPad** needs `devicectl`",
   );
 
+  assert.ok(section);
+
   assert.deepEqual(
     [section.title, section.lines.map((line) => line.kind === "item" && line.text)],
     ["Running", ["the **Mac** build of `main`", "**iPad** needs `devicectl`"]],
@@ -172,7 +177,7 @@ test("a pinned line keeps its bold and code for the screen to draw, and a title 
 });
 
 test("a pinned title bold to the end of its line, colon inside, leaves no stray mark", () => {
-  const [section] = pinSections("**Running: the Mac build**");
+  const section = nth(pinSections("**Running: the Mac build**"), 0);
   assert.deepEqual(
     [section.title, section.lines.map((line) => line.kind === "item" && line.text)],
     ["Running", ["the Mac build"]],
@@ -201,7 +206,7 @@ test("what didn’t go through shows on the item it was about, and nowhere else"
     failed.asks.map((one) => one.failed),
     [undefined, "Not answered · That question is already answered or settled"],
   );
-  assert.equal(failed.stuck[0].failed, "Not sent · No General");
+  assert.equal(nth(failed.stuck, 0).failed, "Not sent · No General");
 });
 
 test("an answer that missed a place says how many still ask it, on that ask alone", () => {
@@ -237,7 +242,7 @@ test("an ask hex's check took up keeps the ids it was listed under, so what was 
 });
 
 test("a pinned line ticked with a plain ✓ is done, drawn with its mark and not the tick", () => {
-  const [section] = pinSections("- ✓ Tap X and it breaks into dust");
+  const section = nth(pinSections("- ✓ Tap X and it breaks into dust"), 0);
   assert.deepEqual(section?.lines, [
     { kind: "item", text: "Tap X and it breaks into dust", mark: "done" },
   ]);

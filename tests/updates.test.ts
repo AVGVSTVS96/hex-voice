@@ -9,6 +9,7 @@ import test, { after } from "node:test";
 import * as z from "zod";
 
 import { publish, serve } from "../updates/store.mjs";
+import { nth } from "./nth";
 
 const Asset = z.object({
   url: z.string(),
@@ -116,7 +117,7 @@ test("serves the latest update for a runtime, with assets the app can verify", a
     }),
   );
 
-  assert.equal(update.assets[0].key, createHash("md5").update("image").digest("hex"));
+  assert.equal(nth(update.assets, 0).key, createHash("md5").update("image").digest("hex"));
 });
 
 test("has no update for a runtime without one", async (t) => {

@@ -28,10 +28,11 @@ const fromTokensOrParent =
 
 const halvedToCenter = /\/\s*2\b/gu;
 
-const groupsOf = (match: RegExpExecArray) => {
-  assert.ok(match.groups);
+const group = (match: RegExpExecArray, name: string) => {
+  const value = match.groups?.[name];
+  assert.ok(value !== undefined, `${match[0]} has no ${name}`);
 
-  return match.groups;
+  return value;
 };
 
 const raw = (value: string, constants: Map<string, string>, whole: boolean): boolean => {
@@ -55,7 +56,7 @@ const raw = (value: string, constants: Map<string, string>, whole: boolean): boo
 const looksOf = (source: string, pattern: RegExp, whole: boolean) =>
   [...source.matchAll(pattern)].map((match) => ({
     found: match[0],
-    value: groupsOf(match).value,
+    value: group(match, "value"),
     whole,
   }));
 
@@ -68,7 +69,7 @@ const rawLooks = (file: string) => {
 
   const constants = new Map(
     [...source.matchAll(/^(?:export )?const (?<name>[A-Z][A-Z\d_]+) = (?<value>[^;\n]+);/gmu)].map(
-      (match): [string, string] => [groupsOf(match).name, groupsOf(match).value],
+      (match): [string, string] => [group(match, "name"), group(match, "value")],
     ),
   );
 
@@ -82,7 +83,7 @@ const rawLooks = (file: string) => {
       false,
     ),
     ...[...source.matchAll(/\bpadding\(\{(?<inside>[^}]*)\}/gu)].flatMap((match) =>
-      looksOf(groupsOf(match).inside, /\b\w+: (?<value>[^,}\n]+)/gu, false).map((look) => ({
+      looksOf(group(match, "inside"), /\b\w+: (?<value>[^,}\n]+)/gu, false).map((look) => ({
         ...look,
         found: `padding(${look.found})`,
       })),

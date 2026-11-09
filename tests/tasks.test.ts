@@ -18,6 +18,7 @@ import {
   TaskRow,
 } from "../src/live/tasks";
 import type { AgentTrail, Task, TaskStep } from "../src/live/tasks";
+import { nth } from "./nth";
 
 const now = new Date(2026, 9, 13, 10, 0);
 
@@ -63,14 +64,14 @@ test("a step without an end lasts until the next began, and a reply says when it
   assert.deepEqual(stepTimes(steps, now), ["", "8s", "3 min", "22s"]);
   assert.deepEqual(stepTimes([], now), []);
   const instant = { at: second(59), end: second(59), kind: "read", text: "Read it" } as const;
-  assert.deepEqual(stepTimes([steps[0], { ...steps[0], end: undefined }, instant], now), [
+  assert.deepEqual(stepTimes([nth(steps, 0), { ...nth(steps, 0), end: undefined }, instant], now), [
     "",
     "",
     "1s",
   ]);
   const said = stepTimes([stepAt(59, 30, "run"), stepAt(20, 0, "say")], now);
   assert.equal(said[0], "");
-  assert.match(said[1], /^9:20\sAM$/u);
+  assert.match(nth(said, 1), /^9:20\sAM$/u);
 });
 
 test("a lane shows the last week on a log scale, now at the right edge", () => {
@@ -155,7 +156,7 @@ test("a step takes as long as its result took to come back, and only a running s
   assert.deepEqual(stepTimes(steps, now), ["10s", "8s", "3 min", "1 min", "5 min"]);
   assert.deepEqual(steps.map(stepMark), ["working", undefined, "failed", undefined, undefined]);
   assert.equal(stepTimes(steps, new Date(2026, 9, 13, 10, 3))[0], "3 min");
-  assert.equal(stepMark(steps[4]), undefined);
+  assert.equal(stepMark(nth(steps, 4)), undefined);
 });
 
 test("agents at work come first, newest started first, then the finished, and earlier tries apart", () => {
@@ -176,6 +177,10 @@ test("agents at work come first, newest started first, then the finished, and ea
 
 test("an agent says who it is and how long it has worked or took, or that it stopped", () => {
   const [review, recipes, stores, prices] = agentsInOrder(agents).shown;
+  assert.ok(review);
+  assert.ok(recipes);
+  assert.ok(stores);
+  assert.ok(prices);
   assert.equal(agentMeta(review, now), "Sol · 10 min");
   assert.equal(agentMeta(recipes, now), "Opus 5.5 · 38 min");
   assert.equal(agentMeta(stores, now), "Opus 5.5 · 7 min");

@@ -19,6 +19,22 @@ const WHOLE_BOLD = /^(?<bold>\*\*|__)(?<title>[^:*_]{1,40}:)(?<rest>.*?)\k<bold>
 const PIN = /^📌\s*/u;
 const URL = /https?:\/\/[^\s)]+[^\s).,;:!?'"]/u;
 
+const FENCE = /^\s*```/u;
+
+const codeUpToFence = (lines: Iterator<string>) => {
+  const code: string[] = [];
+
+  for (
+    let line = lines.next();
+    line.done !== true && !FENCE.test(line.value);
+    line = lines.next()
+  ) {
+    code.push(line.value);
+  }
+
+  return code.join("\n");
+};
+
 const HEADING_EMOJI = /^(?:\p{Extended_Pictographic}\uFE0F?\s*)+/u;
 
 const TITLES =
@@ -34,19 +50,11 @@ const EMOJI_MARKS: [RegExp, PinMark][] = [
 export const pinSections = (text: string): PinSection[] => {
   const sections: PinSection[] = [];
   let current: PinSection = { title: "", mark: "idle", folded: false, lines: [] };
-  const lines = text.split("\n");
+  const lines = text.split("\n").values();
 
-  for (let i = 0; i < lines.length; i += 1) {
-    const raw = lines[i];
-
-    if (/^\s*```/u.test(raw)) {
-      const code: string[] = [];
-
-      for (i += 1; i < lines.length && !/^\s*```/u.test(lines[i]); i += 1) {
-        code.push(lines[i]);
-      }
-
-      current.lines.push({ kind: "code", text: code.join("\n") });
+  for (const raw of lines) {
+    if (FENCE.test(raw)) {
+      current.lines.push({ kind: "code", text: codeUpToFence(lines) });
       continue;
     }
 
@@ -56,8 +64,10 @@ export const pinSections = (text: string): PinSection[] => {
       continue;
     }
 
-    const inline = TITLES.exec(line.replace(WHOLE_BOLD, "$<bold>$<title>$<bold>$<rest>"))?.groups;
-    const heading = inline ? plain(inline.title) : headingOf(line);
+    const { title, rest } =
+      TITLES.exec(line.replace(WHOLE_BOLD, "$<bold>$<title>$<bold>$<rest>"))?.groups ?? {};
+
+    const heading = title === undefined ? headingOf(line) : plain(title);
 
     if (heading !== undefined && heading !== "") {
       if (current.title || current.lines.length) {
@@ -69,7 +79,7 @@ export const pinSections = (text: string): PinSection[] => {
         title: heading,
         mark,
         folded: mark === "done",
-        lines: inline ? [item(inline.rest, mark)] : [],
+        lines: rest === undefined ? [] : [item(rest, mark)],
       };
       continue;
     }
@@ -89,10 +99,10 @@ export const pinSections = (text: string): PinSection[] => {
 };
 
 const headingOf = (line: string): string | undefined => {
-  const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups;
+  const bold = /^\*\*(?<title>[^*]+)\*\*:?$/u.exec(line)?.groups?.title;
 
-  if (bold) {
-    return bold.title.replace(HEADING_EMOJI, "").replace(/:$/u, "").trim();
+  if (bold !== undefined) {
+    return bold.replace(HEADING_EMOJI, "").replace(/:$/u, "").trim();
   }
 
   const bare = plain(line);

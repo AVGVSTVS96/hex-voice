@@ -18,6 +18,7 @@ import { screenLayout } from "../src/screens/layout";
 import type { Page } from "../src/screens/layout";
 import { roomOf as windowRoom } from "../src/screens/window";
 import type { Insets, Size } from "../src/screens/window";
+import { nth } from "./nth";
 
 const duoOf = (window: Size, insets: Insets, pose: Pose) => {
   const { duo } = screenLayout(windowRoom(pose, window, insets));
@@ -94,14 +95,14 @@ const box = (level: Level, stack: Stack, room: PagedRoom) => {
 const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-const stacks: [string, Stack][] = [
+const stacks = [
   ["the list", go()],
   ["a topic", go({ to: "topic", id: A })],
   ["a thread", go({ to: "topic", id: A }, { to: "thread" })],
   ["its steps", go({ to: "topic", id: A }, { to: "thread" }, { to: "steps", id: A })],
   ["the last check", go({ to: "check" })],
   ["hex’s picks", go({ to: "picks" })],
-];
+] as const satisfies readonly (readonly [string, Stack])[];
 
 test("the Duo shows two pages where Tasks is wide enough, held wide open; on its side and folded one at a time", () => {
   assert.equal(shapeOf(roomOf(openUpright)), "panes");
@@ -196,10 +197,12 @@ test("on the Duo pages cross only while one fades, and never across the fold, so
 
     for (const walk of walks) {
       for (const [i, from] of walk.slice(0, -1).entries()) {
+        const to = nth(walk, i + 1);
+
         for (const [a, b] of [
-          [from, walk[i + 1]],
-          [walk[i + 1], from],
-        ]) {
+          [from, to],
+          [to, from],
+        ] as const) {
           for (const t of [0, 0.25, 0.5, 0.75, 1]) {
             const frames = seen(a, b, t);
 

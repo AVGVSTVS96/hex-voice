@@ -242,7 +242,8 @@ export const stepTimes = (steps: TaskStep[], now = new Date()) =>
       return took(now.getTime() - at);
     }
 
-    const until = i === 0 ? at : Date.parse(steps[i - 1].at);
+    const before = steps[i - 1];
+    const until = before ? Date.parse(before.at) : at;
 
     return until - at < 500 ? "" : took(until - at);
   });
@@ -313,7 +314,7 @@ export const agentWords = (agents: TaskAgent[], working: boolean): string | unde
     return undefined;
   }
 
-  const names = named.map((agent) => agent.label.split(":")[0].trim());
+  const names = named.map((agent) => agent.label.replace(/:.*/su, "").trim());
   const count = `${named.length} agent${named.length === 1 ? "" : "s"}`;
 
   return `${count}${working ? " working" : ""} · ${names.join(", ")}`;

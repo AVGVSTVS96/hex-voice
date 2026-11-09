@@ -16,6 +16,7 @@ import {
   timeline,
 } from "../src/live/calls";
 import { Chat, STATE_WORDS, TaskCounts, TaskList, TaskOrPage, stepMark } from "../src/live/tasks";
+import { nth } from "./nth";
 
 const Answer = z.record(z.string(), z.json());
 
@@ -80,6 +81,8 @@ test("a value hex adds later reads as the nearest one this app knows, and no lis
     tasks: [{ ...firstTask, state: "paused" }],
   }).tasks;
 
+  assert.ok(row);
+
   assert.equal(STATE_WORDS[row.state], "idle");
 
   const task = TaskOrPage.parse({
@@ -90,8 +93,8 @@ test("a value hex adds later reads as the nearest one this app knows, and no lis
   });
 
   assert.ok(task.kind === "task");
-  assert.equal(task.steps[0].kind, "tool");
-  assert.equal(stepMark(task.steps[0]), undefined);
+  assert.equal(nth(task.steps, 0).kind, "tool");
+  assert.equal(stepMark(nth(task.steps, 0)), undefined);
 });
 
 test("a thread off the board reads as a page to read, and a task with a broken field never passes for one", () => {

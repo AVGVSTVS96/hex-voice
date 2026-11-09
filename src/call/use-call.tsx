@@ -92,13 +92,14 @@ export const CallProvider = ({ demo, children }: { demo: boolean; children: Reac
 
   const retry = (entry: string) => {
     const again = retrying(sent, entry);
+    const [first] = again;
 
-    if (!again.length) {
+    if (!first) {
       return;
     }
 
     setSent((now) => now.map((one) => again.find((redo) => redo.entry.id === one.entry.id) ?? one));
-    void go(again[0].call, again);
+    void go(first.call, again);
   };
 
   const sending = { sent, send, retry };

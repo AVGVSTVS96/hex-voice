@@ -54,6 +54,10 @@ export const SelectionCarousel = ({
   if (!enabled) {
     const selected = options.find((option) => option.id === value) ?? options[0];
 
+    if (!selected) {
+      return null;
+    }
+
     return (
       <SelectionPage
         option={{ ...selected, description: disabledHint ?? selected.description }}

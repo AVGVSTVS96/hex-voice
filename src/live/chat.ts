@@ -32,12 +32,11 @@ const EVENT = /^\((?<label>[^()\n]+)\)\s*(?<text>[\s\S]*)$/u;
 
 export const said = (turn: ChatTurn): Said => {
   const event = turn.from === "me" ? EVENT.exec(turn.text)?.groups : undefined;
+  const { label, text = "" } = event ?? {};
 
-  if (!event) {
+  if (label === undefined) {
     return { kind: turn.from, text: turn.text };
   }
-
-  const { label, text } = event;
 
   if (label === "voice message") {
     return { kind: "me", text };
@@ -47,5 +46,5 @@ export const said = (turn: ChatTurn): Said => {
     return { kind: "event", label: "Asked Siri", text };
   }
 
-  return { kind: "event", label: label[0].toUpperCase() + label.slice(1), text };
+  return { kind: "event", label: label.slice(0, 1).toUpperCase() + label.slice(1), text };
 };

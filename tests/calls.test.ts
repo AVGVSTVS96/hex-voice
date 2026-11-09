@@ -16,6 +16,7 @@ import {
   CallSummary,
 } from "../src/live/calls";
 import { MediaId } from "../src/live/media";
+import { nth } from "./nth";
 
 test("a phone call’s turns read as the live transcript, each keeping its place as it grows", () => {
   const turns = [
@@ -24,7 +25,11 @@ test("a phone call’s turns read as the live transcript, each keeping its place
   ];
 
   const before = liveEntries({ turns });
-  const after = liveEntries({ turns: [{ ...turns[0], text: "is the build green?" }, turns[1]] });
+
+  const after = liveEntries({
+    turns: [{ ...nth(turns, 0), text: "is the build green?" }, nth(turns, 1)],
+  });
+
   assert.deepEqual(before, [
     { id: "you 1000", role: "user", text: "is the build", startMs: 1000 },
     { id: "voice 2500", role: "assistant", text: "One sec.", startMs: 2500 },

@@ -57,7 +57,7 @@ export const Markdown = ({
           });
         }}
       />
-      {failed ? <Failure text={failed} /> : null}
+      {failed === undefined ? null : <Failure text={failed} />}
     </Column>
   );
 };

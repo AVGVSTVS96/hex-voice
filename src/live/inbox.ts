@@ -103,17 +103,13 @@ const DAY = 24 * 60 * 60_000;
 const LINKS = /https?:\/\/[^\s)]*[^\s).,;:!?'"]|telegram:-100\d+:\d+/gu;
 
 export const linkName = (url: string) => {
-  const github =
+  const { repo, kind, ref } =
     /^https?:\/\/github\.com\/[^/]+\/(?<repo>[^/#?]+)(?:\/(?<kind>pull|commit)\/(?<ref>\w+))?/u.exec(
       url,
-    )?.groups;
+    )?.groups ?? {};
 
-  if (github?.kind !== undefined) {
-    return `${github.repo} ${github.kind === "pull" ? "#" : ""}${github.ref.slice(0, 7)}`;
-  }
-
-  if (github) {
-    return github.repo;
+  if (repo !== undefined) {
+    return ref === undefined ? repo : `${repo} ${kind === "pull" ? "#" : ""}${ref.slice(0, 7)}`;
   }
 
   const message = /^https:\/\/t\.me\/c\/\d+\/(?<number>\d+)$/u.exec(url)?.groups;
@@ -390,13 +386,13 @@ export const headlineOf = (entry: Entry) => {
 };
 
 export const problemOf = (line: string): string | undefined => {
-  const error = /^API Error:\s*(?<message>.*)$/su.exec(line.trim())?.groups;
+  const message = /^API Error:\s*(?<message>.*)$/su.exec(line.trim())?.groups?.message;
 
-  if (!error) {
+  if (message === undefined) {
     return undefined;
   }
 
-  return /limit/iu.test(error.message)
+  return /limit/iu.test(message)
     ? "Stopped: the server was limiting requests"
     : "Stopped on an API error";
 };

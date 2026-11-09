@@ -214,7 +214,10 @@ const main = async () => {
       console.log(`serving ${dir} on :${port}`);
     });
   } else if (command === "publish") {
-    const [dist, platform, runtimeVersion, configPath] = args;
+    const [dist, platform, runtimeVersion, configPath] = z
+      .tuple([z.string(), z.string(), z.string(), z.string()])
+      .parse(args);
+
     const expoConfig: unknown = JSON.parse(await readFile(configPath, "utf-8"));
 
     if (!isExpoConfig(expoConfig)) {

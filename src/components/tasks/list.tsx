@@ -263,7 +263,7 @@ export const ListPage = ({
             if (!searching) {
               return [
                 <ProjectRow
-                  key={stage === "done" ? topic.entries[0].id : topic.name}
+                  key={(stage === "done" ? topic.entries[0]?.id : undefined) ?? topic.name}
                   topic={topic}
                   selected={
                     stage === "done" ? pageOf(topic) === pages.task : topic.name === openTopic

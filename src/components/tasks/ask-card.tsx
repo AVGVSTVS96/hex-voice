@@ -261,7 +261,7 @@ const AskCard = ({
           {links.length > 0 ? <Links links={links} /> : null}
         </VStack>
       ) : null}
-      {noted && !notes.failed.note ? (
+      {noted && notes.failed.note === undefined ? (
         <Text variant="caption" tone="secondary" paragraph>
           {`Sent to ${ask.topic} as a note. The question is still open.`}
         </Text>
@@ -296,17 +296,18 @@ export const Shots = ({ ask }: { ask: Ask }) => {
     (option): option is AskOption & { shot: number } => option.shot !== undefined,
   );
 
-  if (!shown.length) {
+  const shots = shown.map((option) => shotOf(ask, option.shot));
+  const [lead] = shots;
+
+  if (!lead) {
     return null;
   }
-
-  const shots = shown.map((option) => shotOf(ask, option.shot));
 
   return (
     <ShotsView
       uris={shots.map((shot) => shot.uri)}
       shapes={shown.map((option) => option.shape ?? 1)}
-      headers={shots[0].headers}
+      headers={lead.headers}
       labels={shown.map((option) => option.label)}
       height={metrics.shot}
       gap={space[2]}

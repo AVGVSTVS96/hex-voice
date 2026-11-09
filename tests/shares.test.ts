@@ -6,6 +6,7 @@ import { MediaId } from "../src/live/media";
 import type { Picked } from "../src/live/media";
 import { batchOf, deliver, retrying, settle } from "../src/live/shares";
 import type { ShareAPI } from "../src/live/shares";
+import { nth } from "./nth";
 
 const call = CallId.parse("live_1");
 const photo: Picked = { uri: "file:///router.jpg", kind: "photo", type: "image/jpeg" };
@@ -77,7 +78,7 @@ test("when one item doesn’t go up, the batch never reaches the call, and tryin
     ],
   );
 
-  const again = retrying(sent, sent[0].entry.id);
+  const again = retrying(sent, nth(sent, 0).entry.id);
   assert.deepEqual(
     again.map(({ entry }) => [entry.sending, entry.failed]),
     [
@@ -112,9 +113,9 @@ test("trying again takes only what didn’t go, from that batch alone", () => {
   }));
 
   const all = [...done, ...lost];
-  assert.deepEqual(retrying(all, done[0].entry.id), []);
+  assert.deepEqual(retrying(all, nth(done, 0).entry.id), []);
   assert.deepEqual(
-    retrying(all, lost[1].entry.id).map(({ entry }) => entry.id),
+    retrying(all, nth(lost, 1).entry.id).map(({ entry }) => entry.id),
     lost.map(({ entry }) => entry.id),
   );
 });

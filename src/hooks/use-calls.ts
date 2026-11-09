@@ -79,9 +79,11 @@ export const useCalls = () => {
       ...(listed ?? []).filter(({ id }) => !justEnded.some((call) => call.id === id)),
     ];
 
-    return calls.map((call) =>
-      tries.failed[call.id] ? { ...call, failed: tries.failed[call.id] } : call,
-    );
+    return calls.map((call) => {
+      const why = tries.failed[call.id];
+
+      return why === undefined ? call : { ...call, failed: why };
+    });
   }, [listed, justEnded, tries.failed]);
 
   return { calls: shown, live, offline: watching === "offline", add, remove };

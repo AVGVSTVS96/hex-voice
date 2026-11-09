@@ -36,7 +36,11 @@ const readWithoutStartingACheck = async (route: string) => {
 
 const text = (value: Json | undefined) => String(Scalar.parse(value));
 
-const firstOfEachKindThenUpTo = (items: Json, kind: (item: Item) => string, most: number) => {
+const firstOfEachKindThenUpTo = (
+  items: Json | undefined,
+  kind: (item: Item) => string,
+  most: number,
+) => {
   const list = Items.parse(items);
   const firsts = list.filter((item, i) => list.findIndex((one) => kind(one) === kind(item)) === i);
 

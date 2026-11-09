@@ -197,14 +197,19 @@ export const failedOn = (
   failed: Record<string, string>,
   missed: Record<string, number> = {},
 ): AskList => {
-  const on = <T extends { id: string }>(item: T) =>
-    failed[item.id] ? { ...item, failed: failed[item.id] } : item;
+  const on = <T extends { id: string }>(item: T) => {
+    const why = failed[item.id];
+
+    return why === undefined ? item : { ...item, failed: why };
+  };
 
   return {
     ...list,
-    asks: list.asks.map((ask) =>
-      missed[ask.id] ? { ...on(ask), missed: missed[ask.id] } : on(ask),
-    ),
+    asks: list.asks.map((ask) => {
+      const times = missed[ask.id];
+
+      return times === undefined ? on(ask) : { ...on(ask), missed: times };
+    }),
     stuck: list.stuck.map(on),
     fresh: list.fresh.map(on),
   };

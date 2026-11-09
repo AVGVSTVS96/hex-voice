@@ -29,6 +29,7 @@ import {
 } from "../src/live/inbox";
 import type { Entry } from "../src/live/inbox";
 import { Finished, TaskRow } from "../src/live/tasks";
+import { nth } from "./nth";
 
 const now = new Date(2026, 9, 13, 10, 0);
 
@@ -154,7 +155,7 @@ test("your asks lead in hex’s order, then threads that need you without an ask
     entries.map((entry) => entry.kind),
     ["ask", "ask", "task", "stuck", "stuck", "task"],
   );
-  assert.equal(entries[2].at, at(6, 15));
+  assert.equal(nth(entries, 2).at, at(6, 15));
 });
 
 test("a thread that waits on your ask is in Needs you by its ask alone, never left quiet; one still working stays in Working", () => {
@@ -406,6 +407,8 @@ test("a search result says why it was found when its row doesn’t show it", () 
     ],
   });
 
+  assert.ok(entry);
+
   assert.equal(whyOf(entry, "twilio"), undefined);
   assert.equal(whyOf(entry, "calls"), undefined);
   assert.deepEqual(whyOf(entry, "twilio Voice"), [
@@ -558,7 +561,7 @@ test("an entry’s headline is what it asks or says", () => {
 });
 
 test("a project opens on its leading thread, or on a page of its own when it has none", () => {
-  const [entry] = stream({ tasks: [row("voiceapp", "needs", at(3))] });
+  const entry = nth(stream({ tasks: [row("voiceapp", "needs", at(3))] }), 0);
   assert.ok(entry?.kind === "task");
   const topic = { name: "voiceapp", entries: [entry], marks: [] };
   assert.equal(pageOf(topic), entry.task.id);
@@ -621,8 +624,8 @@ test("each task hex finished in the last day is in Done, while its project works
     ],
   );
   assert.deepEqual(stageCounts(entries), { needs: 1, working: 1, done: 4, quiet: 1 });
-  assert.equal(pageOf(topicsOf(tab, entries)[1]), "telegram:voiceapp");
-  assert.equal(headlineOf(tab[0]), "t-3 title");
+  assert.equal(pageOf(nth(topicsOf(tab, entries), 1)), "telegram:voiceapp");
+  assert.equal(headlineOf(nth(tab, 0)), "t-3 title");
   assert.deepEqual(
     stageTopics(entries, "done").map(({ name, entries: inTopic }) => [name, inTopic.length]),
     [
@@ -632,7 +635,7 @@ test("each task hex finished in the last day is in Done, while its project works
       ["seqno", 1],
     ],
   );
-  const [row3] = stageTopics(entries, "done");
+  const row3 = nth(stageTopics(entries, "done"), 0);
   assert.equal(doneIn(pageOf(row3)), "t-3");
   assert.equal(taskIn(pageOf(row3)), null);
 });
@@ -686,8 +689,10 @@ test("a finished task with no thread on the board still opens its own page, and 
     ],
   });
 
+  assert.ok(entry);
+
   assert.equal(taskOf(entry), undefined);
-  assert.equal(pageOf(topicsOf([entry], [entry])[0]), "done:t-5");
+  assert.equal(pageOf(nth(topicsOf([entry], [entry]), 0)), "done:t-5");
   assert.deepEqual(entry.tiles, [
     { kind: "app", place: "telegram", label: "Telegram", link: "https://t.me/c/1/1" },
     { kind: "link", label: "hex #180", url: "https://github.com/AVGVSTVS96/hex/pull/180" },
@@ -732,6 +737,8 @@ test("a proof reads with each link by its name", () => {
   const [entry] = stream({
     finished: [done("t-6", "autofork", at(9), { proof: "https://autofork.com; npm" })],
   });
+
+  assert.ok(entry);
 
   assert.deepEqual(entry.tiles.at(-1), {
     kind: "link",

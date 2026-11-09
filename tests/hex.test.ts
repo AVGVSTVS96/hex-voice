@@ -9,6 +9,7 @@ import { AskId } from "../src/live/asks";
 import { CallId } from "../src/live/calls";
 import { MediaId } from "../src/live/media";
 import { TaskId } from "../src/live/tasks";
+import { nth } from "./nth";
 
 const hexUrl = "https://hex.example:8790";
 
@@ -74,9 +75,9 @@ test("sends the offer and voice to hex and reads OpenAI’s session back", async
   );
 
   assert.deepEqual(await hex.session.create("offer", "cedar"), { sdp: "answer", sessionId: live });
-  assert.equal(seen[0].url, `${hexUrl}/session`);
-  assert.equal(seen[0].init?.method, "POST");
-  assert.deepEqual(sentJson(seen[0].init), {
+  assert.equal(nth(seen, 0).url, `${hexUrl}/session`);
+  assert.equal(nth(seen, 0).init?.method, "POST");
+  assert.deepEqual(sentJson(nth(seen, 0).init), {
     sdp: "offer",
     voice: "cedar",
     from: "app",

@@ -163,7 +163,7 @@ const read = <S extends z.ZodMiniType>(path: string, schema: S, text: string): z
     return parsed.data;
   }
 
-  const where = parsed.error.issues[0]?.path.join(".");
+  const where = parsed.error.issues[0]?.path.join(".") ?? "";
   throw new Error(`hex sent ${path} in a shape this app can’t read${where ? ` (${where})` : ""}.`);
 };
 
@@ -179,7 +179,7 @@ const wordsIn = (text: string) => {
 
 const refusal = (status: number, text: string) => {
   const said = wordsIn(text).slice(0, 300) || `hex answered HTTP ${status}.`;
-  const message = said[0].toUpperCase() + said.slice(1);
+  const message = said.slice(0, 1).toUpperCase() + said.slice(1);
 
   return status < 500 ? new RefusedError(message, status) : new Error(message);
 };
