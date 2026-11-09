@@ -513,6 +513,8 @@ resolve() {
 prepare() {
   resolve "${1:-}"
   [ -d "$verify" ] || git -C "$repo" worktree add -q --detach "$verify" "$commit"
+  git -C "$verify" cat-file -e "$commit^{commit}" 2>/dev/null ||
+    git -C "$verify" fetch -q "$repo" "$(git -C "$repo" rev-parse "$commit")"
   git -C "$verify" checkout -q --force --detach "$commit"
   cp "$release/.env.local" "$verify/.env.local"
   (cd "$verify" && install_modules)
