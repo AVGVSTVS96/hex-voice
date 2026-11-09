@@ -78,8 +78,9 @@ static bool rebind(const struct mach_header_64 *header, intptr_t slide) {
         uint32_t symbol = indirect[section->reserved1 + k];
         if (symbol & (INDIRECT_SYMBOL_ABS | INDIRECT_SYMBOL_LOCAL)) continue;
         if (strcmp(names + symbols[symbol].n_un.n_strx, "_AudioUnitRender")) continue;
-        vm_protect(mach_task_self(), (vm_address_t)&slots[k], sizeof(void *), false,
-                   VM_PROT_READ | VM_PROT_WRITE);
+        if (vm_protect(mach_task_self(), (vm_address_t)&slots[k], sizeof(void *), false,
+                       VM_PROT_READ | VM_PROT_WRITE) != KERN_SUCCESS)
+          continue;
         slots[k] = (void *)tapped_render;
         bound = true;
       }
