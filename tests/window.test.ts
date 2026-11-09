@@ -3,7 +3,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import ts from "typescript";
+import { parseSync, Visitor } from "oxc-parser";
+import type { BindingPattern, BindingRestElement, Span } from "oxc-parser";
 
 import type { Pose } from "../modules/pose";
 import { pagedRoom, shapeOf } from "../src/components/tasks/pages";
@@ -63,86 +64,71 @@ test("a view’s identity never comes from the window’s size or pose", () => {
   );
 });
 
+const parse = (file: string) => {
+  const text = readFileSync(file, "utf-8");
+  const lineOf = (at: number) => text.slice(0, at).split("\n").length;
+
+  return { lineOf, program: parseSync(file, text).program, text };
+};
+
+type Named = Span & { name: string };
+
+const holds = (outer: Span, inner: Span) => outer.start <= inner.start && inner.end <= outer.end;
+
 test("an animated style styles only views that mount with the component making it", () => {
-  const kinds = new Set([
-    ts.SyntaxKind.ConditionalExpression,
-    ts.SyntaxKind.IfStatement,
-    ts.SyntaxKind.ArrowFunction,
-    ts.SyntaxKind.FunctionExpression,
-  ]);
-
-  const gates = new Set([
-    ts.SyntaxKind.AmpersandAmpersandToken,
-    ts.SyntaxKind.BarBarToken,
-    ts.SyntaxKind.QuestionQuestionToken,
-  ]);
-
-  const gated = (node: ts.Node, scope: ts.Node) => {
-    for (let up = node.parent; up !== scope; up = up.parent) {
-      if (kinds.has(up.kind) || (ts.isBinaryExpression(up) && gates.has(up.operatorToken.kind))) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
   const found = files("src")
     .filter((file) => file.endsWith(".tsx"))
     .flatMap((file) => {
-      const source = ts.createSourceFile(
-        file,
-        readFileSync(file, "utf-8"),
-        ts.ScriptTarget.Latest,
-        true,
-      );
+      const { lineOf, program } = parse(file);
+      const scopes: Span[] = [];
+      const gates: Span[] = [];
+      const names: Named[] = [];
+      const styles: Named[] = [];
 
-      const styles: { name: ts.Identifier; scope: ts.Node }[] = [];
-
-      const declared = (node: ts.Node): void => {
-        if (
-          ts.isVariableDeclaration(node) &&
-          ts.isIdentifier(node.name) &&
-          node.initializer &&
-          ts.isCallExpression(node.initializer) &&
-          ts.isIdentifier(node.initializer.expression) &&
-          node.initializer.expression.text === "useAnimatedStyle"
-        ) {
-          let scope: ts.Node = node;
-
-          while (!ts.isFunctionLike(scope)) {
-            scope = scope.parent;
-          }
-
-          styles.push({ name: node.name, scope });
-        }
-
-        ts.forEachChild(node, declared);
+      const scope = (node: Span) => {
+        scopes.push(node);
+        gates.push(node);
       };
 
-      declared(source);
+      const gate = (node: Span) => {
+        gates.push(node);
+      };
 
-      return styles.flatMap(({ name, scope }) => {
-        const uses: string[] = [];
-
-        const visit = (node: ts.Node): void => {
+      new Visitor({
+        ArrowFunctionExpression: scope,
+        ConditionalExpression: gate,
+        FunctionDeclaration: (node) => {
+          scopes.push(node);
+        },
+        FunctionExpression: scope,
+        Identifier: (node) => {
+          names.push(node);
+        },
+        IfStatement: gate,
+        LogicalExpression: gate,
+        VariableDeclarator: ({ id, init }) => {
           if (
-            ts.isIdentifier(node) &&
-            node !== name &&
-            node.text === name.text &&
-            gated(node, scope)
+            id.type === "Identifier" &&
+            init?.type === "CallExpression" &&
+            init.callee.type === "Identifier" &&
+            init.callee.name === "useAnimatedStyle"
           ) {
-            uses.push(
-              `${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1} ${name.text}`,
-            );
+            styles.push(id);
           }
+        },
+      }).visit(program);
 
-          ts.forEachChild(node, visit);
-        };
+      return styles.flatMap((style) => {
+        const home = scopes.findLast((each) => holds(each, style));
 
-        visit(scope);
-
-        return uses;
+        return names.flatMap((name) =>
+          home &&
+          name !== style &&
+          name.name === style.name &&
+          gates.some((each) => each !== home && holds(home, each) && holds(each, name))
+            ? [`${file}:${lineOf(name.start)} ${name.name}`]
+            : [],
+        );
       });
     });
 
@@ -157,34 +143,48 @@ test("Tasks’ rows and pages never take a width from JS", () => {
   const found = files("src/components/tasks")
     .filter((file) => file.endsWith(".tsx") && !file.endsWith("tasks-view.tsx"))
     .flatMap((file) => {
-      const source = ts.createSourceFile(
-        file,
-        readFileSync(file, "utf-8"),
-        ts.ScriptTarget.Latest,
-        true,
-      );
+      const { lineOf, program, text } = parse(file);
+      const say = ({ start, end }: Span) => text.slice(start, end);
+      const widths: Span[] = [];
 
-      const widths: string[] = [];
-
-      const visit = (node: ts.Node): void => {
-        const named =
-          (ts.isJsxAttribute(node) || ts.isBindingElement(node) || ts.isPropertySignature(node)) &&
-          node.name.getText(source) === "width";
-
-        const token =
-          ts.isJsxAttribute(node) &&
-          (node.initializer?.getText(source) ?? "").startsWith("{metrics.");
-
-        if (named && !token) {
-          widths.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+      const named = (name: Span, at: Span = name) => {
+        if (say(name) === "width") {
+          widths.push(at);
         }
-
-        ts.forEachChild(node, visit);
       };
 
-      visit(source);
+      const bound = (target: BindingPattern | BindingRestElement | null) => {
+        if (target?.type === "AssignmentPattern") {
+          named(target.left, target);
+        } else if (target?.type === "RestElement") {
+          named(target.argument, target);
+        } else if (target) {
+          named(target);
+        }
+      };
 
-      return widths;
+      new Visitor({
+        ArrayPattern: ({ elements }) => {
+          for (const each of elements) {
+            bound(each);
+          }
+        },
+        JSXAttribute: (node) => {
+          if (!(node.value && say(node.value).startsWith("{metrics."))) {
+            named(node.name, node);
+          }
+        },
+        ObjectPattern: ({ properties }) => {
+          for (const each of properties) {
+            bound(each.type === "Property" ? each.value : each);
+          }
+        },
+        TSPropertySignature: (node) => {
+          named(node.key, node);
+        },
+      }).visit(program);
+
+      return widths.map(({ start }) => `${file}:${lineOf(start)}`);
     });
 
   assert.deepEqual(found, []);

@@ -61,6 +61,7 @@
     "@rive-app/webgl2": "^2.44.2",
     "@types/node": "^24.19.2",
     "@types/react": "~19.3.0",
+    "oxc-parser": "0.157.0",
     "oxfmt": "0.77.0",
     "oxlint": "1.92.0",
     "oxlint-tsgolint": "7.0.2006",
