@@ -108,16 +108,25 @@ fi
 
 wait_for_no_call
 failed=
+quit=
 for device in "${devices[@]}"; do
   if timeout 5m ssh "$mac" xcrun devicectl device install app --device "$device" \
     "$folder/$signed" >"$home/install-$device.log" 2>&1 </dev/null; then
     echo "$commit" >"$home/installed/$device"
     [ "$device" != "$DUO_UDID" ] || mkdir -p "$updates/ios/$runtime"
     echo "installed $title on $device"
-    ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
-      "$bundle" >/dev/null 2>&1 || echo "couldn't open it on $device"
+    if ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
+      "$bundle" >/dev/null 2>&1 </dev/null; then
+      sleep 10
+      ssh "$mac" xcrun devicectl device info processes --device "$device" </dev/null 2>/dev/null |
+        grep -q '/hex\.app/hex$' || quit+=" $device"
+    else
+      echo "couldn't open it on $device"
+    fi
   else
     failed+=" $device"
   fi
 done
 [ -z "$failed" ] || die "couldn't install on$failed, see $home/install-<udid>.log"
+[ -z "$quit" ] ||
+  die "$title quit within 10 seconds of opening on$quit: its Library/Application Support/expo-error.log says why"
