@@ -17,6 +17,7 @@ import { checkLine } from "@/live/asks";
 import type { CheckSummary } from "@/live/asks";
 import type { Topic } from "@/live/inbox";
 import { theme } from "@/theme";
+import { Prose } from "@/ui/prose";
 import { Text } from "@/ui/text";
 import { metrics, radius, space } from "@/ui/tokens";
 
@@ -101,13 +102,11 @@ const Strip = ({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
-      <Text numberOfLines={2} variant="body">
-        {title}
-      </Text>
+      <Prose lines={2}>{[{ text: title }]}</Prose>
       {detail === undefined || detail === "" ? null : (
-        <Text numberOfLines={2} variant="detail" tone="secondary">
-          {detail}
-        </Text>
+        <Prose lines={2} variant="detail" tone="secondary">
+          {[{ text: detail }]}
+        </Prose>
       )}
     </Column>
     {action === undefined || action === "" ? (

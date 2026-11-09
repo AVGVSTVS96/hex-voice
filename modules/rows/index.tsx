@@ -16,6 +16,16 @@ export type LaneProps = CommonViewModifierProps & {
   failure: ColorValue;
 };
 
+export type ProseProps = CommonViewModifierProps & {
+  runs: { text: string; strong: boolean }[];
+  style: "body" | "subheadline" | "footnote";
+  size: number;
+  medium: boolean;
+  color: ColorValue;
+  lineSpacing: number;
+  lines: number;
+};
+
 const view = <Props extends CommonViewModifierProps>(name: string): ComponentType<Props> => {
   const Native = process.env.EXPO_OS === "ios" ? requireNativeView<Props>("Rows", name) : null;
 
@@ -38,3 +48,4 @@ const view = <Props extends CommonViewModifierProps>(name: string): ComponentTyp
 export const Fits = view<FitsProps>("FitsView");
 export const EvenRow = view<EvenRowProps>("EvenRowView");
 export const Lane = view<LaneProps>("LaneView");
+export const ProseText = view<ProseProps>("ProseView");

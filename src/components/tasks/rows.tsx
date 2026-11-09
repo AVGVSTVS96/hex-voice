@@ -1,12 +1,11 @@
 import { Column, Row, Spacer } from "@expo/ui";
-import { Button, HStack, SwipeActions, Text as NativeText } from "@expo/ui/swift-ui";
+import { Button, HStack, SwipeActions } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   background,
   clipShape,
   frame,
   layoutPriority,
-  lineLimit,
   monospacedDigit,
   padding,
   tint,
@@ -24,7 +23,8 @@ import type { Entry, Part, Stage, Tile, Topic, PageId } from "@/live/inbox";
 import { STATE_WORDS, atWork, clock, taskTime } from "@/live/tasks";
 import type { TaskRow } from "@/live/tasks";
 import { theme } from "@/theme";
-import { Text, textLook } from "@/ui/text";
+import { Prose } from "@/ui/prose";
+import { Text } from "@/ui/text";
 import { metrics, space } from "@/ui/tokens";
 
 import { Fits } from "../../../modules/rows";
@@ -354,14 +354,9 @@ const Shell = ({
         spacing={space[3]}
         modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
-        <Text
-          numberOfLines={2}
-          variant="body"
-          paragraph
-          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-        >
-          {line}
-        </Text>
+        <Prose lines={2} modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}>
+          {[{ text: line }]}
+        </Prose>
         <Row alignment="center" spacing={metrics.list.meta}>
           {meta === undefined ? null : <Meta text={meta} />}
           <Meta text={time} />
@@ -395,9 +390,9 @@ const Meta = ({ text }: { text: string }) => (
 );
 
 const Why = ({ text }: { text: string }) => (
-  <Text numberOfLines={2} variant="detail" tone="secondary" paragraph>
-    {text}
-  </Text>
+  <Prose lines={2} variant="detail" tone="secondary">
+    {[{ text }]}
+  </Prose>
 );
 
 const Action = ({ label, onPress }: { label: string; onPress?: (() => void) | undefined }) => (
@@ -424,12 +419,10 @@ const Folded = ({
       spacing={space[1]}
       modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
-      <Text numberOfLines={2} variant="detail" tone="secondary">
-        {ask.question}
-      </Text>
-      <Text numberOfLines={2} variant="body">
-        {`${label} → ${ask.topic}`}
-      </Text>
+      <Prose lines={2} variant="detail" tone="secondary">
+        {[{ text: ask.question }]}
+      </Prose>
+      <Prose lines={2}>{[{ text: `${label} → ${ask.topic}` }]}</Prose>
       {ask.missed === undefined ? null : <Unreached missed={ask.missed} onAgain={onAgain} />}
       <Failure text={ask.failed} />
     </Column>
@@ -506,15 +499,14 @@ export const ProjectRow = ({
           <Meta text={clock(new Date(newest.at))} />
         </HStack>
         {headline === topic.name ? null : (
-          <Text
-            numberOfLines={2}
+          <Prose
+            lines={2}
             variant="detail"
             tone={problem === undefined ? "secondary" : "danger"}
-            paragraph
             modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
           >
-            {headline}
-          </Text>
+            {[{ text: headline }]}
+          </Prose>
         )}
       </Column>
     </Row>
@@ -562,21 +554,8 @@ const Count = ({ count, needs }: { count: number; needs: boolean }) => (
   </Text>
 );
 
-const newTextForNewPieces = (parts: Part[]) => parts.map((part) => part.text).join("\u0000");
-
 const Found = ({ parts }: { parts: Part[] }) => (
-  <NativeText
-    key={newTextForNewPieces(parts)}
-    modifiers={[...textLook({ variant: "detail", tone: "secondary" }), lineLimit(2)]}
-  >
-    {parts.map((part, at) =>
-      part.hit ? (
-        <NativeText key={at} modifiers={textLook({ variant: "detail", weight: "medium" })}>
-          {part.text}
-        </NativeText>
-      ) : (
-        part.text
-      ),
-    )}
-  </NativeText>
+  <Prose lines={2} variant="detail" tone="secondary">
+    {parts.map((part) => ({ text: part.text, strong: part.hit }))}
+  </Prose>
 );

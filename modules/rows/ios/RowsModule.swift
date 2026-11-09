@@ -7,5 +7,6 @@ public final class RowsModule: Module {
     ExpoUIView(FitsView.self)
     ExpoUIView(EvenRowView.self)
     ExpoUIView(LaneView.self)
+    ExpoUIView(ProseView.self)
   }
 }
