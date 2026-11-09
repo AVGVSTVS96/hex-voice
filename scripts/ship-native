@@ -109,6 +109,7 @@ fi
 wait_for_no_call
 failed=
 quit=
+unopened=
 for device in "${devices[@]}"; do
   if timeout 5m ssh "$mac" xcrun devicectl device install app --device "$device" \
     "$folder/$signed" >"$home/install-$device.log" 2>&1 </dev/null; then
@@ -121,7 +122,7 @@ for device in "${devices[@]}"; do
       ssh "$mac" xcrun devicectl device info processes --device "$device" </dev/null 2>/dev/null |
         grep -q '/hex\.app/hex$' || quit+=" $device"
     else
-      echo "couldn't open it on $device"
+      unopened+=" $device"
     fi
   else
     failed+=" $device"
@@ -130,3 +131,5 @@ done
 [ -z "$failed" ] || die "couldn't install on$failed, see $home/install-<udid>.log"
 [ -z "$quit" ] ||
   die "$title quit within 10 seconds of opening on$quit: its Library/Application Support/expo-error.log says why"
+[ -z "$unopened" ] ||
+  die "$title is installed but unchecked on$unopened: it couldn't be opened there (locked?), so nothing saw it start"
