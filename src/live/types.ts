@@ -59,16 +59,7 @@ const LiveEvent = z.discriminatedUnion("type", [
 
 export type LiveEvent = z.infer<typeof LiveEvent>;
 
-const Message = z.object({ data: z.string() });
-
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- this is the parser for the data channel's untyped messages
-export const parseEvent = (message: unknown): LiveEvent | undefined => {
-  const text = Message.safeParse(message).data?.data;
-
-  if (text === undefined) {
-    return undefined;
-  }
-
+export const parseEvent = (text: string): LiveEvent | undefined => {
   try {
     return LiveEvent.safeParse(JSON.parse(text)).data;
   } catch {

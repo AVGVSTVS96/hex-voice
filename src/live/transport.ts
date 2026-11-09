@@ -25,6 +25,8 @@ const Reports = z.map(z.unknown(), Report);
 
 const Description = z.object({ sdp: z.string(), type: z.nullable(z.string()) });
 
+const Text = z.string();
+
 export const createTransport: TransportFactory = async ({ onEvent, onFailure }) => {
   const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
   let peer: RTCPeerConnection | undefined;
@@ -55,21 +57,20 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   let closed = false;
   let disconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const energies = new Map<string, { energy: number; duration: number }>();
-  // oxlint-disable-next-line unicorn/prefer-add-event-listener, anti-slop/no-unknown-parameters -- react-native-webrtc's typings leave out its event-target-shim, so addEventListener and the message's type don't exist to TypeScript; parseEvent parses it
-  channel.onmessage = (message: unknown) => {
-    const event = closed ? undefined : parseEvent(message);
+  channel.addEventListener("message", ({ data }) => {
+    const text = Text.safeParse(data).data;
+    const event = closed || text === undefined ? undefined : parseEvent(text);
 
     if (event) {
       onEvent(event);
     }
-  };
+  });
 
-  // oxlint-disable-next-line unicorn/prefer-add-event-listener -- react-native-webrtc's typings leave out its event-target-shim, so addEventListener doesn't exist to TypeScript
-  channel.onclose = () => {
+  channel.addEventListener("close", () => {
     if (!closed) {
       onFailure("The voice connection closed. Start a new conversation to reconnect.");
     }
-  };
+  });
 
   pc.onconnectionstatechange = () => {
     clearTimeout(disconnectTimer);
