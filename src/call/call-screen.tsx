@@ -968,15 +968,18 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           toolbar={screenToolbar}
         />
       )}
-      {update && !onCall && update.version !== notNow && (
-        <UpdateToast
-          build={update}
-          top={insets.top}
-          onDismiss={() => {
-            setNotNow(update.version);
-          }}
-        />
-      )}
+      {update &&
+        !onCall &&
+        !(tasksOpen || callsOpen || settingsOpen) &&
+        update.version !== notNow && (
+          <UpdateToast
+            build={update}
+            top={insets.top}
+            onDismiss={() => {
+              setNotNow(update.version);
+            }}
+          />
+        )}
     </ToolbarBackProvider>
   );
 };
