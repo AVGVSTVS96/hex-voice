@@ -133,13 +133,13 @@ export const ListPage = ({
   const picks = picksOf(entries, yours.answered);
   const searching = query !== null;
   const needsTab = !searching && stage === "needs";
-  const first = firstPage(searching, shown, topics, tasks);
-  useEffect(() => {
-    if (open && (pages.task ?? "") === "" && first !== undefined && first !== "") {
-      pages.go({ to: "beside", id: first });
-    }
-  }, [open, pages.task, first]);
   const { beside, apart, selected, openTopic } = besideOf(pages, shown, entries);
+  const unopened = unopenedOf(pages, firstPage(searching, shown, topics, tasks));
+  useEffect(() => {
+    if (open && unopened !== null) {
+      pages.go({ to: "topic", id: unopened });
+    }
+  }, [open, unopened]);
 
   const searchField = useField();
 
@@ -155,7 +155,7 @@ export const ListPage = ({
     const lead = stageTopics(entries, next).at(0);
 
     if (beside) {
-      pages.go({ to: "beside", id: lead ? homeOf(pageOf(lead), tasks) : null });
+      pages.go({ to: "topic", id: lead ? homeOf(pageOf(lead), tasks) : null });
     }
   };
 
@@ -364,6 +364,9 @@ const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
     openTopic: entries.find((entry) => taskOf(entry) === pages.task)?.topic ?? topicIn(pages.task),
   };
 };
+
+const unopenedOf = ({ shape, path, task }: Pages, first: PageId | undefined) =>
+  shape === "one" || path.length > 0 ? null : (task ?? first ?? null);
 
 const firstPage = (
   searching: boolean,

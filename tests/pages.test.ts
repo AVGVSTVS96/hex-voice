@@ -119,6 +119,13 @@ test("open, the Duo shows the deepest two levels, each step down sliding both al
   assert.deepEqual(onScreen(stacks[3][1], room), ["thread", "steps"]);
 });
 
+test("the topic shown beside the list is opened, so folding keeps it in front", () => {
+  const shown = go({ to: "topic", id: A });
+  assert.deepEqual(onScreen(shown, roomOf(openUpright)), ["list", "topic"]);
+  assert.deepEqual(onScreen(shown, roomOf(folded)), ["topic"]);
+  assert.deepEqual(onScreen(move(shown, { to: "topic", id: null }), roomOf(folded)), ["list"]);
+});
+
 test("back goes a level up, and from the list backLeavesTasks for the call", () => {
   const cases: [Shape, Stack, Level[] | "call"][] = [
     ["one", go(), "call"],

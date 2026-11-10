@@ -28,8 +28,7 @@ export interface Stack {
 }
 
 export type Move =
-  | { to: "topic"; id: PageId; row?: string | undefined }
-  | { to: "beside"; id: PageId | null }
+  | { to: "topic"; id: PageId | null; row?: string | undefined }
   | { to: "thread"; write?: boolean }
   | { to: "composerFocused" }
   | { to: "steps"; id: TaskId }
@@ -73,11 +72,12 @@ export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
 export const move = (stack: Stack, step: Move): Stack => {
   switch (step.to) {
     case "topic": {
-      return { ...stack, task: step.id, row: step.row ?? null, path: ["topic"] };
-    }
-
-    case "beside": {
-      return { ...stack, task: step.id };
+      return {
+        ...stack,
+        task: step.id,
+        row: step.row ?? null,
+        path: step.id === null ? [] : ["topic"],
+      };
     }
 
     case "thread": {
