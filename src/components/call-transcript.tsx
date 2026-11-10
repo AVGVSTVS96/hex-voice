@@ -16,6 +16,9 @@ const MARKS: Record<ShownMark["kind"], SFSymbol> = {
   paused: "pause.circle",
   resumed: "play.circle",
   warned: "timer",
+  muted: "speaker.slash",
+  unmuted: "speaker.wave.2",
+  stopped: "stop.circle",
 };
 
 const MARKERS: Record<

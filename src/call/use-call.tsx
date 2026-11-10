@@ -16,6 +16,7 @@ import type { Call } from "@/call/call";
 import { hex } from "@/hex";
 import { RefusedError } from "@/hex/client";
 import { useCallElsewhere } from "@/hooks/use-call-elsewhere";
+import { usePastCall } from "@/hooks/use-calls";
 import type { CallId } from "@/live/calls";
 import { newKey } from "@/live/chat";
 import { demoAPI, demoTransport } from "@/live/demo-call";
@@ -128,10 +129,11 @@ export const useCall = (held: CallId | null) => {
     here,
   );
 
+  const { call: own } = usePastCall(here ? (snapshot.callId ?? undefined) : undefined);
   const { sent } = useProvided(Sending);
 
   const call = withSent(
-    callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving }),
+    callOf(snapshot, { record: elsewhere.call, leaving: elsewhere.leaving }, own),
     sent,
   );
 

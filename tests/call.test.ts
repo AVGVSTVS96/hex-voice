@@ -117,6 +117,30 @@ test("iOS taking the audio shows the microphone off and says the call is paused"
   });
 });
 
+test("telling hex to mute itself shows it muted, apart from the microphone, until you unmute it", () => {
+  const said = (...kinds: ("muted" | "unmuted")[]) =>
+    callOf(session({ status: "connected", callId: sess, transcript: words }), nobody, {
+      moments: kinds.map((kind, at) => ({ at, kind, text: "" })),
+    });
+
+  const hushed = said("muted");
+
+  assert.equal(personaOf(hushed, false), "idle");
+  assert.equal(statusOf(hushed), "hex muted");
+  assert.deepEqual(footerOf(hushed, false), { kind: "hushed", text: "hex muted · say “unmute”" });
+  assert.deepEqual(buttonsOf(hushed).mute, { muted: false, enabled: true });
+  assert.equal(footerOf(said("muted", "unmuted"), false), undefined);
+  assert.equal(personaOf(said("muted", "unmuted"), false), "listening");
+
+  const away = callOf(session(), {
+    record: record({ moments: [{ at: 0, kind: "muted", text: "You muted hex" }] }),
+    leaving: false,
+  });
+
+  assert.equal(footerOf(away, false)?.kind, "hushed");
+  assert.equal(personaOf(away, false), "idle");
+});
+
 test("ending a call here thinks, keeps the microphone as it was, and lets nothing be tapped", () => {
   const ending = callOf(
     session({ status: "disconnecting", muted: true, transcript: words }),

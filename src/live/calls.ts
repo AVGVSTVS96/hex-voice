@@ -82,6 +82,9 @@ const CallMark = z.object({
       "undone",
       "photo",
       "video",
+      "muted",
+      "unmuted",
+      "stopped",
     ]),
     "note",
   ),
@@ -326,11 +329,21 @@ export const callTime = (iso: string, now = new Date()) => {
   });
 };
 
-const SHOWN = { paused: true, resumed: true, warned: true };
+const SHOWN = {
+  paused: true,
+  resumed: true,
+  warned: true,
+  muted: true,
+  unmuted: true,
+  stopped: true,
+};
 
 export type ShownMark = CallMark & { kind: keyof typeof SHOWN };
 
 const shown = (mark: CallMark): mark is ShownMark => mark.kind in SHOWN;
+
+export const hushed = (moments: CallMark[] = []) =>
+  moments.findLast(({ kind }) => kind === "muted" || kind === "unmuted")?.kind === "muted";
 
 export type Moment =
   | { kind: "turn"; key: string; at: number; turn: CallTurn }

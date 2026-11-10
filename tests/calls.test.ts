@@ -8,11 +8,13 @@ import {
   callName,
   clock,
   endedSeconds,
+  hushed,
   liveEntries,
   putBack,
   timeline,
   transcriptText,
   CallId,
+  CallRecord,
   CallSummary,
 } from "../src/live/calls";
 import { MediaId } from "../src/live/media";
@@ -132,6 +134,28 @@ test("a call shows when the phone took its audio and the time-limit warning, and
     transcriptText(record),
     "Checked CI and sent the PR to Telegram.\nWaiting on you:\n- Merge the PR\n\nYou: Is CI green?\n\n[Your phone took over the audio]\n\n[Back on the call]",
   );
+});
+
+test("muting hex by voice and calling off a handoff stay in the call’s record as hex wrote them", () => {
+  const record = CallRecord.parse({
+    id: "live_2",
+    started: "2026-11-10T16:00:00.000Z",
+    from: "app",
+    turns: [],
+    tasks: [],
+    moments: [
+      { at: 1000, kind: "muted", text: "You muted hex" },
+      { at: 5000, kind: "unmuted", text: "You unmuted hex" },
+      { at: 9000, kind: "stopped", text: "You called it off, so hex stopped" },
+    ],
+  });
+
+  assert.deepEqual(
+    timeline(record).map((moment) => (moment.kind === "mark" ? moment.mark.kind : moment.kind)),
+    ["muted", "unmuted", "stopped"],
+  );
+  assert.equal(hushed(record.moments), false);
+  assert.equal(hushed(record.moments?.slice(0, 1)), true);
 });
 
 test("a photo or clip you sent a call shows as your turn, live and after, wherever it was sent", () => {

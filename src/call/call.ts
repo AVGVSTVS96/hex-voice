@@ -1,5 +1,5 @@
 import type { PersonaState } from "@/components/persona/animation";
-import { ENDINGS, SOURCES, callLength, endedSeconds, liveEntries } from "@/live/calls";
+import { ENDINGS, SOURCES, callLength, endedSeconds, hushed, liveEntries } from "@/live/calls";
 import type { CallEnding, CallId, CallRecord, CallSource } from "@/live/calls";
 import type { Sent } from "@/live/shares";
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from "@/live/types";
@@ -25,6 +25,7 @@ export type Call =
       phase: "connecting" | "live" | "ending";
       id?: CallId | undefined;
       mic: Mic;
+      hushed: boolean;
       seconds: number;
       words: TranscriptEntry[];
     }
@@ -43,7 +44,11 @@ const HERE: Partial<Record<LiveStatus, "connecting" | "live" | "ending">> = {
 
 export const isHere = (status: LiveStatus) => status in HERE;
 
-export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): Call => {
+export const callOf = (
+  session: LiveSnapshot,
+  { record, leaving }: Elsewhere,
+  own?: Pick<CallRecord, "moments">,
+): Call => {
   const phase = HERE[session.status];
 
   if (phase) {
@@ -52,6 +57,7 @@ export const callOf = (session: LiveSnapshot, { record, leaving }: Elsewhere): C
       phase,
       id: session.callId ?? undefined,
       mic: { muted: session.muted, interrupted: session.interrupted },
+      hushed: hushed(own?.moments),
       seconds: session.elapsedSeconds,
       words: session.transcript,
     };
@@ -141,16 +147,18 @@ export const personaOf = (call: Call, speaking: boolean): PersonaState => {
     return "thinking";
   }
 
-  if (call.kind === "elsewhere") {
-    return "listening";
-  }
-
-  if (speaking) {
+  if (call.kind === "here" && speaking) {
     return "speaking";
   }
 
-  return call.mic.muted ? "idle" : "listening";
+  return quiet(call) ? "idle" : "listening";
 };
+
+const isHushed = (call: Exclude<Call, { kind: "none" }>) =>
+  call.kind === "here" ? call.hushed : hushed(call.record.moments);
+
+const quiet = (call: Exclude<Call, { kind: "none" }>) =>
+  isHushed(call) || (call.kind === "here" && call.mic.muted);
 
 export const wakeOf = (call: Call) => {
   if (call.kind === "none") {
@@ -179,7 +187,11 @@ export const statusOf = (call: Call) => {
     return `${started}, ${where.toLowerCase()}`;
   }
 
-  return call.mic.muted ? "Microphone muted" : "Conversation active";
+  if (call.mic.muted) {
+    return "Microphone muted";
+  }
+
+  return call.hushed ? "hex muted" : "Conversation active";
 };
 
 export type CallButton = "start" | "retry" | "cancel" | "end" | "ending";
@@ -228,19 +240,30 @@ export const voiceLocked = (call: Call) => call.kind === "here";
 export type Footer =
   | { kind: "ended"; id?: string | undefined; text: string; bad: boolean }
   | { kind: "elsewhere"; text: string }
-  | { kind: "paused"; text: string };
+  | { kind: "paused"; text: string }
+  | { kind: "hushed"; text: string };
+
+const PAUSED: Footer = { kind: "paused", text: "Paused while another app has the audio" };
+
+const HUSHED: Footer = { kind: "hushed", text: "hex muted · say “unmute”" };
 
 export const footerOf = (call: Call, viewing: boolean): Footer | undefined => {
   if (call.kind === "elsewhere") {
+    if (isHushed(call)) {
+      return HUSHED;
+    }
+
     const { where, started } = SOURCES[call.record.from];
 
     return { kind: "elsewhere", text: `${where} · ${started}` };
   }
 
   if (call.kind === "here") {
-    return call.mic.interrupted
-      ? { kind: "paused", text: "Paused while another app has the audio" }
-      : undefined;
+    if (call.mic.interrupted) {
+      return PAUSED;
+    }
+
+    return call.hushed ? HUSHED : undefined;
   }
 
   const { last } = call;
