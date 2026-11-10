@@ -70,8 +70,10 @@ private struct Chat: Decodable {
   let waiting: [Sent]
 }
 
+// The app server gives a step a brief that fits the Live Activity whole; older ones give only text.
 private struct Step: Decodable {
   let text: String
+  let brief: String?
   let at: Date
 }
 
@@ -137,7 +139,7 @@ private struct Hex {
     let id = UUID().uuidString.prefix(6).lowercased()
     let tag = "#siri-\(id)"
     let key = "app-siri-\(id)"
-    let said = "(asked Siri: reply once, starting with \(tag), then one short spoken sentence) \(words)"
+    let said = "(asked Siri: reply once, starting with \(tag), then one short spoken sentence; name each command you run in four words or fewer) \(words)"
     let topic = try await send(said, key: key)
     let sent = Date()
     Self.log.notice("\(tag): app up \(launched(), format: .fixed(precision: 2))s, posted in \(sent.timeIntervalSince(start), format: .fixed(precision: 2))s")
@@ -212,7 +214,7 @@ private struct Hex {
         let version = read.version
       else { return }
       if let step = read.steps?.first(where: { $0.at >= sent }) {
-        shown.update { $0.step = step.text }
+        shown.update { $0.step = step.brief ?? step.text }
       }
       after = version
     }
