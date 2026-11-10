@@ -16,6 +16,7 @@ import {
   onTapGesture,
   padding,
   shapes,
+  strokeBorder,
 } from "@expo/ui/swift-ui/modifiers";
 import type { ModifierConfig } from "@expo/ui/swift-ui/modifiers";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -537,7 +538,11 @@ const Composer = ({
   const words = sending ? "" : text.trim();
 
   return (
-    <Column alignment="start" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
+    <Column
+      alignment="start"
+      spacing={space[3]}
+      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, words !== "")]}
+    >
       <Row
         alignment="end"
         spacing={space[2]}
@@ -545,8 +550,7 @@ const Composer = ({
           padding({ leading: space[4], trailing: space[1], top: space[1], bottom: space[1] }),
           frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity, alignment: "leading" }),
-          background(theme.fill),
-          clipShape("roundedRectangle", radius.field),
+          strokeBorder({ content: theme.tertiary, shape: "capsule" }),
         ]}
       >
         <TextInput
@@ -572,37 +576,35 @@ const Composer = ({
           modifiers={[
             foregroundStyle(theme.text),
             padding({ top: space[2], bottom: space[2] }),
-            frame({ maxWidth: Infinity, alignment: "leading" }),
+            frame({ maxWidth: Infinity, minHeight: metrics.bar.button, alignment: "leading" }),
           ]}
         />
-        <Icon
-          name="arrow.up.circle.fill"
-          size={metrics.symbol.send}
-          color={words ? theme.text : theme.tertiary}
-          {...(words && {
-            onPress: () => {
+        {words ? (
+          <Icon
+            name="arrow.up.circle.fill"
+            size={metrics.symbol.send}
+            color={theme.text}
+            onPress={() => {
               onNote(words);
-            },
-          })}
-          modifiers={[
-            frame({ width: metrics.bar.button, height: metrics.bar.button }),
-            accessibilityLabel(`Send a note to ${topic}`),
-          ]}
-        />
+            }}
+            modifiers={[
+              frame({ width: metrics.bar.button, height: metrics.bar.button }),
+              accessibilityLabel(`Send a note to ${topic}`),
+            ]}
+          />
+        ) : null}
       </Row>
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-        <Pill
-          label="Answer with this"
-          icon="checkmark"
-          onPress={
-            words
-              ? () => {
-                  onAnswer(words);
-                }
-              : undefined
-          }
-          small
-        />
+        {words ? (
+          <Pill
+            label="Answer with this"
+            icon="checkmark"
+            onPress={() => {
+              onAnswer(words);
+            }}
+            small
+          />
+        ) : null}
         <Spacer flexible />
         <Text
           variant="detail"
