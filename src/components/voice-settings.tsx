@@ -743,7 +743,7 @@ const Words = ({
                 testID="words-done"
                 modifiers={[
                   labelStyle("iconOnly"),
-                  buttonStyle("glassProminent"),
+                  buttonStyle("glass"),
                   buttonBorderShape("circle"),
                   controlSize("large"),
                 ]}
