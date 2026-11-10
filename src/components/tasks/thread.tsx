@@ -10,6 +10,7 @@ import {
   defaultScrollAnchor,
   foregroundStyle,
   frame,
+  layoutPriority,
   onTapGesture,
   padding,
   scrollClipDisabled,
@@ -425,7 +426,15 @@ const Composer = ({
   );
 };
 
-export const Foot = ({ foot, children }: { foot: number; children: ReactNode }) => (
+export const Foot = ({
+  foot,
+  whole = false,
+  children,
+}: {
+  foot: number;
+  whole?: boolean;
+  children: ReactNode;
+}) => (
   <Row
     alignment="center"
     spacing={space[2]}
@@ -437,6 +446,7 @@ export const Foot = ({ foot, children }: { foot: number; children: ReactNode }) 
         bottom: Math.max(space[4], foot),
       }),
       frame({ maxWidth: Infinity }),
+      ...(whole ? [layoutPriority(1)] : []),
     ]}
   >
     {children}

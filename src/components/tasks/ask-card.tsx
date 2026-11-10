@@ -14,7 +14,6 @@ import {
   fixedSize,
   foregroundStyle,
   frame,
-  layoutPriority,
   lineLimit,
   monospacedDigit,
   onTapGesture,
@@ -712,7 +711,6 @@ export const ReplyComposer = ({
       modifiers={[
         padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN }),
         frame({ maxWidth: Infinity }),
-        layoutPriority(1),
       ]}
     >
       <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>

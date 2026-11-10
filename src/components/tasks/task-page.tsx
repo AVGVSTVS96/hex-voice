@@ -242,7 +242,7 @@ const PageFoot = ({
 
   if (to) {
     return (
-      <Foot foot={foot}>
+      <Foot foot={foot} whole>
         <ReplyComposer
           key={to.id}
           ask={to}
