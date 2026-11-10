@@ -5,6 +5,7 @@ import {
   Button as NativeButton,
   Group as SheetContent,
   Rectangle,
+  ScrollView,
   TextField,
   Toggle,
   ZStack,
@@ -35,6 +36,7 @@ import {
   presentationDetents,
   presentationDragIndicator,
   presentationSizing,
+  scrollDismissesKeyboard,
   submitLabel,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
@@ -590,72 +592,82 @@ const VoicePage = ({
       <Spacer flexible />
       <Spacer style={{ width: HEADER }} />
     </Row>
-    <SelectionCarousel
-      options={voiceOptions}
-      value={voice}
-      width={width}
-      height={VOICE_CAROUSEL}
-      enabled={enabled}
-      disabledHint={locked ? "End the conversation to change voices." : "Loading your voice…"}
-      label="Voice"
-      testID="voice-carousel"
-      onPress={onPress}
-      onChange={onChange}
-    />
-    <Column
-      alignment="start"
-      spacing={metrics.groupSpacing}
-      modifiers={[padding({ top: metrics.groupSpacing })]}
+    <ScrollView
+      showsIndicators={false}
+      modifiers={[
+        scrollDismissesKeyboard("interactively"),
+        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
+      ]}
     >
-      <Group width={width}>
-        <PickerRow
-          icon="theatermasks"
-          title="Personality"
+      <Column alignment="center" spacing={0} modifiers={[padding({ bottom: space[6] })]}>
+        <SelectionCarousel
+          options={voiceOptions}
+          value={voice}
           width={width}
-          choices={talk?.personalities ?? []}
-          selection={talk?.settings.personality ?? UNSET.personality}
-          onChange={(next: string) => {
-            onTalk();
-            change({ personality: next });
-          }}
-          enabled={!!talk}
-          label="How hex comes across on calls"
-          testID="personality-picker"
+          height={VOICE_CAROUSEL}
+          enabled={enabled}
+          disabledHint={locked ? "End the conversation to change voices." : "Loading your voice…"}
+          label="Voice"
+          testID="voice-carousel"
+          onPress={onPress}
+          onChange={onChange}
         />
-        <Separator />
-        <PickerRow
-          icon="speedometer"
-          title="Pace"
-          width={width}
-          choices={talk?.paces ?? []}
-          selection={talk?.settings.pace ?? UNSET.pace}
-          onChange={(next: string) => {
-            onTalk();
-            change({ pace: next });
-          }}
-          enabled={!!talk}
-          label="How fast hex talks on calls"
-          testID="pace-picker"
-        />
-      </Group>
-      <Column alignment="start" spacing={space[2]}>
-        <Words
-          width={width}
-          words={talk?.settings.words}
-          enabled={!!talk}
-          onSave={(words) => {
-            change({ words });
-          }}
-        />
-        <Text
-          variant="caption"
-          tone="secondary"
-          modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
+        <Column
+          alignment="start"
+          spacing={metrics.groupSpacing}
+          modifiers={[padding({ top: metrics.groupSpacing })]}
         >
-          {failure ?? "Every call talks this way, phone calls too."}
-        </Text>
+          <Group width={width}>
+            <PickerRow
+              icon="theatermasks"
+              title="Personality"
+              width={width}
+              choices={talk?.personalities ?? []}
+              selection={talk?.settings.personality ?? UNSET.personality}
+              onChange={(next: string) => {
+                onTalk();
+                change({ personality: next });
+              }}
+              enabled={!!talk}
+              label="How hex comes across on calls"
+              testID="personality-picker"
+            />
+            <Separator />
+            <PickerRow
+              icon="speedometer"
+              title="Pace"
+              width={width}
+              choices={talk?.paces ?? []}
+              selection={talk?.settings.pace ?? UNSET.pace}
+              onChange={(next: string) => {
+                onTalk();
+                change({ pace: next });
+              }}
+              enabled={!!talk}
+              label="How fast hex talks on calls"
+              testID="pace-picker"
+            />
+          </Group>
+          <Column alignment="start" spacing={space[2]}>
+            <Words
+              width={width}
+              words={talk?.settings.words}
+              enabled={!!talk}
+              onSave={(words) => {
+                change({ words });
+              }}
+            />
+            <Text
+              variant="caption"
+              tone="secondary"
+              modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
+            >
+              {failure ?? "Every call talks this way, phone calls too."}
+            </Text>
+          </Column>
+        </Column>
       </Column>
-    </Column>
+    </ScrollView>
   </>
 );
 
@@ -971,7 +983,7 @@ const SettingsPlace = ({
       importantForAccessibility={open ? "auto" : "no-hide-descendants"}
       style={[StyleSheet.absoluteFill, fade]}
     >
-      <Host seedColor={theme.tint} style={{ flex: 1 }}>
+      <Host seedColor={theme.tint} avoids="keyboard" style={{ flex: 1 }}>
         <ZStack
           modifiers={[
             frame({ maxWidth: Infinity, maxHeight: Infinity }),

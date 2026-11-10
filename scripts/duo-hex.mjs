@@ -109,7 +109,10 @@ const giveSettingsHere = (response) => {
 
 const keepSettingsHere = async (request, response) => {
   const now = JSON.parse(
-    settingsHere ?? answers["/settings"] ?? '{"settings":{},"personalities":[],"paces":[]}',
+    settingsHere ??
+      ownAnswers["/settings"] ??
+      answers["/settings"] ??
+      '{"settings":{},"personalities":[],"paces":[]}',
   );
 
   const body = await bodyOf(request);
