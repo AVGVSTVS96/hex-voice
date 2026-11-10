@@ -47,7 +47,7 @@ const PILLS_PER_ROW = 3;
 
 const OWN_WORDS = "Answer in your own words";
 
-const LINES_WHILE_TYPING = 6;
+const LINES_WHILE_TYPING = 5;
 
 const REPLY_MARK = 3;
 
@@ -771,6 +771,7 @@ export const ReplyComposer = ({
         modifiers={[
           foregroundStyle(theme.text),
           lineLimit(LINES_WHILE_TYPING),
+          fixedSize({ horizontal: false, vertical: true }),
           padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
           frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity, alignment: "leading" }),
