@@ -11,6 +11,7 @@ import {
   monospacedDigit,
   padding,
   scrollClipDisabled,
+  scrollDismissesKeyboard,
   scrollContentBackground,
   scrollIndicators,
   shapes,
@@ -474,6 +475,7 @@ const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
   scrollContentBackground("hidden"),
   scrollIndicators("hidden"),
   scrollClipDisabled(),
+  scrollDismissesKeyboard("immediately"),
   frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
   animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ""}`))),
 ];
