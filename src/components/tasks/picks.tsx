@@ -491,7 +491,6 @@ const Thread = ({ id, links }: { id: AskId; links: { label: string; url: string 
       {words ? (
         <Markdown
           variant="detail"
-          tone="secondary"
           modifiers={[
             padding({ all: space[4] }),
             frame({ maxWidth: Infinity, alignment: "leading" }),

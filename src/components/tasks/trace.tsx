@@ -228,7 +228,6 @@ const agentShows = (agent: AgentTrail, open: boolean) => {
 
 const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
   const [open, setOpen] = useState(false);
-  const [whole, setWhole] = useState(false);
   const { newest, result, steps, link } = agentShows(agent, open);
   const meta = agentMeta(agent);
 
@@ -251,9 +250,6 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
           <Row
             alignment="start"
             spacing={0}
-            onPress={() => {
-              setWhole(!whole);
-            }}
             modifiers={[
               padding({
                 leading: TEXT,
@@ -261,12 +257,11 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
                 top: -space[2],
                 bottom: space[2],
               }),
-              contentShape(shapes.rectangle()),
             ]}
           >
             <Under
               text={result}
-              lines={whole ? 0 : 3}
+              lines={0}
               tone={agent.state === "failed" ? "danger" : "secondary"}
             />
           </Row>

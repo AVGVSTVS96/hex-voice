@@ -39,8 +39,6 @@ import { labelOf, metrics, radius, space } from "@/ui/tokens";
 import { EvenRow, Fits } from "../../../modules/rows";
 import { ShotsView } from "../../../modules/shots";
 
-const SAID_LINES = 6;
-
 const PILLS_PER_ROW = 3;
 
 const CARD_MARGIN = space[3];
@@ -161,7 +159,7 @@ const AskCard = ({
 
   const [open, setOpen] = useState(held);
   const [writing, setWriting] = useState<boolean | "held">(held && "held");
-  const words = useWords(open ? ask.id : null);
+  const words = useWords(ask.id);
   const notes = useFailures();
   const [noting, setNoting] = useState(false);
   const [noted, setNoted] = useState(false);
@@ -251,16 +249,16 @@ const AskCard = ({
           </Text>
         )}
       </VStack>
-      {open && (words || links.length > 0) ? (
-        <VStack
-          alignment="leading"
-          spacing={space[2]}
-          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-        >
-          {words ? <Said words={words} /> : null}
-          {links.length > 0 ? <Links links={links} /> : null}
-        </VStack>
+      {words ? (
+        <Said
+          words={words}
+          open={open}
+          onToggle={() => {
+            setOpen(!open);
+          }}
+        />
       ) : null}
+      {links.length > 0 && (open || !words) ? <Links links={links} /> : null}
       {noted && notes.failed.note === undefined ? (
         <Text variant="caption" tone="secondary" paragraph>
           {`Sent to ${ask.topic} as a note. The question is still open.`}
@@ -320,39 +318,59 @@ export const Shots = ({ ask }: { ask: Ask }) => {
   );
 };
 
-export const Said = ({ words }: { words: Words }) => {
-  const [whole, setWhole] = useState(false);
+export const Said = ({
+  words,
+  open,
+  onToggle,
+}: {
+  words: Words;
+  open: boolean;
+  onToggle: () => void;
+}) => {
   const when = words.at === undefined || words.at === "" ? "" : ` · ${clock(new Date(words.at))}`;
 
   return (
     <Column
       alignment="start"
-      spacing={space[1]}
-      onPress={() => {
-        setWhole(!whole);
-      }}
+      spacing={space[2]}
       modifiers={[
         padding({ all: space[3] }),
         frame({ maxWidth: Infinity, alignment: "leading" }),
         background(theme.fill),
         clipShape("roundedRectangle", radius.inner),
-        contentShape(shapes.rectangle()),
-        animation(motion.list, whole),
-        accessibilityElement("combine"),
+        animation(motion.list, open),
       ]}
     >
-      <Text variant="caption" tone="secondary">
-        {`From ${words.place}${when}`}
-      </Text>
-      <Markdown
-        inline={!whole}
-        lines={whole ? undefined : SAID_LINES}
-        variant="detail"
-        tone="secondary"
-        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+      <Row
+        alignment="center"
+        spacing={space[2]}
+        onPress={onToggle}
+        modifiers={[
+          frame({ maxWidth: Infinity }),
+          contentShape(shapes.rectangle()),
+          accessibilityElement("combine"),
+          accessibilityLabel(`From ${words.place}${when}. ${open ? "Hides" : "Shows"} the message`),
+          accessibilityAddTraits(["isButton"]),
+        ]}
       >
-        {words.text}
-      </Markdown>
+        <Text variant="caption" tone="secondary">
+          {`From ${words.place}${when}`}
+        </Text>
+        <Spacer flexible />
+        <Icon
+          name={open ? "chevron.up" : "chevron.down"}
+          size={metrics.symbol.small}
+          color={theme.tertiary}
+        />
+      </Row>
+      {open ? (
+        <Markdown
+          variant="detail"
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          {words.text}
+        </Markdown>
+      ) : null}
     </Column>
   );
 };
@@ -460,7 +478,12 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
             accessibilityAddTraits(["isButton"]),
           ]}
         >
-          <Text variant="body" weight={option.pick === true ? "medium" : "regular"} paragraph>
+          <Text
+            variant="body"
+            weight={option.pick === true ? "medium" : "regular"}
+            paragraph
+            modifiers={[fixedSize({ horizontal: false, vertical: true })]}
+          >
             {option.label}
           </Text>
           {option.pick === true ? (
