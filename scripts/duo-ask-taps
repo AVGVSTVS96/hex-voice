@@ -12,7 +12,7 @@ shoot ask-rest
 tap ask-own
 wait 1
 shoot ask-empty
-swipe-down ask-input
+swipe-down ask-card
 wait 1
 no-keyboard after the swipe
 frame thread-write
@@ -78,7 +78,7 @@ tap ask-own
 type ask-input Found both, and this answer runs on over three or four lines on the folded screen so the box has to grow
 above-keyboard ask-input
 shoot ask-long
-swipe-down ask-input
+swipe-down ask-card
 wait 1
 shoot ask-typed-resting
 tap ask-Answer
