@@ -13,6 +13,7 @@ import {
   fixedSize,
   foregroundStyle,
   frame,
+  layoutPriority,
   lineLimit,
   monospacedDigit,
   onTapGesture,
@@ -708,6 +709,7 @@ export const ReplyComposer = ({
       modifiers={[
         padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN }),
         frame({ maxWidth: Infinity }),
+        layoutPriority(1),
       ]}
     >
       <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
@@ -743,43 +745,51 @@ export const ReplyComposer = ({
           ]}
         />
       </Row>
-      <TextInput
-        ref={field}
-        autoFocus
-        multiline
-        testID="ask-input"
-        onFocus={() => {
-          typing(true);
-        }}
-        onBlur={() => {
-          typing(false);
-
-          if (now.current.trim() === "") {
-            onClose();
-          }
-        }}
-        defaultValue={first}
-        placeholder={OWN_WORDS}
-        placeholderTextColor={theme.secondary}
-        cursorColor={theme.text}
-        onChangeText={(next) => {
-          now.current = next;
-          setText(next);
-          keep(next);
-        }}
-        textStyle={labelOf("body")}
+      <Column
+        alignment="start"
+        spacing={0}
         modifiers={[
-          foregroundStyle(theme.text),
-          lineLimit(LINES_WHILE_TYPING),
-          fixedSize({ horizontal: false, vertical: true }),
           padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
           frame({ minHeight: metrics.field }),
           frame({ maxWidth: Infinity, alignment: "leading" }),
           background(theme.surface),
           clipShape("roundedRectangle", radius.option),
-          accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
         ]}
-      />
+      >
+        <TextInput
+          ref={field}
+          autoFocus
+          multiline
+          testID="ask-input"
+          onFocus={() => {
+            typing(true);
+          }}
+          onBlur={() => {
+            typing(false);
+
+            if (now.current.trim() === "") {
+              onClose();
+            }
+          }}
+          defaultValue={first}
+          placeholder={OWN_WORDS}
+          placeholderTextColor={theme.secondary}
+          cursorColor={theme.text}
+          onChangeText={(next) => {
+            now.current = next;
+            setText(next);
+            keep(next);
+          }}
+          textStyle={labelOf("body")}
+          modifiers={[
+            foregroundStyle(theme.text),
+            lineLimit(LINES_WHILE_TYPING),
+            fixedSize({ horizontal: false, vertical: true }),
+            frame({ maxWidth: Infinity, alignment: "leading" }),
+            accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
+          ]}
+        />
+      </Column>
       <Failure text={notes.failed.note} />
       <Sends typed={typed} />
     </Column>
