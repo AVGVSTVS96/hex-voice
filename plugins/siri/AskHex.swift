@@ -117,12 +117,9 @@ private struct Hex {
     token = info["HexToken"] as? String ?? ""
   }
 
-  // The Live Activity iOS shows while this waits takes its title, subtitle and ring from the
-  // progress. Its lines fit about 22 and 28 characters before iOS cuts them off.
   func ask(_ words: String, progress: Progress, working: OSAllocatedUnfairLock<String?>) async throws -> String {
     guard !words.isEmpty else { throw HexError(localizedStringResource: "Tell me what to ask hex.") }
-    progress.localizedDescription = "Asking hex"
-    progress.localizedAdditionalDescription = words
+    let shown = Shown(words, on: progress)
     progress.totalUnitCount = 1000
     let start = Date()
     // How long hex takes isn't known ahead, so the ring fills on a curve that slows as it goes:
@@ -145,7 +142,7 @@ private struct Hex {
     let sent = Date()
     Self.log.notice("\(tag): app up \(launched(), format: .fixed(precision: 2))s, posted in \(sent.timeIntervalSince(start), format: .fixed(precision: 2))s")
 
-    let following = Task { await follow(topic, since: sent, progress: progress) }
+    let following = Task { await follow(topic, since: sent, shown: shown) }
     defer { following.cancel() }
 
     let end = sent.addingTimeInterval(Self.patience)
@@ -165,7 +162,7 @@ private struct Hex {
         }
         let waiting = latest.waiting.contains { $0.key.hasSuffix(key) }
         if !waiting { working.withLock { $0 = topic } }
-        progress.show(waiting ? "Waiting for hex" : "hex is working on it")
+        shown.update { $0.waiting = waiting }
       }
       guard end.timeIntervalSinceNow > 1 else { return Self.stuck }
     }
@@ -208,14 +205,14 @@ private struct Hex {
   }
 
   // The subtitle shows what hex is doing for this ask, as its topic's page lists each step.
-  private func follow(_ topic: String, since sent: Date, progress: Progress) async {
+  private func follow(_ topic: String, since sent: Date, shown: Shown) async {
     var after: Double?
     while !Task.isCancelled {
       guard let read: Page = try? await get(page(topic) + (after.map { "?after=\(Int64($0))" } ?? ""), within: 40),
         let version = read.version
       else { return }
       if let step = read.steps?.first(where: { $0.at >= sent }) {
-        progress.show(under: step.text)
+        shown.update { $0.step = step.text }
       }
       after = version
     }
@@ -277,10 +274,34 @@ private struct Hex {
   }
 }
 
-// Each change to the progress is a Live Activity update, so only a new line is set.
-extension Progress {
-  fileprivate func show(_ title: String? = nil, under subtitle: String? = nil) {
-    if let title, localizedDescription != title { localizedDescription = title }
-    if let subtitle, localizedAdditionalDescription != subtitle { localizedAdditionalDescription = subtitle }
+// The Live Activity iOS shows while hex works takes its title and subtitle from the progress. The
+// title says what the subtitle is: his words while hex is being asked, hex's step once it works.
+// On the open Duo the lines fit about 22 and 28 characters before iOS cuts them off.
+private final class Shown: Sendable {
+  struct State {
+    var waiting = false
+    var step: String?
+  }
+
+  private let state = OSAllocatedUnfairLock(initialState: State())
+  private let heard: String
+  private let progress: Progress
+
+  init(_ words: String, on progress: Progress) {
+    // Siri writes the name as "Hex"; hex gets the words as heard.
+    heard = words.replacingOccurrences(of: #"\bHex\b"#, with: "hex", options: .regularExpression)
+    self.progress = progress
+    update { _ in }
+  }
+
+  // Each change to the progress is a Live Activity update, so only a new line is set.
+  func update(_ change: (inout State) -> Void) {
+    state.withLockUnchecked { state in
+      change(&state)
+      let title = state.step != nil ? "hex is working on it" : state.waiting ? "Waiting for hex" : "Asking hex"
+      let subtitle = state.step ?? heard
+      if progress.localizedDescription != title { progress.localizedDescription = title }
+      if progress.localizedAdditionalDescription != subtitle { progress.localizedAdditionalDescription = subtitle }
+    }
   }
 }
