@@ -323,7 +323,7 @@ export interface Part {
 
 export const whyOf = (entry: Entry, query: string): Part[] | undefined => {
   const words = wordsOf(query);
-  const shown = `${entry.topic} ${headlineOf(entry)}`.toLowerCase();
+  const shown = `${entry.topic} ${shownOf(entry)}`.toLowerCase();
   const hidden = words.find((word) => !shown.includes(word));
 
   if (hidden === undefined) {
@@ -360,6 +360,9 @@ const marked = (text: string, words: string[]): Part[] => {
     .filter(Boolean)
     .map((piece) => ({ text: piece, hit: words.includes(piece.toLowerCase()) }));
 };
+
+const shownOf = (entry: Entry) =>
+  entry.kind === "task" ? `${titleOf(entry.task)} ${headlineOf(entry)}` : headlineOf(entry);
 
 export const headlineOf = (entry: Entry) => {
   switch (entry.kind) {
@@ -453,10 +456,9 @@ export const pageOf = (topic: Topic): PageId => {
 export const isPart = (thread: Pick<TaskRow, "name" | "place">) =>
   thread.place !== "" && thread.place !== thread.name;
 
-export const titleOf = (thread: Pick<TaskRow, "name" | "place">) =>
-  isPart(thread) ? thread.place : thread.name;
+export const titleOf = (thread: Pick<TaskRow, "name" | "place">) => thread.place || thread.name;
 
-export const homeOf = (page: PageId, tasks: TaskRow[]): PageId => {
+export const homeOf = (page: PageId, tasks: TaskRow[] = []): PageId => {
   const opened = tasks.find((row) => row.id === page);
 
   if (!opened || !isPart(opened)) {
@@ -468,6 +470,14 @@ export const homeOf = (page: PageId, tasks: TaskRow[]): PageId => {
 
 export const asksOf = (thread: Pick<TaskRow, "id" | "name" | "place">, asks: Ask[]) =>
   asks.filter((ask) => (isPart(thread) ? ask.task === thread.id : ask.topic === thread.name));
+
+export const waitingOf = <Thread extends Pick<TaskRow, "id" | "state">>(
+  threads: Thread[],
+  asks: Ask[],
+) =>
+  threads.filter(
+    (thread) => thread.state === "needs" && !asks.some((ask) => ask.task === thread.id),
+  );
 
 export const topicIn = (page: PageId | null) =>
   page !== null && isTopic(page) ? page.slice(TOPIC.length) : undefined;

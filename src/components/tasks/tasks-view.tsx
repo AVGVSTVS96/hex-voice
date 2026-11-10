@@ -582,8 +582,8 @@ const asksIn = (
 const namesOf = (opened: TaskRow | Task | undefined): Record<Level | "call", string> => ({
   call: "Call",
   list: "Tasks",
-  topic: (opened && titleOf(opened)) ?? "Topic",
-  thread: opened === undefined ? "Thread" : opened.place || opened.name,
+  topic: opened ? titleOf(opened) : "Topic",
+  thread: opened ? titleOf(opened) : "Thread",
   steps: "Steps",
   check: "Last check",
   picks: "hex’s picks",

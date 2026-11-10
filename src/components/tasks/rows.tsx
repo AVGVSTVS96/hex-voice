@@ -19,7 +19,16 @@ import type { MarkState } from "@/components/tasks/mark";
 import { Failure, NotNeededButton, Pill, listRow, rowFrame } from "@/components/tasks/parts";
 import { TileIcon, swipeLook } from "@/components/tasks/places";
 import type { Ask, AskOption } from "@/live/asks";
-import { PLACES, STUCK, headlineOf, problemOf, opens, pageOf, proofWords } from "@/live/inbox";
+import {
+  PLACES,
+  STUCK,
+  headlineOf,
+  isPart,
+  problemOf,
+  opens,
+  pageOf,
+  proofWords,
+} from "@/live/inbox";
 import type { Entry, Part, Stage, Tile, Topic, PageId } from "@/live/inbox";
 import { STATE_WORDS, atWork, clock, taskTime } from "@/live/tasks";
 import type { TaskRow } from "@/live/tasks";
@@ -178,8 +187,7 @@ export const EntryRow = ({
   }
 };
 
-const partOf = (task: TaskRow) =>
-  task.place !== "" && task.place !== task.name ? [task.place] : [];
+const partOf = (task: TaskRow) => (isPart(task) ? [task.place] : []);
 
 const agentsAtWork = (task: TaskRow) => {
   const n = task.state === "working" ? atWork(task.agents).length : 0;

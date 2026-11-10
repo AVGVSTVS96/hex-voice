@@ -11,6 +11,7 @@ import {
   homeOf,
   isPart,
   titleOf,
+  waitingOf,
   pageOf,
   proofLinks,
   proofSays,
@@ -574,7 +575,7 @@ test("a project opens on its leading thread, or on a page of its own when it has
   assert.equal(topicIn(entry.task.id), undefined);
 });
 
-test("a project with several topics opens on the topic named for it, and each other topic's page is its own: its name and the questions it asked", () => {
+test("a project with several topics opens on the topic named for it, which says what any of them waits on him for with no question, and each other topic's page is its own: its name and the questions it asked", () => {
   const home = row("iikb", "working");
   const chats = row("Chats", "needs", at(9), { name: "iikb", place: "Chats" });
   const android = row("Android", "idle", at(9), { name: "iikb", place: "Android" });
@@ -599,6 +600,10 @@ test("a project with several topics opens on the topic named for it, and each ot
   assert.deepEqual(asked(home), ["return-key", "default"]);
   assert.deepEqual(asked(chats), ["return-key"]);
   assert.deepEqual(asked(android), []);
+
+  const parity = row("Parity", "needs", at(9), { name: "iikb", place: "Parity" });
+  const waiting = (threads: TaskRow[]) => waitingOf(threads, asks).map((one) => one.id);
+  assert.deepEqual(waiting([home, chats, android, parity]), [parity.id]);
 });
 
 test("an answer says it cleared buttons only when hex says it settled some, names where only when it missed none, and says what it missed", () => {

@@ -29,6 +29,7 @@ import { KIND, Steps, TraceLine } from "@/components/tasks/trace";
 import { useNow } from "@/hooks/use-now";
 import type { Ask, AskOption } from "@/live/asks";
 import {
+  PLACES,
   isPart,
   placeOf,
   proofLinks,
@@ -36,6 +37,7 @@ import {
   proofWords,
   titleOf,
   tracksOf,
+  waitingOf,
 } from "@/live/inbox";
 import type { Place, Tile } from "@/live/inbox";
 import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from "@/live/tasks";
@@ -87,14 +89,12 @@ export const Detail = ({
   foot?: number;
 }) => {
   const full = "lately" in task ? task : undefined;
-  const needs = needsOf(task, asks);
-  const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
-
   const own = ownOf(task, threads);
-
-  const working = [task, ...own.filter((one) => one.id !== task.id)].filter(
-    (one) => one.state === "working",
-  );
+  const under = [task, ...own.filter((one) => one.id !== task.id)];
+  const waiting = waitingOf(under, asks).filter((one) => needOf(one) !== "");
+  const needs = waiting.includes(task) ? needOf(task) : undefined;
+  const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
+  const working = under.filter((one) => one.state === "working");
 
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const tracks = laneOf(task, own);
@@ -105,7 +105,10 @@ export const Detail = ({
       <Header
         title={titleOf(task)}
         subtitle={subtitleOf(task, open)}
-        door={firstDoor([task, ...threads], onOpen)}
+        door={firstDoor(
+          under.filter((one) => one.place === task.place),
+          onOpen,
+        )}
       />
       <Faded>
         <List key={task.id} modifiers={pageList(asks, answered)}>
@@ -121,33 +124,16 @@ export const Detail = ({
           ) : null}
           <Column alignment="start" spacing={0} modifiers={rest()}>
             <Sections follows={asks.length > 0}>
-              {needs === undefined || needs === "" ? null : (
+              {waiting.length ? (
                 <Column key="needs" alignment="start" spacing={0}>
                   <StageHead tint="needs" title="Needs you" />
-                  <Text
-                    paragraph
-                    modifiers={[
-                      padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
-                      frame({ maxWidth: Infinity, alignment: "leading" }),
-                    ]}
-                  >
-                    {needs}
-                  </Text>
-                  <Text
-                    variant="detail"
-                    tone="secondary"
-                    modifiers={[
-                      padding({
-                        leading: metrics.list.inset,
-                        trailing: metrics.list.inset,
-                        top: space[1],
-                      }),
-                    ]}
-                  >
-                    {`Waiting on you since ${clock(new Date(task.since))}`}
-                  </Text>
+                  <Column alignment="start" spacing={space[4]}>
+                    {waiting.map((thread) => (
+                      <Waiting key={thread.id} thread={thread} page={task} onOpen={onOpenTask} />
+                    ))}
+                  </Column>
                 </Column>
-              )}
+              ) : null}
               {working.length ? (
                 <Column key="working" alignment="start" spacing={0}>
                   <StageHead tint="working" title="Working" count={working.length} />
@@ -247,7 +233,7 @@ const DetailFoot = ({
 }) =>
   hidden ? null : (
     <Foot foot={foot}>
-      {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
+      {onWrite ? <WriteField title={titleOf(task)} onPress={onWrite} /> : null}
       <Talk about={titleOf(task)} alone={!onWrite} onPress={onTalk} />
     </Foot>
   );
@@ -460,6 +446,43 @@ const pageList = (asks: Ask[], answered: Record<string, string | null>) => [
   animation(motion.list, rowsKey(asks.map((ask) => `${ask.id}=${answered[ask.id] ?? ""}`))),
 ];
 
+const Waiting = ({
+  thread,
+  page,
+  onOpen,
+}: {
+  thread: TaskRow | Task;
+  page: TaskRow | Task;
+  onOpen: (id: TaskId) => void;
+}) => {
+  const other = thread.id !== page.id;
+  const since = `on you since ${clock(new Date(thread.since))}`;
+
+  return (
+    <Column
+      alignment="start"
+      spacing={space[1]}
+      {...(other && {
+        onPress: () => {
+          onOpen(thread.id);
+        },
+      })}
+      modifiers={[
+        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
+        contentShape(shapes.rectangle()),
+      ]}
+    >
+      <Text paragraph modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}>
+        {needOf(thread)}
+      </Text>
+      <Text variant="detail" tone="secondary">
+        {other ? `${fromOf(thread, page)} · waiting ${since}` : `Waiting ${since}`}
+      </Text>
+    </Column>
+  );
+};
+
 const Run = ({
   thread,
   named,
@@ -547,11 +570,11 @@ const firstDoor = (threads: (TaskRow | Task)[], onOpen: (thread: TaskRow) => voi
 const laneOf = (task: TaskRow | Task, threads: TaskRow[]) =>
   tracksOf(task.name, threads.length > 0 ? threads : [task]);
 
-const needsOf = (task: TaskRow | Task, asks: Ask[]) => {
-  const full = "lately" in task ? task : undefined;
+const needOf = (thread: TaskRow | Task) =>
+  ("needs" in thread ? thread.needs : undefined) ?? thread.line;
 
-  return task.state === "needs" && asks.length === 0 ? (full?.needs ?? task.line) : undefined;
-};
+const fromOf = (thread: TaskRow | Task, page: TaskRow | Task) =>
+  thread.place === page.place ? PLACES[placeOf(thread.app)] : thread.place;
 
 const pastMark = (state: TaskState): MarkState => (state === "failed" ? "failed" : "read");
 

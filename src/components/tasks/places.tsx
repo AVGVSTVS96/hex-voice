@@ -160,9 +160,8 @@ export const Places = ({
         const place = placeOf(thread.app);
         const gone = missing.has(place);
         const linked = hasLink(thread);
-        const another = thread.id !== task.id;
-        const opens = linked || another;
-        const out = linked && !(another && thread.place !== task.place);
+        const opens = linked || thread.id !== task.id;
+        const out = linked && thread.place === task.place;
 
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
