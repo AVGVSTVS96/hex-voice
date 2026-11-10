@@ -78,7 +78,7 @@
       },
       {
         "from": "hex",
-        "text": "## Shipped\n\nBoth builds are **live** on `main`, with the *markdown* drawn by [Textual](https://github.com/gonzalezreal/textual).\n\n- **iPhone**: installed over Wi-Fi\n- **iPad**: waiting for its cable\n  - signing runs out in 7 days\n- `devicectl` did the install\n\n1. Open the app\n2. Open Tasks\n\n> Signing runs out after 7 days, and a native install renews it.\n\n```swift\nstruct Hex: View {\n    // the whole app\n    var body: some View { Text(\"hello, \\(1 + 2)\") }\n}\n```\n\n-# Task t-3 closed."
+        "text": "## Shipped\n\nBoth builds are **live** on `main`, with the *markdown* drawn by [Textual](https://github.com/gonzalezreal/textual).\n\n- **iPhone**: installed over Wi-Fi\n- **iPad**: waiting for its cable\n  - signing runs out in 7 days\n- `devicectl` did the install\n\n1. Open the app\n2. Open Tasks\n\n> Signing runs out after 7 days, and a native install renews it.\n\n```swift\nstruct Hex: View {\n    // the whole app\n    var body: some View { Text(\"hello, \\(1 + 2)\") }\n}\n```\n\n~~~ts\nconst ship = async (commit: string) => {\n  // only main\n  if (!commit) throw new Error(\"no commit\");\n  return 42;\n};\n~~~\n\n-# Task t-3 closed."
       },
       {
         "from": "hex",

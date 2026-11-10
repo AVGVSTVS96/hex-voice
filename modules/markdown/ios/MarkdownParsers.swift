@@ -48,11 +48,12 @@ struct Chat: MarkupParser {
       .split(separator: "\n", omittingEmptySubsequences: false)
       .map { line in
         let line = String(line)
-        if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
           fenced.toggle()
           return line
         }
-        if fenced || line.trimmingCharacters(in: .whitespaces).isEmpty { return line }
+        if fenced || trimmed.isEmpty { return line }
         return breaks ? line + "  " : line
       }
       .joined(separator: "\n")

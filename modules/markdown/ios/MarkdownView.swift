@@ -18,12 +18,16 @@ final class MarkdownProps: UIBaseViewProps {
   @Field var edge: Color = .gray
   @Field var surface: Color = .gray
   @Field var accent: Color = .accentColor
+  @Field var progress: Color = .blue
+  @Field var ask: Color = .orange
+  @Field var danger: Color = .red
   var onLink = EventDispatcher()
 
   var look: Look {
     Look(
       size: size, leading: leading, gap: gap, radius: radius,
-      color: color, secondary: secondary, edge: edge, surface: surface, accent: accent)
+      color: color, secondary: secondary, edge: edge, surface: surface, accent: accent,
+      progress: progress, ask: ask, danger: danger)
   }
 }
 

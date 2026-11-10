@@ -51,6 +51,9 @@ export const Markdown = ({
         edge={theme.edge}
         surface={theme.surface}
         accent={theme.accent}
+        progress={theme.progress}
+        ask={theme.ask}
+        danger={theme.danger}
         onLink={(url) => {
           void tries.attempt(url, "Not opened", async () => {
             await openURL(url);

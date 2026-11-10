@@ -18,6 +18,9 @@ export type MarkdownProps = CommonViewModifierProps & {
   edge: ColorValue;
   surface: ColorValue;
   accent: ColorValue;
+  progress: ColorValue;
+  ask: ColorValue;
+  danger: ColorValue;
   onLink: (url: string) => void;
 };
 
@@ -25,7 +28,10 @@ type NativeProps = Omit<MarkdownProps, keyof Colors | "onLink"> & {
   [Color in keyof Colors]: ReturnType<typeof processColor>;
 } & { onLink: (event: NativeSyntheticEvent<{ url: string }>) => void };
 
-type Colors = Pick<MarkdownProps, "color" | "secondary" | "edge" | "surface" | "accent">;
+type Colors = Pick<
+  MarkdownProps,
+  "color" | "secondary" | "edge" | "surface" | "accent" | "progress" | "ask" | "danger"
+>;
 
 const Native =
   process.env.EXPO_OS === "ios" ? requireNativeView<NativeProps>("Markdown", "MarkdownView") : null;
@@ -37,6 +43,9 @@ export const MarkdownView = ({
   edge,
   surface,
   accent,
+  progress,
+  ask,
+  danger,
   onLink,
   ...rest
 }: MarkdownProps) => {
@@ -52,6 +61,9 @@ export const MarkdownView = ({
       edge={processColor(edge)}
       surface={processColor(surface)}
       accent={processColor(accent)}
+      progress={processColor(progress)}
+      ask={processColor(ask)}
+      danger={processColor(danger)}
       onLink={({ nativeEvent }) => {
         onLink(nativeEvent.url);
       }}

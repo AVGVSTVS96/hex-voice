@@ -14,6 +14,9 @@ struct Look {
   var edge: Color
   var surface: Color
   var accent: Color
+  var progress: Color
+  var ask: Color
+  var danger: Color
 }
 
 extension Look: StructuredText.Style {
@@ -116,21 +119,24 @@ extension Look: StructuredText.Style {
 }
 
 extension StructuredText.HighlighterTheme {
-  // Code keeps the words' color, its keywords and strings take the accent, its comments the
-  // secondary tone.
   init(_ look: Look) {
-    let accent = AnyTextProperty(.foregroundColor(look.accent))
-    let quiet = AnyTextProperty(.foregroundColor(look.secondary))
-    let accented: [TokenType] = [
-      .keyword, .builtin, .className, .function, .functionName, .string, .char, .regex,
-      .attributeValue, .tag, .selector, .atrule, .important, .literal, .boolean,
+    let tones: [(Color, [TokenType])] = [
+      (
+        look.progress,
+        [.keyword, .builtin, .boolean, .literal, .atrule, .important, .directive, .preprocessor]
+      ),
+      (look.accent, [.string, .char, .regex, .attributeValue, .url, .inserted]),
+      (look.ask, [.number, .constant, .className, .attribute, .tag, .selector]),
+      (look.secondary, [.comment, .blockComment, .docComment, .prolog, .punctuation, .operator]),
+      (look.danger, [.deleted]),
     ]
-    let muted: [TokenType] = [.comment, .blockComment, .docComment, .prolog, .punctuation, .operator]
     self.init(
       foregroundColor: DynamicColor(look.color),
       backgroundColor: DynamicColor(look.surface),
       tokenProperties: Dictionary(
-        uniqueKeysWithValues: accented.map { ($0, accent) } + muted.map { ($0, quiet) })
+        uniqueKeysWithValues: tones.flatMap { tone, types in
+          types.map { ($0, AnyTextProperty(.foregroundColor(tone))) }
+        })
     )
   }
 }
