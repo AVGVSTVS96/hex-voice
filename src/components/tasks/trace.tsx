@@ -340,9 +340,23 @@ const Turn = ({
           onPress: onToggle,
           label: `${said === undefined ? "" : "Said at "}${title}, ${meta}. ${open ? "Hides" : "Shows"} its steps`,
         })}
-      >
-        {said ? <Under text={said.text} lines={open ? 0 : 2} /> : null}
-      </TraceLine>
+      />
+      {said ? (
+        <Row
+          alignment="start"
+          spacing={0}
+          modifiers={[
+            padding({
+              leading: TEXT,
+              trailing: metrics.list.inset - space[0.5],
+              top: -space[2],
+              bottom: space[2],
+            }),
+          ]}
+        >
+          <Under text={said.text} lines={open ? 0 : 2} />
+        </Row>
+      ) : null}
       {shown && steps.length ? (
         <Steps steps={steps} agents={agents} indent={metrics.list.mark + metrics.list.gap} />
       ) : null}
