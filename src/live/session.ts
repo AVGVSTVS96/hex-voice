@@ -38,6 +38,14 @@ const SILENT: Levels = { input: 0, output: 0 };
 const SESSION_CLOSE_MESSAGE =
   "Audio stopped, but the server could not confirm session closure. Check your network before starting another call.";
 
+const serverEnding = (reason: string | undefined): CallEnding => {
+  if (reason === "expired") {
+    return "expired";
+  }
+
+  return reason === "connection_lost" ? "dropped" : "hex";
+};
+
 export class LiveSession {
   private readonly factory: TransportFactory;
   private readonly api: SessionAPI;
@@ -240,22 +248,15 @@ export class LiveSession {
         this.confirmClosed?.();
 
         if (!this.closing) {
-          this.serverEnding = event.reason === "expired" ? "expired" : "hex";
+          this.serverEnding = serverEnding(event.reason);
           void this.stop();
         }
 
         break;
       }
 
-      case "error":
-      case "session.error": {
-        const message = event.error?.message;
-
-        void this.stop(
-          message === undefined || message === ""
-            ? "The voice service reported an error. Start again to retry."
-            : message,
-        );
+      case "error": {
+        console.warn("[hex] The voice service refused a command; the call goes on.", event.error);
         break;
       }
     }
@@ -439,7 +440,6 @@ export class LiveSession {
       }
     }
 
-    clearTimeout(this.muteTimer);
     const muted = !this.snapshot.muted;
 
     if (muted) {
@@ -448,22 +448,27 @@ export class LiveSession {
 
     this.update({ muted });
     this.hear({ input: 0 });
+    this.sendMute(muted);
+  };
+
+  // oxlint-disable-next-line no-comments/no-comments -- a fact the code can't show
+  /* The microphone stays as he set it until the voice confirms, and an unconfirmed change goes out
+     again rather than ending a call that may be fine: a lost connection ends it by its own path. */
+  private sendMute(muted: boolean) {
+    clearTimeout(this.muteTimer);
     this.nextCommand += 1;
     const id = `mute-${this.nextCommand}`;
     this.muteCommand = { id, muted };
-    this.muteTimer = setTimeout(() => {
-      void this.stop("The microphone change was not confirmed. Please reconnect.");
-    }, 5000);
-
-    const sent = this.transport.send({
+    this.transport?.send({
       type: muted ? "session.input_audio.mute" : "session.input_audio.unmute",
       event_id: id,
     });
-
-    if (!sent) {
-      void this.stop("The voice connection is unavailable. Start again to reconnect.");
-    }
-  };
+    this.muteTimer = setTimeout(() => {
+      if (this.muteCommand?.id === id) {
+        this.sendMute(muted);
+      }
+    }, 5000);
+  }
 
   stop = async (reason?: string): Promise<void> => {
     const failure = reason === "" ? undefined : reason;

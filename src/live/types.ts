@@ -52,7 +52,7 @@ const LiveEvent = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("session.closed"), reason: z.optional(z.string()) }),
   z.object({
-    type: z.enum(["error", "session.error"]),
+    type: z.literal("error"),
     error: z.catch(z.optional(z.object({ message: z.optional(z.string()) })), undefined),
   }),
 ]);

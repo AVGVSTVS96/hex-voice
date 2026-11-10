@@ -535,8 +535,12 @@ test("stale mute acknowledgments cannot satisfy the current unmute command", asy
     transport.acknowledge(mute);
     assert.deepEqual(transport.muteChanges, [true]);
     await h.clock.fire(5000);
-    assert.equal(h.session.getSnapshot().status, "error");
-    assert.match(h.session.getSnapshot().error ?? "", /microphone change was not confirmed/u);
+    assert.equal(h.session.getSnapshot().status, "connected");
+    const again = nth(transport.commands, 2);
+    assert.equal(again.type, "session.input_audio.unmute");
+    assert.notEqual(again.event_id, unmute.event_id);
+    transport.acknowledge(again);
+    assert.deepEqual(transport.muteChanges, [true, false]);
   } finally {
     await h.cleanup();
   }
@@ -850,6 +854,35 @@ test("a phone call or Siri pauses the microphone, tells hex, and gives it back u
     h.session.interrupt(false);
     assert.equal(transport.muteChanges.length, changes);
     assert.equal(h.session.getSnapshot().muted, true);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("an error from the voice service leaves the call going", async () => {
+  const h = harness();
+
+  try {
+    await h.session.start();
+    const transport = nth(h.transports, 0);
+    transport.emit({ type: "error", error: { message: "Unknown client or Decision delegation." } });
+    await settle();
+    assert.equal(h.session.getSnapshot().status, "connected");
+    assert.equal(transport.closed, false);
+    assert.deepEqual(h.closed, []);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("a call OpenAI closes for a lost connection ends as dropped", async () => {
+  const h = harness();
+
+  try {
+    await h.session.start();
+    nth(h.transports, 0).emit({ type: "session.closed", reason: "connection_lost" });
+    await settle();
+    assert.equal(h.session.getSnapshot().ending, "dropped");
   } finally {
     await h.cleanup();
   }
