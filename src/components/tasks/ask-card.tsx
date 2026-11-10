@@ -3,7 +3,6 @@ import { HStack, SwipeActions, VStack } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityElement,
-  accessibilityHidden,
   accessibilityHint,
   accessibilityIdentifier,
   accessibilityLabel,
@@ -14,6 +13,7 @@ import {
   fixedSize,
   foregroundStyle,
   frame,
+  lineLimit,
   monospacedDigit,
   onTapGesture,
   padding,
@@ -30,10 +30,10 @@ import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
 import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
-import { carryDraft, useDraft } from "@/hooks/use-draft";
+import { carryDraft, draftOf, useDraft } from "@/hooks/use-draft";
 import { openURL, useFailures } from "@/hooks/use-failures";
 import { NOT_NEEDED, PICK, unreached } from "@/live/asks";
-import type { Ask, AskLink, AskOption, Words } from "@/live/asks";
+import type { Ask, AskId, AskLink, AskOption, Words } from "@/live/asks";
 import { clock } from "@/live/tasks";
 import { motion } from "@/motion";
 import { theme } from "@/theme";
@@ -46,6 +46,10 @@ import { ShotsView } from "../../../modules/shots";
 const PILLS_PER_ROW = 3;
 
 const OWN_WORDS = "Answer in your own words";
+
+const LINES_WHILE_TYPING = 6;
+
+const REPLY_MARK = 3;
 
 const CARD_MARGIN = space[3];
 const CARD_PADDING = space[4];
@@ -165,24 +169,9 @@ const AskCard = ({
 
   const [open, setOpen] = useState(held);
   const words = useWords(ask.id);
-  const notes = useFailures();
-  const [noting, setNoting] = useState(false);
-  const [noted, setNoted] = useState(false);
+  const reply = useContext(Reply);
+  const here = reply?.ask?.id === ask.id;
 
-  const note = async (text: string) => {
-    setNoting(true);
-
-    const sent = await notes.attempt("note", "Note not sent", async () => {
-      await noteAsk(ask, text);
-    });
-
-    setNoting(false);
-    setNoted(sent);
-
-    return sent;
-  };
-
-  const failed = notes.failed.note ?? ask.failed;
   const links = ask.links ?? [];
 
   return (
@@ -202,11 +191,9 @@ const AskCard = ({
         <Pill
           label={NOT_NEEDED}
           accessibility={`${NOT_NEEDED}: puts the question away`}
-          {...(!noting && {
-            onPress: () => {
-              onDismiss(ask);
-            },
-          })}
+          onPress={() => {
+            onDismiss(ask);
+          }}
           small
         />
       </HStack>
@@ -257,19 +244,19 @@ const AskCard = ({
         />
       ) : null}
       {links.length > 0 && (open || !words) ? <Links links={links} /> : null}
-      <Failure text={failed} />
+      <Failure text={ask.failed} />
       <Shots ask={ask} />
       <Answers ask={ask} onAnswer={onAnswer} />
-      <Composer
-        draft={`ask:${ask.id}`}
-        topic={ask.topic}
-        sending={noting}
-        onNote={note}
-        onAnswer={(label) => {
-          onAnswer(ask, { label });
-        }}
-      />
-      {noted && notes.failed.note === undefined ? (
+      {reply ? (
+        <OwnWords
+          draft={draftOf(`ask:${ask.id}`)}
+          here={here}
+          onPress={() => {
+            reply.open(ask);
+          }}
+        />
+      ) : null}
+      {reply?.noted.has(ask.id) === true ? (
         <Text variant="caption" tone="secondary" paragraph>
           {`Sent to ${ask.topic} as a note. The question is still open.`}
         </Text>
@@ -502,14 +489,80 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   );
 };
 
-export interface Typed {
+interface Typed {
   topic: string;
   words: boolean;
   sending: boolean;
   send: (as: "note" | "answer") => void;
 }
 
-export const Reply = createContext<((typed: Typed | null) => void) | undefined>(undefined);
+export interface Replying {
+  ask: Ask | null;
+  noted: ReadonlySet<AskId>;
+  open: (ask: Ask) => void;
+  close: () => void;
+  note: (id: AskId) => void;
+}
+
+export const Reply = createContext<Replying | undefined>(undefined);
+
+export const useReplying = (): Replying => {
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [noted, setNoted] = useState<ReadonlySet<AskId>>(new Set());
+
+  return {
+    ask,
+    noted,
+    open: setAsk,
+    close: () => {
+      setAsk(null);
+    },
+    note: (id) => {
+      setNoted((was) => new Set([...was, id]));
+    },
+  };
+};
+
+const OwnWords = ({
+  draft,
+  here,
+  onPress,
+}: {
+  draft: string;
+  here: boolean;
+  onPress: () => void;
+}) => (
+  <Row
+    alignment="center"
+    spacing={space[3]}
+    onPress={onPress}
+    testID="ask-own"
+    modifiers={[
+      padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
+      frame({ minHeight: metrics.pill.regular }),
+      frame({ maxWidth: Infinity, alignment: "leading" }),
+      strokeBorder({
+        content: here ? theme.secondary : theme.fill,
+        shape: "roundedRectangle",
+        cornerRadius: radius.option,
+      }),
+      contentShape(shapes.rectangle()),
+      accessibilityElement("combine"),
+      accessibilityLabel(draft.trim() ? `${OWN_WORDS}: ${draft}` : OWN_WORDS),
+      accessibilityAddTraits(["isButton"]),
+    ]}
+  >
+    <Icon name="square.and.pencil" size={metrics.symbol.small} color={theme.secondary} />
+    <Text
+      variant="body"
+      tone={draft.trim() ? "text" : "secondary"}
+      numberOfLines={2}
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+    >
+      {draft.trim() || OWN_WORDS}
+    </Text>
+  </Row>
+);
 
 const inkOf = (live: boolean, lit: boolean) => {
   if (lit) {
@@ -592,142 +645,142 @@ const Sends = ({ typed }: { typed: Typed }) => {
   );
 };
 
-export const ReplyBar = ({ typed }: { typed: Typed }) => (
-  <Column
-    alignment="start"
-    spacing={0}
-    modifiers={[
-      padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN }),
-      frame({ maxWidth: Infinity }),
-    ]}
-  >
-    <Sends typed={typed} />
-  </Column>
-);
-
-const Composer = ({
-  draft,
-  topic,
-  sending,
-  onNote,
+export const ReplyComposer = ({
+  ask,
   onAnswer,
+  onClose,
+  onNoted,
 }: {
-  draft: string;
-  topic: string;
-  sending: boolean;
-  onNote: (text: string) => Promise<boolean>;
-  onAnswer: (text: string) => void;
+  ask: Ask;
+  onAnswer: Answer;
+  onClose: () => void;
+  onNoted: (id: AskId) => void;
 }) => {
-  const { first, keep } = useDraft(draft);
+  const { first, keep } = useDraft(`ask:${ask.id}`);
   const [text, setText] = useState(first);
-  const [focused, setFocused] = useState(false);
+  const now = useRef(first);
   const typing = useTyping();
   const field = useField();
-  const reply = useContext(Reply);
-  const now = useRef(first);
-  const words = text.trim() !== "";
+  const notes = useFailures();
+  const [sending, setSending] = useState(false);
 
-  const noteAndClear = async (said: string) => {
-    if (await onNote(said)) {
-      field.current?.clear();
-      field.current?.blur();
-      now.current = "";
-      setText("");
+  const send = async (as: "note" | "answer") => {
+    const said = now.current.trim();
+
+    if (said === "") {
+      return;
+    }
+
+    if (as === "answer") {
+      onAnswer(ask, { label: said });
+      onClose();
+
+      return;
+    }
+
+    setSending(true);
+
+    const sent = await notes.attempt("note", "Note not sent", async () => {
+      await noteAsk(ask, said);
+    });
+
+    setSending(false);
+
+    if (sent) {
+      onNoted(ask.id);
+      onClose();
     }
   };
 
   const typed: Typed = {
-    topic,
-    words,
+    topic: ask.topic,
+    words: text.trim() !== "",
     sending,
     send: (as) => {
-      const said = now.current.trim();
-
-      if (said === "") {
-        return;
-      }
-
-      if (as === "note") {
-        void noteAndClear(said);
-      } else {
-        onAnswer(said);
-      }
+      void send(as);
     },
   };
-
-  const lifted = focused && reply !== undefined;
-
-  const publishWhileTyping = () => {
-    reply?.(lifted ? typed : null);
-  };
-
-  useEffect(publishWhileTyping, [lifted, words, sending]);
-
-  const letGoOnRemoval = () => () => {
-    reply?.(null);
-  };
-
-  useEffect(letGoOnRemoval, []);
 
   return (
     <Column
       alignment="start"
-      spacing={space[3]}
-      modifiers={[frame({ maxWidth: Infinity }), animation(motion.list, words && !lifted)]}
+      spacing={space[2]}
+      modifiers={[
+        padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN }),
+        frame({ maxWidth: Infinity }),
+      ]}
     >
-      <Row
-        alignment="start"
-        spacing={space[3]}
-        modifiers={[
-          padding({ leading: space[4], trailing: space[4] }),
-          frame({ minHeight: metrics.pill.regular }),
-          frame({ maxWidth: Infinity, alignment: "leading" }),
-          strokeBorder({
-            content: focused ? theme.secondary : theme.fill,
-            shape: "roundedRectangle",
-            cornerRadius: radius.option,
-          }),
-        ]}
-      >
-        <Icon
-          name="square.and.pencil"
-          size={metrics.symbol.small}
-          color={theme.secondary}
-          modifiers={[frame({ height: metrics.pill.regular }), accessibilityHidden(true)]}
-        />
-        <TextInput
-          ref={field}
-          multiline
-          testID="ask-input"
-          onFocus={() => {
-            setFocused(true);
-            reply?.(typed);
-            typing(true);
-          }}
-          onBlur={() => {
-            setFocused(false);
-            reply?.(null);
-            typing(false);
-          }}
-          defaultValue={first}
-          placeholder={OWN_WORDS}
-          placeholderTextColor={theme.secondary}
-          cursorColor={theme.text}
-          onChangeText={(next) => {
-            now.current = next;
-            setText(next);
-            keep(next);
-          }}
-          textStyle={labelOf("body")}
+      <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
+        <Column
+          alignment="start"
+          spacing={0}
           modifiers={[
-            foregroundStyle(theme.text),
-            padding({ top: space[3], bottom: space[3] }),
-            frame({ maxWidth: Infinity, alignment: "leading" }),
-            accessibilityLabel(`${OWN_WORDS}, or a note for ${topic}`),
+            frame({ width: REPLY_MARK, height: metrics.bar.button }),
+            background(theme.accent),
+            clipShape("capsule"),
+          ]}
+        />
+        <Column
+          alignment="start"
+          spacing={0}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          <Text variant="caption" tone="accent">
+            Replying to
+          </Text>
+          <Text variant="detail" numberOfLines={1}>
+            {ask.question}
+          </Text>
+        </Column>
+        <Icon
+          name="xmark.circle.fill"
+          size={metrics.symbol.send}
+          color={theme.tertiary}
+          onPress={onClose}
+          modifiers={[
+            frame({ width: metrics.bar.button, height: metrics.bar.button }),
+            accessibilityLabel("Close, keeping your words"),
           ]}
         />
       </Row>
-      {words && !lifted ? <Sends typed={typed} /> : null}
+      <TextInput
+        ref={field}
+        autoFocus
+        multiline
+        testID="ask-input"
+        onFocus={() => {
+          typing(true);
+        }}
+        onBlur={() => {
+          typing(false);
+
+          if (now.current.trim() === "") {
+            onClose();
+          }
+        }}
+        defaultValue={first}
+        placeholder={OWN_WORDS}
+        placeholderTextColor={theme.secondary}
+        cursorColor={theme.text}
+        onChangeText={(next) => {
+          now.current = next;
+          setText(next);
+          keep(next);
+        }}
+        textStyle={labelOf("body")}
+        modifiers={[
+          foregroundStyle(theme.text),
+          lineLimit(LINES_WHILE_TYPING),
+          padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
+          frame({ minHeight: metrics.field }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
+          background(theme.surface),
+          clipShape("roundedRectangle", radius.option),
+          accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
+        ]}
+      />
+      <Failure text={notes.failed.note} />
+      <Sends typed={typed} />
     </Column>
   );
 };

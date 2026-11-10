@@ -8,6 +8,8 @@ const Drafts = z.record(z.string(), z.string());
 
 const saved = () => Drafts.safeParse(Settings.get(KEY)).data ?? {};
 
+export const draftOf = (where: string) => saved()[where] ?? "";
+
 export const keepDraft = (where: string, text: string) => {
   const { [where]: _, ...rest } = saved();
   Settings.set({ [KEY]: text.trim() ? { ...rest, [where]: text } : rest });

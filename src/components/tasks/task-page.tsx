@@ -15,11 +15,10 @@ import {
   scrollIndicators,
   shapes,
 } from "@expo/ui/swift-ui/modifiers";
-import { useState } from "react";
 import type { ReactNode } from "react";
 
-import { Reply, ReplyBar, YourCall } from "@/components/tasks/ask-card";
-import type { Typed } from "@/components/tasks/ask-card";
+import { Reply, ReplyComposer, YourCall, useReplying } from "@/components/tasks/ask-card";
+import type { Replying } from "@/components/tasks/ask-card";
 import { Header } from "@/components/tasks/bar";
 import type { Door } from "@/components/tasks/bar";
 import { Lane } from "@/components/tasks/lane";
@@ -103,10 +102,10 @@ export const Detail = ({
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const tracks = laneOf(task, own);
   const now = useNow(false).getTime();
-  const [typed, setTyped] = useState<Typed | null>(null);
+  const replying = useReplying();
 
   return (
-    <Reply.Provider value={setTyped}>
+    <Reply.Provider value={replying}>
       <Column alignment="center" spacing={0} modifiers={readable}>
         <Header
           title={titleOf(task)}
@@ -210,45 +209,53 @@ export const Detail = ({
             </Column>
           </List>
         </Faded>
-        <WriteFoot
-          title={titleOf(task)}
-          typed={typed}
-          hidden={beside || answering}
+        <PageFoot
+          replying={replying}
+          asks={asks}
+          answered={answered}
+          onAnswer={onAnswer}
           foot={foot}
-          onWrite={onWrite}
+          write={{ title: titleOf(task), hidden: beside || answering, onWrite }}
         />
       </Column>
     </Reply.Provider>
   );
 };
 
-const ReplyFoot = ({ typed, foot }: { typed: Typed | null; foot: number }) =>
-  typed ? (
-    <Foot foot={foot}>
-      <ReplyBar typed={typed} />
-    </Foot>
-  ) : null;
-
-const WriteFoot = ({
-  title,
-  typed,
-  hidden,
+const PageFoot = ({
+  replying,
+  asks,
+  answered,
+  onAnswer,
   foot,
-  onWrite,
+  write,
 }: {
-  title: string;
-  typed: Typed | null;
-  hidden: boolean;
+  replying: Replying;
+  asks: Ask[];
+  answered: Record<string, string | null>;
+  onAnswer: (ask: Ask, option: AskOption) => void;
   foot: number;
-  onWrite?: (() => void) | undefined;
+  write?: { title: string; hidden: boolean; onWrite?: (() => void) | undefined };
 }) => {
-  if (typed) {
-    return <ReplyFoot typed={typed} foot={foot} />;
+  const to = asks.find((one) => one.id === replying.ask?.id && (answered[one.id] ?? "") === "");
+
+  if (to) {
+    return (
+      <Foot foot={foot}>
+        <ReplyComposer
+          key={to.id}
+          ask={to}
+          onAnswer={onAnswer}
+          onClose={replying.close}
+          onNoted={replying.note}
+        />
+      </Foot>
+    );
   }
 
-  return onWrite && !hidden ? (
+  return write?.onWrite && !write.hidden ? (
     <Foot foot={foot}>
-      <WriteField title={title} onPress={onWrite} />
+      <WriteField title={write.title} onPress={write.onWrite} />
     </Foot>
   ) : null;
 };
@@ -276,10 +283,10 @@ export const Asked = ({
 }) => {
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const others = rows?.length ?? 0;
-  const [typed, setTyped] = useState<Typed | null>(null);
+  const replying = useReplying();
 
   return (
-    <Reply.Provider value={setTyped}>
+    <Reply.Provider value={replying}>
       <Column alignment="center" spacing={0} modifiers={readable}>
         <Header
           title={topic}
@@ -302,7 +309,13 @@ export const Asked = ({
             <Column alignment="start" spacing={0} modifiers={rest()} />
           </List>
         </Faded>
-        <ReplyFoot typed={typed} foot={0} />
+        <PageFoot
+          replying={replying}
+          asks={asks}
+          answered={answered}
+          onAnswer={onAnswer}
+          foot={0}
+        />
       </Column>
     </Reply.Provider>
   );

@@ -1,20 +1,23 @@
 # Answering a question in your own words, and putting one away: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-taps
-# Its "Answer in your own words" box takes a tap to type in, its Send as note and Answer riding
-# above the keyboard, dimmed until there are words.
-# Words typed on its card and not sent stay there: the page closes, and the app starts again, and
-# the card opens on them, the keyboard down.
+# "Answer in your own words" on its card docks one box above the keyboard, replying to that
+# question, with Send as note and Answer under it, dimmed until there are words; let go of empty,
+# the page's message box comes back.
+# Words typed and not sent stay: the page closes, and the app starts again, and the card's row
+# shows them, the keyboard down.
 launch hexvoice:///?tasks=md
 wait 3
 tap ask-card
 wait 1
-tap ask-input
+shoot ask-rest
+tap ask-own
 wait 1
 shoot ask-empty
 swipe-down ask-input
 wait 1
 no-keyboard after the swipe
+frame thread-write
 shoot ask-empty-resting
-tap ask-input
+tap ask-own
 type ask-input Found one of them
 above-keyboard ask-input
 shoot ask-writing
@@ -39,6 +42,7 @@ tap Undo
 wait 1
 shoot ask-back
 # Swiped away while typing, it lets go of the keyboard and the page's foot comes back.
+tap ask-own
 type ask-input  still
 swipe-left ask-card
 wait 1
@@ -59,18 +63,21 @@ shoot row-swiped
 tap xmark
 wait 1
 shoot row-put-away
-# A note says the question is still open; an answer folds it to what was said and clears the
-# words, so the next run starts on none.
+# A note says the question is still open; a long answer stays in sight as it grows; an answer
+# folds the card to what was said and clears the words, so the next run starts on none.
 launch hexvoice:///?tasks=md
 wait 3
+tap ask-own
 type ask-input  and the other
 tap Send as note
 wait 1
 no-keyboard after the note
 frame thread-write
 shoot ask-noted
-tap ask-input
-type ask-input Found both
+tap ask-own
+type ask-input Found both, and this answer runs on over three or four lines on the folded screen so the box has to grow
+above-keyboard ask-input
+shoot ask-long
 swipe-down ask-input
 wait 1
 shoot ask-typed-resting
