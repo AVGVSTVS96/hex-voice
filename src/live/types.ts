@@ -9,7 +9,13 @@ export interface FailedHere {
   failed?: string;
 }
 
-export type LiveStatus = "idle" | "connecting" | "connected" | "disconnecting" | "error";
+export type LiveStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnecting"
+  | "error";
 
 export interface TranscriptEntry {
   id: string;
@@ -103,6 +109,7 @@ export interface SessionAPI {
     voice?: LiveVoice,
     about?: CallAbout,
   ) => Promise<{ sdp: string; sessionId: CallId }>;
+  carryOn?: (sdp: string, call: CallId) => Promise<{ sdp: string; sessionId: CallId } | null>;
   close: (sessionId: CallId) => Promise<void>;
   mark?: (sessionId: CallId, kind: "paused" | "resumed") => Promise<void>;
 }

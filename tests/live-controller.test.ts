@@ -887,3 +887,104 @@ test("a call OpenAI closes for a lost connection ends as dropped", async () => {
     await h.cleanup();
   }
 });
+
+test("a lost connection carries the call on in a new session: the same call, one clock for captions, the mute kept", async () => {
+  const h = harness();
+  const carried: string[] = [];
+  h.api.carryOn = async (sdp, call) => {
+    carried.push(call);
+
+    return { sdp: `answer-${sdp}`, sessionId: call };
+  };
+
+  try {
+    await h.session.start();
+    const first = nth(h.transports, 0);
+    first.emit({
+      type: "session.input_transcript.delta",
+      delta: "hello",
+      start_ms: 100,
+      end_ms: 400,
+    });
+    h.session.toggleMute();
+    const muting = first.commands.at(-1);
+    assert.ok(muting);
+    first.acknowledge(muting);
+    h.clock.now += 30_000;
+    first.callbacks.onFailure("The audio connection failed.");
+    await settle();
+
+    const second = nth(h.transports, 1);
+    assert.equal(first.closed, true);
+    assert.deepEqual(carried, ["live_1"]);
+    assert.equal(h.session.getSnapshot().status, "connected");
+    assert.equal(h.session.getSnapshot().callId, "live_1");
+    assert.equal(h.session.getSnapshot().muted, true);
+    assert.equal(second.muteChanges[0], true);
+    assert.equal(second.commands.at(-1)?.type, "session.input_audio.mute");
+
+    second.emit({
+      type: "session.input_transcript.delta",
+      delta: "again",
+      start_ms: 100,
+      end_ms: 300,
+    });
+    assert.deepEqual(
+      h.session.getSnapshot().transcript.map(({ text, startMs }) => ({ text, startMs })),
+      [
+        { text: "hello", startMs: 100 },
+        { text: "again", startMs: 30_100 },
+      ],
+    );
+
+    await h.session.stop();
+    assert.equal(h.session.getSnapshot().ending, "you");
+    assert.deepEqual(h.closed, []);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("a session OpenAI ends on its time limit carries on, retrying past a failure, and ends as dropped only once hex says the call is over", async () => {
+  const h = harness();
+  const answers: ("fail" | "over")[] = ["fail", "over"];
+  h.api.carryOn = async () => {
+    if (answers.shift() === "fail") {
+      throw new Error("Network request failed");
+    }
+
+    return null;
+  };
+
+  try {
+    await h.session.start();
+    nth(h.transports, 0).emit({ type: "session.closed", reason: "expired" });
+    await settle();
+    assert.equal(h.session.getSnapshot().status, "reconnecting");
+    await h.clock.fire(0);
+    await settle();
+    assert.equal(h.transports.length, 3);
+    assert.equal(h.session.getSnapshot().status, "idle");
+    assert.equal(h.session.getSnapshot().ending, "dropped");
+    assert.deepEqual(h.closed, []);
+  } finally {
+    await h.cleanup();
+  }
+});
+
+test("hanging up while the call reconnects ends it as yours", async () => {
+  const h = harness();
+  h.api.carryOn = async () => await Promise.withResolvers<never>().promise;
+
+  try {
+    await h.session.start();
+    nth(h.transports, 0).emit({ type: "session.closed", reason: "connection_lost" });
+    await settle();
+    assert.equal(h.session.getSnapshot().status, "reconnecting");
+    await h.session.stop();
+    assert.equal(h.session.getSnapshot().ending, "you");
+    assert.equal(h.session.getSnapshot().status, "idle");
+  } finally {
+    await h.cleanup();
+  }
+});

@@ -14,6 +14,10 @@ const shownState = (call: Call) => {
     return null;
   }
 
+  if (call.phase === "reconnecting") {
+    return "connecting";
+  }
+
   if (call.phase !== "live") {
     return call.phase;
   }

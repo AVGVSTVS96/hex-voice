@@ -38,6 +38,12 @@ const SILENT: Levels = { input: 0, output: 0 };
 const SESSION_CLOSE_MESSAGE =
   "Audio stopped, but the server could not confirm session closure. Check your network before starting another call.";
 
+const CARRIES_ON = new Set(["expired", "connection_lost", "remote_hangup"]);
+
+const RETRY = [0, 1000, 2000, 4000, 8000];
+
+const GIVE_UP = 150_000;
+
 const serverEnding = (reason: string | undefined): CallEnding => {
   if (reason === "expired") {
     return "expired";
@@ -70,6 +76,10 @@ export class LiveSession {
   private reportedDuplex = false;
   private lastSentPackets = 0;
   private appActive = true;
+  private shift = 0;
+  private lostAt = 0;
+  private tries = 0;
+  private retryTimer?: ReturnType<typeof setTimeout>;
 
   constructor(factory: TransportFactory, api: SessionAPI) {
     this.factory = factory;
@@ -123,26 +133,13 @@ export class LiveSession {
     this.serverClosed = false;
     this.serverEnding = null;
     this.statsPending = null;
+    this.shift = 0;
     this.update({ status: "connecting" });
     const isCurrent = () => generation === this.generation;
     let transport: LiveTransport | undefined;
 
     try {
-      transport = await this.factory({
-        onEvent: (event) => {
-          if (
-            isCurrent() ||
-            (event.type === "session.closed" && this.closing && transport === this.transport)
-          ) {
-            this.onEvent(event);
-          }
-        },
-        onFailure: (message) => {
-          if (isCurrent() && !this.closing) {
-            void this.stop(message);
-          }
-        },
-      });
+      transport = await this.connect(generation);
 
       if (!isCurrent()) {
         transport.close();
@@ -198,12 +195,156 @@ export class LiveSession {
     }
   };
 
+  private async connect(generation: number) {
+    const transport: LiveTransport = await this.factory({
+      onEvent: (event) => {
+        const own = transport === this.transport;
+
+        if (
+          (own && generation === this.generation) ||
+          (own && event.type === "session.closed" && this.closing)
+        ) {
+          this.onEvent(event);
+        }
+      },
+      onFailure: (message) => {
+        if (transport === this.transport && generation === this.generation && !this.closing) {
+          this.lose(message);
+        }
+      },
+    });
+
+    return transport;
+  }
+
   private busy() {
     return (
       this.closing !== null ||
       this.snapshot.status === "connecting" ||
-      this.snapshot.status === "connected"
+      this.snapshot.status === "connected" ||
+      this.snapshot.status === "reconnecting"
     );
+  }
+
+  // oxlint-disable-next-line no-comments/no-comments -- a fact the code can't show
+  /* Only a hang-up ends a call. A connection that fails, or a session OpenAI ends on its own, has
+     the call carry on in a new session hex opens for the same call, with the call so far. */
+  private lose(failure: string, reason?: string) {
+    const { status } = this.snapshot;
+
+    if (status === "reconnecting") {
+      this.retry();
+
+      return;
+    }
+
+    if (status !== "connected" || !this.api.carryOn || this.sessionId === null) {
+      if (reason !== undefined) {
+        this.serverEnding = serverEnding(reason);
+      }
+
+      void this.stop(reason === undefined ? failure : undefined);
+
+      return;
+    }
+
+    this.refreshElapsed();
+    this.lostAt = Date.now();
+    this.tries = 0;
+    clearInterval(this.statsTimer);
+    clearTimeout(this.muteTimer);
+    this.muteCommand = null;
+    this.statsPending = null;
+    this.hear(SILENT);
+    this.update({ status: "reconnecting" });
+    void this.carryOn();
+  }
+
+  private async carryOn() {
+    const { generation, sessionId: call } = this;
+
+    const reconnecting = () =>
+      generation === this.generation && this.snapshot.status === "reconnecting";
+
+    this.transport?.close();
+    this.transport = null;
+
+    if (call === null || !this.api.carryOn) {
+      return;
+    }
+
+    let transport: LiveTransport | undefined;
+
+    try {
+      transport = await this.connect(generation);
+
+      if (!reconnecting()) {
+        transport.close();
+
+        return;
+      }
+
+      this.transport = transport;
+      transport.setMuted(this.snapshot.muted || this.snapshot.interrupted);
+      const session = await this.api.carryOn(await transport.offer(), call);
+
+      if (!reconnecting()) {
+        return;
+      }
+
+      if (session === null) {
+        this.serverClosed = true;
+        this.serverEnding = "dropped";
+        void this.stop();
+
+        return;
+      }
+
+      this.startupTimer = setTimeout(() => {
+        this.retry();
+      }, 25_000);
+      await transport.answer(session.sdp);
+    } catch {
+      if (reconnecting() && transport === this.transport) {
+        this.retry();
+      }
+    }
+  }
+
+  private retry() {
+    clearTimeout(this.startupTimer);
+    clearTimeout(this.retryTimer);
+
+    if (Date.now() - this.lostAt > GIVE_UP) {
+      this.serverClosed = true;
+      void this.stop("The connection to hex was lost.");
+
+      return;
+    }
+
+    const wait = RETRY[Math.min(this.tries, RETRY.length - 1)] ?? 0;
+    this.tries += 1;
+    this.retryTimer = setTimeout(() => {
+      if (this.snapshot.status === "reconnecting") {
+        void this.carryOn();
+      }
+    }, wait);
+  }
+
+  private resumed() {
+    this.shift = Date.now() - this.startedAt;
+    this.update({ status: "connected" });
+    this.startStats();
+    this.nextCommand += 1;
+
+    if (this.snapshot.muted) {
+      this.sendMute(true);
+    } else if (this.snapshot.interrupted) {
+      this.transport?.send({
+        type: "session.input_audio.mute",
+        event_id: `interruption-${this.nextCommand}`,
+      });
+    }
   }
 
   private onEvent(event: LiveEvent) {
@@ -218,6 +359,11 @@ export class LiveSession {
     switch (event.type) {
       case "session.started": {
         clearTimeout(this.startupTimer);
+
+        if (this.snapshot.status === "reconnecting") {
+          this.resumed();
+          break;
+        }
 
         if (this.snapshot.status !== "connecting") {
           break;
@@ -247,7 +393,13 @@ export class LiveSession {
         this.serverClosed = true;
         this.confirmClosed?.();
 
-        if (!this.closing) {
+        if (this.closing) {
+          break;
+        }
+
+        if (CARRIES_ON.has(event.reason ?? "")) {
+          this.lose("The voice session ended.", event.reason);
+        } else {
           this.serverEnding = serverEnding(event.reason);
           void this.stop();
         }
@@ -271,7 +423,11 @@ export class LiveSession {
     const entries = [...this.snapshot.transcript];
     const index = entries.findLastIndex((entry) => entry.role === role);
     const previous = index === -1 ? undefined : entries[index];
-    const startMs = event.start_ms ?? this.snapshot.elapsedSeconds * 1000;
+
+    const startMs =
+      event.start_ms === undefined
+        ? this.snapshot.elapsedSeconds * 1000
+        : event.start_ms + this.shift;
 
     if (previous === undefined || startMs - (previous.endMs ?? previous.startMs) > 2000) {
       entries.push({
@@ -279,13 +435,13 @@ export class LiveSession {
         role,
         text: event.delta,
         startMs,
-        endMs: event.end_ms ?? startMs,
+        endMs: event.end_ms === undefined ? startMs : event.end_ms + this.shift,
       });
     } else {
       entries[index] = {
         ...previous,
         text: previous.text + event.delta,
-        endMs: event.end_ms ?? startMs,
+        endMs: event.end_ms === undefined ? startMs : event.end_ms + this.shift,
       };
     }
 
@@ -337,7 +493,7 @@ export class LiveSession {
   }
 
   private refreshElapsed() {
-    if (this.snapshot.status !== "connected") {
+    if (this.snapshot.status !== "connected" && this.snapshot.status !== "reconnecting") {
       return false;
     }
 
@@ -481,7 +637,9 @@ export class LiveSession {
 
     this.refreshElapsed();
 
-    if (!this.transport && this.snapshot.status !== "connecting") {
+    const { status } = this.snapshot;
+
+    if (!this.transport && status !== "connecting" && status !== "reconnecting") {
       if (failure !== undefined) {
         this.update({ status: "error", error: failure });
       }
@@ -489,7 +647,7 @@ export class LiveSession {
       return;
     }
 
-    const connected = this.snapshot.status === "connected";
+    const connected = status === "connected" || status === "reconnecting";
     const failed: CallEnding = connected ? "dropped" : "no-connect";
     const ended = this.serverEnding ?? (connected ? "you" : null);
     const ending = failure === undefined ? ended : failed;
@@ -497,6 +655,7 @@ export class LiveSession {
     this.generation += 1;
     clearInterval(this.statsTimer);
     clearTimeout(this.startupTimer);
+    clearTimeout(this.retryTimer);
     clearTimeout(this.muteTimer);
     this.muteCommand = null;
     this.statsPending = null;

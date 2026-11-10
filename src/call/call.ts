@@ -22,7 +22,7 @@ export type Call =
   | { kind: "none"; last?: Ended }
   | {
       kind: "here";
-      phase: "connecting" | "live" | "ending";
+      phase: "connecting" | "live" | "reconnecting" | "ending";
       id?: CallId | undefined;
       mic: Mic;
       hushed: boolean;
@@ -36,9 +36,10 @@ export interface Elsewhere {
   leaving: boolean;
 }
 
-const HERE: Partial<Record<LiveStatus, "connecting" | "live" | "ending">> = {
+const HERE: Partial<Record<LiveStatus, "connecting" | "live" | "reconnecting" | "ending">> = {
   connecting: "connecting",
   connected: "live",
+  reconnecting: "reconnecting",
   disconnecting: "ending",
 };
 
@@ -175,6 +176,10 @@ export const statusOf = (call: Call) => {
 
   if (call.phase === "connecting") {
     return "Connecting";
+  }
+
+  if (call.phase === "reconnecting") {
+    return "Reconnecting";
   }
 
   if (call.phase === "ending") {

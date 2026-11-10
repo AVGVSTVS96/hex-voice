@@ -11,6 +11,7 @@ import type { TalkChange } from "../live/talk";
 import { Chat, TaskCounts, TaskList, TaskOrPage } from "../live/tasks";
 import type { TaskId } from "../live/tasks";
 import type { SessionAPI } from "../live/types";
+import { RefusedError } from "./client";
 import type { Client } from "./client";
 
 const Opened = z.object({
@@ -34,6 +35,22 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       });
 
       return { sdp: transport.sdp, sessionId: opened.id };
+    },
+    carryOn: async (sdp, call) => {
+      try {
+        const { session: opened, transport } = await request("/session", Opened, {
+          method: "POST",
+          body: { sdp, from: "app", continues: call },
+        });
+
+        return { sdp: transport.sdp, sessionId: opened.id };
+      } catch (error) {
+        if (error instanceof RefusedError && error.status === 410) {
+          return null;
+        }
+
+        throw error;
+      }
     },
     close: async (sessionId) => {
       await send("/session", { method: "DELETE", body: { sessionId } });
