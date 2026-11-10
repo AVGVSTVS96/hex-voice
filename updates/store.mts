@@ -1,7 +1,7 @@
 // The Expo Updates protocol `serve` answers: https://docs.expo.dev/technical-specs/expo-updates-1/
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, watch, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
@@ -25,6 +25,8 @@ const CONTENT_TYPES = new Map([
   ["wav", "audio/wav"],
   ["mp3", "audio/mpeg"],
   ["m4a", "audio/mp4"],
+  ["html", "text/html; charset=utf-8"],
+  ["plist", "application/xml"],
 ]);
 
 const contentType = (ext: string) => CONTENT_TYPES.get(ext) ?? "application/octet-stream";
@@ -121,12 +123,17 @@ const replace = async (file: string, data: string | Buffer) => {
 };
 
 const respond = async (dir: string, request: IncomingMessage, response: ServerResponse) => {
-  const { pathname } = new URL(request.url ?? "/", "http://localhost");
+  const { pathname, searchParams } = new URL(request.url ?? "/", "http://localhost");
 
   try {
-    await (pathname === "/manifest"
-      ? sendManifest(dir, request, response)
-      : sendAsset(dir, pathname, request, response));
+    if (pathname === "/manifest") {
+      await sendManifest(dir, request, response);
+    } else if (pathname === "/install/latest.json") {
+      await sendLinkBuild(path.join(dir, "install"), searchParams.get("after"), response);
+    } else {
+      const file = pathname === "/install/" ? "/install/index.html" : pathname;
+      await sendFile(dir, file, request, response);
+    }
   } catch (error) {
     console.error(error);
 
@@ -136,6 +143,44 @@ const respond = async (dir: string, request: IncomingMessage, response: ServerRe
 
     response.end();
   }
+};
+
+const LinkBuild = z.object({ version: z.number() });
+
+const readLinkBuild = async (folder: string) =>
+  await readFile(path.join(folder, "latest.json"), "utf-8").catch(() => '{"version":0}');
+
+const versionOf = (build: string) => String(LinkBuild.safeParse(JSON.parse(build)).data?.version);
+
+const sendLinkBuild = async (folder: string, after: string | null, response: ServerResponse) => {
+  await mkdir(folder, { recursive: true });
+  const build = await readLinkBuild(folder);
+
+  response
+    .writeHead(200, { "content-type": "application/json", "cache-control": "no-cache" })
+    .end(versionOf(build) === after ? await nextLinkBuild(folder, after) : build);
+};
+
+const nextLinkBuild = async (folder: string, after: string) => {
+  const done = new AbortController();
+
+  try {
+    for await (const { filename } of watch(folder, {
+      signal: AbortSignal.any([done.signal, AbortSignal.timeout(60_000)]),
+    })) {
+      const build = filename === "latest.json" ? await readLinkBuild(folder) : undefined;
+
+      if (build !== undefined && versionOf(build) !== after) {
+        return build;
+      }
+    }
+  } catch {
+    return await readLinkBuild(folder);
+  } finally {
+    done.abort();
+  }
+
+  return await readLinkBuild(folder);
 };
 
 export const serve = (dir: string) =>
@@ -175,14 +220,19 @@ const sendManifest = async (dir: string, request: IncomingMessage, response: Ser
   response.writeHead(200, { ...headers, "content-type": "application/json" }).end(manifest);
 };
 
-const sendAsset = async (
+const sendFile = async (
   dir: string,
   pathname: string,
   request: IncomingMessage,
   response: ServerResponse,
 ) => {
-  const name = Name.safeParse(/^\/assets\/(?<name>[^/]+)$/u.exec(pathname)?.groups?.name);
-  const file = name.success ? path.join(dir, "assets", name.data) : undefined;
+  const { folder, name } =
+    /^\/(?<folder>assets|install)\/(?<name>[^/]+)$/u.exec(pathname)?.groups ?? {};
+
+  const file =
+    folder !== undefined && Name.safeParse(name).success
+      ? path.join(dir, folder, String(name))
+      : undefined;
 
   if (file === undefined || (await stat(file).catch(() => null)) === null) {
     response.writeHead(404).end();
@@ -190,10 +240,12 @@ const sendAsset = async (
     return;
   }
 
-  const gzip = /\bgzip\b/u.test(request.headers["accept-encoding"] ?? "");
+  const asset = folder === "assets";
+
+  const gzip = asset && /\bgzip\b/u.test(request.headers["accept-encoding"] ?? "");
   response.writeHead(200, {
     "content-type": contentType(file.slice(file.lastIndexOf(".") + 1)),
-    "cache-control": "public, max-age=31536000, immutable",
+    "cache-control": asset ? "public, max-age=31536000, immutable" : "no-cache",
     ...(gzip && { "content-encoding": "gzip" }),
   });
   const stream = createReadStream(file);

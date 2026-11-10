@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Builds main once and installs it on the iPhone and iPad. The Mac builds it unsigned in one warm
-# folder, so Xcode only rebuilds what changed. Bassim's paid Apple team signs it with the Mac's
-# development certificate, in profiles that last a year: xtool on the server (Bassim's fork) only
-# makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose login
-# keychain has the key. Then the Mac installs with devicectl on the devices it reaches by cable or
-# Wi-Fi. Never let xtool revoke the certificate to make its own: that breaks what Xcode signs, hex
-# keyboard included.
-# Runs queue up: one that waited behind another builds the newest main, or nothing when the
-# devices already run it, and reuses a signed build of that main already on the Mac. When the Mac
-# doesn't answer, it's asleep, and the run stops and says so. Installing ends a call the app
-# carries, so installs wait for that call to end; phone, web and Discord calls don't run in the app.
+# Builds main once and puts it on the install link (/install/ on the update server), where the
+# app's update toast, or the link's page in Safari, installs it when Bassim taps: nothing installs
+# by itself. The Mac builds it unsigned in one warm folder, so Xcode only rebuilds what changed.
+# Bassim's paid Apple team signs it with the Mac's development certificate, in profiles that last a
+# year: xtool on the server (Bassim's fork) only makes the profiles for it and signs ad hoc, and
+# scripts/resign signs on the Mac, whose login keychain has the key. Never let xtool revoke the
+# certificate to make its own: that breaks what Xcode signs, hex keyboard included.
+# A build goes up only when main's native code (its runtime) isn't on the link yet, since an app
+# with that runtime already gets main's JS over the air; --rebuild puts it up anyway, which renews
+# the year the profiles last.
+# Runs queue up: one that waited behind another builds the newest main, and reuses a signed build
+# of that main already on the Mac. When the Mac doesn't answer, it's asleep, and the run stops and
+# says so.
+#   scripts/ship-native [--rebuild]
 . "$(dirname "$0")/release.sh"
 
 mac=${HEX_VOICE_MAC:-mac}
@@ -35,26 +38,14 @@ build() {
   cat "$app/EXUpdates.bundle/fingerprint"
 }
 
-wait_for_no_call() {
-  local calls after=
-  while true; do
-    calls=$(ssh "$mac" curl -sf -m 60 -H "'Authorization: Bearer $EXPO_PUBLIC_HEX_TOKEN'" \
-      "'$EXPO_PUBLIC_HEX_URL/calls${after:+?after=$after}'") ||
-      die "couldn't ask hex whether a call is live, so nothing was installed"
-    [ -n "$(jq -r '.live as $live | .calls[] | select(.id == $live and .from == "app") | .id' <<<"$calls")" ] ||
-      return 0
-    [ -n "$after" ] || echo "waiting for the app's live call to end before installing"
-    after=$(jq -r .version <<<"$calls")
-  done
-}
-
 if [ "${1:-}" = build ]; then
   cd "$(dirname "$0")/.."
   build
   exit
 fi
 
-mkdir -p "$home/installed"
+link=$updates/install
+mkdir -p "$link"
 exec 8>"$home/native.lock"
 flock -n 8 || {
   echo "another native ship is running; this one ships the newest main after it"
@@ -67,19 +58,15 @@ commit=$(git -C "$release" rev-parse HEAD)
 title=$(git -C "$release" log --oneline -1 | cut -c1-80)
 bundle=$(jq -r .expo.ios.bundleIdentifier "$release/app.json")
 set -a && . "$release/.env.local" && set +a
-devices=()
-for device in $IOS_DEVICES; do
-  [ "$(cat "$home/installed/$device" 2>/dev/null)" = "$commit" ] || devices+=("$device")
-done
-[ ${#devices[@]} -gt 0 ] || {
-  echo "the iPhone and iPad already run $title"
+runtime=$(runtime_version)
+[ "${1:-}" = --rebuild ] || [ "$(jq -r .runtime "$link/latest.json" 2>/dev/null)" != "$runtime" ] || {
+  echo "the install link already has main's native code (runtime $runtime): npm run ship:js ships the rest"
   exit
 }
 ssh -o ConnectTimeout=15 -o BatchMode=yes "$mac" true </dev/null 2>/dev/null ||
-  die "the Mac didn't answer, so it's asleep: $title wasn't built or installed"
-asleep() { [ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't installed" >&2; }
+  die "the Mac didn't answer, so it's asleep: $title wasn't built"
+asleep() { [ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't on the link" >&2; }
 trap asleep EXIT
-runtime=$(runtime_version)
 signed=build/signed/hex.app
 if [ "$(cat "$home/signed" 2>/dev/null)" = "$commit" ]; then
   flock -u 9
@@ -106,30 +93,37 @@ print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'],
   echo "$commit" >"$home/signed"
 fi
 
-wait_for_no_call
-failed=
-quit=
-unopened=
-for device in "${devices[@]}"; do
-  if timeout 5m ssh "$mac" xcrun devicectl device install app --device "$device" \
-    "$folder/$signed" >"$home/install-$device.log" 2>&1 </dev/null; then
-    echo "$commit" >"$home/installed/$device"
-    [ "$device" != "$DUO_UDID" ] || mkdir -p "$updates/ios/$runtime"
-    echo "installed $title on $device"
-    if ssh "$mac" xcrun devicectl device process launch --device "$device" --terminate-existing \
-      "$bundle" >/dev/null 2>&1 </dev/null; then
-      sleep 10
-      ssh "$mac" xcrun devicectl device info processes --device "$device" </dev/null 2>/dev/null |
-        grep -q '/hex\.app/hex$' || quit+=" $device"
-    else
-      unopened+=" $device"
-    fi
-  else
-    failed+=" $device"
-  fi
-done
-[ -z "$failed" ] || die "couldn't install on$failed, see $home/install-<udid>.log"
-[ -z "$quit" ] ||
-  die "$title quit within 10 seconds of opening on$quit: its Library/Application Support/expo-error.log says why"
-[ -z "$unopened" ] ||
-  die "$title is installed but unchecked on$unopened: it couldn't be opened there (locked?), so nothing saw it start"
+echo "putting it on the install link"
+ssh "$mac" "cd $folder/build/signed && rm -rf Payload hex.ipa && mkdir Payload && cp -R hex.app Payload/ &&
+  ditto -c -k --keepParent Payload hex.ipa && rm -rf Payload" </dev/null
+number=$(git -C "$release" rev-list --count HEAD)
+scp -q "$mac:$folder/build/signed/hex.ipa" "$link/hex-$number.ipa.part"
+mv "$link/hex-$number.ipa.part" "$link/hex-$number.ipa"
+url=${HEX_UPDATES_URL%/manifest}/install
+python3 - "$link" "$url" "$number" "$bundle" "$runtime" "$title" "$home/hex.app/Info.plist" <<'PY'
+import html, json, plistlib, sys, urllib.parse
+link, url, number, bundle, runtime, title, info = sys.argv[1:]
+version = plistlib.load(open(info, "rb"))["CFBundleVersion"]
+plistlib.dump({"items": [{
+    "assets": [{"kind": "software-package", "url": f"{url}/hex-{number}.ipa"}],
+    "metadata": {"bundle-identifier": bundle, "bundle-version": version, "kind": "software", "title": "hex"},
+}]}, open(f"{link}/manifest.plist", "wb"))
+install = "itms-services://?action=download-manifest&url=" + urllib.parse.quote(f"{url}/manifest.plist", safe="")
+open(f"{link}/index.html", "w").write(f"""<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>hex {number}</title>
+<style>
+body {{ font: 17px/1.4 -apple-system, system-ui; max-width: 30em; margin: 18vh auto 0; padding: 0 20px }}
+a {{ display: block; padding: 14px; border-radius: 14px; background: #1F8A6D; color: white; text-align: center; font-weight: 600; text-decoration: none }}
+p {{ opacity: .6; font-size: 15px; margin-top: 20px }}
+</style>
+<a href="{html.escape(install)}">Install hex {number}</a>
+<p>{html.escape(title)}</p>
+""")
+json.dump({"version": int(number), "runtime": runtime, "install": install}, open(f"{link}/latest.json.part", "w"))
+PY
+mv "$link/latest.json.part" "$link/latest.json"
+find "$link" -name 'hex-*.ipa' ! -name "hex-$number.ipa" -delete
+mkdir -p "$updates/ios/$runtime"
+echo "$title is on the install link, $url/: the app shows its update toast"

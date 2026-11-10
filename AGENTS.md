@@ -18,14 +18,15 @@ The app is a phone for hex. It sends its WebRTC offer to hex's voice plugin (`EX
 
 ```
 push main ─┬─ npm run ship:js -- <commit>   JS only: over the air, on both devices in seconds
-           └─ npm run ship:native           native changed: one warm Mac build, installed on both
+           └─ npm run ship:native           native changed: one warm Mac build, onto the install link
 ```
 
 - After you push main, run `npm run ship:js -- <commit>`, naming the commit you pushed: it refuses unless main holds it, so a merge or push that failed never ships the rest of main. It publishes main's JS to the update server (`updates/store.mts`, the `hex-voice-updates` service on the server), and the app restarts into it the next time it comes to the front with no call live.
-- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/`, `modules/` or `patches/` changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, and signs it (below) and installs it with `devicectl` on the iPhone (over Wi-Fi) and the iPad (plugged into the Mac) once no call is live. A run that waited behind another ships the newest main, or nothing when both devices already run it.
+- `ship:js` refuses when main's native fingerprint (the runtime version) has no build yet: native packages, `app.json`, `app.config.ts`, `plugins/`, `modules/` or `patches/` changed. Then run `npm run ship:native`: the Mac builds main unsigned in its one shared build folder (`~/Developer/hex-voice-release`), so Xcode only rebuilds what changed, signs it (below) and puts it on the install link, the update server's `/install/`. Nothing installs by itself: while Bassim uses the app, an "Update ready" toast offers the new build, and his tap on it installs it (`useAppUpdates`, `UpdateToast`); the link's page in Safari does the same. A run builds only when main's runtime isn't on the link yet, and a run that waited behind another ships the newest main.
+- Until he taps, his phone keeps the old runtime, and JS shipped after the new native build waits for it too.
 - The app is signed by Bassim's paid Apple team with the Mac's development certificate (its key is in the Mac's login keychain), so xtool never makes its own: that could revoke the Mac's and break every app Xcode signed, hex keyboard too. `ship:native` has xtool on the server (Bassim's fork, whose `xtool sign` provisions an app for a certificate it holds without the key and signs ad hoc) make the profiles, then `scripts/resign` signs on the Mac with the keychain identity that has the certificate's serial, the frameworks, the Live Activity extension and the app, each with its profile's entitlements. The keychain opens only in the login session, so that runs as a one-off launch agent. Simulator builds on the Mac don't touch signing.
 - Both ship what's on origin/main, from the release checkout `~/.local/share/hex-voice/release` and its `.env.local` (see `.env.example`), and both wait their turn, so any agent can run them at any time.
-- The paid team's profile stops the app opening a year after a native install. Over-the-air updates don't renew it; `ship:native` does.
+- The paid team's profile stops the app opening a year after a native install. Over-the-air updates don't renew it; `ship:native --rebuild` puts main on the link even when its runtime is there already, and his install of it does.
 
 ## Checking on the Duo
 

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { once } from "node:events";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test, { after } from "node:test";
+import { scheduler } from "node:timers/promises";
 
 import * as z from "zod";
 
@@ -149,4 +150,54 @@ test("publishing the same export again leaves the update as it was", async (t) =
   const again = await publish(update);
   assert.equal(again.published, false);
   assert.equal(await readFile(path.join(dir, "ios/abc123/manifest.json"), "utf-8"), first);
+});
+
+test("serves the install link's page, manifest and build, never cached", async (t) => {
+  const { dir, server, origin } = await store();
+  t.after(() => server.close());
+  await mkdir(path.join(dir, "install"));
+  await writeFile(path.join(dir, "install/index.html"), "<a>Install</a>");
+  await writeFile(path.join(dir, "install/manifest.plist"), "<plist/>");
+
+  const page = await fetch(`${origin}/install/`);
+  assert.equal(page.headers.get("content-type"), "text/html; charset=utf-8");
+  assert.equal(page.headers.get("cache-control"), "no-cache");
+  assert.equal(await page.text(), "<a>Install</a>");
+
+  const plist = await fetch(`${origin}/install/manifest.plist`);
+  assert.equal(plist.headers.get("content-type"), "application/xml");
+  const missing = await fetch(`${origin}/install/hex-1.ipa`);
+  assert.equal(missing.status, 404);
+  const outside = await fetch(`${origin}/install/..%2Fios`);
+  assert.equal(outside.status, 404);
+});
+
+test("an ask for the link's build waits until a newer one goes up", async (t) => {
+  const { dir, server, origin } = await store();
+  t.after(() => server.close());
+
+  const put = async (version: number) => {
+    await mkdir(path.join(dir, "install"), { recursive: true });
+    await writeFile(path.join(dir, "install/latest.json.part"), JSON.stringify({ version }));
+    await rename(path.join(dir, "install/latest.json.part"), path.join(dir, "install/latest.json"));
+  };
+
+  const ask = async (seen?: number) => {
+    const response = await fetch(
+      `${origin}/install/latest.json${seen === undefined ? "" : `?after=${seen}`}`,
+    );
+
+    return z.object({ version: z.number() }).parse(await response.json());
+  };
+
+  assert.deepEqual(await ask(), { version: 0 });
+  await put(7);
+
+  const asked = ask(7);
+  const early = await Promise.race([asked, scheduler.wait(300)]);
+  assert.equal(early, undefined);
+
+  await put(8);
+  assert.deepEqual(await asked, { version: 8 });
+  assert.deepEqual(await ask(3), { version: 8 });
 });

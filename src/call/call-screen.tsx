@@ -41,10 +41,12 @@ import type { Move, TasksAt } from "@/components/tasks/pages";
 import { ToolbarBackProvider, useToolbarBacks } from "@/components/toolbar-back";
 import type { BackFrom } from "@/components/toolbar-back";
 import { Transcript } from "@/components/transcript";
+import { UpdateToast } from "@/components/update-toast";
 import { VoiceSettings } from "@/components/voice-settings";
 import type { SettingsSheet } from "@/components/voice-settings";
 import { useAgentLine } from "@/hooks/use-agent-line";
 import { useAppUpdates } from "@/hooks/use-app-updates";
+import type { NativeBuild } from "@/hooks/use-app-updates";
 import { answerAsk, raiseAsks } from "@/hooks/use-asks";
 import { useCallActivity } from "@/hooks/use-call-activity";
 import { useCallFeedback } from "@/hooks/use-call-feedback";
@@ -97,6 +99,7 @@ export interface Opening {
   open?: "settings" | "calls" | undefined;
   reportPose: boolean;
   split?: boolean;
+  update?: NativeBuild | undefined;
 }
 
 const LiveScreen = ({ opening }: { opening: Opening }) => {
@@ -234,7 +237,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const status = statusOf(call);
 
   useCallFeedback(live, preferences);
-  useAppUpdates(onCall);
+  const update = useAppUpdates(onCall) ?? opening.update;
+  const [notNow, setNotNow] = useState<number>();
   useEndedCall(call, voice, calls.add);
   useCallActivity(call, activityOrb(variant, preferences.personaColor, preferences.opalPalette), {
     toggleMute,
@@ -962,6 +966,15 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           width={width}
           drawer={drawer}
           toolbar={screenToolbar}
+        />
+      )}
+      {update && !onCall && update.version !== notNow && (
+        <UpdateToast
+          build={update}
+          top={insets.top}
+          onDismiss={() => {
+            setNotNow(update.version);
+          }}
         />
       )}
     </ToolbarBackProvider>
