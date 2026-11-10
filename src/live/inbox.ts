@@ -450,6 +450,25 @@ export const pageOf = (topic: Topic): PageId => {
   return topic.entries.map(taskOf).find(Boolean) ?? `${TOPIC}${topic.name}`;
 };
 
+export const isPart = (thread: Pick<TaskRow, "name" | "place">) =>
+  thread.place !== "" && thread.place !== thread.name;
+
+export const titleOf = (thread: Pick<TaskRow, "name" | "place">) =>
+  isPart(thread) ? thread.place : thread.name;
+
+export const homeOf = (page: PageId, tasks: TaskRow[]): PageId => {
+  const opened = tasks.find((row) => row.id === page);
+
+  if (!opened || !isPart(opened)) {
+    return page;
+  }
+
+  return tasks.find((row) => row.name === opened.name && !isPart(row))?.id ?? page;
+};
+
+export const asksOf = (thread: Pick<TaskRow, "id" | "name" | "place">, asks: Ask[]) =>
+  asks.filter((ask) => (isPart(thread) ? ask.task === thread.id : ask.topic === thread.name));
+
 export const topicIn = (page: PageId | null) =>
   page !== null && isTopic(page) ? page.slice(TOPIC.length) : undefined;
 

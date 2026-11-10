@@ -7,6 +7,10 @@ import { Ask, Fresh, Stuck } from "../src/live/asks";
 import {
   headlineOf,
   doneIn,
+  asksOf,
+  homeOf,
+  isPart,
+  titleOf,
   pageOf,
   proofLinks,
   proofSays,
@@ -568,6 +572,33 @@ test("a project opens on its leading thread, or on a page of its own when it has
   const stuckTopic = { name: "Stuck", entries: [], marks: [] };
   assert.equal(topicIn(pageOf(stuckTopic)), "Stuck");
   assert.equal(topicIn(entry.task.id), undefined);
+});
+
+test("a project with several topics opens on the topic named for it, and each other topic's page is its own: its name and the questions it asked", () => {
+  const home = row("iikb", "working");
+  const chats = row("Chats", "needs", at(9), { name: "iikb", place: "Chats" });
+  const android = row("Android", "idle", at(9), { name: "iikb", place: "Android" });
+  const loose = row("Parity", "idle", at(9), { name: "tests", place: "Parity" });
+  const tasks = [chats, home, android, loose];
+
+  assert.deepEqual(
+    [chats, home, android, loose].map((thread) => homeOf(thread.id, tasks)),
+    [home.id, home.id, home.id, loose.id],
+  );
+  assert.equal(homeOf("topic:Stuck", tasks), "topic:Stuck");
+  assert.deepEqual([home, chats].map(isPart), [false, true]);
+  assert.deepEqual([home, chats].map(titleOf), ["iikb", "Chats"]);
+
+  const asks = [
+    ask("return-key", "pick", { topic: "iikb", task: chats.id }),
+    ask("default", "pick", { topic: "iikb", task: home.id }),
+    ask("other", "pick"),
+  ];
+
+  const asked = (thread: TaskRow) => asksOf(thread, asks).map((one) => one.id);
+  assert.deepEqual(asked(home), ["return-key", "default"]);
+  assert.deepEqual(asked(chats), ["return-key"]);
+  assert.deepEqual(asked(android), []);
 });
 
 test("an answer says it cleared buttons only when hex says it settled some, names where only when it missed none, and says what it missed", () => {

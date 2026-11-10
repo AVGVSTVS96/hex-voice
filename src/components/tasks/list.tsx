@@ -39,6 +39,7 @@ import {
   stageCounts,
   stageTopics,
   tabEntries,
+  homeOf,
   pageOf,
   taskOf,
   topicIn,
@@ -154,7 +155,7 @@ export const ListPage = ({
     const lead = stageTopics(entries, next).at(0);
 
     if (beside) {
-      pages.go({ to: "beside", id: lead ? pageOf(lead) : null });
+      pages.go({ to: "beside", id: lead ? homeOf(pageOf(lead), tasks ?? []) : null });
     }
   };
 
@@ -266,7 +267,7 @@ export const ListPage = ({
                       stage === "done" ? pageOf(topic) === pages.task : topic.name === openTopic
                     }
                     onOpen={() => {
-                      openPage(pageOf(topic), topic.entries[0]?.id);
+                      openPage(homeOf(pageOf(topic), tasks ?? []), topic.entries[0]?.id);
                     }}
                   />,
                 ];
@@ -279,7 +280,7 @@ export const ListPage = ({
                   key={`${topic.name}:head`}
                   topic={topic}
                   onPress={() => {
-                    openPage(lead ?? pageOf(topic));
+                    openPage(homeOf(lead ?? pageOf(topic), tasks ?? []));
                   }}
                 />,
                 ...topic.entries.map((entry) => (

@@ -28,7 +28,15 @@ import { Foot, WriteField } from "@/components/tasks/thread";
 import { KIND, Steps, TraceLine } from "@/components/tasks/trace";
 import { useNow } from "@/hooks/use-now";
 import type { Ask, AskOption } from "@/live/asks";
-import { placeOf, proofLinks, proofSays, proofWords, tracksOf } from "@/live/inbox";
+import {
+  isPart,
+  placeOf,
+  proofLinks,
+  proofSays,
+  proofWords,
+  titleOf,
+  tracksOf,
+} from "@/live/inbox";
 import type { Place, Tile } from "@/live/inbox";
 import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from "@/live/tasks";
 import type { Finished, Task, TaskRow, TaskId, TaskState } from "@/live/tasks";
@@ -82,18 +90,20 @@ export const Detail = ({
   const needs = needsOf(task, asks);
   const lately = (full?.lately ?? []).filter((moment, i) => !(i === 0 && moment.text === needs));
 
-  const working = [task, ...threads.filter((one) => one.id !== task.id)].filter(
+  const own = ownOf(task, threads);
+
+  const working = [task, ...own.filter((one) => one.id !== task.id)].filter(
     (one) => one.state === "working",
   );
 
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
-  const tracks = laneOf(task, threads);
+  const tracks = laneOf(task, own);
   const now = useNow(false).getTime();
 
   return (
     <Column alignment="center" spacing={0} modifiers={readable}>
       <Header
-        title={task.name}
+        title={titleOf(task)}
         subtitle={subtitleOf(task, open)}
         door={firstDoor([task, ...threads], onOpen)}
       />
@@ -238,7 +248,7 @@ const DetailFoot = ({
   hidden ? null : (
     <Foot foot={foot}>
       {onWrite ? <WriteField title={task.place || task.name} onPress={onWrite} /> : null}
-      <Talk about={task.name} alone={!onWrite} onPress={onTalk} />
+      <Talk about={titleOf(task)} alone={!onWrite} onPress={onTalk} />
     </Foot>
   );
 
@@ -553,7 +563,12 @@ const tileUrl = (tile: Tile) => {
   return tile.kind === "app" ? tile.link : "";
 };
 
-const subtitleOf = (task: TaskRow | Task, open: number) => {
+const ownOf = (task: TaskRow | Task, threads: TaskRow[]) => (isPart(task) ? [] : threads);
+
+const subtitleOf = (task: TaskRow | Task, open: number) =>
+  [...(isPart(task) ? [task.name] : []), standingOf(task, open)].join(" · ");
+
+const standingOf = (task: TaskRow | Task, open: number) => {
   const time = taskTime(task);
   const asks = open ? `${open} need${open === 1 ? "s" : ""} you` : "";
 

@@ -160,7 +160,9 @@ export const Places = ({
         const place = placeOf(thread.app);
         const gone = missing.has(place);
         const linked = hasLink(thread);
-        const opens = linked || thread.id !== task.id;
+        const another = thread.id !== task.id;
+        const opens = linked || another;
+        const out = linked && !(another && thread.place !== task.place);
 
         const note = gone
           ? `${PLACES[place]} isn’t on this ${DEVICE}`
@@ -178,7 +180,7 @@ export const Places = ({
               spacing={space[3]}
               {...(opens && {
                 onPress: () => {
-                  if (linked) {
+                  if (out) {
                     onOpen(thread);
                   } else {
                     onOpenTask(thread.id);
@@ -212,7 +214,7 @@ export const Places = ({
               </Column>
               {opens ? (
                 <Icon
-                  name={linked ? "arrow.up.right" : "chevron.right"}
+                  name={out ? "arrow.up.right" : "chevron.right"}
                   size={12}
                   color={theme.tertiary}
                 />

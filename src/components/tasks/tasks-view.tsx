@@ -35,6 +35,8 @@ import { useTask, useTasks } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
 import type { Ask, AskOption } from "@/live/asks";
 import {
+  asksOf,
+  homeOf,
   inboxEntries,
   openingStage,
   pageOf,
@@ -44,6 +46,7 @@ import {
   stageCounts,
   stageTopics,
   taskIn,
+  titleOf,
   topicIn,
 } from "@/live/inbox";
 import type { Entry, PageId, Place, Tab, Tile } from "@/live/inbox";
@@ -111,14 +114,14 @@ export const Tasks = ({
     }
   }, [open, loaded, pages.stage, stage]);
 
-  const showing = showingOf(pages, entries, stage);
+  const showing = showingOf(pages, entries, stage, tasks);
   const { task } = useTask(taskIn(showing), version);
   const asked = yours.shown.find((ask) => ask.task === showing);
   const opened = openedOf(task, tasks, showing, asked);
   const did = finished.find((one) => one.id === doneIn(showing));
   const topic = topicOf(opened, asked, showing);
   const threads = threadsOf(opened, tasks);
-  const topicAsks = asksIn(yours.shown, topic, pages.row);
+  const topicAsks = asksIn(yours.shown, opened, topic, pages.row);
 
   const said = useChat(opened ? opened.id : null, open);
 
@@ -533,12 +536,12 @@ export const Tasks = ({
 
 const PUSHED = ["topic", "thread", "steps", "check", "picks", "pick"] as const satisfies Level[];
 
-const showingOf = (pages: Pages, entries: Entry[], stage: Tab) => {
+const showingOf = (pages: Pages, entries: Entry[], stage: Tab, tasks: TaskRow[] = []) => {
   const leading = (
     pages.shape !== "one" && (pages.task ?? "") === "" ? stageTopics(entries, stage) : []
   ).at(0);
 
-  return pages.task ?? (leading ? pageOf(leading) : null);
+  return pages.task ?? (leading ? homeOf(pageOf(leading), tasks) : null);
 };
 
 const openedOf = (
@@ -564,17 +567,22 @@ const topicOf = (
 const threadsOf = (opened: TaskRow | Task | undefined, tasks: TaskRow[] | undefined) =>
   opened ? (tasks ?? []).filter((row) => row.name === opened.name) : [];
 
-const asksIn = (shown: Ask[], topic: string | undefined, row: string | null) =>
+const asksIn = (
+  shown: Ask[],
+  opened: TaskRow | Task | undefined,
+  topic: string | undefined,
+  row: string | null,
+) =>
   topic === undefined || topic === ""
     ? []
-    : shown
-        .filter((ask) => ask.topic === topic)
-        .sort((a, b) => Number(b.id === row) - Number(a.id === row));
+    : (opened ? asksOf(opened, shown) : shown.filter((ask) => ask.topic === topic)).sort(
+        (a, b) => Number(b.id === row) - Number(a.id === row),
+      );
 
 const namesOf = (opened: TaskRow | Task | undefined): Record<Level | "call", string> => ({
   call: "Call",
   list: "Tasks",
-  topic: opened?.name ?? "Topic",
+  topic: (opened && titleOf(opened)) ?? "Topic",
   thread: opened === undefined ? "Thread" : opened.place || opened.name,
   steps: "Steps",
   check: "Last check",
