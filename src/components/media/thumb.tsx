@@ -50,16 +50,18 @@ export const Album = ({
   media,
   width,
   dim = false,
+  side: edge = "end",
 }: {
   media: Shown[];
   width: number;
   dim?: boolean;
+  side?: "start" | "end";
 }) => {
   const one = media.length === 1;
   const side = one ? width : (width - space[1]) / 2;
 
   return (
-    <View style={[styles.album, { width }, dim && styles.dim]}>
+    <View style={[styles.album, { width, justifyContent: `flex-${edge}` }, dim && styles.dim]}>
       {media.map((each, i) => (
         <Thumb key={i} media={each} width={side} corner={radius.media} square={!one} />
       ))}
@@ -68,7 +70,7 @@ export const Album = ({
 };
 
 const styles = StyleSheet.create({
-  album: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: space[1] },
+  album: { flexDirection: "row", flexWrap: "wrap", gap: space[1] },
   dim: { opacity: 0.6 },
   frame: {
     overflow: "hidden",

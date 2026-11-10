@@ -22,19 +22,3 @@ export type Shown = Picked | Shared;
 
 export const MOST = 4;
 export const CLIP_SECONDS = 60;
-
-export const mediaWords = (media: readonly { kind: MediaKind }[]) => {
-  const words = MediaKind.options
-    .flatMap((kind) => {
-      const count = media.filter((one) => one.kind === kind).length;
-
-      if (count > 1) {
-        return [`${count} ${kind}s`];
-      }
-
-      return count === 1 ? [media.length > 1 ? `a ${kind}` : kind] : [];
-    })
-    .join(" and ");
-
-  return words.charAt(0).toUpperCase() + words.slice(1);
-};

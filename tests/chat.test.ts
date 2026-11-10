@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { arrived, newKey, said } from "../src/live/chat";
-import { MediaId, mediaWords } from "../src/live/media";
+import { MediaId } from "../src/live/media";
 import { TaskId } from "../src/live/tasks";
 import type { Chat } from "../src/live/tasks";
 
@@ -71,16 +71,6 @@ test("a photo sent with no words arrives as your turn holding that many photos",
     ),
     true,
   );
-});
-
-test("a turn that is only media reads as what it holds", () => {
-  assert.equal(mediaWords([{ kind: "photo" }]), "Photo");
-  assert.equal(mediaWords([{ kind: "video" }, { kind: "video" }]), "2 videos");
-  assert.equal(
-    mediaWords([{ kind: "photo" }, { kind: "video" }, { kind: "photo" }]),
-    "2 photos and a video",
-  );
-  assert.equal(mediaWords([{ kind: "photo" }, { kind: "video" }]), "A photo and a video");
 });
 
 test("app keys fit what hex takes", () => {

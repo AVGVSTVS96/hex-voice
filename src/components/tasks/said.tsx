@@ -15,7 +15,6 @@ import { Markdown } from "@/components/markdown";
 import { Album } from "@/components/media/thumb";
 import { said } from "@/live/chat";
 import type { Sending } from "@/live/chat";
-import { mediaWords } from "@/live/media";
 import type { Shown } from "@/live/media";
 import type { ChatTurn } from "@/live/tasks";
 import { theme } from "@/theme";
@@ -36,16 +35,28 @@ export const Said = ({ turn }: { turn: ChatTurn }) => {
     return <Event text={one.text ? `${one.label} · ${one.text}` : one.label} />;
   }
 
+  const media = turn.media ?? [];
+
   return (
-    <Markdown
-      selectable={selectable}
+    <Column
+      alignment="start"
+      spacing={space[2]}
       modifiers={[
         padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
-        frame({ maxWidth: Infinity }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
       ]}
     >
-      {one.text}
-    </Markdown>
+      {media.length ? (
+        <RNHostView matchContents>
+          <Album media={media} width={metrics.media.turn} side="start" />
+        </RNHostView>
+      ) : null}
+      {one.text ? (
+        <Markdown selectable={selectable} modifiers={[frame({ maxWidth: Infinity })]}>
+          {one.text}
+        </Markdown>
+      ) : null}
+    </Column>
   );
 };
 
@@ -90,7 +101,8 @@ export const SaidLine = ({
   const one = said(turn);
   const who = one.kind === "hex" ? "hex" : "You";
 
-  const text = lineOf(one, turn.media ?? []);
+  const media = turn.media ?? [];
+  const text = lineOf(one);
 
   return (
     <Row
@@ -113,25 +125,38 @@ export const SaidLine = ({
       >
         {named ? who : ""}
       </Text>
-      <Markdown
-        inline
-        lines={lines}
-        variant="detail"
-        tone={one.kind === "event" ? "secondary" : "text"}
+      <Column
+        alignment="start"
+        spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
-        {text}
-      </Markdown>
+        {media.length ? (
+          <RNHostView matchContents>
+            <Album media={media} width={metrics.media.line} side="start" />
+          </RNHostView>
+        ) : null}
+        {text ? (
+          <Markdown
+            inline
+            lines={lines}
+            variant="detail"
+            tone={one.kind === "event" ? "secondary" : "text"}
+            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+          >
+            {text}
+          </Markdown>
+        ) : null}
+      </Column>
     </Row>
   );
 };
 
-const lineOf = (one: ReturnType<typeof said>, media: Shown[]) => {
+const lineOf = (one: ReturnType<typeof said>) => {
   if (one.kind === "event") {
     return one.text ? `${one.label} · ${one.text}` : one.label;
   }
 
-  return one.text || mediaWords(media);
+  return one.text;
 };
 
 const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?: boolean }) => {
