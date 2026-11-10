@@ -9,8 +9,8 @@ import {
   TextField,
   Toggle,
   ZStack,
+  useNativeState,
 } from "@expo/ui/swift-ui";
-import type { TextFieldRef } from "@expo/ui/swift-ui";
 import {
   accessibilityElement,
   accessibilityHidden,
@@ -23,7 +23,6 @@ import {
   buttonStyle,
   clipped,
   controlSize,
-  disabled,
   foregroundStyle,
   frame,
   labelsHidden,
@@ -36,8 +35,6 @@ import {
   presentationDetents,
   presentationDragIndicator,
   presentationSizing,
-  scrollDismissesKeyboard,
-  submitLabel,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import * as Haptics from "expo-haptics";
@@ -149,18 +146,16 @@ const APPEARANCE_HEIGHT =
   groupHeight(3) +
   SHEET_BOTTOM;
 
-const WORDS = 3 * 22 + 2 * space[3];
 const NOTE = 18;
+const WORDS_SHEET = 260;
 
 const VOICE_HEIGHT =
   HEADER_TOP +
   HEADER +
   VOICE_CAROUSEL +
   metrics.groupSpacing +
-  groupHeight(2) +
+  groupHeight(3) +
   metrics.groupSpacing +
-  WORDS +
-  space[2] +
   NOTE +
   SHEET_BOTTOM;
 
@@ -594,10 +589,7 @@ const VoicePage = ({
     </Row>
     <ScrollView
       showsIndicators={false}
-      modifiers={[
-        scrollDismissesKeyboard("interactively"),
-        frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
-      ]}
+      modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
     >
       <Column alignment="center" spacing={0} modifiers={[padding({ bottom: space[6] })]}>
         <SelectionCarousel
@@ -647,8 +639,7 @@ const VoicePage = ({
               label="How fast hex talks on calls"
               testID="pace-picker"
             />
-          </Group>
-          <Column alignment="start" spacing={space[2]}>
+            <Separator />
             <Words
               width={width}
               words={talk?.settings.words}
@@ -657,14 +648,14 @@ const VoicePage = ({
                 change({ words });
               }}
             />
-            <Text
-              variant="caption"
-              tone="secondary"
-              modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
-            >
-              {failure ?? "Every call talks this way, phone calls too."}
-            </Text>
-          </Column>
+          </Group>
+          <Text
+            variant="caption"
+            tone="secondary"
+            modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
+          >
+            {failure ?? "Every call talks this way, phone calls too."}
+          </Text>
         </Column>
       </Column>
     </ScrollView>
@@ -682,74 +673,103 @@ const Words = ({
   enabled: boolean;
   onSave: (words: string) => void;
 }) => {
-  const field = useRef<TextFieldRef>(null);
-  const draft = useRef(words ?? "");
-  const focused = useRef(false);
+  const [open, setOpen] = useState(false);
+  const text = useNativeState("");
+  const draft = useRef("");
 
-  useEffect(() => {
-    if (!focused.current) {
-      draft.current = words ?? "";
-      void field.current?.setText(draft.current);
-    }
-  }, [words]);
+  const close = () => {
+    setOpen(false);
 
-  const save = () => {
     if (draft.current.trim() !== (words ?? "")) {
       onSave(draft.current.trim());
     }
   };
 
   return (
-    <Row
-      alignment="start"
-      spacing={metrics.rowSpacing}
-      style={{
-        width,
-        borderRadius: radius.group,
-        backgroundColor: theme.card,
-        paddingHorizontal: metrics.rowInset,
-        paddingVertical: space[3],
-      }}
-    >
-      <Icon
-        name="text.quote"
-        size={metrics.symbol.row}
-        color={theme.text}
-        style={{ width: metrics.rowIcon }}
-      />
-      <TextField
-        ref={field}
-        placeholder="Tell hex how to talk, in your words"
-        axis="vertical"
-        maxLength={WORDS_LIMIT}
-        testID="talk-words"
-        onTextChange={(text) => {
-          if (text.includes("\n")) {
-            draft.current = text.replaceAll("\n", " ");
-            void field.current?.setText(draft.current);
-            void field.current?.blur();
-
-            return;
-          }
-
-          draft.current = text;
-        }}
-        onFocusChange={(now) => {
-          focused.current = now;
-
-          if (!now) {
-            save();
+    <>
+      <SettingRow
+        icon="text.quote"
+        title="In your words"
+        width={width}
+        label={
+          words === undefined ? "Tell hex how to talk, in your words" : `In your words: ${words}`
+        }
+        onPress={() => {
+          if (enabled) {
+            draft.current = words ?? "";
+            text.set(draft.current);
+            setOpen(true);
           }
         }}
-        modifiers={[
-          lineLimit(3, { reservesSpace: true }),
-          submitLabel("done"),
-          frame({ maxWidth: Infinity, maxHeight: WORDS }),
-          disabled(!enabled),
-          accessibilityLabel("How hex should talk, in your words"),
-        ]}
-      />
-    </Row>
+        testID="words-row"
+      >
+        <Text tone="secondary" modifiers={[lineLimit(1)]}>
+          {words ?? "Add"}
+        </Text>
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+      </SettingRow>
+      <BottomSheet
+        isPresented={open}
+        onIsPresentedChange={(presented) => {
+          if (!presented) {
+            close();
+          }
+        }}
+      >
+        <SheetContent
+          modifiers={[
+            presentationDetents([{ height: WORDS_SHEET }]),
+            presentationDragIndicator("visible"),
+            presentationBackground(theme.sheet),
+          ]}
+        >
+          <Column
+            alignment="center"
+            spacing={space[4]}
+            modifiers={[
+              padding({ top: HEADER_TOP, leading: metrics.gutter, trailing: metrics.gutter }),
+              frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" }),
+            ]}
+          >
+            <Row alignment="center" spacing={0} style={{ height: HEADER }}>
+              <Spacer style={{ width: HEADER }} />
+              <Spacer flexible />
+              <Text variant="headline">In your words</Text>
+              <Spacer flexible />
+              <NativeButton
+                label="Done"
+                systemImage="checkmark"
+                onPress={close}
+                testID="words-done"
+                modifiers={[
+                  labelStyle("iconOnly"),
+                  buttonStyle("glassProminent"),
+                  buttonBorderShape("circle"),
+                  controlSize("large"),
+                ]}
+              />
+            </Row>
+            <TextField
+              text={text}
+              autoFocus
+              placeholder="Short answers, no recaps. Talk like a friend."
+              axis="vertical"
+              maxLength={WORDS_LIMIT}
+              testID="talk-words"
+              onTextChange={(next) => {
+                draft.current = next;
+              }}
+              modifiers={[
+                lineLimit({ min: 3, max: 6 }),
+                padding({ all: metrics.rowInset }),
+                background(theme.card, { shape: "roundedRectangle", cornerRadius: radius.inner }),
+                accessibilityLabel("How hex should talk, in your words"),
+              ]}
+            />
+          </Column>
+        </SheetContent>
+      </BottomSheet>
+    </>
   );
 };
 
@@ -983,7 +1003,7 @@ const SettingsPlace = ({
       importantForAccessibility={open ? "auto" : "no-hide-descendants"}
       style={[StyleSheet.absoluteFill, fade]}
     >
-      <Host seedColor={theme.tint} avoids="keyboard" style={{ flex: 1 }}>
+      <Host seedColor={theme.tint} style={{ flex: 1 }}>
         <ZStack
           modifiers={[
             frame({ maxWidth: Infinity, maxHeight: Infinity }),
