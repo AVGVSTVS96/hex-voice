@@ -701,10 +701,12 @@ const Composer = ({
           testID="ask-input"
           onFocus={() => {
             setFocused(true);
+            reply?.(typed);
             typing(true);
           }}
           onBlur={() => {
             setFocused(false);
+            reply?.(null);
             typing(false);
           }}
           defaultValue={first}
