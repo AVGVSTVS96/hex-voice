@@ -78,11 +78,11 @@ export const EntryRow = ({
             selected={selected}
             why={why}
             mark={mark}
-            line={task.line || STATE_WORDS[task.state]}
+            line={[...partOf(task), task.line || STATE_WORDS[task.state]].join(" · ")}
             time={taskTime(task)}
             meta={agentsAtWork(task)}
             tiles={entry.tiles}
-            label={`${task.name}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
+            label={`${[task.name, ...partOf(task)].join(", ")}, ${PLACES[entry.place]}, ${STATE_WORDS[task.state]}: ${task.line}`}
             onPress={() => {
               actions.onOpen(task.id, entry.id);
             }}
@@ -177,6 +177,9 @@ export const EntryRow = ({
     }
   }
 };
+
+const partOf = (task: TaskRow) =>
+  task.place !== "" && task.place !== task.name ? [task.place] : [];
 
 const agentsAtWork = (task: TaskRow) => {
   const n = task.state === "working" ? atWork(task.agents).length : 0;
