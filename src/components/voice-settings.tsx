@@ -4,15 +4,13 @@ import {
   BottomSheet,
   Button as NativeButton,
   Group as SheetContent,
-  Menu,
-  Picker,
   Rectangle,
-  Text as NativeText,
+  TextField,
   Toggle,
   ZStack,
 } from "@expo/ui/swift-ui";
+import type { TextFieldRef } from "@expo/ui/swift-ui";
 import {
-  fixedSize,
   accessibilityElement,
   accessibilityHidden,
   accessibilityIdentifier,
@@ -24,6 +22,7 @@ import {
   buttonStyle,
   clipped,
   controlSize,
+  disabled,
   foregroundStyle,
   frame,
   labelsHidden,
@@ -36,11 +35,11 @@ import {
   presentationDetents,
   presentationDragIndicator,
   presentationSizing,
-  tag,
+  submitLabel,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -65,14 +64,17 @@ import {
 } from "@/components/persona/variants";
 import type { PersonaVariant } from "@/components/persona/variants";
 import { SelectionCarousel } from "@/components/selection-carousel";
-import { Group, Separator, SettingRow, groupHeight } from "@/components/settings-list";
+import { Group, PickerRow, Separator, SettingRow, groupHeight } from "@/components/settings-list";
 import { PageBar } from "@/components/tasks/bar";
 import { useToolbarBack } from "@/components/toolbar-back";
 import { REACTIONS } from "@/hooks/use-call-preferences";
 import type { CallPreferences, Reaction } from "@/hooks/use-call-preferences";
+import type { TalkSettings } from "@/hooks/use-talk";
 import { useViewport } from "@/hooks/use-viewport";
 import type { Size } from "@/hooks/use-viewport";
 import { useVoicePreview } from "@/hooks/use-voice-preview";
+import { UNSET, WORDS_LIMIT } from "@/live/talk";
+import type { Talk } from "@/live/talk";
 import { VOICES, isLiveVoice } from "@/live/voices";
 import type { LiveVoice } from "@/live/voices";
 import { heard, motion } from "@/motion";
@@ -80,7 +82,7 @@ import type { Rect } from "@/screens/window";
 import { theme } from "@/theme";
 import { Host } from "@/ui/host";
 import { Text } from "@/ui/text";
-import { breakpoint, metrics, space } from "@/ui/tokens";
+import { breakpoint, metrics, radius, space } from "@/ui/tokens";
 
 export type SettingsSheet = "phone" | "form" | "page";
 
@@ -99,6 +101,7 @@ interface Props {
   onPersonaChange: (persona: PersonaVariant) => void;
   personaEnabled: boolean;
   preferences: CallPreferences;
+  talk: TalkSettings;
 }
 
 const voiceOptions = VOICES.map((voice) => ({
@@ -144,7 +147,20 @@ const APPEARANCE_HEIGHT =
   groupHeight(3) +
   SHEET_BOTTOM;
 
-const VOICE_HEIGHT = HEADER_TOP + HEADER + VOICE_CAROUSEL + SHEET_BOTTOM;
+const WORDS = 3 * 22 + 2 * space[3];
+const NOTE = 18;
+
+const VOICE_HEIGHT =
+  HEADER_TOP +
+  HEADER +
+  VOICE_CAROUSEL +
+  metrics.groupSpacing +
+  groupHeight(2) +
+  metrics.groupSpacing +
+  WORDS +
+  space[2] +
+  NOTE +
+  SHEET_BOTTOM;
 
 const VoiceDetent = z.object({ height: z.literal(VOICE_HEIGHT) });
 
@@ -162,6 +178,16 @@ interface Panes {
   rowsPane: Size;
   personaHeight: number;
 }
+
+const voiceSummary = (voice: string, talk: Talk | undefined) => {
+  const personality = talk?.personalities.find(
+    ({ id }) => id === (talk.settings.personality ?? UNSET.personality),
+  );
+
+  return personality && personality.id !== UNSET.personality
+    ? `${voice} · ${personality.label}`
+    : voice;
+};
 
 const placePanes = (screen: Size, area: Rect, reported: Partial<Record<Pane, Size>>): Panes => {
   const two = screen.width > screen.height;
@@ -212,7 +238,7 @@ const sizesOf = (width: number, room: number, panes: Panes | undefined) => {
     : sheetPreview(beside, room);
 
   const appearanceHeight = beside
-    ? Math.min(BESIDE.height, room)
+    ? Math.min(Math.max(BESIDE.height, VOICE_HEIGHT), room)
     : APPEARANCE_HEIGHT - ORB + preview;
 
   const orbSize = Math.min(beside || panes ? BESIDE.orb : PREVIEW_ORB, preview - 30);
@@ -233,6 +259,7 @@ export const VoiceSettings = ({
   onPersonaChange,
   personaEnabled,
   preferences,
+  talk,
 }: Props) => {
   const screen = useViewport();
   const phone = sheet === "phone";
@@ -254,6 +281,8 @@ export const VoiceSettings = ({
   const pitch = useSharedValue(0);
   const tone = useSharedValue(0);
   const reaction = REACTIONS.find(({ id }) => id === preferences.reaction) ?? REACTIONS[0];
+
+  const voiceLine = voiceSummary(selectedVoice.label, talk.talk);
 
   const orbStyle = useAnimatedStyle(() => ({
     transform: heard(reaction.amount, orbSize, level.get(), pitch.get(), tone.get()),
@@ -354,59 +383,38 @@ export const VoiceSettings = ({
           }}
         />
         <Separator />
-        <SettingRow icon="mic" title="Reacts to you" width={rowsWidth}>
-          <Menu
-            label={
-              <Row alignment="center" spacing={space[1]}>
-                <Text tone="secondary" modifiers={[lineLimit(1)]}>
-                  {reaction.label}
-                </Text>
-                <Icon
-                  name="chevron.up.chevron.down"
-                  size={metrics.symbol.small}
-                  color={theme.secondary}
-                />
-              </Row>
-            }
-            testID="reaction-picker"
-            modifiers={[
-              fixedSize({ horizontal: true, vertical: false }),
-              accessibilityLabel("How much the orb reacts to your voice"),
-            ]}
-          >
-            <Picker
-              label="Reacts to you"
-              selection={preferences.reaction}
-              onSelectionChange={(next: Reaction) => {
-                haptic();
-                preferences.setReaction(next);
+        <PickerRow
+          icon="mic"
+          title="Reacts to you"
+          width={rowsWidth}
+          choices={REACTIONS}
+          selection={preferences.reaction}
+          onChange={(next: Reaction) => {
+            haptic();
+            preferences.setReaction(next);
 
-                if (!reducedMotion) {
-                  speak();
-                }
-              }}
-            >
-              {REACTIONS.map((option) => (
-                <NativeText key={option.id} modifiers={[tag(option.id)]}>
-                  {option.label}
-                </NativeText>
-              ))}
-            </Picker>
-          </Menu>
-        </SettingRow>
+            if (!reducedMotion) {
+              speak();
+            }
+          }}
+          label="How much the orb reacts to your voice"
+          testID="reaction-picker"
+        />
       </Group>
       <Group width={rowsWidth}>
         <SettingRow
           icon="waveform"
           title="Voice"
           width={rowsWidth}
-          label={`Voice, ${selectedVoice.label}. Hear and change voices`}
+          label={`Voice, ${voiceLine}. Hear and change the voice and how it talks`}
           onPress={() => {
             showVoices(true);
           }}
           testID="voice-row"
         >
-          <Text tone="secondary">{selectedVoice.label}</Text>
+          <Text tone="secondary" modifiers={[lineLimit(1)]}>
+            {voiceLine}
+          </Text>
           <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
         </SettingRow>
         <Separator />
@@ -444,6 +452,8 @@ export const VoiceSettings = ({
       voice={voice}
       enabled={voiceEnabled}
       locked={voiceLocked}
+      talk={talk}
+      onTalk={haptic}
       onBack={() => {
         showVoices(false);
       }}
@@ -535,6 +545,8 @@ const VoicePage = ({
   voice,
   enabled,
   locked,
+  talk: { talk, failure, change },
+  onTalk,
   onBack,
   onPress,
   onChange,
@@ -544,6 +556,8 @@ const VoicePage = ({
   voice: LiveVoice;
   enabled: boolean;
   locked: boolean;
+  talk: TalkSettings;
+  onTalk: () => void;
   onBack: () => void;
   onPress: () => void;
   onChange: (next: string) => void;
@@ -588,8 +602,144 @@ const VoicePage = ({
       onPress={onPress}
       onChange={onChange}
     />
+    <Column
+      alignment="start"
+      spacing={metrics.groupSpacing}
+      modifiers={[padding({ top: metrics.groupSpacing })]}
+    >
+      <Group width={width}>
+        <PickerRow
+          icon="theatermasks"
+          title="Personality"
+          width={width}
+          choices={talk?.personalities ?? []}
+          selection={talk?.settings.personality ?? UNSET.personality}
+          onChange={(next: string) => {
+            onTalk();
+            change({ personality: next });
+          }}
+          enabled={!!talk}
+          label="How hex comes across on calls"
+          testID="personality-picker"
+        />
+        <Separator />
+        <PickerRow
+          icon="speedometer"
+          title="Pace"
+          width={width}
+          choices={talk?.paces ?? []}
+          selection={talk?.settings.pace ?? UNSET.pace}
+          onChange={(next: string) => {
+            onTalk();
+            change({ pace: next });
+          }}
+          enabled={!!talk}
+          label="How fast hex talks on calls"
+          testID="pace-picker"
+        />
+      </Group>
+      <Column alignment="start" spacing={space[2]}>
+        <Words
+          width={width}
+          words={talk?.settings.words}
+          enabled={!!talk}
+          onSave={(words) => {
+            change({ words });
+          }}
+        />
+        <Text
+          variant="caption"
+          tone="secondary"
+          modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
+        >
+          {failure ?? "Every call talks this way, phone calls too."}
+        </Text>
+      </Column>
+    </Column>
   </>
 );
+
+const Words = ({
+  width,
+  words,
+  enabled,
+  onSave,
+}: {
+  width: number;
+  words: string | undefined;
+  enabled: boolean;
+  onSave: (words: string) => void;
+}) => {
+  const field = useRef<TextFieldRef>(null);
+  const draft = useRef(words ?? "");
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) {
+      draft.current = words ?? "";
+      void field.current?.setText(draft.current);
+    }
+  }, [words]);
+
+  const save = () => {
+    if (draft.current.trim() !== (words ?? "")) {
+      onSave(draft.current.trim());
+    }
+  };
+
+  return (
+    <Row
+      alignment="start"
+      spacing={metrics.rowSpacing}
+      style={{
+        width,
+        borderRadius: radius.group,
+        backgroundColor: theme.card,
+        paddingHorizontal: metrics.rowInset,
+        paddingVertical: space[3],
+      }}
+    >
+      <Icon
+        name="text.quote"
+        size={metrics.symbol.row}
+        color={theme.text}
+        style={{ width: metrics.rowIcon }}
+      />
+      <TextField
+        ref={field}
+        placeholder="Tell hex how to talk, in your words"
+        axis="vertical"
+        maxLength={WORDS_LIMIT}
+        testID="talk-words"
+        onTextChange={(text) => {
+          if (text.includes("\n")) {
+            draft.current = text.replaceAll("\n", " ");
+            void field.current?.setText(draft.current);
+            void field.current?.blur();
+
+            return;
+          }
+
+          draft.current = text;
+        }}
+        onFocusChange={(now) => {
+          focused.current = now;
+
+          if (!now) {
+            save();
+          }
+        }}
+        modifiers={[
+          lineLimit(3, { reservesSpace: true }),
+          submitLabel("done"),
+          frame({ maxWidth: Infinity, maxHeight: WORDS }),
+          disabled(!enabled),
+          accessibilityLabel("How hex should talk, in your words"),
+        ]}
+      />
+    </Row>
+  );
+};
 
 const Sheet = ({
   sheet,

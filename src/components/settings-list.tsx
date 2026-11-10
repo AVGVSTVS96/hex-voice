@@ -1,12 +1,19 @@
 import { Column, Icon, Row, Spacer } from "@expo/ui";
-import { Divider } from "@expo/ui/swift-ui";
-import { accessibilityLabel, padding } from "@expo/ui/swift-ui/modifiers";
+import { Divider, Menu, Picker, Text as NativeText } from "@expo/ui/swift-ui";
+import {
+  accessibilityLabel,
+  disabled,
+  fixedSize,
+  lineLimit,
+  padding,
+  tag,
+} from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { hairline, theme } from "@/theme";
 import { Text } from "@/ui/text";
-import { metrics, radius } from "@/ui/tokens";
+import { metrics, radius, space } from "@/ui/tokens";
 
 export const groupHeight = (rows: number) => rows * metrics.row + (rows - 1) * hairline;
 
@@ -57,4 +64,57 @@ export const SettingRow = ({
     <Spacer flexible />
     {children}
   </Row>
+);
+
+export const PickerRow = <Id extends string>({
+  icon,
+  title,
+  width,
+  choices,
+  selection,
+  onChange,
+  enabled = true,
+  label,
+  testID,
+}: {
+  icon: SFSymbol;
+  title: string;
+  width: number;
+  choices: readonly { id: Id; label: string }[];
+  selection: Id;
+  onChange: (next: Id) => void;
+  enabled?: boolean;
+  label: string;
+  testID: string;
+}) => (
+  <SettingRow icon={icon} title={title} width={width}>
+    <Menu
+      label={
+        <Row alignment="center" spacing={space[1]}>
+          <Text tone="secondary" modifiers={[lineLimit(1)]}>
+            {choices.find(({ id }) => id === selection)?.label ?? "…"}
+          </Text>
+          <Icon
+            name="chevron.up.chevron.down"
+            size={metrics.symbol.small}
+            color={theme.secondary}
+          />
+        </Row>
+      }
+      testID={testID}
+      modifiers={[
+        fixedSize({ horizontal: true, vertical: false }),
+        disabled(!enabled),
+        accessibilityLabel(label),
+      ]}
+    >
+      <Picker label={title} selection={selection} onSelectionChange={onChange}>
+        {choices.map((choice) => (
+          <NativeText key={choice.id} modifiers={[tag(choice.id)]}>
+            {choice.label}
+          </NativeText>
+        ))}
+      </Picker>
+    </Menu>
+  </SettingRow>
 );

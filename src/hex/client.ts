@@ -27,7 +27,7 @@ export interface Config {
 export type Client = ReturnType<typeof createClient>;
 
 interface Options {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   after?: number | undefined;
   signal?: AbortSignal | undefined;

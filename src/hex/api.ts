@@ -6,6 +6,8 @@ import type { AskId } from "../live/asks";
 import { CallId, CallList, CallRecord } from "../live/calls";
 import { Shared } from "../live/media";
 import type { MediaId, Picked } from "../live/media";
+import { Talk } from "../live/talk";
+import type { TalkChange } from "../live/talk";
 import { Chat, TaskCounts, TaskList, TaskOrPage } from "../live/tasks";
 import type { TaskId } from "../live/tasks";
 import type { SessionAPI } from "../live/types";
@@ -44,6 +46,11 @@ export const createHex = ({ request, send, source, upload }: Client) => {
   return {
     session,
     media,
+    talk: {
+      get: async () => await request("/settings", Talk),
+      change: async (change: TalkChange) =>
+        await request("/settings", Talk, { method: "PUT", body: change }),
+    },
     activity: {
       watch: async (after: number | undefined, signal: AbortSignal) =>
         await request("/activity", AgentActivity, { after, signal }),

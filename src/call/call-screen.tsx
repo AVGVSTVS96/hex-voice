@@ -55,6 +55,7 @@ import { useEscape } from "@/hooks/use-escape";
 import { failure } from "@/hooks/use-failures";
 import { useNow } from "@/hooks/use-now";
 import { usePersonaPreference } from "@/hooks/use-persona-preference";
+import { useTalk } from "@/hooks/use-talk";
 import { raiseTask, useTaskCounts } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
 import { Viewport } from "@/hooks/use-viewport";
@@ -197,6 +198,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
     settings: settingsOpen,
     place: placeOpen,
   } = inView(scene, shared);
+
+  const talk = useTalk({ open: settingsOpen, voice, setVoice, voiceLoaded });
 
   const pullWords = (pulled: boolean) => {
     send({ to: "words", pulled });
@@ -931,7 +934,8 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           send({ to: "settings", open: false });
         }}
         voice={voice}
-        onVoiceChange={setVoice}
+        onVoiceChange={talk.setVoice}
+        talk={talk}
         voiceEnabled={voiceLoaded && !voiceLocked(call)}
         voiceLocked={voiceLocked(call)}
         persona={variant}

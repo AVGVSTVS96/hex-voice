@@ -101,6 +101,27 @@ const checkMediaNamed = async (request, response) => {
   }
 };
 
+let settingsHere;
+
+const giveSettingsHere = (response) => {
+  response.writeHead(200, { "content-type": "application/json" }).end(settingsHere);
+};
+
+const keepSettingsHere = async (request, response) => {
+  const now = JSON.parse(
+    settingsHere ?? answers["/settings"] ?? '{"settings":{},"personalities":[],"paces":[]}',
+  );
+
+  const body = await bodyOf(request);
+  const change = JSON.parse(body.toString());
+  const { words, ...settings } = { ...now.settings, ...change };
+  settingsHere = JSON.stringify({
+    ...now,
+    settings: words?.trim() ? { ...settings, words } : settings,
+  });
+  giveSettingsHere(response);
+};
+
 const dropWrite = (request, response) => {
   request.resume();
 
@@ -165,6 +186,18 @@ const respond = async (request, response) => {
 
   if (request.method === "POST" && SENDS_MEDIA.test(request.url ?? "")) {
     await checkMediaNamed(request, response);
+
+    return;
+  }
+
+  if (request.url === "/settings" && request.method === "PUT") {
+    await keepSettingsHere(request, response);
+
+    return;
+  }
+
+  if (request.url === "/settings" && settingsHere) {
+    giveSettingsHere(response);
 
     return;
   }

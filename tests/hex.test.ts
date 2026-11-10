@@ -320,3 +320,24 @@ test("a photo goes to hex as its bytes, and to a call or a thread by the ids hex
     headers: { Authorization: "Bearer secret" },
   });
 });
+
+test("how hex talks is read from and saved to its settings, by what changed", async () => {
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
+
+  const answer = {
+    settings: { voice: "cedar", pace: "brisk" },
+    personalities: [{ id: "default", label: "Default" }],
+    paces: [{ id: "brisk", label: "Brisk" }],
+  };
+
+  const hex = answering(answer, seen);
+
+  assert.deepEqual(await hex.talk.get(), answer);
+  assert.deepEqual(await hex.talk.change({ personality: "friend", words: "" }), answer);
+  assert.deepEqual(
+    seen.map(({ url, init }) =>
+      `${init?.method ?? "GET"} ${url.slice(url.indexOf("/", 8))} ${sentTextIfAny(init)}`.trim(),
+    ),
+    ["GET /settings", 'PUT /settings {"personality":"friend","words":""}'],
+  );
+});
