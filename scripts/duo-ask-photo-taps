@@ -1,5 +1,6 @@
 # Answering a question with a photo: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-photo-taps
-# The reply box's + adds photos the way the page's message box does; with one in, Send as note and
+# The simulator's photo library won't load, so the photo comes from the camera, whose shutter
+# makes a still of its own there. The reply box's + adds photos the way the page's message box does; with one in, Send as note and
 # Answer light up before any words, and the box stays open while the picker is up.
 launch hexvoice:///?tasks=md
 wait 3
@@ -12,11 +13,12 @@ shoot ask-empty
 tap ask-add
 wait 1
 shoot ask-add-menu
-tap Photos
-wait 3
-tap Photo
-wait 1
-tap Add
+tap Camera
+system Allow
+wait 2
+tap camera-shutter
+wait 2
+tap camera-keep
 wait 2
 shoot ask-photo-waiting
 type ask-input This one
