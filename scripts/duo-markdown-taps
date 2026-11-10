@@ -10,6 +10,8 @@ wait 1
 shoot ask-words
 tap ask-card
 wait 1
+scroll
+wait 1
 tap Opens its messages
 wait 2
 shoot thread
