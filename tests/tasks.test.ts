@@ -15,6 +15,8 @@ import {
   stepMark,
   stepTimes,
   taskTime,
+  turnTime,
+  turnsOf,
   TaskRow,
 } from "../src/live/tasks";
 import type { AgentTrail, Task, TaskStep } from "../src/live/tasks";
@@ -228,4 +230,45 @@ test("a thread that's done shows its last run while it has steps or agents", () 
   assert.equal(lastRun(doneTask({ agents })), true);
   assert.equal(lastRun(doneTask({})), false);
   assert.equal(lastRun(doneTask({ state: "working", agents })), false);
+});
+
+const turnStep = (
+  minute: number,
+  kind: TaskStep["kind"],
+  extra: Partial<TaskStep> = {},
+): TaskStep => ({
+  kind,
+  text: `${kind} at ${minute}`,
+  at: at(9, minute),
+  end: at(9, minute + 1),
+  state: kind === "say" ? undefined : "done",
+  ...extra,
+});
+
+test("steps fold into turns, each under the message they led to, the newest open one first", () => {
+  const steps = [
+    turnStep(58, "run", { end: undefined, state: "running" }),
+    turnStep(50, "read"),
+    turnStep(40, "say"),
+    turnStep(30, "edit"),
+    turnStep(10, "run"),
+  ];
+
+  const turns = turnsOf(steps);
+
+  assert.deepEqual(
+    turns.map((turn) => [turn.said?.text, turn.steps.length]),
+    [
+      [undefined, 2],
+      ["say at 40", 2],
+    ],
+  );
+  assert.equal(turnTime(nth(turns, 0), now), "10 min");
+  assert.equal(turnTime(nth(turns, 1), now), "30 min");
+  assert.deepEqual(
+    turnsOf([turnStep(40, "say"), turnStep(30, "edit")]).map((turn) => turn.said?.text),
+    ["say at 40"],
+  );
+  assert.deepEqual(turnsOf([]), []);
+  assert.equal(turnTime({ steps: [turnStep(20, "read"), turnStep(10, "run")] }, now), "11 min");
 });

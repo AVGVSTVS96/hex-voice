@@ -248,6 +248,39 @@ export const stepTimes = (steps: TaskStep[], now = new Date()) =>
     return until - at < 500 ? "" : took(until - at);
   });
 
+export interface StepTurn {
+  said?: TaskStep;
+  steps: TaskStep[];
+}
+
+export const turnsOf = (steps: TaskStep[]) => {
+  const turns: StepTurn[] = [{ steps: [] }];
+
+  for (const step of steps) {
+    if (step.kind === "say") {
+      turns.push({ said: step, steps: [] });
+    } else {
+      turns.at(-1)?.steps.push(step);
+    }
+  }
+
+  return turns.filter((turn) => turn.said !== undefined || turn.steps.length > 0);
+};
+
+export const turnTime = ({ said, steps }: StepTurn, now = new Date()) => {
+  const first = steps.at(-1);
+
+  if (!first) {
+    return "";
+  }
+
+  const newest = steps[0] ?? first;
+  const running = newest.state === "running";
+  const last = said?.at ?? (running ? now.toISOString() : (newest.end ?? newest.at));
+
+  return took(Date.parse(last) - Date.parse(first.at));
+};
+
 const started = (agent: TaskAgent) =>
   agent.since === undefined || agent.since === "" ? 0 : Date.parse(agent.since);
 

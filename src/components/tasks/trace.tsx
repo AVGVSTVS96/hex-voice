@@ -9,16 +9,22 @@ import {
   padding,
   scrollClipDisabled,
   shapes,
+  symbolEffect,
+  background,
+  clipShape,
 } from "@expo/ui/swift-ui/modifiers";
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
+import type { ColorValue } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { Header } from "@/components/tasks/bar";
 import { Mark } from "@/components/tasks/mark";
+import type { MarkState } from "@/components/tasks/mark";
 import { Faded, SectionHead, Sections, Waiting } from "@/components/tasks/parts";
 import { useNow } from "@/hooks/use-now";
 import type { Answered } from "@/hooks/use-watch";
+import { timeOfDay } from "@/live/calls";
 import { PLACES, placeOf } from "@/live/inbox";
 import {
   STATE_WORDS,
@@ -26,15 +32,16 @@ import {
   agentMeta,
   agentSteps,
   agentsInOrder,
-  stepMark,
   stepTimes,
   taskTime,
+  turnTime,
+  turnsOf,
 } from "@/live/tasks";
-import type { AgentTrail, StepKind, Task, TaskAgent, TaskStep } from "@/live/tasks";
+import type { AgentTrail, StepKind, StepTurn, Task, TaskAgent, TaskStep } from "@/live/tasks";
 import { theme } from "@/theme";
 import { Text } from "@/ui/text";
-import { metrics, space } from "@/ui/tokens";
-import type { Tone } from "@/ui/tokens";
+import { metrics, radius, space } from "@/ui/tokens";
+import type { Tone, Weight } from "@/ui/tokens";
 
 export const KIND: Record<StepKind, SFSymbol> = {
   think: "lightbulb",
@@ -54,6 +61,57 @@ const TEXT = metrics.list.inset - space[0.5] + metrics.list.mark + metrics.list.
 
 const RAIL_TOP = space[2] + metrics.list.line + space[0.5];
 const RAIL_FOOT = space[2] + metrics.list.line / 2;
+
+export const Live = () => (
+  <Icon
+    name="ellipsis"
+    size={metrics.symbol.small}
+    color={theme.progress}
+    modifiers={[
+      symbolEffect(
+        { effect: "variableColor", fillStyle: "iterative", playbackStyle: "reversing" },
+        { options: { repeat: "continuous" } },
+      ),
+    ]}
+  />
+);
+
+const Lead = ({ state }: { state: MarkState }) =>
+  state === "working" ? <Live /> : <Mark state={state} />;
+
+export const stepLead = (step: TaskStep) => {
+  if (step.state === "running") {
+    return (
+      <Well wash={theme.progressMuted}>
+        <Live />
+      </Well>
+    );
+  }
+
+  return step.state === "failed" ? (
+    <Well wash={theme.dangerMuted}>
+      <Icon name="exclamationmark" size={metrics.symbol.mark} color={theme.danger} />
+    </Well>
+  ) : (
+    <Well>
+      <Icon name={KIND[step.kind]} size={metrics.symbol.mark} color={theme.secondary} />
+    </Well>
+  );
+};
+
+const Well = ({ wash = theme.fill, children }: { wash?: ColorValue; children: ReactNode }) => (
+  <Row
+    alignment="center"
+    spacing={0}
+    modifiers={[
+      frame({ width: metrics.list.mark, height: metrics.list.mark }),
+      background(wash),
+      clipShape("roundedRectangle", radius.mark),
+    ]}
+  >
+    {children}
+  </Row>
+);
 
 export const StepsLoading = (answered: Answered) => (
   <Column
@@ -98,7 +156,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                   {task.plan.map((item, i) => (
                     <TraceLine
                       key={`${i} ${item.text}`}
-                      lead={<Mark state={PLANNED[item.state]} />}
+                      lead={<Lead state={PLANNED[item.state]} />}
                       text={item.text}
                       tone={item.state === "pending" ? "secondary" : undefined}
                     />
@@ -117,7 +175,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
               <Column key="steps" alignment="start" spacing={0}>
                 <SectionHead title="Steps" count={task.steps.length ? "newest first" : undefined} />
                 {task.steps.length ? (
-                  <Steps steps={task.steps} agents={task.agents} />
+                  <Turns steps={task.steps} agents={task.agents} working={working} />
                 ) : (
                   <Quiet text={working ? "No steps yet" : "Steps show while it works"} />
                 )}
@@ -151,7 +209,6 @@ export const Steps = ({
         const key = step.id ?? `${step.at} ${step.text}`;
         const words = step.kind === "think" || step.kind === "say";
         const opened = open === key;
-        const mark = stepMark(step);
         const agent = agentOf(step, agents);
 
         const folded = words ? 3 : 1;
@@ -161,17 +218,12 @@ export const Steps = ({
         return (
           <TraceLine
             key={key}
-            lead={
-              mark ? (
-                <Mark state={mark} />
-              ) : (
-                <Icon name={KIND[step.kind]} size={13} color={theme.secondary} />
-              )
-            }
+            lead={stepLead(step)}
             text={step.text}
             lines={opened ? 0 : folded}
+            tone={step.state === "failed" ? "danger" : undefined}
             time={agent ? undefined : times[i]}
-            after={agent ? <Mark state={agent.state} /> : undefined}
+            after={agent ? <Lead state={agent.state} /> : undefined}
             indent={indent}
             onPress={
               opens && (words || detail || result)
@@ -192,6 +244,108 @@ export const Steps = ({
           </TraceLine>
         );
       })}
+    </Column>
+  );
+};
+
+const Turns = ({
+  steps,
+  agents,
+  working,
+}: {
+  steps: TaskStep[];
+  agents: TaskAgent[];
+  working: boolean;
+}) => {
+  const turns = turnsOf(steps);
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(() => new Set());
+  const now = useNow(working);
+
+  return (
+    <Column alignment="start" spacing={space[2]}>
+      {turns.map((turn, i) => {
+        const key = turnKey(turn);
+        const open = (i === 0) !== flipped.has(key);
+
+        return (
+          <Turn
+            key={key}
+            turn={turn}
+            agents={agents}
+            working={working}
+            open={open}
+            time={turnTime(turn, now)}
+            onToggle={() => {
+              const next = new Set(flipped);
+
+              if (!next.delete(key)) {
+                next.add(key);
+              }
+
+              setFlipped(next);
+            }}
+          />
+        );
+      })}
+    </Column>
+  );
+};
+
+const openTitle = (live: boolean) => (live ? "Now" : "Since its last message");
+
+const turnKey = (turn: StepTurn) => turn.said?.at ?? "now";
+
+const Turn = ({
+  turn,
+  agents,
+  working,
+  open,
+  time,
+  onToggle,
+}: {
+  turn: StepTurn;
+  agents: TaskAgent[];
+  working: boolean;
+  open: boolean;
+  time: string;
+  onToggle: () => void;
+}) => {
+  const { said, steps } = turn;
+  const count = `${steps.length} step${steps.length === 1 ? "" : "s"}`;
+  const meta = [steps.length ? count : "", time].filter(Boolean).join(" · ");
+  const live = said === undefined && working;
+  const title = said ? timeOfDay(said.at) : openTitle(live);
+  const folds = said !== undefined && steps.length > 0;
+  const shown = open || said === undefined;
+
+  return (
+    <Column alignment="start" spacing={0}>
+      <TraceLine
+        lead={
+          live ? (
+            <Well wash={theme.progressMuted}>
+              <Live />
+            </Well>
+          ) : (
+            <Well>
+              <Icon name={KIND.say} size={metrics.symbol.mark} color={theme.secondary} />
+            </Well>
+          )
+        }
+        text={title}
+        weight="medium"
+        time={meta}
+        {...(folds && {
+          chevron: open ? ("chevron.down" as const) : ("chevron.right" as const),
+          onPress: onToggle,
+          label: `${said === undefined ? "" : "Said at "}${title}, ${meta}. ${open ? "Hides" : "Shows"} its steps`,
+        })}
+      >
+        {said ? <Under text={said.text} lines={open ? 0 : 2} /> : null}
+      </TraceLine>
+      {shown && steps.length ? (
+        <Steps steps={steps} agents={agents} indent={metrics.list.mark + metrics.list.gap} />
+      ) : null}
     </Column>
   );
 };
@@ -235,7 +389,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
     <Background alignment="topLeading">
       <Column alignment="start" spacing={0}>
         <TraceLine
-          lead={<Mark state={agent.state} />}
+          lead={<Lead state={agent.state} />}
           text={agent.label}
           tone={agent.state === "stopped" ? "secondary" : undefined}
           time={meta}
@@ -349,6 +503,7 @@ export const TraceLine = ({
   lines = 1,
   time = "",
   tone = "text",
+  weight,
   indent = 0,
   after,
   chevron,
@@ -361,6 +516,7 @@ export const TraceLine = ({
   lines?: number;
   time?: string | undefined;
   tone?: Tone | undefined;
+  weight?: Weight;
   indent?: number;
   after?: ReactElement | undefined;
   chevron?: "chevron.down" | "chevron.right";
@@ -396,6 +552,7 @@ export const TraceLine = ({
         {...lineLimit(lines)}
         variant="detail"
         tone={tone}
+        {...(weight && { weight })}
         paragraph
         modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >

@@ -1,8 +1,10 @@
-import { Column, Icon, Row } from "@expo/ui";
+import { Column, Icon, Row, ScrollView } from "@expo/ui";
 import { List } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
   animation,
+  background,
+  clipShape,
   contentShape,
   frame,
   listStyle,
@@ -25,7 +27,7 @@ import { Faded, SectionHead, Sections, StageHead, listRow } from "@/components/t
 import { Pinned } from "@/components/tasks/pinned";
 import { PlaceTile, Places, TileIcon, hasPlaces } from "@/components/tasks/places";
 import { Foot, WriteField } from "@/components/tasks/thread";
-import { KIND, Steps, TraceLine } from "@/components/tasks/trace";
+import { KIND, Live, Steps, TraceLine } from "@/components/tasks/trace";
 import { useNow } from "@/hooks/use-now";
 import type { Ask, AskOption } from "@/live/asks";
 import {
@@ -40,12 +42,12 @@ import {
   waitingOf,
 } from "@/live/inbox";
 import type { Place, Tile } from "@/live/inbox";
-import { STATE_WORDS, agentWords, clock, lastRun, taskTime } from "@/live/tasks";
+import { STATE_WORDS, agentWords, atWork, clock, lastRun, taskTime } from "@/live/tasks";
 import type { Finished, Task, TaskRow, TaskId, TaskState } from "@/live/tasks";
 import { motion, rowsKey } from "@/motion";
 import { theme } from "@/theme";
 import { Text } from "@/ui/text";
-import { metrics, space } from "@/ui/tokens";
+import { metrics, radius, space } from "@/ui/tokens";
 
 const PREVIEW = 3;
 
@@ -138,16 +140,13 @@ export const Detail = ({
               {working.length ? (
                 <Column key="working" alignment="start" spacing={0}>
                   <StageHead tint="working" title="Working" count={working.length} />
-                  {working.map((thread) => (
-                    <Run
-                      key={thread.id}
-                      thread={thread.id === task.id && full ? full : thread}
-                      named={working.length > 1 || thread.id !== task.id}
-                      onPress={() => {
-                        onSteps(thread.id);
-                      }}
-                    />
-                  ))}
+                  <AtWork
+                    threads={working.map((thread) =>
+                      thread.id === task.id && full ? full : thread,
+                    )}
+                    page={task}
+                    onSteps={onSteps}
+                  />
                 </Column>
               ) : null}
               {full && lastRun(full) ? (
@@ -155,7 +154,6 @@ export const Detail = ({
                   <SectionHead title="Last run" opens />
                   <Run
                     thread={full}
-                    named={false}
                     onPress={() => {
                       onSteps(full.id);
                     }}
@@ -475,22 +473,8 @@ const Waiting = ({
   );
 };
 
-const Run = ({
-  thread,
-  named,
-  onPress,
-}: {
-  thread: TaskRow | Task;
-  named: boolean;
-  onPress: () => void;
-}) => {
-  const working = thread.state === "working";
-  const steps = "steps" in thread ? thread.steps.slice(0, PREVIEW) : [];
-  const agents = agentWords(thread.agents, working);
-
-  const progress = working ? (
-    <TraceLine lead={<Mark state="working" />} text={thread.line} />
-  ) : null;
+const Run = ({ thread, onPress }: { thread: Task; onPress: () => void }) => {
+  const agents = agentWords(thread.agents, false);
 
   return (
     <Column
@@ -500,41 +484,10 @@ const Run = ({
       modifiers={[
         frame({ maxWidth: Infinity, alignment: "leading" }),
         contentShape(shapes.rectangle()),
-        accessibilityLabel(
-          `${thread.place}, ${STATE_WORDS[thread.state]}: ${thread.line}. Shows its steps`,
-        ),
+        accessibilityLabel(`${thread.place}, ${STATE_WORDS[thread.state]}. Shows its steps`),
       ]}
     >
-      {named ? (
-        <Row
-          alignment="center"
-          spacing={metrics.list.gap}
-          modifiers={[
-            padding({
-              leading: metrics.list.inset - space[0.5],
-              trailing: metrics.list.inset - space[0.5],
-              top: space[1],
-              bottom: space[0.5],
-            }),
-            frame({ maxWidth: Infinity }),
-          ]}
-        >
-          <PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />
-          <Text
-            numberOfLines={1}
-            variant="detail"
-            weight="medium"
-            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-          >
-            {thread.place}
-          </Text>
-          <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
-            {taskTime(thread)}
-          </Text>
-          <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
-        </Row>
-      ) : null}
-      {steps.length ? <Steps steps={steps} agents={thread.agents} opens={false} /> : progress}
+      <Steps steps={thread.steps.slice(0, PREVIEW)} agents={thread.agents} opens={false} />
       {agents === undefined ? null : (
         <TraceLine
           lead={<Icon name={KIND.agent} size={metrics.symbol.small} color={theme.secondary} />}
@@ -545,6 +498,179 @@ const Run = ({
     </Column>
   );
 };
+
+const AtWork = ({
+  threads,
+  page,
+  onSteps,
+}: {
+  threads: (TaskRow | Task)[];
+  page: TaskRow | Task;
+  onSteps: (id: TaskId) => void;
+}) => {
+  const lead = threads.find((one) => one.id === page.id) ?? threads[0];
+
+  if (!lead) {
+    return null;
+  }
+
+  const others = threads.filter((one) => one !== lead);
+
+  const agents = threads.flatMap((owner) =>
+    atWork(owner.agents).map((agent) => ({ agent, owner })),
+  );
+
+  const now = [lead.id === page.id ? "" : lead.place, nowOf(lead)].filter(Boolean).join(": ");
+
+  return (
+    <Column alignment="start" spacing={0}>
+      <Row
+        alignment="center"
+        spacing={metrics.list.gap}
+        onPress={() => {
+          onSteps(lead.id);
+        }}
+        modifiers={[
+          padding({
+            leading: metrics.list.inset - space[0.5],
+            trailing: metrics.list.inset - space[0.5],
+            top: space[1],
+            bottom: space[3],
+          }),
+          frame({ maxWidth: Infinity, alignment: "leading" }),
+          contentShape(shapes.rectangle()),
+          accessibilityLabel(`Now: ${now}, for ${taskTime(lead)}. Shows its steps`),
+        ]}
+      >
+        <Row alignment="center" spacing={0} modifiers={[frame({ width: metrics.list.mark })]}>
+          <Live />
+        </Row>
+        <Text numberOfLines={1} modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}>
+          {now}
+        </Text>
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
+          {taskTime(lead)}
+        </Text>
+        <Icon name="chevron.right" size={metrics.symbol.small} color={theme.tertiary} />
+      </Row>
+      {others.length || agents.length ? (
+        <ScrollView direction="horizontal" showsIndicators={false}>
+          <Row
+            alignment="start"
+            spacing={space[2]}
+            modifiers={[
+              padding({
+                leading: metrics.list.inset,
+                trailing: metrics.list.inset,
+                bottom: space[2],
+              }),
+            ]}
+          >
+            {others.map((thread) => (
+              <Card
+                key={thread.id}
+                lead={<PlaceTile place={placeOf(thread.app)} size={metrics.list.mark} />}
+                name={thread.place}
+                time={taskTime(thread)}
+                text={nowOf(thread)}
+                onPress={() => {
+                  onSteps(thread.id);
+                }}
+              />
+            ))}
+            {agents.map(({ agent, owner }) => (
+              <Card
+                key={agent.id}
+                lead={
+                  <Row
+                    alignment="center"
+                    spacing={0}
+                    modifiers={[
+                      frame({ width: metrics.list.mark, height: metrics.list.mark }),
+                      background(theme.fill),
+                      clipShape("roundedRectangle", radius.mark),
+                    ]}
+                  >
+                    <Icon name={KIND.agent} size={metrics.symbol.mark} color={theme.secondary} />
+                  </Row>
+                }
+                name={agent.label.replace(/^.*\//u, "")}
+                time=""
+                text={agent.line ?? `In ${owner.place}`}
+                onPress={() => {
+                  onSteps(owner.id);
+                }}
+              />
+            ))}
+          </Row>
+        </ScrollView>
+      ) : null}
+    </Column>
+  );
+};
+
+const nowOf = (thread: TaskRow | Task) => {
+  const running =
+    "steps" in thread ? thread.steps.find((step) => step.state === "running") : undefined;
+
+  return running?.text ?? (thread.line || "Starting");
+};
+
+const Card = ({
+  lead,
+  name,
+  time,
+  text,
+  onPress,
+}: {
+  lead: ReactNode;
+  name: string;
+  time: string;
+  text: string;
+  onPress: () => void;
+}) => (
+  <Column
+    alignment="start"
+    spacing={space[1]}
+    onPress={onPress}
+    modifiers={[
+      padding({ leading: space[3], trailing: space[3], top: space[3], bottom: space[3] }),
+      frame({ width: metrics.list.card, alignment: "topLeading" }),
+      background(theme.card),
+      clipShape("roundedRectangle", radius.bubble),
+      contentShape(shapes.rectangle()),
+      accessibilityLabel(`${name}${time ? `, ${time}` : ""}: ${text}. Shows its steps`),
+    ]}
+  >
+    <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+      {lead}
+      <Text
+        numberOfLines={1}
+        variant="detail"
+        weight="medium"
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+      >
+        {name}
+      </Text>
+      {time ? (
+        <Text variant="caption" tone="tertiary" modifiers={[monospacedDigit()]}>
+          {time}
+        </Text>
+      ) : null}
+    </Row>
+    <Text
+      numberOfLines={2}
+      variant="caption"
+      tone="secondary"
+      paragraph
+      modifiers={[
+        frame({ maxWidth: Infinity, minHeight: metrics.list.line * 2, alignment: "topLeading" }),
+      ]}
+    >
+      {text}
+    </Text>
+  </Column>
+);
 
 const firstDoor = (threads: (TaskRow | Task)[], onOpen: (thread: TaskRow) => void) => {
   const door = threads.find((one) => (one.link ?? "") !== "");

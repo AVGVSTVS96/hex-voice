@@ -160,6 +160,7 @@ export const metrics = {
     row: { top: space[3], bottom: space[3] },
     place: space[3],
     tile: 28,
+    card: 168,
     line: 20,
     meta: space[2],
   },
