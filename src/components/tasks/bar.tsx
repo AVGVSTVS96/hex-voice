@@ -38,14 +38,21 @@ export interface Door {
   onPress: () => void;
 }
 
+export interface Call {
+  about: string;
+  onPress: () => void;
+}
+
 export const Header = ({
   title,
   subtitle,
   door,
+  call,
 }: {
   title: string;
   subtitle: string;
   door?: Door | undefined;
+  call?: Call | undefined;
 }) => {
   const { back } = useChrome();
 
@@ -55,7 +62,14 @@ export const Header = ({
       subtitle={subtitle}
       large
       back={back}
-      trailing={door ? <DoorPill door={door} /> : undefined}
+      trailing={
+        door || call ? (
+          <Row alignment="center" spacing={space[2]}>
+            {call ? <Talk about={call.about} alone={false} onPress={call.onPress} /> : null}
+            {door ? <DoorPill door={door} /> : null}
+          </Row>
+        ) : undefined
+      }
     />
   );
 };

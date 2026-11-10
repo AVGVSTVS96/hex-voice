@@ -20,7 +20,7 @@ import type { ReactNode, RefObject } from "react";
 
 import { AddMedia } from "@/components/media/add-media";
 import { Waiting } from "@/components/media/waiting";
-import { Header, PageBar, Talk } from "@/components/tasks/bar";
+import { Header, PageBar } from "@/components/tasks/bar";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, Faded, SectionHead } from "@/components/tasks/parts";
@@ -123,7 +123,7 @@ export const ThreadPage = ({
       spacing={0}
       modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: "top" })]}
     >
-      <ThreadHead thread={thread} beside={beside} chat={chat} onOpen={onOpen} />
+      <ThreadHead thread={thread} beside={beside} chat={chat} onOpen={onOpen} onTalk={onTalk} />
       <Faded>
         <ScrollView
           showsIndicators={false}
@@ -204,12 +204,9 @@ export const ThreadPage = ({
           foot={foot}
           onSend={onSend}
           onStop={onStop}
-          onTalk={onTalk}
         />
       ) : (
-        <Foot foot={foot}>
-          <Talk about={title} alone onPress={onTalk} />
-        </Foot>
+        <Spacer modifiers={[frame({ height: Math.max(space[4], foot) })]} />
       )}
     </Column>
   );
@@ -220,11 +217,13 @@ const ThreadHead = ({
   beside,
   chat,
   onOpen,
+  onTalk,
 }: {
   thread: TaskRow | Task;
   beside: boolean;
   chat: Chat | undefined;
   onOpen: (thread: TaskRow) => void;
+  onTalk: () => void;
 }) => {
   if (beside) {
     return (
@@ -240,6 +239,7 @@ const ThreadHead = ({
   return (
     <Header
       title={heading}
+      call={{ about: heading, onPress: onTalk }}
       subtitle={
         thread.running
           ? `working for ${taskTime(thread)}`
@@ -268,7 +268,6 @@ const Composer = ({
   foot,
   onSend,
   onStop,
-  onTalk,
 }: {
   field: RefObject<TextInputRef | null>;
   draft: string;
@@ -278,7 +277,6 @@ const Composer = ({
   foot: number;
   onSend: (text: string, media: Picked[]) => void;
   onStop: () => void;
-  onTalk: () => void;
 }) => {
   const { first, keep } = useDraft(draft);
   const [text, setText] = useState(first);
@@ -423,7 +421,6 @@ const Composer = ({
           color={lit ? theme.onProminent : theme.tertiary}
         />
       </Row>
-      {typing ? null : <Talk about={title} alone={false} onPress={onTalk} />}
     </Row>
   );
 };

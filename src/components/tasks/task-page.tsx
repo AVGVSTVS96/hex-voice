@@ -16,7 +16,7 @@ import {
 import type { ReactNode } from "react";
 
 import { YourCall } from "@/components/tasks/ask-card";
-import { Header, Talk } from "@/components/tasks/bar";
+import { Header } from "@/components/tasks/bar";
 import type { Door } from "@/components/tasks/bar";
 import { Lane } from "@/components/tasks/lane";
 import { Mark } from "@/components/tasks/mark";
@@ -109,6 +109,7 @@ export const Detail = ({
           under.filter((one) => one.place === task.place),
           onOpen,
         )}
+        call={{ about: titleOf(task), onPress: onTalk }}
       />
       <Faded>
         <List key={task.id} modifiers={pageList(asks, answered)}>
@@ -207,36 +208,27 @@ export const Detail = ({
           </Column>
         </List>
       </Faded>
-      <DetailFoot
-        task={task}
-        hidden={beside || answering}
-        foot={foot}
-        onWrite={onWrite}
-        onTalk={onTalk}
-      />
+      <WriteFoot title={titleOf(task)} hidden={beside || answering} foot={foot} onWrite={onWrite} />
     </Column>
   );
 };
 
-const DetailFoot = ({
-  task,
+const WriteFoot = ({
+  title,
   hidden,
   foot,
   onWrite,
-  onTalk,
 }: {
-  task: TaskRow | Task;
+  title: string;
   hidden: boolean;
   foot: number;
   onWrite?: (() => void) | undefined;
-  onTalk: () => void;
 }) =>
-  hidden ? null : (
+  onWrite && !hidden ? (
     <Foot foot={foot}>
-      {onWrite ? <WriteField title={titleOf(task)} onPress={onWrite} /> : null}
-      <Talk about={titleOf(task)} alone={!onWrite} onPress={onTalk} />
+      <WriteField title={title} onPress={onWrite} />
     </Foot>
-  );
+  ) : null;
 
 export const Asked = ({
   topic,
