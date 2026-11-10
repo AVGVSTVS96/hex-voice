@@ -562,7 +562,7 @@ const Composer = ({
           }}
           defaultValue={first}
           placeholder={`A note for ${topic}`}
-          placeholderTextColor={theme.tertiary}
+          placeholderTextColor={theme.secondary}
           cursorColor={theme.text}
           onChangeText={(now) => {
             setText(now);
