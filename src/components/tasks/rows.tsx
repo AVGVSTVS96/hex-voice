@@ -14,7 +14,7 @@ import {
 import type { ReactNode } from "react";
 
 import { InlineAnswers, Unreached } from "@/components/tasks/ask-card";
-import { Mark } from "@/components/tasks/mark";
+import { Mark, inkOf, tintOf, washOf } from "@/components/tasks/mark";
 import type { MarkState } from "@/components/tasks/mark";
 import { Failure, NotNeededButton, Pill, listRow, rowFrame } from "@/components/tasks/parts";
 import { TileIcon, swipeLook } from "@/components/tasks/places";
@@ -501,7 +501,7 @@ export const ProjectRow = ({
           <Text numberOfLines={1} variant="headline" modifiers={[layoutPriority(1)]}>
             {topic.name}
           </Text>
-          {count > 1 ? <Count count={count} needs={needs} /> : null}
+          {count > 1 ? <Count count={count} mark={mark} /> : null}
           <Spacer flexible />
           <Meta text={clock(new Date(newest.at))} />
         </HStack>
@@ -546,21 +546,25 @@ const waiting = (entry: Entry): MarkState => {
   }
 };
 
-const Count = ({ count, needs }: { count: number; needs: boolean }) => (
-  <Text
-    variant="caption"
-    weight="medium"
-    tone={needs ? "accent" : "tertiary"}
-    modifiers={[
-      monospacedDigit(),
-      padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
-      ...(needs ? [background(theme.accentMuted)] : []),
-      clipShape("capsule"),
-    ]}
-  >
-    {String(count)}
-  </Text>
-);
+const Count = ({ count, mark }: { count: number; mark: MarkState }) => {
+  const look = tintOf(mark);
+
+  return (
+    <Text
+      variant="caption"
+      weight="medium"
+      tone={look ? inkOf(look) : "tertiary"}
+      modifiers={[
+        monospacedDigit(),
+        padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
+        ...(look ? [background(theme[washOf(look)])] : []),
+        clipShape("capsule"),
+      ]}
+    >
+      {String(count)}
+    </Text>
+  );
+};
 
 const newTextForNewPieces = (parts: Part[]) => parts.map((part) => part.text).join("\u0000");
 

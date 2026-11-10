@@ -18,6 +18,7 @@ export const color = {
   accent: { dark: "#C4F3E5", light: "#1F8A6D" },
   accentMuted: { dark: "#1B3534", light: "#D7F2EA" },
   accentSolid: { dark: "#1F8A6D", light: "#1F8A6D" },
+  ask: { dark: "#F2C58A", light: "#A35F00" },
   progress: { dark: "#8DB8FF", light: "#0A66D2" },
   progressMuted: { dark: "#1F3354", light: "#CFE0F7" },
   danger: { dark: "#F0A5A8", light: "#D93A42" },

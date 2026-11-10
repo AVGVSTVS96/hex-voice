@@ -202,14 +202,18 @@ export const SectionHead = ({
   </Row>
 );
 
+const HEAD_GAP = { top: space[5], bottom: space[3] };
+
 export const StageHead = ({
   tint: stage,
   title,
   count,
+  gap = HEAD_GAP,
 }: {
   tint: Tint;
   title: string;
   count?: number | undefined;
+  gap?: { top: number; bottom: number };
 }) => (
   <Row
     alignment="center"
@@ -218,10 +222,10 @@ export const StageHead = ({
       padding({
         leading: metrics.list.inset,
         trailing: metrics.list.inset,
-        top: space[5],
-        bottom: space[3],
+        ...gap,
       }),
       frame({ maxWidth: Infinity }),
+      ...listRow(),
       accessibilityElement("combine"),
       accessibilityAddTraits(["isHeader"]),
     ]}

@@ -66,15 +66,15 @@ const Face = ({ state }: { state: Exclude<MarkState, "working"> }) => {
 
     case "asks": {
       return disc(
-        theme.accentMuted,
-        <Icon name="questionmark" size={metrics.symbol.mark} color={theme.accent} />,
+        theme.ask,
+        <Icon name="questionmark" size={metrics.symbol.mark} color={theme.background} />,
       );
     }
 
     case "pick": {
       return disc(
-        theme.accentMuted,
-        <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />,
+        theme.accent,
+        <Icon name="sparkle" size={metrics.symbol.mark} color={theme.background} />,
       );
     }
 
@@ -169,13 +169,33 @@ const Face = ({ state }: { state: Exclude<MarkState, "working"> }) => {
   }
 };
 
-export type Tint = "needs" | "working" | "failed";
+export type Tint = "needs" | "asks" | "working" | "failed" | "settled";
 
 const TINTS: Record<Tint, { ink: Tone; wash: Tone }> = {
   needs: { ink: "accent", wash: "accentMuted" },
+  asks: { ink: "ask", wash: "fill" },
   working: { ink: "progress", wash: "progressMuted" },
   failed: { ink: "danger", wash: "dangerMuted" },
+  settled: { ink: "secondary", wash: "fill" },
 };
+
+const MARK_TINT: Record<MarkState, Tint | undefined> = {
+  needs: "needs",
+  pick: "needs",
+  asks: "asks",
+  working: "working",
+  failed: "failed",
+  done: undefined,
+  idle: undefined,
+  paused: undefined,
+  pending: undefined,
+  read: undefined,
+  stopped: undefined,
+};
+
+export const tintOf = (mark: MarkState) => MARK_TINT[mark];
+
+export const washOf = (tint: Tint) => TINTS[tint].wash;
 
 export const Badge = ({ tint }: { tint: Tint }) => {
   const { ink, wash } = TINTS[tint];

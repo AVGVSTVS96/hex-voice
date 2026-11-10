@@ -21,15 +21,17 @@ import { useEffect, useMemo } from "react";
 import { PageBar, useChrome } from "@/components/tasks/bar";
 import { CheckRow, PicksRow, TopicHead } from "@/components/tasks/inbox";
 import { Search, SearchButton, Tabs } from "@/components/tasks/list-head";
+import type { Tint } from "@/components/tasks/mark";
 import { useField } from "@/components/tasks/pages";
 import type { Pages, Spot } from "@/components/tasks/pages";
-import { Empty, Faded, Loading, UNREACHED, listRow } from "@/components/tasks/parts";
+import { Empty, Faded, Loading, StageHead, UNREACHED, listRow } from "@/components/tasks/parts";
 import type { Feel } from "@/components/tasks/parts";
 import { EntryRow, ProjectRow } from "@/components/tasks/rows";
 import type { useAsks } from "@/hooks/use-asks";
 import type { Counts } from "@/hooks/use-tasks";
 import type { Ask, AskOption } from "@/live/asks";
 import {
+  TABS,
   doneIn,
   picksOf,
   search,
@@ -42,7 +44,7 @@ import {
   topicIn,
   topicsOf,
 } from "@/live/inbox";
-import type { Entry, PageId, Tab, Tile, Topic } from "@/live/inbox";
+import type { Entry, PageId, Stage, Tab, Tile, Topic } from "@/live/inbox";
 import type { TaskRow } from "@/live/tasks";
 import { motion, rowsKey } from "@/motion";
 import { theme } from "@/theme";
@@ -253,9 +255,10 @@ export const ListPage = ({
                 }}
               />
             ) : null}
-            {topics.flatMap((topic) => {
+            {topics.flatMap((topic, at) => {
               if (!searching) {
                 return [
+                  ...(stage === "all" ? stageHead(topic, topics[at - 1]) : []),
                   <ProjectRow
                     key={(stage === "done" ? topic.entries[0]?.id : undefined) ?? topic.name}
                     topic={topic}
@@ -311,6 +314,30 @@ export const ListPage = ({
       </ZStack>
     </Column>
   );
+};
+
+const HEAD_TINT: Record<Stage, Tint> = {
+  needs: "needs",
+  working: "working",
+  done: "settled",
+  quiet: "settled",
+};
+
+const stageHead = (topic: Topic, before: Topic | undefined) => {
+  const stage = topic.entries[0]?.stage;
+
+  if (stage === undefined || stage === before?.entries[0]?.stage) {
+    return [];
+  }
+
+  return [
+    <StageHead
+      key={`${stage}:head`}
+      tint={HEAD_TINT[stage]}
+      title={TABS.find((tab) => tab.key === stage)?.title ?? stage}
+      gap={{ top: before ? space[5] : space[1], bottom: space[1] }}
+    />,
+  ];
 };
 
 const statusOf = (yours: Yours, tasks: TaskRow[] | undefined, offline: boolean) => {
