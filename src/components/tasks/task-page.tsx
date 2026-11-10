@@ -30,8 +30,9 @@ import { Pinned } from "@/components/tasks/pinned";
 import { PlaceTile, Places, TileIcon, hasPlaces } from "@/components/tasks/places";
 import { Foot, WriteField } from "@/components/tasks/thread";
 import { KIND, Live, Steps, TraceLine } from "@/components/tasks/trace";
+import type { Chosen } from "@/hooks/use-asks";
 import { useNow } from "@/hooks/use-now";
-import type { Ask, AskOption } from "@/live/asks";
+import type { Ask } from "@/live/asks";
 import {
   PLACES,
   isPart,
@@ -79,7 +80,7 @@ export const Detail = ({
   threads: TaskRow[];
   missing: Set<Place>;
   onSteps: (id: TaskId) => void;
-  onAnswer: (ask: Ask, option: AskOption) => void;
+  onAnswer: (ask: Ask, option: Chosen) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;
@@ -234,7 +235,7 @@ const PageFoot = ({
   replying: Replying;
   asks: Ask[];
   answered: Record<string, string | null>;
-  onAnswer: (ask: Ask, option: AskOption) => void;
+  onAnswer: (ask: Ask, option: Chosen) => void;
   foot: number;
   write?: { title: string; hidden: boolean; onWrite?: (() => void) | undefined };
 }) => {
@@ -277,7 +278,7 @@ export const Asked = ({
   answered: Record<string, string | null>;
   door?: Door | undefined;
   rows?: ReactNode[];
-  onAnswer: (ask: Ask, option: AskOption) => void;
+  onAnswer: (ask: Ask, option: Chosen) => void;
   onUndo: (ask: Ask) => void;
   onAgain: (ask: Ask) => void;
   onDismiss: (ask: Ask) => void;

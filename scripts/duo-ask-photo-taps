@@ -1,0 +1,25 @@
+# Answering a question with a photo: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-photo-taps
+# The reply box's + adds photos the way the page's message box does; with one in, Send as note and
+# Answer light up before any words, and the box stays open while the picker is up.
+launch hexvoice:///?tasks=md
+wait 3
+tap ask-card
+wait 1
+tap ask-own
+wait 1
+tap ask-add
+wait 1
+shoot ask-add-menu
+tap Photos
+wait 3
+tap Photo
+wait 1
+tap Add
+wait 2
+shoot ask-photo-waiting
+type ask-input This one
+above-keyboard ask-input
+shoot ask-photo-typed
+tap ask-Answer
+wait 1
+shoot ask-photo-answered

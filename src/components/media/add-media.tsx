@@ -28,6 +28,7 @@ export const AddMedia = ({
   most,
   sends,
   testID,
+  onChoose,
   onAdd,
   children,
 }: {
@@ -36,6 +37,7 @@ export const AddMedia = ({
   most: number;
   sends: boolean;
   testID: string;
+  onChoose?: () => void;
   onAdd: (media: Picked[]) => void;
   children: ReactNode;
 }) => {
@@ -89,6 +91,7 @@ export const AddMedia = ({
             label="Camera"
             systemImage="camera"
             onPress={() => {
+              onChoose?.();
               setCamera(true);
             }}
           />
@@ -96,6 +99,7 @@ export const AddMedia = ({
             label="Photos"
             systemImage="photo.on.rectangle"
             onPress={() => {
+              onChoose?.();
               void pick();
             }}
           />

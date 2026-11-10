@@ -27,6 +27,12 @@ export const createHex = ({ request, send, source, upload }: Client) => {
     image: (id: MediaId) => source(`/media/${enc(id)}`),
   };
 
+  const mediaOf = async (picked: Picked[]) => {
+    const shared = await Promise.all(picked.map(media.upload));
+
+    return shared.length ? { media: shared.map((one) => one.id) } : {};
+  };
+
   const session: SessionAPI = {
     create: async (sdp, voice, about) => {
       const { session: opened, transport } = await request("/session", Opened, {
@@ -96,11 +102,7 @@ export const createHex = ({ request, send, source, upload }: Client) => {
         await send(`/tasks/${enc(id)}/talk`);
       },
       send: async (id: TaskId, text: string, key: string, picked: Picked[] = []) => {
-        const shared = await Promise.all(picked.map(media.upload));
-        const ids = shared.map((one) => one.id);
-        await send(`/tasks/${enc(id)}/chat`, {
-          body: ids.length ? { text, key, media: ids } : { text, key },
-        });
+        await send(`/tasks/${enc(id)}/chat`, { body: { text, key, ...(await mediaOf(picked)) } });
       },
       stop: async (id: TaskId) => {
         await send(`/tasks/${enc(id)}/stop`);
@@ -112,10 +114,16 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       check: async () => await request("/asks/check", Check),
       shot: (id: AskId, n: number) => source(`/asks/${enc(id)}/shots/${n}`),
       words: async (id: AskId) => await request(`/asks/${enc(id)}/words`, Words),
-      answer: async (id: AskId, label: string) =>
-        await request(`/asks/${enc(id)}/answer`, Sent, { method: "POST", body: { label } }),
-      note: async (id: AskId, text: string) =>
-        await request(`/asks/${enc(id)}/note`, Sent, { method: "POST", body: { text } }),
+      answer: async (id: AskId, label: string, picked: Picked[] = []) =>
+        await request(`/asks/${enc(id)}/answer`, Sent, {
+          method: "POST",
+          body: { label, ...(await mediaOf(picked)) },
+        }),
+      note: async (id: AskId, text: string, picked: Picked[] = []) =>
+        await request(`/asks/${enc(id)}/note`, Sent, {
+          method: "POST",
+          body: { text, ...(await mediaOf(picked)) },
+        }),
       dismiss: async (id: AskId) =>
         await request(`/asks/${enc(id)}/dismiss`, Sent, { method: "POST" }),
       undo: async (id: AskId) => {

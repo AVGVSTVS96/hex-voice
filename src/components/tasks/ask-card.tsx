@@ -1,5 +1,5 @@
 import { Column, Icon, Row, Spacer, TextInput } from "@expo/ui";
-import { HStack, SwipeActions, VStack } from "@expo/ui/swift-ui";
+import { HStack, RNHostView, SwipeActions, VStack } from "@expo/ui/swift-ui";
 import {
   accessibilityAddTraits,
   accessibilityElement,
@@ -27,14 +27,19 @@ import type { ReactNode } from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { Markdown } from "@/components/markdown";
+import { AddMedia } from "@/components/media/add-media";
+import { Waiting } from "@/components/media/waiting";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
 import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
+import type { Chosen } from "@/hooks/use-asks";
 import { carryDraft, draftOf, useDraft } from "@/hooks/use-draft";
 import { openURL, useFailures } from "@/hooks/use-failures";
 import { NOT_NEEDED, PICK, unreached } from "@/live/asks";
 import type { Ask, AskId, AskLink, AskOption, Words } from "@/live/asks";
+import { MOST } from "@/live/media";
+import type { Picked } from "@/live/media";
 import { clock } from "@/live/tasks";
 import { motion } from "@/motion";
 import { theme } from "@/theme";
@@ -57,7 +62,7 @@ const REPLY_MARK = 3;
 const CARD_MARGIN = space[3];
 const CARD_PADDING = space[4];
 
-type Answer = (ask: Ask, option: AskOption) => void;
+type Answer = (ask: Ask, option: Chosen) => void;
 
 export const YourCall = ({
   asks,
@@ -672,16 +677,18 @@ export const ReplyComposer = ({
   const field = useField();
   const notes = useFailures();
   const [sending, setSending] = useState(false);
+  const [media, setMedia] = useState<Picked[]>([]);
+  const picking = useRef(false);
 
   const send = async (as: "note" | "answer") => {
     const said = now.current.trim();
 
-    if (said === "") {
+    if (said === "" && media.length === 0) {
       return;
     }
 
     if (as === "answer") {
-      onAnswer(ask, { label: said });
+      onAnswer(ask, { label: said === "" ? shown(media) : said, media });
       onClose();
 
       return;
@@ -690,7 +697,7 @@ export const ReplyComposer = ({
     setSending(true);
 
     const sent = await notes.attempt("note", "Note not sent", async () => {
-      await noteAsk(ask, said);
+      await noteAsk(ask, said, media);
     });
 
     setSending(false);
@@ -703,7 +710,7 @@ export const ReplyComposer = ({
 
   const typed: Typed = {
     topic: ask.topic,
-    words: text.trim() !== "",
+    words: text.trim() !== "" || media.length > 0,
     sending,
     send: (as) => {
       void send(as);
@@ -751,55 +758,107 @@ export const ReplyComposer = ({
           ]}
         />
       </Row>
-      <Column
-        alignment="start"
-        spacing={0}
-        modifiers={[
-          padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
-          frame({ minHeight: metrics.field }),
-          frame({ maxWidth: Infinity, alignment: "leading" }),
-          background(theme.surface),
-          clipShape("roundedRectangle", radius.option),
-        ]}
-      >
-        <TextInput
-          ref={field}
-          autoFocus
-          multiline
-          testID="ask-input"
-          onFocus={() => {
-            typing(true);
+      <Row alignment="end" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+        <AddMedia
+          testID="ask-add"
+          label="Add a photo or video"
+          most={MOST - media.length}
+          sends={false}
+          onChoose={() => {
+            picking.current = true;
           }}
-          onBlur={() => {
-            typing(false);
-
-            if (now.current.trim() === "") {
-              onClose();
-            }
+          onAdd={(more) => {
+            picking.current = false;
+            setMedia((was) => [...was, ...more].slice(0, MOST));
           }}
-          defaultValue={first}
-          placeholder={OWN_WORDS}
-          placeholderTextColor={theme.secondary}
-          cursorColor={theme.text}
-          onChangeText={(next) => {
-            now.current = next;
-            setText(next);
-            keep(next);
-          }}
-          textStyle={labelOf("body")}
+        >
+          <Row
+            alignment="center"
+            spacing={0}
+            modifiers={[
+              frame({ width: metrics.field, height: metrics.field }),
+              background(theme.surface),
+              clipShape("circle"),
+              contentShape(shapes.circle()),
+            ]}
+          >
+            <Icon name="plus" size={metrics.symbol.row} color={theme.text} />
+          </Row>
+        </AddMedia>
+        <Column
+          alignment="start"
+          spacing={space[3]}
           modifiers={[
-            foregroundStyle(theme.text),
-            lineLimit({ min: LINES_RESERVED, max: LINES_WHILE_TYPING }),
-            clipped(),
+            padding({
+              leading: media.length ? space[2] : space[4],
+              trailing: space[4],
+              top: media.length ? space[2] : space[3],
+              bottom: space[3],
+            }),
+            frame({ minHeight: metrics.field }),
             frame({ maxWidth: Infinity, alignment: "leading" }),
-            accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
+            background(theme.surface),
+            clipShape("roundedRectangle", radius.option),
           ]}
-        />
-      </Column>
+        >
+          {media.length ? (
+            <RNHostView matchContents={{ vertical: true }}>
+              <Waiting
+                media={media}
+                onRemove={(at) => {
+                  setMedia((was) => was.filter((_, i) => i !== at));
+                }}
+              />
+            </RNHostView>
+          ) : null}
+          <TextInput
+            ref={field}
+            autoFocus
+            multiline
+            testID="ask-input"
+            onFocus={() => {
+              picking.current = false;
+              typing(true);
+            }}
+            onBlur={() => {
+              typing(false);
+
+              if (now.current.trim() === "" && media.length === 0 && !picking.current) {
+                onClose();
+              }
+            }}
+            defaultValue={first}
+            placeholder={OWN_WORDS}
+            placeholderTextColor={theme.secondary}
+            cursorColor={theme.text}
+            onChangeText={(next) => {
+              now.current = next;
+              setText(next);
+              keep(next);
+            }}
+            textStyle={labelOf("body")}
+            modifiers={[
+              foregroundStyle(theme.text),
+              lineLimit({ min: LINES_RESERVED, max: LINES_WHILE_TYPING }),
+              clipped(),
+              frame({ maxWidth: Infinity, alignment: "leading" }),
+              accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
+              ...(media.length ? [padding({ leading: space[2] })] : []),
+            ]}
+          />
+        </Column>
+      </Row>
       <Failure text={notes.failed.note} />
       <Sends typed={typed} />
     </Column>
   );
+};
+
+const shown = (media: Picked[]) => {
+  const kinds = new Set(media.map((one) => one.kind));
+  const kind = kinds.size === 1 ? [...kinds][0] : "photo or video";
+
+  return media.length === 1 ? `a ${kind}` : `${media.length} ${kind}s`;
 };
 
 const useTyping = () => {

@@ -7,16 +7,19 @@ import { useKept } from "@/hooks/use-kept";
 import { useAnswer, useWatch } from "@/hooks/use-watch";
 import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from "@/live/asks";
 import type { Ask, AskId, AskOption, Sent } from "@/live/asks";
+import type { Picked } from "@/live/media";
 
-export const answerAsk = async (ask: Ask, option: AskOption) => {
-  const sent = await hex.asks.answer(ask.id, option.label);
+export type Chosen = AskOption & { media?: Picked[] };
+
+export const answerAsk = async (ask: Ask, option: Chosen) => {
+  const sent = await hex.asks.answer(ask.id, option.label, option.media);
   keepDraft(`ask:${ask.id}`, "");
 
   return sent;
 };
 
-export const noteAsk = async (ask: Ask, text: string) => {
-  await hex.asks.note(ask.id, text);
+export const noteAsk = async (ask: Ask, text: string, media: Picked[] = []) => {
+  await hex.asks.note(ask.id, text, media);
   sentDraft(`ask:${ask.id}`, text);
 };
 
@@ -134,7 +137,7 @@ export const useAsks = (open: boolean) => {
     open: openAsks(state),
     offline: watching === "offline",
     current: watching === "current",
-    answer: (ask: Ask, option: AskOption) => {
+    answer: (ask: Ask, option: Chosen) => {
       settle(ask, option.label, "Not answered", async () => await answerAsk(ask, option));
     },
     dismiss: (ask: Ask) => {
