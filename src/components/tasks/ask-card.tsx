@@ -48,7 +48,7 @@ const PILLS_PER_ROW = 3;
 
 const OWN_WORDS = "Answer in your own words";
 
-const LINES_WHILE_TYPING = 5;
+const LINES_WHILE_TYPING = 4;
 
 const REPLY_MARK = 3;
 
@@ -712,35 +712,34 @@ export const ReplyComposer = ({
         layoutPriority(1),
       ]}
     >
-      <Row alignment="center" spacing={space[3]} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
         <Column
           alignment="start"
           spacing={0}
           modifiers={[
-            frame({ width: REPLY_MARK, height: metrics.bar.button }),
+            frame({ width: REPLY_MARK, height: metrics.symbol.send }),
             background(theme.accent),
             clipShape("capsule"),
           ]}
         />
-        <Column
-          alignment="start"
-          spacing={0}
+        <Text variant="detail" tone="accent">
+          Replying to
+        </Text>
+        <Text
+          variant="detail"
+          numberOfLines={1}
           modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
         >
-          <Text variant="caption" tone="accent">
-            Replying to
-          </Text>
-          <Text variant="detail" numberOfLines={1}>
-            {ask.question}
-          </Text>
-        </Column>
+          {ask.question}
+        </Text>
         <Icon
           name="xmark.circle.fill"
           size={metrics.symbol.send}
           color={theme.tertiary}
           onPress={onClose}
           modifiers={[
-            frame({ width: metrics.bar.button, height: metrics.bar.button }),
+            frame({ width: metrics.bar.button, height: metrics.symbol.send }),
+            contentShape(shapes.rectangle()),
             accessibilityLabel("Close, keeping your words"),
           ]}
         />
