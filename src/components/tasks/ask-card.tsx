@@ -9,6 +9,7 @@ import {
   animation,
   background,
   clipShape,
+  clipped,
   contentShape,
   fixedSize,
   foregroundStyle,
@@ -48,7 +49,9 @@ const PILLS_PER_ROW = 3;
 
 const OWN_WORDS = "Answer in your own words";
 
-const LINES_WHILE_TYPING = 4;
+const LINES_RESERVED = 3;
+
+const LINES_WHILE_TYPING = 5;
 
 const REPLY_MARK = 3;
 
@@ -782,8 +785,8 @@ export const ReplyComposer = ({
           textStyle={labelOf("body")}
           modifiers={[
             foregroundStyle(theme.text),
-            lineLimit(LINES_WHILE_TYPING),
-            fixedSize({ horizontal: false, vertical: true }),
+            lineLimit({ min: LINES_RESERVED, max: LINES_WHILE_TYPING }),
+            clipped(),
             frame({ maxWidth: Infinity, alignment: "leading" }),
             accessibilityLabel(`${OWN_WORDS}, or a note for ${ask.topic}`),
           ]}
