@@ -544,11 +544,17 @@ const OwnWords = ({
       padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
       frame({ minHeight: metrics.pill.regular }),
       frame({ maxWidth: Infinity, alignment: "leading" }),
-      strokeBorder({
-        content: here ? theme.secondary : theme.fill,
-        shape: "roundedRectangle",
-        cornerRadius: radius.option,
-      }),
+      background(theme.fill),
+      ...(here
+        ? [
+            strokeBorder({
+              content: theme.secondary,
+              shape: "roundedRectangle",
+              cornerRadius: radius.option,
+            }),
+          ]
+        : []),
+      clipShape("roundedRectangle", radius.option),
       contentShape(shapes.rectangle()),
       accessibilityElement("combine"),
       accessibilityLabel(draft.trim() ? `${OWN_WORDS}: ${draft}` : OWN_WORDS),
@@ -734,9 +740,9 @@ export const ReplyComposer = ({
           {ask.question}
         </Text>
         <Icon
-          name="xmark.circle.fill"
-          size={metrics.symbol.send}
-          color={theme.tertiary}
+          name="xmark"
+          size={metrics.symbol.small}
+          color={theme.secondary}
           onPress={onClose}
           modifiers={[
             frame({ width: metrics.bar.button, height: metrics.symbol.send }),
