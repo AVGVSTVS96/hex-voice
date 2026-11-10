@@ -76,8 +76,32 @@ export const Live = () => (
   />
 );
 
-const Lead = ({ state }: { state: MarkState }) =>
-  state === "working" ? <Live /> : <Mark state={state} />;
+const LEADS: Partial<Record<MarkState, { icon: SFSymbol; ink: ColorValue; wash?: ColorValue }>> = {
+  done: { icon: "checkmark", ink: theme.secondary },
+  pending: { icon: "circle.dotted", ink: theme.tertiary },
+  stopped: { icon: "stop.fill", ink: theme.tertiary },
+  failed: { icon: "exclamationmark", ink: theme.danger, wash: theme.dangerMuted },
+};
+
+const Lead = ({ state }: { state: MarkState }) => {
+  if (state === "working") {
+    return (
+      <Well wash={theme.progressMuted}>
+        <Live />
+      </Well>
+    );
+  }
+
+  const lead = LEADS[state];
+
+  return lead ? (
+    <Well {...(lead.wash !== undefined && { wash: lead.wash })}>
+      <Icon name={lead.icon} size={metrics.symbol.mark} color={lead.ink} />
+    </Well>
+  ) : (
+    <Mark state={state} />
+  );
+};
 
 export const stepLead = (step: TaskStep) => {
   if (step.state === "running") {
@@ -474,7 +498,7 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
   return (
     <Column alignment="start" spacing={0}>
       <TraceLine
-        lead={<Mark state="stopped" />}
+        lead={<Lead state="stopped" />}
         text={words}
         tone="tertiary"
         chevron={open ? "chevron.down" : "chevron.right"}
