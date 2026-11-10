@@ -267,7 +267,11 @@ export const footerOf = (call: Call, viewing: boolean): Footer | undefined => {
       return PAUSED;
     }
 
-    return call.hushed ? HUSHED : undefined;
+    if (call.hushed) {
+      return call.mic.muted ? { kind: "hushed", text: "hex muted" } : HUSHED;
+    }
+
+    return undefined;
   }
 
   const { last } = call;

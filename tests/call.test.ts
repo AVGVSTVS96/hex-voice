@@ -147,6 +147,7 @@ test("telling hex to mute itself shows it muted, apart from the microphone, unti
   );
 
   assert.equal(statusOf(both), "Microphone and hex muted");
+  assert.deepEqual(footerOf(both, false), { kind: "hushed", text: "hex muted" });
   assert.deepEqual(buttonsOf(both).mute, { muted: "app", enabled: true });
   assert.equal(personaOf(away, false), "idle");
 });
