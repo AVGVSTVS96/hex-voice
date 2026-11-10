@@ -18,10 +18,16 @@ struct AskHex: AppIntent, ProgressReportingIntent {
 
   func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
     let words = request.trimmingCharacters(in: .whitespacesAndNewlines)
-    let ask = { try await Hex().ask(words, progress: progress) }
+    let hex = try Hex()
+    let working = OSAllocatedUnfairLock<String?>(initialState: nil)
+    let ask = { try await hex.ask(words, progress: progress, working: working) }
     let answer: String
     if #available(iOS 27, *) {
-      answer = try await performBackgroundTask(operation: ask)
+      // Stop on the Live Activity stops hex too, once hex has started on these words. A stop
+      // before then would end whatever else hex is doing in the topic.
+      answer = try await performBackgroundTask(operation: ask) { reason in
+        if reason == .userCancelled, let topic = working.withLock({ $0 }) { hex.stop(topic) }
+      }
     } else {
       answer = try await ask()
     }
@@ -31,7 +37,7 @@ struct AskHex: AppIntent, ProgressReportingIntent {
 
 // iOS ends an intent after 30 seconds unless it runs as a long-running task that reports progress.
 @available(iOS 27, *)
-extension AskHex: LongRunningIntent {}
+extension AskHex: LongRunningIntent, CancellableIntent {}
 
 // Xcode 27.3's Swift is the first with ToolIntent; older Xcodes build the intent without it.
 #if compiler(>=6.4.2)
@@ -111,17 +117,21 @@ private struct Hex {
     token = info["HexToken"] as? String ?? ""
   }
 
-  // The Live Activity iOS shows while this waits takes its title and subtitle from the progress.
-  func ask(_ words: String, progress: Progress) async throws -> String {
+  // The Live Activity iOS shows while this waits takes its title, subtitle and ring from the
+  // progress. Its lines fit about 22 and 28 characters before iOS cuts them off.
+  func ask(_ words: String, progress: Progress, working: OSAllocatedUnfairLock<String?>) async throws -> String {
     guard !words.isEmpty else { throw HexError(localizedStringResource: "Tell me what to ask hex.") }
-    progress.totalUnitCount = Int64(Self.patience * 2)
     progress.localizedDescription = "Asking hex"
-    progress.localizedAdditionalDescription = "“\(words)”"
+    progress.localizedAdditionalDescription = words
+    progress.totalUnitCount = 1000
     let start = Date()
+    // How long hex takes isn't known ahead, so the ring fills on a curve that slows as it goes:
+    // a third full at 5s, two thirds at 20s, and full only once hex answers.
     let ticking = Task {
       while !Task.isCancelled {
-        progress.completedUnitCount = Int64(-start.timeIntervalSinceNow)
-        try await Task.sleep(for: .seconds(3))
+        let waited = -start.timeIntervalSinceNow
+        progress.completedUnitCount = Int64(1000 * waited / (waited + 10))
+        try await Task.sleep(for: .seconds(1))
       }
     }
     defer { ticking.cancel() }
@@ -149,10 +159,13 @@ private struct Hex {
       if let latest {
         if let reply = latest.turns.first(where: { $0.from == "hex" && $0.text.contains(tag) }) {
           Self.log.notice("\(tag): answered in \(-start.timeIntervalSinceNow, format: .fixed(precision: 2))s")
+          ticking.cancel()
+          progress.completedUnitCount = progress.totalUnitCount
           return String(reply.text.replacingOccurrences(of: tag, with: "").drop { " :-–—\n".contains($0) })
         }
-        progress.localizedDescription =
-          latest.waiting.contains { $0.key.hasSuffix(key) } ? "Waiting for hex to pick it up" : "hex is working on it"
+        let waiting = latest.waiting.contains { $0.key.hasSuffix(key) }
+        if !waiting { working.withLock { $0 = topic } }
+        progress.show(waiting ? "Waiting for hex" : "hex is working on it")
       }
       guard end.timeIntervalSinceNow > 1 else { return Self.stuck }
     }
@@ -202,10 +215,16 @@ private struct Hex {
         let version = read.version
       else { return }
       if let step = read.steps?.first(where: { $0.at >= sent }) {
-        progress.localizedAdditionalDescription = step.text
+        progress.show(under: step.text)
       }
       after = version
     }
+  }
+
+  // Fired without waiting: iOS may suspend the app moments after a cancel.
+  func stop(_ topic: String) {
+    Self.log.notice("stopping hex in \(topic, privacy: .public)")
+    URLSession.shared.dataTask(with: request(page(topic) + "/stop", body: [:], timeout: 10)).resume()
   }
 
   private func page(_ topic: String) -> String {
@@ -223,20 +242,24 @@ private struct Hex {
     return try decoder.decode(T.self, from: try await call(path, timeout: timeout))
   }
 
-  private func call(_ path: String, body: [String: String]? = nil, timeout: TimeInterval = 30)
-    async throws -> Data
-  {
+  private func request(_ path: String, body: [String: String]?, timeout: TimeInterval) -> URLRequest {
     var request = URLRequest(url: URL(string: origin + path)!, timeoutInterval: timeout)
     if !token.isEmpty { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
     if let body {
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.httpBody = try JSONEncoder().encode(body)
+      request.httpBody = try? JSONEncoder().encode(body)
     }
+    return request
+  }
+
+  private func call(_ path: String, body: [String: String]? = nil, timeout: TimeInterval = 30)
+    async throws -> Data
+  {
     let data: Data
     let response: URLResponse
     do {
-      (data, response) = try await URLSession.shared.data(for: request)
+      (data, response) = try await URLSession.shared.data(for: request(path, body: body, timeout: timeout))
     } catch let error as URLError where error.code == .cancelled {
       throw CancellationError()
     } catch {
@@ -251,5 +274,13 @@ private struct Hex {
         localizedStringResource: "\(said.isEmpty || said == "\(status)" ? "hex answered HTTP \(status)." : said)")
     }
     return data
+  }
+}
+
+// Each change to the progress is a Live Activity update, so only a new line is set.
+extension Progress {
+  fileprivate func show(_ title: String? = nil, under subtitle: String? = nil) {
+    if let title, localizedDescription != title { localizedDescription = title }
+    if let subtitle, localizedAdditionalDescription != subtitle { localizedAdditionalDescription = subtitle }
   }
 }
