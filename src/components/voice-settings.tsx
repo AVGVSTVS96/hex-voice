@@ -611,7 +611,7 @@ const VoicePage = ({
         >
           <Group width={width}>
             <PickerRow
-              icon="theatermasks"
+              icon="face.smiling"
               title="Personality"
               width={width}
               choices={talk?.personalities ?? []}
@@ -654,7 +654,7 @@ const VoicePage = ({
             tone="secondary"
             modifiers={[lineLimit(1), padding({ leading: metrics.rowInset })]}
           >
-            {failure ?? "Every call talks this way, phone calls too."}
+            {failure ?? "For every call, phone calls too."}
           </Text>
         </Column>
       </Column>
@@ -689,11 +689,9 @@ const Words = ({
     <>
       <SettingRow
         icon="text.quote"
-        title="In your words"
+        title="Your words"
         width={width}
-        label={
-          words === undefined ? "Tell hex how to talk, in your words" : `In your words: ${words}`
-        }
+        label={words === undefined ? "Tell hex how to talk, in your words" : `Your words: ${words}`}
         onPress={() => {
           if (enabled) {
             draft.current = words ?? "";
@@ -734,7 +732,7 @@ const Words = ({
             <Row alignment="center" spacing={0} style={{ height: HEADER }}>
               <Spacer style={{ width: HEADER }} />
               <Spacer flexible />
-              <Text variant="headline">In your words</Text>
+              <Text variant="headline">Your words</Text>
               <Spacer flexible />
               <NativeButton
                 label="Done"
