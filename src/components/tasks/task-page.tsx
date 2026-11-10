@@ -15,9 +15,11 @@ import {
   scrollIndicators,
   shapes,
 } from "@expo/ui/swift-ui/modifiers";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
-import { YourCall } from "@/components/tasks/ask-card";
+import { Reply, Sends, YourCall } from "@/components/tasks/ask-card";
+import type { Typed } from "@/components/tasks/ask-card";
 import { Header } from "@/components/tasks/bar";
 import type { Door } from "@/components/tasks/bar";
 import { Lane } from "@/components/tasks/lane";
@@ -101,132 +103,155 @@ export const Detail = ({
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const tracks = laneOf(task, own);
   const now = useNow(false).getTime();
+  const [typed, setTyped] = useState<Typed | null>(null);
 
   return (
-    <Column alignment="center" spacing={0} modifiers={readable}>
-      <Header
-        title={titleOf(task)}
-        subtitle={subtitleOf(task, open)}
-        door={firstDoor(
-          under.filter((one) => one.place === task.place),
-          onOpen,
-        )}
-        call={{ about: titleOf(task), onPress: onTalk }}
-      />
-      <Faded>
-        <List key={task.id} modifiers={pageList(asks, answered)}>
-          {asks.length ? (
-            <YourCall
-              asks={asks}
-              answered={answered}
-              onAnswer={onAnswer}
-              onUndo={onUndo}
-              onAgain={onAgain}
-              onDismiss={onDismiss}
-            />
-          ) : null}
-          <Column alignment="start" spacing={0} modifiers={rest()}>
-            <Sections follows={asks.length > 0}>
-              {waiting.length ? (
-                <Column key="needs" alignment="start" spacing={0}>
-                  <StageHead tint="needs" title="Needs you" />
-                  <Column alignment="start" spacing={space[4]}>
-                    {waiting.map((thread) => (
-                      <Waiting key={thread.id} thread={thread} page={task} onOpen={onOpenTask} />
+    <Reply.Provider value={setTyped}>
+      <Column alignment="center" spacing={0} modifiers={readable}>
+        <Header
+          title={titleOf(task)}
+          subtitle={subtitleOf(task, open)}
+          door={firstDoor(
+            under.filter((one) => one.place === task.place),
+            onOpen,
+          )}
+          call={{ about: titleOf(task), onPress: onTalk }}
+        />
+        <Faded>
+          <List key={task.id} modifiers={pageList(asks, answered)}>
+            {asks.length ? (
+              <YourCall
+                asks={asks}
+                answered={answered}
+                onAnswer={onAnswer}
+                onUndo={onUndo}
+                onAgain={onAgain}
+                onDismiss={onDismiss}
+              />
+            ) : null}
+            <Column alignment="start" spacing={0} modifiers={rest()}>
+              <Sections follows={asks.length > 0}>
+                {waiting.length ? (
+                  <Column key="needs" alignment="start" spacing={0}>
+                    <StageHead tint="needs" title="Needs you" />
+                    <Column alignment="start" spacing={space[4]}>
+                      {waiting.map((thread) => (
+                        <Waiting key={thread.id} thread={thread} page={task} onOpen={onOpenTask} />
+                      ))}
+                    </Column>
+                  </Column>
+                ) : null}
+                {working.length ? (
+                  <Column key="working" alignment="start" spacing={0}>
+                    <StageHead tint="working" title="Working" count={working.length} />
+                    <AtWork
+                      threads={working.map((thread) =>
+                        thread.id === task.id && full ? full : thread,
+                      )}
+                      page={task}
+                      onSteps={onSteps}
+                    />
+                  </Column>
+                ) : null}
+                {full && lastRun(full) ? (
+                  <Column key="run" alignment="start" spacing={0}>
+                    <SectionHead title="Last run" opens />
+                    <Run
+                      thread={full}
+                      onPress={() => {
+                        onSteps(full.id);
+                      }}
+                    />
+                  </Column>
+                ) : null}
+                {full?.pin === undefined || full.pin === "" ? null : (
+                  <Pinned key="pin" text={full.pin} />
+                )}
+                {messages}
+                {hasPlaces(task, threads) ? (
+                  <Places
+                    key={`places:${task.id}`}
+                    task={task}
+                    threads={threads}
+                    missing={missing}
+                    onOpen={onOpen}
+                    onOpenTask={onOpenTask}
+                  />
+                ) : null}
+                {tracks.length ? (
+                  <Column key="week" alignment="start" spacing={0}>
+                    <SectionHead title="This week" />
+                    <Row
+                      alignment="center"
+                      spacing={0}
+                      modifiers={[
+                        padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
+                      ]}
+                    >
+                      <Lane tracks={tracks} now={now} />
+                    </Row>
+                  </Column>
+                ) : null}
+                {lately.length ? (
+                  <Column key="lately" alignment="start" spacing={0}>
+                    <SectionHead title="Lately" />
+                    {lately.map((moment, i) => (
+                      <TraceLine
+                        key={`${moment.at} ${i}`}
+                        lead={<Mark state={i === 0 ? moment.state : pastMark(moment.state)} />}
+                        text={moment.text}
+                        tone={i > 0 ? "secondary" : undefined}
+                        time={clock(new Date(moment.at))}
+                      />
                     ))}
                   </Column>
-                </Column>
-              ) : null}
-              {working.length ? (
-                <Column key="working" alignment="start" spacing={0}>
-                  <StageHead tint="working" title="Working" count={working.length} />
-                  <AtWork
-                    threads={working.map((thread) =>
-                      thread.id === task.id && full ? full : thread,
-                    )}
-                    page={task}
-                    onSteps={onSteps}
-                  />
-                </Column>
-              ) : null}
-              {full && lastRun(full) ? (
-                <Column key="run" alignment="start" spacing={0}>
-                  <SectionHead title="Last run" opens />
-                  <Run
-                    thread={full}
-                    onPress={() => {
-                      onSteps(full.id);
-                    }}
-                  />
-                </Column>
-              ) : null}
-              {full?.pin === undefined || full.pin === "" ? null : (
-                <Pinned key="pin" text={full.pin} />
-              )}
-              {messages}
-              {hasPlaces(task, threads) ? (
-                <Places
-                  key={`places:${task.id}`}
-                  task={task}
-                  threads={threads}
-                  missing={missing}
-                  onOpen={onOpen}
-                  onOpenTask={onOpenTask}
-                />
-              ) : null}
-              {tracks.length ? (
-                <Column key="week" alignment="start" spacing={0}>
-                  <SectionHead title="This week" />
-                  <Row
-                    alignment="center"
-                    spacing={0}
-                    modifiers={[
-                      padding({ leading: metrics.list.inset, trailing: metrics.list.inset }),
-                    ]}
-                  >
-                    <Lane tracks={tracks} now={now} />
-                  </Row>
-                </Column>
-              ) : null}
-              {lately.length ? (
-                <Column key="lately" alignment="start" spacing={0}>
-                  <SectionHead title="Lately" />
-                  {lately.map((moment, i) => (
-                    <TraceLine
-                      key={`${moment.at} ${i}`}
-                      lead={<Mark state={i === 0 ? moment.state : pastMark(moment.state)} />}
-                      text={moment.text}
-                      tone={i > 0 ? "secondary" : undefined}
-                      time={clock(new Date(moment.at))}
-                    />
-                  ))}
-                </Column>
-              ) : null}
-            </Sections>
-          </Column>
-        </List>
-      </Faded>
-      <WriteFoot title={titleOf(task)} hidden={beside || answering} foot={foot} onWrite={onWrite} />
-    </Column>
+                ) : null}
+              </Sections>
+            </Column>
+          </List>
+        </Faded>
+        <WriteFoot
+          title={titleOf(task)}
+          typed={typed}
+          hidden={beside || answering}
+          foot={foot}
+          onWrite={onWrite}
+        />
+      </Column>
+    </Reply.Provider>
   );
 };
 
+const ReplyFoot = ({ typed, foot }: { typed: Typed | null; foot: number }) =>
+  typed ? (
+    <Foot foot={foot}>
+      <Sends typed={typed} grow />
+    </Foot>
+  ) : null;
+
 const WriteFoot = ({
   title,
+  typed,
   hidden,
   foot,
   onWrite,
 }: {
   title: string;
+  typed: Typed | null;
   hidden: boolean;
   foot: number;
   onWrite?: (() => void) | undefined;
-}) =>
-  onWrite && !hidden ? (
+}) => {
+  if (typed) {
+    return <ReplyFoot typed={typed} foot={foot} />;
+  }
+
+  return onWrite && !hidden ? (
     <Foot foot={foot}>
       <WriteField title={title} onPress={onWrite} />
     </Foot>
   ) : null;
+};
 
 export const Asked = ({
   topic,
@@ -251,31 +276,35 @@ export const Asked = ({
 }) => {
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const others = rows?.length ?? 0;
+  const [typed, setTyped] = useState<Typed | null>(null);
 
   return (
-    <Column alignment="center" spacing={0} modifiers={readable}>
-      <Header
-        title={topic}
-        subtitle={open ? `${open} need${open === 1 ? "s" : ""} you` : `${others} here`}
-        door={door}
-      />
-      <Faded>
-        <List key={topic} modifiers={pageList(asks, answered)}>
-          {asks.length ? (
-            <YourCall
-              asks={asks}
-              answered={answered}
-              onAnswer={onAnswer}
-              onUndo={onUndo}
-              onAgain={onAgain}
-              onDismiss={onDismiss}
-            />
-          ) : null}
-          {rows}
-          <Column alignment="start" spacing={0} modifiers={rest()} />
-        </List>
-      </Faded>
-    </Column>
+    <Reply.Provider value={setTyped}>
+      <Column alignment="center" spacing={0} modifiers={readable}>
+        <Header
+          title={topic}
+          subtitle={open ? `${open} need${open === 1 ? "s" : ""} you` : `${others} here`}
+          door={door}
+        />
+        <Faded>
+          <List key={topic} modifiers={pageList(asks, answered)}>
+            {asks.length ? (
+              <YourCall
+                asks={asks}
+                answered={answered}
+                onAnswer={onAnswer}
+                onUndo={onUndo}
+                onAgain={onAgain}
+                onDismiss={onDismiss}
+              />
+            ) : null}
+            {rows}
+            <Column alignment="start" spacing={0} modifiers={rest()} />
+          </List>
+        </Faded>
+        <ReplyFoot typed={typed} foot={0} />
+      </Column>
+    </Reply.Provider>
   );
 };
 

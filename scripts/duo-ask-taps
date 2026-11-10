@@ -1,18 +1,20 @@
 # Answering a question in your own words, and putting one away: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo tap <ref> scripts/duo-ask-taps
-# Empty, its box is an outline to type in, with no Send or Answer with this until there are words.
+# Its "Answer in your own words" box takes a tap to type in, its Send as note and Answer riding
+# above the keyboard, dimmed until there are words.
 # Words typed on its card and not sent stay there: the page closes, and the app starts again, and
 # the card opens on them, the keyboard down.
 launch hexvoice:///?tasks=md
 wait 3
 tap ask-card
 wait 1
-tap Write your own
+tap ask-input
 wait 1
 shoot ask-empty
 swipe-down ask-input
 wait 1
 no-keyboard after the swipe
 shoot ask-empty-resting
+tap ask-input
 type ask-input Found one of them
 above-keyboard ask-input
 shoot ask-writing
@@ -62,15 +64,16 @@ shoot row-put-away
 launch hexvoice:///?tasks=md
 wait 3
 type ask-input  and the other
-tap Send a note to markdown
+tap Send as note
 wait 1
 no-keyboard after the note
 frame thread-write
 shoot ask-noted
-tap Write your own
+tap ask-input
 type ask-input Found both
 swipe-down ask-input
 wait 1
-tap Answer with this
+shoot ask-typed-resting
+tap ask-Answer
 wait 1
 shoot ask-answered
