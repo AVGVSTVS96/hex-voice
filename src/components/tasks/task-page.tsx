@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 import type { ReactNode } from "react";
 
-import { Reply, Sends, YourCall } from "@/components/tasks/ask-card";
+import { Reply, ReplyBar, YourCall } from "@/components/tasks/ask-card";
 import type { Typed } from "@/components/tasks/ask-card";
 import { Header } from "@/components/tasks/bar";
 import type { Door } from "@/components/tasks/bar";
@@ -225,7 +225,7 @@ export const Detail = ({
 const ReplyFoot = ({ typed, foot }: { typed: Typed | null; foot: number }) =>
   typed ? (
     <Foot foot={foot}>
-      <Sends typed={typed} grow />
+      <ReplyBar typed={typed} />
     </Foot>
   ) : null;
 

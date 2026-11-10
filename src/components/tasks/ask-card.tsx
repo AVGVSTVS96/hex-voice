@@ -524,7 +524,6 @@ const SendButton = ({
   icon,
   about,
   live,
-  grow,
   prominent = false,
   onPress,
 }: {
@@ -532,7 +531,6 @@ const SendButton = ({
   icon: SFSymbol;
   about: string;
   live: boolean;
-  grow: boolean;
   prominent?: boolean;
   onPress: () => void;
 }) => {
@@ -548,7 +546,7 @@ const SendButton = ({
       modifiers={[
         padding({ leading: space[4], trailing: space[4] }),
         frame({ minHeight: metrics.pill.regular }),
-        ...(grow ? [frame({ maxWidth: Infinity })] : []),
+        frame({ maxWidth: Infinity }),
         background(lit ? theme.prominent : theme.fill),
         clipShape("capsule"),
         contentShape(shapes.capsule()),
@@ -566,18 +564,16 @@ const SendButton = ({
   );
 };
 
-export const Sends = ({ typed, grow = false }: { typed: Typed; grow?: boolean }) => {
+const Sends = ({ typed }: { typed: Typed }) => {
   const live = typed.words && !typed.sending;
 
   return (
     <Row alignment="center" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
-      {grow ? null : <Spacer flexible />}
       <SendButton
         label="Send as note"
         icon="text.bubble"
         about={`Send as a note to ${typed.topic}; the question stays open`}
         live={live}
-        grow={grow}
         onPress={() => {
           typed.send("note");
         }}
@@ -587,7 +583,6 @@ export const Sends = ({ typed, grow = false }: { typed: Typed; grow?: boolean })
         icon="checkmark"
         about="Answer the question with your words"
         live={live}
-        grow={grow}
         prominent
         onPress={() => {
           typed.send("answer");
@@ -596,6 +591,19 @@ export const Sends = ({ typed, grow = false }: { typed: Typed; grow?: boolean })
     </Row>
   );
 };
+
+export const ReplyBar = ({ typed }: { typed: Typed }) => (
+  <Column
+    alignment="start"
+    spacing={0}
+    modifiers={[
+      padding({ leading: CARD_MARGIN, trailing: CARD_MARGIN }),
+      frame({ maxWidth: Infinity }),
+    ]}
+  >
+    <Sends typed={typed} />
+  </Column>
+);
 
 const Composer = ({
   draft,
