@@ -5,8 +5,10 @@ launch hexvoice:///?tasks=md
 wait 3
 tap ask-card
 wait 1
+shoot ask-rest
 tap ask-own
 wait 1
+shoot ask-empty
 tap ask-add
 wait 1
 shoot ask-add-menu
