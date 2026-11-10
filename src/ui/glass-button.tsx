@@ -29,6 +29,7 @@ const symbols = {
   tasks: "list.bullet",
   mic: "mic",
   "mic-off": "mic.slash",
+  "hex-off": "speaker.slash",
   close: "xmark",
   waveform: "waveform",
   more: "ellipsis",

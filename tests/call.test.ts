@@ -80,7 +80,7 @@ test("connecting here locks the voice, thinks, and offers to cancel", () => {
     persona: "thinking",
     wake: 0.5,
     status: "Connecting",
-    buttons: { call: "cancel", mute: { muted: false, enabled: false }, add: false },
+    buttons: { call: "cancel", mute: { muted: "none", enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -97,10 +97,10 @@ test("a live call here listens, speaks while hex talks, and goes quiet when mute
   assert.equal(statusOf(live({ muted: true })), "Microphone muted");
   assert.deepEqual(buttonsOf(live()), {
     call: "end",
-    mute: { muted: false, enabled: true },
+    mute: { muted: "none", enabled: true },
     add: true,
   });
-  assert.deepEqual(buttonsOf(live({ muted: true })).mute, { muted: true, enabled: true });
+  assert.deepEqual(buttonsOf(live({ muted: true })).mute, { muted: "app", enabled: true });
   assert.equal(wakeOf(live()), 1);
   assert.deepEqual(wordsOf(live()), words);
   assert.equal(footerOf(live(), false), undefined);
@@ -108,7 +108,7 @@ test("a live call here listens, speaks while hex talks, and goes quiet when mute
 
 test("iOS taking the audio shows the microphone off and says the call is paused", () => {
   const paused = live({ interrupted: true });
-  assert.deepEqual(buttonsOf(paused).mute, { muted: true, enabled: true });
+  assert.deepEqual(buttonsOf(paused).mute, { muted: "app", enabled: true });
   assert.equal(personaOf(paused, false), "listening");
   assert.equal(statusOf(paused), "Conversation active");
   assert.deepEqual(footerOf(paused, false), {
@@ -128,7 +128,7 @@ test("telling hex to mute itself shows it muted, apart from the microphone, unti
   assert.equal(personaOf(hushed, false), "idle");
   assert.equal(statusOf(hushed), "hex muted");
   assert.deepEqual(footerOf(hushed, false), { kind: "hushed", text: "hex muted · say “unmute”" });
-  assert.deepEqual(buttonsOf(hushed).mute, { muted: false, enabled: true });
+  assert.deepEqual(buttonsOf(hushed).mute, { muted: "hex", enabled: true });
   assert.equal(footerOf(said("muted", "unmuted"), false), undefined);
   assert.equal(personaOf(said("muted", "unmuted"), false), "listening");
 
@@ -138,6 +138,16 @@ test("telling hex to mute itself shows it muted, apart from the microphone, unti
   });
 
   assert.equal(footerOf(away, false)?.kind, "hushed");
+  assert.deepEqual(buttonsOf(away).mute, { muted: "hex", enabled: false });
+
+  const both = callOf(
+    session({ status: "connected", callId: sess, muted: true, transcript: words }),
+    nobody,
+    { moments: [{ at: 0, kind: "muted", text: "" }] },
+  );
+
+  assert.equal(statusOf(both), "Microphone and hex muted");
+  assert.deepEqual(buttonsOf(both).mute, { muted: "app", enabled: true });
   assert.equal(personaOf(away, false), "idle");
 });
 
@@ -151,7 +161,7 @@ test("ending a call here thinks, keeps the microphone as it was, and lets nothin
     persona: "thinking",
     wake: 0.5,
     status: "Ending conversation",
-    buttons: { call: "ending", mute: { muted: true, enabled: false }, add: false },
+    buttons: { call: "ending", mute: { muted: "app", enabled: false }, add: false },
     words: true,
     footer: undefined,
     error: undefined,
@@ -228,7 +238,7 @@ test("a call hex holds elsewhere shows as the call, with its words and where it 
     persona: "listening",
     wake: 1,
     status: "hex called you, on your phone",
-    buttons: { call: "end", mute: { muted: false, enabled: false }, add: true },
+    buttons: { call: "end", mute: { muted: "none", enabled: false }, add: true },
     words: true,
     footer: { kind: "elsewhere", text: "On your phone · hex called you" },
     error: undefined,

@@ -188,7 +188,7 @@ export const statusOf = (call: Call) => {
   }
 
   if (call.mic.muted) {
-    return "Microphone muted";
+    return call.hushed ? "Microphone and hex muted" : "Microphone muted";
   }
 
   return call.hushed ? "hex muted" : "Conversation active";
@@ -196,7 +196,9 @@ export const statusOf = (call: Call) => {
 
 export type CallButton = "start" | "retry" | "cancel" | "end" | "ending";
 
-export type MuteButton = { muted: boolean; enabled: boolean } | undefined;
+export type Muted = "none" | "app" | "hex";
+
+export type MuteButton = { muted: Muted; enabled: boolean } | undefined;
 
 interface Buttons {
   call: CallButton;
@@ -224,16 +226,18 @@ export const buttonsOf = (call: Call): Buttons => {
   };
 };
 
-const muteOf = (call: Exclude<Call, { kind: "none" }>): MuteButton => {
-  if (call.kind === "elsewhere") {
-    return { muted: false, enabled: false };
+const mutedOf = (call: Exclude<Call, { kind: "none" }>): Muted => {
+  if (call.kind === "here" && (call.mic.muted || call.mic.interrupted)) {
+    return "app";
   }
 
-  return {
-    muted: call.mic.muted || call.mic.interrupted,
-    enabled: call.phase === "live",
-  };
+  return isHushed(call) ? "hex" : "none";
 };
+
+const muteOf = (call: Exclude<Call, { kind: "none" }>): MuteButton => ({
+  muted: mutedOf(call),
+  enabled: call.kind === "here" && call.phase === "live",
+});
 
 export const voiceLocked = (call: Call) => call.kind === "here";
 

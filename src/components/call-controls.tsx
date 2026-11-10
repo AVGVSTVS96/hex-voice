@@ -5,7 +5,7 @@ import { StyleSheet, View } from "react-native";
 import type { ViewStyle } from "react-native";
 
 import { buttonsOf } from "@/call/call";
-import type { Call, CallButton } from "@/call/call";
+import type { Call, CallButton, Muted } from "@/call/call";
 import { GlassButton } from "@/ui/glass-button";
 import { Host } from "@/ui/host";
 import { metrics } from "@/ui/tokens";
@@ -20,6 +20,12 @@ interface Props {
   onMute: () => void;
   onPrimary: () => void;
 }
+
+const MUTE: Record<Muted, { icon: "mic" | "mic-off" | "hex-off"; label: string }> = {
+  none: { icon: "mic", label: "Mute microphone" },
+  app: { icon: "mic-off", label: "Unmute microphone" },
+  hex: { icon: "hex-off", label: "hex muted, mute microphone" },
+};
 
 const PRIMARY: Record<
   CallButton,
@@ -54,11 +60,11 @@ export const CallButtons = ({
         {mute &&
           (buttons.mute ? (
             <GlassButton
-              icon={buttons.mute.muted ? "mic-off" : "mic"}
-              label={buttons.mute.muted ? "Unmute microphone" : "Mute microphone"}
+              icon={MUTE[buttons.mute.muted].icon}
+              label={MUTE[buttons.mute.muted].label}
               testID="session-mute-button"
               disabled={!buttons.mute.enabled}
-              selected={buttons.mute.muted}
+              selected={buttons.mute.muted !== "none"}
               size={sizes.mute}
               onPress={onMute}
             />
