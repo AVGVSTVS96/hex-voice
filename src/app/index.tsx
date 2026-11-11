@@ -6,12 +6,13 @@ import { TaskId } from "@/live/tasks";
 import { SplitView } from "@/screens/split-view";
 
 const Index = () => {
-  const { tasks, stage, open, report, split, update } = useLocalSearchParams<{
+  const { tasks, stage, open, report, split, share, update } = useLocalSearchParams<{
     tasks?: string;
     stage?: string;
     open?: string;
     report?: string;
     split?: string;
+    share?: string;
     update?: string;
   }>();
 
@@ -34,10 +35,18 @@ const Index = () => {
   );
 
   return split === "first" || split === "second" ? (
-    <SplitView side={split}>{screen}</SplitView>
+    <SplitView side={split} share={shareOf(share)}>
+      {screen}
+    </SplitView>
   ) : (
     screen
   );
+};
+
+const shareOf = (share?: string) => {
+  const part = Number(share);
+
+  return part > 0 && part < 1 ? part : 0.5;
 };
 
 const DEMO_UPDATE = { version: 0, runtime: "demo", install: "hexvoice:///" };
