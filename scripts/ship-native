@@ -68,7 +68,7 @@ ssh -o ConnectTimeout=15 -o BatchMode=yes "$mac" true </dev/null 2>/dev/null ||
 asleep() { [ $? != 255 ] || echo "the Mac stopped answering, so it's asleep: $title isn't on the link" >&2; }
 trap asleep EXIT
 signed=build/signed/hex.app
-if [ "$(cat "$home/signed" 2>/dev/null)" = "$commit" ]; then
+if [ "$(cat "$home/signed" 2>/dev/null)" = "$commit $runtime" ]; then
   flock -u 9
   echo "the Mac already holds $title, signed"
 else
@@ -90,7 +90,7 @@ path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
   ssh "$mac" sh "$folder/scripts/resign" "$serial" "$folder/$signed" </dev/null
-  echo "$commit" >"$home/signed"
+  echo "$commit $runtime" >"$home/signed"
 fi
 
 echo "putting it on the install link"
