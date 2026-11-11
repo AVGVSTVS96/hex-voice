@@ -139,7 +139,7 @@ private struct Hex {
     let id = UUID().uuidString.prefix(6).lowercased()
     let tag = "#siri-\(id)"
     let key = "app-siri-\(id)"
-    let said = "(asked Siri: reply once, starting with \(tag), then one short spoken sentence; name each command you run in four words or fewer) \(words)"
+    let said = "(asked Siri: reply once, starting with \(tag), then one short spoken sentence; name each command you run in four words or fewer; anything to do on this iPhone itself, like a setting, Focus, alarm or Shortcut, goes on its own last line as For Siri to do: <what to tell Siri>, and Siri does it) \(words)"
     let topic = try await send(said, key: key)
     let sent = Date()
     Self.log.notice("\(tag): app up \(launched(), format: .fixed(precision: 2))s, posted in \(sent.timeIntervalSince(start), format: .fixed(precision: 2))s")
