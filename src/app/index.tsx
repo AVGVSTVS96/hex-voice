@@ -6,13 +6,14 @@ import { TaskId } from "@/live/tasks";
 import { SplitView } from "@/screens/split-view";
 
 const Index = () => {
-  const { tasks, stage, open, report, split, share, update } = useLocalSearchParams<{
+  const { tasks, stage, open, report, split, share, size, update } = useLocalSearchParams<{
     tasks?: string;
     stage?: string;
     open?: string;
     report?: string;
     split?: string;
     share?: string;
+    size?: string;
     update?: string;
   }>();
 
@@ -28,7 +29,7 @@ const Index = () => {
               },
         open: open === "settings" || open === "calls" ? open : undefined,
         reportPose: report === "pose",
-        split: split === "first" || split === "second",
+        compact: (split === "first" || split === "second") && size !== "regular",
         update: update === "demo" ? DEMO_UPDATE : undefined,
       }}
     />

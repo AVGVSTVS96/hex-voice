@@ -98,7 +98,7 @@ export interface Opening {
   tasks?: TasksAt | undefined;
   open?: "settings" | "calls" | undefined;
   reportPose: boolean;
-  split?: boolean;
+  compact?: boolean;
   update?: NativeBuild | undefined;
 }
 
@@ -123,7 +123,7 @@ const LiveScreen = ({ opening }: { opening: Opening }) => {
         <PoseView
           style={StyleSheet.absoluteFill}
           onPoseChange={({ nativeEvent: { regular, bar, fold, occlusions } }) => {
-            setPose({ regular: regular && opening.split !== true, bar, fold, occlusions });
+            setPose({ regular: regular && opening.compact !== true, bar, fold, occlusions });
           }}
         />
       )}
