@@ -984,7 +984,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
             });
 
             if (call.kind === "here") {
-              await end();
+              await end().catch(() => null);
             }
 
             return await install(update);

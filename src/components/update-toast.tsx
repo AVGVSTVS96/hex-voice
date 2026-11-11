@@ -2,7 +2,9 @@ import { Icon, Row } from "@expo/ui";
 import { Button, Image, ProgressView } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
+  background,
   buttonStyle,
+  clipShape,
   contentShape,
   frame,
   padding,
@@ -54,8 +56,12 @@ export const UpdateToast = ({
 
   return (
     <View pointerEvents="box-none" style={[styles.place, place]}>
-      <Host matchContents>
-        <Row alignment="center" spacing={0} modifiers={[glass("capsule")]}>
+      <Host matchContents alignment={"top" in place ? "top" : "bottom"}>
+        <Row
+          alignment="center"
+          spacing={0}
+          modifiers={[background(theme.sheet), clipShape("capsule"), glass("capsule")]}
+        >
           <Button
             testID="update-install"
             onPress={() => {
@@ -98,9 +104,7 @@ export const UpdateToast = ({
               ) : (
                 <>
                   <Icon name="arrow.down.circle" size={metrics.symbol.bar} color={theme.accent} />
-                  <Text tone="secondary">
-                    {step === "failed" ? "Install didn't start" : "Update ready"}
-                  </Text>
+                  <Text>{step === "failed" ? "Install didn't start" : "Update ready"}</Text>
                   <Text variant="headline" tone="accent">
                     {step === "failed" ? "Try again" : action}
                   </Text>

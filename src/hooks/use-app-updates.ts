@@ -56,17 +56,24 @@ const newNative = (build: LinkBuild | undefined) =>
 
 export type NativeBuild = NonNullable<ReturnType<typeof newNative>>;
 
-const opens = async (url: string) =>
-  await Linking.openURL(url).then(
-    () => true,
-    () => false,
-  );
+const opens = async (url: string) => {
+  try {
+    await Linking.openURL(url);
+
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 // WHY: hangar installs it and reopens hex in the new build; without hangar, the install link installs it.
 export const install = async (build: NativeBuild) => {
   const app = Constants.expoConfig?.ios?.bundleIdentifier ?? "";
 
-  return (await opens(`hangar://update/${app}`)) || (await opens(build.install));
+  return (
+    (await opens(`hangar://update/${app}`)) ||
+    (build.install !== "" && (await opens(build.install)))
+  );
 };
 
 const download = async () => {
