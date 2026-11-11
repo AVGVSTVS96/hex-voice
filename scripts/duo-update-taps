@@ -11,3 +11,5 @@ shoot ready-on-call
 tap update-install
 wait 2
 shoot installing-call-ended
+wait 4
+shoot after-handoff

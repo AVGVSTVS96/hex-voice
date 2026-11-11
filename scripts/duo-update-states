@@ -1,4 +1,5 @@
 # The Update ready toast over every screen it can show on: scripts/duo shoot <ref> scripts/duo-update-states
+update-idle        hexvoice:///?update=demo
 update-tasks       hexvoice:///?tasks&update=demo
 update-call        hexvoice:///?demo=call&update=demo
 update-tasks-call  hexvoice:///?tasks&demo=call&update=demo

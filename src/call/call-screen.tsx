@@ -38,6 +38,7 @@ import { opalPaletteInput } from "@/components/persona/variants";
 import { ScreenToolbar } from "@/components/screen-toolbar";
 import { TasksPane } from "@/components/tasks-pane";
 import { TasksSheet } from "@/components/tasks-sheet";
+import { goThroughHeight } from "@/components/tasks/list";
 import type { Move, TasksAt } from "@/components/tasks/pages";
 import { ToolbarBackProvider, useToolbarBacks } from "@/components/toolbar-back";
 import type { BackFrom } from "@/components/toolbar-back";
@@ -972,13 +973,17 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       {update && update.version !== notNow && (
         <UpdateToast
           build={update}
-          edge={
-            tasksOpen || callsOpen || settingsOpen
-              ? { bottom: footOf({ safe: insets }) + metrics.call + space[3] }
-              : { top: insets.top + space[2] }
-          }
+          place={{
+            left: layout.content.x,
+            width: layout.content.width,
+            ...toastEdge({ foot: settingsOpen || callsOpen, tasks: tasksOpen }, insets),
+          }}
           endsCall={call.kind === "here"}
           onInstall={async () => {
+            haptic(async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            });
+
             if (call.kind === "here") {
               await end();
             }
@@ -992,6 +997,22 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       )}
     </ToolbarBackProvider>
   );
+};
+
+// WHY: pages own the top with their titles, so on a page the toast sits at the foot, above Tasks' Go through bar.
+const toastEdge = (
+  page: { foot: boolean; tasks: boolean },
+  insets: { top: number; bottom: number },
+) => {
+  if (page.foot) {
+    return { bottom: footOf({ safe: insets }) };
+  }
+
+  if (page.tasks) {
+    return { bottom: goThroughHeight(insets.bottom) + space[2] };
+  }
+
+  return { top: insets.top + space[2] };
 };
 
 const arrangementOf = (layout: Layout, onCall: boolean) => {

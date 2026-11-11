@@ -403,7 +403,8 @@ const Behind = () => (
   </Text>
 );
 
-const goThroughHeight = (foot: number) => space[3] + metrics.pill.height + Math.max(space[4], foot);
+export const goThroughHeight = (foot: number) =>
+  space[3] + metrics.pill.height + Math.max(space[4], foot);
 
 const Room = ({ under }: { under: number }) =>
   under > 0 ? (
