@@ -79,7 +79,7 @@ import { orbRest } from "@/screens/orb-rest";
 import { logPose } from "@/screens/pose-log";
 import { SideColumn } from "@/screens/side-column";
 import { roomOf } from "@/screens/window";
-import type { Room } from "@/screens/window";
+import type { Fold, Room } from "@/screens/window";
 import { hairline, theme } from "@/theme";
 import { AnimatedView } from "@/ui/animated-view";
 import { HostedGlassButton } from "@/ui/glass-button";
@@ -974,8 +974,7 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
         <UpdateToast
           build={update}
           place={{
-            left: layout.content.x,
-            width: layout.content.width,
+            ...toastSpan(layout.content, room.fold),
             ...toastEdge({ foot: settingsOpen || callsOpen, tasks: tasksOpen }, insets),
           }}
           endsCall={call.kind === "here"}
@@ -997,6 +996,14 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       )}
     </ToolbarBackProvider>
   );
+};
+
+// WHY: the Duo's hinge is a gap in the screen, so the toast keeps to the half before it.
+const toastSpan = (content: { x: number; width: number }, fold: Fold | undefined) => {
+  const hinge = fold && "x" in fold ? fold.x : undefined;
+  const before = hinge !== undefined && hinge > content.x ? hinge : content.x + content.width;
+
+  return { left: content.x, width: Math.min(before, content.x + content.width) - content.x };
 };
 
 // WHY: pages own the top with their titles, so on a page the toast sits at the foot, above Tasks' Go through bar.
