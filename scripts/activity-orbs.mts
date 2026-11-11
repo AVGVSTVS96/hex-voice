@@ -122,3 +122,17 @@ for (const orb of ACTIVITY_ORBS) {
 }
 
 await browser.close();
+
+const icon = path.join(OUT, "hex.imageset");
+
+mkdirSync(icon);
+
+writeFileSync(
+  path.join(icon, "icon.png"),
+  readFileSync(path.join(ROOT, "assets", "live-activity", "hex.png")),
+);
+
+writeFileSync(
+  path.join(icon, "Contents.json"),
+  `${JSON.stringify({ images: [{ filename: "icon.png", idiom: "universal" }], info }, null, 2)}\n`,
+);

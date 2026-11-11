@@ -1,10 +1,11 @@
+import ActivityKit
 import AppIntents
 import Foundation
 import os
 
 // Siri hands hex the words the way the app's chat does, into hex's Siri topic, then waits for
 // hex's reply, however long its work takes, and speaks it.
-struct AskHex: AppIntent, ProgressReportingIntent {
+struct AskHex: AppIntent, ProgressReportingIntent, LiveActivityIntent {
   static let title: LocalizedStringResource = "Ask hex"
   static let description = IntentDescription(
     "Sends a question or request to hex, Bassim's own assistant that runs his projects, servers and tasks, and returns hex's reply.",
@@ -20,17 +21,25 @@ struct AskHex: AppIntent, ProgressReportingIntent {
     let words = request.trimmingCharacters(in: .whitespacesAndNewlines)
     let hex = try Hex()
     let working = OSAllocatedUnfairLock<String?>(initialState: nil)
-    let ask = { try await hex.ask(words, progress: progress, working: working) }
+    let pill = Pill(words, on: progress)
+    // Stop stops hex too, once hex has started on these words. A stop before then would end
+    // whatever else hex is doing in the topic.
+    let stop: @Sendable () -> Void = { if let topic = working.withLock({ $0 }) { hex.stop(topic) } }
+    let ask = { try await pill.stoppable(onStop: stop) { try await hex.ask(words, pill: pill, working: working) } }
     let answer: String
-    if #available(iOS 27, *) {
-      // Stop on the Live Activity stops hex too, once hex has started on these words. A stop
-      // before then would end whatever else hex is doing in the topic.
-      answer = try await performBackgroundTask(operation: ask) { reason in
-        if reason == .userCancelled, let topic = working.withLock({ $0 }) { hex.stop(topic) }
+    do {
+      if #available(iOS 27, *) {
+        answer = try await performBackgroundTask(operation: ask) { reason in
+          if reason == .userCancelled { stop() }
+        }
+      } else {
+        answer = try await ask()
       }
-    } else {
-      answer = try await ask()
+    } catch {
+      await pill.end()
+      throw error
     }
+    await pill.end()
     return .result(value: answer, dialog: "\(answer)")
   }
 }
@@ -119,17 +128,15 @@ private struct Hex {
     token = info["HexToken"] as? String ?? ""
   }
 
-  func ask(_ words: String, progress: Progress, working: OSAllocatedUnfairLock<String?>) async throws -> String {
+  func ask(_ words: String, pill: Pill, working: OSAllocatedUnfairLock<String?>) async throws -> String {
     guard !words.isEmpty else { throw HexError(localizedStringResource: "Tell me what to ask hex.") }
-    let shown = Shown(words, on: progress)
-    progress.totalUnitCount = 1000
     let start = Date()
     // How long hex takes isn't known ahead, so the ring fills on a curve that slows as it goes:
     // a third full at 5s, two thirds at 20s, and full only once hex answers.
     let ticking = Task {
       while !Task.isCancelled {
         let waited = -start.timeIntervalSinceNow
-        progress.completedUnitCount = Int64(1000 * waited / (waited + 10))
+        pill.update { $0.filled = waited / (waited + 10) }
         try await Task.sleep(for: .seconds(1))
       }
     }
@@ -144,7 +151,7 @@ private struct Hex {
     let sent = Date()
     Self.log.notice("\(tag): app up \(launched(), format: .fixed(precision: 2))s, posted in \(sent.timeIntervalSince(start), format: .fixed(precision: 2))s")
 
-    let following = Task { await follow(topic, since: sent, shown: shown) }
+    let following = Task { await follow(topic, since: sent, pill: pill) }
     defer { following.cancel() }
 
     let end = sent.addingTimeInterval(Self.patience)
@@ -159,12 +166,15 @@ private struct Hex {
         if let reply = latest.turns.first(where: { $0.from == "hex" && $0.text.contains(tag) }) {
           Self.log.notice("\(tag): answered in \(-start.timeIntervalSinceNow, format: .fixed(precision: 2))s")
           ticking.cancel()
-          progress.completedUnitCount = progress.totalUnitCount
+          pill.update { $0.filled = 1 }
           return String(reply.text.replacingOccurrences(of: tag, with: "").drop { " :-–—\n".contains($0) })
         }
         let waiting = latest.waiting.contains { $0.key.hasSuffix(key) }
         if !waiting { working.withLock { $0 = topic } }
-        shown.update { $0.waiting = waiting }
+        pill.update {
+          $0.waiting = waiting
+          $0.started = $0.started || !waiting
+        }
       }
       guard end.timeIntervalSinceNow > 1 else { return Self.stuck }
     }
@@ -207,14 +217,14 @@ private struct Hex {
   }
 
   // The subtitle shows what hex is doing for this ask, as its topic's page lists each step.
-  private func follow(_ topic: String, since sent: Date, shown: Shown) async {
+  private func follow(_ topic: String, since sent: Date, pill: Pill) async {
     var after: Double?
     while !Task.isCancelled {
       guard let read: Page = try? await get(page(topic) + (after.map { "?after=\(Int64($0))" } ?? ""), within: 40),
         let version = read.version
       else { return }
       if let step = read.steps?.first(where: { $0.at >= sent }) {
-        shown.update { $0.step = step.brief ?? step.text }
+        pill.update { $0.step = step.brief ?? step.text }
       }
       after = version
     }
@@ -276,34 +286,90 @@ private struct Hex {
   }
 }
 
-// The Live Activity iOS shows while hex works takes its title and subtitle from the progress. The
-// title says what the subtitle is: his words while hex is being asked, hex's step once it works.
-// On the open Duo the lines fit about 22 and 28 characters before iOS cuts them off.
-private final class Shown: Sendable {
+// The Live Activity that shows while hex works on his words is the app's own (AskActivity.swift):
+// iOS shows it in place of its own pill for this long-running intent, so its layout is ours. The progress still feeds iOS's pill, which shows when Live Activities are
+// off for the app. The title says what the second line is: his words while hex is being asked,
+// hex's step once it works.
+private final class Pill: Sendable {
   struct State {
     var waiting = false
+    var started = false
     var step: String?
+    var filled = 0.0
   }
 
+  private typealias Shown = AskAttributes.ContentState
+
   private let state = OSAllocatedUnfairLock(initialState: State())
+  private let shown = OSAllocatedUnfairLock<Shown?>(initialState: nil)
   private let heard: String
   private let progress: Progress
+  private let activity: Activity<AskAttributes>?
+  private let changes: AsyncStream<Shown>.Continuation
+  private let showing: Task<Void, Never>
 
   init(_ words: String, on progress: Progress) {
     // Siri writes the name as "Hex"; hex gets the words as heard.
     heard = words.replacingOccurrences(of: #"\bHex\b"#, with: "hex", options: .regularExpression)
     self.progress = progress
+    progress.totalUnitCount = 1000
+    // One left up by an ask the app didn't live to finish.
+    for left in Activity<AskAttributes>.activities {
+      Task { await left.end(nil, dismissalPolicy: .immediate) }
+    }
+    let first = Self.shown(State(), heard: heard)
+    activity = try? Activity.request(attributes: AskAttributes(), content: .init(state: first, staleDate: nil))
+    let (stream, changes) = AsyncStream.makeStream(of: Shown.self, bufferingPolicy: .bufferingNewest(1))
+    self.changes = changes
+    showing = Task { [activity] in
+      for await shown in stream { await activity?.update(.init(state: shown, staleDate: nil)) }
+    }
     update { _ in }
   }
 
-  // Each change to the progress is a Live Activity update, so only a new line is set.
   func update(_ change: (inout State) -> Void) {
-    state.withLockUnchecked { state in
+    let next = state.withLock { state in
       change(&state)
-      let title = state.step != nil ? "hex is working on it" : state.waiting ? "Waiting for hex" : "Asking hex"
-      let subtitle = state.step ?? heard
-      if progress.localizedDescription != title { progress.localizedDescription = title }
-      if progress.localizedAdditionalDescription != subtitle { progress.localizedAdditionalDescription = subtitle }
+      return Self.shown(state, heard: heard)
     }
+    let changed = shown.withLock { shown in
+      defer { shown = next }
+      return shown != next
+    }
+    guard changed else { return }
+    progress.completedUnitCount = Int64(1000 * next.filled)
+    if progress.localizedDescription != next.title { progress.localizedDescription = next.title }
+    if progress.localizedAdditionalDescription != next.line { progress.localizedAdditionalDescription = next.line }
+    changes.yield(next)
+  }
+
+  // Runs the ask until it ends or Stop on the Live Activity is tapped, which stops it.
+  func stoppable<T: Sendable>(onStop: @escaping @Sendable () -> Void, _ operation: @escaping @Sendable () async throws -> T)
+    async throws -> T
+  {
+    let work = Task { try await operation() }
+    let watching = Task { [id = activity?.id] in
+      guard let id else { return }
+      for await stop in NotificationCenter.default.notifications(named: StopAsk.stopped) {
+        guard stop.object as? String == id else { continue }
+        onStop()
+        work.cancel()
+        return
+      }
+    }
+    defer { watching.cancel() }
+    return try await withTaskCancellationHandler { try await work.value } onCancel: { work.cancel() }
+  }
+
+  func end() async {
+    changes.finish()
+    await showing.value
+    await activity?.end(nil, dismissalPolicy: .immediate)
+  }
+
+  private static func shown(_ state: State, heard: String) -> Shown {
+    let title = state.step != nil || state.started ? "hex is working on it" : state.waiting ? "Waiting for hex" : "Asking hex"
+    // The ring moves in hundredths, so a second's tick isn't a redraw.
+    return Shown(title: title, line: state.step ?? heard, filled: (state.filled * 100).rounded() / 100)
   }
 }
