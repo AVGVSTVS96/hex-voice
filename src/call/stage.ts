@@ -108,7 +108,7 @@ export const stageLayout = (box: Box): Stage => {
 
 export const topOf = ({ safe, bar }: Box) => Math.max(safe.top, bar);
 
-export const footOf = ({ safe }: Box) => Math.max(safe.bottom, 20) + 14;
+export const footOf = ({ safe }: Pick<Box, "safe">) => Math.max(safe.bottom, 20) + 14;
 
 const leading = (y: number): Place => ({ x: metrics.gutter + metrics.docked / 2, y });
 

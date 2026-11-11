@@ -1,0 +1,13 @@
+# Tapping Install says Installing at once, and on a call it ends the call first: scripts/duo tap <ref> scripts/duo-update-taps
+launch hexvoice:///?tasks&update=demo
+wait 3
+shoot ready-in-tasks
+tap update-install
+wait 1
+shoot installing-in-tasks
+launch hexvoice:///?demo=call&update=demo
+wait 4
+shoot ready-on-call
+tap update-install
+wait 2
+shoot installing-call-ended

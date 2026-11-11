@@ -38,6 +38,22 @@ build() {
   cat "$app/EXUpdates.bundle/fingerprint"
 }
 
+# Gives the app the link's build number as CFBundleVersion, its extensions too, and registers the
+# scheme <bundle id>-<number>, which hangar opens to know the install finished and bring it back.
+# Only the built app changes, so the runtime fingerprint keeps meaning native code alone.
+number_build() {
+  python3 - "$@" <<'PY'
+import glob, plistlib, sys
+app, bundle, number = sys.argv[1:]
+for path in [f"{app}/Info.plist", *glob.glob(f"{app}/PlugIns/*.appex/Info.plist")]:
+    info = plistlib.load(open(path, "rb"))
+    info["CFBundleVersion"] = number
+    if path == f"{app}/Info.plist":
+        info["CFBundleURLTypes"] = [*info.get("CFBundleURLTypes", []), {"CFBundleURLSchemes": [f"{bundle}-{number}"]}]
+    plistlib.dump(info, open(path, "wb"), fmt=plistlib.FMT_BINARY)
+PY
+}
+
 if [ "${1:-}" = build ]; then
   cd "$(dirname "$0")/.."
   build
@@ -57,6 +73,7 @@ refresh_release
 commit=$(git -C "$release" rev-parse HEAD)
 title=$(git -C "$release" log --oneline -1 | cut -c1-80)
 bundle=$(jq -r .expo.ios.bundleIdentifier "$release/app.json")
+number=$(git -C "$release" rev-list --count HEAD)
 set -a && . "$release/.env.local" && set +a
 runtime=$(runtime_version)
 [ "${1:-}" = --rebuild ] || [ "$(jq -r .runtime "$link/latest.json" 2>/dev/null)" != "$runtime" ] || {
@@ -81,6 +98,7 @@ else
 
   echo "making its profiles with xtool and signing it with the Mac's certificate"
   rsync -a --delete "$mac:$folder/$app/" "$home/hex.app/"
+  number_build "$home/hex.app" "$bundle" "$number"
   xtool sign "$home/hex.app" </dev/null
   ssh "$mac" "mkdir -p $folder/build/signed"
   rsync -a --delete "$home/hex.app/" "$mac:$folder/$signed/"
@@ -96,7 +114,6 @@ fi
 echo "putting it on the install link"
 ssh "$mac" "cd $folder/build/signed && rm -rf Payload hex.ipa && mkdir Payload && cp -R hex.app Payload/ &&
   ditto -c -k --keepParent Payload hex.ipa && rm -rf Payload" </dev/null
-number=$(git -C "$release" rev-list --count HEAD)
 scp -q "$mac:$folder/build/signed/hex.ipa" "$link/hex-$number.ipa.part"
 mv "$link/hex-$number.ipa.part" "$link/hex-$number.ipa"
 url=${HEX_UPDATES_URL%/manifest}/install
@@ -126,4 +143,6 @@ PY
 mv "$link/latest.json.part" "$link/latest.json"
 find "$link" -name 'hex-*.ipa' ! -name "hex-$number.ipa" -delete
 mkdir -p "$updates/ios/$runtime"
+hangar=$HOME/Developer/hangar/bin/hangar
+[ ! -x "$hangar" ] || "$hangar" put "$link/hex-$number.ipa" --notes "$(git -C "$release" log -1 --format=%s)"
 echo "$title is on the install link, $url/: the app shows its update toast"

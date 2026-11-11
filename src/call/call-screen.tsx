@@ -26,6 +26,7 @@ import { useGlide } from "@/call/glide";
 import { CallPersona, useOrbLife } from "@/call/orb";
 import { PoseReport } from "@/call/pose-report";
 import type { CallsPlacement } from "@/call/stage";
+import { footOf } from "@/call/stage";
 import { useCall } from "@/call/use-call";
 import { AgentLine } from "@/components/agent-line";
 import { CallControls } from "@/components/call-controls";
@@ -45,7 +46,7 @@ import { UpdateToast } from "@/components/update-toast";
 import { VoiceSettings } from "@/components/voice-settings";
 import type { SettingsSheet } from "@/components/voice-settings";
 import { useAgentLine } from "@/hooks/use-agent-line";
-import { useAppUpdates } from "@/hooks/use-app-updates";
+import { install, useAppUpdates } from "@/hooks/use-app-updates";
 import type { NativeBuild } from "@/hooks/use-app-updates";
 import { answerAsk, raiseAsks } from "@/hooks/use-asks";
 import { useCallActivity } from "@/hooks/use-call-activity";
@@ -81,7 +82,7 @@ import type { Room } from "@/screens/window";
 import { hairline, theme } from "@/theme";
 import { AnimatedView } from "@/ui/animated-view";
 import { HostedGlassButton } from "@/ui/glass-button";
-import { metrics, stack } from "@/ui/tokens";
+import { metrics, space, stack } from "@/ui/tokens";
 
 import { PoseView } from "../../modules/pose";
 import type { Pose } from "../../modules/pose";
@@ -968,18 +969,27 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
           toolbar={screenToolbar}
         />
       )}
-      {update &&
-        !onCall &&
-        !(tasksOpen || callsOpen || settingsOpen) &&
-        update.version !== notNow && (
-          <UpdateToast
-            build={update}
-            top={insets.top}
-            onDismiss={() => {
-              setNotNow(update.version);
-            }}
-          />
-        )}
+      {update && update.version !== notNow && (
+        <UpdateToast
+          build={update}
+          edge={
+            tasksOpen || callsOpen || settingsOpen
+              ? { bottom: footOf({ safe: insets }) + metrics.call + space[3] }
+              : { top: insets.top + space[2] }
+          }
+          endsCall={call.kind === "here"}
+          onInstall={async () => {
+            if (call.kind === "here") {
+              await end();
+            }
+
+            return await install(update);
+          }}
+          onDismiss={() => {
+            setNotNow(update.version);
+          }}
+        />
+      )}
     </ToolbarBackProvider>
   );
 };

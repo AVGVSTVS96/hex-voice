@@ -50,6 +50,6 @@ const shareOf = (share?: string) => {
   return part > 0 && part < 1 ? part : 0.5;
 };
 
-const DEMO_UPDATE = { version: 0, runtime: "demo", install: "hexvoice:///" };
+const DEMO_UPDATE = { version: 0, runtime: "demo", install: "" };
 
 export default Index;
