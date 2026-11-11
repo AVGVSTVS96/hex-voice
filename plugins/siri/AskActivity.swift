@@ -18,14 +18,14 @@ struct AskActivity: Widget {
       .activityBackgroundTint(Color(uiColor: .systemBackground))
     } dynamicIsland: { context in
       DynamicIsland {
-        // WHY: iOS offers the leading region about 110pt however wide the island is; 276pt is what's
-        // left of Stop on the open Duo's island, the narrower of its two.
+        // WHY: iOS offers the leading region about 110pt however wide the island is; 280pt is what's
+        // left of Stop on the Duo's island, open or folded, less the gap the icon has to the text.
         DynamicIslandExpandedRegion(.leading, priority: 1) {
           HStack(spacing: 12) {
             AskIcon(size: 44)
             AskWords(state: context.state)
           }
-          .frame(width: 276, alignment: .leading)
+          .frame(width: 280, alignment: .leading)
         }
         DynamicIslandExpandedRegion(.trailing) {
           AskStop(activity: context.activityID, filled: context.state.filled)
@@ -53,12 +53,16 @@ private struct AskIcon: View {
 }
 
 private struct AskWords: View {
+  // The call Live Activity's second line (src/live/call-activity.tsx).
+  static let secondary = Color(
+    uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.63, alpha: 1) : UIColor(white: 0.43, alpha: 1) })
+
   let state: AskAttributes.ContentState
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(state.title).font(.system(size: 17, weight: .semibold)).foregroundStyle(.primary)
-      Text(state.line).font(.system(size: 15)).foregroundStyle(.secondary)
+      Text(state.line).font(.system(size: 15)).foregroundStyle(Self.secondary)
     }
     .lineLimit(1)
   }
