@@ -368,7 +368,7 @@ private final class Pill: Sendable {
   }
 
   private static func shown(_ state: State, heard: String) -> Shown {
-    let title = state.step != nil || state.started ? "hex is working on it" : state.waiting ? "Waiting for hex" : "Asking hex"
+    let title = state.filled >= 1 ? "hex answered" : state.step != nil || state.started ? "hex is working on it" : state.waiting ? "Waiting for hex" : "Asking hex"
     // The ring moves in hundredths, so a second's tick isn't a redraw.
     return Shown(title: title, line: state.step ?? heard, filled: (state.filled * 100).rounded() / 100)
   }
