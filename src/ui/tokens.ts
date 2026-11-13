@@ -165,7 +165,7 @@ export const metrics = {
     meta: space[2],
   },
   readable: 640,
-  picture: { card: 200, turn: 320, line: 96 },
+  picture: { card: 300, turn: 440, line: 96 },
   badge: { size: 20, dot: 8 },
 } as const;
 
