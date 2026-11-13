@@ -22,16 +22,15 @@ struct AskHex: AppIntent, ProgressReportingIntent, LiveActivityIntent {
     let hex = try Hex()
     let working = OSAllocatedUnfairLock<String?>(initialState: nil)
     let pill = Pill(words, on: progress)
-    // Stop stops hex too, once hex has started on these words. A stop before then would end
-    // whatever else hex is doing in the topic.
+    // The Live Activity's Stop stops hex too, once hex has started on these words. A stop before then
+    // would end whatever else hex is doing in the topic. Closing Siri only ends the wait: iOS reports
+    // that as the user cancelling, and hex's answer still lands in the Siri topic.
     let stop: @Sendable () -> Void = { if let topic = working.withLock({ $0 }) { hex.stop(topic) } }
     let ask = { try await pill.stoppable(onStop: stop) { try await hex.ask(words, pill: pill, working: working) } }
     let answer: String
     do {
       if #available(iOS 27, *) {
-        answer = try await performBackgroundTask(operation: ask) { reason in
-          if reason == .userCancelled { stop() }
-        }
+        answer = try await performBackgroundTask(operation: ask)
       } else {
         answer = try await ask()
       }
