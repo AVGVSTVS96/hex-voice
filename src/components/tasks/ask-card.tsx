@@ -34,7 +34,7 @@ import { Waiting } from "@/components/media/waiting";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
-import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
+import { allOf, noteAsk, shotOf, useWords } from "@/hooks/use-asks";
 import type { Chosen } from "@/hooks/use-asks";
 import { carryDraft, draftOf, useDraft } from "@/hooks/use-draft";
 import { openURL, useFailures } from "@/hooks/use-failures";
@@ -406,11 +406,113 @@ export const InlineAnswers = ({
   </Row>
 );
 
+const Option = ({
+  option,
+  chosen,
+  onPress,
+}: {
+  option: AskOption;
+  chosen?: boolean;
+  onPress: () => void;
+}) => {
+  const pick = option.pick === true;
+  const said = pick ? `${option.label}, ${PICK}` : option.label;
+
+  return (
+    <Row
+      alignment="center"
+      spacing={space[3]}
+      onPress={onPress}
+      modifiers={[
+        padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
+        frame({ minHeight: metrics.pill.regular }),
+        frame({ maxWidth: Infinity, alignment: "leading" }),
+        background(pick ? theme.accentMuted : theme.fill),
+        clipShape("roundedRectangle", radius.option),
+        contentShape(shapes.rectangle()),
+        accessibilityElement("combine"),
+        accessibilityLabel(said),
+        accessibilityAddTraits(chosen === true ? ["isButton", "isSelected"] : ["isButton"]),
+      ]}
+    >
+      <Column
+        alignment="start"
+        spacing={0}
+        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+      >
+        <Text
+          variant="body"
+          weight={pick ? "medium" : "regular"}
+          paragraph
+          modifiers={[fixedSize({ horizontal: false, vertical: true })]}
+        >
+          {option.label}
+        </Text>
+        {pick ? (
+          <Row alignment="center" spacing={space[1]}>
+            <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
+            <Text variant="caption" tone="accent">
+              {PICK}
+            </Text>
+          </Row>
+        ) : null}
+      </Column>
+      {chosen === undefined ? null : (
+        <Icon
+          name={chosen ? "checkmark.circle.fill" : "circle"}
+          size={metrics.symbol.row}
+          color={chosen ? theme.text : theme.secondary}
+          modifiers={[frame({ width: metrics.list.mark, height: metrics.list.mark })]}
+        />
+      )}
+    </Row>
+  );
+};
+
+const Several = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
+  const [chosen, setChosen] = useState<string[]>([]);
+
+  return (
+    <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
+      {ask.options.map((option) => {
+        const on = chosen.includes(option.label);
+
+        return (
+          <Option
+            key={option.label}
+            option={option}
+            chosen={on}
+            onPress={() => {
+              setChosen(
+                on ? chosen.filter((label) => label !== option.label) : [...chosen, option.label],
+              );
+            }}
+          />
+        );
+      })}
+      <SendButton
+        label={chosen.length ? `Answer with ${chosen.length}` : "Answer"}
+        icon="checkmark"
+        about={`Sends your picks to ${ask.topic} as one answer`}
+        live={chosen.length > 0}
+        prominent
+        onPress={() => {
+          onAnswer(ask, allOf(ask, chosen));
+        }}
+      />
+    </Column>
+  );
+};
+
 const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const n = ask.options.length;
 
   if (!n) {
     return null;
+  }
+
+  if (ask.multiple === true) {
+    return <Several ask={ask} onAnswer={onAnswer} />;
   }
 
   const shots = ask.options.every((option) => option.shot !== undefined);
@@ -439,42 +541,13 @@ const Answers = ({ ask, onAnswer }: { ask: Ask; onAnswer: Answer }) => {
   const blocks = (
     <Column alignment="start" spacing={space[2]} modifiers={[frame({ maxWidth: Infinity })]}>
       {ask.options.map((option) => (
-        <Column
+        <Option
           key={option.label}
-          alignment="start"
-          spacing={0}
+          option={option}
           onPress={() => {
             onAnswer(ask, option);
           }}
-          modifiers={[
-            padding({ leading: space[4], trailing: space[4], top: space[3], bottom: space[3] }),
-            frame({ minHeight: metrics.pill.regular }),
-            frame({ maxWidth: Infinity, alignment: "leading" }),
-            background(option.pick === true ? theme.accentMuted : theme.fill),
-            clipShape("roundedRectangle", radius.option),
-            contentShape(shapes.rectangle()),
-            accessibilityElement("combine"),
-            accessibilityLabel(option.pick === true ? `${option.label}, ${PICK}` : option.label),
-            accessibilityAddTraits(["isButton"]),
-          ]}
-        >
-          <Text
-            variant="body"
-            weight={option.pick === true ? "medium" : "regular"}
-            paragraph
-            modifiers={[fixedSize({ horizontal: false, vertical: true })]}
-          >
-            {option.label}
-          </Text>
-          {option.pick === true ? (
-            <Row alignment="center" spacing={space[1]}>
-              <Icon name="sparkle" size={metrics.symbol.mark} color={theme.accent} />
-              <Text variant="caption" tone="accent">
-                {PICK}
-              </Text>
-            </Row>
-          ) : null}
-        </Column>
+        />
       ))}
     </Column>
   );

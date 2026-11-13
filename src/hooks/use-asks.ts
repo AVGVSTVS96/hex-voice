@@ -9,10 +9,18 @@ import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from "@/live/asks";
 import type { Ask, AskId, AskOption, Sent } from "@/live/asks";
 import type { Picked } from "@/live/media";
 
-export type Chosen = AskOption & { media?: Picked[] };
+export type Chosen = AskOption & { labels?: string[]; media?: Picked[] };
+
+export const allOf = (ask: Ask, chosen: string[]): Chosen => {
+  const labels = ask.options
+    .map((option) => option.label)
+    .filter((label) => chosen.includes(label));
+
+  return { label: labels.join("; "), labels };
+};
 
 export const answerAsk = async (ask: Ask, option: Chosen) => {
-  const sent = await hex.asks.answer(ask.id, option.label, option.media);
+  const sent = await hex.asks.answer(ask.id, option.labels ?? option.label, option.media);
   keepDraft(`ask:${ask.id}`, "");
 
   return sent;

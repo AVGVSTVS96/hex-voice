@@ -114,10 +114,13 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       check: async () => await request("/asks/check", Check),
       shot: (id: AskId, n: number) => source(`/asks/${enc(id)}/shots/${n}`),
       words: async (id: AskId) => await request(`/asks/${enc(id)}/words`, Words),
-      answer: async (id: AskId, label: string, picked: Picked[] = []) =>
+      answer: async (id: AskId, label: string | string[], picked: Picked[] = []) =>
         await request(`/asks/${enc(id)}/answer`, Sent, {
           method: "POST",
-          body: { label, ...(await mediaOf(picked)) },
+          body: {
+            ...(Array.isArray(label) ? { labels: label } : { label }),
+            ...(await mediaOf(picked)),
+          },
         }),
       note: async (id: AskId, text: string, picked: Picked[] = []) =>
         await request(`/asks/${enc(id)}/note`, Sent, {

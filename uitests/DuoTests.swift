@@ -12,6 +12,8 @@ import XCTest
 //                         actions, a pager's next page
 //   scroll <query>        swipes up that list, or the list holding that element, so its rows run
 //                         under the bars
+//   reveal <query>        swipes the list in that element's column slowly until the element sits in the
+//                         middle half of the window, out from under a page's foot
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
 //   snap <name>           has it screenshot right away and goes on, to catch what moves (two snaps a
 //                         wait 0.1 apart are shot about 100 ms apart)
@@ -98,6 +100,19 @@ final class DuoTests: XCTestCase {
                     let list = [XCUIElement.ElementType.collectionView, .scrollView].contains(found.elementType) ? found : holder(found, rows: false)
                     touch()
                     list.swipeUp()
+                }
+            case "reveal":
+                for _ in 0..<4 {
+                    guard let found = element(argument) else { break }
+                    let window = app.windows.firstMatch
+                    let shift = found.frame.midY - window.frame.midY
+                    if abs(shift) < window.frame.height / 4 { break }
+                    // Held at the end of a slow drag, a list moves as far as the finger did and no further.
+                    let middle = window.coordinate(withNormalizedOffset: CGVector(dx: (found.frame.midX - window.frame.minX) / window.frame.width, dy: 0.5))
+                    let step = max(-window.frame.height * 0.4, min(window.frame.height * 0.4, shift))
+                    touch()
+                    middle.press(forDuration: 0.1, thenDragTo: middle.withOffset(CGVector(dx: 0, dy: -step)), withVelocity: .slow, thenHoldForDuration: 0.5)
+                    sleep(1)
                 }
             case "shoot", "pose", "pose-burst":
                 sleep(1)

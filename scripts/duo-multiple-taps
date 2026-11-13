@@ -1,0 +1,30 @@
+# Picking several answers and sending them together: ANSWERS=scripts/duo-multiple.json HEX=kept scripts/duo tap <ref> scripts/duo-multiple-taps
+# A tap on an option checks it instead of answering, a second tap unchecks it, and the button
+# under them stays dimmed until one is checked; it sends the checked ones as one answer, and the
+# card folds to them joined by "; ". The one-answer question under it still answers on one tap.
+launch hexvoice:///?tasks=general
+wait 3
+shoot multiple-rest
+tap brim
+wait 1
+tap iikb, hex’s pick
+wait 1
+tap denoise
+wait 1
+tap denoise
+wait 1
+selected iikb, hex’s pick
+selected brim
+unselected denoise
+shoot multiple-picked
+reveal Answer with 2
+settle
+shoot multiple-ready
+tap Answer with 2
+wait 1
+shoot multiple-answered
+reveal Yes, hex’s pick
+settle
+tap Yes, hex’s pick
+wait 1
+shoot multiple-single-answered

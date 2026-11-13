@@ -19,6 +19,7 @@ import type { MarkState } from "@/components/tasks/mark";
 import { Failure, NotNeededButton, Pill, listRow, rowFrame } from "@/components/tasks/parts";
 import { TileIcon, swipeLook } from "@/components/tasks/places";
 import type { Ask, AskOption } from "@/live/asks";
+import { pickOf } from "@/live/asks";
 import {
   PLACES,
   STUCK,
@@ -227,7 +228,7 @@ const AskRow = ({
     );
   }
 
-  const pick = ask.options.find((option) => option.pick === true);
+  const pick = pickOf(ask);
 
   return (
     <Swiped
@@ -256,7 +257,7 @@ const AskRow = ({
           actions.onOpen(ask.task, entry.id);
         }}
       >
-        {ask.options.length > 0 ? (
+        {ask.options.length > 0 && ask.multiple !== true ? (
           <Fits>
             <InlineAnswers
               ask={ask}
@@ -535,7 +536,7 @@ export const ProjectRow = ({
 const waiting = (entry: Entry): MarkState => {
   switch (entry.kind) {
     case "ask": {
-      return entry.ask.options.some((option) => option.pick === true) ? "pick" : "asks";
+      return pickOf(entry.ask) ? "pick" : "asks";
     }
 
     case "stuck": {

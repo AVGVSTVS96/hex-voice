@@ -109,6 +109,17 @@ test("ends a call, and marks when the phone takes its audio and gives it back", 
   );
 });
 
+test("answers a question with one pick, or with several together", async () => {
+  const seen: { url: string; init: RequestInit | undefined }[] = [];
+  const hex = answering({ thread: "t", topic: "General", settled: 1, missed: 0 }, seen);
+  await hex.asks.answer(AskId.parse("a"), "iikb");
+  await hex.asks.answer(AskId.parse("a"), ["iikb", "brim"]);
+  assert.deepEqual(
+    seen.map(({ init }) => sentJson(init)),
+    [{ label: "iikb" }, { labels: ["iikb", "brim"] }],
+  );
+});
+
 test("shows hex’s and OpenAI’s errors as they are", async () => {
   const plain = hexAt(async () => new Response("Set OPENAI_API_KEY", { status: 503 }));
   await assert.rejects(plain.session.create("offer"), /Set OPENAI_API_KEY/u);

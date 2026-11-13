@@ -1,0 +1,3 @@
+# A question that takes several answers, beside one that takes one, and a one-answer list on its own topic, over invented answers: ANSWERS=scripts/duo-multiple.json HEX=kept scripts/duo shoot <ref> scripts/duo-multiple-states
+multiple    hexvoice:///?tasks=general
+one-answer  hexvoice:///?tasks=profile

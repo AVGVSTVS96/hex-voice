@@ -1,4 +1,4 @@
-import { isAnswered, unreached } from "./asks";
+import { isAnswered, pickOf, unreached } from "./asks";
 import type { Ask, AskList, Fresh, Stuck, Sent } from "./asks";
 import type { Finished, TaskId, TaskRow, Turn } from "./tasks";
 
@@ -430,7 +430,7 @@ export const picksOf = (entries: Entry[], answered: Record<string, string | null
       return [];
     }
 
-    const option = entry.ask.options.find((one) => one.pick === true);
+    const option = pickOf(entry.ask);
 
     return option ? [{ ask: entry.ask, option }] : [];
   });

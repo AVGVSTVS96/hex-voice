@@ -423,7 +423,7 @@ test("a search result says why it was found when its row doesn’t show it", () 
   ]);
 });
 
-test("hex’s picks are the open asks with a pick, never money", () => {
+test("hex’s picks are the open asks with a pick, never money or several answers", () => {
   const entries = stream({
     asks: [
       ask("ok", "pick", { options: [{ label: "Other" }, { label: "Deep", pick: true }] }),
@@ -433,6 +433,10 @@ test("hex’s picks are the open asks with a pick, never money", () => {
         links: [{ label: "PR #2", url: "https://example.com" }],
       }),
       ask("plain", "yesno"),
+      ask("several", "pick", {
+        multiple: true,
+        options: [{ label: "A", pick: true }, { label: "B" }],
+      }),
       ask("answered", "yesno", { options: [{ label: "Yes", pick: true }] }),
     ],
     tasks: [row("voiceapp", "working")],

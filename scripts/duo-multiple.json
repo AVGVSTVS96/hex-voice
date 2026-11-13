@@ -1,0 +1,224 @@
+{
+  "/tasks": {
+    "version": 1,
+    "tasks": [
+      {
+        "id": "general",
+        "app": "telegram",
+        "name": "General",
+        "place": "General",
+        "state": "needs",
+        "running": false,
+        "line": "Pick the projects for your GitHub profile",
+        "since": "2026-11-10T08:20:00.000Z",
+        "at": "2026-11-10T08:20:00.000Z",
+        "track": [],
+        "agents": []
+      },
+      {
+        "id": "profile",
+        "app": "telegram",
+        "name": "profile",
+        "place": "profile",
+        "state": "needs",
+        "running": false,
+        "line": "Pick the first project",
+        "since": "2026-11-10T08:26:00.000Z",
+        "at": "2026-11-10T08:26:00.000Z",
+        "track": [],
+        "agents": []
+      }
+    ]
+  },
+  "/tasks/general": {
+    "id": "general",
+    "app": "telegram",
+    "name": "General",
+    "place": "General",
+    "state": "needs",
+    "running": false,
+    "line": "Pick the projects for your GitHub profile",
+    "since": "2026-11-10T08:20:00.000Z",
+    "at": "2026-11-10T08:20:00.000Z",
+    "track": [],
+    "agents": [],
+    "needs": "Pick the projects for your GitHub profile",
+    "lately": [
+      {
+        "at": "2026-11-10T08:20:00.000Z",
+        "state": "needs",
+        "text": "Waiting on you"
+      }
+    ],
+    "steps": [],
+    "plan": []
+  },
+  "/tasks/general/chat": {
+    "version": 1,
+    "sends": true,
+    "total": 1,
+    "turns": [
+      {
+        "from": "hex",
+        "text": "Your profile shows six pinned projects. hex, autofork and seqno are in; pick the rest."
+      }
+    ],
+    "waiting": []
+  },
+  "/asks": {
+    "version": 1,
+    "asks": [
+      {
+        "id": "gh-projects",
+        "kind": "pick",
+        "task": "general",
+        "at": "2026-11-10T08:20:00.000Z",
+        "app": "telegram",
+        "topic": "General",
+        "question": "Which projects join hex, autofork, seqno on GitHub?",
+        "context": "These are projects for the list on your public GitHub profile. All of them are public repos.",
+        "options": [
+          {
+            "label": "iikb",
+            "pick": true
+          },
+          {
+            "label": "hex-voice"
+          },
+          {
+            "label": "brim"
+          },
+          {
+            "label": "broadcom"
+          },
+          {
+            "label": "denoise"
+          },
+          {
+            "label": "seqno-web"
+          },
+          {
+            "label": "pages"
+          }
+        ],
+        "multiple": true,
+        "places": [
+          {
+            "app": "telegram",
+            "place": "General",
+            "task": "general"
+          }
+        ]
+      },
+      {
+        "id": "gh-pin",
+        "kind": "yesno",
+        "task": "general",
+        "at": "2026-11-10T08:24:00.000Z",
+        "app": "telegram",
+        "topic": "General",
+        "question": "Pin hex first on the profile?",
+        "options": [
+          {
+            "label": "Yes",
+            "pick": true
+          },
+          {
+            "label": "No"
+          }
+        ],
+        "places": [
+          {
+            "app": "telegram",
+            "place": "General",
+            "task": "general"
+          }
+        ]
+      },
+      {
+        "id": "gh-order",
+        "kind": "pick",
+        "task": "profile",
+        "at": "2026-11-10T08:26:00.000Z",
+        "app": "telegram",
+        "topic": "profile",
+        "question": "Which project shows first?",
+        "options": [
+          {
+            "label": "hex",
+            "pick": true
+          },
+          {
+            "label": "autofork"
+          },
+          {
+            "label": "seqno"
+          },
+          {
+            "label": "iikb"
+          }
+        ],
+        "places": [
+          {
+            "app": "telegram",
+            "place": "profile",
+            "task": "profile"
+          }
+        ]
+      }
+    ],
+    "stuck": [],
+    "fresh": [],
+    "check": null
+  },
+  "/asks/gh-projects/words": {
+    "place": "General",
+    "at": "2026-11-10T08:20:00.000Z",
+    "text": "Your profile shows six pinned projects. hex, autofork and seqno are in; pick the rest."
+  },
+  "/asks/gh-pin/words": {
+    "place": "General",
+    "at": "2026-11-10T08:20:00.000Z",
+    "text": "hex is the one people ask about."
+  },
+  "/tasks/summary": {
+    "version": 1,
+    "needs": 2,
+    "working": 0
+  },
+  "/asks/gh-order/words": {
+    "place": "profile",
+    "at": "2026-11-10T08:26:00.000Z",
+    "text": "The first pinned project gets the most clicks."
+  },
+  "/tasks/profile": {
+    "id": "profile",
+    "app": "telegram",
+    "name": "profile",
+    "place": "profile",
+    "state": "needs",
+    "running": false,
+    "line": "Pick the first project",
+    "since": "2026-11-10T08:26:00.000Z",
+    "at": "2026-11-10T08:26:00.000Z",
+    "track": [],
+    "agents": [],
+    "needs": "Pick the first project",
+    "lately": [
+      {
+        "at": "2026-11-10T08:20:00.000Z",
+        "state": "needs",
+        "text": "Waiting on you"
+      }
+    ],
+    "steps": [],
+    "plan": []
+  },
+  "/tasks/profile/chat": {
+    "version": 1,
+    "sends": true,
+    "total": 0,
+    "turns": [],
+    "waiting": []
+  }
+}

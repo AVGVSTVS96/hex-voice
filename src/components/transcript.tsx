@@ -4,8 +4,9 @@ import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from
 
 import { CallAsk } from "@/components/call-ask";
 import { SentMedia } from "@/components/media/sent";
+import type { Chosen } from "@/hooks/use-asks";
 import type { CallCard } from "@/live/agents";
-import type { AskOption, Sent } from "@/live/asks";
+import type { Sent } from "@/live/asks";
 import type { TaskId } from "@/live/tasks";
 import type { TranscriptEntry } from "@/live/types";
 import { motion } from "@/motion";
@@ -32,7 +33,7 @@ export const Transcript = ({
   size?: "regular" | "large" | undefined;
   emptyAt?: "end" | "center";
   cards?: CallCard[];
-  onAnswer?: (card: CallCard, option: AskOption) => Promise<Sent>;
+  onAnswer?: (card: CallCard, option: Chosen) => Promise<Sent>;
   onOpenTask?: (task: TaskId) => void;
 }) => {
   const scroll = useRef<ScrollViewInstance>(null);

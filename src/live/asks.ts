@@ -47,6 +47,7 @@ export const Ask = z.object({
   context: z.optional(z.string()),
   why: z.optional(z.string()),
   options: z.array(AskOption),
+  multiple: z.optional(z.boolean()),
   pictures: z.optional(z.array(AskPicture)),
   links: z.optional(z.array(AskLink)),
   places: z.array(AskPlace),
@@ -72,6 +73,9 @@ export type Sent = z.infer<typeof Sent>;
 export const NOT_NEEDED = "Not needed";
 
 export const PICK = "hex’s pick";
+
+export const pickOf = (ask: Ask) =>
+  ask.multiple === true ? undefined : ask.options.find((option) => option.pick === true);
 
 export const unreached = (missed: number) =>
   missed === 1
