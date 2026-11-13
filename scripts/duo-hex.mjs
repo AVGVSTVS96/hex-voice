@@ -86,9 +86,28 @@ const keepMedia = async (request, response) => {
   response.writeHead(201, { "content-type": "application/json" }).end(JSON.stringify({ id, kind }));
 };
 
-const giveMedia = (id, response) => {
-  const { type, body } = media.get(decodeURIComponent(id)) ?? standInJpeg;
-  response.writeHead(200, { "content-type": type }).end(body);
+const giveMedia = async (request, id, response) => {
+  const kept = media.get(decodeURIComponent(id));
+
+  if (kept || DUO_HEX_REPLAY) {
+    const { type, body } = kept ?? standInJpeg;
+    response.writeHead(200, { "content-type": type }).end(body);
+
+    return;
+  }
+
+  try {
+    const upstream = await fetch(EXPO_PUBLIC_HEX_URL + request.url, {
+      headers: { authorization: `Bearer ${EXPO_PUBLIC_HEX_TOKEN}` },
+    });
+
+    response.writeHead(upstream.status, {
+      "content-type": upstream.headers.get("content-type") ?? "application/octet-stream",
+    });
+    response.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch {
+    response.writeHead(502).end();
+  }
 };
 
 const checkMediaNamed = async (request, response) => {
@@ -182,7 +201,7 @@ const respond = async (request, response) => {
   }
 
   if (mediaPath?.id && request.method === "GET") {
-    giveMedia(mediaPath.id, response);
+    await giveMedia(request, mediaPath.id, response);
 
     return;
   }
