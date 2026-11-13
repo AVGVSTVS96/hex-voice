@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 import { CallId, timeOfDay } from "./calls";
+import { MediaId } from "./media";
 import { TaskId } from "./tasks";
 import type { FailedHere } from "./types";
 
@@ -18,6 +19,8 @@ const AskOption = z.object({
 });
 
 export type AskOption = z.infer<typeof AskOption>;
+
+const AskPicture = z.object({ id: MediaId, shape: z.optional(z.number()) });
 
 const AskLink = z.object({ label: z.string(), url: z.string() });
 
@@ -44,6 +47,7 @@ export const Ask = z.object({
   context: z.optional(z.string()),
   why: z.optional(z.string()),
   options: z.array(AskOption),
+  pictures: z.optional(z.array(AskPicture)),
   links: z.optional(z.array(AskLink)),
   places: z.array(AskPlace),
   tag: z.optional(z.string()),

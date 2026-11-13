@@ -32,7 +32,7 @@ import { Waiting } from "@/components/media/waiting";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
-import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
+import { noteAsk, pictureOf, shotOf, useWords } from "@/hooks/use-asks";
 import type { Chosen } from "@/hooks/use-asks";
 import { carryDraft, draftOf, useDraft } from "@/hooks/use-draft";
 import { openURL, useFailures } from "@/hooks/use-failures";
@@ -278,8 +278,22 @@ export const Shots = ({ ask }: { ask: Ask }) => {
     (option): option is AskOption & { shot: number } => option.shot !== undefined,
   );
 
-  const shots = shown.map((option) => shotOf(ask, option.shot));
-  const [lead] = shots;
+  const pictures = ask.pictures ?? [];
+
+  const tiles =
+    shown.length > 0
+      ? shown.map((option) => ({
+          ...shotOf(ask, option.shot),
+          shape: option.shape ?? 1,
+          label: option.label,
+        }))
+      : pictures.map((picture, i) => ({
+          ...pictureOf(picture.id),
+          shape: picture.shape ?? 1,
+          label: pictures.length === 1 ? ask.question : `${ask.question} ${i + 1}`,
+        }));
+
+  const [lead] = tiles;
 
   if (!lead) {
     return null;
@@ -287,10 +301,10 @@ export const Shots = ({ ask }: { ask: Ask }) => {
 
   return (
     <ShotsView
-      uris={shots.map((shot) => shot.uri)}
-      shapes={shown.map((option) => option.shape ?? 1)}
+      uris={tiles.map((tile) => tile.uri)}
+      shapes={tiles.map((tile) => tile.shape)}
       headers={lead.headers}
-      labels={shown.map((option) => option.label)}
+      labels={tiles.map((tile) => tile.label)}
       height={metrics.shot}
       gap={space[2]}
       radius={radius.inner}
