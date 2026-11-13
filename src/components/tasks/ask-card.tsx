@@ -675,6 +675,7 @@ export const ReplyComposer = ({
   const [sending, setSending] = useState(false);
   const [media, setMedia] = useState<Picked[]>([]);
   const picking = useRef(false);
+  const opened = useRef(false);
 
   const send = async (as: "note" | "answer") => {
     const said = now.current.trim();
@@ -815,6 +816,11 @@ export const ReplyComposer = ({
             onFocus={() => {
               picking.current = false;
               typing(true);
+
+              if (!opened.current) {
+                opened.current = true;
+                void field.current?.setSelection(now.current.length, now.current.length);
+              }
             }}
             onBlur={() => {
               typing(false);
