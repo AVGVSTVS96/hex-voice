@@ -28,14 +28,17 @@ import type { SFSymbol } from "sf-symbols-typescript";
 
 import { Markdown } from "@/components/markdown";
 import { AddMedia } from "@/components/media/add-media";
+import { Pictures } from "@/components/media/pictures";
+import type { Picture } from "@/components/media/pictures";
 import { Waiting } from "@/components/media/waiting";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
-import { noteAsk, pictureOf, shotOf, useWords } from "@/hooks/use-asks";
+import { noteAsk, shotOf, useWords } from "@/hooks/use-asks";
 import type { Chosen } from "@/hooks/use-asks";
 import { carryDraft, draftOf, useDraft } from "@/hooks/use-draft";
 import { openURL, useFailures } from "@/hooks/use-failures";
+import { pictureOf } from "@/hooks/use-media";
 import { NOT_NEEDED, PICK, unreached } from "@/live/asks";
 import type { Ask, AskId, AskLink, AskOption, Words } from "@/live/asks";
 import { MOST } from "@/live/media";
@@ -47,7 +50,6 @@ import { Text } from "@/ui/text";
 import { labelOf, metrics, radius, space } from "@/ui/tokens";
 
 import { EvenRow, Fits } from "../../../modules/rows";
-import { ShotsView } from "../../../modules/shots";
 
 const PILLS_PER_ROW = 3;
 
@@ -280,7 +282,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
 
   const pictures = ask.pictures ?? [];
 
-  const tiles =
+  const tiles: Picture[] =
     shown.length > 0
       ? shown.map((option) => ({
           ...shotOf(ask, option.shot),
@@ -293,27 +295,7 @@ export const Shots = ({ ask }: { ask: Ask }) => {
           label: pictures.length === 1 ? ask.question : `${ask.question} ${i + 1}`,
         }));
 
-  const [lead] = tiles;
-
-  if (!lead) {
-    return null;
-  }
-
-  return (
-    <ShotsView
-      uris={tiles.map((tile) => tile.uri)}
-      shapes={tiles.map((tile) => tile.shape)}
-      headers={lead.headers}
-      labels={tiles.map((tile) => tile.label)}
-      height={metrics.shot}
-      gap={space[2]}
-      radius={radius.inner}
-      secondary={theme.secondary}
-      surface={theme.fill}
-      edge={theme.edge}
-      modifiers={[frame({ maxWidth: Infinity })]}
-    />
-  );
+  return <Pictures pictures={tiles} height={metrics.picture.card} />;
 };
 
 export const Said = ({

@@ -8,7 +8,7 @@ export const MediaId = z.string().brand<"MediaId">();
 
 export type MediaId = z.infer<typeof MediaId>;
 
-export const Shared = z.object({ id: MediaId, kind: MediaKind });
+export const Shared = z.object({ id: MediaId, kind: MediaKind, shape: z.optional(z.number()) });
 
 export type Shared = z.infer<typeof Shared>;
 

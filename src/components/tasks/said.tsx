@@ -12,10 +12,12 @@ import {
 import { createContext, useContext } from "react";
 
 import { Markdown } from "@/components/markdown";
+import { Pictures } from "@/components/media/pictures";
 import { Album } from "@/components/media/thumb";
+import { pictureOf } from "@/hooks/use-media";
 import { said } from "@/live/chat";
 import type { Sending } from "@/live/chat";
-import type { Shown } from "@/live/media";
+import type { Shared, Shown } from "@/live/media";
 import type { ChatTurn } from "@/live/tasks";
 import { theme } from "@/theme";
 import { textLook } from "@/ui/text";
@@ -46,11 +48,7 @@ export const Said = ({ turn }: { turn: ChatTurn }) => {
         frame({ maxWidth: Infinity, alignment: "leading" }),
       ]}
     >
-      {media.length ? (
-        <RNHostView matchContents>
-          <Album media={media} width={metrics.media.turn} side="start" />
-        </RNHostView>
-      ) : null}
+      <Media media={media} size="turn" side="start" />
       {one.text ? (
         <Markdown selectable={selectable} modifiers={[frame({ maxWidth: Infinity })]}>
           {one.text}
@@ -130,11 +128,7 @@ export const SaidLine = ({
         spacing={space[1]}
         modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
-        {media.length ? (
-          <RNHostView matchContents>
-            <Album media={media} width={metrics.media.line} side="start" />
-          </RNHostView>
-        ) : null}
+        <Media media={media} size="line" side="start" />
         {text ? (
           <Markdown
             inline
@@ -172,11 +166,7 @@ const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?
     >
       <Spacer flexible />
       <Column alignment="end" spacing={space[1]}>
-        {media.length ? (
-          <RNHostView matchContents>
-            <Album media={media} width={metrics.media.turn} dim={dim} />
-          </RNHostView>
-        ) : null}
+        <Media media={media} size="turn" dim={dim} />
         {text ? (
           <Text
             modifiers={[
@@ -197,6 +187,42 @@ const Mine = ({ text, media, dim = false }: { text: string; media: Shown[]; dim?
         ) : null}
       </Column>
     </Row>
+  );
+};
+
+const isPicture = (one: Shown): one is Shared & { shape: number } =>
+  "id" in one && one.shape !== undefined;
+
+const Media = ({
+  media,
+  size,
+  side = "end",
+  dim = false,
+}: {
+  media: Shown[];
+  size: "turn" | "line";
+  side?: "start" | "end";
+  dim?: boolean;
+}) => {
+  const pictures = media.filter(isPicture);
+  const rest = media.filter((one) => !isPicture(one));
+
+  return (
+    <>
+      <Pictures
+        pictures={pictures.map((picture, i) => ({
+          ...pictureOf(picture.id),
+          shape: picture.shape,
+          label: pictures.length === 1 ? "Picture" : `Picture ${i + 1}`,
+        }))}
+        height={metrics.picture[size]}
+      />
+      {rest.length ? (
+        <RNHostView matchContents>
+          <Album media={rest} width={metrics.media[size]} side={side} dim={dim} />
+        </RNHostView>
+      ) : null}
+    </>
   );
 };
 

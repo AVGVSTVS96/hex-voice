@@ -7,7 +7,7 @@ import { useKept } from "@/hooks/use-kept";
 import { useAnswer, useWatch } from "@/hooks/use-watch";
 import { AskList, NOT_NEEDED, failedOn, openAsks, yours } from "@/live/asks";
 import type { Ask, AskId, AskOption, Sent } from "@/live/asks";
-import type { MediaId, Picked } from "@/live/media";
+import type { Picked } from "@/live/media";
 
 export type Chosen = AskOption & { media?: Picked[] };
 
@@ -28,8 +28,6 @@ export const raiseAsks = async () => {
 };
 
 export const shotOf = (ask: Ask, shot: number) => hex.asks.shot(ask.id, shot);
-
-export const pictureOf = (id: MediaId) => hex.media.image(id);
 
 export const useAsks = (open: boolean) => {
   const [state, dispatch] = useReducer(yours, { answered: {} });
