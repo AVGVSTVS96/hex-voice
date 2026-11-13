@@ -22,9 +22,10 @@ final class ShotsProps: UIBaseViewProps {
   @Field var edge: Color = .gray
 }
 
-// An ask's screenshots side by side across the card, each at its own shape, so each holds its room
-// before it arrives, and its option's answer can sit under it. A tap shows them full screen in Quick Look, titled by
-// option, where a swipe goes to the next and a pinch looks closer.
+// Pictures side by side, each at its own shape, so each holds its room before it arrives; a shape
+// narrower than the picture shows its top. An option's answer can sit under its screenshot. A tap
+// shows them full screen in Quick Look, titled by option, where a swipe goes to the next and a pinch
+// looks closer.
 struct ShotsView: ExpoSwiftUI.View {
   @ObservedObject var props: ShotsProps
   @StateObject private var shots = Loaded()
@@ -41,7 +42,10 @@ struct ShotsView: ExpoSwiftUI.View {
       }
     }
     .task(id: props.uris) {
-      await shots.load(props.uris, labels: props.labels, headers: props.headers, pixels: props.height * scale * 2)
+      let widths = props.uris.indices.map {
+        (props.shapes.indices.contains($0) ? props.shapes[$0] : 1) * props.height * scale * 2
+      }
+      await shots.load(props.uris, labels: props.labels, headers: props.headers, widths: widths)
     }
     .quickLookPreview($shown, in: props.uris.compactMap { shots.files[$0] })
   }
@@ -51,7 +55,8 @@ struct ShotsView: ExpoSwiftUI.View {
     return props.surface
       .overlay {
         if let image = shots.thumbs[uri] {
-          Image(uiImage: image).resizable()
+          Image(uiImage: image).resizable().scaledToFill()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         } else if shots.failed.contains(uri) {
           Image(systemName: "photo").foregroundStyle(props.secondary)
         } else {
@@ -81,16 +86,17 @@ private final class Loaded: ObservableObject {
 
   deinit { try? FileManager.default.removeItem(at: dir) }
 
-  func load(_ uris: [String], labels: [String], headers: [String: String], pixels: CGFloat) async {
+  func load(_ uris: [String], labels: [String], headers: [String: String], widths: [CGFloat]) async {
     await withTaskGroup(of: Void.self) { group in
       for (index, uri) in uris.enumerated() where files[uri] == nil {
         let label = labels.indices.contains(index) ? labels[index] : "\(index + 1)"
-        group.addTask { await self.fetch(uri, as: label, headers: headers, pixels: pixels) }
+        let width = widths.indices.contains(index) ? widths[index] : widths.max() ?? 1
+        group.addTask { await self.fetch(uri, as: label, headers: headers, width: width) }
       }
     }
   }
 
-  private func fetch(_ uri: String, as label: String, headers: [String: String], pixels: CGFloat) async {
+  private func fetch(_ uri: String, as label: String, headers: [String: String], width: CGFloat) async {
     guard let url = URL(string: uri) else {
       failed.insert(uri)
       return
@@ -109,7 +115,7 @@ private final class Loaded: ObservableObject {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
       let file = folder.appendingPathComponent(name).appendingPathExtension(kind)
       try FileManager.default.moveItem(at: download, to: file)
-      guard let thumb = await Task.detached(operation: { Self.thumb(file, pixels: pixels) }).value else {
+      guard let thumb = await Task.detached(operation: { Self.thumb(file, width: width) }).value else {
         failed.insert(uri)
         return
       }
@@ -123,8 +129,13 @@ private final class Loaded: ObservableObject {
   }
 
   // As big as its tile draws it, so a screenshot many times the screen's size never sits in memory whole.
-  private nonisolated static func thumb(_ file: URL, pixels: CGFloat) -> UIImage? {
+  private nonisolated static func thumb(_ file: URL, width: CGFloat) -> UIImage? {
     guard let source = CGImageSourceCreateWithURL(file as CFURL, nil) else { return nil }
+    let read = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
+    let across = read[kCGImagePropertyPixelWidth] as? CGFloat ?? 1
+    let down = read[kCGImagePropertyPixelHeight] as? CGFloat ?? 1
+    let turned = (read[kCGImagePropertyOrientation] as? Int ?? 1) >= 5
+    let pixels = width * max(1, turned ? across / down : down / across)
     let options: [CFString: Any] = [
       kCGImageSourceCreateThumbnailFromImageAlways: true,
       kCGImageSourceCreateThumbnailWithTransform: true,

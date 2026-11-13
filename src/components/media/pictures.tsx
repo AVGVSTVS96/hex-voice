@@ -12,6 +12,8 @@ export interface Picture {
   label: string;
 }
 
+const TALLEST = 1 / 2;
+
 export const Pictures = ({ pictures, height }: { pictures: Picture[]; height: number }) => {
   const [lead] = pictures;
 
@@ -20,16 +22,14 @@ export const Pictures = ({ pictures, height }: { pictures: Picture[]; height: nu
   }
 
   const gap = space[2];
+  const shapes = pictures.map(({ shape }) => Math.max(shape, TALLEST));
 
-  const wide = pictures.reduce(
-    (sum, { shape }) => sum + shape * height,
-    gap * (pictures.length - 1),
-  );
+  const wide = shapes.reduce((sum, shape) => sum + shape * height, gap * (pictures.length - 1));
 
   return (
     <ShotsView
       uris={pictures.map((picture) => picture.uri)}
-      shapes={pictures.map((picture) => picture.shape)}
+      shapes={shapes}
       labels={pictures.map((picture) => picture.label)}
       headers={lead.headers}
       height={height}
