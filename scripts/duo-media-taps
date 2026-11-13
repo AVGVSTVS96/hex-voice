@@ -1,5 +1,6 @@
 # Photos and video in a thread and on a call, over invented answers: ANSWERS=scripts/duo-media.json HEX=kept scripts/duo tap <ref> scripts/duo-media-taps
 # The simulator has no camera: its drawer shows black, and its shutter makes a still of its own.
+# Its photo library won't load either, so every photo comes from the camera.
 launch hexvoice:///?tasks=media
 wait 3
 shoot media-topic
@@ -25,12 +26,11 @@ wait 2
 shoot photo-waiting
 tap thread-add
 wait 1
-tap Photos
-wait 3
-shoot photos-picker
-tap Photo
-wait 1
-tap Add
+tap Camera
+wait 2
+tap camera-shutter
+wait 2
+tap camera-keep
 wait 2
 shoot two-waiting
 tap thread-remove-media
@@ -62,12 +62,11 @@ wait 2
 shoot call-sent
 tap call-add
 wait 1
-tap Photos
-wait 3
-shoot call-photos
-tap Photo
-wait 1
-tap Add
+tap Camera
+wait 2
+tap camera-shutter
+wait 2
+tap camera-keep
 wait 3
 shoot call-sent-photos
 tap tasks-button

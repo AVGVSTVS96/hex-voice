@@ -35,23 +35,12 @@ shoot ask-held-relaunch
 swipe-left ask-card
 wait 1
 shoot ask-swiped
-tap xmark
+tap Not needed
 wait 1
 shoot ask-put-away
 tap Undo
 wait 1
 shoot ask-back
-# Swiped away while typing, it lets go of the keyboard and the page's foot comes back.
-tap ask-own
-type ask-input  still
-swipe-left ask-card
-wait 1
-tap xmark
-wait 1
-no-keyboard after a swipe while typing
-frame thread-write
-tap Undo
-wait 1
 # The same swipe on its row in the Tasks list.
 launch hexvoice:///?tasks
 wait 3
@@ -60,7 +49,7 @@ type tasks-search-field iPad
 swipe-left markdown asks
 wait 1
 shoot row-swiped
-tap xmark
+tap Not needed
 wait 1
 shoot row-put-away
 # A note says the question is still open; a long answer stays in sight as it grows; an answer
@@ -81,3 +70,22 @@ shoot ask-long
 tap ask-Answer
 wait 1
 shoot ask-answered
+# Swiped away while typing, it lets go of the keyboard and the page's foot comes back. Only folded
+# upright does the card stay in sight above the keyboard (on its side and open upright, the reply box
+# and keyboard fill the window), so it's checked there. A note clears the words for the next run.
+pose cover-up
+launch hexvoice:///?tasks=md
+wait 3
+tap ask-own
+type ask-input still
+swipe-left ask-card
+wait 1
+tap Not needed
+wait 1
+no-keyboard after a swipe while typing
+frame thread-write
+tap Undo
+wait 1
+tap ask-own
+tap Send as note
+wait 1

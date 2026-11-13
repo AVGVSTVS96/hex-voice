@@ -10,8 +10,8 @@ import XCTest
 //   swipe-back <query>    drags from that element across the screen, the way an edge swipe goes
 //   swipe-left <query>    swipes left across the row, pager or list holding that element: a row's swipe
 //                         actions, a pager's next page
-//   scroll [query]        swipes up the list holding that element (or the list on screen), so its
-//                         rows run under the bars
+//   scroll <query>        swipes up that list, or the list holding that element, so its rows run
+//                         under the bars
 //   shoot <name>          holds still while scripts/duo screenshots the screen as <name>
 //   snap <name>           has it screenshot right away and goes on, to catch what moves (two snaps a
 //                         wait 0.1 apart are shot about 100 ms apart)
@@ -94,8 +94,11 @@ final class DuoTests: XCTestCase {
                     .press(forDuration: 0.05, thenDragTo: app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
             case "swipe-left": element(argument).map { touch(); holder($0, rows: true).swipeLeft() }
             case "scroll":
-                let list = argument.isEmpty ? app.collectionViews.firstMatch : element(argument).map { holder($0, rows: false) }
-                list.map { touch(); $0.swipeUp() }
+                element(argument).map { found in
+                    let list = [XCUIElement.ElementType.collectionView, .scrollView].contains(found.elementType) ? found : holder(found, rows: false)
+                    touch()
+                    list.swipeUp()
+                }
             case "shoot", "pose", "pose-burst":
                 sleep(1)
                 print("duo-\(["shoot": "step", "pose": "pose", "pose-burst": "burst"][command]!) \(argument)")
