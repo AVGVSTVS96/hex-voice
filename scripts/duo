@@ -4,7 +4,8 @@
 #
 #   scripts/duo build [ref]           bundles and builds it, printing any compile errors
 #   scripts/duo shoot [ref] [states]  each state in the states file (the ref's scripts/duo-states
-#                                     by default) in each pose, dark and light
+#                                     by default) in each pose, dark and light, each shot by the
+#                                     tap runner once the app has drawn and loaded it
 #   scripts/duo tap [ref] [taps]      the tap script (the ref's scripts/duo-taps by default) in
 #                                     each pose, dark and light: XCUITest really taps
 #   scripts/duo verify [ref]          what ship:js and ship:native run first: npm run check, then
@@ -15,9 +16,9 @@
 #
 # POSES picks poses (the Duo's 4 by default, cover-up cover-side open-up open-side; 110-up is the
 # hinge at 110°, upright) and APPEARANCES dark, light or both. Shots land in
-# $home/shots/<commit>/ (tap's in tap/<tap script>/), with one sheet per pose and notes.txt naming each
-# state the app wasn't running in (how a crash or a JS error shows in a release build) or the
-# screen didn't turn for. ref defaults to main, and a run that waited behind another checks the
+# $home/shots/<commit>/ (tap's in tap/<tap script>/), with one sheet per pose and notes.txt naming what
+# failed, like a state the app didn't draw (how a crash or a JS error shows in a release build) or
+# a pose the screen didn't turn to. ref defaults to main, and a run that waited behind another checks the
 # newest main, or nothing when that commit was already shot. DEVICE=ipad uses "hexvoice iPad", an
 # iPad Pro 11" on iOS 27.3 run through Xcode 27.3 beta (27.1 and Xcode-beta are the Duo's), in place
 # of the Duo, shutting the Duo down so only one is booted; its poses are up and side, and its shots land in ipad/ beside the Duo's. HEX=kept answers the app's reads from the
@@ -279,52 +280,6 @@ settle() {
   done
 }
 
-running() {
-  xcrun simctl spawn "$id" launchctl list </dev/null | grep "UIKitApplication:$bundle" | grep -qv '^-'
-}
-
-# Reads "<state> <url> [launch argument…]" lines: each state opens cold from its URL (after
-# launching with its arguments, if it has any), in each pose and each appearance, set before the app
-# launches: an app whose appearance changes under it redraws late and partly, so a shot taken after
-# switching comes out half in the old one. A pose the app reports (?report=pose) lands beside the
-# shots as <pose>-<state>.json.
-mac_shoot() {
-  local states pose hinge orientation display state url arguments appearance file prefs
-  mac_install "$1"
-  prefs=$(xcrun simctl get_app_container "$id" "$bundle" data)/Library/Preferences/$bundle
-  states=$(cat)
-  for pose in $POSES; do
-    while read -r -u 4 state url arguments; do
-      for appearance in $APPEARANCES; do
-        xcrun simctl terminate "$id" "$bundle" 2>/dev/null || true
-        xcrun simctl spawn "$id" defaults delete "$prefs" HexPose >/dev/null 2>&1 || true
-        xcrun simctl ui "$id" appearance "$appearance"
-        place "$pose"
-        if [ -n "$arguments" ]; then
-          # shellcheck disable=SC2086
-          xcrun simctl launch "$id" "$bundle" $arguments >/dev/null
-          sleep 2
-        fi
-        xcrun simctl openurl "$id" "$url"
-        sleep "${SETTLE:-5}"
-        running || echo "$pose $state $appearance: the app wasn't running" >>shots/notes.txt
-        xcrun simctl spawn "$id" defaults read "$prefs" HexPose 2>/dev/null </dev/null |
-          jq . >"shots/$pose-$state.json" 2>/dev/null || rm -f "shots/$pose-$state.json"
-        file=shots/$pose-$state-$appearance.png
-        xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
-        turned "$file" || {
-          hub orientation portrait
-          sleep 1
-          hub orientation "$orientation"
-          sleep 2
-          xcrun simctl io "$id" screenshot ${display:+--display=$display} "$file" >/dev/null 2>&1
-          turned "$file" || echo "$pose $state $appearance: the screen didn't turn to $pose" >>shots/notes.txt
-        }
-      done
-    done 4<<<"$states"
-  done
-}
-
 # Plays the tap script it reads (uitests/DuoTests.swift has its commands) in each pose and
 # appearance: each "shoot <name>" is shot as shots/<pose>-<name>-<appearance>.png, "pose <pose>"
 # moves the Duo there without relaunching the app (turning it again if the screen didn't turn), a
@@ -565,7 +520,7 @@ collect() {
 }
 
 shoot() {
-  local states=${1:-}
+  local states=${1:-} status=0
   [ -n "$states" ] || [ ! -f "$out/done" ] || {
     echo "$title was already shot: $out"
     return
@@ -574,12 +529,13 @@ shoot() {
   { if [ -n "$states" ]; then cat "$states"; else
     git -C "$verify" show HEAD:scripts/duo-states 2>/dev/null || cat "$repo/scripts/duo-states"
   fi; } |
-    grep -v -e '^#' -e '^$' | ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' SIM_REPRO=${SIM_REPRO:-} TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac shoot $runtime" &
+    awk '!/^#/ && NF { print "launch " $2; print "shoot " $1 }' |
+    ssh "$mac" "LANE=$LANE DEVICE=$DEVICE HEX=$HEX POSES='$POSES' APPEARANCES='$APPEARANCES' SIM_REPRO=${SIM_REPRO:-} TURN_POOL=sims TURN_FIRST=${FIRST:-} lockf $folder.lock turn $folder/harness/duo mac tap $runtime" &
   # Waited on in the background, since bash holds a trap until a foreground command ends: a stop
   # here reaches the Mac at once instead of when its half finishes. tap and fold do the same.
-  wait $!
-  ssh "$mac" ls "$folder/shots" | grep -q '\.png$' || die "nothing was shot for $title"
+  wait $! || status=$?
   collect "$out"
+  [ "$status" = 0 ] || die "a state didn't open on $title, see $out/notes.txt"
   echo "$title" >"$out/done"
 }
 

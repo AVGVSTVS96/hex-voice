@@ -47,7 +47,7 @@ scripts/duo phone [update]        a screenshot of his real Duo, once hex runs th
 - `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
 - Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
 - iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out beside a stand-in app, with its own safe area and the pose in its coordinates; `&share=0.75` gives it that share of the screen (half by default), and `&size=regular` keeps a regular width, which it otherwise drops. Only React Native sees the smaller window: sheets still present from the whole screen, and SwiftUI's safe area and size class stay the screen's.
-- A state is a line in `scripts/duo-states` (or the file you pass): its name, a URL that opens the app straight into it, and any launch arguments. Shots show the simulator's real status bar.
+- A state is a line in `scripts/duo-states` (or the file you pass): its name and a URL that opens the app straight into it, shot once the app has drawn and loaded it. Shots show the simulator's real status bar.
 - The JS is bundled on the server and dropped into a simulator build of the commit's native fingerprint, so a JS change never rebuilds native code. Shots land in `~/.local/share/hex-voice/shots/<commit>/`, with one sheet per pose.
 
 ## Code
