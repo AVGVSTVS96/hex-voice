@@ -320,7 +320,7 @@ mac_tap() {
       answered=0
       # The Device Hub's turn only drives the Duo, so on the iPad XCUITest turns the device itself.
       TEST_RUNNER_DUO_TURN=$([ "$DEVICE" != ipad ] || echo "$orientation") \
-        TEST_RUNNER_DUO_TAPS=$taps TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
+        TEST_RUNNER_DUO_TAPS=$(sed -E -e "s/^($pose|${pose%%-*}): //" -e '/^[a-z0-9-]+: /d' <<<"$taps") TEST_RUNNER_DUO_SYNC=$PWD/build/sync xcodebuild test-without-building -project harness/uitests/DuoTests.xcodeproj \
         -scheme DuoTests -destination "id=$id" -derivedDataPath "$tests" -resultBundlePath "$result" \
         -collect-test-diagnostics never 2>&1 | tee "$tests-$pose-$appearance.log" | { while IFS= read -r line; do
         case $line in
@@ -539,7 +539,8 @@ shoot() {
   echo "$title" >"$out/done"
 }
 
-# A tap script's line that starts "duo: " or "ipad: " plays only on that device. Each tap script's
+# A tap script's line that starts "duo: " or "ipad: " plays only on that device, and one that starts
+# with a pose ("cover-up: ") or its first word ("cover: ") only in that pose. Each tap script's
 # shots land in a folder of their own, emptied first, so none is left from an earlier run.
 tap() {
   local into=${2:-$out/tap/$(basename "${1:-duo-taps}")} status=0

@@ -57,7 +57,8 @@ wait 2
 shoot call-camera-review
 tap camera-keep
 wait 2
-tap transcript-button
+# Folded, the transcript is pulled up; open, it shows beside the call already.
+cover: tap transcript-button
 wait 2
 shoot call-sent
 tap call-add
