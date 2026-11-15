@@ -1,5 +1,5 @@
 // The Expo Updates protocol `serve` answers: https://docs.expo.dev/technical-specs/expo-updates-1/
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, rename, stat, watch, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -42,7 +42,7 @@ const ExportMetadata = z.object({
   ),
 });
 
-const PublishedManifest = z.object({ id: z.string().optional() });
+const PublishedManifest = z.looseObject({ id: z.string().optional() });
 
 const ExpoConfig = z.looseObject({ updates: z.looseObject({ url: z.string() }) });
 
@@ -111,9 +111,43 @@ export const publish = async ({ dir, dist, platform, runtimeVersion, expoConfig 
     extra: { expoClient: expoConfig },
   };
 
+  if (published !== "{}") {
+    await replace(path.join(nativeBuild, "previous.json"), published);
+  }
+
   await replace(latest, JSON.stringify(manifest));
 
   return { id, published: true };
+};
+
+export interface Rollback {
+  dir: string;
+  platform: string;
+  runtimeVersion: string;
+}
+
+export const rollback = async ({ dir, platform, runtimeVersion }: Rollback) => {
+  const nativeBuild = path.join(dir, platform, runtimeVersion);
+  const latest = path.join(nativeBuild, "manifest.json");
+  const before = path.join(nativeBuild, "previous.json");
+  const current = await readFile(latest, "utf-8").catch(() => null);
+  const previous = await readFile(before, "utf-8").catch(() => null);
+
+  if (current === null || previous === null) {
+    throw new Error(`runtime ${runtimeVersion} has no update before its latest`);
+  }
+
+  // WHY: the app only takes an update newer than the one it runs, so the old one goes out as a new one.
+  const back = {
+    ...PublishedManifest.parse(JSON.parse(previous)),
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
+
+  await replace(before, current);
+  await replace(latest, JSON.stringify(back));
+
+  return back.id;
 };
 
 const replace = async (file: string, data: string | Buffer) => {
@@ -278,8 +312,14 @@ const main = async () => {
 
     const { id, published } = await publish({ dir, dist, platform, runtimeVersion, expoConfig });
     console.log(published ? `published update ${id}` : `update ${id} was already published`);
+  } else if (command === "rollback") {
+    const [platform, runtimeVersion] = z.tuple([z.string(), z.string()]).parse(args);
+    const id = await rollback({ dir, platform, runtimeVersion });
+    console.log(`update ${id} puts the one before the latest back`);
   } else {
-    throw new Error("usage: store.mts serve | publish <dist> <platform> <runtime> <config.json>");
+    throw new Error(
+      "usage: store.mts serve | publish <dist> <platform> <runtime> <config.json> | rollback <platform> <runtime>",
+    );
   }
 };
 

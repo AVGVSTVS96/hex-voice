@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Puts what went out before the latest back on his iPhone and iPad, in one step: the JS update
+# before the latest (over the air), when one went out since the latest native build, else the
+# native build before it (the install link and hangar, whose automatic installs put it on).
+# Running it again with the same kind goes forward. It changes what's live, not main: revert the
+# commit too, or the next ship sends it out again.
+#   scripts/rollback [js|native]
+. "$(dirname "$0")/release.sh"
+
+link=$updates/install
+runtime=$(jq -r .runtime "$link/latest.json")
+kind=${1:-}
+if [ -z "$kind" ]; then
+  if [ -f "$updates/ios/$runtime/previous.json" ]; then kind=js; else kind=native; fi
+fi
+exec 9>"$home/release.lock"
+flock 9
+
+case $kind in
+  js)
+    HEX_UPDATES_DIR=$updates node "$(dirname "$0")/../updates/store.mts" rollback ios "$runtime"
+    echo "the app takes the JS before the latest the next time it comes to the front with no call live;" \
+      "scripts/rollback js goes forward again"
+    ;;
+  native)
+    [ -f "$link/previous/latest.json" ] || die "the install link holds no build before $(jq -r .version "$link/latest.json")"
+    for file in latest.json manifest.plist index.html; do
+      mv "$link/$file" "$link/$file.swap"
+      mv "$link/previous/$file" "$link/$file"
+      mv "$link/$file.swap" "$link/previous/$file"
+    done
+    "$HOME/Developer/hangar/bin/hangar" rollback "$(jq -r .expo.ios.bundleIdentifier "$(dirname "$0")/../app.json")"
+    echo "hex $(jq -r .version "$link/latest.json") is back on the install link and in hangar;" \
+      "scripts/rollback native goes forward again"
+    ;;
+  *) die "usage: scripts/rollback [js|native]" ;;
+esac

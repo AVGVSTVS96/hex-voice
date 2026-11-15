@@ -114,6 +114,12 @@ fi
 echo "putting it on the install link"
 ssh "$mac" "cd $folder/build/signed && rm -rf Payload hex.ipa && mkdir Payload && cp -R hex.app Payload/ &&
   ditto -c -k --keepParent Payload hex.ipa && rm -rf Payload" </dev/null
+# The build before stays beside it, so scripts/rollback puts it back in one step.
+if [ "$(jq -r .version "$link/latest.json" 2>/dev/null)" != "$number" ] && [ -f "$link/latest.json" ]; then
+  mkdir -p "$link/previous"
+  cp "$link/latest.json" "$link/manifest.plist" "$link/index.html" "$link/previous/"
+fi
+before=$(jq -r .version "$link/previous/latest.json" 2>/dev/null || true)
 scp -q "$mac:$folder/build/signed/hex.ipa" "$link/hex-$number.ipa.part"
 mv "$link/hex-$number.ipa.part" "$link/hex-$number.ipa"
 url=${HEX_UPDATES_URL%/manifest}/install
@@ -141,7 +147,7 @@ p {{ opacity: .6; font-size: 15px; margin-top: 20px }}
 json.dump({"version": int(number), "runtime": runtime, "install": install}, open(f"{link}/latest.json.part", "w"))
 PY
 mv "$link/latest.json.part" "$link/latest.json"
-find "$link" -name 'hex-*.ipa' ! -name "hex-$number.ipa" -delete
+find "$link" -maxdepth 1 -name 'hex-*.ipa' ! -name "hex-$number.ipa" ! -name "hex-$before.ipa" -delete
 mkdir -p "$updates/ios/$runtime"
 hangar=$HOME/Developer/hangar/bin/hangar
 [ ! -x "$hangar" ] || "$hangar" put "$link/hex-$number.ipa" --notes "$(git -C "$release" log -1 --format=%s)"

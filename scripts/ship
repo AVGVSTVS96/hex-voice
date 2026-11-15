@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# What a push to main runs, from hex's pipeline (projects/pipeline in hex): main's JS over the air,
+# and when main's native code has no build yet, that build first, then its JS. A JS change never
+# waits behind a native build of the same runtime it doesn't need.
+#   scripts/ship <commit>
+cd "$(dirname "$0")" || exit
+./ship-js "$1"
+code=$?
+[ "$code" = 3 ] || exit "$code"
+./ship-native && ./ship-js "$1"
