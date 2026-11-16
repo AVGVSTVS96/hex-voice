@@ -30,7 +30,7 @@ const CONTENT_TYPES = new Map([
 ]);
 
 const contentType = (ext: string) => CONTENT_TYPES.get(ext) ?? "application/octet-stream";
-const Name = z.string().regex(/^\w[\w.-]*$/u);
+const Name = z.string().regex(/^[\w-][\w.-]*$/u);
 
 const ExportMetadata = z.object({
   fileMetadata: z.partialRecord(

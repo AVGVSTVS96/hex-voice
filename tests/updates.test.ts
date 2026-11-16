@@ -45,11 +45,11 @@ const scratch = async (prefix: string) => {
   return dir;
 };
 
-const exported = async () => {
+const exported = async (bundle = "bundle") => {
   const dist = await scratch("dist-");
   await mkdir(path.join(dist, "_expo/static/js/ios"), { recursive: true });
   await mkdir(path.join(dist, "assets"));
-  await writeFile(path.join(dist, "_expo/static/js/ios/entry-1.hbc"), "bundle");
+  await writeFile(path.join(dist, "_expo/static/js/ios/entry-1.hbc"), bundle);
   await writeFile(path.join(dist, "assets/abc"), "image");
   await writeFile(
     path.join(dist, "metadata.json"),
@@ -119,6 +119,32 @@ test("serves the latest update for a runtime, with assets the app can verify", a
   );
 
   assert.equal(nth(update.assets, 0).key, createHash("md5").update("image").digest("hex"));
+});
+
+test("serves an asset whose hash starts with a dash", async (t) => {
+  const { dir, server, origin, expoConfig } = await store();
+  t.after(() => server.close());
+  await mkdir(path.join(dir, "ios/abc123"), { recursive: true });
+
+  const bundle =
+    Array.from({ length: 1000 }, (_, i) => `bundle ${i}`).find((text) =>
+      createHash("sha256").update(text).digest("base64url").startsWith("-"),
+    ) ?? "";
+
+  await publish({
+    dir,
+    dist: await exported(bundle),
+    platform: "ios",
+    runtimeVersion: "abc123",
+    expoConfig,
+  });
+
+  const response = await manifest(origin, "abc123");
+  const update = Manifest.parse(await response.json());
+  assert.ok(update.launchAsset.hash.startsWith("-"));
+
+  const file = await fetch(update.launchAsset.url);
+  assert.equal(file.status, 200);
 });
 
 test("has no update for a runtime without one", async (t) => {
