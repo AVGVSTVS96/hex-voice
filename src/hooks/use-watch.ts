@@ -60,6 +60,7 @@ export const useWatch = <K extends string, T extends { version?: number | undefi
           }
 
           setWatching("offline");
+          version.current = undefined;
           // oxlint-disable-next-line no-await-in-loop, promise/avoid-new -- waits RETRY before asking again; React Native's setTimeout has no promise form
           await new Promise<void>((resolve) => {
             setTimeout(resolve, RETRY);

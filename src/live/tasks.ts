@@ -184,6 +184,14 @@ export const taskTime = (task: TaskRow, now = new Date()) => {
   return clock(new Date(task.state === "needs" ? task.since : task.at), now);
 };
 
+export const silentSince = (heard: (string | undefined)[], now = new Date()) => {
+  const last = heard.filter((at) => at !== undefined).sort()[0];
+
+  return last === undefined
+    ? "No answer from hex lately"
+    : `No answer from hex since ${clock(new Date(last), now)}`;
+};
+
 export const clock = (at: Date, now = new Date()) => {
   if (at.getTime() >= startOfDay(now)) {
     return timeOfDay(at.toISOString());

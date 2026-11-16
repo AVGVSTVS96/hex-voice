@@ -66,7 +66,7 @@ export const useAsks = (open: boolean) => {
   };
 
   const resends = useRef(new Map<AskId, () => Promise<Sent>>());
-  const [kept, keep] = useKept("asks", AskList);
+  const [kept, keep, heard] = useKept("asks", AskList);
   useEffect(() => {
     if (kept && !state.list) {
       dispatch({ type: "list", list: kept });
@@ -143,6 +143,7 @@ export const useAsks = (open: boolean) => {
     shown: list?.asks ?? [],
     answered: state.answered,
     open: openAsks(state),
+    heard,
     offline: watching === "offline",
     current: watching === "current",
     answer: (ask: Ask, option: Chosen) => {

@@ -88,7 +88,7 @@ export const Tasks = ({
   pages,
   room,
 }: TasksProps & { pages: Pages; room: Room }) => {
-  const { tasks, finished, version, offline, current } = useTasks(open);
+  const { tasks, finished, version, heard, offline, current } = useTasks(open);
   const yours = useAsks(open);
   const [missing, setMissing] = useState<Set<Place>>(new Set());
   const [typing, setTyping] = useState<Level | null>(null);
@@ -282,6 +282,7 @@ export const Tasks = ({
       spot={spot("list")}
       tasks={tasks}
       entries={entries}
+      heard={heard}
       offline={offline}
       current={current}
       yours={yours}

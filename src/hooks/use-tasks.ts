@@ -32,7 +32,7 @@ export const raiseTask = async (id: TaskId) => {
 const NONE: Finished[] = [];
 
 export const useTasks = (open: boolean) => {
-  const [tasks, keep] = useKept("tasks", z.array(TaskRow));
+  const [tasks, keep, heard] = useKept("tasks", z.array(TaskRow));
   const [finished, keepFinished] = useKept("finished", z.array(Finished));
   const [version, setVersion] = useState<number>();
 
@@ -46,6 +46,7 @@ export const useTasks = (open: boolean) => {
     tasks,
     finished: finished ?? NONE,
     version,
+    heard,
     offline: watching === "offline",
     current: watching === "current",
   };

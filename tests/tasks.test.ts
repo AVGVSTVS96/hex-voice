@@ -12,6 +12,7 @@ import {
   atWork,
   laneX,
   lastRun,
+  silentSince,
   stepMark,
   stepTimes,
   taskTime,
@@ -59,6 +60,15 @@ const stepAt = (minute: number, secs: number, kind: TaskStep["kind"] = "run"): T
   at: new Date(2026, 9, 13, 9, minute, secs).toISOString(),
   kind,
   text: "step",
+});
+
+test("out of reach, the list says since when hex hasn't answered, going by the older of its two lists", () => {
+  assert.match(silentSince([at(4, 8), at(9, 30)], now), /^No answer from hex since 4:08\sAM$/u);
+  assert.match(
+    silentSince([undefined, at(9, 0, 11)], now),
+    /^No answer from hex since (?:Oct 11|11 Oct)$/u,
+  );
+  assert.equal(silentSince([undefined, undefined], now), "No answer from hex lately");
 });
 
 test("a step without an end lasts until the next began, and a reply says when it was said", () => {

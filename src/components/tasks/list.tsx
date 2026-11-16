@@ -46,6 +46,7 @@ import {
   topicsOf,
 } from "@/live/inbox";
 import type { Entry, PageId, Stage, Tab, Tile, Topic } from "@/live/inbox";
+import { silentSince } from "@/live/tasks";
 import type { TaskRow } from "@/live/tasks";
 import { motion, rowsKey } from "@/motion";
 import { theme } from "@/theme";
@@ -71,6 +72,7 @@ export const ListPage = ({
   spot,
   tasks,
   entries,
+  heard,
   offline,
   current,
   yours,
@@ -87,6 +89,7 @@ export const ListPage = ({
   spot: Spot;
   tasks: TaskRow[] | undefined;
   entries: Entry[];
+  heard: string | undefined;
   offline: boolean;
   current: boolean;
   yours: Yours;
@@ -245,7 +248,7 @@ export const ListPage = ({
               id(searching ? "search" : stage),
             ]}
           >
-            {behind ? <Behind /> : null}
+            {behind ? <Behind heard={[heard, yours.heard]} /> : null}
             {needsTab && picks.length > 1 ? (
               <PicksRow
                 n={picks.length}
@@ -389,7 +392,7 @@ const selectedIn = (shown: Entry[], { task, row }: Pages) =>
 const emptyText = (query: string | null, stage: Tab) =>
   query === null || query === "" ? EMPTY[stage] : "Nothing matches";
 
-const Behind = () => (
+const Behind = ({ heard }: { heard: (string | undefined)[] }) => (
   <Text
     variant="caption"
     tone="tertiary"
@@ -399,7 +402,7 @@ const Behind = () => (
       ...listRow(),
     ]}
   >
-    Last from hex · waiting for an update
+    {silentSince(heard)}
   </Text>
 );
 

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
-import type * as z from "zod/mini";
+import * as z from "zod/mini";
 
 export const restore = async <S extends z.ZodMiniType>(
   key: string,
@@ -21,24 +21,29 @@ export const store = (key: string, value: unknown) => {
 };
 
 export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {
-  const [value, setValue] = useState<z.output<S>>();
+  const [kept, setKept] = useState<{ value: z.output<S>; at: string | undefined }>();
   useEffect(() => {
     void (async () => {
-      const saved = await restore(`kept:${key}`, schema);
+      const [value, at] = await Promise.all([
+        restore(`kept:${key}`, schema),
+        restore(`kept-at:${key}`, z.string()),
+      ]);
 
-      if (saved !== undefined) {
-        setValue((now) => now ?? saved);
+      if (value !== undefined) {
+        setKept((now) => now ?? { value, at });
       }
     })();
   }, [key]);
 
   const keep = useCallback(
-    (next: z.output<S>) => {
-      setValue(next);
-      store(`kept:${key}`, next);
+    (value: z.output<S>) => {
+      const at = new Date().toISOString();
+      setKept({ value, at });
+      store(`kept:${key}`, value);
+      store(`kept-at:${key}`, at);
     },
     [key],
   );
 
-  return [value, keep] as const;
+  return [kept?.value, keep, kept?.at] as const;
 };
