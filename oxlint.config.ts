@@ -49,6 +49,15 @@ const scroll = {
   name: "react-native",
 };
 
+const bleed = {
+  importNames: ["ignoreSafeArea"],
+  message:
+    "Fill past the safe area with bleed() from '@/ui/bleed', which takes what's drawn on the view with it: SwiftUI lays out a border or overlay added after ignoreSafeArea in the safe area, short of the edges the view reaches.",
+  name: "@expo/ui/swift-ui/modifiers",
+};
+
+const ui = [...host, scroll, bleed];
+
 export default defineConfig({
   extends: [core, react, reactNative, antiSlop],
   ignorePatterns: [...(core.ignorePatterns ?? []), ".claude/**", "ios/**", "dist/**"],
@@ -59,35 +68,35 @@ export default defineConfig({
       files: ["src/**"],
       rules: {
         "no-restricted-globals": ["error", { message: onlyHexFetches, name: "fetch" }],
-        "no-restricted-imports": restricted([fetch, windowSize, ...host, scroll]),
+        "no-restricted-imports": restricted([fetch, windowSize, ...ui]),
       },
     },
     {
       files: ["src/hex/**"],
       rules: {
         "no-restricted-globals": "off",
-        "no-restricted-imports": restricted([windowSize, ...host, scroll]),
+        "no-restricted-imports": restricted([windowSize, ...ui]),
       },
     },
     {
       files: ["src/app/**", "src/call/**", "src/components/**", "src/screens/**"],
       rules: {
-        "no-restricted-imports": restricted([fetch, hex, windowSize, ...host, scroll], [hexInside]),
+        "no-restricted-imports": restricted([fetch, hex, windowSize, ...ui], [hexInside]),
       },
     },
     {
       files: ["src/call/use-call.tsx"],
-      rules: { "no-restricted-imports": restricted([fetch, windowSize, ...host, scroll]) },
+      rules: { "no-restricted-imports": restricted([fetch, windowSize, ...ui]) },
     },
     {
       files: ["src/call/pose-report.tsx"],
-      rules: { "no-restricted-imports": restricted([fetch, hex, ...host, scroll], [hexInside]) },
+      rules: { "no-restricted-imports": restricted([fetch, hex, ...ui], [hexInside]) },
     },
     {
       files: ["src/ui/host.tsx"],
-      rules: { "no-restricted-imports": restricted([fetch, windowSize, scroll]) },
+      rules: { "no-restricted-imports": restricted([fetch, windowSize, scroll, bleed]) },
     },
-    { files: ["src/ui/scroll.tsx"], rules: { "no-restricted-imports": "off" } },
+    { files: ["src/ui/scroll.tsx", "src/ui/bleed.ts"], rules: { "no-restricted-imports": "off" } },
     {
       files: ["plugins/**", "fingerprint.config.js", "metro.config.js"],
       rules: { "unicorn/prefer-module": "off" },

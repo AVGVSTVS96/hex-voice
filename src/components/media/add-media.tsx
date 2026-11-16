@@ -2,8 +2,6 @@ import { BottomSheet, Button, Group, Menu, RNHostView } from "@expo/ui/swift-ui"
 import {
   accessibilityLabel,
   disabled,
-  frame,
-  ignoreSafeArea,
   preferredColorScheme,
   presentationBackground,
   presentationDetents,
@@ -14,11 +12,13 @@ import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { Camera } from "@/components/media/camera";
 import { CLIP_SECONDS } from "@/live/media";
 import type { Picked } from "@/live/media";
 import { bevel } from "@/theme";
+import { bleed } from "@/ui/bleed";
 import { glass as onGlass } from "@/ui/glass-button";
 import { film } from "@/ui/tokens";
 
@@ -112,23 +112,25 @@ export const AddMedia = ({
           presentationDragIndicator("visible"),
           presentationBackground(film.black),
           preferredColorScheme("dark"),
-          frame({ maxWidth: Infinity, maxHeight: Infinity }),
-          ignoreSafeArea(),
-          strokeBorder({
-            content: bevel.gradient,
-            style: { lineWidth: bevel.width },
-            shape: "containerRelativeShape",
-          }),
+          ...bleed(
+            strokeBorder({
+              content: bevel.gradient,
+              style: { lineWidth: bevel.width },
+              shape: "containerRelativeShape",
+            }),
+          ),
         ]}
       >
         <RNHostView>
-          <Camera
-            keep={sends ? "Send" : "Add"}
-            onShot={(shot) => {
-              setCamera(false);
-              onAdd([shot]);
-            }}
-          />
+          <SafeAreaProvider>
+            <Camera
+              keep={sends ? "Send" : "Add"}
+              onShot={(shot) => {
+                setCamera(false);
+                onAdd([shot]);
+              }}
+            />
+          </SafeAreaProvider>
         </RNHostView>
       </Group>
     </BottomSheet>

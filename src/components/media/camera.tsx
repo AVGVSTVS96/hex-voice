@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { useMicHeld } from "@/call/use-call";
@@ -34,6 +35,8 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
   const filled = useSharedValue(0);
   const held = useRef(false);
   const recording = phase.at === "recording";
+  const { left, right } = useSafeAreaInsets();
+  const clear = { paddingHorizontal: space[6] + Math.max(left, right) };
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -79,7 +82,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
 
   if (permission?.granted !== true) {
     return permission && !permission.canAskAgain ? (
-      <View style={[styles.fill, styles.blocked]}>
+      <View style={[styles.fill, styles.blocked, clear]}>
         <Text style={styles.words}>Allow hex to use the camera in Settings.</Text>
         <Pressable
           accessibilityRole="button"
@@ -119,7 +122,7 @@ export const Camera = ({ keep, onShot }: { keep: string; onShot: (shot: Picked) 
         />
       )}
       {phase.at === "recording" && <Timer since={phase.since} />}
-      <View style={styles.foot}>
+      <View style={[styles.foot, clear]}>
         {phase.at === "review" ? (
           <>
             <Pressable
@@ -284,7 +287,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: space[12],
-    paddingHorizontal: space[6],
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
