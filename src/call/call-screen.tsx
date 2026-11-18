@@ -976,6 +976,14 @@ const CallScreen = ({
           column={layout.column}
           tools={screenToolbar({ position: "relative" })}
           controls={buttons}
+          beside={
+            duo?.beside && {
+              offered: duoTasks.offered,
+              selected: duoTasks.beside,
+              stacks: duo.beside.tasks.area.y > duo.tasks.area.y,
+              onPress: duoTasks.toggleBeside,
+            }
+          }
         />
       ) : (
         <BarStyledWhenMounted

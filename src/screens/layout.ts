@@ -2,7 +2,7 @@ import { callsBeside, stageLayout, wordsBefore } from "@/call/stage";
 import type { Box, CallsPlacement, ColumnControls, Stage, Words } from "@/call/stage";
 import type { Fold, Insets, Rect, Room, Size } from "@/screens/window";
 import { metrics, space, stack } from "@/ui/tokens";
-import type { ToolbarGaps } from "@/ui/tokens";
+import type { ControlsSize, ToolbarGaps } from "@/ui/tokens";
 
 const GAP = 12;
 
@@ -23,7 +23,7 @@ const BAR_TIME_WIDTH = 44;
 
 const STATUS_DROP = 7;
 
-const BESIDE_BUTTON = 12 + metrics.tool;
+const besideSwitch = (size: ControlsSize) => metrics.controls[size].gap + metrics.tool;
 
 const columnTools = (gaps: ToolbarGaps) =>
   4 * metrics.tool + metrics.toolbar[gaps].tools + 2 * metrics.toolbar[gaps].group;
@@ -45,7 +45,12 @@ type Toolbar = Spot & { width: number; axis: "row" | "column"; gaps?: ToolbarGap
 export interface Duo {
   tasks: Page;
   beside?:
-    | { tasks: Page; typing?: Page | undefined; words: Words & { raise: number }; button: Place }
+    | {
+        tasks: Page;
+        typing?: Page | undefined;
+        words: Words & { raise: number };
+        button?: Place | undefined;
+      }
     | undefined;
   call: {
     orb: Required<Spot>;
@@ -264,10 +269,9 @@ const columnFrame = (
     : x + width / 2;
 
   const toolsAt = Math.max(top, COLUMN.top);
-  const between = BAR_TIME + (folds ? BESIDE_BUTTON : 0) + 2 * space[1];
-
-  const tight =
-    toolsAt + columnTools("regular") + between + stack("regular") + foot > window.height;
+  const between = BAR_TIME + 2 * space[1];
+  const buttons = stack("regular") + (folds ? besideSwitch("regular") : 0);
+  const tight = toolsAt + columnTools("regular") + between + buttons + foot > window.height;
 
   return {
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
@@ -322,24 +326,18 @@ const besideColumn = (
   );
 
   const tools = toolbar.y + columnTools(toolbar.gaps ?? "regular");
-  const buttons = window.height - column.controls.bottom - stack(size);
+  const switches = after && before ? besideSwitch(size) : 0;
+  const buttons = window.height - column.controls.bottom - stack(size) - switches;
   const room = buttons - tools - 2 * space[1];
-  const button = after ? metrics.tool : 0;
-  const clock = room >= BAR_TIME + (button && BESIDE_BUTTON) ? BAR_TIME : 0;
-  const below = clock + (button && (clock && 12) + button);
-  const orb = room >= BAR_ORB + 4 + below ? BAR_ORB : 0;
-  const group = (orb && orb + 4) + below;
+  const clock = room >= BAR_TIME ? BAR_TIME : 0;
+  const orb = room >= BAR_ORB + 4 + clock ? BAR_ORB : 0;
+  const group = (orb && orb + 4) + clock;
   const y = (tools + buttons - group) / 2;
   const time = y + (orb && orb + 4);
 
   return {
     tasks,
-    beside: after &&
-      before && {
-        tasks: after,
-        words: before,
-        button: { x, y: time + (clock && clock + 12) + metrics.tool / 2 },
-      },
+    beside: after && before && { tasks: after, words: before },
     call: {
       orb: { x, y: y + orb / 2, size: orb },
       ...(clock && {

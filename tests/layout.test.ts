@@ -344,7 +344,7 @@ const inBarWithTasksOpen = (layout: Layout, window: Size) => {
     placed.set("time", { x: call.time.x, y: call.time.y, width: call.time.width, height: 16 });
   }
 
-  if (beside) {
+  if (beside?.button) {
     placed.set("switch", around(beside.button.x, beside.button.y, 48));
   }
 
@@ -360,7 +360,7 @@ const inBarWithTasksOpen = (layout: Layout, window: Size) => {
     assert.ok(controls !== "inline" && "bottom" in controls);
     assert.ok(controls.size);
     const end = metrics[metrics.controls[controls.size].call];
-    const height = stack(controls.size);
+    const height = stack(controls.size) + (beside ? metrics.controls[controls.size].gap + 48 : 0);
     const x = window.width - controls.right - 32;
     placed.set("buttons", {
       ...around(x, 0, end),
