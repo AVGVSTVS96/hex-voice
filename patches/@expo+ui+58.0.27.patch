@@ -140,3 +140,14 @@ index 49efff8..23cdf86 100644
        testID={testID}>
        {children}
      </HStack>
+diff --git a/node_modules/@expo/ui/ios/HostView.swift b/node_modules/@expo/ui/ios/HostView.swift
+--- a/node_modules/@expo/ui/ios/HostView.swift
++++ b/node_modules/@expo/ui/ios/HostView.swift
+@@ -92,7 +92,6 @@ struct HostView: ExpoSwiftUI.View, ExpoSwiftUI.WithHostingView {
+       }
+       .environment(\.expoHostingView, props.hostingViewReference)
+       .environment(\.universalPercentageParent, true)
+-      .modifier(HostViewContentMarginsMitigation(layoutDirection: layoutDirection, hostingView: props.hostingView))
+       .fixedSize(horizontal: props.matchContentsHorizontal, vertical: props.matchContentsVertical)
+       .modifier(LayoutDirectionModifier(layoutDirection: layoutDirection))
+       .modifier(ColorSchemeModifier(colorScheme: props.colorScheme?.toColorScheme()))
