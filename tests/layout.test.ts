@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { Pose } from "../modules/pose";
-import { START, levelsOf, pagedRoom, spotOf } from "../src/components/tasks/pages";
+import { pagedRoom } from "../src/components/tasks/pages";
 import { screenLayout } from "../src/screens/layout";
 import type { Layout } from "../src/screens/layout";
 import { roomOf } from "../src/screens/window";
@@ -648,8 +648,7 @@ test("held wide, Tasks’ two pages meet where iOS’s panes meet open flat: the
   assert.ok(duo?.beside);
   const { tasks, beside } = duo;
   const room = pagedRoom(tasks);
-  const pages = { levels: levelsOf(START, "panes"), shape: "panes" as const, closes: true };
-  assert.equal(spotOf("list", pages, room).width, iosPanesOpenFlat.first.width);
+  assert.equal(tasks.area.width / 2 + (room.meet ?? 0), iosPanesOpenFlat.first.width);
   assert.equal(beside.tasks.area.x, iosPanesOpenFlat.second.x);
 });
 

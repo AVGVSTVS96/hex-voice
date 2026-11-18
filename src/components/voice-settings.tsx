@@ -69,15 +69,14 @@ import { useToolbarBack } from "@/components/toolbar-back";
 import { REACTIONS } from "@/hooks/use-call-preferences";
 import type { CallPreferences, Reaction } from "@/hooks/use-call-preferences";
 import type { TalkSettings } from "@/hooks/use-talk";
-import { useViewport } from "@/hooks/use-viewport";
-import type { Size } from "@/hooks/use-viewport";
 import { useVoicePreview } from "@/hooks/use-voice-preview";
 import { UNSET, WORDS_LIMIT } from "@/live/talk";
 import type { Talk } from "@/live/talk";
 import { VOICES, isLiveVoice } from "@/live/voices";
 import type { LiveVoice } from "@/live/voices";
 import { heard, motion } from "@/motion";
-import type { Rect } from "@/screens/window";
+import type { Page } from "@/screens/layout";
+import type { Fold, Size } from "@/screens/window";
 import { theme } from "@/theme";
 import { Host } from "@/ui/host";
 import { Text } from "@/ui/text";
@@ -91,7 +90,10 @@ type Pane = "persona" | "rows" | "alone";
 
 interface Props {
   sheet: SettingsSheet;
-  place?: { area: Rect; shown: boolean; pane: SharedValue<number> } | undefined;
+  place?:
+    | { page: Page; fold?: Fold | undefined; shown: boolean; pane: SharedValue<number> }
+    | undefined;
+  height: number;
   isPresented: boolean;
   onDismiss: () => void;
   voice: LiveVoice;
@@ -188,24 +190,35 @@ const voiceSummary = (voice: string, talk: Talk | undefined) => {
     : voice;
 };
 
-const placePanes = (screen: Size, area: Rect, reported: Partial<Record<Pane, Size>>): Panes => {
-  const two = screen.width > screen.height;
+const placePanes = (
+  { area, margin }: Page,
+  fold: Fold | undefined,
+  reported: Partial<Record<Pane, Size>>,
+): Panes => {
+  const two = area.width > area.height;
 
   const edges = {
-    top: area.y,
-    leading: area.x,
-    trailing: screen.width - area.x - area.width,
-    bottom: screen.height - area.y - area.height,
+    top: margin.top,
+    leading: margin.left,
+    trailing: margin.right,
+    bottom: margin.bottom,
   };
 
-  const half = (taken: number) => ({ width: screen.width / 2 - taken, height: area.height });
+  const across = margin.left + area.width + margin.right;
+  const down = margin.top + area.height + margin.bottom;
+
+  const split = fold && "x" in fold ? fold.x : across / 2;
+  const meet = fold && "y" in fold ? fold.y : down / 2;
 
   const personaPane = two
-    ? (reported.persona ?? half(edges.leading))
+    ? (reported.persona ?? { width: split - edges.leading, height: area.height })
     : (reported.alone ?? { width: area.width, height: area.height });
 
-  const rowsPane = two ? (reported.rows ?? half(edges.trailing)) : personaPane;
-  const personaHeight = two ? personaPane.height : screen.height / 2 - edges.top;
+  const rowsPane = two
+    ? (reported.rows ?? { width: across - split - edges.trailing, height: area.height })
+    : personaPane;
+
+  const personaHeight = two ? personaPane.height : meet - edges.top;
 
   return { two, edges, personaPane, rowsPane, personaHeight };
 };
@@ -248,6 +261,7 @@ const sizesOf = (width: number, room: number, panes: Panes | undefined) => {
 export const VoiceSettings = ({
   sheet,
   place,
+  height,
   isPresented,
   onDismiss,
   voice,
@@ -260,17 +274,16 @@ export const VoiceSettings = ({
   preferences,
   talk,
 }: Props) => {
-  const screen = useViewport();
   const phone = sheet === "phone";
   const insets = useSafeAreaInsets();
   const [given, setGiven] = useState<number>();
   const [reported, setReported] = useState<Partial<Record<Pane, Size>>>({});
-  const panes = place && placePanes(screen, place.area, reported);
+  const panes = place && placePanes(place.page, place.fold, reported);
   const two = panes?.two === true;
   const width = panes ? panes.rowsPane.width : (given ?? 0);
 
   const { beside, contentWidth, carouselWidth, rowsWidth, preview, appearanceHeight, orbSize } =
-    sizesOf(width, screen.height - insets.top - SHEET_GAP, panes);
+    sizesOf(width, height - insets.top - SHEET_GAP, panes);
 
   const [onVoicePage, setOnVoicePage] = useState(false);
   const [take, setTake] = useState(0);
@@ -478,7 +491,11 @@ export const VoiceSettings = ({
       open={isPresented}
       pane={place.pane}
       two={two}
-      row={two && phone ? panes.edges.leading + place.area.width * FOLDED_PERSONA_SHARE : undefined}
+      row={
+        two && phone
+          ? panes.edges.leading + place.page.area.width * FOLDED_PERSONA_SHARE
+          : undefined
+      }
       edges={panes.edges}
       persona={panes.personaHeight}
       onPane={(pane, size) => {

@@ -37,6 +37,12 @@ const windowSize = {
   name: "react-native",
 };
 
+const viewport = {
+  message:
+    "A view takes its size from the container it's in: SwiftUI's frames, PagesView, or a size its parent hands it. Only the call screen divides the window (src/call, src/screens), since a sheet, a pane or a Split View window is rarely the window's size.",
+  name: "@/hooks/use-viewport",
+};
+
 const host = [
   { importNames: ["Host"], message: hostMessage, name: "@expo/ui" },
   { importNames: ["Host"], message: hostMessage, name: "@expo/ui/swift-ui" },
@@ -82,6 +88,12 @@ export default defineConfig({
       files: ["src/app/**", "src/call/**", "src/components/**", "src/screens/**"],
       rules: {
         "no-restricted-imports": restricted([fetch, hex, windowSize, ...ui], [hexInside]),
+      },
+    },
+    {
+      files: ["src/components/**"],
+      rules: {
+        "no-restricted-imports": restricted([fetch, hex, windowSize, viewport, ...ui], [hexInside]),
       },
     },
     {

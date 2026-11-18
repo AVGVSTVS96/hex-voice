@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 
 import { TasksView } from "@/components/tasks/tasks-view";
 import type { TasksProps } from "@/components/tasks/tasks-view";
-import { useViewport } from "@/hooks/use-viewport";
 import { theme } from "@/theme";
 import { Host } from "@/ui/host";
 
@@ -19,7 +18,6 @@ export const TasksSheet = ({
   onCall,
   ...view
 }: TasksProps & { onDismiss: () => void; onCall: boolean }) => {
-  const { width } = useViewport();
   const [detent, setDetent] = useState<PresentationDetent>(onCall ? "medium" : "large");
   useEffect(() => {
     if (view.open) {
@@ -52,7 +50,7 @@ export const TasksSheet = ({
             presentationBackground(theme.sheet),
           ]}
         >
-          <TasksView {...view} width={width} />
+          <TasksView {...view} />
         </SheetContent>
       </BottomSheet>
     </Host>

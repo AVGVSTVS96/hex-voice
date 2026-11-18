@@ -18,7 +18,6 @@ import { screenLayout } from "../src/screens/layout";
 import type { Page } from "../src/screens/layout";
 import { roomOf as windowRoom } from "../src/screens/window";
 import type { Insets, Size } from "../src/screens/window";
-import { nth } from "./nth";
 
 const duoOf = (window: Size, insets: Insets, pose: Pose) => {
   const { duo } = screenLayout(windowRoom(pose, window, insets));
@@ -50,15 +49,7 @@ const folded = duoOf(
   { regular: false, bar: "right" },
 ).tasks;
 
-type PagedRoom = Room & { height: number };
-
-const roomOf = (page: Page): PagedRoom => ({ ...pagedRoom(page), height: page.area.height });
-
-const meetOf = (room: Room) => {
-  assert.ok(room.meet !== undefined, "panes meet somewhere");
-
-  return room.width / 2 + room.meet;
-};
+const roomOf = (page: Page): Room => pagedRoom(page);
 
 const sheet: Room = { width: 440, foot: 34, paged: false };
 
@@ -72,28 +63,17 @@ const go = (...moves: Move[]) => {
   return stack;
 };
 
-const mix = (p: number, q: number, t: number) => p + (q - p) * t;
-
 const pagesOf = (stack: Stack, room: Room, closes = true) => {
   const shape = shapeOf(room);
 
   return { levels: levelsOf(stack, shape), shape, closes };
 };
 
-const onScreen = (stack: Stack, room: PagedRoom) => {
+const onScreen = (stack: Stack, room: Room) => {
   const pages = pagesOf(stack, room);
 
   return LEVELS.filter((level) => spotOf(level, pages, room).shown);
 };
-
-const box = (level: Level, stack: Stack, room: PagedRoom) => {
-  const spot = spotOf(level, pagesOf(stack, room), room);
-
-  return { x: spot.offset.x, y: spot.offset.y, width: spot.width, height: room.height };
-};
-
-const overlap = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
-  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 const stacks = [
   ["the list", go()],
@@ -174,107 +154,28 @@ test("the leading page has Back named for where it goes, the list’s for the ca
   );
 });
 
-test("on the Duo pages cross only while one fades, and never across the fold, so clear pages work", () => {
-  const walks: Stack[][] = [
-    [stacks[0][1], stacks[1][1], stacks[2][1], stacks[3][1]],
-    [stacks[0][1], stacks[4][1]],
-  ];
-
-  for (const [name, page] of [
-    ["open upright", openUpright],
-    ["open on its side", openOnSide],
-    ["folded", folded],
-  ] as const) {
-    const room = roomOf(page);
-    const screen = { x: 0, y: 0, width: room.width, height: room.height };
-
-    const seen = (from: Stack, to: Stack, t: number) =>
-      LEVELS.flatMap((level) => {
-        const [a, b] = [box(level, from, room), box(level, to, room)];
-
-        const frame = {
-          x: mix(a.x, b.x, t),
-          y: mix(a.y, b.y, t),
-          width: mix(a.width, b.width, t),
-          height: mix(a.height, b.height, t),
-        };
-
-        return overlap(frame, screen) ? [[level, frame] as const] : [];
-      });
-
-    for (const walk of walks) {
-      for (const [i, from] of walk.slice(0, -1).entries()) {
-        const to = nth(walk, i + 1);
-
-        for (const [a, b] of [
-          [from, to],
-          [to, from],
-        ] as const) {
-          for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-            const frames = seen(a, b, t);
-
-            const fades = (level: Level) =>
-              spotOf(level, pagesOf(a, room), room).shown !==
-              spotOf(level, pagesOf(b, room), room).shown;
-
-            for (const [j, [one, first]] of frames.entries()) {
-              for (const [other, second] of frames.slice(j + 1)) {
-                assert.ok(
-                  !overlap(first, second) || fades(one) || fades(other),
-                  `${name}, t ${t}: ${one} covers ${other}`,
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (shapeOf(room) !== "panes") {
-      continue;
-    }
-
-    const fold = { x: meetOf(room), y: 0, width: 0, height: room.height };
-
-    for (const [at, stack] of stacks) {
-      for (const level of LEVELS) {
-        assert.ok(
-          !overlap(box(level, stack, room), fold),
-          `${name}, ${at}: ${level} across the fold`,
-        );
-      }
-    }
-  }
-});
-
-test("pages run flush to the screen edges and meet in the window’s middle, on the fold", () => {
-  const room = roomOf(openUpright);
-  const pages = pagesOf(go(), room);
-  assert.equal(spotOf("list", pages, room).width, 951 / 2);
-  assert.equal(spotOf("topic", pages, room).width, openUpright.area.width - 951 / 2);
-  const side = roomOf(openOnSide);
-  assert.equal(spotOf("list", pagesOf(go(), side), side).width, side.width);
-});
-
 test("beside the transcript, Tasks lays out one page wide with the list’s Back to the call", () => {
   const room: Room = { width: 455, foot: 21, paged: true, meet: -455 / 2 };
   const pages = pagesOf(go(), room);
   assert.equal(pages.shape, "one");
   const list = spotOf("list", pages, room);
-  assert.deepEqual([list.shown, list.back, list.width], [true, "call", 455]);
+  assert.deepEqual([list.shown, list.back], [true, "call"]);
   const deeper = pagesOf(go({ to: "topic", id: A }), room);
-  assert.equal(spotOf("list", deeper, room).offset.x, -455);
+  assert.equal(spotOf("list", deeper, room).shown, false);
   assert.equal(spotOf("topic", deeper, room).back, "list");
 });
 
-test("the phone’s sheet: a page waits a third behind, and Back goes a level up", () => {
+test("the phone’s sheet: Back goes a level up, and the list’s leaves nothing", () => {
   const pages = pagesOf(go({ to: "topic", id: A }), sheet, false);
   const list = spotOf("list", pages, sheet);
   const task = spotOf("topic", pages, sheet);
-  assert.equal(list.offset.x, -440 / 3);
-  assert.equal(list.back, undefined);
-  assert.deepEqual([task.offset.x, task.back], [0, "list"]);
-  assert.equal(spotOf("thread", pages, sheet).offset.x, 440);
+  assert.deepEqual([list.shown, list.back], [false, undefined]);
+  assert.deepEqual([task.shown, task.back], [true, "list"]);
+  assert.equal(spotOf("thread", pages, sheet).shown, false);
+});
+
+test("a sheet nothing measured starts one page at a time, until its pages say their shape", () => {
+  assert.equal(shapeOf({ foot: 0, paged: false }), "one");
 });
 
 test("writing focuses the composer once, and going back lets it go", () => {
@@ -304,7 +205,7 @@ test("on its side, Tasks is one page: the list fills it and a topic pushes over 
   assert.deepEqual(onScreen(go(), room), ["list"]);
   assert.deepEqual(onScreen(go({ to: "topic", id: A }), room), ["topic"]);
   const topic = spotOf("topic", pagesOf(go({ to: "topic", id: A }), room), room);
-  assert.deepEqual([topic.back, topic.width], ["list", 669]);
+  assert.deepEqual([topic.shown, topic.back], [true, "list"]);
   const waiting = spotOf("topic", pagesOf(go(), room), room);
   assert.deepEqual([waiting.shown, waiting.back], [false, "list"]);
 });

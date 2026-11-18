@@ -930,9 +930,10 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
       )}
       <VoiceSettings
         sheet={sheetOf(split, room.regular)}
+        height={height}
         place={
           settingsPlace
-            ? { area: settingsPlace, shown: scene.front === "settings", pane }
+            ? { page: settingsPlace, fold: room.fold, shown: scene.front === "settings", pane }
             : undefined
         }
         isPresented={settingsOpen}
@@ -1034,7 +1035,7 @@ const arrangementOf = (layout: Layout, onCall: boolean) => {
     moves,
     follows: moves || !!layout.duo?.beside,
     panes: layout.tasks.place !== "sheet",
-    settingsPlace: layout.duo?.tasks.area,
+    settingsPlace: layout.duo?.tasks,
     inbox,
     paneWidth: inbox ? inbox.width : layout.tasks.width,
     before: layout.duo?.beside?.words ?? { ...layout.words, raise: 0 },

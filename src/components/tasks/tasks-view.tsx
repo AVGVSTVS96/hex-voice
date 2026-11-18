@@ -1,13 +1,11 @@
-import { Column, Row, Spacer, Text } from "@expo/ui";
-import { ProgressView, ZStack } from "@expo/ui/swift-ui";
+import { Column, Spacer, Text } from "@expo/ui";
+import { ProgressView } from "@expo/ui/swift-ui";
 import {
-  accessibilityHidden,
   animation,
   background,
   clipped,
   foregroundStyle,
   frame,
-  offset,
   scrollDismissesKeyboard,
 } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +17,15 @@ import { PageChrome } from "@/components/tasks/bar";
 import type { Back, Chrome, Door } from "@/components/tasks/bar";
 import { LastCheck } from "@/components/tasks/last-check";
 import { ListPage } from "@/components/tasks/list";
-import { levelsOf, shapeOf, spotOf, usePages, Showing, Typing } from "@/components/tasks/pages";
+import {
+  COLUMNS,
+  levelsOf,
+  shapeOf,
+  spotOf,
+  usePages,
+  Showing,
+  Typing,
+} from "@/components/tasks/pages";
 import type { Level, Move, Pages, Room, Spot, Stack } from "@/components/tasks/pages";
 import { feel } from "@/components/tasks/parts";
 import { PickPage, PicksPage, usePickChoices } from "@/components/tasks/picks";
@@ -71,7 +77,7 @@ export const TasksView = ({
   width,
   foot = 0,
   ...view
-}: TasksProps & { width: number; foot?: number }) => {
+}: TasksProps & { width?: number | undefined; foot?: number }) => {
   const room = { width, foot, paged: false };
   const pages = usePages({ stack: view.stack, onMove: view.onMove, shape: shapeOf(room) });
 
@@ -268,7 +274,7 @@ export const Tasks = ({
     const at = spot(level);
 
     return (
-      <PageAt key={level} spot={at} paged={room.paged} moved={moved}>
+      <PageAt key={level} paged={room.paged}>
         <PageChrome.Provider value={chromeOf(at)}>
           <Showing.Provider value={open && at.shown}>
             <Typing.Provider value={typingOn(level)}>
@@ -495,55 +501,26 @@ export const Tasks = ({
     scrollDismissesKeyboard("immediately"),
   ];
 
-  if (pages.shape === "columns") {
-    return (
-      <Row alignment="start" spacing={0} modifiers={fill}>
-        <Column
-          alignment="start"
-          spacing={0}
-          modifiers={[frame({ width: spot("list").width, alignment: "top" }), upTo()]}
-        >
-          {list}
-        </Column>
-        <Column
-          alignment="start"
-          spacing={0}
-          modifiers={[frame({ width: 1 }), upTo(), background(theme.edge)]}
-        >
-          <Spacer />
-        </Column>
-        <ZStack alignment="top" modifiers={fill}>
-          {levels}
-        </ZStack>
-      </Row>
-    );
-  }
-
-  if (room.paged) {
-    const children = [page("list", list), ...levels];
-
-    return (
-      <PagesView
-        pages={["list", ...PUSHED]}
-        one={levelsOf(pages, "one")}
-        two={levelsOf(pages, "panes")}
-        page={TASKS}
-        meet={room.meet ?? 0}
-        onPaired={pages.placed}
-        modifiers={[...fill, animation(motion.page, moved)]}
-      >
-        {children}
-      </PagesView>
-    );
-  }
-
   return (
-    <ZStack alignment="top" modifiers={fill}>
-      {page("list", list)}
-      {levels}
-    </ZStack>
+    <PagesView
+      pages={["list", ...PUSHED]}
+      one={levelsOf(pages, "one")}
+      two={levelsOf(pages, "panes")}
+      columns={levelsOf(pages, "columns")}
+      {...(room.paged ? PAGED : STACKED)}
+      meet={room.meet ?? 0}
+      edge={theme.edge}
+      onShape={pages.placed}
+      modifiers={[...fill, animation(motion.page, moved)]}
+    >
+      {[page("list", list), ...levels]}
+    </PagesView>
   );
 };
+
+const PAGED = { page: TASKS, column: { ...COLUMNS, from: Infinity }, behind: 1 };
+
+const STACKED = { page: Infinity, column: COLUMNS, behind: 1 / 3 };
 
 const PUSHED = ["topic", "thread", "steps", "check", "picks", "pick"] as const satisfies Level[];
 
@@ -629,38 +606,18 @@ const Nothing = ({ loaded }: { loaded: boolean }) => (
   </Column>
 );
 
-const PageAt = ({
-  spot,
-  paged,
-  moved,
-  children,
-}: {
-  spot: Spot;
-  paged: boolean;
-  moved: number;
-  children: ReactNode;
-}) => {
-  const fills = [frame({ maxWidth: Infinity, alignment: "top" }), upTo()];
-
-  return (
-    <Column
-      alignment="center"
-      spacing={0}
-      modifiers={
-        paged
-          ? fills
-          : [
-              ...fills,
-              background(theme.sheet),
-              offset(spot.offset),
-              animation(motion.page, moved),
-              accessibilityHidden(!spot.shown),
-            ]
-      }
-    >
-      {children}
-    </Column>
-  );
-};
+const PageAt = ({ paged, children }: { paged: boolean; children: ReactNode }) => (
+  <Column
+    alignment="center"
+    spacing={0}
+    modifiers={[
+      frame({ maxWidth: Infinity, alignment: "top" }),
+      upTo(),
+      ...(paged ? [] : [background(theme.sheet)]),
+    ]}
+  >
+    {children}
+  </Column>
+);
 
 const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: "top" });

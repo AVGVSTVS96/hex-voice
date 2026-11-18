@@ -7,6 +7,8 @@ import type { PageId, Tab } from "@/live/inbox";
 import type { TaskId } from "@/live/tasks";
 import type { Page } from "@/screens/layout";
 
+import type { Shape } from "../../../modules/pages";
+
 export type Level = "list" | "topic" | "thread" | "steps" | "check" | "picks" | "pick";
 
 type Pushed = Exclude<Level, "list">;
@@ -46,7 +48,7 @@ export type Move =
   | { to: "stage"; stage: Tab }
   | { to: "search"; query: string | null };
 
-export type Shape = "one" | "columns" | "panes";
+export type { Shape } from "../../../modules/pages";
 
 export const START: Stack = {
   path: [],
@@ -68,14 +70,18 @@ export const startAt = (at: TasksAt): Stack => ({
   ask: at.ask ?? null,
 });
 
-const COLUMNS = 900;
+export const COLUMNS = { from: 900, share: 0.42, least: 360, most: 440 };
 
 export const shapeOf = ({ width, paged, meet = 0 }: Room): Shape => {
+  if (width === undefined) {
+    return "one";
+  }
+
   if (paged) {
     return Math.min(width / 2 + meet, width / 2 - meet) >= TASKS ? "panes" : "one";
   }
 
-  return width >= COLUMNS ? "columns" : "one";
+  return width >= COLUMNS.from ? "columns" : "one";
 };
 
 export const move = (stack: Stack, step: Move): Stack => {
@@ -186,9 +192,7 @@ export const usePages = ({
     closes: !!onClose,
     go: onMove,
     back,
-    placed: (paired: boolean) => {
-      setPlaced(paired ? "panes" : "one");
-    },
+    placed: setPlaced,
   };
 };
 
@@ -196,11 +200,12 @@ export type Pages = ReturnType<typeof usePages>;
 
 type Placing = Pick<Pages, "levels" | "shape" | "closes">;
 
+// WHY: width only guesses the shape, from the width the container is given, until PagesView reports the shape it laid out from its own.
 export interface Room {
-  width: number;
   foot: number | "fold";
   paged: boolean;
   meet?: number;
+  width?: number | undefined;
 }
 
 export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
@@ -211,14 +216,10 @@ export const pagedRoom = ({ area, margin, foot }: Page): Room => ({
 });
 
 export interface Spot {
-  offset: { x: number; y: number };
   shown: boolean;
-  width: number;
   foot: number;
   back?: Level | "call" | undefined;
 }
-
-const footOf = (foot: number | "fold") => ({ foot: foot === "fold" ? 0 : foot });
 
 export const Typing = createContext<((on: boolean) => void) | undefined>(undefined);
 
@@ -236,73 +237,32 @@ export const useField = () => {
   return field;
 };
 
-export const spotOf = (level: Level, pages: Placing, room: Room): Spot => {
-  if (pages.shape === "panes") {
-    return spotInPanes(level, pages, room);
+export const spotOf = (level: Level, { levels, shape, closes }: Placing, room: Room): Spot => {
+  const i = levels.indexOf(level);
+  const front = i !== -1 && i === levels.length - 1;
+  const besideFront = i !== -1 && i === levels.length - 2;
+  const foot = room.foot === "fold" ? 0 : room.foot;
+  const listBack = closes ? "call" : undefined;
+
+  if (shape === "panes") {
+    const shown = front || besideFront;
+
+    const before = level === "list" ? listBack : levels[i - 1];
+
+    return { shown, foot, back: shown && !front ? before : undefined };
   }
 
-  return pages.shape === "columns"
-    ? spotInColumns(level, pages, room)
-    : spotAlone(level, pages, room);
-};
-
-const spotAlone = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
-  const i = levels.indexOf(level);
-  const front = i === levels.length - 1;
-  const page = room.width;
-  const behind = -(room.paged ? page : page / 3);
-  const waiting = i === -1 ? page : behind;
-  const x = front ? 0 : waiting;
+  if (shape === "columns") {
+    return {
+      shown: level === "list" || front,
+      foot,
+      back: level === "list" || level === "topic" ? undefined : levels[i - 1],
+    };
+  }
 
   return {
-    offset: { x, y: 0 },
-    shown: x === 0,
-    width: page,
-    ...footOf(room.foot),
-    back: level === "list" ? listBack(closes) : (levels[i - 1] ?? levels.at(-1)),
+    shown: front,
+    foot,
+    back: level === "list" ? listBack : (levels[i - 1] ?? levels.at(-1)),
   };
 };
-
-const spotInColumns = (level: Level, { levels }: Placing, room: Room): Spot => {
-  const list = Math.round(Math.min(440, Math.max(360, room.width * 0.42)));
-  const page = room.width - list - 1;
-  const i = levels.indexOf(level);
-  const front = i === levels.length - 1;
-  const behind = i !== -1 || level === "topic";
-  const waiting = behind ? -page / 3 : page;
-  const x = level === "list" || front ? 0 : waiting;
-
-  return {
-    offset: { x, y: 0 },
-    shown: x === 0,
-    width: level === "list" ? list : page,
-    ...footOf(room.foot),
-    back: level === "list" || level === "topic" ? undefined : levels[i - 1],
-  };
-};
-
-const spotInPanes = (level: Level, { levels, closes }: Placing, room: Room): Spot => {
-  const panes = room.width / 2 + (room.meet ?? 0);
-  const i = levels.indexOf(level);
-  const front = i === levels.length - 1;
-  const second = { at: panes, width: room.width - panes };
-
-  const waiting =
-    i === -1
-      ? { ...second, at: room.width, shown: false }
-      : { at: -panes, width: panes, shown: false };
-
-  const first = i === levels.length - 2 ? { at: 0, width: panes, shown: true } : waiting;
-  const { at, width, shown } = front ? { ...second, shown: true } : first;
-  const before = level === "list" ? listBack(closes) : levels[i - 1];
-
-  return {
-    offset: { x: at, y: 0 },
-    shown,
-    width,
-    ...footOf(room.foot),
-    back: shown && at <= 0 ? before : undefined,
-  };
-};
-
-const listBack = (closes: boolean): Spot["back"] => (closes ? "call" : undefined);
