@@ -9,12 +9,13 @@ import {
   strokeBorder,
 } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { Camera } from "@/components/media/camera";
+import { Showing } from "@/components/tasks/pages";
 import { CLIP_SECONDS } from "@/live/media";
 import type { Picked } from "@/live/media";
 import { bevel } from "@/theme";
@@ -46,6 +47,13 @@ export const AddMedia = ({
   children: ReactNode;
 }) => {
   const [camera, setCamera] = useState(opened);
+  const showing = useContext(Showing);
+
+  useEffect(() => {
+    if (!showing) {
+      setCamera(false);
+    }
+  }, [showing]);
 
   const pick = async () => {
     const picked = await ImagePicker.launchImageLibraryAsync({

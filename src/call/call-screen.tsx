@@ -104,7 +104,7 @@ export interface Opening {
   update?: NativeBuild | undefined;
 }
 
-const LiveScreen = ({ opening }: { opening: Opening }) => {
+const LiveScreen = ({ opening, link }: { opening: Opening; link?: Opening | undefined }) => {
   const [pose, setPose] = useState<Pose | undefined>(PoseView ? undefined : { regular: false });
   const [size, setSize] = useState<Size>();
   const insets = useSafeAreaInsets();
@@ -132,7 +132,7 @@ const LiveScreen = ({ opening }: { opening: Opening }) => {
       {pose && room && (
         <Viewport value={room.size}>
           {opening.reportPose && <PoseReport pose={pose} room={room} />}
-          <CallScreen room={room} opening={opening} />
+          <CallScreen room={room} opening={opening} link={link} />
         </Viewport>
       )}
     </View>
@@ -141,7 +141,15 @@ const LiveScreen = ({ opening }: { opening: Opening }) => {
 
 export default LiveScreen;
 
-const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
+const CallScreen = ({
+  room,
+  opening,
+  link,
+}: {
+  room: Room;
+  opening: Opening;
+  link: Opening | undefined;
+}) => {
   const { voice, setVoice, loaded: voiceLoaded } = useVoicePreference();
   const { variant, setVariant, loaded: personaLoaded } = usePersonaPreference();
   const preferences = useCallPreferences();
@@ -196,6 +204,12 @@ const CallScreen = ({ room, opening }: { room: Room; opening: Opening }) => {
   const send = (action: Action) => {
     setScene((now) => step(now, action, { shared }));
   };
+
+  useEffect(() => {
+    if (link) {
+      setScene((now) => step(now, { to: "link", opening: link }, { shared }));
+    }
+  }, [link]);
 
   const {
     calls: callsOpen,

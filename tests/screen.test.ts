@@ -220,3 +220,14 @@ test("only the call screen moves through Tasks; its containers only lay out wher
     "the window’s size picks which container shows Tasks and can swap it at any time, so none of them may keep where you are",
   );
 });
+
+test("a link while the app runs moves it to the link's screen from any screen, keeping the call's words", () => {
+  for (const shared of [false, true]) {
+    const watching = go(shared, { to: "settings", open: true }, { to: "call", id: "past" });
+    const linked = step(watching, { to: "link", opening: { tasks: { task: A } } }, { shared });
+    assert.deepEqual(shown(linked, shared), shown(start({ tasks: { task: A } }), shared));
+    assert.deepEqual(linked.pages, startAt({ task: A }));
+    assert.deepEqual(linked.words, { ...watching.words, call: null });
+    assert.equal(shown(step(linked, { to: "link", opening: {} }, { shared }), shared).place, false);
+  }
+});

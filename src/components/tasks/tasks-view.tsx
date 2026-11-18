@@ -8,7 +8,7 @@ import {
   frame,
   scrollDismissesKeyboard,
 } from "@expo/ui/swift-ui/modifiers";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Linking } from "react-native";
 
@@ -26,7 +26,7 @@ import {
   Showing,
   Typing,
 } from "@/components/tasks/pages";
-import type { Level, Move, Pages, Room, Spot, Stack } from "@/components/tasks/pages";
+import type { Asking, Level, Move, Pages, Room, Spot, Stack } from "@/components/tasks/pages";
 import { feel } from "@/components/tasks/parts";
 import { PickPage, PicksPage, usePickChoices } from "@/components/tasks/picks";
 import { EntryRow } from "@/components/tasks/rows";
@@ -121,6 +121,7 @@ export const Tasks = ({
   }, [open, loaded, pages.stage, stage]);
 
   const asking = yours.shown.find((ask) => ask.id === pages.ask?.id);
+  const linked = useLinks(pages.ask);
 
   useEffect(() => {
     if (open && asking && pages.task !== asking.task) {
@@ -429,7 +430,7 @@ export const Tasks = ({
   };
 
   const content = {
-    topic: topicPage(),
+    topic: <Fragment key={linked}>{topicPage()}</Fragment>,
     thread: opened ? (
       <ThreadPage
         thread={opened}
@@ -523,6 +524,16 @@ const PAGED = { page: TASKS, column: { ...COLUMNS, from: Infinity }, behind: 1 }
 const STACKED = { page: Infinity, column: COLUMNS, behind: 1 / 3 };
 
 const PUSHED = ["topic", "thread", "steps", "check", "picks", "pick"] as const satisfies Level[];
+
+const useLinks = (ask: Asking | null) => {
+  const [linked, setLinked] = useState({ ask, times: 0 });
+
+  if (linked.ask !== ask) {
+    setLinked({ ask, times: linked.times + (ask ? 1 : 0) });
+  }
+
+  return linked.times;
+};
 
 const showingOf = (pages: Pages, entries: Entry[], stage: Tab, tasks: TaskRow[] = []) => {
   const leading = (

@@ -21,7 +21,8 @@ export type Action =
   | { to: "words"; pulled: boolean }
   | { to: "beside"; on: boolean }
   | { to: "call"; id: string | null }
-  | { to: "pages"; move: Move };
+  | { to: "pages"; move: Move }
+  | { to: "link"; opening: Opening };
 
 interface Opening {
   tasks?: TasksAt | undefined;
@@ -105,6 +106,10 @@ export const step = (now: Screen, action: Action, { shared }: { shared: boolean 
 
     case "pages": {
       return { ...now, pages: move(now.pages, action.move) };
+    }
+
+    case "link": {
+      return { ...start(action.opening), words: { ...now.words, call: null } };
     }
 
     default: {
