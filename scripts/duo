@@ -492,7 +492,11 @@ prepare() {
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
     "$repo/scripts/duo-hex.mjs" "$repo/scripts/duo-media.jpg" "$repo/uitests" "$mac:$folder/harness/"
   rsync -a --chmod=600 "$release/.env.local" "$mac:$folder/harness/.env.local"
-  [ -z "${ANSWERS:-}" ] || rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
+  if [ -n "${ANSWERS:-}" ]; then
+    rsync -a "$ANSWERS" "$mac:$folder/harness/also.json"
+  else
+    ssh "$mac" rm -f "$folder/harness/also.json"
+  fi
   rsync -a --delete "$js/" "$mac:$folder/js/"
   ssh "$mac" test -d "$folder/apps/$runtime.app" || {
     exec 6>"$home/build.lock"
