@@ -332,6 +332,9 @@ const Composer = ({
         label="Add a photo or video"
         most={MOST - media.length}
         sends={false}
+        onChoose={() => {
+          input.current?.blur();
+        }}
         onAdd={(more) => {
           setMedia((now) => [...now, ...more].slice(0, MOST));
         }}

@@ -844,6 +844,7 @@ export const ReplyComposer = ({
           sends={false}
           onChoose={() => {
             picking.current = true;
+            field.current?.blur();
           }}
           onAdd={(more) => {
             picking.current = false;
@@ -891,7 +892,7 @@ export const ReplyComposer = ({
           ) : null}
           <TextInput
             ref={field}
-            autoFocus
+            autoFocus={!camera}
             multiline
             testID="ask-input"
             onFocus={() => {
