@@ -358,7 +358,7 @@ const Shell = ({
     <Mark state={mark} />
     <Column
       alignment="start"
-      spacing={space[1]}
+      spacing={metrics.list.lines}
       modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <HStack
@@ -433,7 +433,7 @@ const Folded = ({
     <Mark state="done" />
     <Column
       alignment="start"
-      spacing={space[1]}
+      spacing={metrics.list.lines}
       modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
     >
       <Text numberOfLines={2} variant="detail" tone="secondary">
@@ -502,7 +502,7 @@ export const ProjectRow = ({
       <Mark state={mark} />
       <Column
         alignment="start"
-        spacing={space[1]}
+        spacing={metrics.list.lines}
         modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
       >
         <HStack

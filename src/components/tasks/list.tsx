@@ -1,4 +1,4 @@
-import { Column, Icon, Row, Spacer } from "@expo/ui";
+import { Column, Icon, Row } from "@expo/ui";
 import { List, Rectangle, ZStack } from "@expo/ui/swift-ui";
 import {
   accessibilityHidden,
@@ -427,7 +427,7 @@ const Room = ({ under }: { under: number }) =>
 const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => (
   <Row
     alignment="center"
-    spacing={metrics.pill.gap}
+    spacing={0}
     onPress={onPress}
     modifiers={[
       frame({ height: metrics.pill.height }),
@@ -445,9 +445,14 @@ const GoThrough = ({ foot, onPress }: { foot: number; onPress: () => void }) => 
       accessibilityLabel("Go through them with hex"),
     ]}
   >
-    <Spacer flexible />
-    <Icon name="bubble.left.and.bubble.right" size={metrics.symbol.bar} color={theme.text} />
-    <Text variant="headline">Go through them with hex</Text>
-    <Spacer flexible />
+    <Fits modifiers={[frame({ maxWidth: Infinity })]}>
+      <Row alignment="center" spacing={metrics.pill.gap}>
+        <Icon name="bubble.left.and.bubble.right" size={metrics.symbol.bar} color={theme.text} />
+        <Text variant="headline">Go through them with hex</Text>
+      </Row>
+      <Text numberOfLines={1} variant="headline">
+        Go through with hex
+      </Text>
+    </Fits>
   </Row>
 );

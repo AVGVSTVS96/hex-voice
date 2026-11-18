@@ -58,12 +58,12 @@ export const listRow = (): ModifierConfig[] => [
   listRowSeparator("hidden"),
 ];
 
-export const rowFrame = (selected: boolean, { top = metrics.list.row.top } = {}) => [
+export const rowFrame = (selected: boolean) => [
   padding({
     leading: metrics.list.inset - space[2],
     trailing: metrics.list.inset - space[2],
-    top,
-    bottom: metrics.list.row.bottom,
+    top: metrics.list.row,
+    bottom: metrics.list.row,
   }),
   frame({ maxWidth: Infinity, alignment: "leading" }),
   ...(selected ? [background(theme.card)] : []),

@@ -60,7 +60,7 @@ export interface TextStyle {
 
 export const size = { title: 28, body: 17, detail: 15, caption: 13 } as const;
 
-const detailLine = 21;
+const detailLine = 20;
 
 export const type = {
   title: { textStyle: "title", fontSize: size.title, lineHeight: 34, weight: "medium" },
@@ -71,7 +71,7 @@ export const type = {
     textStyle: "subheadline",
     fontSize: size.detail,
     lineHeight: detailLine,
-    lineSpacing: 5,
+    lineSpacing: 2,
   },
   caption: { textStyle: "footnote", fontSize: size.caption, lineHeight: 18, lineSpacing: 4 },
   tag: { textStyle: "footnote", fontSize: size.caption, lineHeight: detailLine },
@@ -157,7 +157,8 @@ export const metrics = {
     gap: space[3],
     fade: space[6],
     rest: space[3],
-    row: { top: space[3], bottom: space[3] },
+    row: space[2],
+    lines: space[0.5],
     place: space[3],
     tile: 28,
     card: 168,
