@@ -1,11 +1,17 @@
 import { RNHostView } from "@expo/ui";
-import { VStack } from "@expo/ui/swift-ui";
+import { Button, Spacer, VStack } from "@expo/ui/swift-ui";
 import {
   accessibilityHidden,
+  accessibilityHint,
+  accessibilityLabel,
   animation,
   Animation,
+  buttonStyle,
+  contentShape,
   disabled,
+  frame,
   opacity,
+  shapes,
 } from "@expo/ui/swift-ui/modifiers";
 import type { ComponentProps, ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
@@ -21,6 +27,11 @@ import { Host } from "@/ui/host";
 import { metrics } from "@/ui/tokens";
 
 import { ColumnView } from "../../modules/column";
+
+export interface BackToCall {
+  label: string;
+  onPress: () => void;
+}
 
 export interface BesideSwitch {
   offered: boolean;
@@ -41,11 +52,13 @@ export const SideColumn = ({
   tools,
   controls,
   beside,
+  back,
 }: {
   column: NonNullable<Layout["column"]>;
   tools: ReactNode;
   controls: Omit<ComponentProps<typeof CallButtons>, "modifiers">;
   beside?: BesideSwitch | undefined;
+  back?: BackToCall | undefined;
 }) => {
   const keyboard = useKeyboardUp();
 
@@ -62,6 +75,26 @@ export const SideColumn = ({
             <RNHostView matchContents>
               <View>{tools}</View>
             </RNHostView>
+            <Button
+              testID="column-back-to-call"
+              onPress={() => {
+                back?.onPress();
+              }}
+              modifiers={[
+                buttonStyle("plain"),
+                disabled(!back),
+                ...(back
+                  ? [accessibilityLabel(back.label), accessibilityHint("Closes Tasks for the call")]
+                  : [accessibilityHidden(true)]),
+              ]}
+            >
+              <Spacer
+                modifiers={[
+                  frame({ maxWidth: Infinity, maxHeight: Infinity }),
+                  contentShape(shapes.rectangle()),
+                ]}
+              />
+            </Button>
             <VStack
               spacing={metrics.controls[controls.size ?? "regular"].gap}
               modifiers={shown(!keyboard)}

@@ -291,6 +291,8 @@ const CallScreen = ({
   });
 
   const { docked, dock, covers, aside } = duoTasks;
+  // WHY: the column's SwiftUI host lies over the orb docked in it and takes its touches, so the column's middle takes the orb's tap.
+  const columnOrb = !!layout.column && docked && !!duo && duo.call.orb.size > 0;
 
   const adds =
     buttonsOf(call).add && !(orb.dock && (callsOpen || tasksOpen)) && (viewing ?? "") === "";
@@ -871,7 +873,7 @@ const CallScreen = ({
               </AnimatedView>
               <GestureDetector gesture={orbGesture}>
                 <Animated.View
-                  accessible
+                  accessible={!columnOrb}
                   accessibilityLabel={status}
                   accessibilityHint={docked ? "Closes Tasks for the call" : undefined}
                   style={[styles.orb, { width: size, height: size }, orbStyle]}
@@ -997,6 +999,7 @@ const CallScreen = ({
               onPress: duoTasks.toggleBeside,
             }
           }
+          back={columnOrb ? { label: status, onPress: closeTasks } : undefined}
         />
       ) : (
         <BarStyledWhenMounted
