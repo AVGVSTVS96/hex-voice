@@ -11,6 +11,7 @@ export const COLUMN = { top: GAP + 4, clear: 8 };
 const TASKS_AND_SETTINGS = 2 * metrics.tool + metrics.toolbar.row;
 
 const BACK = metrics.tool + metrics.toolbar.row;
+const TOOLBAR_ROW = metrics.tool + TASKS_AND_SETTINGS + BACK;
 const RAIL = 96;
 const WORDS = 600;
 const LIST = 360;
@@ -45,7 +46,7 @@ export interface Duo {
     | undefined;
   call: {
     orb: Required<Spot>;
-    time: Place & { width: number; align: "center" | "left" };
+    time?: Place & { width: number; align: "center" | "left" };
     controls?: { right: number; top: number };
   };
 }
@@ -181,14 +182,13 @@ const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room
     return { window, insets, bottomInset, ...columnFrame(window, insets, bar, occlusions) };
   }
 
-  const toolbar = fold
-    ? band(window, insets, occlusions)
-    : {
-        x: metrics.gutter,
-        y: insets.top + (regular ? 16 : 12),
-        width: window.width - 2 * metrics.gutter,
-        axis: "row" as const,
-      };
+  const below = {
+    ...across(window.width),
+    y: insets.top + (regular ? 16 : 12),
+    axis: "row" as const,
+  };
+
+  const toolbar = fold ? (band(window, insets, occlusions) ?? below) : below;
 
   return {
     window,
@@ -200,14 +200,19 @@ const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room
   };
 };
 
-const band = (window: Size, insets: Insets, occlusions: Rect[]): Toolbar => {
-  const status = occlusions.filter((area) => area.y + area.height / 2 < insets.top);
+const across = (width: number): Span => {
+  const margin = Math.min(metrics.gutter, Math.max(0, (width - TOOLBAR_ROW) / 3));
 
-  return {
-    ...widestClear(metrics.gutter, window.width - metrics.gutter, status),
-    y: insets.top / 2 + STATUS_DROP - metrics.tool / 2,
-    axis: "row",
-  };
+  return { x: margin, width: width - 2 * margin };
+};
+
+const band = (window: Size, insets: Insets, occlusions: Rect[]): Toolbar | undefined => {
+  const status = occlusions.filter((area) => area.y + area.height / 2 < insets.top);
+  const clear = widestClear(metrics.gutter, window.width - metrics.gutter, status);
+
+  return clear.width < TOOLBAR_ROW + GAP
+    ? undefined
+    : { ...clear, y: insets.top / 2 + STATUS_DROP - metrics.tool / 2, axis: "row" };
 };
 
 const widestClear = (from: number, to: number, taken: Rect[]): Span => {
@@ -348,15 +353,20 @@ const belowBand = (frame: Frame, fold?: Fold, before?: Words & { raise: number }
   const mute = end - stack("tool");
   const button = { x: mute - 14 - metrics.tool / 2, y: middle };
   const time = (after ? button.x - metrics.tool / 2 - 10 : mute - 14) - BAR_TIME_WIDTH;
+  const orb = { x: time - 6 - BAR_ORB / 2, y: middle, size: BAR_ORB };
+  const roomy = orb.x - BAR_ORB / 2 >= toolbar.x + metrics.tool;
 
   return {
     tasks,
-    beside: after && before && { tasks: after, typing: above, words: before, button },
-    call: {
-      orb: { x: time - 6 - BAR_ORB / 2, y: middle, size: BAR_ORB },
-      time: { x: time, y: middle - BAR_TIME / 2, width: BAR_TIME_WIDTH, align: "left" },
-      controls: { right: window.width - end, top: toolbar.y },
-    },
+    beside:
+      roomy && after && before ? { tasks: after, typing: above, words: before, button } : undefined,
+    call: roomy
+      ? {
+          orb,
+          time: { x: time, y: middle - BAR_TIME / 2, width: BAR_TIME_WIDTH, align: "left" },
+          controls: { right: window.width - end, top: toolbar.y },
+        }
+      : { orb: { ...orb, x: end, size: 0 } },
   };
 };
 

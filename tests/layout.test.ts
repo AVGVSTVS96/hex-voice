@@ -328,10 +328,11 @@ const inBarWithTasksOpen = (layout: Layout, window: Size) => {
   assert.ok(duo);
   const { call, beside } = duo;
 
-  const placed = new Map<string, Box>([
-    ["orb", around(call.orb.x, call.orb.y, call.orb.size)],
-    ["time", { x: call.time.x, y: call.time.y, width: call.time.width, height: 16 }],
-  ]);
+  const placed = new Map<string, Box>([["orb", around(call.orb.x, call.orb.y, call.orb.size)]]);
+
+  if (call.time) {
+    placed.set("time", { x: call.time.x, y: call.time.y, width: call.time.width, height: 16 });
+  }
 
   if (beside) {
     placed.set("switch", around(beside.button.x, beside.button.y, 48));
@@ -672,6 +673,43 @@ test("on iPhone Duo with no call to show, Calls comes in over the whole content,
       assert.deepEqual(calls, called.calls, name);
     } else {
       assert.deepEqual(calls, { ...called.calls, width: content.width, place: "over" }, name);
+    }
+  }
+});
+
+test("in a narrow window on its side, the toolbar takes the row below the status items, whole and inside the window, and the call keeps its controls off it", () => {
+  for (const width of [223, 335, 446]) {
+    const window = { width, height: 951 };
+    const insets = { top: 82, right: 0, bottom: 34, left: 0 };
+
+    const pose: Pose = {
+      regular: false,
+      fold: { x: 0, y: 455.5, width, height: 40 },
+      occlusions: [{ x: width - 134, y: 0, width: 134, height: 82 }],
+    };
+
+    for (const call of [false, true]) {
+      const { toolbar, duo } = screenLayout(roomOf(pose, window, insets), { call });
+      const row = 48 + 108 + 60;
+      assert.ok(toolbar.width >= row, `${width}: the toolbar's ${row}pt fit in ${toolbar.width}pt`);
+      assert.ok(
+        toolbar.x >= 0 && toolbar.x + toolbar.width <= width,
+        `${width}: inside the window`,
+      );
+
+      for (const area of pose.occlusions ?? []) {
+        assert.ok(
+          !overlaps({ ...toolbar, height: 48 }, area),
+          `${width}: clear of the status items`,
+        );
+      }
+
+      assert.ok(duo);
+
+      if (duo.call.controls) {
+        const left = width - duo.call.controls.right - stack("tool");
+        assert.ok(left >= toolbar.x + 48 + 12, `${width}: the call's buttons clear Calls`);
+      }
     }
   }
 });

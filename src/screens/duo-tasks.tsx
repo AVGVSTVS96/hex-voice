@@ -111,11 +111,13 @@ export const DuoTasks = ({
         importantForAccessibility="no-hide-descendants"
         style={[
           styles.time,
-          { left: time.x, top: time.y, width: time.width, textAlign: time.align },
+          time
+            ? { left: time.x, top: time.y, width: time.width, textAlign: time.align }
+            : styles.none,
           dockedStyle,
         ]}
       >
-        {onCall ? clock(seconds * 1000) : ""}
+        {onCall && time ? clock(seconds * 1000) : ""}
       </Animated.Text>
       {button && (
         <AnimatedView
@@ -163,4 +165,5 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   button: { position: "absolute" },
+  none: { display: "none" },
 });
