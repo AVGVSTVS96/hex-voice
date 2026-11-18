@@ -22,6 +22,8 @@ import { bleed } from "@/ui/bleed";
 import { glass as onGlass } from "@/ui/glass-button";
 import { film } from "@/ui/tokens";
 
+import { spanWindow } from "../../../modules/sheet";
+
 export const AddMedia = ({
   label,
   glass = false,
@@ -111,6 +113,7 @@ export const AddMedia = ({
       <Group
         modifiers={[
           presentationDetents(["medium", "large"]),
+          spanWindow(),
           presentationDragIndicator("visible"),
           presentationBackground(film.black),
           preferredColorScheme("dark"),

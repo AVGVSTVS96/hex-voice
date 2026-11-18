@@ -83,6 +83,8 @@ import { Host } from "@/ui/host";
 import { Text } from "@/ui/text";
 import { breakpoint, metrics, radius, space } from "@/ui/tokens";
 
+import { spanWindow } from "../../modules/sheet";
+
 export type SettingsSheet = "phone" | "form" | "page";
 
 type Pane = "persona" | "rows" | "alone";
@@ -717,6 +719,7 @@ const Words = ({
         <SheetContent
           modifiers={[
             presentationDetents([{ height: WORDS_SHEET }]),
+            spanWindow(),
             presentationDragIndicator("visible"),
             presentationBackground(theme.sheet),
           ]}
