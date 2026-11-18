@@ -699,7 +699,7 @@ phone() {
   }
   file=$shots/phone/$(date +%m%d-%H%M%S).png
   mkdir -p "$shots/phone"
-  ssh "$mac" bash -s -- "$DUO_UDID" "$bundle" "${OPEN:-}" "${IDLE:-60}" <<'MAC' || exit 1
+  ssh "$mac" bash -s -- "$(printf "%q " "$DUO_UDID" "$bundle" "${OPEN:-}" "${IDLE:-60}")" <<'MAC' || exit 1
 set -uo pipefail
 duo=$1 bundle=$2 open=$3 idle=$4 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
