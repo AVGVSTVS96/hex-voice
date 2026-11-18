@@ -146,7 +146,7 @@ export const metrics = {
   field: 50,
   media: { turn: 240, line: 120, share: "64%", waiting: 64, shutter: 72, ring: 4 },
   bar: { button: 44, capsule: { leading: space[3], trailing: space[4], gap: space[2] } },
-  tabs: { height: 34, gap: space[1], pad: space[2], tightest: 0.8 },
+  tabs: { height: 34, gap: space[1], pad: space[2] },
   tileCorner: 0.27,
   list: {
     inset: space[5],
