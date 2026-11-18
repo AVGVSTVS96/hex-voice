@@ -4,6 +4,7 @@ import {
   accessibilityLabel,
   background,
   clipShape,
+  fixedSize,
   frame,
   layoutPriority,
   lineLimit,
@@ -401,7 +402,12 @@ const Tiles = ({ tiles }: { tiles: Tile[] }) => {
 const lookOf = (tile: Tile) => (tile.kind === "app" ? `${tile.place}:${opens(tile)}` : tile.kind);
 
 const Meta = ({ text }: { text: string }) => (
-  <Text numberOfLines={1} variant="caption" tone="tertiary">
+  <Text
+    numberOfLines={1}
+    variant="caption"
+    tone="tertiary"
+    modifiers={[fixedSize({ horizontal: true, vertical: false })]}
+  >
     {text}
   </Text>
 );
