@@ -38,14 +38,14 @@ scripts/duo shoot [ref] [states]  each state (scripts/duo-states) × the Duo's 4
 scripts/duo tap [ref] [taps]      a tap script (scripts/duo-taps) played by XCUITest: real taps, folds
 scripts/duo verify [ref]          check, scripts/duo-moves filmed, judged by a fresh reviewer
 scripts/duo fold [ref] [states]   films Tasks through FOLDS, counts each move's wrong frames
-scripts/duo phone [update]        a screenshot of his real Duo, once hex runs that OTA update
+scripts/duo phone [update]        a screenshot of his real Duo while hex voice alone fills it; OPEN=<url> after a minute untouched
 ```
 
 - UI changes pass `scripts/duo shoot` and `scripts/duo tap` before shipping, and get a `scripts/duo phone` screenshot after. A report says which of these didn't happen ("not seen on your Duo: …") and labels faked states, like the demo call.
 - A change to layout, the toolbar or poses also passes `POSES=open-up scripts/duo tap <ref> scripts/duo-fold-taps`, which folds and turns the Duo with Tasks open and checks the toolbar stays off the Tasks page.
 - A change to what opens and closes (Calls, Tasks, settings) also passes `scripts/duo tap <ref> scripts/duo-calls-taps`.
 - A change meant to make folding, opening or turning smoother proves it with `scripts/duo fold` before and after: it counts the frames the app shows a wrong layout once iOS's own part of each move has landed, timed by a plain UIKit app filmed alongside (`FOLD_PROBE`, its simulator build on the Mac), into `fold/table.md` with a sheet per move.
-- `scripts/duo phone` shoots whatever is on his screen, so delete a shot that isn't hex as soon as you've looked, and never pass one on.
+- `scripts/duo phone` takes a picture only while hex voice alone fills his screen and keeps it only if it stayed there, untouched; `OPEN` changes what he sees, so it waits until he's left the app alone (`IDLE`, 60 s).
 - Checks never reach hex: the app under check talks to `scripts/duo-hex.mjs` on the Mac, which reads his real tasks and drops every write, so no shot or tap can answer, act or call for him.
 - iOS's Split View can't be started on the simulator: add `&split=first` or `&split=second` to a state's URL to lay the app out beside a stand-in app, with its own safe area and the pose in its coordinates; `&share=0.75` gives it that share of the screen (half by default), and `&size=regular` keeps a regular width, which it otherwise drops. Only React Native sees the smaller window: sheets still present from the whole screen, and SwiftUI's safe area and size class stay the screen's.
 - A state is a line in `scripts/duo-states` (or the file you pass): its name and a URL that opens the app straight into it, shot once the app has drawn and loaded it. Shots show the simulator's real status bar.

@@ -6,14 +6,19 @@ import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { CallProvider } from "@/call/use-call";
+import { touch, useFront } from "@/hooks/use-front";
 import { theme } from "@/theme";
 
 const RootLayout = () => {
   const system = useColorScheme() === "light" ? DefaultTheme : DarkTheme;
   const { demo } = useGlobalSearchParams<{ demo?: string }>();
+  useFront();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      onTouchStart={touch}
+    >
       <ThemeProvider
         value={{
           ...system,
