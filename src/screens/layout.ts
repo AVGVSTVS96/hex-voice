@@ -17,13 +17,16 @@ const WORDS = 600;
 const LIST = 360;
 const RAIL_ORB = 44;
 
-const SHORT_COLUMN = 520;
-
 export const BAR_ORB = 34;
 export const BAR_TIME = 16;
 const BAR_TIME_WIDTH = 44;
 
 const STATUS_DROP = 7;
+
+const BESIDE_BUTTON = 12 + metrics.tool;
+
+const columnTools = (gaps: ToolbarGaps) =>
+  4 * metrics.tool + metrics.toolbar[gaps].tools + 2 * metrics.toolbar[gaps].group;
 
 interface Place {
   x: number;
@@ -179,7 +182,7 @@ const frameFor = ({ size: window, insets, regular, bar, fold, occlusions }: Room
   const bottomInset = Math.max(insets.bottom, 20) + 14;
 
   if (bar) {
-    return { window, insets, bottomInset, ...columnFrame(window, insets, bar, occlusions) };
+    return { window, insets, bottomInset, ...columnFrame(window, insets, bar, occlusions, !!fold) };
   }
 
   const below = {
@@ -232,7 +235,13 @@ const widestClear = (from: number, to: number, taken: Rect[]): Span => {
   return to - start > best.width ? { x: start, width: to - start } : best;
 };
 
-const columnFrame = (window: Size, insets: Insets, bar: "left" | "right", occlusions: Rect[]) => {
+const columnFrame = (
+  window: Size,
+  insets: Insets,
+  bar: "left" | "right",
+  occlusions: Rect[],
+  folds: boolean,
+) => {
   const width = bar === "right" ? insets.right : insets.left;
   const x = bar === "right" ? window.width - width : 0;
   const covers = occlusions.filter((area) => area.x < x + width && area.x + area.width > x);
@@ -254,13 +263,17 @@ const columnFrame = (window: Size, insets: Insets, bar: "left" | "right", occlus
     ? statusItems.reduce((sum, area) => sum + area.x + area.width / 2, 0) / statusItems.length
     : x + width / 2;
 
-  const tight = window.height < SHORT_COLUMN;
+  const toolsAt = Math.max(top, COLUMN.top);
+  const between = BAR_TIME + (folds ? BESIDE_BUTTON : 0) + 2 * space[1];
+
+  const tight =
+    toolsAt + columnTools("regular") + between + stack("regular") + foot > window.height;
 
   return {
     content: { x: x === 0 ? width : 0, y: 0, width: window.width - width, height: window.height },
     toolbar: {
       x: center - metrics.tool / 2,
-      y: Math.max(top, COLUMN.top),
+      y: toolsAt,
       width: metrics.tool,
       axis: "column" as const,
       gaps: tight ? ("compact" as const) : ("regular" as const),
@@ -287,7 +300,6 @@ const besideColumn = (
   before?: Words & { raise: number },
 ): Duo => {
   const { window, insets, toolbar } = frame;
-  const gaps = metrics.toolbar[toolbar.gaps ?? "regular"];
   const size = column.controls.size ?? "regular";
   const sizes = metrics.controls[size];
   const x = column.center;
@@ -309,10 +321,13 @@ const besideColumn = (
     fold,
   );
 
-  const tools = toolbar.y + 4 * metrics.tool + gaps.tools + 2 * gaps.group;
+  const tools = toolbar.y + columnTools(toolbar.gaps ?? "regular");
   const buttons = window.height - column.controls.bottom - stack(size);
-  const below = BAR_TIME + (after ? 12 + metrics.tool : 0);
-  const orb = buttons - tools >= BAR_ORB + 4 + below + 2 * space[1] ? BAR_ORB : 0;
+  const room = buttons - tools - 2 * space[1];
+  const button = after ? metrics.tool : 0;
+  const clock = room >= BAR_TIME + (button && BESIDE_BUTTON) ? BAR_TIME : 0;
+  const below = clock + (button && (clock && 12) + button);
+  const orb = room >= BAR_ORB + 4 + below ? BAR_ORB : 0;
   const group = (orb && orb + 4) + below;
   const y = (tools + buttons - group) / 2;
   const time = y + (orb && orb + 4);
@@ -323,11 +338,13 @@ const besideColumn = (
       before && {
         tasks: after,
         words: before,
-        button: { x, y: time + BAR_TIME + 12 + metrics.tool / 2 },
+        button: { x, y: time + (clock && clock + 12) + metrics.tool / 2 },
       },
     call: {
       orb: { x, y: y + orb / 2, size: orb },
-      time: { x: x - BAR_TIME_WIDTH / 2, y: time, width: BAR_TIME_WIDTH, align: "center" },
+      ...(clock && {
+        time: { x: x - BAR_TIME_WIDTH / 2, y: time, width: BAR_TIME_WIDTH, align: "center" },
+      }),
     },
   };
 };

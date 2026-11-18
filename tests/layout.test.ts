@@ -293,6 +293,16 @@ const duoPoses = {
       occlusions: [{ x: 867, y: 0, width: 84, height: 120 }],
     },
   },
+  "open upright, with the status items as tall as on his Duo": {
+    window: { width: 951, height: 669 },
+    insets: { top: 0, right: 84, bottom: 34, left: 0 },
+    pose: {
+      regular: true,
+      bar: "right",
+      fold: { x: 455.5, y: 0, width: 40, height: 669 },
+      occlusions: [{ x: 867, y: 0, width: 84, height: 224 }],
+    },
+  },
   "open on its side": {
     window: { width: 669, height: 951 },
     insets: { top: 82, right: 0, bottom: 34, left: 0 },
@@ -669,7 +679,7 @@ test("on iPhone Duo with no call to show, Calls comes in over the whole content,
     const called = screenLayout(room);
     const { calls, content } = screenLayout(room, { call: false });
 
-    if (name === "open upright") {
+    if (name.startsWith("open upright")) {
       assert.deepEqual(calls, called.calls, name);
     } else {
       assert.deepEqual(calls, { ...called.calls, width: content.width, place: "over" }, name);
