@@ -1,6 +1,7 @@
 # <state> <url>: scripts/duo shoot opens each state from its URL, in every pose.
 call        hexvoice:///
 tasks       hexvoice:///?tasks
+tasks-split hexvoice:///?tasks&split=second
 call-live   hexvoice:///?demo=call
 tasks-call  hexvoice:///?tasks&demo=call
 settings    hexvoice:///?open=settings
