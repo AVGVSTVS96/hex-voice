@@ -11,9 +11,15 @@ export type Level = "list" | "topic" | "thread" | "steps" | "check" | "picks" | 
 
 type Pushed = Exclude<Level, "list">;
 
+export interface Asking {
+  id: AskId;
+  open?: "reply" | "camera" | undefined;
+}
+
 export interface TasksAt {
   task?: TaskId | undefined;
   stage?: Tab | undefined;
+  ask?: Asking | undefined;
 }
 
 export interface Stack {
@@ -25,10 +31,11 @@ export interface Stack {
   focusComposer: boolean;
   stage: Tab | null;
   query: string | null;
+  ask: Asking | null;
 }
 
 export type Move =
-  | { to: "topic"; id: PageId | null; row?: string | undefined }
+  | { to: "topic"; id: PageId | null; row?: string | undefined; ask?: Asking | undefined }
   | { to: "thread"; write?: boolean }
   | { to: "composerFocused" }
   | { to: "steps"; id: TaskId }
@@ -50,6 +57,7 @@ export const START: Stack = {
   focusComposer: false,
   stage: null,
   query: null,
+  ask: null,
 };
 
 export const startAt = (at: TasksAt): Stack => ({
@@ -57,6 +65,7 @@ export const startAt = (at: TasksAt): Stack => ({
   task: at.task ?? null,
   path: at.task ? ["topic"] : [],
   stage: at.stage ?? null,
+  ask: at.ask ?? null,
 });
 
 const COLUMNS = 900;
@@ -77,6 +86,7 @@ export const move = (stack: Stack, step: Move): Stack => {
         task: step.id,
         row: step.row ?? null,
         path: step.id === null ? [] : ["topic"],
+        ask: step.ask ?? null,
       };
     }
 

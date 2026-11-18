@@ -25,6 +25,7 @@ import type { Door } from "@/components/tasks/bar";
 import { Lane } from "@/components/tasks/lane";
 import { Mark } from "@/components/tasks/mark";
 import type { MarkState } from "@/components/tasks/mark";
+import type { Asking } from "@/components/tasks/pages";
 import { Faded, SectionHead, Sections, StageHead, listRow } from "@/components/tasks/parts";
 import { Pinned } from "@/components/tasks/pinned";
 import { PlaceTile, Places, TileIcon, hasPlaces } from "@/components/tasks/places";
@@ -57,6 +58,7 @@ const PREVIEW = 3;
 export const Detail = ({
   task,
   asks,
+  asking,
   answered,
   threads,
   missing,
@@ -76,6 +78,7 @@ export const Detail = ({
 }: {
   task: TaskRow | Task;
   asks: Ask[];
+  asking: Asking | null;
   answered: Record<string, string | null>;
   threads: TaskRow[];
   missing: Set<Place>;
@@ -104,7 +107,7 @@ export const Detail = ({
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const tracks = laneOf(task, own);
   const now = useNow(false).getTime();
-  const replying = useReplying();
+  const replying = useReplying(asking);
 
   return (
     <Reply.Provider value={replying}>
@@ -239,7 +242,7 @@ const PageFoot = ({
   foot: number;
   write?: { title: string; hidden: boolean; onWrite?: (() => void) | undefined };
 }) => {
-  const to = asks.find((one) => one.id === replying.ask?.id && (answered[one.id] ?? "") === "");
+  const to = asks.find((one) => one.id === replying.ask && (answered[one.id] ?? "") === "");
 
   if (to) {
     return (
@@ -247,6 +250,7 @@ const PageFoot = ({
         <ReplyComposer
           key={to.id}
           ask={to}
+          camera={replying.opened?.open === "camera"}
           onAnswer={onAnswer}
           onClose={replying.close}
           onNoted={replying.note}
@@ -265,6 +269,7 @@ const PageFoot = ({
 export const Asked = ({
   topic,
   asks,
+  asking,
   answered,
   door,
   rows,
@@ -275,6 +280,7 @@ export const Asked = ({
 }: {
   topic: string;
   asks: Ask[];
+  asking: Asking | null;
   answered: Record<string, string | null>;
   door?: Door | undefined;
   rows?: ReactNode[];
@@ -285,7 +291,7 @@ export const Asked = ({
 }) => {
   const open = asks.filter((ask) => (answered[ask.id] ?? "") === "").length;
   const others = rows?.length ?? 0;
-  const replying = useReplying();
+  const replying = useReplying(asking);
 
   return (
     <Reply.Provider value={replying}>

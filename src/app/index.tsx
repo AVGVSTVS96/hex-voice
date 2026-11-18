@@ -1,13 +1,16 @@
 import { useLocalSearchParams } from "expo-router";
 
 import LiveScreen from "@/call/call-screen";
+import type { Asking } from "@/components/tasks/pages";
+import { AskId } from "@/live/asks";
 import { TABS } from "@/live/inbox";
 import { TaskId } from "@/live/tasks";
 import { SplitView } from "@/screens/split-view";
 
 const Index = () => {
-  const { tasks, stage, open, report, split, share, size, update } = useLocalSearchParams<{
+  const { tasks, ask, stage, open, report, split, share, size, update } = useLocalSearchParams<{
     tasks?: string;
+    ask?: string;
     stage?: string;
     open?: string;
     report?: string;
@@ -17,15 +20,21 @@ const Index = () => {
     update?: string;
   }>();
 
+  const asking: Asking | undefined =
+    ask === undefined || ask === ""
+      ? undefined
+      : { id: AskId.parse(ask), open: open === "reply" || open === "camera" ? open : undefined };
+
   const screen = (
     <LiveScreen
       opening={{
         tasks:
-          tasks === undefined
+          tasks === undefined && !asking
             ? undefined
             : {
-                task: tasks ? TaskId.parse(tasks) : undefined,
+                task: tasks === undefined || tasks === "" ? undefined : TaskId.parse(tasks),
                 stage: TABS.find(({ key }) => key === stage)?.key,
+                ask: asking,
               },
         open: open === "settings" || open === "calls" ? open : undefined,
         reportPose: report === "pose",

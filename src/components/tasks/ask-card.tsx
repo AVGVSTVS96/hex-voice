@@ -33,6 +33,7 @@ import type { Picture } from "@/components/media/pictures";
 import { Waiting } from "@/components/media/waiting";
 import { Mark } from "@/components/tasks/mark";
 import { Typing, useField } from "@/components/tasks/pages";
+import type { Asking } from "@/components/tasks/pages";
 import { Failure, NotNeededButton, Pill, StageHead, listRow } from "@/components/tasks/parts";
 import { allOf, noteAsk, shotOf, useWords } from "@/hooks/use-asks";
 import type { Chosen } from "@/hooks/use-asks";
@@ -177,10 +178,10 @@ const AskCard = ({
     () => !!carryDraft(`ask:${ask.id}`, ask.was?.map((id) => `ask:${id}`) ?? []).trim(),
   );
 
-  const [open, setOpen] = useState(held);
-  const words = useWords(ask.id);
   const reply = useContext(Reply);
-  const here = reply?.ask?.id === ask.id;
+  const [open, setOpen] = useState(held || reply?.opened?.id === ask.id);
+  const words = useWords(ask.id);
+  const here = reply?.ask === ask.id;
 
   const links = ask.links ?? [];
 
@@ -574,7 +575,8 @@ interface Typed {
 }
 
 export interface Replying {
-  ask: Ask | null;
+  ask: AskId | null;
+  opened: Asking | null;
   noted: ReadonlySet<AskId>;
   open: (ask: Ask) => void;
   close: () => void;
@@ -583,14 +585,17 @@ export interface Replying {
 
 export const Reply = createContext<Replying | undefined>(undefined);
 
-export const useReplying = (): Replying => {
-  const [ask, setAsk] = useState<Ask | null>(null);
+export const useReplying = (opened: Asking | null): Replying => {
+  const [ask, setAsk] = useState(opened?.open ? opened.id : null);
   const [noted, setNoted] = useState<ReadonlySet<AskId>>(new Set());
 
   return {
     ask,
+    opened,
     noted,
-    open: setAsk,
+    open: ({ id }) => {
+      setAsk(id);
+    },
     close: () => {
       setAsk(null);
     },
@@ -730,11 +735,13 @@ const Sends = ({ typed }: { typed: Typed }) => {
 
 export const ReplyComposer = ({
   ask,
+  camera,
   onAnswer,
   onClose,
   onNoted,
 }: {
   ask: Ask;
+  camera: boolean;
   onAnswer: Answer;
   onClose: () => void;
   onNoted: (id: AskId) => void;
@@ -747,7 +754,7 @@ export const ReplyComposer = ({
   const notes = useFailures();
   const [sending, setSending] = useState(false);
   const [media, setMedia] = useState<Picked[]>([]);
-  const picking = useRef(false);
+  const picking = useRef(camera);
   const opened = useRef(false);
 
   const send = async (as: "note" | "answer") => {
@@ -832,6 +839,7 @@ export const ReplyComposer = ({
         <AddMedia
           testID="ask-add"
           label="Add a photo or video"
+          camera={camera}
           most={MOST - media.length}
           sends={false}
           onChoose={() => {

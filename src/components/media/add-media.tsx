@@ -25,6 +25,7 @@ import { film } from "@/ui/tokens";
 export const AddMedia = ({
   label,
   glass = false,
+  camera: opened = false,
   most,
   sends,
   testID,
@@ -34,6 +35,7 @@ export const AddMedia = ({
 }: {
   label: string;
   glass?: boolean;
+  camera?: boolean;
   most: number;
   sends: boolean;
   testID: string;
@@ -41,7 +43,7 @@ export const AddMedia = ({
   onAdd: (media: Picked[]) => void;
   children: ReactNode;
 }) => {
-  const [camera, setCamera] = useState(false);
+  const [camera, setCamera] = useState(opened);
 
   const pick = async () => {
     const picked = await ImagePicker.launchImageLibraryAsync({

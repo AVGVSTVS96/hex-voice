@@ -114,6 +114,14 @@ export const Tasks = ({
     }
   }, [open, loaded, pages.stage, stage]);
 
+  const asking = yours.shown.find((ask) => ask.id === pages.ask?.id);
+
+  useEffect(() => {
+    if (open && asking && pages.task !== asking.task) {
+      pages.go({ to: "topic", id: asking.task, ask: pages.ask ?? undefined });
+    }
+  }, [open, asking, pages.task, pages.ask]);
+
   const showing = showingOf(pages, entries, stage, tasks);
   const { task } = useTask(taskIn(showing), version);
   const asked = yours.shown.find((ask) => ask.task === showing);
@@ -303,6 +311,7 @@ export const Tasks = ({
         <Detail
           task={opened}
           asks={topicAsks}
+          asking={pages.ask}
           answered={yours.answered}
           threads={threads}
           missing={missing}
@@ -374,6 +383,7 @@ export const Tasks = ({
         <Asked
           topic={topic}
           asks={topicAsks}
+          asking={pages.ask}
           answered={yours.answered}
           door={asked && doorOf(asked)}
           rows={entries

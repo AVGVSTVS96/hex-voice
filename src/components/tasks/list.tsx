@@ -368,8 +368,10 @@ const besideOf = (pages: Pages, shown: Entry[], entries: Entry[]) => {
   };
 };
 
-const unopenedOf = ({ shape, path, task }: Pages, first: PageId | undefined) =>
-  shape === "one" || path.length > 0 ? null : (task ?? first ?? null);
+const unopenedOf = ({ shape, path, task, ask }: Pages, first: PageId | undefined) =>
+  shape === "one" || path.length > 0 || (task === null && ask !== null)
+    ? null
+    : (task ?? first ?? null);
 
 const firstPage = (
   searching: boolean,

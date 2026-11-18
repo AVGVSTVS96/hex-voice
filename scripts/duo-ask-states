@@ -1,0 +1,6 @@
+# A question opened from its id (hex's /asks), as his taps leave it, over invented answers: ANSWERS=scripts/duo-markdown.json HEX=kept scripts/duo shoot <ref> scripts/duo-ask-states
+# Its card with the background open; its reply box docked above the keyboard, with its +; and the + → Camera sheet.
+# On a fresh simulator the camera's permission alert stays up over every later shot; a tap script with "system Allow" after each launch answers it.
+ask-open    hexvoice:///?ask=md-ask
+ask-reply   hexvoice:///?ask=md-ask&open=reply
+ask-camera  hexvoice:///?ask=md-ask&open=camera
