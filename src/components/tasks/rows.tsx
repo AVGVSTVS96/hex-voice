@@ -577,6 +577,7 @@ const Count = ({ count, mark }: { count: number; mark: MarkState }) => {
         padding({ leading: space[2], trailing: space[2], top: space[0.5], bottom: space[0.5] }),
         ...(look ? [background(theme[washOf(look)])] : []),
         clipShape("capsule"),
+        fixedSize({ horizontal: true, vertical: false }),
       ]}
     >
       {String(count)}
