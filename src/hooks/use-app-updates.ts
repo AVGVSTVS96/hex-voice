@@ -20,6 +20,10 @@ export const useAppUpdates = (callLive: boolean) => {
   });
 
   useEffect(() => {
+    apply();
+  }, [isUpdatePending]);
+
+  useEffect(() => {
     if (!Updates.isEnabled) {
       return;
     }
