@@ -2,8 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } fro
 import { AppState } from "react-native";
 
 import { RefusedError } from "@/hex/client";
-
-const RETRY = 2000;
+import { follow } from "@/live/watch";
 
 export type Watching = "waiting" | "current" | "offline";
 
@@ -36,38 +35,17 @@ export const useWatch = <K extends string, T extends { version?: number | undefi
     }
 
     const controller = new AbortController();
-    void (async () => {
-      while (!controller.signal.aborted) {
-        try {
-          // oxlint-disable-next-line no-await-in-loop -- a long poll asks again only once its last question is answered
-          const answer = await asking(version.current, controller.signal, key);
-
-          if (controller.signal.aborted) {
-            return;
-          }
-
-          taking(answer, key);
-          setWatching("current");
-
-          if (answer.version === undefined) {
-            return;
-          }
-
-          version.current = answer.version;
-        } catch {
-          if (controller.signal.aborted) {
-            return;
-          }
-
-          setWatching("offline");
-          version.current = undefined;
-          // oxlint-disable-next-line no-await-in-loop, promise/avoid-new -- waits RETRY before asking again; React Native's setTimeout has no promise form
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, RETRY);
-          });
-        }
-      }
-    })();
+    void follow(
+      async (after, signal) => await asking(after, signal, key),
+      (answer) => {
+        taking(answer, key);
+        setWatching("current");
+      },
+      () => {
+        setWatching("offline");
+      },
+      { signal: controller.signal, version },
+    );
 
     return () => {
       controller.abort();
