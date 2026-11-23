@@ -1,11 +1,9 @@
-import InCallManager from "react-native-incall-manager";
 import { mediaDevices, RTCPeerConnection, RTCSessionDescription } from "react-native-webrtc";
 import * as z from "zod/mini";
 
+import { startCallAudio } from "./call-audio";
 import { parseEvent } from "./types";
 import type { AudioStats, TransportFactory } from "./types";
-
-const androidCallManager = process.env.EXPO_OS === "android" ? InCallManager : null;
 
 const loose = <T extends z.core.SomeType>(schema: T) => z.catch(z.optional(schema), undefined);
 
@@ -31,11 +29,10 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
   const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
   let peer: RTCPeerConnection | undefined;
   let channel: ReturnType<RTCPeerConnection["createDataChannel"]>;
+  const stopCallAudio = startCallAudio();
 
   try {
     peer = new RTCPeerConnection({ iceServers: [] });
-    // 'video' routes to the speaker, not the earpiece: https://github.com/react-native-webrtc/react-native-incall-manager#readme
-    androidCallManager?.start({ media: "video", auto: true });
 
     for (const track of stream.getAudioTracks()) {
       peer.addTrack(track, stream);
@@ -49,7 +46,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
 
     peer?.close();
     stream.release();
-    androidCallManager?.stop();
+    stopCallAudio();
     throw error;
   }
 
@@ -219,7 +216,7 @@ export const createTransport: TransportFactory = async ({ onEvent, onFailure }) 
       channel.close();
       pc.close();
       stream.release();
-      androidCallManager?.stop();
+      stopCallAudio();
     },
   };
 };

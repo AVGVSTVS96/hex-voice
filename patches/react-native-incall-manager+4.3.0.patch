@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-incall-manager/index.d.ts b/node_modules/react-native-incall-manager/index.d.ts
+index c8ebe9d..3e960b2 100644
+--- a/node_modules/react-native-incall-manager/index.d.ts
++++ b/node_modules/react-native-incall-manager/index.d.ts
+@@ -28,7 +28,7 @@ declare class InCallManager {
+ 
+   setSpeakerphoneOn(enable: boolean): void;
+ 
+-  setForceSpeakerphoneOn(flag: boolean): void;
++  setForceSpeakerphoneOn(flag: boolean | null): void;
+ 
+   setMicrophoneMute(enable: boolean): void;
+ 
