@@ -33,10 +33,31 @@ export const SERVERS: readonly [Server, ...Server[]] = [
   },
 ];
 
+const set = (value: string | undefined) => (value ?? "").trim() !== "";
+
 export const offered = ([first, ...rest]: readonly [Server, ...Server[]]): [
   Server,
   ...Server[],
-] => [first, ...rest.filter(({ url }) => (url ?? "").trim() !== "")];
+] => [first, ...rest.filter(({ url, token }) => set(url) && set(token))];
 
-export const chosen = (servers: readonly [Server, ...Server[]], saved: string | undefined) =>
+export const chosen = (servers: readonly [Server, ...Server[]], saved: string) =>
   servers.find(({ id }) => id === saved) ?? servers[0];
+
+export interface Kept {
+  exists: boolean;
+  textSync: () => string;
+  writeSync: (text: string) => void;
+}
+
+export const savedIn = (file: Kept) => {
+  try {
+    return file.exists ? file.textSync().trim() : "";
+  } catch {
+    return "";
+  }
+};
+
+export const switchIn = async (file: Kept, id: string, restart: () => Promise<void>) => {
+  file.writeSync(id);
+  await restart();
+};

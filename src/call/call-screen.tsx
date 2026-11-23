@@ -831,9 +831,13 @@ const CallScreen = ({
                 backdropFade={backdropFade}
                 onBack={backToCall}
                 onRemove={removeCall}
-                onOpenTask={(task) => {
-                  openTasks({ task });
-                }}
+                onOpenTask={
+                  server.tasks
+                    ? (task) => {
+                        openTasks({ task });
+                      }
+                    : undefined
+                }
               />
               {pulls && (
                 <AnimatedView
@@ -902,11 +906,13 @@ const CallScreen = ({
           </CallFooter>
           <AnimatedPressable
             {...reachable(agent !== null)}
-            onPress={() => {
-              openTasks({ stage: "working" });
-            }}
-            accessibilityRole="button"
-            accessibilityHint="Opens what hex is working on"
+            {...(server.tasks && {
+              onPress: () => {
+                openTasks({ stage: "working" });
+              },
+              accessibilityRole: "button",
+              accessibilityHint: "Opens what hex is working on",
+            })}
             hitSlop={{ top: 8, bottom: 12 }}
             style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
           >
@@ -1255,7 +1261,7 @@ const CallWords = ({
   backdropFade: ComponentProps<typeof AnimatedView>["animate"];
   onBack: () => void;
   onRemove: (id: CallId) => void;
-  onOpenTask: (task: TaskId) => void;
+  onOpenTask: ((task: TaskId) => void) | undefined;
 }) => (
   <Animated.View {...reachable(reading)} style={style}>
     {shown && (
