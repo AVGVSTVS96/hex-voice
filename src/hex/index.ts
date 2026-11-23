@@ -1,12 +1,24 @@
+import { reloadAppAsync } from "expo";
 import Constants from "expo-constants";
 import { File, UploadType } from "expo-file-system";
 import { fetch } from "expo/fetch";
+import { Settings } from "react-native";
 import * as z from "zod/mini";
 
 import { createHex } from "./api";
 import { createClient } from "./client";
+import { SERVERS, chosen, offered } from "./server";
 
-const Setting = z.optional(z.string());
+const KEY = "HexServer";
+
+export const servers = offered(SERVERS);
+
+export const server = chosen(servers, z.string().safeParse(Settings.get(KEY)).data);
+
+export const switchServer = async (id: string) => {
+  Settings.set({ [KEY]: id });
+  await reloadAppAsync();
+};
 
 export const hex = createHex(
   createClient({
@@ -22,8 +34,9 @@ export const hex = createHex(
 
       return { status, text: body };
     },
-    url: Setting.parse(process.env.EXPO_PUBLIC_HEX_URL),
-    token: Setting.parse(process.env.EXPO_PUBLIC_HEX_TOKEN),
+    url: server.url,
+    token: server.token,
+    reach: server.reach,
   }),
 );
 

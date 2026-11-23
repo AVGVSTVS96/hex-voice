@@ -5,9 +5,13 @@ import * as z from "zod";
 
 import { createHex } from "../src/hex/api";
 import { RefusedError, createClient } from "../src/hex/client";
+import { chosen, offered } from "../src/hex/server";
+import type { Server } from "../src/hex/server";
+import { AgentActivity } from "../src/live/agents";
 import { AskId } from "../src/live/asks";
-import { CallId } from "../src/live/calls";
+import { CallId, CallList } from "../src/live/calls";
 import { MediaId } from "../src/live/media";
+import { Talk } from "../src/live/talk";
 import { TaskId } from "../src/live/tasks";
 import { nth } from "./nth";
 
@@ -169,6 +173,70 @@ test("an unreachable hex points at Tailscale", async () => {
 
   await assert.rejects(hex.session.create("offer"), /Tailscale/u);
   await assert.rejects(hex.activity.watch(undefined, new AbortController().signal), /Tailscale/u);
+});
+
+test("an unreachable hex-next points at the connection, not Tailscale", async () => {
+  const hex = createHex(
+    createClient({
+      url: hexUrl,
+      reach: "Check your connection",
+      fetch: async () => {
+        throw new TypeError("Network request failed");
+      },
+    }),
+  );
+
+  await assert.rejects(hex.calls.list(), /Cannot reach hex\. Check your connection, then/u);
+});
+
+const old: Server = {
+  id: "hex",
+  label: "hex",
+  url: hexUrl,
+  token: "old",
+  tasks: true,
+  kept: "",
+  reach: "Check that Tailscale is on",
+};
+
+const next: Server = {
+  id: "hex-next",
+  label: "hex-next",
+  url: "https://next.example",
+  token: "new",
+  tasks: false,
+  kept: "hex-next:",
+  reach: "Check your connection",
+};
+
+test("the app calls hex until hex-next is picked, and hex again once it's picked back", () => {
+  const servers = offered([old, next]);
+  assert.equal(chosen(servers, undefined), old);
+  assert.equal(chosen(servers, "hex-next"), next);
+  assert.equal(chosen(servers, "hex"), old);
+  assert.equal(chosen(servers, "gone"), old);
+});
+
+test("a build without hex-next's address offers only hex, whatever was picked before", () => {
+  for (const url of [undefined, "", "  "]) {
+    const servers = offered([old, { ...next, url }]);
+    assert.deepEqual(servers, [old]);
+    assert.equal(chosen(servers, "hex-next"), old);
+  }
+});
+
+test("what hex-next answers before its first call reads in this app", () => {
+  const version = 1_795_407_911_295;
+  assert.deepEqual(CallList.parse({ version, calls: [] }).calls, []);
+  assert.equal(AgentActivity.parse({ version, call: null, tasks: [] }).call, null);
+
+  const talk = Talk.parse({
+    settings: {},
+    personalities: [{ id: "default", label: "Default" }],
+    paces: [{ id: "normal", label: "Normal" }],
+  });
+
+  assert.equal(talk.settings.voice, undefined);
 });
 
 test("every request carries the hex token when the app has one", async () => {

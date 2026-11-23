@@ -1,7 +1,7 @@
 import { useState } from "react";
 import * as z from "zod/mini";
 
-import { hex } from "@/hex";
+import { hex, server } from "@/hex";
 import { useKept } from "@/hooks/use-kept";
 import { useAnswer, useWatch } from "@/hooks/use-watch";
 import { Finished, TaskCounts, TaskRow } from "@/live/tasks";
@@ -14,7 +14,7 @@ export interface Counts {
 
 export const useTaskCounts = (listed: Counts | undefined): Counts => {
   const [counts, keep] = useKept("task-counts", TaskCounts);
-  useWatch("counts", hex.tasks.counts, keep);
+  useWatch(server.tasks ? "counts" : null, hex.tasks.counts, keep);
 
   if (listed) {
     return listed;

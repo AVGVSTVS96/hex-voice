@@ -59,6 +59,7 @@ import { useEscape } from "@/hooks/use-escape";
 import { failure } from "@/hooks/use-failures";
 import { useNow } from "@/hooks/use-now";
 import { usePersonaPreference } from "@/hooks/use-persona-preference";
+import { server } from "@/hooks/use-server";
 import { useTalk } from "@/hooks/use-talk";
 import { raiseTask, useTaskCounts } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
@@ -672,6 +673,10 @@ const CallScreen = ({
   };
 
   const openTasks = (at: TasksAt = {}) => {
+    if (!server.tasks) {
+      return;
+    }
+
     tick();
     send({ to: "tasks", open: true, at });
   };
@@ -752,7 +757,7 @@ const CallScreen = ({
       gaps={"gaps" in toolbar ? toolbar.gaps : undefined}
       style={style}
       callsOpen={callsOpen}
-      tasks={{ ...counts, open: tasksOpen }}
+      tasks={server.tasks ? { ...counts, open: tasksOpen } : undefined}
       settingsOpen={settingsOpen}
       holdsBack={!!duo}
       back={back}

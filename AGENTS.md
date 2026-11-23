@@ -8,6 +8,8 @@ Build with Xcode 27.1 or newer: the iPhone Duo's fold and side column come from 
 
 The app is a phone for hex. It sends its WebRTC offer to hex's voice plugin (`EXPO_PUBLIC_HEX_URL`, reached over Tailscale), which starts the GPT-Live 1 session with hex's instructions and hands every request to hex's Claude Code session. The app holds the audio, the data channel for mute and End, and the captions; it has no server or API key of its own.
 
+A build that also has `EXPO_PUBLIC_HEX_NEXT_URL` and `EXPO_PUBLIC_HEX_NEXT_TOKEN` shows a Server row in settings, hex or hex-next. `src/hex/server.ts` is the one place that says where each is and what it has; the choice is kept on the device and the app restarts into it, with each server's kept answers apart, so going back to hex shows what it showed before. hex-next has calls only, so Tasks and its links stay shut there.
+
 ## Voice implementation
 
 - Keep microphone audio active during replies and while iOS is backgrounded or locked.

@@ -68,6 +68,7 @@ import { PageBar } from "@/components/tasks/bar";
 import { useToolbarBack } from "@/components/toolbar-back";
 import { REACTIONS } from "@/hooks/use-call-preferences";
 import type { CallPreferences, Reaction } from "@/hooks/use-call-preferences";
+import { server, servers, switchServer } from "@/hooks/use-server";
 import type { TalkSettings } from "@/hooks/use-talk";
 import { useVoicePreview } from "@/hooks/use-voice-preview";
 import { UNSET, WORDS_LIMIT } from "@/live/talk";
@@ -140,6 +141,8 @@ const HEADER = 44;
 
 const PERSONA_PANE_BAR = 60;
 
+const CALL_ROWS = servers.length > 1 ? 4 : 3;
+
 const APPEARANCE_HEIGHT =
   SHEET_TOP +
   PERSONA_PAGE +
@@ -147,7 +150,7 @@ const APPEARANCE_HEIGHT =
   metrics.groupSpacing +
   groupHeight(2) +
   metrics.groupSpacing +
-  groupHeight(3) +
+  groupHeight(CALL_ROWS) +
   SHEET_BOTTOM;
 
 const NOTE = 18;
@@ -453,6 +456,7 @@ export const VoiceSettings = ({
             modifiers={[labelsHidden(), tint(theme.switchOn), accessibilityLabel("Haptics")]}
           />
         </SettingRow>
+        <ServerRow width={rowsWidth} enabled={!voiceLocked} onPick={haptic} />
       </Group>
     </>
   );
@@ -554,6 +558,37 @@ export const VoiceSettings = ({
     </>
   );
 };
+
+const ServerRow = ({
+  width,
+  enabled,
+  onPick,
+}: {
+  width: number;
+  enabled: boolean;
+  onPick: () => void;
+}) =>
+  servers.length > 1 ? (
+    <>
+      <Separator />
+      <PickerRow
+        icon="server.rack"
+        title="Server"
+        width={width}
+        choices={servers}
+        selection={server.id}
+        onChange={(next: string) => {
+          if (next !== server.id) {
+            onPick();
+            void switchServer(next);
+          }
+        }}
+        enabled={enabled}
+        label="Which hex this app calls. The app restarts to switch"
+        testID="server-picker"
+      />
+    </>
+  ) : null;
 
 const VoicePage = ({
   width,

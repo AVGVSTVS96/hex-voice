@@ -13,6 +13,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { Glyph } from "@/components/glyph";
+import { server } from "@/hooks/use-server";
 import { ENDINGS, SOURCES, byDay, callDetails, callName, callTime } from "@/live/calls";
 import type { CallId, CallSummary } from "@/live/calls";
 import { motion } from "@/motion";
@@ -244,7 +245,7 @@ const Empty = ({ offline }: { offline: boolean }) => (
     <Text style={styles.emptyTitle}>{offline ? "Can’t reach hex" : "No calls yet"}</Text>
     <Text style={styles.emptyText}>
       {offline
-        ? "Check that Tailscale is on. Calls catches up on its own once hex answers."
+        ? `${server.reach}. Calls catches up on its own once hex answers.`
         : "When a call ends, it lands here, whether you called from this app, the web page or your phone."}
     </Text>
   </View>

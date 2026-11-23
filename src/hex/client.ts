@@ -20,6 +20,7 @@ export type SendFile = (
 export interface Config {
   url?: string | undefined;
   token?: string | undefined;
+  reach?: string;
   fetch: typeof globalThis.fetch;
   sendFile?: SendFile;
 }
@@ -41,7 +42,13 @@ const WATCH = 120_000;
 const UPLOAD = 300_000;
 const UNREACHABLE = new Set(["Network request failed", "Failed to fetch", "fetch failed"]);
 
-export const createClient = ({ url, token, fetch, sendFile }: Config) => {
+export const createClient = ({
+  url,
+  token,
+  reach: check = "Check that Tailscale is on",
+  fetch,
+  sendFile,
+}: Config) => {
   const origin = url?.trim().replace(/\/+$/u, "");
 
   const auth: Record<string, string> =
@@ -83,7 +90,7 @@ export const createClient = ({ url, token, fetch, sendFile }: Config) => {
         (error instanceof Error &&
           (["AbortError", "NetworkError"].includes(error.name) || UNREACHABLE.has(error.message)))
       ) {
-        throw new Error("Cannot reach hex. Check that Tailscale is on, then try again.", {
+        throw new Error(`Cannot reach hex. ${check}, then try again.`, {
           cause: error,
         });
       }
