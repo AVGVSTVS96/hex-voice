@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import LiveScreen from "@/call/call-screen";
 import type { Opening } from "@/call/call-screen";
 import type { Asking } from "@/components/tasks/pages";
+import { server } from "@/hooks/use-server";
 import { AskId } from "@/live/asks";
 import { TABS } from "@/live/inbox";
 import { TaskId } from "@/live/tasks";
@@ -58,7 +59,7 @@ const openingOf = (params: Params): Opening => {
 
   return {
     tasks:
-      tasks === undefined && !asking
+      !server.tasks || (tasks === undefined && !asking)
         ? undefined
         : {
             task: tasks === undefined || tasks === "" ? undefined : TaskId.parse(tasks),

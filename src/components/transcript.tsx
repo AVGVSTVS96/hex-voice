@@ -34,7 +34,7 @@ export const Transcript = ({
   emptyAt?: "end" | "center";
   cards?: CallCard[];
   onAnswer?: (card: CallCard, option: Chosen) => Promise<Sent>;
-  onOpenTask?: (task: TaskId) => void;
+  onOpenTask?: ((task: TaskId) => void) | undefined;
 }) => {
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);

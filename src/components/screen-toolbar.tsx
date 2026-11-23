@@ -19,7 +19,7 @@ interface Props {
   gaps?: ToolbarGaps | undefined;
   style?: StyleProp<AnimatedStyle<ViewStyle>>;
   callsOpen: boolean;
-  tasks: { needs: number; working: number; open: boolean };
+  tasks: { needs: number; working: number; open: boolean } | undefined;
   settingsOpen?: boolean;
   holdsBack?: boolean;
   back?: Back | undefined;
@@ -79,7 +79,15 @@ export const ScreenToolbar = ({
     />
   );
 
-  const pair = (
+  const settings = {
+    icon: "settings",
+    label: "Voice and appearance settings",
+    testID: "voice-settings-button",
+    selected: settingsOpen,
+    onPress: onSettings,
+  } as const;
+
+  const tools = tasks ? (
     <Host
       matchContents
       style={
@@ -96,20 +104,15 @@ export const ScreenToolbar = ({
             selected={tasks.open}
             onPress={onTasks}
           />
-          <GlassButton
-            bare
-            icon="settings"
-            label="Voice and appearance settings"
-            testID="voice-settings-button"
-            selected={settingsOpen}
-            onPress={onSettings}
-          />
+          <GlassButton bare {...settings} />
         </Group>
         <Overlay.Content>
           <NeedsDot needs={tasks.open ? 0 : tasks.needs} />
         </Overlay.Content>
       </Overlay>
     </Host>
+  ) : (
+    <HostedGlassButton {...settings} />
   );
 
   return (
@@ -128,11 +131,11 @@ export const ScreenToolbar = ({
       )}
       {axis === "row" ? (
         <View pointerEvents="box-none" style={[styles.rowGroup, { gap: metrics.toolbar.row }]}>
-          {pair}
+          {tools}
           {backButton}
         </View>
       ) : (
-        pair
+        tools
       )}
     </Animated.View>
   );

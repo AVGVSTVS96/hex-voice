@@ -59,6 +59,7 @@ import { useEscape } from "@/hooks/use-escape";
 import { failure } from "@/hooks/use-failures";
 import { useNow } from "@/hooks/use-now";
 import { usePersonaPreference } from "@/hooks/use-persona-preference";
+import { server } from "@/hooks/use-server";
 import { useTalk } from "@/hooks/use-talk";
 import { raiseTask, useTaskCounts } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
@@ -672,6 +673,10 @@ const CallScreen = ({
   };
 
   const openTasks = (at: TasksAt = {}) => {
+    if (!server.tasks) {
+      return;
+    }
+
     tick();
     send({ to: "tasks", open: true, at });
   };
@@ -752,7 +757,7 @@ const CallScreen = ({
       gaps={"gaps" in toolbar ? toolbar.gaps : undefined}
       style={style}
       callsOpen={callsOpen}
-      tasks={{ ...counts, open: tasksOpen }}
+      tasks={server.tasks ? { ...counts, open: tasksOpen } : undefined}
       settingsOpen={settingsOpen}
       holdsBack={!!duo}
       back={back}
@@ -826,9 +831,13 @@ const CallScreen = ({
                 backdropFade={backdropFade}
                 onBack={backToCall}
                 onRemove={removeCall}
-                onOpenTask={(task) => {
-                  openTasks({ task });
-                }}
+                onOpenTask={
+                  server.tasks
+                    ? (task) => {
+                        openTasks({ task });
+                      }
+                    : undefined
+                }
               />
               {pulls && (
                 <AnimatedView
@@ -889,19 +898,23 @@ const CallScreen = ({
               setFooter(nativeEvent.layout.height);
             }}
             onOpen={showCall}
-            onMore={() => {
-              openTasks({ stage: "needs" });
-            }}
+            {...(server.tasks && {
+              onMore: () => {
+                openTasks({ stage: "needs" });
+              },
+            })}
           >
             {footerControls && controls}
           </CallFooter>
           <AnimatedPressable
             {...reachable(agent !== null)}
-            onPress={() => {
-              openTasks({ stage: "working" });
-            }}
-            accessibilityRole="button"
-            accessibilityHint="Opens what hex is working on"
+            {...(server.tasks && {
+              onPress: () => {
+                openTasks({ stage: "working" });
+              },
+              accessibilityRole: "button",
+              accessibilityHint: "Opens what hex is working on",
+            })}
             hitSlop={{ top: 8, bottom: 12 }}
             style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
           >
@@ -1250,7 +1263,7 @@ const CallWords = ({
   backdropFade: ComponentProps<typeof AnimatedView>["animate"];
   onBack: () => void;
   onRemove: (id: CallId) => void;
-  onOpenTask: (task: TaskId) => void;
+  onOpenTask: ((task: TaskId) => void) | undefined;
 }) => (
   <Animated.View {...reachable(reading)} style={style}>
     {shown && (

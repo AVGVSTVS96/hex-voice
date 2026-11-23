@@ -10,6 +10,27 @@ type Props = Pick<CallSummary, "why" | "summary" | "waiting"> & {
   onMore?: () => void;
 };
 
+const More = ({
+  count,
+  center,
+  onMore,
+}: {
+  count: number;
+  center: boolean;
+  onMore: (() => void) | undefined;
+}) =>
+  onMore === undefined ? (
+    <Text style={[styles.label, styles.more, center && styles.centered]}>{`${count} more`}</Text>
+  ) : (
+    <Text
+      accessibilityRole="button"
+      onPress={onMore}
+      style={[styles.label, styles.more, center && styles.centered]}
+    >
+      {`${count} more in Tasks`}
+    </Text>
+  );
+
 const UNDER_ORB = 3;
 
 const NOTHING_WAITING: string[] = [];
@@ -63,15 +84,7 @@ export const WrapUp = ({
               </Text>
             </View>
           ))}
-          {more > 0 && (
-            <Text
-              accessibilityRole="button"
-              onPress={onMore}
-              style={[styles.label, styles.more, center && styles.centered]}
-            >
-              {`${more} more in Tasks`}
-            </Text>
-          )}
+          {more > 0 && <More count={more} center={center} onMore={onMore} />}
         </View>
       )}
     </Pressable>

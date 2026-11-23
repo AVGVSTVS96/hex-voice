@@ -2,12 +2,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 import * as z from "zod/mini";
 
+import { server } from "@/hex";
+
+const under = (key: string) => `${server.kept}${key}`;
+
 export const restore = async <S extends z.ZodMiniType>(
   key: string,
   schema: S,
 ): Promise<z.output<S> | undefined> => {
   try {
-    const saved = await AsyncStorage.getItem(key);
+    const saved = await AsyncStorage.getItem(under(key));
 
     return saved === null || saved === "" ? undefined : schema.safeParse(JSON.parse(saved)).data;
   } catch {
@@ -17,7 +21,11 @@ export const restore = async <S extends z.ZodMiniType>(
 
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- writes any kept answer out as JSON; nothing here reads it
 export const store = (key: string, value: unknown) => {
-  void AsyncStorage.setItem(key, JSON.stringify(value)).catch(() => null);
+  void AsyncStorage.setItem(under(key), JSON.stringify(value)).catch(() => null);
+};
+
+export const forget = (key: string) => {
+  void AsyncStorage.removeItem(under(key)).catch(() => null);
 };
 
 export const useKept = <S extends z.ZodMiniType>(key: string, schema: S) => {

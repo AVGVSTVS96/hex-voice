@@ -21,7 +21,7 @@ interface Props {
   style: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>;
   onLayout: (event: LayoutChangeEvent) => void;
   onOpen: (call: string) => void;
-  onMore: () => void;
+  onMore?: () => void;
   children?: ReactNode;
 }
 
@@ -61,7 +61,7 @@ export const CallFooter = ({
             }}
             summary={wrapUp.summary}
             waiting={wrapUp.waiting}
-            onMore={onMore}
+            {...(onMore !== undefined && { onMore })}
           />
         </Animated.View>
       ) : null}

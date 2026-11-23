@@ -1,10 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useMemo, useState } from "react";
 import * as z from "zod/mini";
 
 import { hex } from "@/hex";
 import { useFailures } from "@/hooks/use-failures";
-import { restore, store } from "@/hooks/use-kept";
+import { forget, restore, store } from "@/hooks/use-kept";
 import { useWatch } from "@/hooks/use-watch";
 import { CallRecord, CallSummary, putBack } from "@/live/calls";
 import type { CallId } from "@/live/calls";
@@ -56,7 +55,7 @@ export const useCalls = () => {
       });
 
       if (deleted) {
-        void AsyncStorage.removeItem(saved(id)).catch(() => null);
+        forget(saved(id));
       }
 
       if (!deleted && fromHex) {

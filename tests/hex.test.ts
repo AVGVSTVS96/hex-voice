@@ -5,10 +5,16 @@ import * as z from "zod";
 
 import { createHex } from "../src/hex/api";
 import { RefusedError, createClient } from "../src/hex/client";
+import { chosen, offered, savedIn, switchIn } from "../src/hex/server";
+import type { Kept, Server } from "../src/hex/server";
+import { AgentActivity } from "../src/live/agents";
 import { AskId } from "../src/live/asks";
-import { CallId } from "../src/live/calls";
+import { CallId, CallList, CallRecord, timeline } from "../src/live/calls";
 import { MediaId } from "../src/live/media";
+import { Talk } from "../src/live/talk";
 import { TaskId } from "../src/live/tasks";
+import { follow } from "../src/live/watch";
+import type { Following } from "../src/live/watch";
 import { nth } from "./nth";
 
 const hexUrl = "https://hex.example:8790";
@@ -169,6 +175,228 @@ test("an unreachable hex points at Tailscale", async () => {
 
   await assert.rejects(hex.session.create("offer"), /Tailscale/u);
   await assert.rejects(hex.activity.watch(undefined, new AbortController().signal), /Tailscale/u);
+});
+
+test("an unreachable hex-next points at the connection, not Tailscale", async () => {
+  const hex = createHex(
+    createClient({
+      url: hexUrl,
+      reach: "Check your connection",
+      fetch: async () => {
+        throw new TypeError("Network request failed");
+      },
+    }),
+  );
+
+  await assert.rejects(hex.calls.list(), /Cannot reach hex\. Check your connection, then/u);
+});
+
+const old: Server = {
+  id: "hex",
+  label: "hex",
+  url: hexUrl,
+  token: "old",
+  tasks: true,
+  kept: "",
+  reach: "Check that Tailscale is on",
+};
+
+const next: Server = {
+  id: "hex-next",
+  label: "hex-next",
+  url: "https://next.example",
+  token: "new",
+  tasks: false,
+  kept: "hex-next:",
+  reach: "Check your connection",
+};
+
+const kept = (text?: string): Kept & { text: string | undefined } => ({
+  text,
+  get exists() {
+    return this.text !== undefined;
+  },
+  textSync() {
+    return this.text ?? assert.fail("a file that isn't there isn't read");
+  },
+  writeSync(written: string) {
+    this.text = written;
+  },
+});
+
+test("the app calls hex until hex-next is picked, and hex again once it's picked back", () => {
+  const servers = offered([old, next]);
+  assert.equal(chosen(servers, savedIn(kept())), old);
+  assert.equal(chosen(servers, savedIn(kept("hex-next\n"))), next);
+  assert.equal(chosen(servers, savedIn(kept("hex"))), old);
+  assert.equal(chosen(servers, savedIn(kept("gone"))), old);
+});
+
+test("a pick is on the device before the app restarts, so the restart opens it", async () => {
+  const servers = offered([old, next]);
+  const file = kept();
+  const opened: string[] = [];
+
+  const restart = async () => {
+    opened.push(chosen(servers, savedIn(file)).id);
+  };
+
+  await switchIn(file, "hex-next", restart);
+  await switchIn(file, "hex", restart);
+  assert.deepEqual(opened, ["hex-next", "hex"]);
+});
+
+test("a pick that can't be read opens hex", () => {
+  const unreadable: Kept = {
+    exists: true,
+    textSync: () => {
+      throw new Error("unreadable");
+    },
+    writeSync: () => assert.fail("reading writes nothing"),
+  };
+
+  assert.equal(chosen(offered([old, next]), savedIn(unreadable)), old);
+});
+
+test("a build without hex-next's address or its token offers only hex, whatever was picked", () => {
+  for (const missing of [undefined, "", "  "]) {
+    for (const lacking of [
+      { ...next, url: missing },
+      { ...next, token: missing },
+    ]) {
+      const servers = offered([old, lacking]);
+      assert.deepEqual(servers, [old]);
+      assert.equal(chosen(servers, "hex-next"), old);
+    }
+  }
+});
+
+test("what hex-next answers before its first call reads in this app", () => {
+  const version = 1_795_407_911_295;
+  assert.deepEqual(CallList.parse({ version, calls: [] }).calls, []);
+  assert.equal(AgentActivity.parse({ version, call: null, tasks: [] }).call, null);
+
+  const talk = Talk.parse({
+    settings: {},
+    personalities: [{ id: "default", label: "Default" }],
+    paces: [{ id: "normal", label: "Normal" }],
+  });
+
+  assert.equal(talk.settings.voice, undefined);
+});
+
+const nextCall = {
+  id: "sess_9f2c",
+  started: "2026-11-22T17:04:10.000Z",
+  from: "app",
+  voice: "cedar",
+  title: "Ship the server switch",
+  why: "to ship the app",
+  expires: "2026-11-22T18:04:10.000Z",
+  session: "sess_b71e",
+  usage: { seconds: 94, dollars: 0.21, context: 5120 },
+  turns: [
+    { who: "you", at: 1200, text: "Is the update server up?" },
+    { who: "voice", at: 9800, text: "It's stopped, with old hex." },
+  ],
+  tasks: [
+    { id: "task_1", state: "running", text: "Checking the update server", at: 2400 },
+    { id: "task_1", state: "done", text: "Checked the update server", at: 9000 },
+  ],
+  moments: [
+    { at: 9100, kind: "say", text: "It's stopped, with old hex.", checked: "systemctl status" },
+    { at: 30_000, kind: "reconnected", text: "The connection dropped and came back" },
+    { at: 41_000, kind: "photo", text: "A photo", media: "media_1" },
+    { at: 52_000, kind: "muted", text: "Muted" },
+  ],
+};
+
+const endedNextCall = {
+  ...nextCall,
+  ended: "2026-11-22T17:05:44.000Z",
+  end: "you",
+  summary: "The update server is stopped with old hex.",
+};
+
+test("a call as hex-next records one reads in this app, with what the app doesn't draw left out", () => {
+  const going = CallRecord.parse({ ...nextCall, version: 7 });
+  assert.equal(going.version, 7);
+  assert.equal(going.ended, undefined);
+
+  const ended = CallRecord.parse(endedNextCall);
+  assert.equal(ended.end, "you");
+  assert.equal(ended.version, undefined);
+
+  assert.deepEqual(
+    timeline(ended).map((moment) => moment.kind),
+    ["turn", "task", "turn", "media", "mark"],
+  );
+
+  const listed = { ...endedNextCall, seconds: 94, tasks: 1, preview: "Is the update server up?" };
+  assert.equal(nth(CallList.parse({ version: 8, calls: [listed] }).calls, 0).tasks, 1);
+});
+
+test("a call's long-poll asks again with each version and stops once hex-next sends it ended", async () => {
+  const answers = [
+    { ...nextCall, version: 7 },
+    { ...nextCall, version: 8 },
+    endedNextCall,
+    endedNextCall,
+  ];
+
+  const asked: (number | undefined)[] = [];
+  const heard: (string | undefined)[] = [];
+  const hex = hexAt(async () => Response.json(answers[asked.length - 1]));
+
+  await follow(
+    async (after, signal) => {
+      asked.push(after);
+
+      return await hex.calls.get(CallId.parse(nextCall.id), after, signal);
+    },
+    (call) => {
+      heard.push(call.ended);
+    },
+    () => assert.fail("hex-next answered every time"),
+    { signal: new AbortController().signal, version: { current: undefined } },
+  );
+
+  assert.deepEqual(asked, [undefined, 7, 8]);
+  assert.deepEqual(heard, [undefined, undefined, endedNextCall.ended]);
+});
+
+test("an answer that can't be reached is asked for again from the start, until the list closes", async () => {
+  const closing = new AbortController();
+  const version: Following["version"] = { current: undefined };
+  const asked: (number | undefined)[] = [];
+  let lost = 0;
+  let heardAny = 0;
+
+  await follow(
+    async (after) => {
+      asked.push(after);
+
+      if (asked.length === 2) {
+        throw new Error("Cannot reach hex.");
+      }
+
+      if (asked.length === 4) {
+        closing.abort();
+      }
+
+      return { version: asked.length };
+    },
+    () => {
+      heardAny += 1;
+    },
+    () => {
+      lost += 1;
+    },
+    { signal: closing.signal, version, retry: 0 },
+  );
+
+  assert.deepEqual(asked, [undefined, 1, undefined, 3]);
+  assert.deepEqual([heardAny, lost], [2, 1]);
 });
 
 test("every request carries the hex token when the app has one", async () => {

@@ -1,12 +1,22 @@
+import { reloadAppAsync } from "expo";
 import Constants from "expo-constants";
-import { File, UploadType } from "expo-file-system";
+import { File, Paths, UploadType } from "expo-file-system";
 import { fetch } from "expo/fetch";
 import * as z from "zod/mini";
 
 import { createHex } from "./api";
 import { createClient } from "./client";
+import { SERVERS, chosen, offered, savedIn, switchIn } from "./server";
 
-const Setting = z.optional(z.string());
+const picked = new File(Paths.document, "server");
+
+export const servers = offered(SERVERS);
+
+export const server = chosen(servers, savedIn(picked));
+
+export const switchServer = async (id: string) => {
+  await switchIn(picked, id, reloadAppAsync);
+};
 
 export const hex = createHex(
   createClient({
@@ -22,8 +32,9 @@ export const hex = createHex(
 
       return { status, text: body };
     },
-    url: Setting.parse(process.env.EXPO_PUBLIC_HEX_URL),
-    token: Setting.parse(process.env.EXPO_PUBLIC_HEX_TOKEN),
+    url: server.url,
+    token: server.token,
+    reach: server.reach,
   }),
 );
 

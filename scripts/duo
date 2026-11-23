@@ -479,6 +479,7 @@ prepare() {
   runtime=$(runtime_version "$verify")
   rm -rf "$js" && mkdir -p "$js"
   (cd "$verify" && EXPO_PUBLIC_HEX_URL=https://127.0.0.1:$hexport EXPO_PUBLIC_HEX_TOKEN=check \
+    EXPO_PUBLIC_HEX_NEXT_URL=https://127.0.0.1:$hexport EXPO_PUBLIC_HEX_NEXT_TOKEN=check \
     turn npx expo export:embed --platform ios --dev false --minify true \
     --entry-file node_modules/expo-router/entry.js --bundle-output "$js/main.jsbundle" \
     --assets-dest "$js") >"$js.log" 2>&1 || {
@@ -486,7 +487,9 @@ prepare() {
     die "$title didn't bundle"
   }
   (set -a && . "$release/.env.local" &&
-    ! grep -qF -e "$EXPO_PUBLIC_HEX_TOKEN" -e "$EXPO_PUBLIC_HEX_URL" "$js/main.jsbundle") ||
+    ! grep -qF -e "$EXPO_PUBLIC_HEX_TOKEN" -e "$EXPO_PUBLIC_HEX_URL" \
+      ${EXPO_PUBLIC_HEX_NEXT_TOKEN:+-e "$EXPO_PUBLIC_HEX_NEXT_TOKEN"} \
+      ${EXPO_PUBLIC_HEX_NEXT_URL:+-e "$EXPO_PUBLIC_HEX_NEXT_URL"} "$js/main.jsbundle") ||
     die "$title's bundle can reach hex itself, so it isn't checked"
   [ -z "$lane" ] || ssh "$mac" "mkdir -p $folder && ln -sfn ../hex-voice-sim/apps $folder/apps"
   rsync -a --delete "$repo/scripts/duo" "$repo/scripts/release.sh" "$repo/scripts/devicehub.c" \
