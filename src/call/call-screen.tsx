@@ -898,9 +898,11 @@ const CallScreen = ({
               setFooter(nativeEvent.layout.height);
             }}
             onOpen={showCall}
-            onMore={() => {
-              openTasks({ stage: "needs" });
-            }}
+            {...(server.tasks && {
+              onMore: () => {
+                openTasks({ stage: "needs" });
+              },
+            })}
           >
             {footerControls && controls}
           </CallFooter>

@@ -40,7 +40,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -580,7 +580,12 @@ const ServerRow = ({
         onChange={(next: string) => {
           if (next !== server.id) {
             onPick();
-            void switchServer(next);
+            switchServer(next).catch(() => {
+              Alert.alert(
+                "Couldn't switch",
+                "The app couldn't save which hex to call, so it stays on this one.",
+              );
+            });
           }
         }}
         enabled={enabled}
