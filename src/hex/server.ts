@@ -40,8 +40,10 @@ export const offered = ([first, ...rest]: readonly [Server, ...Server[]]): [
   ...Server[],
 ] => [first, ...rest.filter(({ url, token }) => set(url) && set(token))];
 
+const DEFAULT = "hex-next";
+
 export const chosen = (servers: readonly [Server, ...Server[]], saved: string) =>
-  servers.find(({ id }) => id === saved) ?? servers[0];
+  servers.find(({ id }) => id === saved) ?? servers.find(({ id }) => id === DEFAULT) ?? servers[0];
 
 export interface Kept {
   exists: boolean;

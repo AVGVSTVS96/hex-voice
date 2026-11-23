@@ -224,12 +224,12 @@ const kept = (text?: string): Kept & { text: string | undefined } => ({
   },
 });
 
-test("the app calls hex until hex-next is picked, and hex again once it's picked back", () => {
+test("the app calls hex-next until hex is picked, and hex-next again once it's picked back", () => {
   const servers = offered([old, next]);
-  assert.equal(chosen(servers, savedIn(kept())), old);
-  assert.equal(chosen(servers, savedIn(kept("hex-next\n"))), next);
-  assert.equal(chosen(servers, savedIn(kept("hex"))), old);
-  assert.equal(chosen(servers, savedIn(kept("gone"))), old);
+  assert.equal(chosen(servers, savedIn(kept())), next);
+  assert.equal(chosen(servers, savedIn(kept("hex\n"))), old);
+  assert.equal(chosen(servers, savedIn(kept("hex-next"))), next);
+  assert.equal(chosen(servers, savedIn(kept("gone"))), next);
 });
 
 test("a pick is on the device before the app restarts, so the restart opens it", async () => {
@@ -246,7 +246,7 @@ test("a pick is on the device before the app restarts, so the restart opens it",
   assert.deepEqual(opened, ["hex-next", "hex"]);
 });
 
-test("a pick that can't be read opens hex", () => {
+test("a pick that can't be read opens hex-next", () => {
   const unreadable: Kept = {
     exists: true,
     textSync: () => {
@@ -255,7 +255,7 @@ test("a pick that can't be read opens hex", () => {
     writeSync: () => assert.fail("reading writes nothing"),
   };
 
-  assert.equal(chosen(offered([old, next]), savedIn(unreadable)), old);
+  assert.equal(chosen(offered([old, next]), savedIn(unreadable)), next);
 });
 
 test("a build without hex-next's address or its token offers only hex, whatever was picked", () => {
@@ -267,6 +267,7 @@ test("a build without hex-next's address or its token offers only hex, whatever 
       const servers = offered([old, lacking]);
       assert.deepEqual(servers, [old]);
       assert.equal(chosen(servers, "hex-next"), old);
+      assert.equal(chosen(servers, ""), old);
     }
   }
 });
