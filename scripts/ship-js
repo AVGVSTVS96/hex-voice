@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Ships main's JS to the app over the air: the iPhone and iPad pick it up the next time the app
-# comes to the front with no call live. Native changes need scripts/ship-native instead.
+# Ships main's JS to the app over the air: the iPhone and iPad download it when the app comes to
+# the front and restart into it right then, or after a live call. Native changes need
+# scripts/ship-native instead.
 #   scripts/ship-js <commit>   ships main once it holds the commit you pushed, so a merge or push
 #                              that failed never ships whatever else main holds
 . "$(dirname "$0")/release.sh"
