@@ -2,7 +2,6 @@ import { Column, Spacer, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
 import {
   animation,
-  background,
   clipped,
   foregroundStyle,
   frame,
@@ -12,20 +11,13 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Linking } from "react-native";
 
-import { TASKS } from "@/call/stage";
+import { AgentTasks } from "@/components/tasks/agents";
 import { PageChrome } from "@/components/tasks/bar";
 import type { Back, Chrome, Door } from "@/components/tasks/bar";
 import { LastCheck } from "@/components/tasks/last-check";
 import { ListPage } from "@/components/tasks/list";
-import {
-  COLUMNS,
-  levelsOf,
-  shapeOf,
-  spotOf,
-  usePages,
-  Showing,
-  Typing,
-} from "@/components/tasks/pages";
+import { PAGED, PageAt, STACKED, upTo } from "@/components/tasks/page-at";
+import { levelsOf, shapeOf, spotOf, usePages, Showing, Typing } from "@/components/tasks/pages";
 import type { Asking, Level, Move, Pages, Room, Spot, Stack } from "@/components/tasks/pages";
 import { feel } from "@/components/tasks/parts";
 import { PickPage, PicksPage, usePickChoices } from "@/components/tasks/picks";
@@ -37,6 +29,7 @@ import { StepsLoading, Trace } from "@/components/tasks/trace";
 import { useToolbarBack } from "@/components/toolbar-back";
 import { useAsks, useCheck } from "@/hooks/use-asks";
 import { useChat } from "@/hooks/use-chat";
+import { server } from "@/hooks/use-server";
 import { useTask, useTasks } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
 import type { Ask, AskOption } from "@/live/asks";
@@ -84,7 +77,10 @@ export const TasksView = ({
   return <Tasks {...view} pages={pages} room={room} />;
 };
 
-export const Tasks = ({
+export const Tasks = (props: TasksProps & { pages: Pages; room: Room }) =>
+  server.tasks === "hex" ? <HexTasks {...props} /> : <AgentTasks {...props} />;
+
+const HexTasks = ({
   open,
   haptics,
   onTalk,
@@ -519,10 +515,6 @@ export const Tasks = ({
   );
 };
 
-const PAGED = { page: TASKS, column: { ...COLUMNS, from: Infinity }, behind: 1 };
-
-const STACKED = { page: Infinity, column: COLUMNS, behind: 1 / 3 };
-
 const PUSHED = ["topic", "thread", "steps", "check", "picks", "pick"] as const satisfies Level[];
 
 const useLinks = (ask: Asking | null) => {
@@ -616,19 +608,3 @@ const Nothing = ({ loaded }: { loaded: boolean }) => (
     )}
   </Column>
 );
-
-const PageAt = ({ paged, children }: { paged: boolean; children: ReactNode }) => (
-  <Column
-    alignment="center"
-    spacing={0}
-    modifiers={[
-      frame({ maxWidth: Infinity, alignment: "top" }),
-      upTo(),
-      ...(paged ? [] : [background(theme.sheet)]),
-    ]}
-  >
-    {children}
-  </Column>
-);
-
-const upTo = () => frame({ minHeight: 0, maxHeight: Infinity, alignment: "top" });

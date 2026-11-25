@@ -7,7 +7,7 @@ export interface Server {
   label: string;
   url: string | undefined;
   token: string | undefined;
-  tasks: boolean;
+  tasks: "hex" | "agents";
   kept: string;
   reach: string;
 }
@@ -18,7 +18,7 @@ export const SERVERS: readonly [Server, ...Server[]] = [
     label: "hex",
     url: Address.parse(process.env.EXPO_PUBLIC_HEX_URL),
     token: Address.parse(process.env.EXPO_PUBLIC_HEX_TOKEN),
-    tasks: true,
+    tasks: "hex",
     kept: "",
     reach: "Check that Tailscale is on",
   },
@@ -27,7 +27,7 @@ export const SERVERS: readonly [Server, ...Server[]] = [
     label: "hex-next",
     url: Address.parse(process.env.EXPO_PUBLIC_HEX_NEXT_URL),
     token: Address.parse(process.env.EXPO_PUBLIC_HEX_NEXT_TOKEN),
-    tasks: false,
+    tasks: "agents",
     kept: "hex-next:",
     reach: "Check your connection",
   },

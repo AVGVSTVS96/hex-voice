@@ -8,12 +8,14 @@
         "state": "running",
         "text": "Reading the Duo pass notes",
         "to": "hex",
-        "line": "Reading the layout notes"
+        "line": "Reading the layout notes",
+        "agent": "a7f01"
       },
       {
         "id": "transcript",
         "state": "done",
-        "text": "Checked the transcript beside Tasks"
+        "text": "Checked the transcript beside Tasks",
+        "agent": "a7f02"
       }
     ]
   },
@@ -28,74 +30,96 @@
         "id": "transcript",
         "state": "running",
         "text": "Checking the transcript beside Tasks",
-        "at": 5000
+        "at": 5000,
+        "agent": "a7f02"
       },
       {
         "id": "notes",
         "state": "running",
         "text": "Reading the Duo pass notes",
-        "at": 9000
+        "at": 9000,
+        "agent": "a7f01"
       },
       {
         "id": "transcript",
         "state": "done",
         "text": "Checked the transcript beside Tasks",
-        "at": 24000
+        "at": 24000,
+        "agent": "a7f02"
       }
     ]
   },
-  "/calls/demo/steps": {
+  "/agents/a7f01/steps": {
     "version": 1,
-    "tasks": [
+    "steps": [
       {
-        "id": "notes",
-        "steps": [
-          {
-            "id": "n1",
-            "at": "2026-11-25T10:00:09.500Z",
-            "end": "2026-11-25T10:00:11.000Z",
-            "kind": "read",
-            "text": "Reading notes/duo-pass.md",
-            "state": "done",
-            "result": "142 lines"
-          },
-          {
-            "id": "n2",
-            "at": "2026-11-25T10:00:12.000Z",
-            "end": "2026-11-25T10:00:14.000Z",
-            "kind": "search",
-            "text": "Searching for toolbar in src/screens",
-            "state": "done",
-            "result": "6 hits"
-          },
-          {
-            "id": "n3",
-            "at": "2026-11-25T10:00:15.000Z",
-            "kind": "read",
-            "text": "Reading the layout notes",
-            "state": "running"
-          }
-        ]
+        "id": "n1",
+        "at": "2026-11-25T10:00:09.500Z",
+        "end": "2026-11-25T10:00:11.000Z",
+        "kind": "read",
+        "text": "Reading notes/duo-pass.md",
+        "state": "done",
+        "result": "142 lines"
       },
       {
-        "id": "transcript",
-        "steps": [
-          {
-            "id": "t1",
-            "at": "2026-11-25T10:00:05.500Z",
-            "end": "2026-11-25T10:00:08.000Z",
-            "kind": "run",
-            "text": "Running the transcript layout test",
-            "state": "done",
-            "result": "passed"
-          },
-          {
-            "id": "t2",
-            "at": "2026-11-25T10:00:23.000Z",
-            "kind": "say",
-            "text": "It's in the layout pass too."
-          }
-        ]
+        "id": "n2",
+        "at": "2026-11-25T10:00:12.000Z",
+        "end": "2026-11-25T10:00:14.000Z",
+        "kind": "search",
+        "text": "Searching for toolbar in src/screens",
+        "state": "done",
+        "result": "6 hits"
+      },
+      {
+        "id": "n3",
+        "at": "2026-11-25T10:00:15.000Z",
+        "kind": "read",
+        "text": "Reading the layout notes",
+        "state": "running"
+      }
+    ]
+  },
+  "/agents/a7f02/steps": {
+    "version": 1,
+    "steps": [
+      {
+        "id": "t1",
+        "at": "2026-11-25T10:00:05.500Z",
+        "end": "2026-11-25T10:00:08.000Z",
+        "kind": "run",
+        "text": "Running the transcript layout test",
+        "state": "done",
+        "result": "passed"
+      },
+      {
+        "id": "t2",
+        "at": "2026-11-25T10:00:23.000Z",
+        "kind": "say",
+        "text": "It's in the layout pass too."
+      }
+    ]
+  },
+  "/agents": {
+    "version": 1,
+    "agents": [
+      {
+        "id": "a7f01",
+        "session": "hs_duo",
+        "place": "Duo pass",
+        "label": "Reading the Duo pass notes",
+        "who": "general-purpose",
+        "state": "working",
+        "since": "2026-11-25T10:00:09.000Z"
+      },
+      {
+        "id": "a7f02",
+        "session": "hs_duo",
+        "place": "Duo pass",
+        "label": "Checking the transcript beside Tasks",
+        "who": "general-purpose",
+        "state": "done",
+        "since": "2026-11-25T10:00:05.000Z",
+        "end": "2026-11-25T10:00:24.000Z"
       }
     ]
   }

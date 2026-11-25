@@ -14,7 +14,7 @@ export interface Counts {
 
 export const useTaskCounts = (listed: Counts | undefined): Counts => {
   const [counts, keep] = useKept("task-counts", TaskCounts);
-  useWatch(server.tasks ? "counts" : null, hex.tasks.counts, keep);
+  useWatch(server.tasks === "hex" ? "counts" : null, hex.tasks.counts, keep);
 
   if (listed) {
     return listed;
