@@ -11,7 +11,6 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Linking } from "react-native";
 
-import { SessionTasks } from "@/components/tasks/sessions";
 import { PageChrome } from "@/components/tasks/bar";
 import type { Back, Chrome, Door } from "@/components/tasks/bar";
 import { LastCheck } from "@/components/tasks/last-check";
@@ -23,6 +22,7 @@ import { feel } from "@/components/tasks/parts";
 import { PickPage, PicksPage, usePickChoices } from "@/components/tasks/picks";
 import { EntryRow } from "@/components/tasks/rows";
 import { Selectable } from "@/components/tasks/said";
+import { SessionTasks } from "@/components/tasks/sessions";
 import { Asked, Detail, DonePage } from "@/components/tasks/task-page";
 import { Messages, ThreadPage } from "@/components/tasks/thread";
 import { StepsLoading, Trace } from "@/components/tasks/trace";
