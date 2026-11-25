@@ -55,6 +55,7 @@ struct MarkdownView: ExpoSwiftUI.View {
         .lineSpacing(props.leading)
         .lineLimit(props.lines)
         .selecting(props.selectable)
+        .allowsHitTesting(props.selectable)
     } else {
       StructuredText(props.markdown, parser: Chat(look: props.look)).selecting(props.selectable)
     }

@@ -269,9 +269,8 @@ const SessionRow = ({
     <Row
       alignment="start"
       spacing={metrics.list.gap}
-      onPress={onOpen}
       modifiers={[
-        ...rowFrame(selected),
+        ...rowFrame(selected, onOpen),
         accessibilityLabel(`${titleOf(row)}, ${STATE_WORDS[row.state]}. Shows its steps`),
       ]}
     >

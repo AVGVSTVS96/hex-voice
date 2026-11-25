@@ -353,8 +353,7 @@ const Shell = ({
   <Row
     alignment="start"
     spacing={metrics.list.gap}
-    {...(onPress && { onPress })}
-    modifiers={[...rowFrame(selected), accessibilityLabel(label)]}
+    modifiers={[...rowFrame(selected, onPress), accessibilityLabel(label)]}
   >
     <Mark state={mark} />
     <Column
@@ -497,10 +496,9 @@ export const ProjectRow = ({
     <Row
       alignment="start"
       spacing={metrics.list.gap}
-      onPress={onOpen}
       testID="project-row"
       modifiers={[
-        ...rowFrame(selected),
+        ...rowFrame(selected, onOpen),
         ...listRow(),
         accessibilityLabel(`${topic.name}, ${counted}: ${headline}. Opens it`),
       ]}

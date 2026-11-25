@@ -13,6 +13,7 @@ import {
   listRowInsets,
   listRowSeparator,
   monospacedDigit,
+  onTapGesture,
   padding,
   shapes,
   tint,
@@ -58,7 +59,7 @@ export const listRow = (): ModifierConfig[] => [
   listRowSeparator("hidden"),
 ];
 
-export const rowFrame = (selected: boolean) => [
+export const rowFrame = (selected: boolean, onPress?: () => void) => [
   padding({
     leading: metrics.list.inset - space[2],
     trailing: metrics.list.inset - space[2],
@@ -69,6 +70,7 @@ export const rowFrame = (selected: boolean) => [
   ...(selected ? [background(theme.card)] : []),
   clipShape("roundedRectangle", radius.control),
   contentShape(shapes.rectangle()),
+  ...(onPress ? [onTapGesture(onPress)] : []),
   padding({ leading: space[2], trailing: space[2] }),
 ];
 

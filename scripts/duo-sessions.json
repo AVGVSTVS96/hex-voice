@@ -1,0 +1,222 @@
+{
+  "/tasks": {
+    "version": 1,
+    "tasks": [
+      {
+        "id": "hs_lamp",
+        "app": "telegram",
+        "name": "Porch lamp",
+        "place": "",
+        "state": "needs",
+        "running": false,
+        "line": "Waiting on you to pick a **warm** or *cool* bulb for the [porch](https://example.com/lamp)",
+        "since": "2026-11-25T09:00:00.000Z",
+        "at": "2026-11-25T09:00:00.000Z",
+        "track": [],
+        "agents": [
+          {
+            "id": "a_lamp",
+            "label": "Compare bulbs",
+            "who": "general-purpose",
+            "state": "done",
+            "since": "2026-11-25T08:50:00.000Z",
+            "end": "2026-11-25T08:58:00.000Z"
+          }
+        ]
+      },
+      {
+        "id": "hs_garden",
+        "app": "telegram",
+        "name": "Garden plan",
+        "place": "",
+        "state": "working",
+        "running": true,
+        "line": "Laying out the beds: `tomatoes` by the fence, **herbs** near the door, and the rest along the path",
+        "since": "2026-11-25T10:00:00.000Z",
+        "at": "2026-11-25T10:00:00.000Z",
+        "track": [],
+        "agents": [
+          {
+            "id": "a_beds",
+            "label": "Measure the beds",
+            "who": "general-purpose",
+            "state": "working",
+            "since": "2026-11-25T09:55:00.000Z"
+          },
+          {
+            "id": "a_seeds",
+            "label": "Order seeds",
+            "who": "general-purpose",
+            "state": "working",
+            "since": "2026-11-25T09:58:00.000Z"
+          }
+        ]
+      },
+      {
+        "id": "hs_trip",
+        "app": "telegram",
+        "name": "Weekend trip",
+        "place": "",
+        "state": "idle",
+        "running": false,
+        "line": "Booked the cabin for **Saturday**; the [map](https://example.com/map) and packing list are ready",
+        "since": "2026-11-25T07:00:00.000Z",
+        "at": "2026-11-25T07:00:00.000Z",
+        "track": [],
+        "agents": [
+          {
+            "id": "a_cabin",
+            "label": "Find a cabin",
+            "who": "general-purpose",
+            "state": "done",
+            "since": "2026-11-25T06:30:00.000Z",
+            "end": "2026-11-25T06:50:00.000Z"
+          }
+        ]
+      }
+    ]
+  },
+  "/tasks/summary": {
+    "version": 1,
+    "needs": 1,
+    "working": 1
+  },
+  "/tasks/hs_lamp": {
+    "id": "hs_lamp",
+    "app": "telegram",
+    "name": "Porch lamp",
+    "place": "",
+    "state": "needs",
+    "running": false,
+    "line": "Waiting on you to pick a **warm** or *cool* bulb for the [porch](https://example.com/lamp)",
+    "since": "2026-11-25T09:00:00.000Z",
+    "at": "2026-11-25T09:00:00.000Z",
+    "track": [],
+    "agents": [
+      {
+        "id": "a_lamp",
+        "label": "Compare bulbs",
+        "who": "general-purpose",
+        "state": "done",
+        "since": "2026-11-25T08:50:00.000Z",
+        "end": "2026-11-25T08:58:00.000Z",
+        "steps": [
+          {
+            "id": "a_lamp:0",
+            "at": "2026-11-25T08:50:00.000Z",
+            "kind": "read",
+            "text": "Compare bulbs: reading the notes",
+            "state": "done"
+          }
+        ]
+      }
+    ],
+    "plan": [],
+    "lately": [],
+    "steps": [
+      {
+        "id": "hs_lamp:0",
+        "at": "2026-11-25T09:00:00.000Z",
+        "kind": "say",
+        "text": "Steps of Porch lamp: Waiting on you to pick a **warm** or *cool* bulb for the [porch](https://example.com/lamp)"
+      }
+    ]
+  },
+  "/tasks/hs_garden": {
+    "id": "hs_garden",
+    "app": "telegram",
+    "name": "Garden plan",
+    "place": "",
+    "state": "working",
+    "running": true,
+    "line": "Laying out the beds: `tomatoes` by the fence, **herbs** near the door, and the rest along the path",
+    "since": "2026-11-25T10:00:00.000Z",
+    "at": "2026-11-25T10:00:00.000Z",
+    "track": [],
+    "agents": [
+      {
+        "id": "a_beds",
+        "label": "Measure the beds",
+        "who": "general-purpose",
+        "state": "working",
+        "since": "2026-11-25T09:55:00.000Z",
+        "steps": [
+          {
+            "id": "a_beds:0",
+            "at": "2026-11-25T09:55:00.000Z",
+            "kind": "read",
+            "text": "Measure the beds: reading the notes",
+            "state": "running"
+          }
+        ]
+      },
+      {
+        "id": "a_seeds",
+        "label": "Order seeds",
+        "who": "general-purpose",
+        "state": "working",
+        "since": "2026-11-25T09:58:00.000Z",
+        "steps": [
+          {
+            "id": "a_seeds:0",
+            "at": "2026-11-25T09:58:00.000Z",
+            "kind": "read",
+            "text": "Order seeds: reading the notes",
+            "state": "running"
+          }
+        ]
+      }
+    ],
+    "plan": [],
+    "lately": [],
+    "steps": [
+      {
+        "id": "hs_garden:0",
+        "at": "2026-11-25T10:00:00.000Z",
+        "kind": "say",
+        "text": "Steps of Garden plan: Laying out the beds: `tomatoes` by the fence, **herbs** near the door, and the rest along the path"
+      }
+    ]
+  },
+  "/tasks/hs_trip": {
+    "id": "hs_trip",
+    "app": "telegram",
+    "name": "Weekend trip",
+    "place": "",
+    "state": "idle",
+    "running": false,
+    "line": "Booked the cabin for **Saturday**; the [map](https://example.com/map) and packing list are ready",
+    "since": "2026-11-25T07:00:00.000Z",
+    "at": "2026-11-25T07:00:00.000Z",
+    "track": [],
+    "agents": [
+      {
+        "id": "a_cabin",
+        "label": "Find a cabin",
+        "who": "general-purpose",
+        "state": "done",
+        "since": "2026-11-25T06:30:00.000Z",
+        "end": "2026-11-25T06:50:00.000Z",
+        "steps": [
+          {
+            "id": "a_cabin:0",
+            "at": "2026-11-25T06:30:00.000Z",
+            "kind": "read",
+            "text": "Find a cabin: reading the notes",
+            "state": "done"
+          }
+        ]
+      }
+    ],
+    "plan": [],
+    "lately": [],
+    "steps": [
+      {
+        "id": "hs_trip:0",
+        "at": "2026-11-25T07:00:00.000Z",
+        "kind": "say",
+        "text": "Steps of Weekend trip: Booked the cabin for **Saturday**; the [map](https://example.com/map) and packing list are ready"
+      }
+    ]
+  }
+}

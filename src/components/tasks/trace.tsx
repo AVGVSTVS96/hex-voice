@@ -6,6 +6,7 @@ import {
   foregroundStyle,
   frame,
   monospacedDigit,
+  onTapGesture,
   padding,
   scrollClipDisabled,
   shapes,
@@ -603,7 +604,6 @@ export const TraceLine = ({
   <Row
     alignment="start"
     spacing={metrics.list.gap}
-    {...(onPress && { onPress })}
     modifiers={[
       padding({
         leading: metrics.list.inset - space[0.5] + indent,
@@ -613,6 +613,7 @@ export const TraceLine = ({
       }),
       frame({ maxWidth: Infinity, alignment: "leading" }),
       contentShape(shapes.rectangle()),
+      ...(onPress ? [onTapGesture(onPress)] : []),
       ...(label ? [accessibilityLabel(label)] : []),
     ]}
   >

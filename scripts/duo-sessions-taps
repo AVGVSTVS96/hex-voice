@@ -1,0 +1,18 @@
+# On hex-next, a tap on a session's row in Tasks opens its Steps page, every time, over invented
+# answers: ANSWERS=scripts/duo-sessions.json HEX=kept scripts/duo tap <ref> scripts/duo-sessions-taps
+launch hexvoice:///?tasks
+wait 3
+shoot tasks
+tap Weekend trip, idle
+wait 2
+shoot trip
+launch hexvoice:///?tasks
+wait 3
+tap Porch lamp, waiting
+wait 2
+shoot lamp
+launch hexvoice:///?tasks
+wait 3
+tap Weekend trip, idle
+wait 2
+shoot trip-again
