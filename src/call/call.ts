@@ -1,5 +1,13 @@
 import type { PersonaState } from "@/components/persona/animation";
-import { ENDINGS, SOURCES, callLength, endedSeconds, hushed, liveEntries } from "@/live/calls";
+import {
+  ENDINGS,
+  SOURCES,
+  callLength,
+  endedSeconds,
+  hushed,
+  liveEntries,
+  withItems,
+} from "@/live/calls";
 import type { CallEnding, CallId, CallRecord, CallSource } from "@/live/calls";
 import type { Sent } from "@/live/shares";
 import type { LiveSnapshot, LiveStatus, TranscriptEntry } from "@/live/types";
@@ -60,7 +68,7 @@ export const callOf = (
       mic: { muted: session.muted, interrupted: session.interrupted },
       hushed: hushed(own?.moments),
       seconds: session.elapsedSeconds,
-      words: session.transcript,
+      words: withItems(session.transcript, own?.moments),
     };
   }
 

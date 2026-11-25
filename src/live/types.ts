@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import type { CallEnding, CallId } from "./calls";
+import type { CallEnding, CallId, Item } from "./calls";
 import type { Shown } from "./media";
 import type { TaskId } from "./tasks";
 import type { LiveVoice } from "./voices";
@@ -24,6 +24,7 @@ export interface TranscriptEntry {
   startMs: number;
   endMs?: number;
   media?: Shown;
+  item?: Item;
   sending?: boolean;
   failed?: string | undefined;
 }
