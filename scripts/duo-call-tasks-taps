@@ -1,0 +1,14 @@
+# On hex-next, the agent line on the demo call (a pretend call) opens the call's tasks and their steps in a sheet,
+# over invented answers: ANSWERS=scripts/duo-call-tasks.json HEX=kept scripts/duo tap <ref> scripts/duo-call-tasks-taps
+launch hexvoice:///?demo=call
+wait 4
+shoot call
+tap Reading the layout notes
+wait 2
+shoot sheet-on-call
+tap Checked the transcript beside Tasks
+wait 1
+shoot sheet-on-call-second-open
+swipe-down Agents
+wait 3
+shoot sheet-closed-on-call

@@ -64,6 +64,7 @@ const CallTask = z.object({
   state: z.catch(z.enum(["running", "done", "failed"]), "done"),
   at: z.number(),
   text: z.string(),
+  agent: z.optional(z.string()),
 });
 
 export type CallTask = z.infer<typeof CallTask>;

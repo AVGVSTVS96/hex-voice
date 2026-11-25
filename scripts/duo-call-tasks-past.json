@@ -1,0 +1,128 @@
+{
+  "/activity": {
+    "version": 1,
+    "call": null,
+    "tasks": []
+  },
+  "/calls": {
+    "version": 1,
+    "calls": [
+      {
+        "id": "duo-router",
+        "started": "2026-11-24T18:20:00.000Z",
+        "ended": "2026-11-24T18:23:10.000Z",
+        "end": "you",
+        "from": "app",
+        "title": "Router check",
+        "summary": "hex looked into why the internet dropped and found the router's cable loose.",
+        "seconds": 190,
+        "tasks": 2,
+        "preview": "Why did the internet drop?"
+      }
+    ]
+  },
+  "/calls/duo-router": {
+    "id": "duo-router",
+    "started": "2026-11-24T18:20:00.000Z",
+    "ended": "2026-11-24T18:23:10.000Z",
+    "end": "you",
+    "from": "app",
+    "title": "Router check",
+    "summary": "hex looked into why the internet dropped and found the router's cable loose.",
+    "turns": [
+      {
+        "who": "you",
+        "at": 2000,
+        "text": "Why did the internet drop?"
+      },
+      {
+        "who": "voice",
+        "at": 6000,
+        "text": "Let me check the router's log and the outage page."
+      },
+      {
+        "who": "voice",
+        "at": 70000,
+        "text": "No outage nearby. The router lost its signal at six, so check the cable from the wall."
+      },
+      {
+        "who": "you",
+        "at": 90000,
+        "text": "Found it, it was loose."
+      }
+    ],
+    "tasks": [
+      {
+        "id": "log",
+        "state": "running",
+        "text": "Reading the router's log",
+        "at": 8000
+      },
+      {
+        "id": "outage",
+        "state": "running",
+        "text": "Checking the outage page",
+        "at": 9000
+      },
+      {
+        "id": "outage",
+        "state": "done",
+        "text": "No outage nearby",
+        "at": 30000
+      },
+      {
+        "id": "log",
+        "state": "done",
+        "text": "Signal lost at 6:02 pm",
+        "at": 60000
+      }
+    ]
+  },
+  "/calls/duo-router/steps": {
+    "version": 1,
+    "tasks": [
+      {
+        "id": "log",
+        "steps": [
+          {
+            "id": "l1",
+            "at": "2026-11-24T18:20:08.500Z",
+            "end": "2026-11-24T18:20:20.000Z",
+            "kind": "web",
+            "text": "Opening the router's admin page",
+            "state": "done"
+          },
+          {
+            "id": "l2",
+            "at": "2026-11-24T18:20:21.000Z",
+            "end": "2026-11-24T18:20:50.000Z",
+            "kind": "read",
+            "text": "Reading the system log for the last hour, where the WAN link went down and came back up several times before it stayed down",
+            "state": "done",
+            "result": "WAN down at 18:02"
+          },
+          {
+            "id": "l3",
+            "at": "2026-11-24T18:20:58.000Z",
+            "kind": "say",
+            "text": "Signal lost at 6:02 pm."
+          }
+        ]
+      },
+      {
+        "id": "outage",
+        "steps": [
+          {
+            "id": "o1",
+            "at": "2026-11-24T18:20:09.500Z",
+            "end": "2026-11-24T18:20:28.000Z",
+            "kind": "web",
+            "text": "Searching the provider's outage map",
+            "state": "done",
+            "result": "none nearby"
+          }
+        ]
+      }
+    ]
+  }
+}

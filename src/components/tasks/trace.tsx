@@ -148,7 +148,15 @@ export const StepsLoading = (answered: Answered) => (
   </Column>
 );
 
-export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) => {
+export const Trace = ({
+  task,
+  focus,
+  onOpen,
+}: {
+  task: Task;
+  focus?: string | undefined;
+  onOpen: (link: string) => void;
+}) => {
   const working = task.state === "working";
   const done = task.plan.filter((item) => item.state === "done").length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -191,19 +199,29 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                 <Column key="agents" alignment="start" spacing={0}>
                   <SectionHead title="Agents" count={agentCounts(shown)} />
                   {shown.map((agent) => (
-                    <Agent key={agent.id} agent={agent} onOpen={onOpen} />
+                    <Agent
+                      key={agent.id}
+                      agent={agent}
+                      opened={agent.id === focus}
+                      onOpen={onOpen}
+                    />
                   ))}
                   {tries.length ? <Tries tries={tries} onOpen={onOpen} /> : null}
                 </Column>
               ) : null}
-              <Column key="steps" alignment="start" spacing={0}>
-                <SectionHead title="Steps" count={task.steps.length ? "newest first" : undefined} />
-                {task.steps.length ? (
-                  <Turns steps={task.steps} agents={task.agents} working={working} />
-                ) : (
-                  <Quiet text={working ? "No steps yet" : "Steps show while it works"} />
-                )}
-              </Column>
+              {task.steps.length || !shown.length ? (
+                <Column key="steps" alignment="start" spacing={0}>
+                  <SectionHead
+                    title="Steps"
+                    count={task.steps.length ? "newest first" : undefined}
+                  />
+                  {task.steps.length ? (
+                    <Turns steps={task.steps} agents={task.agents} working={working} />
+                  ) : (
+                    <Quiet text={working ? "No steps yet" : "Steps show while it works"} />
+                  )}
+                </Column>
+              ) : null}
             </Sections>
           </Column>
         </ScrollView>
@@ -418,8 +436,16 @@ const agentShows = (agent: AgentTrail, open: boolean) => {
   };
 };
 
-const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
-  const [open, setOpen] = useState(false);
+const Agent = ({
+  agent,
+  opened = false,
+  onOpen,
+}: {
+  agent: AgentTrail;
+  opened?: boolean;
+  onOpen: (link: string) => void;
+}) => {
+  const [open, setOpen] = useState(opened);
   const { newest, result, steps, link } = agentShows(agent, open);
   const meta = agentMeta(agent);
 

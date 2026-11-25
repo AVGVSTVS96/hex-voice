@@ -3,6 +3,7 @@ import * as z from "zod/mini";
 import { AgentActivity } from "../live/agents";
 import { AskList, Check, Sent, Words } from "../live/asks";
 import type { AskId } from "../live/asks";
+import { CallSteps } from "../live/call-tasks";
 import { CallId, CallList, CallRecord } from "../live/calls";
 import { Shared } from "../live/media";
 import type { MediaId, Picked } from "../live/media";
@@ -89,6 +90,8 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       media: async (id: CallId, shared: MediaId[]) => {
         await send(`/calls/${enc(id)}/media`, { body: { media: shared } });
       },
+      steps: async (id: CallId, after?: number, signal?: AbortSignal) =>
+        await request(`/calls/${enc(id)}/steps`, CallSteps, { after, signal }),
     },
     tasks: {
       list: async (after?: number, signal?: AbortSignal) =>

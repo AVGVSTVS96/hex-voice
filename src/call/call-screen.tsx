@@ -30,6 +30,8 @@ import { footOf } from "@/call/stage";
 import { useCall } from "@/call/use-call";
 import { AgentLine } from "@/components/agent-line";
 import { CallControls } from "@/components/call-controls";
+import { CallTasksSheet } from "@/components/call-tasks-sheet";
+import type { CallTasksAt } from "@/components/call-tasks-sheet";
 import { CallTranscript } from "@/components/call-transcript";
 import { CallsSidebar } from "@/components/calls-sidebar";
 import { CallAdd } from "@/components/media/call-add";
@@ -167,6 +169,7 @@ const CallScreen = ({
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   const { call, start, end, toggleMute } = useCall(held);
+  const [callTasks, setCallTasks] = useState<CallTasksAt | null>(null);
   const onCall = call.kind !== "none";
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
@@ -840,6 +843,13 @@ const CallScreen = ({
                       }
                     : undefined
                 }
+                onOpenCallTask={
+                  server.tasks
+                    ? undefined
+                    : (id, task) => {
+                        setCallTasks({ call: id, task });
+                      }
+                }
               />
               {pulls && (
                 <AnimatedView
@@ -910,13 +920,22 @@ const CallScreen = ({
           </CallFooter>
           <AnimatedPressable
             {...reachable(agent !== null)}
-            {...(server.tasks && {
-              onPress: () => {
-                openTasks({ stage: "working" });
-              },
-              accessibilityRole: "button",
-              accessibilityHint: "Opens what hex is working on",
-            })}
+            {...(server.tasks
+              ? {
+                  onPress: () => {
+                    openTasks({ stage: "working" });
+                  },
+                  accessibilityRole: "button",
+                  accessibilityHint: "Opens what hex is working on",
+                }
+              : held &&
+                agent && {
+                  onPress: () => {
+                    setCallTasks({ call: held, task: agent.id });
+                  },
+                  accessibilityRole: "button",
+                  accessibilityHint: "Shows its steps",
+                })}
             hitSlop={{ top: 8, bottom: 12 }}
             style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
           >
@@ -934,6 +953,15 @@ const CallScreen = ({
             onCall={onCall}
             onDismiss={() => {
               send({ to: "tasks", open: false });
+            }}
+          />
+        )}
+        {!server.tasks && (
+          <CallTasksSheet
+            at={callTasks}
+            onCall={onCall}
+            onDismiss={() => {
+              setCallTasks(null);
             }}
           />
         )}
@@ -1250,6 +1278,7 @@ const CallWords = ({
   onBack,
   onRemove,
   onOpenTask,
+  onOpenCallTask,
 }: {
   reading: boolean;
   style: ComponentProps<typeof Animated.View>["style"];
@@ -1267,6 +1296,7 @@ const CallWords = ({
   onBack: () => void;
   onRemove: (id: CallId) => void;
   onOpenTask: ((task: TaskId) => void) | undefined;
+  onOpenCallTask: ((call: CallId, task: string) => void) | undefined;
 }) => (
   <Animated.View {...reachable(reading)} style={style}>
     {shown && (
@@ -1292,6 +1322,12 @@ const CallWords = ({
           call={past.call}
           failed={past.failed}
           live={shown.id === live}
+          onOpenTask={
+            onOpenCallTask &&
+            ((task) => {
+              onOpenCallTask(shown.id, task);
+            })
+          }
         />
       ) : (
         <Transcript
