@@ -20,6 +20,7 @@ export interface Asking {
 
 export interface TasksAt {
   task?: TaskId | undefined;
+  agent?: string | undefined;
   stage?: Tab | undefined;
   ask?: Asking | undefined;
 }
@@ -29,6 +30,7 @@ export interface Stack {
   task: PageId | null;
   row: string | null;
   stepsOf: TaskId | null;
+  agent: string | null;
   pick: AskId | null;
   focusComposer: boolean;
   stage: Tab | null;
@@ -55,6 +57,7 @@ export const START: Stack = {
   task: null,
   row: null,
   stepsOf: null,
+  agent: null,
   pick: null,
   focusComposer: false,
   stage: null,
@@ -65,7 +68,8 @@ export const START: Stack = {
 export const startAt = (at: TasksAt): Stack => ({
   ...START,
   task: at.task ?? null,
-  path: at.task ? ["topic"] : [],
+  path: at.task !== undefined || at.agent !== undefined ? ["topic"] : [],
+  agent: at.agent ?? null,
   stage: at.stage ?? null,
   ask: at.ask ?? null,
 });

@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import { AgentActivity, AgentList, AgentSteps } from "../live/agents";
+import { AgentActivity } from "../live/agents";
 import { AskList, Check, Sent, Words } from "../live/asks";
 import type { AskId } from "../live/asks";
 import { CallId, CallList, CallRecord } from "../live/calls";
@@ -89,12 +89,6 @@ export const createHex = ({ request, send, source, upload }: Client) => {
       media: async (id: CallId, shared: MediaId[]) => {
         await send(`/calls/${enc(id)}/media`, { body: { media: shared } });
       },
-    },
-    agents: {
-      list: async (after?: number, signal?: AbortSignal) =>
-        await request("/agents", AgentList, { after, signal }),
-      steps: async (id: TaskId, after?: number, signal?: AbortSignal) =>
-        await request(`/agents/${enc(id)}/steps`, AgentSteps, { after, signal }),
     },
     tasks: {
       list: async (after?: number, signal?: AbortSignal) =>

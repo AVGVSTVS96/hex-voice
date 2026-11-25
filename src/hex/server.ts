@@ -7,7 +7,7 @@ export interface Server {
   label: string;
   url: string | undefined;
   token: string | undefined;
-  tasks: "hex" | "agents";
+  tasks: "hex" | "sessions";
   kept: string;
   reach: string;
 }
@@ -27,7 +27,7 @@ export const SERVERS: readonly [Server, ...Server[]] = [
     label: "hex-next",
     url: Address.parse(process.env.EXPO_PUBLIC_HEX_NEXT_URL),
     token: Address.parse(process.env.EXPO_PUBLIC_HEX_NEXT_TOKEN),
-    tasks: "agents",
+    tasks: "sessions",
     kept: "hex-next:",
     reach: "Check your connection",
   },

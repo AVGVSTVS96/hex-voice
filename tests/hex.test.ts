@@ -206,7 +206,7 @@ const next: Server = {
   label: "hex-next",
   url: "https://next.example",
   token: "new",
-  tasks: "agents",
+  tasks: "sessions",
   kept: "hex-next:",
   reach: "Check your connection",
 };

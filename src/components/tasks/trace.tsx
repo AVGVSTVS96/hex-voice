@@ -83,7 +83,7 @@ const LEADS: Partial<Record<MarkState, { icon: SFSymbol; ink: ColorValue; wash?:
   failed: { icon: "exclamationmark", ink: theme.danger, wash: theme.dangerMuted },
 };
 
-export const Lead = ({ state }: { state: MarkState }) => {
+const Lead = ({ state }: { state: MarkState }) => {
   if (state === "working") {
     return (
       <Well wash={theme.progressMuted}>
@@ -148,7 +148,15 @@ export const StepsLoading = (answered: Answered) => (
   </Column>
 );
 
-export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) => {
+export const Trace = ({
+  task,
+  focus,
+  onOpen,
+}: {
+  task: Task;
+  focus?: string | null;
+  onOpen: (link: string) => void;
+}) => {
   const working = task.state === "working";
   const done = task.plan.filter((item) => item.state === "done").length;
   const { shown, tries } = agentsInOrder(task.agents);
@@ -191,7 +199,12 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                 <Column key="agents" alignment="start" spacing={0}>
                   <SectionHead title="Agents" count={agentCounts(shown)} />
                   {shown.map((agent) => (
-                    <Agent key={agent.id} agent={agent} onOpen={onOpen} />
+                    <Agent
+                      key={agent.id}
+                      agent={agent}
+                      opened={agent.id === focus}
+                      onOpen={onOpen}
+                    />
                   ))}
                   {tries.length ? <Tries tries={tries} onOpen={onOpen} /> : null}
                 </Column>
@@ -418,8 +431,16 @@ const agentShows = (agent: AgentTrail, open: boolean) => {
   };
 };
 
-const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
-  const [open, setOpen] = useState(false);
+const Agent = ({
+  agent,
+  opened = false,
+  onOpen,
+}: {
+  agent: AgentTrail;
+  opened?: boolean;
+  onOpen: (link: string) => void;
+}) => {
+  const [open, setOpen] = useState(opened);
   const { newest, result, steps, link } = agentShows(agent, open);
   const meta = agentMeta(agent);
 
@@ -515,7 +536,7 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
 const lineLimit = (lines: number | undefined) =>
   lines === undefined || lines === 0 ? {} : { numberOfLines: lines };
 
-export const Under = ({
+const Under = ({
   text,
   lines = 1,
   tone = "secondary",
