@@ -3,6 +3,7 @@ import type { ColorValue } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { Glyph } from "@/components/glyph";
+import { LinkCard } from "@/components/link-card";
 import { SentMedia } from "@/components/media/sent";
 import { WrapUp } from "@/components/wrap-up";
 import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from "@/live/calls";
@@ -67,6 +68,10 @@ export const CallTranscript = ({ summary, call, failed, live, onOpenTask }: Prop
 
           if (moment.kind === "media") {
             return <SentMedia key={moment.key} id={moment.key} media={moment.media} />;
+          }
+
+          if (moment.kind === "item") {
+            return <LinkCard key={moment.key} item={moment.item} />;
           }
 
           return (

@@ -357,3 +357,23 @@ test("what you sent a call shows among its words, going then sent, until the rec
   ]);
   assert.equal(withSent(callOf(session(), nobody), [sent(sess, 1)]).kind, "none");
 });
+
+test("on a call from this phone, a link hex sent shows in the words, under the answer", () => {
+  const answered: TranscriptEntry[] = [
+    ...words,
+    { id: "assistant-1", role: "assistant", text: "Pushed it.", startMs: 4000 },
+  ];
+
+  const item = { _tag: "link" as const, title: "fix: retry", url: "https://github.com/o/r/pull/2" };
+
+  const call = callOf(
+    session({ status: "connected", callId: sess, transcript: answered }),
+    nobody,
+    { moments: [{ at: 3500, kind: "shown", text: item.title, item }] },
+  );
+
+  assert.deepEqual(
+    wordsOf(call).map((entry) => entry.item ?? entry.text),
+    ["Hi hex", "Pushed it.", item],
+  );
+});

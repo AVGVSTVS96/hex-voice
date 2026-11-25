@@ -13,6 +13,7 @@ import {
   putBack,
   timeline,
   transcriptText,
+  withItems,
   CallId,
   CallRecord,
   CallSummary,
@@ -182,6 +183,73 @@ test("a photo or clip you sent a call shows as your turn, live and after, wherev
   assert.deepEqual(
     timeline(sent).map((moment) => moment.kind),
     ["turn", "media", "turn"],
+  );
+});
+
+test("a link hex sent sits under the voice line that answered, live and after, and an unknown item is left out", () => {
+  const link = {
+    _tag: "link" as const,
+    title: "fix: retry",
+    url: "https://github.com/o/r/commit/abc",
+  };
+
+  const record = CallRecord.parse({
+    id: "live_3",
+    started: "2026-11-25T10:00:00.000Z",
+    from: "app",
+    turns: [
+      { who: "you", at: 1000, text: "Push it" },
+      { who: "voice", at: 2000, text: "On it." },
+      { who: "voice", at: 9000, text: "Pushed, the link is up." },
+      { who: "you", at: 12_000, text: "thanks" },
+    ],
+    tasks: [],
+    moments: [
+      { at: 8500, kind: "say", text: "Pushed." },
+      { at: 8500, kind: "shown", text: "fix: retry", item: link },
+      { at: 8600, kind: "shown", text: "a card", item: { _tag: "card", body: "later" } },
+    ],
+  });
+
+  assert.deepEqual(
+    liveEntries(record).map(({ text, item }) => item?.title ?? text),
+    ["Push it", "On it.", "Pushed, the link is up.", "fix: retry", "thanks"],
+  );
+  assert.deepEqual(
+    timeline(record).map((moment) => (moment.kind === "item" ? moment.item.title : moment.kind)),
+    ["turn", "turn", "turn", "fix: retry", "turn"],
+  );
+  assert.ok(transcriptText(record).includes("hex: fix: retry (https://github.com/o/r/commit/abc)"));
+});
+
+test("before the voice answers, a link shows at the end, then moves under the answer", () => {
+  const { moments } = CallRecord.parse({
+    id: "live_4",
+    started: "2026-11-25T10:00:00.000Z",
+    from: "app",
+    turns: [],
+    tasks: [],
+    moments: [
+      {
+        at: 5000,
+        kind: "shown",
+        text: "PR",
+        item: { _tag: "link", title: "PR", url: "https://github.com/o/r/pull/1" },
+      },
+    ],
+  });
+
+  const asked = { id: "u", role: "user" as const, text: "Open a PR", startMs: 1000 };
+  const answer = { id: "a", role: "assistant" as const, text: "Opened it.", startMs: 6000 };
+  const after = { id: "u2", role: "user" as const, text: "great", startMs: 6500 };
+
+  assert.deepEqual(
+    withItems([asked], moments).map(({ id }) => id),
+    ["u", "item 5000 0"],
+  );
+  assert.deepEqual(
+    withItems([asked, answer, after], moments).map(({ id }) => id),
+    ["u", "a", "item 5000 0", "u2"],
   );
 });
 

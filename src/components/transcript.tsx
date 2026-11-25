@@ -3,6 +3,7 @@ import { StyleSheet, Text } from "react-native";
 import type { ScrollViewInstance, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
 import { CallAsk } from "@/components/call-ask";
+import { LinkCard } from "@/components/link-card";
 import { SentMedia } from "@/components/media/sent";
 import type { Chosen } from "@/hooks/use-asks";
 import type { CallCard } from "@/live/agents";
@@ -39,7 +40,11 @@ export const Transcript = ({
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
   const touching = useRef(false);
-  const visible = entries.filter((entry) => entry.media !== undefined || entry.text.trim() !== "");
+
+  const visible = entries.filter(
+    (entry) => entry.media !== undefined || entry.item !== undefined || entry.text.trim() !== "",
+  );
+
   const moments = interleave(visible, cards);
 
   useEffect(() => {
@@ -98,6 +103,10 @@ export const Transcript = ({
                 onOpenTask={() => onOpenTask?.(moment.ask.task)}
               />
             );
+          }
+
+          if (moment.item) {
+            return <LinkCard key={moment.id} item={moment.item} />;
           }
 
           if (moment.media) {

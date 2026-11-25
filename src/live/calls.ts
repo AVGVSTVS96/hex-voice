@@ -69,6 +69,12 @@ const CallTask = z.object({
 
 export type CallTask = z.infer<typeof CallTask>;
 
+const Item = z.discriminatedUnion("_tag", [
+  z.object({ _tag: z.literal("link"), title: z.string(), url: z.string() }),
+]);
+
+export type Item = z.infer<typeof Item>;
+
 const CallMark = z.object({
   at: z.number(),
   kind: z.catch(
@@ -86,11 +92,13 @@ const CallMark = z.object({
       "muted",
       "unmuted",
       "stopped",
+      "shown",
     ]),
     "note",
   ),
   text: z.string(),
   media: z.optional(MediaId),
+  item: z.catch(z.optional(Item), undefined),
 });
 
 export type CallMark = z.infer<typeof CallMark>;
@@ -190,6 +198,10 @@ const momentText = (moment: Moment) => {
     return `You: (${moment.media.kind})`;
   }
 
+  if (moment.kind === "item") {
+    return `hex: ${moment.item.title} (${moment.item.url})`;
+  }
+
   return `[${moment.kind === "task" ? moment.task.text : moment.mark.text}]`;
 };
 
@@ -197,21 +209,52 @@ export const liveEntries = ({
   turns,
   moments = [],
 }: Pick<CallRecord, "turns" | "moments">): TranscriptEntry[] =>
-  [
-    ...turns.map(({ who, at, text }) => ({
-      id: `${who} ${at}`,
-      role: who === "you" ? ("user" as const) : ("assistant" as const),
-      text,
-      startMs: at,
-    })),
-    ...moments.flatMap((mark) => {
-      const media = sharedOf(mark);
+  withItems(
+    [
+      ...turns.map(({ who, at, text }) => ({
+        id: `${who} ${at}`,
+        role: who === "you" ? ("user" as const) : ("assistant" as const),
+        text,
+        startMs: at,
+      })),
+      ...moments.flatMap((mark) => {
+        const media = sharedOf(mark);
 
-      return media
-        ? [{ id: `media ${media.id}`, role: "user" as const, text: "", startMs: mark.at, media }]
-        : [];
-    }),
-  ].sort((a, b) => a.startMs - b.startMs);
+        return media
+          ? [{ id: `media ${media.id}`, role: "user" as const, text: "", startMs: mark.at, media }]
+          : [];
+      }),
+    ].sort((a, b) => a.startMs - b.startMs),
+    moments,
+  );
+
+const answering = (starts: number[], at: number) => starts.find((start) => start >= at) ?? at;
+
+export const withItems = (entries: TranscriptEntry[], moments: CallMark[] = []) => {
+  const starts = entries.flatMap(({ role, text, startMs }) =>
+    role === "assistant" && text.trim() !== "" ? [startMs] : [],
+  );
+
+  const items = moments.flatMap(({ at, item }, i) =>
+    item
+      ? [
+          {
+            id: `item ${at} ${i}`,
+            role: "assistant" as const,
+            text: "",
+            startMs: answering(starts, at),
+            item,
+          },
+        ]
+      : [],
+  );
+
+  return items.length
+    ? [...entries, ...items].sort(
+        (a, b) => a.startMs - b.startMs || Number(!!a.item) - Number(!!b.item),
+      )
+    : entries;
+};
 
 const sharedOf = ({ kind, media }: CallMark): Shared | undefined =>
   media && (kind === "photo" || kind === "video") ? { id: media, kind } : undefined;
@@ -350,7 +393,8 @@ export type Moment =
   | { kind: "turn"; key: string; at: number; turn: CallTurn }
   | { kind: "task"; key: string; at: number; task: CallTask }
   | { kind: "mark"; key: string; at: number; mark: ShownMark }
-  | { kind: "media"; key: string; at: number; media: Shared };
+  | { kind: "media"; key: string; at: number; media: Shared }
+  | { kind: "item"; key: string; at: number; item: Item };
 
 export const timeline = ({
   turns,
@@ -362,6 +406,8 @@ export const timeline = ({
   for (const task of tasks) {
     markers.set(task.id, { ...task, at: markers.get(task.id)?.at ?? task.at });
   }
+
+  const starts = turns.flatMap(({ who, at }) => (who === "voice" ? [at] : []));
 
   return [
     ...turns.map((turn, i) => ({ kind: "turn" as const, key: `turn-${i}`, at: turn.at, turn })),
@@ -381,5 +427,8 @@ export const timeline = ({
         ? [{ kind: "media" as const, key: `media-${media.id}`, at: mark.at, media }]
         : [];
     }),
+    ...moments.flatMap(({ at, item }, i) =>
+      item ? [{ kind: "item" as const, key: `item-${i}`, at: answering(starts, at), item }] : [],
+    ),
   ].sort((a, b) => a.at - b.at);
 };
