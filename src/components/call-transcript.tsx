@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ColorValue } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
@@ -35,9 +35,10 @@ interface Props {
   call?: CallRecord | undefined;
   failed: boolean;
   live: boolean;
+  onOpenTask?: ((task: string) => void) | undefined;
 }
 
-export const CallTranscript = ({ summary, call, failed, live }: Props) => {
+export const CallTranscript = ({ summary, call, failed, live, onOpenTask }: Props) => {
   const ending = summary.end && !live ? ENDINGS[summary.end] : undefined;
 
   return (
@@ -53,7 +54,7 @@ export const CallTranscript = ({ summary, call, failed, live }: Props) => {
       {call &&
         timeline(call).map((moment) => {
           if (moment.kind === "task") {
-            return <Marker key={moment.key} task={moment.task} />;
+            return <Marker key={moment.key} task={moment.task} onOpen={onOpenTask} />;
           }
 
           if (moment.kind === "mark") {
@@ -110,17 +111,31 @@ const Line = ({
   );
 };
 
-const Marker = ({ task }: { task: CallTask }) => {
+const Marker = ({
+  task,
+  onOpen,
+}: {
+  task: CallTask;
+  onOpen?: ((task: string) => void) | undefined;
+}) => {
   const look = MARKERS[task.state];
 
   return (
-    <View style={styles.marker}>
+    <Pressable
+      disabled={!onOpen}
+      onPress={() => {
+        onOpen?.(task.id);
+      }}
+      accessibilityRole={onOpen ? "button" : undefined}
+      accessibilityHint={onOpen ? "Shows its steps" : undefined}
+      style={styles.marker}
+    >
       <View style={[styles.dot, { backgroundColor: look.fill }]}>
         <Glyph name={look.symbol} size={10} color={look.color} />
       </View>
       <Text style={styles.task}>{task.text}</Text>
       <Text style={styles.at}>{clock(task.at)}</Text>
-    </View>
+    </Pressable>
   );
 };
 

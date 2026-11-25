@@ -18,7 +18,7 @@ const StepKind = z.catch(
 
 export type StepKind = z.infer<typeof StepKind>;
 
-const TaskStep = z.object({
+export const TaskStep = z.object({
   id: z.optional(z.string()),
   at: z.string(),
   end: z.optional(z.string()),
