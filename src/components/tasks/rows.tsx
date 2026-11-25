@@ -401,7 +401,7 @@ const Tiles = ({ tiles }: { tiles: Tile[] }) => {
 
 const lookOf = (tile: Tile) => (tile.kind === "app" ? `${tile.place}:${opens(tile)}` : tile.kind);
 
-const Meta = ({ text }: { text: string }) => (
+export const Meta = ({ text }: { text: string }) => (
   <Text
     numberOfLines={1}
     variant="caption"
@@ -564,7 +564,7 @@ const waiting = (entry: Entry): MarkState => {
   }
 };
 
-const Count = ({ count, mark }: { count: number; mark: MarkState }) => {
+export const Count = ({ count, mark }: { count: number; mark: MarkState }) => {
   const look = tintOf(mark);
 
   return (

@@ -2,8 +2,6 @@ import * as z from "zod/mini";
 
 import { Ask, Sent } from "./asks";
 import { CallId } from "./calls";
-import { TaskId, TaskStep } from "./tasks";
-import type { Task } from "./tasks";
 
 const AgentTask = z.object({
   id: z.string(),
@@ -77,39 +75,3 @@ export const justFinished = (before: AgentTask[], after: AgentTask[]) => {
 
   return after.find((task) => task.state !== "running" && wasRunning.has(task.id));
 };
-
-export const Agent = z.object({
-  id: TaskId,
-  session: z.string(),
-  place: z.string(),
-  label: z.string(),
-  who: z.string(),
-  state: z.catch(z.enum(["working", "done", "stopped"]), "done"),
-  since: z.string(),
-  end: z.optional(z.string()),
-});
-
-export type Agent = z.infer<typeof Agent>;
-
-export const AgentList = z.object({ version: z.number(), agents: z.array(Agent) });
-
-export const AgentSteps = z.object({ version: z.number(), steps: z.array(TaskStep) });
-
-export type AgentSteps = z.infer<typeof AgentSteps>;
-
-export const agentTask = (agent: Agent, steps: AgentSteps["steps"]): Task => ({
-  id: agent.id,
-  app: "chex",
-  name: agent.place,
-  place: agent.label,
-  state: agent.state === "working" ? "working" : "done",
-  running: agent.state === "working",
-  line: "",
-  since: agent.since,
-  at: agent.end ?? agent.since,
-  track: [],
-  lately: [],
-  steps: steps.toReversed(),
-  plan: [],
-  agents: [],
-});

@@ -18,6 +18,7 @@ import type { ReactElement, ReactNode } from "react";
 import type { ColorValue } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
+import { Markdown } from "@/components/markdown";
 import { Header } from "@/components/tasks/bar";
 import { Mark } from "@/components/tasks/mark";
 import type { MarkState } from "@/components/tasks/mark";
@@ -83,7 +84,7 @@ const LEADS: Partial<Record<MarkState, { icon: SFSymbol; ink: ColorValue; wash?:
   failed: { icon: "exclamationmark", ink: theme.danger, wash: theme.dangerMuted },
 };
 
-export const Lead = ({ state }: { state: MarkState }) => {
+const Lead = ({ state }: { state: MarkState }) => {
   if (state === "working") {
     return (
       <Well wash={theme.progressMuted}>
@@ -148,11 +149,20 @@ export const StepsLoading = (answered: Answered) => (
   </Column>
 );
 
-export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => void }) => {
+export const Trace = ({
+  task,
+  focus,
+  onOpen,
+}: {
+  task: Task;
+  focus?: string | null;
+  onOpen: (link: string) => void;
+}) => {
   const working = task.state === "working";
   const done = task.plan.filter((item) => item.state === "done").length;
   const { shown, tries } = agentsInOrder(task.agents);
-  const place = PLACES[placeOf(task.app)];
+  const place = task.app === "voice" ? undefined : PLACES[placeOf(task.app)];
+  const status = working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state];
 
   return (
     <Column
@@ -162,7 +172,7 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
     >
       <Header
         title="Steps"
-        subtitle={`${task.place || task.name} · ${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
+        subtitle={[task.place || task.name, place, status].filter(Boolean).join(" · ")}
       />
       <Faded>
         <ScrollView
@@ -191,7 +201,12 @@ export const Trace = ({ task, onOpen }: { task: Task; onOpen: (link: string) => 
                 <Column key="agents" alignment="start" spacing={0}>
                   <SectionHead title="Agents" count={agentCounts(shown)} />
                   {shown.map((agent) => (
-                    <Agent key={agent.id} agent={agent} onOpen={onOpen} />
+                    <Agent
+                      key={agent.id}
+                      agent={agent}
+                      opened={agent.id === focus}
+                      onOpen={onOpen}
+                    />
                   ))}
                   {tries.length ? <Tries tries={tries} onOpen={onOpen} /> : null}
                 </Column>
@@ -244,6 +259,7 @@ export const Steps = ({
             key={key}
             lead={stepLead(step)}
             text={step.text}
+            markdown={words}
             lines={opened ? 0 : folded}
             tone={step.state === "failed" ? "danger" : undefined}
             time={agent ? undefined : times[i]}
@@ -418,8 +434,16 @@ const agentShows = (agent: AgentTrail, open: boolean) => {
   };
 };
 
-const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) => void }) => {
-  const [open, setOpen] = useState(false);
+const Agent = ({
+  agent,
+  opened = false,
+  onOpen,
+}: {
+  agent: AgentTrail;
+  opened?: boolean;
+  onOpen: (link: string) => void;
+}) => {
+  const [open, setOpen] = useState(opened);
   const { newest, result, steps, link } = agentShows(agent, open);
   const meta = agentMeta(agent);
 
@@ -429,6 +453,7 @@ const Agent = ({ agent, onOpen }: { agent: AgentTrail; onOpen: (link: string) =>
         <TraceLine
           lead={<Lead state={agent.state} />}
           text={agent.label}
+          lines={2}
           tone={agent.state === "stopped" ? "secondary" : undefined}
           time={meta}
           onPress={() => {
@@ -515,7 +540,7 @@ const Tries = ({ tries, onOpen }: { tries: AgentTrail[]; onOpen: (link: string) 
 const lineLimit = (lines: number | undefined) =>
   lines === undefined || lines === 0 ? {} : { numberOfLines: lines };
 
-export const Under = ({
+const Under = ({
   text,
   lines = 1,
   tone = "secondary",
@@ -523,21 +548,33 @@ export const Under = ({
   text: string;
   lines?: number;
   tone?: Tone;
-}) => (
-  <Text
-    {...lineLimit(lines)}
-    variant="detail"
-    tone={tone}
-    paragraph
-    modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-  >
-    {text}
-  </Text>
-);
+}) =>
+  tone === "secondary" ? (
+    <Markdown
+      inline
+      lines={lines === 0 ? undefined : lines}
+      variant="detail"
+      tone="secondary"
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+    >
+      {text}
+    </Markdown>
+  ) : (
+    <Text
+      {...lineLimit(lines)}
+      variant="detail"
+      tone={tone}
+      paragraph
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+    >
+      {text}
+    </Text>
+  );
 
 export const TraceLine = ({
   lead,
   text,
+  markdown = false,
   lines = 1,
   time = "",
   tone = "text",
@@ -551,6 +588,7 @@ export const TraceLine = ({
 }: {
   lead: ReactNode;
   text: string;
+  markdown?: boolean;
   lines?: number;
   time?: string | undefined;
   tone?: Tone | undefined;
@@ -586,16 +624,28 @@ export const TraceLine = ({
       {lead}
     </Row>
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Text
-        {...lineLimit(lines)}
-        variant="detail"
-        tone={tone}
-        {...(weight && { weight })}
-        paragraph
-        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-      >
-        {text}
-      </Text>
+      {markdown && (tone === "text" || tone === "secondary") ? (
+        <Markdown
+          inline
+          lines={lines === 0 ? undefined : lines}
+          variant="detail"
+          tone={tone}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          {text}
+        </Markdown>
+      ) : (
+        <Text
+          {...lineLimit(lines)}
+          variant="detail"
+          tone={tone}
+          {...(weight && { weight })}
+          paragraph
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          {text}
+        </Text>
+      )}
       {children}
     </Column>
     {time ? (

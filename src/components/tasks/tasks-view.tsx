@@ -11,7 +11,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Linking } from "react-native";
 
-import { AgentTasks } from "@/components/tasks/agents";
+import { SessionTasks } from "@/components/tasks/sessions";
 import { PageChrome } from "@/components/tasks/bar";
 import type { Back, Chrome, Door } from "@/components/tasks/bar";
 import { LastCheck } from "@/components/tasks/last-check";
@@ -78,7 +78,7 @@ export const TasksView = ({
 };
 
 export const Tasks = (props: TasksProps & { pages: Pages; room: Room }) =>
-  server.tasks === "hex" ? <HexTasks {...props} /> : <AgentTasks {...props} />;
+  server.tasks === "hex" ? <HexTasks {...props} /> : <SessionTasks {...props} />;
 
 const HexTasks = ({
   open,

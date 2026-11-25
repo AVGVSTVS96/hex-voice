@@ -8,7 +8,6 @@ import { SentMedia } from "@/components/media/sent";
 import { WrapUp } from "@/components/wrap-up";
 import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from "@/live/calls";
 import type { CallRecord, CallSummary, CallTask, ShownMark } from "@/live/calls";
-import { TaskId } from "@/live/tasks";
 import { circle, theme } from "@/theme";
 import { ScrollView } from "@/ui/scroll";
 import { metrics, space, textOf } from "@/ui/tokens";
@@ -37,10 +36,10 @@ interface Props {
   call?: CallRecord | undefined;
   failed: boolean;
   live: boolean;
-  onOpenTask: (task: TaskId) => void;
+  onOpenAgent: (agent: string) => void;
 }
 
-export const CallTranscript = ({ summary, call, failed, live, onOpenTask }: Props) => {
+export const CallTranscript = ({ summary, call, failed, live, onOpenAgent }: Props) => {
   const ending = summary.end && !live ? ENDINGS[summary.end] : undefined;
 
   return (
@@ -56,7 +55,7 @@ export const CallTranscript = ({ summary, call, failed, live, onOpenTask }: Prop
       {call &&
         timeline(call).map((moment) => {
           if (moment.kind === "task") {
-            return <Marker key={moment.key} task={moment.task} onOpen={onOpenTask} />;
+            return <Marker key={moment.key} task={moment.task} onOpen={onOpenAgent} />;
           }
 
           if (moment.kind === "mark") {
@@ -117,7 +116,7 @@ const Line = ({
   );
 };
 
-const Marker = ({ task, onOpen }: { task: CallTask; onOpen: (task: TaskId) => void }) => {
+const Marker = ({ task, onOpen }: { task: CallTask; onOpen: (agent: string) => void }) => {
   const look = MARKERS[task.state];
   const { agent } = task;
 
@@ -126,7 +125,7 @@ const Marker = ({ task, onOpen }: { task: CallTask; onOpen: (task: TaskId) => vo
       disabled={agent === undefined}
       onPress={() => {
         if (agent !== undefined) {
-          onOpen(TaskId.parse(agent));
+          onOpen(agent);
         }
       }}
       accessibilityRole={agent === undefined ? undefined : "button"}

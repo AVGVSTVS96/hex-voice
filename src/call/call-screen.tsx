@@ -69,7 +69,6 @@ import { activityOrb } from "@/live/activity-orb";
 import type { CallCard } from "@/live/agents";
 import { transcriptText } from "@/live/calls";
 import type { CallId, CallSummary } from "@/live/calls";
-import { TaskId } from "@/live/tasks";
 import type { TaskRow } from "@/live/tasks";
 import type { CallAbout, TranscriptEntry } from "@/live/types";
 import { heard, motion } from "@/motion";
@@ -829,9 +828,7 @@ const CallScreen = ({
                 backdropFade={backdropFade}
                 onBack={backToCall}
                 onRemove={removeCall}
-                onOpenTask={(task) => {
-                  openTasks({ task });
-                }}
+                onOpenTasks={openTasks}
               />
               {pulls && (
                 <AnimatedView
@@ -901,11 +898,7 @@ const CallScreen = ({
           <AnimatedPressable
             {...reachable(agent !== null)}
             onPress={() => {
-              openTasks(
-                agent?.agent === undefined
-                  ? { stage: "working" }
-                  : { task: TaskId.parse(agent.agent) },
-              );
+              openTasks(agent?.agent === undefined ? { stage: "working" } : { agent: agent.agent });
             }}
             accessibilityRole="button"
             accessibilityHint="Opens what hex is working on"
@@ -1241,7 +1234,7 @@ const CallWords = ({
   backdropFade,
   onBack,
   onRemove,
-  onOpenTask,
+  onOpenTasks,
 }: {
   reading: boolean;
   style: ComponentProps<typeof Animated.View>["style"];
@@ -1258,7 +1251,7 @@ const CallWords = ({
   backdropFade: ComponentProps<typeof AnimatedView>["animate"];
   onBack: () => void;
   onRemove: (id: CallId) => void;
-  onOpenTask: (task: TaskId) => void;
+  onOpenTasks: (at: TasksAt) => void;
 }) => (
   <Animated.View {...reachable(reading)} style={style}>
     {shown && (
@@ -1284,7 +1277,9 @@ const CallWords = ({
           call={past.call}
           failed={past.failed}
           live={shown.id === live}
-          onOpenTask={onOpenTask}
+          onOpenAgent={(agent) => {
+            onOpenTasks({ agent });
+          }}
         />
       ) : (
         <Transcript
@@ -1294,7 +1289,9 @@ const CallWords = ({
           emptyAt={pulls ? "end" : "center"}
           cards={cards}
           onAnswer={async (card, option) => await answerAsk(card.ask, option)}
-          onOpenTask={onOpenTask}
+          onOpenTask={(task) => {
+            onOpenTasks({ task });
+          }}
         />
       )}
       <Animated.View pointerEvents="none" style={[styles.fade, fadeStyle]} />
