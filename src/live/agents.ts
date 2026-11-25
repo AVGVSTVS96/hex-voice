@@ -100,8 +100,8 @@ export type AgentSteps = z.infer<typeof AgentSteps>;
 export const agentTask = (agent: Agent, steps: AgentSteps["steps"]): Task => ({
   id: agent.id,
   app: "chex",
-  name: agent.label,
-  place: agent.place,
+  name: agent.place,
+  place: agent.label,
   state: agent.state === "working" ? "working" : "done",
   running: agent.state === "working",
   line: "",

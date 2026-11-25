@@ -77,7 +77,7 @@ test("the line names the agent its task runs in, so a tap opens that agent's ste
   assert.equal(agentLine([], { ...read, state: "done", agent: "a1b2" })?.agent, "a1b2");
 });
 
-test("an agent opens as a task whose steps read newest first", () => {
+test("an agent opens as a task titled by what it does, its steps newest first", () => {
   const [agent] = AgentList.parse({
     version: 3,
     agents: [
@@ -106,8 +106,8 @@ test("an agent opens as a task whose steps read newest first", () => {
   const task = agentTask(agent, steps);
 
   assert.equal(task.state, "working");
-  assert.equal(task.name, "Find voice apps");
-  assert.equal(task.place, "hex-voice");
+  assert.equal(task.place, "Find voice apps");
+  assert.equal(task.name, "hex-voice");
   assert.deepEqual(
     task.steps.map((step) => step.id),
     ["t2", "t1"],
