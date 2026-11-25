@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Linking } from "react-native";
 
+import { Markdown } from "@/components/markdown";
 import { Header, PageChrome } from "@/components/tasks/bar";
 import type { Back, Chrome } from "@/components/tasks/bar";
 import { Mark } from "@/components/tasks/mark";
@@ -293,17 +294,16 @@ const SessionRow = ({
           <Meta text={taskTime(row, now)} />
         </HStack>
         {lines.map((line, i) => (
-          <Row key={line} alignment="start" spacing={0}>
-            <Text
-              numberOfLines={i === 0 ? 2 : 1}
-              variant="detail"
-              tone={i === 0 ? "secondary" : "tertiary"}
-              paragraph
-              modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-            >
-              {line}
-            </Text>
-          </Row>
+          <Markdown
+            key={line}
+            inline
+            lines={i === 0 ? 2 : 1}
+            variant="detail"
+            tone="secondary"
+            modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+          >
+            {line}
+          </Markdown>
         ))}
       </Column>
     </Row>

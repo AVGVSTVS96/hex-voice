@@ -18,6 +18,7 @@ import type { ReactElement, ReactNode } from "react";
 import type { ColorValue } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
+import { Markdown } from "@/components/markdown";
 import { Header } from "@/components/tasks/bar";
 import { Mark } from "@/components/tasks/mark";
 import type { MarkState } from "@/components/tasks/mark";
@@ -160,7 +161,8 @@ export const Trace = ({
   const working = task.state === "working";
   const done = task.plan.filter((item) => item.state === "done").length;
   const { shown, tries } = agentsInOrder(task.agents);
-  const place = PLACES[placeOf(task.app)];
+  const place = task.app === "voice" ? undefined : PLACES[placeOf(task.app)];
+  const status = working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state];
 
   return (
     <Column
@@ -170,7 +172,7 @@ export const Trace = ({
     >
       <Header
         title="Steps"
-        subtitle={`${task.place || task.name} · ${place} · ${working ? `working for ${taskTime(task)}` : STATE_WORDS[task.state]}`}
+        subtitle={[task.place || task.name, place, status].filter(Boolean).join(" · ")}
       />
       <Faded>
         <ScrollView
@@ -257,6 +259,7 @@ export const Steps = ({
             key={key}
             lead={stepLead(step)}
             text={step.text}
+            markdown={words}
             lines={opened ? 0 : folded}
             tone={step.state === "failed" ? "danger" : undefined}
             time={agent ? undefined : times[i]}
@@ -450,6 +453,7 @@ const Agent = ({
         <TraceLine
           lead={<Lead state={agent.state} />}
           text={agent.label}
+          lines={2}
           tone={agent.state === "stopped" ? "secondary" : undefined}
           time={meta}
           onPress={() => {
@@ -544,21 +548,33 @@ const Under = ({
   text: string;
   lines?: number;
   tone?: Tone;
-}) => (
-  <Text
-    {...lineLimit(lines)}
-    variant="detail"
-    tone={tone}
-    paragraph
-    modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-  >
-    {text}
-  </Text>
-);
+}) =>
+  tone === "secondary" ? (
+    <Markdown
+      inline
+      lines={lines === 0 ? undefined : lines}
+      variant="detail"
+      tone="secondary"
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+    >
+      {text}
+    </Markdown>
+  ) : (
+    <Text
+      {...lineLimit(lines)}
+      variant="detail"
+      tone={tone}
+      paragraph
+      modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+    >
+      {text}
+    </Text>
+  );
 
 export const TraceLine = ({
   lead,
   text,
+  markdown = false,
   lines = 1,
   time = "",
   tone = "text",
@@ -572,6 +588,7 @@ export const TraceLine = ({
 }: {
   lead: ReactNode;
   text: string;
+  markdown?: boolean;
   lines?: number;
   time?: string | undefined;
   tone?: Tone | undefined;
@@ -607,16 +624,28 @@ export const TraceLine = ({
       {lead}
     </Row>
     <Column alignment="start" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Text
-        {...lineLimit(lines)}
-        variant="detail"
-        tone={tone}
-        {...(weight && { weight })}
-        paragraph
-        modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
-      >
-        {text}
-      </Text>
+      {markdown && (tone === "text" || tone === "secondary") ? (
+        <Markdown
+          inline
+          lines={lines === 0 ? undefined : lines}
+          variant="detail"
+          tone={tone}
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          {text}
+        </Markdown>
+      ) : (
+        <Text
+          {...lineLimit(lines)}
+          variant="detail"
+          tone={tone}
+          {...(weight && { weight })}
+          paragraph
+          modifiers={[frame({ maxWidth: Infinity, alignment: "leading" })]}
+        >
+          {text}
+        </Text>
+      )}
       {children}
     </Column>
     {time ? (
