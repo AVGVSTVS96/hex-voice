@@ -1,0 +1,13 @@
+# On hex-next, with no call on, a task in a past call's transcript opens the call's tasks and their steps in a sheet,
+# over invented answers: ANSWERS=scripts/duo-call-tasks-past.json HEX=kept scripts/duo tap <ref> scripts/duo-call-tasks-past-taps
+launch hexvoice:///?open=calls
+wait 2
+tap Router check
+wait 2
+shoot past-call
+tap Signal lost at 6:02 pm
+wait 2
+shoot sheet-past-call
+swipe-down Agents
+wait 3
+shoot sheet-closed-past-call
