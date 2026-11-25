@@ -2,6 +2,8 @@ import * as z from "zod/mini";
 
 import { Ask, Sent } from "./asks";
 import { CallId } from "./calls";
+import { TaskId, TaskStep } from "./tasks";
+import type { Task } from "./tasks";
 
 const AgentTask = z.object({
   id: z.string(),
@@ -9,6 +11,7 @@ const AgentTask = z.object({
   text: z.string(),
   to: z.optional(z.string()),
   line: z.optional(z.string()),
+  agent: z.optional(z.string()),
 });
 
 export type AgentTask = z.infer<typeof AgentTask>;
@@ -31,6 +34,7 @@ export const AgentActivity = z.object({
 
 export interface AgentLine {
   id: string;
+  agent?: string;
   state: AgentTask["state"];
   text: string;
   waiting: boolean;
@@ -46,6 +50,7 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
 
     return {
       id: task.id,
+      ...(task.agent !== undefined && { agent: task.agent }),
       state: "running",
       text: task.line ?? task.text,
       waiting: (task.line ?? "") === "",
@@ -59,6 +64,7 @@ export const agentLine = (tasks: AgentTask[], finished?: AgentTask): AgentLine |
 
   return {
     id: finished.id,
+    ...(finished.agent !== undefined && { agent: finished.agent }),
     state: finished.state,
     text: finished.state === "failed" ? (finished.line ?? finished.text) : finished.text,
     waiting: false,
@@ -71,3 +77,39 @@ export const justFinished = (before: AgentTask[], after: AgentTask[]) => {
 
   return after.find((task) => task.state !== "running" && wasRunning.has(task.id));
 };
+
+export const Agent = z.object({
+  id: TaskId,
+  session: z.string(),
+  place: z.string(),
+  label: z.string(),
+  who: z.string(),
+  state: z.catch(z.enum(["working", "done", "stopped"]), "done"),
+  since: z.string(),
+  end: z.optional(z.string()),
+});
+
+export type Agent = z.infer<typeof Agent>;
+
+export const AgentList = z.object({ version: z.number(), agents: z.array(Agent) });
+
+export const AgentSteps = z.object({ version: z.number(), steps: z.array(TaskStep) });
+
+export type AgentSteps = z.infer<typeof AgentSteps>;
+
+export const agentTask = (agent: Agent, steps: AgentSteps["steps"]): Task => ({
+  id: agent.id,
+  app: "chex",
+  name: agent.label,
+  place: agent.place,
+  state: agent.state === "working" ? "working" : "done",
+  running: agent.state === "working",
+  line: "",
+  since: agent.since,
+  at: agent.end ?? agent.since,
+  track: [],
+  lately: [],
+  steps: steps.toReversed(),
+  plan: [],
+  agents: [],
+});

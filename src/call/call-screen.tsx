@@ -30,8 +30,6 @@ import { footOf } from "@/call/stage";
 import { useCall } from "@/call/use-call";
 import { AgentLine } from "@/components/agent-line";
 import { CallControls } from "@/components/call-controls";
-import { CallTasksSheet } from "@/components/call-tasks-sheet";
-import type { CallTasksAt } from "@/components/call-tasks-sheet";
 import { CallTranscript } from "@/components/call-transcript";
 import { CallsSidebar } from "@/components/calls-sidebar";
 import { CallAdd } from "@/components/media/call-add";
@@ -61,7 +59,6 @@ import { useEscape } from "@/hooks/use-escape";
 import { failure } from "@/hooks/use-failures";
 import { useNow } from "@/hooks/use-now";
 import { usePersonaPreference } from "@/hooks/use-persona-preference";
-import { server } from "@/hooks/use-server";
 import { useTalk } from "@/hooks/use-talk";
 import { raiseTask, useTaskCounts } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
@@ -72,7 +69,8 @@ import { activityOrb } from "@/live/activity-orb";
 import type { CallCard } from "@/live/agents";
 import { transcriptText } from "@/live/calls";
 import type { CallId, CallSummary } from "@/live/calls";
-import type { TaskId, TaskRow } from "@/live/tasks";
+import { TaskId } from "@/live/tasks";
+import type { TaskRow } from "@/live/tasks";
 import type { CallAbout, TranscriptEntry } from "@/live/types";
 import { heard, motion } from "@/motion";
 import { DuoTasks, uncovered, useDuoTasks } from "@/screens/duo-tasks";
@@ -169,7 +167,6 @@ const CallScreen = ({
   const past = usePastCall(shown?.id);
   const { call: held, line: agent, cards } = useAgentLine(preferences.haptics);
   const { call, start, end, toggleMute } = useCall(held);
-  const [callTasks, setCallTasks] = useState<CallTasksAt | null>(null);
   const onCall = call.kind !== "none";
   const showing = onCall || !!shown;
   const [called, setCalled] = useState(showing);
@@ -678,10 +675,6 @@ const CallScreen = ({
   };
 
   const openTasks = (at: TasksAt = {}) => {
-    if (!server.tasks) {
-      return;
-    }
-
     tick();
     send({ to: "tasks", open: true, at });
   };
@@ -762,7 +755,7 @@ const CallScreen = ({
       gaps={"gaps" in toolbar ? toolbar.gaps : undefined}
       style={style}
       callsOpen={callsOpen}
-      tasks={server.tasks ? { ...counts, open: tasksOpen } : undefined}
+      tasks={{ ...counts, open: tasksOpen }}
       settingsOpen={settingsOpen}
       holdsBack={!!duo}
       back={back}
@@ -836,20 +829,9 @@ const CallScreen = ({
                 backdropFade={backdropFade}
                 onBack={backToCall}
                 onRemove={removeCall}
-                onOpenTask={
-                  server.tasks
-                    ? (task) => {
-                        openTasks({ task });
-                      }
-                    : undefined
-                }
-                onOpenCallTask={
-                  server.tasks
-                    ? undefined
-                    : (id, task) => {
-                        setCallTasks({ call: id, task });
-                      }
-                }
+                onOpenTask={(task) => {
+                  openTasks({ task });
+                }}
               />
               {pulls && (
                 <AnimatedView
@@ -910,32 +892,23 @@ const CallScreen = ({
               setFooter(nativeEvent.layout.height);
             }}
             onOpen={showCall}
-            {...(server.tasks && {
-              onMore: () => {
-                openTasks({ stage: "needs" });
-              },
-            })}
+            onMore={() => {
+              openTasks({ stage: "needs" });
+            }}
           >
             {footerControls && controls}
           </CallFooter>
           <AnimatedPressable
             {...reachable(agent !== null)}
-            {...(server.tasks
-              ? {
-                  onPress: () => {
-                    openTasks({ stage: "working" });
-                  },
-                  accessibilityRole: "button",
-                  accessibilityHint: "Opens what hex is working on",
-                }
-              : held &&
-                agent && {
-                  onPress: () => {
-                    setCallTasks({ call: held, task: agent.id });
-                  },
-                  accessibilityRole: "button",
-                  accessibilityHint: "Shows its steps",
-                })}
+            onPress={() => {
+              openTasks(
+                agent?.agent === undefined
+                  ? { stage: "working" }
+                  : { task: TaskId.parse(agent.agent) },
+              );
+            }}
+            accessibilityRole="button"
+            accessibilityHint="Opens what hex is working on"
             hitSlop={{ top: 8, bottom: 12 }}
             style={[styles.agent, { bottom: layout.agent.bottom }, agentStyle, linesStyle]}
           >
@@ -953,15 +926,6 @@ const CallScreen = ({
             onCall={onCall}
             onDismiss={() => {
               send({ to: "tasks", open: false });
-            }}
-          />
-        )}
-        {!server.tasks && (
-          <CallTasksSheet
-            at={callTasks}
-            onCall={onCall}
-            onDismiss={() => {
-              setCallTasks(null);
             }}
           />
         )}
@@ -1278,7 +1242,6 @@ const CallWords = ({
   onBack,
   onRemove,
   onOpenTask,
-  onOpenCallTask,
 }: {
   reading: boolean;
   style: ComponentProps<typeof Animated.View>["style"];
@@ -1295,8 +1258,7 @@ const CallWords = ({
   backdropFade: ComponentProps<typeof AnimatedView>["animate"];
   onBack: () => void;
   onRemove: (id: CallId) => void;
-  onOpenTask: ((task: TaskId) => void) | undefined;
-  onOpenCallTask: ((call: CallId, task: string) => void) | undefined;
+  onOpenTask: (task: TaskId) => void;
 }) => (
   <Animated.View {...reachable(reading)} style={style}>
     {shown && (
@@ -1322,12 +1284,7 @@ const CallWords = ({
           call={past.call}
           failed={past.failed}
           live={shown.id === live}
-          onOpenTask={
-            onOpenCallTask &&
-            ((task) => {
-              onOpenCallTask(shown.id, task);
-            })
-          }
+          onOpenTask={onOpenTask}
         />
       ) : (
         <Transcript

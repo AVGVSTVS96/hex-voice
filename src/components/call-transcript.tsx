@@ -8,6 +8,7 @@ import { SentMedia } from "@/components/media/sent";
 import { WrapUp } from "@/components/wrap-up";
 import { ENDINGS, SOURCES, clock, timeOfDay, timeline } from "@/live/calls";
 import type { CallRecord, CallSummary, CallTask, ShownMark } from "@/live/calls";
+import { TaskId } from "@/live/tasks";
 import { circle, theme } from "@/theme";
 import { ScrollView } from "@/ui/scroll";
 import { metrics, space, textOf } from "@/ui/tokens";
@@ -36,7 +37,7 @@ interface Props {
   call?: CallRecord | undefined;
   failed: boolean;
   live: boolean;
-  onOpenTask?: ((task: string) => void) | undefined;
+  onOpenTask: (task: TaskId) => void;
 }
 
 export const CallTranscript = ({ summary, call, failed, live, onOpenTask }: Props) => {
@@ -116,23 +117,20 @@ const Line = ({
   );
 };
 
-const Marker = ({
-  task,
-  onOpen,
-}: {
-  task: CallTask;
-  onOpen?: ((task: string) => void) | undefined;
-}) => {
+const Marker = ({ task, onOpen }: { task: CallTask; onOpen: (task: TaskId) => void }) => {
   const look = MARKERS[task.state];
+  const { agent } = task;
 
   return (
     <Pressable
-      disabled={!onOpen}
+      disabled={agent === undefined}
       onPress={() => {
-        onOpen?.(task.id);
+        if (agent !== undefined) {
+          onOpen(TaskId.parse(agent));
+        }
       }}
-      accessibilityRole={onOpen ? "button" : undefined}
-      accessibilityHint={onOpen ? "Shows its steps" : undefined}
+      accessibilityRole={agent === undefined ? undefined : "button"}
+      accessibilityHint={agent === undefined ? undefined : "Shows its steps"}
       hitSlop={space[3]}
       style={styles.marker}
     >

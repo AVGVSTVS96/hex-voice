@@ -56,72 +56,96 @@
         "id": "log",
         "state": "running",
         "text": "Reading the router's log",
-        "at": 8000
+        "at": 8000,
+        "agent": "a7f03"
       },
       {
         "id": "outage",
         "state": "running",
         "text": "Checking the outage page",
-        "at": 9000
+        "at": 9000,
+        "agent": "a7f04"
       },
       {
         "id": "outage",
         "state": "done",
         "text": "No outage nearby",
-        "at": 30000
+        "at": 30000,
+        "agent": "a7f04"
       },
       {
         "id": "log",
         "state": "done",
         "text": "Signal lost at 6:02 pm",
-        "at": 60000
+        "at": 60000,
+        "agent": "a7f03"
       }
     ]
   },
-  "/calls/duo-router/steps": {
+  "/agents/a7f03/steps": {
     "version": 1,
-    "tasks": [
+    "steps": [
       {
-        "id": "log",
-        "steps": [
-          {
-            "id": "l1",
-            "at": "2026-11-24T18:20:08.500Z",
-            "end": "2026-11-24T18:20:20.000Z",
-            "kind": "web",
-            "text": "Opening the router's admin page",
-            "state": "done"
-          },
-          {
-            "id": "l2",
-            "at": "2026-11-24T18:20:21.000Z",
-            "end": "2026-11-24T18:20:50.000Z",
-            "kind": "read",
-            "text": "Reading the system log for the last hour, where the WAN link went down and came back up several times before it stayed down",
-            "state": "done",
-            "result": "WAN down at 18:02"
-          },
-          {
-            "id": "l3",
-            "at": "2026-11-24T18:20:58.000Z",
-            "kind": "say",
-            "text": "Signal lost at 6:02 pm."
-          }
-        ]
+        "id": "l1",
+        "at": "2026-11-24T18:20:08.500Z",
+        "end": "2026-11-24T18:20:20.000Z",
+        "kind": "web",
+        "text": "Opening the router's admin page",
+        "state": "done"
       },
       {
-        "id": "outage",
-        "steps": [
-          {
-            "id": "o1",
-            "at": "2026-11-24T18:20:09.500Z",
-            "end": "2026-11-24T18:20:28.000Z",
-            "kind": "web",
-            "text": "Searching the provider's outage map",
-            "state": "done",
-            "result": "none nearby"
-          }
-        ]
+        "id": "l2",
+        "at": "2026-11-24T18:20:21.000Z",
+        "end": "2026-11-24T18:20:50.000Z",
+        "kind": "read",
+        "text": "Reading the system log for the last hour, where the WAN link went down and came back up several times before it stayed down",
+        "state": "done",
+        "result": "WAN down at 18:02"
+      },
+      {
+        "id": "l3",
+        "at": "2026-11-24T18:20:58.000Z",
+        "kind": "say",
+        "text": "Signal lost at 6:02 pm."
+      }
+    ]
+  },
+  "/agents/a7f04/steps": {
+    "version": 1,
+    "steps": [
+      {
+        "id": "o1",
+        "at": "2026-11-24T18:20:09.500Z",
+        "end": "2026-11-24T18:20:28.000Z",
+        "kind": "web",
+        "text": "Searching the provider's outage map",
+        "state": "done",
+        "result": "none nearby"
+      }
+    ]
+  },
+  "/agents": {
+    "version": 1,
+    "agents": [
+      {
+        "id": "a7f03",
+        "session": "hs_duo",
+        "place": "Router check",
+        "label": "Reading the router's log",
+        "who": "general-purpose",
+        "state": "done",
+        "since": "2026-11-24T18:20:08.000Z",
+        "end": "2026-11-24T18:21:00.000Z"
+      },
+      {
+        "id": "a7f04",
+        "session": "hs_duo",
+        "place": "Router check",
+        "label": "Checking the outage page",
+        "who": "general-purpose",
+        "state": "done",
+        "since": "2026-11-24T18:20:09.000Z",
+        "end": "2026-11-24T18:20:30.000Z"
       }
     ]
   }

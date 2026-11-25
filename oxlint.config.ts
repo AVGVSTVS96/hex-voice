@@ -115,7 +115,7 @@ export default defineConfig({
     },
     { files: ["src/call/call-screen.tsx"], rules: { complexity: "off" } },
     {
-      files: ["src/components/tasks/tasks-view.tsx"],
+      files: ["src/components/tasks/tasks-view.tsx", "src/components/tasks/agents.tsx"],
       rules: { "react/jsx-no-constructed-context-values": "off" },
     },
     { files: ["tests/fixtures/capture.mts"], rules: { "anti-slop/no-runtime-typeof": "off" } },

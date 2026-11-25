@@ -196,7 +196,7 @@ const old: Server = {
   label: "hex",
   url: hexUrl,
   token: "old",
-  tasks: true,
+  tasks: "hex",
   kept: "",
   reach: "Check that Tailscale is on",
 };
@@ -206,7 +206,7 @@ const next: Server = {
   label: "hex-next",
   url: "https://next.example",
   token: "new",
-  tasks: false,
+  tasks: "agents",
   kept: "hex-next:",
   reach: "Check your connection",
 };
