@@ -6,7 +6,7 @@ shoot call
 tap Reading the layout notes
 wait 2
 shoot steps-on-call
-swipe-down Steps
+tap tasks-button
 wait 3
 tap tasks-button
 wait 2

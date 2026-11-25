@@ -8,7 +8,7 @@ shoot past-call
 tap Signal lost at 6:02 pm
 wait 2
 shoot steps-past-call
-swipe-down Steps
+tap tasks-button
 wait 3
 shoot closed-past-call
 tap tasks-button
