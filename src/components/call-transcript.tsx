@@ -128,6 +128,7 @@ const Marker = ({
       }}
       accessibilityRole={onOpen ? "button" : undefined}
       accessibilityHint={onOpen ? "Shows its steps" : undefined}
+      hitSlop={space[3]}
       style={styles.marker}
     >
       <View style={[styles.dot, { backgroundColor: look.fill }]}>
