@@ -31,6 +31,15 @@ export const SERVERS: readonly [Server, ...Server[]] = [
     kept: "hex-next:",
     reach: "Check your connection",
   },
+  {
+    id: "fresh",
+    label: "fresh",
+    url: Address.parse(process.env.EXPO_PUBLIC_HEX_FRESH_URL),
+    token: Address.parse(process.env.EXPO_PUBLIC_HEX_FRESH_TOKEN),
+    tasks: "sessions",
+    kept: "fresh:",
+    reach: "Check your connection",
+  },
 ];
 
 const set = (value: string | undefined) => (value ?? "").trim() !== "";
