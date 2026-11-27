@@ -1,0 +1,14 @@
+# On hex-next, a session's Steps page leads with its Messages, which open its thread with a box
+# that writes into the session, over invented answers:
+# ANSWERS=scripts/duo-sessions.json HEX=kept scripts/duo tap <ref> scripts/duo-session-chat-taps
+launch hexvoice:///?tasks
+wait 3
+tap Weekend trip, idle
+wait 2
+shoot steps
+tap Weekend trip. Opens its messages
+wait 2
+shoot thread
+type thread-input typed
+above-keyboard thread-input
+shoot typing

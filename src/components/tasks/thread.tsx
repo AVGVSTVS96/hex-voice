@@ -58,11 +58,15 @@ export const Messages = ({
         modifiers={[
           frame({ maxWidth: Infinity, alignment: "leading" }),
           contentShape(shapes.rectangle()),
-          accessibilityLabel(`${thread.place}. Opens its messages`),
+          accessibilityLabel(`${thread.place || thread.name}. Opens its messages`),
         ]}
       >
         <SectionHead
-          title={thread.place === thread.name ? "Messages" : `Messages · ${thread.place}`}
+          title={
+            !thread.place || thread.place === thread.name
+              ? "Messages"
+              : `Messages · ${thread.place}`
+          }
           count={chat.total || undefined}
           opens
         />
@@ -105,7 +109,7 @@ export const ThreadPage = ({
   onSend: (text: string, media: Picked[]) => void;
   onRetry: (sent: Sending) => void;
   onStop: () => void;
-  onTalk: () => void;
+  onTalk?: (() => void) | undefined;
   failed?: string | undefined;
 }) => {
   const field = useField();
@@ -224,7 +228,7 @@ const ThreadHead = ({
   beside: boolean;
   chat: Chat | undefined;
   onOpen: (thread: TaskRow) => void;
-  onTalk: () => void;
+  onTalk: (() => void) | undefined;
 }) => {
   if (beside) {
     return (
@@ -240,7 +244,7 @@ const ThreadHead = ({
   return (
     <Header
       title={heading}
-      call={{ about: heading, onPress: onTalk }}
+      call={onTalk ? { about: heading, onPress: onTalk } : undefined}
       subtitle={
         thread.running
           ? `working for ${taskTime(thread)}`

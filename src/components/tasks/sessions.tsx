@@ -30,8 +30,10 @@ import {
   rowFrame,
 } from "@/components/tasks/parts";
 import { Count, Meta } from "@/components/tasks/rows";
+import { Messages, ThreadPage } from "@/components/tasks/thread";
 import { StepsLoading, Trace } from "@/components/tasks/trace";
 import { useToolbarBack } from "@/components/toolbar-back";
+import { useChat } from "@/hooks/use-chat";
 import { useNow } from "@/hooks/use-now";
 import { useTask, useTasks } from "@/hooks/use-tasks";
 import type { Counts } from "@/hooks/use-tasks";
@@ -60,6 +62,8 @@ export const SessionTasks = ({
   const { needs, working } = countsOf(tasks ?? []);
   const chosen = chosenOf(pages, tasks ?? []);
   const traced = useTask(chosen, version);
+  const said = useChat(chosen, open);
+  const session = traced.task ?? tasks?.find((row) => row.id === chosen);
 
   const spot = (level: Level) => spotOf(level, pages, room);
 
@@ -79,7 +83,7 @@ export const SessionTasks = ({
     call: "Call",
     list: "Tasks",
     topic: "Steps",
-    thread: "",
+    thread: "Messages",
     steps: "",
     check: "",
     picks: "",
@@ -100,6 +104,8 @@ export const SessionTasks = ({
     back: back && !inToolbar ? backTo(back) : undefined,
   });
 
+  const paired = spot("topic").shown && spot("thread").shown;
+
   const page = (level: Level, children: ReactNode) => {
     const at = spot(level);
 
@@ -114,7 +120,7 @@ export const SessionTasks = ({
 
   return (
     <PagesView
-      pages={["list", "topic"]}
+      pages={["list", "topic", "thread"]}
       one={levelsOf(pages, "one")}
       two={levelsOf(pages, "panes")}
       columns={levelsOf(pages, "columns")}
@@ -147,17 +153,57 @@ export const SessionTasks = ({
             <Trace
               task={traced.task}
               focus={pages.agent}
-              onOpen={(link) => {
-                void Linking.openURL(link).catch(() => null);
-              }}
+              messages={
+                said.chat && !paired ? (
+                  <Messages
+                    thread={traced.task}
+                    chat={said.chat}
+                    onOpen={() => {
+                      pages.go({ to: "thread" });
+                    }}
+                  />
+                ) : undefined
+              }
+              onOpen={openLink}
             />
           ) : (
             <StepsLoading {...traced} />
           ),
         ),
+        page(
+          "thread",
+          session ? (
+            <ThreadPage
+              thread={session}
+              beside={paired}
+              chat={said.chat}
+              pending={said.pending}
+              failed={said.failed}
+              focus={pages.focusComposer}
+              foot={spot("thread").foot}
+              onOpen={({ link }) => {
+                if (link !== undefined) {
+                  openLink(link);
+                }
+              }}
+              onSteps={pages.back}
+              onSend={said.send}
+              onRetry={said.retry}
+              onStop={() => {
+                void said.stop();
+              }}
+            />
+          ) : (
+            <Spacer />
+          ),
+        ),
       ]}
     </PagesView>
   );
+};
+
+const openLink = (link: string) => {
+  void Linking.openURL(link).catch(() => null);
 };
 
 const countsOf = (tasks: TaskRow[]): Counts => ({

@@ -218,5 +218,33 @@
         "text": "Steps of Weekend trip: Booked the cabin for **Saturday**; the [map](https://example.com/map) and packing list are ready"
       }
     ]
+  },
+  "/tasks/hs_trip/chat": {
+    "version": 1,
+    "sends": true,
+    "total": 4,
+    "turns": [
+      {
+        "from": "me",
+        "text": "Can you find us a cabin near the lake for the weekend?",
+        "at": "2026-11-25T08:00:00.000Z"
+      },
+      {
+        "from": "hex",
+        "text": "Found three with a free **Saturday**: Pine Hollow, Birch Point and the Ridge cabin. Pine Hollow has the dock.",
+        "at": "2026-11-25T08:05:00.000Z"
+      },
+      {
+        "from": "me",
+        "text": "Pine Hollow, two nights",
+        "at": "2026-11-25T08:07:00.000Z"
+      },
+      {
+        "from": "hex",
+        "text": "Booked Pine Hollow for Friday and Saturday night. The code for the door comes the morning you arrive.",
+        "at": "2026-11-25T08:09:00.000Z"
+      }
+    ],
+    "waiting": []
   }
 }

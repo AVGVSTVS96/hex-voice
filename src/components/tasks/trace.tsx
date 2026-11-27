@@ -153,10 +153,12 @@ export const StepsLoading = (answered: Answered) => (
 export const Trace = ({
   task,
   focus,
+  messages,
   onOpen,
 }: {
   task: Task;
   focus?: string | null;
+  messages?: ReactNode;
   onOpen: (link: string) => void;
 }) => {
   const working = task.state === "working";
@@ -185,6 +187,11 @@ export const Trace = ({
         >
           <Column alignment="start" spacing={0} modifiers={[padding({ bottom: space[10] })]}>
             <Sections>
+              {messages === undefined ? null : (
+                <Column key="messages" alignment="start" spacing={0}>
+                  {messages}
+                </Column>
+              )}
               {task.plan.length ? (
                 <Column key="plan" alignment="start" spacing={0}>
                   <SectionHead title="Plan" count={`${done} of ${task.plan.length}`} />
